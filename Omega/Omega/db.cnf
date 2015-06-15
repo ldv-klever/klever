@@ -1,5 +1,0 @@
-[client]
-database = DBNAME
-user = USER
-password = PASSWORD
-default-character-set = utf8

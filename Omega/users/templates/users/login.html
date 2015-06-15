@@ -1,0 +1,18 @@
+{% extends 'users/login_base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block body_block %}
+    <link href="http://getbootstrap.com/examples/signin/signin.css" rel="stylesheet">
+    <form class="form-signin" role="form" id="login_form" method="post" action="{% url 'users:login' %}">
+        {% csrf_token %}
+        <h2 class="form-signin-heading">Please sign in</h2>
+
+        {% if login_errors %}
+            <p style="color: #ee4c21;">{{ login_errors }}</p>
+        {% endif %}
+        <input class="form-control" placeholder="Username" id="id_username" maxlength="254" name="username" type="text" required autofocus="">
+        <input class="form-control" placeholder="Password" id="id_password" maxlength="254" name="password" type="password" required>
+        <button class="btn btn-lg btn-primary btn-block" type="submit" value="Submit">Sign in</button>
+    </form>
+{% endblock %}
