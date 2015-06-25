@@ -13,21 +13,21 @@
 
 {% block body_block %}
 
-    {% if registered %}
-        <strong>Thank you for registering!</strong>
+    {% if changed %}
+        <strong>Your profile was changed!</strong>
     {% else %}
         <h3><strong>Register here!</strong></h3><br>
-        <form id="user_form" method="post" action="{% url 'users:register' %}" enctype="multipart/form-data">
+        <form id="user_form" method="post" action="{% url 'users:edit_profile' %}">
         {% csrf_token %}
         {{ user_form.as_p }}
         {{ profile_form.as_p }}
             <label for="timezone">Time zone:</label>
             <select id="timezone" name="timezone">
                 {% for tmz in timezones %}
-                    <option value="{{ tmz }}"{% if tmz == TIME_ZONE %} selected="selected"{% endif %}>{{ tmz }}</option>
+                    <option value="{{ tmz }}"{% if tmz == user.userextended.timezone %} selected="selected"{% endif %}>{{ tmz }}</option>
                 {% endfor %}
             </select>
-        <br><input type="submit" name="submit" value="Register">
+        <br><input type="submit" name="submit" value="Submit">
         </form>
     {% endif %}
 

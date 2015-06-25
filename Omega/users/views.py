@@ -2,7 +2,10 @@ from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponseRedirect, HttpResponse
 from django.core.urlresolvers import reverse
-from users.forms import UserExtendedForm, UserForm
+from users.forms import UserExtendedForm, UserForm, EditUserForm
+import pytz
+from django.contrib.auth.decorators import login_required
+from django.forms import ValidationError
 
 
 def user_login(request):
@@ -30,7 +33,13 @@ def user_logout(request):
 
 
 def index(request):
-    return render(request, 'users/index.html')
+    context = {}
+    if request.user.is_authenticated():
+        context['chdate'] = request.user.userextended.change_date
+        user_tz = request.user.userextended.timezone
+        if len(user_tz) > 0:
+            context['user_tz'] = user_tz
+    return render(request, 'users/index.html', context)
 
 
 def register(request):
@@ -39,17 +48,19 @@ def register(request):
     if request.method == 'POST':
         user_form = UserForm(data=request.POST)
         profile_form = UserExtendedForm(data=request.POST)
-
+        user_tz = request.POST.get('timezone')
         if user_form.is_valid() and profile_form.is_valid():
             user = user_form.save()
+
             user.set_password(user.password)
             user.save()
 
             profile = profile_form.save(commit=False)
             profile.user = user
-
-            if 'picture' in request.FILES:
-                profile.picture = request.FILES['picture']
+            if user_tz:
+                profile.timezone = user_tz
+            # if 'picture' in request.FILES:
+            #    profile.picture = request.FILES['picture']
             profile.save()
 
             registered = True
@@ -63,5 +74,54 @@ def register(request):
                   {
                       'user_form': user_form,
                       'profile_form': profile_form,
-                      'registered': registered
+                      'registered': registered,
+                      'timezones': pytz.common_timezones,
+                  })
+
+
+@login_required
+def edit_profile(request):
+    changed = False
+
+    if request.method == 'POST':
+        user_form = EditUserForm(data=request.POST, request=request, instance=request.user)
+        profile_form = UserExtendedForm(
+            data=request.POST,
+            instance=request.user.userextended
+        )
+        user_tz = request.POST.get('timezone')
+        if user_form.is_valid() and profile_form.is_valid():
+            password = request.POST.get('old_password')
+            if request.user.check_password(password):
+                user = user_form.save(commit=False)
+                new_pass = request.POST.get('new_password')
+                do_redirect = False
+                if len(new_pass):
+                    print(new_pass)
+                    user.set_password(new_pass)
+                    do_redirect = True
+                user.save()
+                profile = profile_form.save(commit=False)
+                profile.change_author = request.user
+                profile.user = user
+                if user_tz:
+                    profile.timezone = user_tz
+                profile.save()
+                changed = True
+                if do_redirect:
+                    return HttpResponseRedirect(reverse('users:login'))
+            else:
+                raise ValidationError('Wrong password!')
+        else:
+            print(user_form.errors, profile_form.errors)
+    else:
+        user_form = EditUserForm(instance=request.user)
+        profile_form = UserExtendedForm(instance=request.user.userextended)
+
+    return render(request, 'users/edit-profile.html',
+                  {
+                      'user_form': user_form,
+                      'profile_form': profile_form,
+                      'changed': changed,
+                      'timezones': pytz.common_timezones,
                   })
