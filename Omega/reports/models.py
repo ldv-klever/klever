@@ -1,6 +1,12 @@
 from django.db import models
 from django.utils.translation import ugettext as _
 
+# Current differences from the original database schema:
+# MEDIUMBLOB -> LONGBLOB
+# TEXT, MEDIUMTEXT -> LONGTEXT
+# In inheritance pk/fk is <parent>_ptr_id
+# TODO: add fk for user and job classes
+
 class AttrName(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=31)
@@ -21,15 +27,15 @@ class Report(models.Model):
     parent = models.ForeignKey('Report', blank=True, null=True, on_delete=models.CASCADE, db_column='parent_id')
     identifier = models.CharField(max_length=255)
     creation_date = models.DateTimeField()
-    description = models.BinaryField(null=True) # -> LongBlob only?
-    attr = models.ManyToManyField('Attr') # specify table?
+    description = models.BinaryField(null=True)
+    attr = models.ManyToManyField('Attr')
 
     def __str__(self):
         return self.id
 
 class Computer(models.Model):
     id = models.AutoField(primary_key=True)
-    description = models.TextField(null=True) # -> LONGTEXT only?
+    description = models.TextField(null=True)
 
     def __str__(self):
         return self.id
@@ -51,7 +57,6 @@ class Resource(models.Model):
         return self.id
 
 class ReportRoot(Report):
-    # PK/FK?
     # TODO: user = models.ForeignKey('User', blank=True, null=True, on_delete=models.SET_NULL, db_column='user_id')
     # TODO: job_id
     computer = models.ForeignKey('Computer', blank=False, null=False, on_delete=models.CASCADE, db_column='computer_id')
@@ -68,39 +73,36 @@ class ReportRoot(Report):
     start_date = models.DateTimeField()
     last_request_date = models.DateTimeField()
     finish_date = models.DateTimeField()
-    log = models.BinaryField(null=True) # -> LongBlob only?
+    log = models.BinaryField(null=True)
 
     def __str__(self):
         return self.id
 
 class ReportComponent(Report):
-    # PK/FK?
+    report_id = models.AutoField(primary_key=True)
     computer = models.ForeignKey('Computer', blank=False, null=False, on_delete=models.CASCADE, db_column='computer_id')
     resource = models.ForeignKey('Resource', blank=False, null=False, on_delete=models.CASCADE, db_column='resource_id')
     component = models.ForeignKey('Component', blank=False, null=False, on_delete=models.CASCADE, db_column='component_id')
-    log = models.BinaryField(null=True) # -> LongBlob only?
-    data = models.BinaryField(null=True) # -> LongBlob only?
+    log = models.BinaryField(null=True)
+    data = models.BinaryField(null=True)
 
     def __str__(self):
         return self.id
 
 class ReportUnsafe(Report):
-    # PK/FK?
-    error_trace = models.BinaryField() # -> LongBlob only?
+    error_trace = models.BinaryField()
 
     def __str__(self):
         return self.id
 
 class ReportSafe(Report):
-    # PK/FK?
-    proof = models.BinaryField() # -> LongBlob only?
+    proof = models.BinaryField()
 
     def __str__(self):
         return self.id
         
 class ReportUnknown(Report):
-    # PK/FK?
-    problem_description = models.BinaryField() # -> LongBlob only?
+    problem_description = models.BinaryField()
 
     def __str__(self):
         return self.id
