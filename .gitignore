@@ -3,3 +3,4 @@ __pycache__
 /Omega/.idea/workspace.xml
 /Omega/Omega/db.cnf
 /Omega/media/*
+migrations/*

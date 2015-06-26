@@ -25,3 +25,26 @@ class UserExtended(models.Model):
 
     def __str__(self):
         return self.user.username
+
+
+class View(models.Model):
+    author = models.ForeignKey(User)
+    name = models.CharField(max_length=255, blank=True)
+    view = models.TextField()
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "view"
+
+
+class PreferableView(models.Model):
+    user = models.ForeignKey(User)
+    view = models.ForeignKey(View, related_name='+', on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.view.name
+
+    class Meta:
+        db_table = "user_preferable_view"
