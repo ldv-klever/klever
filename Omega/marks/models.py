@@ -46,3 +46,10 @@ class UnsafeTag(models.Model):
 
     class Meta:
         db_table = "mark_unsafe_tag"
+
+
+class UnknownProblem(models.Model):
+    name = models.CharField(max_length=1023)
+
+    class Meta:
+        db_table = 'cache_mark_unknown_problem'

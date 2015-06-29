@@ -12,12 +12,12 @@
     {% if chdate and user_tz %}
         {% timezone user_tz %}
         <p>Your account was changed last time: {{ chdate }} by
-            {{ user.userextended.change_author.userextended.first_name }}
-            {{ user.userextended.change_author.userextended.last_name }}</p>
+            {{ user.extended.change_author.extended.first_name }}
+            {{ user.extended.change_author.extended.last_name }}</p>
         {% endtimezone %}
     {% elif chdate %}
         <p>Your account was changed last time: {{ chdate }} by
-            {{ user.userextended.change_author.userextended.first_name }}
-            {{ user.userextended.change_author.userextended.last_name }}</p>
+            {{ user.extended.change_author.extended.first_name }}
+            {{ user.extended.change_author.extended.last_name }}</p>
     {% endif %}
 {% endblock %}

@@ -24,7 +24,7 @@
             <label for="timezone">Time zone:</label>
             <select id="timezone" name="timezone">
                 {% for tmz in timezones %}
-                    <option value="{{ tmz }}"{% if tmz == user.userextended.timezone %} selected="selected"{% endif %}>{{ tmz }}</option>
+                    <option value="{{ tmz }}"{% if tmz == user.extended.timezone %} selected="selected"{% endif %}>{{ tmz }}</option>
                 {% endfor %}
             </select>
         <br><input type="submit" name="submit" value="Submit">

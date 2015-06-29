@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from users.models import UserExtended
+from users.models import Extended
 
 
 class UserForm(forms.ModelForm):
@@ -60,6 +60,6 @@ class UserExtendedForm(forms.ModelForm):
                                   initial=2)
 
     class Meta:
-        model = UserExtended
+        model = Extended
         # TODO: remove 'role' after testing
         fields = ('accuracy', 'language', 'role', 'first_name', 'last_name')

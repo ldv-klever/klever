@@ -11,7 +11,7 @@ USER_ROLES = (
     ('adm', _('Administrator')),
 )
 
-class UserExtended(models.Model):
+class Extended(models.Model):
     LANGUAGES = (
         ('en', 'English'),
         ('ru', 'Русский'),

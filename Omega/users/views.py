@@ -35,8 +35,8 @@ def user_logout(request):
 def index(request):
     context = {}
     if request.user.is_authenticated():
-        context['chdate'] = request.user.userextended.change_date
-        user_tz = request.user.userextended.timezone
+        context['chdate'] = request.user.extended.change_date
+        user_tz = request.user.extended.timezone
         if len(user_tz) > 0:
             context['user_tz'] = user_tz
     return render(request, 'users/index.html', context)
@@ -91,7 +91,7 @@ def edit_profile(request):
                                  instance=request.user)
         profile_form = UserExtendedForm(
             data=request.POST,
-            instance=request.user.userextended
+            instance=request.user.extended
         )
         user_tz = request.POST.get('timezone')
         if user_form.is_valid() and profile_form.is_valid():
@@ -120,7 +120,7 @@ def edit_profile(request):
             print(user_form.errors, profile_form.errors)
     else:
         user_form = EditUserForm(instance=request.user)
-        profile_form = UserExtendedForm(instance=request.user.userextended)
+        profile_form = UserExtendedForm(instance=request.user.extended)
 
     return render(request, 'users/edit-profile.html',
                   {
