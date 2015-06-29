@@ -57,6 +57,8 @@ def register(request):
 
             profile = profile_form.save(commit=False)
             profile.user = user
+            profile.change_author = user
+
             if user_tz:
                 profile.timezone = user_tz
             # if 'picture' in request.FILES:
