@@ -1,66 +1,92 @@
 from django.db import models
 from django.utils.translation import ugettext as _
+from django.contrib.auth.models import User
+from jobs.job_model import Job
+
 
 # Current differences from the original database schema:
 # MEDIUMBLOB -> LONGBLOB
 # TEXT, MEDIUMTEXT -> LONGTEXT
-# In inheritance pk/fk is <parent>_ptr_id
-# TODO: add fk for user and job classes
+# TODO: __str__ is useful only for debugging. Do you need it everywhere?
+# __str__ must return string.
+# Storing files in the database is bad in 99% cases. Try to find another way.
+# TODO: check if some ForeignKey fields can be OneToOneField.
 
 class AttrName(models.Model):
-    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=31)
 
     def __str__(self):
-        return self.id
+        return self.name
+
+    class Meta:
+        db_table = 'attr_name'
+
 
 class Attr(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.ForeignKey('AttrName', blank=False, null=False, on_delete=models.CASCADE, db_column='name_id')
-    value = models.CharField(max_length=255, null=True)
+    name = models.ForeignKey(AttrName)
+    value = models.CharField(max_length=255)
     
     def __str__(self):
-        return self.id
+        return self.name.name
+
+    class Meta:
+        db_table = 'attr'
+
 
 class Report(models.Model):
-    id = models.AutoField(primary_key=True)
-    parent = models.ForeignKey('Report', blank=True, null=True, on_delete=models.CASCADE, db_column='parent_id')
-    identifier = models.CharField(max_length=255)
-    creation_date = models.DateTimeField()
+    parent = models.ForeignKey('self', blank=True, null=True, related_name='+')
+    identifier = models.CharField(max_length=255, unique=True)
+    creation_date = models.DateTimeField(auto_now=True)
     description = models.BinaryField(null=True)
-    attr = models.ManyToManyField('Attr')
+    attr = models.ManyToManyField(Attr)
 
     def __str__(self):
-        return self.id
+        return self.identifier
+
+    class Meta:
+        db_table = 'report'
+
 
 class Computer(models.Model):
-    id = models.AutoField(primary_key=True)
-    description = models.TextField(null=True)
+    description = models.TextField()
 
     def __str__(self):
-        return self.id
+        return self.description
+
+    class Meta:
+        db_table = 'computer'
+
 
 class Component(models.Model):
-    id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
 
     def __str__(self):
-        return self.id
+        return self.name
+
+    class Meta:
+        db_table = 'component'
+
 
 class Resource(models.Model):
-    id = models.AutoField(primary_key=True)
     cpu_time = models.BigIntegerField()
     wall_time = models.BigIntegerField()
     memory = models.BigIntegerField()
-    
+
     def __str__(self):
-        return self.id
+        return str(self.pk)
+
+    class Meta:
+        db_table = 'resource'
+
 
 class ReportRoot(Report):
-    # TODO: user = models.ForeignKey('User', blank=True, null=True, on_delete=models.SET_NULL, db_column='user_id')
-    # TODO: job_id
-    computer = models.ForeignKey('Computer', blank=False, null=False, on_delete=models.CASCADE, db_column='computer_id')
-    resource = models.ForeignKey('Resource', blank=False, null=False, on_delete=models.CASCADE, db_column='resource_id')
+    user = models.ForeignKey(User, blank=True, null=True,
+                             on_delete=models.SET_NULL, related_name='+')
+
+    # TODO: on_delete default is CASCADE. Is it OK?
+    job = models.ForeignKey(Job, related_name='+')
+    computer = models.ForeignKey(Computer, related_name='+')
+    resource = models.ForeignKey(Resource, related_name='+')
     
     STATUS = (
         ('0', _('Not Solved')),
@@ -76,33 +102,51 @@ class ReportRoot(Report):
     log = models.BinaryField(null=True)
 
     def __str__(self):
-        return self.id
+        return self.identifier
+
+    class Meta:
+        db_table = 'report_root'
+
 
 class ReportComponent(Report):
-    report_id = models.AutoField(primary_key=True)
-    computer = models.ForeignKey('Computer', blank=False, null=False, on_delete=models.CASCADE, db_column='computer_id')
-    resource = models.ForeignKey('Resource', blank=False, null=False, on_delete=models.CASCADE, db_column='resource_id')
-    component = models.ForeignKey('Component', blank=False, null=False, on_delete=models.CASCADE, db_column='component_id')
+    computer = models.ForeignKey(Computer, related_name='+')
+    resource = models.ForeignKey(Resource, related_name='+')
+    component = models.ForeignKey(Component, related_name='+')
     log = models.BinaryField(null=True)
     data = models.BinaryField(null=True)
 
     def __str__(self):
-        return self.id
+        return self.identifier
+
+    class Meta:
+        db_table = 'report_component'
+
 
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
 
     def __str__(self):
-        return self.id
+        return self.identifier
+
+    class Meta:
+        db_table = 'report_unsafe'
+
 
 class ReportSafe(Report):
     proof = models.BinaryField()
 
     def __str__(self):
-        return self.id
-        
+        return self.identifier
+
+    class Meta:
+        db_table = 'report_safe'
+
+
 class ReportUnknown(Report):
     problem_description = models.BinaryField()
 
     def __str__(self):
-        return self.id
+        return self.identifier
+
+    class Meta:
+        db_table = 'report_unknown'

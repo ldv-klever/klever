@@ -3,19 +3,22 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 
 
+USER_ROLES = (
+    ('none', _('No access')),
+    ('prod', _('Producer')),
+    ('man', _('Manager')),
+    ('prmn', _('Producer and Manager')),
+    ('adm', _('Administrator')),
+)
+
 class UserExtended(models.Model):
     LANGUAGES = (
         ('en', 'English'),
         ('ru', 'Русский'),
     )
-    USER_ROLES = (
-        ('none', _('No access')),
-        ('prod', _('Producer')),
-        ('man', _('Manager')),
-        ('prmn', _('Producer and Manager')),
-        ('adm', _('Administrator')),
-    )
     user = models.OneToOneField(User)
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
     change_date = models.DateTimeField(auto_now=True)
     change_author = models.ForeignKey(User, related_name='+')
     accuracy = models.SmallIntegerField(default=2)
@@ -26,9 +29,12 @@ class UserExtended(models.Model):
     def __str__(self):
         return self.user.username
 
+    class Meta:
+        db_table = 'user_extended'
+
 
 class View(models.Model):
-    author = models.ForeignKey(User)
+    author = models.ForeignKey(User, related_name='+')
     name = models.CharField(max_length=255, blank=True)
     view = models.TextField()
 
@@ -40,7 +46,7 @@ class View(models.Model):
 
 
 class PreferableView(models.Model):
-    user = models.ForeignKey(User)
+    user = models.OneToOneField(User)
     view = models.ForeignKey(View, related_name='+', on_delete=models.CASCADE)
 
     def __str__(self):

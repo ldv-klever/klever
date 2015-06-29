@@ -18,8 +18,7 @@ class UserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'retype_password',
-                  'first_name', 'last_name', 'email')
+        fields = ('username', 'password', 'retype_password', 'email')
 
 
 class EditUserForm(forms.ModelForm):
@@ -52,8 +51,7 @@ class EditUserForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ('old_password', 'new_password', 'retype_password',
-                  'first_name', 'last_name', 'email')
+        fields = ('old_password', 'new_password', 'retype_password', 'email')
 
 
 class UserExtendedForm(forms.ModelForm):
@@ -64,4 +62,4 @@ class UserExtendedForm(forms.ModelForm):
     class Meta:
         model = UserExtended
         # TODO: remove 'role' after testing
-        fields = ('accuracy', 'language', 'role')
+        fields = ('accuracy', 'language', 'role', 'first_name', 'last_name')

@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 import pytz
@@ -51,10 +51,7 @@ def register(request):
         user_tz = request.POST.get('timezone')
         if user_form.is_valid() and profile_form.is_valid():
             user = user_form.save()
-
             user.set_password(user.password)
-            user.save()
-
             profile = profile_form.save(commit=False)
             profile.user = user
             profile.change_author = user
@@ -63,8 +60,12 @@ def register(request):
                 profile.timezone = user_tz
             # if 'picture' in request.FILES:
             #    profile.picture = request.FILES['picture']
-            profile.save()
 
+            try:
+                profile.save()
+            except:
+                raise ValidationError("Can't save user to the database!")
+            user.save()
             registered = True
         else:
             print(user_form.errors, profile_form.errors)
@@ -86,7 +87,8 @@ def edit_profile(request):
     changed = False
 
     if request.method == 'POST':
-        user_form = EditUserForm(data=request.POST, request=request, instance=request.user)
+        user_form = EditUserForm(data=request.POST, request=request,
+                                 instance=request.user)
         profile_form = UserExtendedForm(
             data=request.POST,
             instance=request.user.userextended
