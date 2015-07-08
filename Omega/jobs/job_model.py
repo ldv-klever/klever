@@ -19,11 +19,14 @@ class Job(models.Model):
     )
     parent = models.ForeignKey('self', null=True, blank=True,
                                on_delete=models.PROTECT, related_name='+')
-    name = models.CharField(max_length=1023, default=_('Verification job'))
+    name = models.CharField(max_length=150, default=_('Verification job'))
     global_role = models.CharField(max_length=4, choices=JOB_ROLES,
                                    default='none')
     configuration = models.TextField()
     comment = models.TextField()
+
+    def __str__(self):
+        return str(self.pk)
 
     class Meta:
         db_table = 'job'

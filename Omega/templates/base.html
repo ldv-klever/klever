@@ -2,6 +2,8 @@
 
 {% load staticfiles %}
 
+{% load i18n %}
+
 <html lang="en">
     <head>
         <meta charset="UTF-8">
@@ -37,16 +39,17 @@
                 </div>
                 <div class="navbar-collapse collapse">
                     <ul class="nav navbar-nav">
+                    <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
                         {% block navbar_block %}{% endblock %}
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
-                        <li><a href="{% url 'users:index' %}">Home</a></li>
+                        <li><a href="{% url 'users:index' %}">{% trans 'Home' %}</a></li>
                         {% if user.is_authenticated %}
-                            <li><a href="{% url 'users:edit_profile' %}">Settings</a></li>
-                            <li><a href="{% url 'users:logout' %}">Logout</a></li>
+                            <li><a href="{% url 'users:edit_profile' %}">{% trans 'Settings' %}</a></li>
+                            <li><a href="{% url 'users:logout' %}">{% trans 'Logout' %}</a></li>
                         {% else %}
-                            <li><a href="{% url 'users:register' %}">Register Here</a></li>
-                            <li><a href="{% url 'users:login' %}">Login</a></li>
+                            <li><a href="{% url 'users:register' %}">{% trans 'Register Here' %}</a></li>
+                            <li><a href="{% url 'users:login' %}">{% trans 'Login' %}</a></li>
                         {% endif %}
                     </ul>
                 </div>

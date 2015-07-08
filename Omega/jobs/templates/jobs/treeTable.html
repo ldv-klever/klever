@@ -1,0 +1,60 @@
+{% load i18n %}
+
+{% load tz %}
+
+<table class="table table-bordered tree">
+    {% for column_row in columns %}
+        <tr class="info">
+        {% for coldata in column_row %}
+            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">
+                {{ coldata.title }}
+            </th>
+        {% endfor %}
+        </tr>
+    {% endfor %}
+
+    {% for row_data in values %}
+        <tr
+                class="treegrid-{{ row_data.id }} {% if row_data.parent %}treegrid-parent-{{ row_data.parent }}{% endif %}"
+                style="{% if counter.dark %}background: #f0f5fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
+        <td id="value__{{ row_data.id }}">
+            <label><input type="checkbox" id="job_checkbox__{{ row_data.id }}"></label>
+        </td>
+        {% for v in row_data.values %}
+            <td id="value__{{ v.id }}__{{ row_data.id }}" class="text-nowrap">
+            {% if user.extended.timezone %}
+                {% timezone user.extended.timezone %}
+                    {% if v.href %}
+                        <a href="{{ v.href }}">{{ v.value }}</a>
+                    {% else %}
+                        {{ v.value }}
+                    {% endif %}
+                {% endtimezone %}
+            {% else %}
+                {% if v.href %}
+                    <a href="{{ v.href }}">{{ v.value }}</a>
+                {% else %}
+                    {{ v.value }}
+                {% endif %}
+            {% endif %}
+            </td>
+        {% endfor %}
+        <span hidden>{{ counter.increment }}</span>
+        </tr>
+    {%  endfor %}
+
+{% if foot_cols %}
+    <tr class="info">
+        <td colspan="{{ foot_head_num }}" align="right" class="text-nowrap">All</td>
+        {% for fc in foot_cols %}
+            <td id="all__{{ fc.id }}">-</td>
+        {% endfor %}
+    </tr>
+    <tr class="info">
+        <td colspan="{{ foot_head_num }}" align="right" class="text-nowrap">All for checked</td>
+        {% for fc in foot_cols %}
+            <td id="checked__{{ fc.id }}">-</td>
+        {% endfor %}
+    </tr>
+{% endif %}
+</table>

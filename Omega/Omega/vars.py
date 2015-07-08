@@ -9,9 +9,9 @@ JOB_CLASSES = (
 )
 
 JOB_ROLES = (
-    ('none', _('no access')),
-    ('obs', _('observer')),
-    ('exp', _('expert')),
-    ('obop', _('observer and operator')),
-    ('exop', _('expert and operator')),
+    ('none', _('No access')),
+    ('obs', _('Observer')),
+    ('exp', _('Expert')),
+    ('obop', _('Observer and Operator')),
+    ('exop', _('Expert and Operator')),
 )

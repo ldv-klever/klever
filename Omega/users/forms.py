@@ -62,4 +62,4 @@ class UserExtendedForm(forms.ModelForm):
     class Meta:
         model = Extended
         # TODO: remove 'role' after testing
-        fields = ('accuracy', 'language', 'role', 'first_name', 'last_name')
+        fields = ('accuracy', 'data_format', 'language', 'role', 'first_name', 'last_name')

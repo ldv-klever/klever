@@ -1,0 +1,453 @@
+{% extends 'jobs/base.html' %}
+
+{% load i18n %}
+
+{% block title %}{% trans 'Verification Tree' %}{% endblock %}
+
+{% block head_block %}
+    <script src="/static/jobs/js/jquery.js"></script>
+    <script src="/static/jobs/js/ajax.js"></script>
+    <script src="/static/jobs/js/jquery.treegrid.js"></script>
+    <link href="/static/jobs/css/style.css" rel="stylesheet">
+    <link href="/static/jobs/css/jquery.treegrid.css" rel="stylesheet">
+
+    <script src="/static/jobs/notify/js/bootstrap-notify.js"></script>
+    <link href="/static/jobs/notify/css/bootstrap-notify.css" rel="stylesheet">
+{% endblock %}
+
+{% block body_block %}
+    <div class="row" id="jobstree-first-big-part"><form autocomplete="off" onsubmit="return false">
+        <div class="col-sm-2">
+            <a class="btn btn-primary btn-block" href="#">{% trans 'Upload VJ' %}</a>
+            <a class="btn btn-primary btn-block" href="#">{% trans 'Download VJ' %}</a>
+            <a class="btn btn-primary btn-block" href="#">{% trans 'Upload EM' %}</a>
+            <a id="compare_btn_job" class="btn btn-success btn-block" href="#">{% trans 'Compare reports' %}</a>
+            <a id="delete_btn_job" class="btn btn-danger btn-block" href="#">{% trans 'Delete' %}</a>
+        </div>
+        <div class="col-sm-10" id="table_filters">
+            <div class="panel-group" id="accordion">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">
+                        <h4 class="panel-title">
+                            <a data-toggle="collapse" data-parent="#accordion" href="#collapse1"><span class="glyphicon glyphicon-list"></span> Columns</a>
+                        </h4>
+                    </div>
+                    <div id="collapse1" class="panel-collapse collapse in">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <label for="selected_columns">Selected columns</label><br>
+                                    <select id="selected_columns" style="width:100%; height: 160px;" multiple="multiple" class="form-control">
+                                        {% for col in selected %}
+                                            <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-sm-5">
+                                    <div class="form-inline">
+                                        <label for="available_columns">Columns</label><br>
+                                        <select id="available_columns" class="form-control">
+                                            {% for col in available %}
+                                                <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button id="add_column_btn" type="button" class="btn btn-primary">Add</button>
+                                    </div>
+
+                                    <button id="remove_column_btn" style="margin-top: 15px;" type="button" class="btn btn-danger">Remove selected</button>
+                                    <br>
+
+                                    <div id="available_orders_form" class="form-inline" style="margin-top: 15px;">
+                                        <label for="available_orders">Add order by</label><br>
+                                        <select id="available_orders" class="form-control">
+                                            {% for col in available_orders %}
+                                                <option  value="{{ col.value }}">{{ col.title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button id="add_order_btn" type="button" class="btn btn-primary">Add</button>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div id="all_selected_orders">
+                                        {% if selected_orders %}
+                                            {% for so in selected_orders %}
+                                                <div class="form-inline" id="order__{{ so.value }}">
+                                                    <label><strong><span id="selected_order_title__{{ so.value }}">{{ so.title }}</span>:</strong></label>
+                                                    <div class="radio">
+                                                        <label>
+                                                            <input type="radio" name="{{ so.value }}" value="down" {% if so.up == '0' %}checked{% endif %}>
+                                                            <span class="glyphicon glyphicon-arrow-down"></span>
+                                                        </label>
+                                                        <label>
+                                                            <input type="radio" name="{{ so.value }}" value="up" {% if so.up == '1' %}checked{% endif %}>
+                                                            <span class="glyphicon glyphicon-arrow-up"></span>
+                                                        </label>
+                                                    </div>
+                                                    <button id="remove__order__{{ so.value }}" class="btn-close-x">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panel-heading">
+                        <h4 class="panel-title">
+                            <a data-toggle="collapse" data-parent="#accordion" href="#collapse2"><span class="glyphicon glyphicon-filter"></span> Filters</a>
+                        </h4>
+                    </div>
+                    <div id="collapse2" class="panel-collapse collapse">
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <div id="available_filters_form" class="form-inline" style="margin-top: 15px;">
+                                        <label for="available_filters">Add filter by</label><br>
+                                        <select id="available_filters" class="form-control" style="width: 100%">
+                                            {% for fil in available_filters %}
+                                                <option  value="{{ fil.name }}">{{ fil.name_title }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <br>
+                                        <button id="add_filter_btn" type="button" style="width: 100%;" class="btn btn-primary">Add</button>
+                                    </div>
+                                </div>
+                                <div class="col-sm-9">
+                                    <ul class="list-group" id="selected_filters_list">
+                                    {% for fil in selected_filters %}
+                                        {% if fil.name == 'name' %}
+                                            <li id="filter_form__name" class="list-group-item">
+                                                <div class="form-inline">
+                                                    <label>
+                                                        <span id="filter_title__name">{{ fil.name_title }}</span>
+                                                        <select id="filter_type__name" class="form-control">
+                                                            <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>Is</option>
+                                                            <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>Starts with</option>
+                                                            <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>Contains</option>
+                                                        </select>
+                                                    <input id="filter_value__name" class="form-control" type="text" value="{{ fil.value }}">
+                                                    </label>
+                                                    <button id="remove__filter__name" class="btn-close-x" style="float: right;">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% elif fil.name == 'change_author' %}
+                                            <li id="filter_form__change_author" class="list-group-item">
+                                                <div class="form-inline">
+                                                    <label>
+                                                        <span id="filter_title__change_author">{{ fil.name_title }}</span> is
+                                                        <input type="hidden" value="is" id="filter_type__change_author">
+                                                        <select class="form-control" id="filter_value__change_author">
+                                                            {% for u in authors %}
+                                                                <option value="{{ u.pk }}"{% if u.pk == fil.value %} selected{% endif %}>{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </label>
+                                                    <button id="remove__filter__change_author" class="btn-close-x" style="float: right;">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% elif fil.name == 'change_date' %}
+                                            <li id="filter_form__change_date" class="list-group-item">
+                                                <div class="form-inline">
+                                                    <label>
+                                                        <span id="filter_title__change_date">{{ fil.name_title }}</span>
+                                                        <select id="filter_type__change_date" class="form-control">
+                                                            <option value="older"{% if fil.type == 'older' %} selected{% endif %}>older</option>
+                                                            <option value="younger"{% if fil.type == 'younger' %} selected{% endif %}>younger</option>
+                                                        </select>
+                                                        than
+                                                        <input id="filter_value_1__change_date" class="form-control" type="text" value="{{ fil.value.valval }}" style="width: 60px;">
+                                                        <select id="filter_value_0__change_date" class="form-control">
+                                                            <option value="minutes"{% if fil.value.valtype == 'minutes' %} selected{% endif %}>minutes</option>
+                                                            <option value="hours"{% if fil.value.valtype == 'hours' %} selected{% endif %}>hours</option>
+                                                            <option value="days"{% if fil.value.valtype == 'days' %} selected{% endif %}>days</option>
+                                                            <option value="weeks"{% if fil.value.valtype == 'weeks' %} selected{% endif %}>weeks</option>
+                                                        </select>
+                                                    </label>
+                                                    <button id="remove__filter__change_date" class="btn-close-x" style="float: right;">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% elif fil.name == 'status' %}
+                                            <li id="filter_form__status" class="list-group-item">
+                                                <div class="form-inline">
+                                                    <label>
+                                                        <span id="filter_title__status">{{ fil.name_title }}</span>
+                                                        <select id="filter_type__status" class="form-control">
+                                                            <option value="is"{% if fil.type == 'is' %} selected{% endif %}>Is</option>
+                                                            <option value="isnot"{% if fil.type == 'isnot' %} selected{% endif %}>Is not</option>
+                                                        </select>
+                                                        <select id="filter_value__status" class="form-control">
+                                                            {% for status in statuses %}
+                                                                <option value="{{ status.value }}"{% if fil.value == status.value %} selected{% endif %}>{{ status.title }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </label>
+                                                    <button id="remove__filter__status" class="btn-close-x" style="float: right;">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% elif fil.name == 'resource_component' %}
+                                            <li id="filter_form__resource_component" class="list-group-item">
+                                                <div class="form-inline">
+                                                    <label>
+                                                        <span id="filter_title__resource_component">{{ fil.name_title }}</span>
+                                                        <select id="filter_type__resource_component" class="form-control">
+                                                            <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>Is</option>
+                                                            <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>Starts with</option>
+                                                            <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>Contains</option>
+                                                        </select>
+                                                    <input id="filter_value__resource_component" class="form-control" type="text" value="{{ fil.value }}">
+                                                    </label>
+                                                    <button id="remove__filter__resource_component" class="btn-close-x" style="float: right;">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% elif fil.name == 'problem_component' %}
+                                            <li id="filter_form__problem_component" class="list-group-item">
+                                                <div class="form-inline">
+                                                    <label>
+                                                        <span id="filter_title__problem_component">{{ fil.name_title }}</span>
+                                                        <select id="filter_type__problem_component" class="form-control">
+                                                            <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>Is</option>
+                                                            <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>Starts with</option>
+                                                            <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>Contains</option>
+                                                        </select>
+                                                    <input id="filter_value__problem_component" class="form-control" type="text" value="{{ fil.value }}">
+                                                    </label>
+                                                    <button id="remove__filter__problem_component" class="btn-close-x" style="float: right;">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% elif fil.name == 'problem_problem' %}
+                                            <li id="filter_form__problem_problem" class="list-group-item">
+                                                <div class="form-inline">
+                                                    <label>
+                                                        <span id="filter_title__problem_problem">{{ fil.name_title }}</span>
+                                                        <select id="filter_type__problem_problem" class="form-control">
+                                                            <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>Is</option>
+                                                            <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>Starts with</option>
+                                                            <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>Contains</option>
+                                                        </select>
+                                                    <input id="filter_value__problem_problem" class="form-control" type="text" value="{{ fil.value }}">
+                                                    </label>
+                                                    <button id="remove__filter__problem_problem" class="btn-close-x" style="float: right;">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% elif fil.name == 'format' %}
+                                            <li id="filter_form__format" class="list-group-item">
+                                                <div class="form-inline">
+                                                    <label>
+                                                        <span id="filter_title__format">{{ fil.name_title }}</span> is
+                                                        <input type="hidden" value="is" id="filter_type__format">
+                                                        <input type="text" class="form-control" id="filter_value__format" value="{{ fil.value }}" style="width: 60px;">
+                                                    </label>
+                                                    <button id="remove__filter__format" class="btn-close-x" style="float: right;">
+                                                        <span class="glyphicon glyphicon-remove"></span>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="form-inline" style="margin-top: 5px;">
+                <label for="available_views"></label>
+                <select id="available_views" class="form-control">
+                    <option value="default">Default</option>
+                    {% for v in available_views %}
+                        <option value="{{ v.id }}"{% if v.selected %} selected{% endif %}>{{ v.title }}</option>
+                    {% endfor %}
+                </select>
+                <button id="show_view_btn" type="button" class="btn btn-primary">Show</button>
+                <button id="remove_view_btn" type="button" class="btn btn-danger">Remove</button>
+                <label><input id="new_view_name_input" type="text" class="form-control" placeholder="New view name"></label>
+                <button id="save_view_btn" type="button" class="btn btn-primary">Save and show</button>
+                <button id="show_unsaved_view_btn" type="button" style="float: right" class="btn btn-primary">Show selected</button>
+            </div>
+        </div>
+    </form></div>
+    <button type="button" class="btn btn-default" id="jobstree-fullscreen-btn">
+        <small><span class="glyphicon glyphicon-fullscreen"></span></small>
+    </button>
+    <br>
+    <div class="tableScroll" id="jobtable"></div>
+
+    <!-- Templates for jQuery -->
+    <div id="selected_order_template" hidden>
+        <div class="form-inline" id="order__">
+            <label><strong><span id="selected_order_title__"></span>:</strong></label>
+            <div class="radio">
+                <label>
+                    <input type="radio" name="{{ so.value }}" value="down" checked>
+                    <span class="glyphicon glyphicon-arrow-down"></span>
+                </label>
+                <label>
+                    <input type="radio" name="{{ so.value }}" value="up">
+                    <span class="glyphicon glyphicon-arrow-up"></span>
+                </label>
+            </div>
+            <button id="remove__order__" class="btn-close-x">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="filter_form_template__name" hidden>
+        <div class="form-inline">
+            <label>
+                <span id="temp___filter_title__name"></span>
+                <select id="temp___filter_type__name" class="form-control">
+                    <option value="iexact">Is</option>
+                    <option value="istartswith">Starts with</option>
+                    <option value="icontains">Contains</option>
+                </select>
+            <input id="temp___filter_value__name" class="form-control" type="text">
+            </label>
+            <button id="temp___remove__filter__name" class="btn-close-x" style="float:right;">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="filter_form_template__change_author" hidden>
+        <div class="form-inline">
+            <label>
+                <span id="temp___filter_title__change_author"></span> is
+                <input type="hidden" value="is" id="temp___filter_type__change_author">
+                <select class="form-control" id="temp___filter_value__change_author">
+                    {% for u in authors %}
+                        <option value="{{ u.pk }}">{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button id="temp___remove__filter__change_author" class="btn-close-x" style="float:right;">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="filter_form_template__change_date" hidden>
+        <div class="form-inline">
+            <label>
+                <span id="temp___filter_title__change_date"></span>
+                <select id="temp___filter_type__change_date" class="form-control">
+                    <option value="older">older</option>
+                    <option value="younger">younger</option>
+                </select>
+                than
+                <input style="width: 60px;" id="filter_value_1__change_date" class="form-control" type="text" value="{{ fil.value.valval }}">
+                <select id="temp___filter_value_0__change_date" class="form-control">
+                    <option value="minutes">minutes</option>
+                    <option value="hours">hours</option>
+                    <option value="days">days</option>
+                    <option value="weeks">weeks</option>
+                </select>
+            </label>
+            <button id="temp___remove__filter__change_date" class="btn-close-x" style="float:right;">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="filter_form_template__status" hidden>
+        <div class="form-inline">
+            <label>
+                <span id="temp___filter_title__status"></span>
+                <select id="temp___filter_type__status" class="form-control">
+                    <option value="is">is</option>
+                    <option value="isnot">is not</option>
+                </select>
+                <select id="temp___filter_value__status" class="form-control">
+                    {% for status in statuses %}
+                        <option value="{{ status.value }}">{{ status.title }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button id="temp___remove__filter__status" class="btn-close-x" style="float:right;">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="filter_form_template__resource_component" hidden>
+        <div class="form-inline">
+            <label>
+                <span id="temp___filter_title__resource_component"></span>
+                <select id="temp___filter_type__resource_component" class="form-control">
+                    <option value="iexact">is</option>
+                    <option value="istartswith">starts with</option>
+                    <option value="icontains">contains</option>
+                </select>
+            <input id="temp___filter_value__resource_component" class="form-control" type="text">
+            </label>
+            <button id="temp___remove__filter__resource_component" class="btn-close-x" style="float:right;">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="filter_form_template__problem_component" hidden>
+        <div class="form-inline">
+            <label>
+                <span id="temp___filter_title__problem_component"></span>
+                <select id="temp___filter_type__problem_component" class="form-control">
+                    <option value="iexact">Is</option>
+                    <option value="istartswith">Starts with</option>
+                    <option value="icontains">Contains</option>
+                </select>
+            <input id="temp___filter_value__problem_component" class="form-control" type="text">
+            </label>
+            <button id="temp___remove__filter__problem_component" class="btn-close-x" style="float:right;">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="filter_form_template__problem_problem" hidden>
+        <div class="form-inline">
+            <label>
+                <span id="temp___filter_title__problem_problem"></span>
+                <select id="temp___filter_type__problem_problem" class="form-control">
+                    <option value="iexact">Is</option>
+                    <option value="istartswith">Starts with</option>
+                    <option value="icontains">Contains</option>
+                </select>
+            <input id="temp___filter_value__problem_problem" class="form-control" type="text">
+            </label>
+            <button id="temp___remove__filter__problem_problem" class="btn-close-x" style="float:right;">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="filter_form_template__format" hidden>
+        <div class="form-inline">
+            <label>
+                <span id="temp___filter_title__format"></span> is
+                <input type="hidden" value="is" id="filter_type__format">
+                <input id="temp___filter_value__format" type="text" class="form-control" style="width: 60px;">
+            </label>
+            <button id="temp___remove__filter__format" class="btn-close-x" style="float:right;">
+                <span class="glyphicon glyphicon-remove"></span>
+            </button>
+        </div>
+    </div>
+    <div id="saveview_notification_text_err" hidden>
+        <h4><span class="glyphicon glyphicon-warning-sign"></span> Can't save view</h4>
+    </div>
+    <div id="saveview_notification_text_req" hidden>
+        <h4><span class="glyphicon glyphicon-warning-sign"></span> View name is required</h4>
+    </div>
+    <div class="notifications top-right" style="width: 18%;"></div>
+
+{% endblock %}

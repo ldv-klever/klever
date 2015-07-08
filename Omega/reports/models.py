@@ -12,6 +12,15 @@ from jobs.job_model import Job
 # Storing files in the database is bad in 99% cases. Try to find another way.
 # TODO: check if some ForeignKey fields can be OneToOneField.
 
+STATUS = (
+    ('0', _('Not Solved')),
+    ('1', _('Solving')),
+    ('2', _('Stopped')),
+    ('3', _('Solved')),
+    ('4', _('Failed')),
+)
+
+
 class AttrName(models.Model):
     name = models.CharField(max_length=31)
 
@@ -84,17 +93,9 @@ class ReportRoot(Report):
                              on_delete=models.SET_NULL, related_name='+')
 
     # TODO: on_delete default is CASCADE. Is it OK?
-    job = models.ForeignKey(Job, related_name='+')
+    job = models.OneToOneField(Job)
     computer = models.ForeignKey(Computer, related_name='+')
     resource = models.ForeignKey(Resource, related_name='+')
-    
-    STATUS = (
-        ('0', _('Not Solved')),
-        ('1', _('Solving')),
-        ('2', _('Stopped')),
-        ('3', _('Solved')),
-        ('4', _('Failed')),
-    )
     status = models.CharField(max_length=1, choices=STATUS, default='0')
     start_date = models.DateTimeField()
     last_request_date = models.DateTimeField()

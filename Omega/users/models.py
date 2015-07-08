@@ -11,10 +11,19 @@ USER_ROLES = (
     ('adm', _('Administrator')),
 )
 
+VIEW_TYPES = {
+    ('1', _('Job tree')),
+    ('2', _('Other')),
+}
+
 class Extended(models.Model):
     LANGUAGES = (
         ('en', 'English'),
         ('ru', 'Русский'),
+    )
+    DATAFORMAT = (
+        ('row', _('Row')),
+        ('hum', _('Human-readable')),
     )
     user = models.OneToOneField(User)
     first_name = models.CharField(max_length=255)
@@ -22,6 +31,7 @@ class Extended(models.Model):
     change_date = models.DateTimeField(auto_now=True)
     change_author = models.ForeignKey(User, related_name='+')
     accuracy = models.SmallIntegerField(default=2)
+    data_format = models.CharField(max_length=3, choices=DATAFORMAT, default='row')
     language = models.CharField(max_length=2, choices=LANGUAGES, default='en')
     role = models.CharField(max_length=4, choices=USER_ROLES, default='none')
     timezone = models.CharField(max_length=255)
@@ -34,7 +44,8 @@ class Extended(models.Model):
 
 
 class View(models.Model):
-    author = models.ForeignKey(User, related_name='+')
+    author = models.ForeignKey(User)
+    type = models.CharField(max_length=1, choices=VIEW_TYPES, default='1')
     name = models.CharField(max_length=255, blank=True)
     view = models.TextField()
 
@@ -46,7 +57,7 @@ class View(models.Model):
 
 
 class PreferableView(models.Model):
-    user = models.OneToOneField(User)
+    user = models.ForeignKey(User)
     view = models.ForeignKey(View, related_name='+', on_delete=models.CASCADE)
 
     def __str__(self):

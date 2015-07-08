@@ -1,0 +1,52 @@
+.tableScroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: scroll;
+    max-height: 670px;
+    overflow-y: scroll;
+}
+
+th {
+    text-align: center;
+}
+
+.treegrid-span-obj {
+    color: indigo;
+}
+
+.btn-close-x {
+	background-color:#fd7e83;
+	-webkit-border-top-left-radius:25px;
+	-moz-border-radius-topleft:25px;
+	border-top-left-radius:25px;
+	-webkit-border-top-right-radius:25px;
+	-moz-border-radius-topright:25px;
+	border-top-right-radius:25px;
+	-webkit-border-bottom-right-radius:25px;
+	-moz-border-radius-bottomright:25px;
+	border-bottom-right-radius:25px;
+	-webkit-border-bottom-left-radius:25px;
+	-moz-border-radius-bottomleft:25px;
+	border-bottom-left-radius:25px;
+	border:1px solid #ef1924;
+	display:inline-block;
+	color:#ffffff;
+	font-weight:bold;
+	height:20px;
+	line-height:20px;
+	width:20px;
+}
+.btn-close-x:hover {
+	background-color: #e61924;
+}
+.btn-close-x:active {
+	position:relative;
+	top:1px;
+}
+
+#jobstree-fullscreen-btn {
+    float: right;
+    height: 20px;
+    width: 20px;
+    padding-top: 0;
+}

@@ -28,7 +28,7 @@ class Mark(models.Model):
     comment = models.TextField()
 
     def __str__(self):
-        return self.id
+        return self.identifier
 
     class Meta:
         db_table = 'mark'

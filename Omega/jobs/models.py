@@ -51,8 +51,11 @@ class Verdict(models.Model):
 
 class MarkSafeTag(models.Model):
     job = models.ForeignKey(Job, related_name='safe_tags')
-    mark_safe_tag = models.ForeignKey(SafeTag, related_name='+')
+    tag = models.ForeignKey(SafeTag, related_name='+')
     number = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.tag.tag
 
     class Meta:
         db_table = "cache_job_mark_safe_tag"
@@ -60,8 +63,11 @@ class MarkSafeTag(models.Model):
 
 class MarkUnsafeTag(models.Model):
     job = models.ForeignKey(Job, related_name='unsafe_tags')
-    mark_unsafe_tag = models.ForeignKey(UnsafeTag, related_name='+')
+    tag = models.ForeignKey(UnsafeTag, related_name='+')
     number = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.tag.tag
 
     class Meta:
         db_table = 'cache_job_mark_unsafe_tag'
@@ -70,6 +76,7 @@ class MarkUnsafeTag(models.Model):
 class ComponentUnknown(models.Model):
     job = models.ForeignKey(Job)
     component = models.ForeignKey(Component, related_name='+')
+    number = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'cache_job_component_unknown'
