@@ -4,19 +4,12 @@
 
 {% block title %}{% trans 'Create Job' %}{% endblock %}
 
-{% block body_block %}
-    <div class="row">
-    <div class="col-md-4">
-        <p>Type: {{ parent_job. }}</p>
-    </div>
-    <div class="col-md-8">
+{% block head_block %}
+    <script src="/static/jobs/js/editjob.js"></script>
+    <script src="/static/jobs/js/notify.min.js"></script>
+    <link href="/static/jobs/css/style.css" rel="stylesheet">
+{% endblock %}
 
-    </div>
-    </div>
-    <form method="post" action="{% url 'jobs:create' %}" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ job_form.as_p }}
-    {{ file_form.as_p }}
-    <button type="submit" class="btn btn-primary">{% trans 'Create' %}</button>
-    </form>
+{% block body_block %}
+    {% include "jobs/editJob.html" %}
 {% endblock %}

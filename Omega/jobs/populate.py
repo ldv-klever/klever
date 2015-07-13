@@ -1,4 +1,4 @@
-from jobs.job_model import Job
+from jobs.job_model import Job, JobHistory
 from marks.models import UnknownProblem, UnsafeTag, SafeTag
 from jobs.models import ComponentMarkUnknownProblem,\
     ComponentUnknown, ComponentResource, Component, Verdict,\
@@ -18,7 +18,7 @@ def clear_table(table):
 def populate_jobs():
     author = User.objects.get(username='vladimir')
     identifiers = [''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)]) for x in range(10)]
-    type = 'ker'
+    jobtype = '0'
     names = ['Title of the job %s' % str(x) for x in range(1, 11)]
     configuration = "A lot of text (configuration)!"
     comment = "A lot of text (comment)!"
@@ -29,7 +29,7 @@ def populate_jobs():
         newjob.change_author = author
         newjob.comment = comment
         newjob.configuration = configuration
-        newjob.type = type
+        newjob.type = jobtype
         newjob.identifier = identifiers[i]
         newjob.parent = None
         newjob.save()
@@ -60,6 +60,8 @@ def populate_jobs():
             par = Job.objects.get(pk=pid)
             job.parent = par
             job.save()
+    for job in Job.objects.all():
+        create_version(job)
 
 
 def populate_problems():
@@ -232,3 +234,24 @@ def main_population():
     populate_mark_probl()
     populate_verdict()
     populate_tags()
+
+
+def update_job():
+    old_job = Job.objects.get(pk=1)
+    old_job.name = 'New name of the job 1'
+    old_job.version += 1
+    old_job.save()
+    create_version(old_job)
+
+
+def create_version(job, version=1):
+    job_v = JobHistory()
+    job_v.name = job.name
+    job_v.job = job
+    job_v.change_author = job.change_author
+    job_v.change_date = job.change_date
+    job_v.comment = job.comment
+    job_v.configuration = job.configuration
+    job_v.format = job.format
+    job_v.version = job.version
+    job_v.save()

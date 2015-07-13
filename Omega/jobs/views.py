@@ -1,12 +1,18 @@
-from django.shortcuts import render
-from jobs.forms import JobForm, FileForm
+import pytz
 import json
-import jobs.table_prop as tp
+import hashlib
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404, render
+from django.utils.translation import ugettext as _
+from django.http import HttpResponse, JsonResponse, Http404
+from jobs.job_model import Job, JOB_ROLES, JobHistory
+from jobs.models import UserRole
 from reports.models import STATUS
-from django.http import HttpResponse, JsonResponse
-from users.models import View, PreferableView
+from users.models import View, PreferableView, USER_ROLES
+import jobs.table_prop as tp
+import jobs.job_functions as job_f
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class Counter(object):
@@ -20,6 +26,17 @@ class Counter(object):
             self.dark = False
         else:
             self.dark = True
+
+
+class Flag(object):
+    def __init__(self):
+        self.f = True
+
+    def change_flag(self):
+        if self.f:
+            self.f = False
+        else:
+            self.f = True
 
 
 @login_required
@@ -113,43 +130,6 @@ def get_jobtable(request):
     return render(request, 'jobs/treeTable.html', context)
 
 
-def create_job(request):
-    if request.method == 'POST':
-        job_form = JobForm(data=request.POST)
-        # file_form = FileForm(data=request.POST)
-        postdata = {
-            'version': job_form.version,
-            'title': job_form.title,
-            'type': job_form.job_type,
-            'comment': job_form.comment,
-            'config': job_form.config,
-        }
-        return render(request, 'jobs/postData.html', {'strings': postdata})
-    else:
-        job_form = JobForm()
-        file_form = FileForm()
-        context = {'job_form': job_form, 'file_form': file_form}
-        return render(request, 'jobs/createJob.html', context)
-
-
-def get_filter_data(request):
-    if request.method == 'POST':
-        data_type = request.POST.get('type', None)
-        if data_type is None:
-            return
-        if data_type == 'types':
-            data_val = request.POST.get('value', None)
-            if data_val is None:
-                return HttpResponse('')
-            needed_values = data_val.split(';')
-            retval = {}
-            for v in needed_values:
-                retval[v] = tp.FILTER_TYPE_TITLES.get(v, '')
-            return HttpResponse(json.dumps(retval, separators=(',', ':')),
-                                content_type="application/json")
-    return HttpResponse('')
-
-
 @login_required
 def save_view(request):
     is_success = False
@@ -205,3 +185,287 @@ def remove_view(request):
             if len(new_pref_view):
                 new_pref_view[0].delete()
     return JsonResponse({})
+
+
+@login_required
+def show_job(request, job_id=None):
+    # Get needed job or return error 404 (page doesn't exist)
+    job = get_object_or_404(Job, pk=int(job_id))
+
+    if not job_f.has_job_access(request.user, job=job):
+        raise Http404(_("You don't have access to this verification job!"))
+
+    # Can user remove job?
+    can_delete = True
+    can_edit = True
+    can_create = job_f.has_job_access(request.user, action='create')
+
+    # Get author of the job (who had created first version)
+    created_by = None
+    first_version = job.jobhistory_set.filter(version=1)
+    if first_version:
+        created_by = first_version[0].change_author.extended.last_name
+        created_by += ' ' + first_version[0].change_author.extended.first_name
+        if (request.user.extended.role not in
+                [USER_ROLES[2][0], USER_ROLES[3][0]]) and (
+                    first_version[0].change_author != request.user):
+            can_delete = False
+            can_edit = False
+
+    # Collect parents of the job
+    parents = []
+    job_parent = job.parent
+    while job_parent:
+        parents.append(job_parent)
+        job_parent = job_parent.parent
+    parents.reverse()
+    have_access_parents = []
+    for parent in parents:
+        if job_f.has_job_access(request.user, job=parent):
+            job_id = parent.pk
+        else:
+            job_id = None
+        have_access_parents.append({
+            'pk': job_id,
+            'name': parent.name,
+        })
+
+    # Collect children of the job
+    children = job.children_set.all()
+    if len(children) > 0:
+        can_delete = False
+    have_access_children = []
+    for child in children:
+        if job_f.has_job_access(request.user, job=child):
+            job_id = child.pk
+        else:
+            job_id = None
+        have_access_children.append({
+            'pk': job_id,
+            'name': child.name,
+        })
+
+    # Get user time zone
+    user_tz = request.user.extended.timezone
+
+    return render(
+        request,
+        'jobs/viewJob.html',
+        {
+            'job': job,
+            'parents': have_access_parents,
+            'children': have_access_children,
+            'user_tz': user_tz,
+            'verdict': job_f.verdict_info(job),
+            'unknowns': job_f.unknowns_info(job),
+            'resources': job_f.resource_info(job, request.user),
+            'created_by': created_by,
+            'can_delete': can_delete,
+            'can_edit': can_edit,
+            'can_create': can_create,
+        }
+    )
+
+
+@login_required
+def get_version_data(request, template='jobs/editJob.html'):
+
+    if request.method != 'POST':
+        return HttpResponse('')
+
+    # If None than we are creating new version
+    job_id = request.POST.get('job_id', None)
+    parent_id = request.POST.get('parent_id', None)
+    version = request.POST.get('version', 0)
+    version = int(version)
+
+    if (job_id and parent_id) or (job_id is None and parent_id is None):
+        return HttpResponse('')
+
+    # If user is not producer he can't create new job
+    if request.user.extended.role not in [USER_ROLES[1][0], USER_ROLES[3][0]]:
+        raise Http404(
+            _("You are not Producer to create or edit Verification Job!")
+        )
+
+    # Get needed job or return error 404 (page doesn't exist)
+    try:
+        if job_id:
+            job = get_object_or_404(Job, pk=int(job_id))
+        else:
+            job = get_object_or_404(Job, pk=int(parent_id))
+    except ValueError:
+        return HttpResponse('')
+
+    # Check if user can edit this job
+    if not job_f.has_job_access(request.user, job=job):
+        raise Http404(_("You don't have access to this verification job!"))
+
+    # Collecting existing job data
+    job_parent_id = None
+    if job_id:
+        if job.parent:
+            job_parent_id = job.parent.identifier
+    else:
+        job_parent_id = job.identifier
+    old_job = job
+    if version > 0:
+        old_job_set = job.jobhistory_set.filter(version=version)
+        if len(old_job_set):
+            old_job = old_job_set[0]
+
+    job_data = {
+        'id': None,
+        'parent_id': job_parent_id,
+        'name': old_job.name,
+        'configuration': old_job.configuration,
+        'comment': old_job.comment,
+        'version': None
+    }
+    if job_id:
+        job_data['id'] = job.pk
+        job_data['version'] = job.version
+
+    # Get list of job versions
+    job_versions = []
+    if job_id:
+        jobs = job.jobhistory_set.all().order_by('-version')
+        for j in jobs:
+            if j.version == job.version:
+                title = _("Current version")
+            else:
+                job_time = j.change_date.astimezone(
+                    pytz.timezone(request.user.extended.timezone)
+                )
+                title = job_time.strftime("%d.%m.%Y %H:%M:%S")
+            job_versions.append({
+                'version': j.version,
+                'title': title
+            })
+
+    roles = job_f.role_info(job, request.user)
+    if parent_id:
+        roles['user_roles'] = []
+        roles['global'] = JOB_ROLES[0][0]
+    if version > 0:
+        roles['user_roles'] = []
+        roles['global'] = old_job.global_role
+    return render(
+        request,
+        template,
+        {
+            'job': job_data,
+            'roles': roles,
+            'job_versions': job_versions,
+            'version': version
+        }
+    )
+
+
+@login_required
+def create_job_page(request):
+    return get_version_data(request, 'jobs/createJob.html')
+
+
+@login_required
+def save_job(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 1})
+
+    title = request.POST.get('title', '')
+    comment = request.POST.get('comment', '')
+    config = request.POST.get('configuration', '')
+    job_id = request.POST.get('job_id', None)
+    parent_identifier = request.POST.get('parent_identifier', None)
+    global_role = request.POST.get('global_role', JOB_ROLES[0][0])
+    user_roles = request.POST.get('user_roles', '[]')
+    user_roles = json.loads(user_roles)
+
+    if job_id and parent_identifier:
+        try:
+            parent = Job.objects.get(identifier=parent_identifier)
+            job = Job.objects.get(pk=int(job_id))
+        except ObjectDoesNotExist:
+            return JsonResponse({'status': 3})
+        if not job_f.has_job_access(request.user, action='edit', job=job):
+            return JsonResponse({'status': 10})
+        if job.parent.identifier != parent.identifier:
+            return JsonResponse({'status': 5})
+        job.version += 1
+    elif job_id:
+        try:
+            job = Job.objects.get(pk=int(job_id))
+        except ObjectDoesNotExist:
+            return JsonResponse({'status': 3})
+        if not job_f.has_job_access(request.user, action='edit', job=job):
+            return JsonResponse({'status': 10})
+        job.version += 1
+    elif parent_identifier:
+        try:
+            parent = Job.objects.get(identifier=parent_identifier)
+        except ObjectDoesNotExist:
+            return JsonResponse({'status': 3})
+        if not job_f.has_job_access(request.user, action='create'):
+            return JsonResponse({'status': 10})
+        job = Job()
+        job.type = parent.type
+        job.parent = parent
+    else:
+        return JsonResponse({'status': 3})
+
+    job.change_author = request.user
+    job.name = title
+    job.comment = comment
+    job.configuration = config
+    job.global_role = global_role
+    job.save()
+    if parent_identifier and job_id is None:
+        time_encoded = job.change_date.strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
+        job.identifier = hashlib.md5(time_encoded).hexdigest()
+        job.save()
+
+    new_version = JobHistory()
+    new_version.job = job
+    new_version.name = job.name
+    new_version.comment = job.comment
+    new_version.configuration = job.configuration
+    new_version.global_role = job.global_role
+    new_version.type = job.type
+    new_version.change_author = job.change_author
+    new_version.change_date = job.change_date
+    new_version.format = job.format
+    new_version.version = job.version
+    new_version.save()
+
+    UserRole.objects.filter(job=job).delete()
+    for ur in user_roles:
+        user_id = int(ur['user'])
+        role = ur['role']
+        ur_user = User.objects.filter(pk=user_id)
+        if len(ur_user):
+            new_ur = UserRole()
+            new_ur.job = job
+            new_ur.user = ur_user[0]
+            new_ur.role = role
+            new_ur.save()
+    return JsonResponse({'status': 0, 'job_id': job.pk})
+
+
+@login_required
+def remove_job(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 1})
+
+    job_id = request.POST.get('job_id', None)
+    if job_id is None:
+        return JsonResponse({'status': 2})
+    try:
+        job = Job.objects.get(pk=job_id)
+    except ObjectDoesNotExist:
+        return JsonResponse({'status': 3})
+
+    if not job_f.has_job_access(request.user, action='remove', job=job):
+        return JsonResponse({'status': 10})
+
+    job.delete()
+    return JsonResponse({'status': 0})

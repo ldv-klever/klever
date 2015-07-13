@@ -9,11 +9,33 @@ from reports.models import Component
 
 class File(models.Model):
     job = models.ForeignKey(Job, related_name='files')
+    hash_sum = models.CharField(max_length=255)
     file = RestrictedFileField(
         upload_to='JobFiles',
         max_upload_size=104857600,
         null=False
     )
+
+    class Meta:
+        db_table = 'file'
+
+
+class FileSystem(models.Model):
+    job = models.ForeignKey(Job, related_name='file_set')
+    file = models.ForeignKey(File, related_name='+')
+    name = models.CharField(max_length=150)
+    parent = models.ForeignKey('self', null=True, blank=True,
+                               related_name='children_set')
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'file_system'
+
+
+class JobFile(models.Model):
+    file = models.ForeignKey(FileSystem)
 
     class Meta:
         db_table = 'job_file'
@@ -22,7 +44,7 @@ class File(models.Model):
 class UserRole(models.Model):
     user = models.ForeignKey(User, related_name='+')
     job = models.ForeignKey(Job)
-    role = models.CharField(max_length=4, choices=JOB_ROLES)
+    role = models.CharField(max_length=1, choices=JOB_ROLES)
 
     class Meta:
         db_table = 'user_job_role'

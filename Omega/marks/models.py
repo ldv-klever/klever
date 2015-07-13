@@ -11,9 +11,9 @@ class Mark(models.Model):
     version = models.PositiveSmallIntegerField(default=1)
     author = models.ForeignKey(User)
     job_type = models.CharField(
-        max_length=3,
+        max_length=1,
         choices=JOB_CLASSES,
-        default='ker',
+        default='0',
         verbose_name=_('job class')
     )
     STATUS = (

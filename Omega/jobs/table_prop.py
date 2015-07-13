@@ -2,12 +2,15 @@ import json
 import re
 import pytz
 from datetime import datetime, timedelta
-from django.db.models import Q
-from django.utils.translation import ugettext as _
 from django.core.exceptions import ObjectDoesNotExist
-from users.models import PreferableView
+from django.core.urlresolvers import reverse
+from django.utils.translation import ugettext as _
 from jobs.job_model import Job
+from users.models import PreferableView
 from reports.models import STATUS
+import jobs.job_functions as job_f
+from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
+    TITLES
 
 
 # List of main classes of columns
@@ -32,26 +35,6 @@ ADDITIONAL_COLUMNS = [
     'role',
 ]
 
-# List of available types of 'safe' column class.
-SAFES = [
-    'missed_bug',
-    'incorrect',
-    'unknown',
-    'inconclusive',
-    'unassociated',
-    'total'
-]
-
-# List of available types of 'unsafe' column class.
-UNSAFES = [
-    'bug',
-    'target_bug',
-    'false_positive',
-    'unknown',
-    'inconclusive',
-    'unassociated',
-    'total'
-]
 
 # List of available for user variables for sorting jobs
 ORDERS = [
@@ -66,43 +49,6 @@ ORDER_TITLES = {
     'author': _('Author last name'),
     'date': _('Date'),
     'status': _('Status'),
-}
-
-# Dictionary of titles of static columns
-TITLES = {
-    'name': _('Title'),
-    'author': _('Author'),
-    'date': _('Date'),
-    'status': _('Status'),
-    'safe': _('Safes'),
-    'safe:missed_bug': _('Missed bug'),
-    'safe:incorrect': _('Incorrect proof'),
-    'safe:unknown': _('Unknown'),
-    'safe:inconclusive': _('Inconclusive'),
-    'safe:unassociated': _('Unassociated'),
-    'safe:total': _('Total'),
-    'unsafe': _('Unsafes'),
-    'unsafe:bug': _('Bug'),
-    'unsafe:target_bug': _('Target bug'),
-    'unsafe:false_positive': _('False positive'),
-    'unsafe:unknown': _('Unknown'),
-    'unsafe:inconclusive': _('Inconclusive'),
-    'unsafe:unassociated': _('Unassociated'),
-    'unsafe:total': _('Total'),
-    'problem': _('Unknowns'),
-    'problem:total': _('Total'),
-    'resource': _('Resourses'),
-    'resource:total': _('Total'),
-    'tag': _('Tags'),
-    'tag:safe': _('Safe tags'),
-    'tag:unsafe': _('Unsafe tags'),
-    'identifier': _('Identifier'),
-    'format': _('Format'),
-    'version': _('Version'),
-    'type': _('Job type'),
-    'parent_name': _('Parent name'),
-    'parent_id': _('Parent identifier'),
-    'role': _('Your role'),
 }
 
 FILTER_TYPE_TITLES = {
@@ -139,11 +85,10 @@ FILTER_NAME_TITLES = {
 
 # Default view of the table
 DEF_VIEW = {
-    'columns': ['name', 'identifier', 'format', 'version', 'type',
-                'parent_name', 'parent_id', 'role', 'author', 'date', 'status',
-                'unsafe', 'safe', 'problem', 'resource', 'tag',
-                'problem:pr_component_1', 'unsafe:bug', 'date'],
-    'orders': ['-date', 'status', 'name', '-author'],
+    'columns': ['name', 'version', 'parent_name', 'role', 'author', 'date',
+                'status', 'unsafe', 'safe', 'problem', 'resource'],
+    # Available orders: ['date', 'status', 'name', 'author']
+    'orders': ['-date'],
 
     # Available filters (id [types], (example value)):
     # name [iexact, istartswith, icontains] (<any text>)
@@ -155,30 +100,30 @@ DEF_VIEW = {
     # problem:problem [iexact, istartswith, icontains] (<any text>)
     # format [is] (<number>)
     'filters': {
-        'name': {
-            'type': 'istartswith',
-            'value': 'Title of the job',
-        },
-        'change_author': {
-            'type': 'is',
-            'value': '1',
-        },
-        'change_date': {
-            'type': 'younger',
-            'value': 'weeks:2',
-        },
-        'resource_component': {
-            'type': 'istartswith',
-            'value': 'D',
-        },
-        'problem_problem': {
-            'type': 'icontains',
-            'value': '1',
-        },
-        'format': {
-            'type': 'is',
-            'value': '1',
-        },
+        # 'name': {
+        #     'type': 'istartswith',
+        #     'value': 'Title of the job',
+        # },
+        # 'change_author': {
+        #     'type': 'is',
+        #     'value': '1',
+        # },
+        # 'change_date': {
+        #     'type': 'younger',
+        #     'value': 'weeks:2',
+        # },
+        # 'resource_component': {
+        #     'type': 'istartswith',
+        #     'value': 'D',
+        # },
+        # 'problem_problem': {
+        #     'type': 'icontains',
+        #     'value': '1',
+        # },
+        # 'format': {
+        #     'type': 'is',
+        #     'value': '1',
+        # },
     },
 }
 
@@ -427,7 +372,6 @@ class TableTree(object):
         self.columns = ['name']
         (self.view, self.view_id) = get_view(user, view=view, view_id=view_id)
         self.titles = TITLES
-        self.blackdata = None
         self.head_filters = self.__get_head_filters()
         (self.rowdata, self.blackdata) = self.__get_rowdata()
         self.__get_table_columns_list()
@@ -437,20 +381,24 @@ class TableTree(object):
     def __get_rowdata(self):
         orders = query_orders(self.view['orders'])
         filters = self.__view_filters()
-        jobdata = Job.objects.filter(**filters).filter(
-            ~Q(name='Title of the job 10')).order_by(*orders)
-        blackdata = []
+        jobdata = Job.objects.filter(**filters).order_by(*orders)
+
         rowdata = []
         for job in jobdata:
-            rowdata.append(job)
-        for job in jobdata:
-            if not(job.parent is None or job.parent in rowdata) \
-                    and job.parent not in (rowdata + blackdata):
-                blackdata.append(job.parent)
-        return rowdata, blackdata
+            if job_f.has_job_access(self.user, job=job):
+                rowdata.append(job)
 
-        # filter(~Q(name='Title of the job 10'))
-        # return Job.objects.filter(**filters).order_by(*orders)
+        old_job_len = 0
+        new_job_len = len(rowdata)
+        blackdata = []
+        while old_job_len < new_job_len:
+            old_job_len = len(blackdata)
+            for job in (rowdata + blackdata):
+                if (job.parent is not None) and \
+                        (job.parent not in (rowdata + blackdata)):
+                    blackdata.append(job.parent)
+            new_job_len = len(blackdata)
+        return rowdata, blackdata
 
     def __get_head_filters(self):
         filters = [{}, {}, {}]
@@ -460,7 +408,6 @@ class TableTree(object):
             if f == 'resource_component':
                 if f_data['type'] in textfilters:
                     filter_id = 'component__name__' + f_data['type']
-                    # fil[filter_id] = filter_data['value']
                     filters[0] = {filter_id: f_data['value']}
             elif f == 'problem_component':
                 if f_data['type'] in textfilters:
@@ -638,7 +585,7 @@ class TableTree(object):
                 if job in self.blackdata:
                     lvljob['black'] = True
                 ordered_jobs.append(lvljob)
-        while len(ordered_jobs) < len(self.rowdata):
+        while len(ordered_jobs) < len(self.rowdata + self.blackdata):
             ordered_jobs = self.__insert_level(lvl, ordered_jobs)
             lvl += 1
             # maximum depth of jobs: 1000
@@ -694,7 +641,7 @@ class TableTree(object):
         elif col == 'format':
             return job.format
         elif col == 'version':
-            return job.format
+            return job.version
         elif col == 'type':
             return job.get_type_display()
         elif col == 'date':
@@ -840,6 +787,10 @@ class TableTree(object):
             else:
                 return job.parent.identifier
         elif col == 'role':
+            first_version = job.jobhistory_set.filter(version=1)
+            if len(first_version):
+                if first_version[0].change_author == self.user:
+                    return _('Author')
             user_role = job.userrole_set.filter(user=self.user)
             if len(user_role):
                 return user_role[0].get_role_display()
@@ -853,42 +804,8 @@ class TableTree(object):
             if black:
                 return None
             elif col == 'name':
-                return '#'
+                return reverse('jobs:job', args=[job.pk])
         return None
-
-
-def convert_time(val, acc):
-    new_time = int(val)
-    time_format = "%%1.%df%%s" % int(acc)
-    try_div = new_time / 1000
-    if try_div < 1:
-        return time_format % (new_time, 'ms')
-    new_time = try_div
-    try_div = new_time / 60
-    if try_div < 1:
-        return time_format % (new_time, 's')
-    new_time = try_div
-    try_div = new_time / 60
-    if try_div < 1:
-        return time_format % (new_time, 'm')
-    return time_format % (try_div, 'h')
-
-
-def convert_memory(val, acc):
-    new_mem = int(val)
-    mem_format = "%%1.%df%%s" % int(acc)
-    try_div = new_mem / 1024
-    if try_div < 1:
-        return mem_format % (new_mem, 'b')
-    new_mem = try_div
-    try_div = new_mem / 1024
-    if try_div < 1:
-        return mem_format % (new_mem, 'Kb')
-    new_mem = try_div
-    try_div = new_mem / 1024
-    if try_div < 1:
-        return mem_format % (new_mem, 'Mb')
-    return mem_format % (try_div, 'Gb')
 
 
 # Convert view order to accepted order that can be applied

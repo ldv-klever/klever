@@ -1,0 +1,164 @@
+{% extends 'jobs/base.html' %}
+
+{% load i18n %}
+
+{% load tz %}
+
+{% block head_block %}
+    <script src="/static/jobs/js/editjob.js"></script>
+    <script src="/static/jobs/js/notify.min.js"></script>
+    <link href="/static/jobs/css/style.css" rel="stylesheet">
+{% endblock %}
+
+{% block title %}{% trans 'Create Job' %}{% endblock %}
+
+{% block body_block %}
+    {% if job %}
+    <div class="row">
+        <div id="view_job_div" class="col-sm-11">
+            <div class="form-inline">
+                <div class="btn-group" role="group">
+                    {% if can_create %}<button id="copy_job__{{ job.pk }}" class="btn btn-info">Make copy</button>{% endif %}
+                    <button id="load_job__{{ job.pk }}" class="btn btn-success">Load</button>
+                    {% if can_edit %}<button id="edit_job__{{ job.pk }}" class="btn btn-primary">Edit</button>{% endif %}
+                    {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">Remove</button>{% endif %}
+                </div>
+
+            </div>
+
+            <h4><span class="show-job-name show-job-title">{{ job.name }}</span></h4>
+
+            <span class="show-job-title">Type:</span> {{ job.get_type_display }}
+            <br>
+            <span class="show-job-title">ID:</span> <span style="color: #15c46b">{{ job.identifier }}</span>
+            <br>
+
+            {% if parents %}
+                <span class="show-job-title">Job parents:</span>
+                {% for parent in parents %}
+                    <ul><li>
+                    {% if parent.pk %}
+                        <a href="{% url 'jobs:job' parent.pk %}">{{ parent.name }}</a>
+                    {% else %}
+                        <span style="text-decoration: underline;">{{ parent.name }}</span>
+                    {% endif %}
+                {% endfor %}
+                {% for parent in parents %}
+                    </li></ul>
+                {% endfor %}
+            {% endif %}
+
+            {% if children %}
+                <span class="show-job-title">Job children:</span>
+                <ul>
+                {% for child in children %}
+                    <li>
+                        {% if child.pk %}
+                            <a href="{% url 'jobs:job' child.pk %}">{{ child.name }}</a>
+                        {% else %}
+                            <span style="text-decoration: underline;">{{ child.name }}</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+
+            <span class="show-job-title">Last change author: </span>
+            {{ job.change_author.extended.last_name }} {{ job.change_author.extended.first_name }}
+
+            {% if created_by %}
+                <br><span class="show-job-title">Created by: </span>
+                {{ created_by }}
+            {% endif %}
+
+            <br>
+            <span class="show-job-title">Last change date: </span>
+            {% if user_tz %}
+                {% timezone user_tz %}
+                    {{ job.change_date|date:'d.m.y H:i:s' }}
+                {% endtimezone %}
+            {% else %}
+                {{ job.change_date|date:'d.m.y H:i:s' }}
+            {% endif %}
+            <br><br>
+
+
+            <span class="show-job-title">Status: </span>
+            {% if job.reportroot %}
+                {{ job.reportroot.status }}
+            {% else %}
+                -
+            {% endif %}
+            <br><br>
+            {% if job.verdict %}
+                <div class="row">
+                    <div class="col-sm-6">
+                        <span class="show-job-title"><b>Unsafes: </b></span>
+                        <ul>
+                            {% for v in verdict.unsafes %}
+                                <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="show-job-title"><b>Safes: </b></span>
+                        <ul>
+                            {% for v in verdict.safes %}
+                                <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+            {% endif %}
+
+            {% if unknowns %}
+                <span class="show-job-title"><b>Problems</b></span>
+                {% if verdict %}(<a href="#">{{ verdict.unknowns }}</a>){% endif %}
+                <ul>
+                    {% for comp in unknowns %}
+                        <li>{{ comp.component }}</li>
+                        <ul>
+                        {% for probl in comp.problems %}
+                            <li>{{ probl.problem }}: <a href="#">{{ probl.num }}</a></li>
+                        {% endfor %}
+                        </ul>
+                    {% endfor %}
+
+                </ul>
+            {% endif %}
+
+            {% if resources %}
+                <span class="show-job-title"><b>Resources*</b></span>
+                <ul>
+                    {% for res_data in resources %}
+                        <li>{{ res_data.component }}: <span style="color: darkblue">{{ res_data.val }}</span></li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            <hr><small>*For each component and 'total' the format of resources is [(wall time) (cpu time) (maximum memory)]</small>
+        </div>
+        <div id="edit_job_div" class="col-sm-1"></div>
+    </div>
+        {% if can_delete %}
+            <div id="remove_job_popup" class="modal fade" role="dialog">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            <h4 class="modal-title">Are you sure?</h4>
+                        </div>
+                        <div class="modal-body">
+                            <p>All versions and all data connected to this verification job will be deleted!</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="remove_job__{{ job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">Remove</button>
+                            <button type="button" class="btn btn-info" data-dismiss="modal">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}
