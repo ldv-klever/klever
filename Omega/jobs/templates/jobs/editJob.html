@@ -1,3 +1,5 @@
+{% load i18n %}
+
 <form id="edit_job_form" autocomplete="off" onsubmit="return false">
 
     {% if job.id %}
@@ -5,28 +7,28 @@
     {% endif %}
 
     {% if job_versions|length %}
-        <label for="job_version_selector" class="show-job-title">You can choose old Verification Job version</label>
+        <label for="job_version_selector" class="show-job-title">{% trans 'You can choose old Verification Job version' %}</label>
         <select id="job_version_selector" class="form-control">
             {% for jv in job_versions %}
                 <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %} >{{ jv.title }}</option>
             {% endfor %}
         </select>
-        <label class="show-job-title">or change it:</label>
+        <label class="show-job-title">{% trans 'or change it:' %}</label>
         <br>
     {% endif %} 
 
     <label style="width: 100%;">
-        Title: <input class="form-control" id="job_title" type="text" value="{{ job.name }}">
+        {% trans 'Title' %}:<input class="form-control" id="job_title" type="text" value="{{ job.name }}">
     </label>
 
     {% if job.parent_id %}
-        <br><label>Parent identifier:</label>
+        <br><label>{% trans 'Parent identifier:' %}</label>
         <span style="color: #15c46b"> {{ job.parent_id }}</span>
         <input id="job_parent_identifier" type="hidden" value="{{ job.parent_id }}">
     {% endif %}
 
     <label style="width: 100%;">
-        Comment: <textarea id="job_comment" class="form-control" style="resize: none" placeholder="Comment">{{ job.comment }}</textarea>
+        {% trans 'Comment' %}:<textarea id="job_comment" class="form-control" style="resize: none" placeholder="{% trans 'Comment' %}">{{ job.comment }}</textarea>
     </label>
 
     <ul class="list-group">
@@ -34,7 +36,7 @@
             <div class="row">
                 <div class="col-sm-6">
                     <div class="form-inline">
-                        <label for="job_global_roles">Global roles:</label><br>
+                        <label for="job_global_roles">{% trans 'Global roles' %}:</label><br>
                         <select id="job_global_roles" class="form-control">
                             {% for jr in roles.job_roles %}
                                 <option value="{{ jr.value }}"{% if roles.global == jr.value %} selected{% endif %} >
@@ -47,13 +49,13 @@
                 <div class="col-sm-6">
                     {% if roles.available_users|length > 0 %}
                         <div id="job_user_role_div" class="form-inline">
-                            <label for="job_available_users">Add role to user:</label><br>
+                            <label for="job_available_users">{% trans 'Add role to user' %}:</label><br>
                             <select id="job_available_users" class="form-control">
                                 {% for au in roles.available_users %}
                                     <option value="{{ au.id }}">{{ au.name }}</option>
                                 {% endfor %}
                             </select>
-                            <button id="add_user_for_role" class="btn btn-primary">Add</button>
+                            <button id="add_user_for_role" class="btn btn-primary">{% trans 'Add' %}</button>
                         </div>
                     {% endif %}
                 </div>
@@ -83,11 +85,11 @@
         </li>
     </ul>
 
-    <label style="width: 100%;">Configuration: <textarea id="job_config" class="form-control" style="resize: none" placeholder="Comment">{{ job.configuration }}</textarea></label>
+    <label style="width: 100%;">{% trans 'Configuration' %}:<textarea id="job_config" class="form-control" style="resize: none" placeholder="{% trans 'Configuration' %}">{{ job.configuration }}</textarea></label>
     <hr>
-    <button id="save_job_btn" class="btn btn-success">Save</button>
+    <button id="save_job_btn" class="btn btn-success">{% trans 'Save' %}</button>
     {% if job_versions|length %}
-        <button id="cancel_edit_job_btn" class="btn btn-primary" style="float: right">Cancel</button>
+        <button id="cancel_edit_job_btn" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</button>
     {% endif %}
 
 </form>

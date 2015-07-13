@@ -45,13 +45,13 @@
 
 {% if foot_cols %}
     <tr class="info">
-        <td colspan="{{ foot_head_num }}" align="right" class="text-nowrap">All</td>
+        <td colspan="{{ foot_head_num }}" align="right" class="text-nowrap">{% trans 'All' %}</td>
         {% for fc in foot_cols %}
             <td id="all__{{ fc.id }}">-</td>
         {% endfor %}
     </tr>
     <tr class="info">
-        <td colspan="{{ foot_head_num }}" align="right" class="text-nowrap">All for checked</td>
+        <td colspan="{{ foot_head_num }}" align="right" class="text-nowrap">{% trans 'All for checked' %}</td>
         {% for fc in foot_cols %}
             <td id="checked__{{ fc.id }}">-</td>
         {% endfor %}

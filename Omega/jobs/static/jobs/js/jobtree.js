@@ -333,7 +333,7 @@ $(document).ready(function () {
         if (reserved_titles.indexOf(view_title) > -1) {
             $.notify("Please choose another view name.", {
                 autoHide: true,
-                autoHideDelay: 1000,
+                autoHideDelay: 1500,
                 style: 'bootstrap',
                 className: 'error'
             });
@@ -342,7 +342,7 @@ $(document).ready(function () {
         if (view_title.length == 0) {
             $.notify("View name is required.", {
                 autoHide: true,
-                autoHideDelay: 1000,
+                autoHideDelay: 1500,
                 style: 'bootstrap',
                 className: 'error'
             });

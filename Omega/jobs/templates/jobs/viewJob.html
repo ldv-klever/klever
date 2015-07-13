@@ -10,7 +10,7 @@
     <link href="/static/jobs/css/style.css" rel="stylesheet">
 {% endblock %}
 
-{% block title %}{% trans 'Create Job' %}{% endblock %}
+{% block title %}{% trans 'Verification Job' %}{% endblock %}
 
 {% block body_block %}
     {% if job %}
@@ -18,23 +18,23 @@
         <div id="view_job_div" class="col-sm-11">
             <div class="form-inline">
                 <div class="btn-group" role="group">
-                    {% if can_create %}<button id="copy_job__{{ job.pk }}" class="btn btn-info">Make copy</button>{% endif %}
-                    <button id="load_job__{{ job.pk }}" class="btn btn-success">Load</button>
-                    {% if can_edit %}<button id="edit_job__{{ job.pk }}" class="btn btn-primary">Edit</button>{% endif %}
-                    {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">Remove</button>{% endif %}
+                    {% if can_create %}<button id="copy_job__{{ job.pk }}" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
+                    <button id="load_job__{{ job.pk }}" class="btn btn-success">{% trans 'Load' %}</button>
+                    {% if can_edit %}<button id="edit_job__{{ job.pk }}" class="btn btn-primary">{% trans 'Edit' %}</button>{% endif %}
+                    {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">{% trans 'Remove' %}</button>{% endif %}
                 </div>
 
             </div>
 
             <h4><span class="show-job-name show-job-title">{{ job.name }}</span></h4>
 
-            <span class="show-job-title">Type:</span> {{ job.get_type_display }}
+            <span class="show-job-title">{% trans 'Type' %}:</span> {{ job.get_type_display }}
             <br>
-            <span class="show-job-title">ID:</span> <span style="color: #15c46b">{{ job.identifier }}</span>
+            <span class="show-job-title">{% trans 'ID' %}:</span> <span style="color: #15c46b">{{ job.identifier }}</span>
             <br>
 
             {% if parents %}
-                <span class="show-job-title">Job parents:</span>
+                <span class="show-job-title">{% trans 'Job parents' %}:</span>
                 {% for parent in parents %}
                     <ul><li>
                     {% if parent.pk %}
@@ -49,7 +49,7 @@
             {% endif %}
 
             {% if children %}
-                <span class="show-job-title">Job children:</span>
+                <span class="show-job-title">{% trans 'Job children' %}:</span>
                 <ul>
                 {% for child in children %}
                     <li>
@@ -63,16 +63,16 @@
                 </ul>
             {% endif %}
 
-            <span class="show-job-title">Last change author: </span>
+            <span class="show-job-title">{% trans 'Last change author' %}: </span>
             {{ job.change_author.extended.last_name }} {{ job.change_author.extended.first_name }}
 
             {% if created_by %}
-                <br><span class="show-job-title">Created by: </span>
+                <br><span class="show-job-title">{% trans 'Created by' %}: </span>
                 {{ created_by }}
             {% endif %}
 
             <br>
-            <span class="show-job-title">Last change date: </span>
+            <span class="show-job-title">{% trans 'Last change date' %}: </span>
             {% if user_tz %}
                 {% timezone user_tz %}
                     {{ job.change_date|date:'d.m.y H:i:s' }}
@@ -83,7 +83,7 @@
             <br><br>
 
 
-            <span class="show-job-title">Status: </span>
+            <span class="show-job-title">{% trans 'Status' %}: </span>
             {% if job.reportroot %}
                 {{ job.reportroot.status }}
             {% else %}
@@ -93,7 +93,7 @@
             {% if job.verdict %}
                 <div class="row">
                     <div class="col-sm-6">
-                        <span class="show-job-title"><b>Unsafes: </b></span>
+                        <span class="show-job-title"><b>{% trans 'Unsafes' %}: </b></span>
                         <ul>
                             {% for v in verdict.unsafes %}
                                 <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
@@ -101,7 +101,7 @@
                         </ul>
                     </div>
                     <div class="col-sm-6">
-                        <span class="show-job-title"><b>Safes: </b></span>
+                        <span class="show-job-title"><b>{% trans 'Safes' %}: </b></span>
                         <ul>
                             {% for v in verdict.safes %}
                                 <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
@@ -113,7 +113,7 @@
             {% endif %}
 
             {% if unknowns %}
-                <span class="show-job-title"><b>Problems</b></span>
+                <span class="show-job-title"><b>{% trans 'Problems' %}</b></span>
                 {% if verdict %}(<a href="#">{{ verdict.unknowns }}</a>){% endif %}
                 <ul>
                     {% for comp in unknowns %}
@@ -129,7 +129,7 @@
             {% endif %}
 
             {% if resources %}
-                <span class="show-job-title"><b>Resources*</b></span>
+                <span class="show-job-title"><b>{% trans 'Resources' %}*</b></span>
                 <ul>
                     {% for res_data in resources %}
                         <li>{{ res_data.component }}: <span style="color: darkblue">{{ res_data.val }}</span></li>
@@ -137,7 +137,7 @@
                 </ul>
             {% endif %}
 
-            <hr><small>*For each component and 'total' the format of resources is [(wall time) (cpu time) (maximum memory)]</small>
+            <hr><small>*{% trans "For each component and 'total' the format of resources is [(wall time) (cpu time) (maximum memory)]" %}</small>
         </div>
         <div id="edit_job_div" class="col-sm-1"></div>
     </div>
@@ -147,14 +147,14 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <button type="button" class="close" data-dismiss="modal">&times;</button>
-                            <h4 class="modal-title">Are you sure?</h4>
+                            <h4 class="modal-title">{% trans 'Are you sure?' %}</h4>
                         </div>
                         <div class="modal-body">
-                            <p>All versions and all data connected to this verification job will be deleted!</p>
+                            <p>{% trans 'All versions and all data connected to this verification job will be deleted!' %}</p>
                         </div>
                         <div class="modal-footer">
-                            <button id="remove_job__{{ job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">Remove</button>
-                            <button type="button" class="btn btn-info" data-dismiss="modal">Cancel</button>
+                            <button id="remove_job__{{ job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Remove' %}</button>
+                            <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
                         </div>
                     </div>
                 </div>

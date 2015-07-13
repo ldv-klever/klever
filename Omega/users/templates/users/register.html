@@ -2,6 +2,7 @@
 
 {% load staticfiles %}
 {% load tz %}
+{% load i18n %}
 
 {% get_current_timezone as TIME_ZONE %}
 
@@ -14,14 +15,14 @@
 {% block body_block %}
 
     {% if registered %}
-        <strong>Thank you for registering!</strong>
+        <strong>{% trans 'Thank you for registering!' %}</strong>
     {% else %}
-        <h3><strong>Register here!</strong></h3><br>
+        <h3><strong>{% trans 'Registration...' %}</strong></h3><br>
         <form id="user_form" method="post" action="{% url 'users:register' %}" enctype="multipart/form-data">
         {% csrf_token %}
         {{ user_form.as_p }}
         {{ profile_form.as_p }}
-            <label for="timezone">Time zone:</label>
+            <label for="timezone">{% trans 'Time zone' %}:</label>
             <select id="timezone" name="timezone">
                 {% for tmz in timezones %}
                     <option value="{{ tmz }}"{% if tmz == TIME_ZONE %} selected="selected"{% endif %}>{{ tmz }}</option>

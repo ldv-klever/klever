@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
 
 {% load static %}
-
-{% block title %}Login{% endblock %}
+{% load i18n %}
+{% block title %}Sign in{% endblock %}
 
 {% block body_block %}
     <link href="/static/users/css/login.css" rel="stylesheet">
     <form class="form-signin" role="form" id="login_form" method="post" action="{% url 'users:login' %}">
         {% csrf_token %}
-        <h2 class="form-signin-heading">Please sign in</h2>
+        <h2 class="form-signin-heading">{% trans 'Please sign in' %}</h2>
 
         {% if login_errors %}
             <p style="color: #ee4c21;">{{ login_errors }}</p>
         {% endif %}
         <input class="form-control" placeholder="Username" id="id_username" maxlength="254" name="username" type="text" required autofocus="">
         <input class="form-control" placeholder="Password" id="id_password" maxlength="254" name="password" type="password" required>
-        <button class="btn btn-lg btn-primary btn-block" type="submit" value="Submit">Sign in</button>
+        <button class="btn btn-lg btn-primary btn-block" type="submit" value="Submit">{% trans 'Sign in' %}</button>
     </form>
 {% endblock %}
