@@ -3,7 +3,7 @@ $.getScript('/static/jobs/js/common.js');
 //-------------
 // FOR TABLE
 //-------------
-var do_not_count = "resource|format|version|type|identifier|parent_id|parent_name";
+var do_not_count = "resource|format|version|type|identifier|parent_id|parent_name|date";
 
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
