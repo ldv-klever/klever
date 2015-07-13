@@ -9,6 +9,7 @@ from jobs.job_model import Job
 from users.models import PreferableView
 from reports.models import STATUS
 import jobs.job_functions as job_f
+from Omega.vars import JOB_DEF_VIEW
 from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
     TITLES
 
@@ -83,57 +84,13 @@ FILTER_NAME_TITLES = {
     'format': _('Format'),
 }
 
-# Default view of the table
-DEF_VIEW = {
-    'columns': ['name', 'version', 'parent_name', 'role', 'author', 'date',
-                'status', 'unsafe', 'safe', 'problem', 'resource'],
-    # Available orders: ['date', 'status', 'name', 'author']
-    'orders': ['-date'],
-
-    # Available filters (id [types], (example value)):
-    # name [iexact, istartswith, icontains] (<any text>)
-    # change_author [is] (<id in the table>)
-    # change_date [younger, older] (weeks|days|hours|minutes: <number>)
-    # status [is, isnot] (<status identifier>)
-    # resource:component [iexact, istartswith, icontains] (<any text>)
-    # problem:component [iexact, istartswith, icontains] (<any text>)
-    # problem:problem [iexact, istartswith, icontains] (<any text>)
-    # format [is] (<number>)
-    'filters': {
-        # 'name': {
-        #     'type': 'istartswith',
-        #     'value': 'Title of the job',
-        # },
-        # 'change_author': {
-        #     'type': 'is',
-        #     'value': '1',
-        # },
-        # 'change_date': {
-        #     'type': 'younger',
-        #     'value': 'weeks:2',
-        # },
-        # 'resource_component': {
-        #     'type': 'istartswith',
-        #     'value': 'D',
-        # },
-        # 'problem_problem': {
-        #     'type': 'icontains',
-        #     'value': '1',
-        # },
-        # 'format': {
-        #     'type': 'is',
-        #     'value': '1',
-        # },
-    },
-}
-
 
 def get_view(user, view=None, view_id=None):
     if view is None:
         if view_id is None:
             pref_view = PreferableView.objects.filter(user=user)
         elif view_id == 'default':
-            return DEF_VIEW, 'default'
+            return JOB_DEF_VIEW, 'default'
         else:
             pref_view = PreferableView.objects.filter(
                 user=user,
@@ -143,7 +100,7 @@ def get_view(user, view=None, view_id=None):
             return json.loads(pref_view[0].view.view), pref_view[0].view_id
     else:
         return json.loads(view), None
-    return DEF_VIEW, 'default'
+    return JOB_DEF_VIEW, 'default'
 
 
 class FilterForm(object):
@@ -630,7 +587,9 @@ class TableTree(object):
 
     def __get_value(self, job, col, black):
         if col == 'name':
-            return job.name
+            if len(job.name) > 0:
+                return job.name
+            return '...'
         elif black:
             return ''
         elif col == 'author':

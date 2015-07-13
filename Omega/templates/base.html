@@ -27,7 +27,7 @@
         <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
             <div class="container-fluid">
                 <div class="navbar-header">
-                    <a class="navbar-brand" href="{% url 'users:index' %}">
+                    <a class="navbar-brand" href="{% url 'jobs:tree' %}">
                         <img height="26" width="50" src="/static/images/omega.png" alt="Omega">
                     </a>
                     <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
@@ -39,17 +39,17 @@
                 </div>
                 <div class="navbar-collapse collapse">
                     <ul class="nav navbar-nav">
-                    <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
+                        <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
+                        {% if user.is_staff %}<li><a href="/admin/">{% trans 'Admin Tools' %}</a></li>{% endif %}
                         {% block navbar_block %}{% endblock %}
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
-                        <li><a href="{% url 'users:index' %}">{% trans 'Home' %}</a></li>
                         {% if user.is_authenticated %}
                             <li><a href="{% url 'users:edit_profile' %}">{% trans 'Settings' %}</a></li>
-                            <li><a href="{% url 'users:logout' %}">{% trans 'Logout' %}</a></li>
+                            <li><a href="{% url 'users:logout' %}">{% trans 'Sign Out' %}</a></li>
                         {% else %}
-                            <li><a href="{% url 'users:register' %}">{% trans 'Register Here' %}</a></li>
-                            <li><a href="{% url 'users:login' %}">{% trans 'Login' %}</a></li>
+                            <li><a href="{% url 'users:register' %}">{% trans 'Register' %}</a></li>
+                            <li><a href="{% url 'users:login' %}">{% trans 'Sign In' %}</a></li>
                         {% endif %}
                     </ul>
                 </div>

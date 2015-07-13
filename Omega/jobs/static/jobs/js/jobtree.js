@@ -325,23 +325,40 @@ $(document).ready(function () {
 
     // On click to the "Save" view button we are saving it and reloading page
     $('#save_view_btn').click(function () {
-        var request_data = collect_filter_data();
-        request_data['title'] = $('#new_view_name_input').val();
-        if (request_data['title'].length == 0) {
-            var notif = $('#need_name_alert').html();
-            $('#for_validate_message').html(notif);
-        }
-        else {
-            $.ajax({
-                method: 'post',
-                url: ajax_url + 'save_view/',
-                dataType: 'json',
-                data: request_data,
-                success: function() {
-                    window.location.replace('')
-                }
+        var view_title = $('#new_view_name_input').val();
+        var reserved_titles = [];
+        $('#available_views').children('option').each(function () {
+            reserved_titles.push($(this).html());
+        });
+        if (reserved_titles.indexOf(view_title) > -1) {
+            $.notify("Please choose another view name.", {
+                autoHide: true,
+                autoHideDelay: 1000,
+                style: 'bootstrap',
+                className: 'error'
             });
+            return false;
         }
+        if (view_title.length == 0) {
+            $.notify("View name is required.", {
+                autoHide: true,
+                autoHideDelay: 1000,
+                style: 'bootstrap',
+                className: 'error'
+            });
+            return false;
+        }
+        var request_data = collect_filter_data();
+        request_data['title'] = view_title;
+        $.ajax({
+            method: 'post',
+            url: ajax_url + 'save_view/',
+            dataType: 'json',
+            data: request_data,
+            success: function() {
+                window.location.replace('')
+            }
+        });
     });
 
     // On click to the "Show" view button we are changing preferable view and reloading page

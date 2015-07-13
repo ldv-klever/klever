@@ -1,14 +1,15 @@
-from django.shortcuts import render
-from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponseRedirect
-from django.core.urlresolvers import reverse
-from users.forms import UserExtendedForm, UserForm, EditUserForm
 import pytz
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.core.urlresolvers import reverse
 from django.forms import ValidationError
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.utils.translation import ugettext as _
+from users.forms import UserExtendedForm, UserForm, EditUserForm
 
 
-def user_login(request):
+def user_signin(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -16,30 +17,20 @@ def user_login(request):
         if user:
             if user.is_active:
                 login(request, user)
-                return HttpResponseRedirect(reverse('users:index'))
+                return HttpResponseRedirect(reverse('jobs:tree'))
             else:
                 login_error = "Your account is disabled!"
         else:
-            login_error = "Invalid login details supplied."
+            login_error = _("Invalid login details supplied.")
         return render(request, 'users/login.html',
                       {'login_errors': login_error})
     else:
         return render(request, 'users/login.html')
 
 
-def user_logout(request):
+def user_signout(request):
     logout(request)
-    return HttpResponseRedirect(reverse('users:index'))
-
-
-def index(request):
-    context = {}
-    if request.user.is_authenticated():
-        context['chdate'] = request.user.extended.change_date
-        user_tz = request.user.extended.timezone
-        if len(user_tz) > 0:
-            context['user_tz'] = user_tz
-    return render(request, 'users/index.html', context)
+    return HttpResponseRedirect(reverse('jobs:tree'))
 
 
 def register(request):
@@ -129,3 +120,9 @@ def edit_profile(request):
                       'changed': changed,
                       'timezones': pytz.common_timezones,
                   })
+
+
+def index_page(request):
+    if request.user.is_authenticated():
+        return HttpResponseRedirect(reverse('jobs:tree'))
+    return HttpResponseRedirect(reverse('users:login'))
