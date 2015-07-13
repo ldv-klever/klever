@@ -13,7 +13,7 @@ from users.models import View, PreferableView, USER_ROLES
 import jobs.table_prop as tp
 import jobs.job_functions as job_f
 from django.core.exceptions import ObjectDoesNotExist
-
+from django.utils import translation
 
 class Counter(object):
     def __init__(self):
@@ -41,6 +41,7 @@ class Flag(object):
 
 @login_required
 def tree_view(request):
+    translation.activate(request.user.extended.language)
     if request.method == 'POST':
         filters = tp.FilterForm(
             request.user,
@@ -81,6 +82,7 @@ def tree_view(request):
 
 @login_required
 def get_jobtable(request):
+    translation.activate(request.user.extended.language)
     if request.method == 'GET':
         return HttpResponse('')
 
@@ -132,6 +134,7 @@ def get_jobtable(request):
 
 @login_required
 def save_view(request):
+    translation.activate(request.user.extended.language)
     is_success = False
     view_id = None
     if request.method == 'POST':
@@ -189,6 +192,8 @@ def remove_view(request):
 
 @login_required
 def show_job(request, job_id=None):
+    translation.activate(request.user.extended.language)
+
     # Get needed job or return error 404 (page doesn't exist)
     job = get_object_or_404(Job, pk=int(job_id))
 
@@ -269,6 +274,7 @@ def show_job(request, job_id=None):
 
 @login_required
 def get_version_data(request, template='jobs/editJob.html'):
+    translation.activate(request.user.extended.language)
 
     if request.method != 'POST':
         return HttpResponse('')

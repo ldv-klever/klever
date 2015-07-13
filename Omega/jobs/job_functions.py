@@ -1,9 +1,10 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
 from jobs.job_model import JOB_ROLES
 from users.models import USER_ROLES
+
 
 COLORS = {
     'red': '#C70646',

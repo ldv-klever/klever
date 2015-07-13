@@ -3,6 +3,11 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext as _
 
 
+LANGUAGES = (
+    ('en', 'English'),
+    ('ru', 'Русский'),
+)
+
 USER_ROLES = (
     ('0', _('No access')),
     ('1', _('Producer')),
@@ -18,10 +23,6 @@ VIEW_TYPES = {
 
 
 class Extended(models.Model):
-    LANGUAGES = (
-        ('en', 'English'),
-        ('ru', 'Русский'),
-    )
     DATAFORMAT = (
         ('row', _('Row')),
         ('hum', _('Human-readable')),

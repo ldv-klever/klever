@@ -4,7 +4,8 @@ import pytz
 from datetime import datetime, timedelta
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import string_concat
 from jobs.job_model import Job
 from users.models import PreferableView
 from reports.models import STATUS
@@ -151,7 +152,12 @@ class FilterForm(object):
         titles = []
         for col_st in column_starts:
             titles.append(TITLES[col_st])
-        return '/'.join(titles)
+
+        concated_title = titles[0]
+        for i in range(1, len(titles)):
+            concated_title
+            concated_title = string_concat(concated_title, '/', titles[i])
+        return concated_title
 
     def __available_orders(self):
         new_orders = []

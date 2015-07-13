@@ -7,7 +7,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from users.forms import UserExtendedForm, UserForm, EditUserForm
-
+from users.models import LANGUAGES
 
 def user_signin(request):
     if request.method == 'POST':
@@ -119,6 +119,7 @@ def edit_profile(request):
                       'profile_form': profile_form,
                       'changed': changed,
                       'timezones': pytz.common_timezones,
+                      'LANGUAGES': LANGUAGES
                   })
 
 

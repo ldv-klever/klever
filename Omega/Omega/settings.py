@@ -98,6 +98,13 @@ DATABASES = {
 
 LANGUAGE_CODE = 'en-us'
 
+LANGUAGES = (
+    ('ru', 'Русский'),
+)
+LOCALE_PATHS = (
+   os.path.join(BASE_DIR,  'locale'),
+)
+
 TIME_ZONE = 'UTC'
 
 USE_I18N = True
