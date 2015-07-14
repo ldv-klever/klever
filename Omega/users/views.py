@@ -5,11 +5,15 @@ from django.core.urlresolvers import reverse
 from django.forms import ValidationError
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.utils.translation import ugettext as _
+from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import LANGUAGES
+from django.utils.translation import get_language
+
 
 def user_signin(request):
+    activate(request.LANGUAGE_CODE)
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -30,10 +34,11 @@ def user_signin(request):
 
 def user_signout(request):
     logout(request)
-    return HttpResponseRedirect(reverse('jobs:tree'))
+    return HttpResponseRedirect(reverse('users:login'))
 
 
 def register(request):
+    activate(request.LANGUAGE_CODE)
     registered = False
 
     if request.method == 'POST':
@@ -75,6 +80,7 @@ def register(request):
 
 @login_required
 def edit_profile(request):
+    activate(request.user.extended.language)
     changed = False
 
     if request.method == 'POST':
@@ -86,27 +92,23 @@ def edit_profile(request):
         )
         user_tz = request.POST.get('timezone')
         if user_form.is_valid() and profile_form.is_valid():
-            password = request.POST.get('old_password')
-            if request.user.check_password(password):
-                user = user_form.save(commit=False)
-                new_pass = request.POST.get('new_password')
-                do_redirect = False
-                if len(new_pass):
-                    print(new_pass)
-                    user.set_password(new_pass)
-                    do_redirect = True
-                user.save()
-                profile = profile_form.save(commit=False)
-                profile.change_author = request.user
-                profile.user = user
-                if user_tz:
-                    profile.timezone = user_tz
-                profile.save()
-                changed = True
-                if do_redirect:
-                    return HttpResponseRedirect(reverse('users:login'))
-            else:
-                raise ValidationError('Wrong password!')
+            user = user_form.save(commit=False)
+            new_pass = request.POST.get('new_password')
+            do_redirect = False
+            if len(new_pass):
+                print(new_pass)
+                user.set_password(new_pass)
+                do_redirect = True
+            user.save()
+            profile = profile_form.save(commit=False)
+            profile.change_author = request.user
+            profile.user = user
+            if user_tz:
+                profile.timezone = user_tz
+            profile.save()
+            changed = True
+            if do_redirect:
+                return HttpResponseRedirect(reverse('users:login'))
         else:
             print(user_form.errors, profile_form.errors)
     else:
