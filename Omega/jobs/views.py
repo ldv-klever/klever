@@ -4,7 +4,7 @@ import hashlib
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from django.http import HttpResponse, JsonResponse, Http404
 from jobs.job_model import Job, JOB_ROLES, JobHistory
 from jobs.models import UserRole
@@ -172,10 +172,13 @@ def preferable_view(request):
     pref_view.user = request.user
     pref_view.view = user_view
     pref_view.save()
-    return JsonResponse({
+    print(1)
+    resp = JsonResponse({
         'status': 0,
         'message': _("Preferable view was successfully changed!")
     })
+    print(2)
+    return resp
 
 
 @login_required

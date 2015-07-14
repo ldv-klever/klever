@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from django.forms import ValidationError
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import LANGUAGES
