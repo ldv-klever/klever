@@ -1,5 +1,3 @@
-$.getScript('/static/jobs/js/common.js');
-
 function check_all_roles () {
     var global_role = $('#job_global_roles').children('option:selected').val();
     var gr_num = parseInt(global_role);

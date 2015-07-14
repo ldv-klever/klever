@@ -18,8 +18,8 @@ JOB_ROLES = (
 
 # Default view of the table
 JOB_DEF_VIEW = {
-    'columns': ['name', 'version', 'parent_name', 'role', 'author', 'date',
-                'status', 'unsafe', 'safe', 'problem', 'resource'],
+    'columns': ['name', 'role', 'date', 'status', 'unsafe', 'problem',
+                'safe', 'resource'],
     # Available orders: ['date', 'status', 'name', 'author']
     'orders': ['-date'],
 

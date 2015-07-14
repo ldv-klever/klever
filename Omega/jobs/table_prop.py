@@ -155,7 +155,6 @@ class FilterForm(object):
 
         concated_title = titles[0]
         for i in range(1, len(titles)):
-            concated_title
             concated_title = string_concat(concated_title, '/', titles[i])
         return concated_title
 

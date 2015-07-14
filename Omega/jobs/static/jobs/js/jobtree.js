@@ -1,5 +1,3 @@
-$.getScript('/static/jobs/js/common.js');
-
 //-------------
 // FOR TABLE
 //-------------
