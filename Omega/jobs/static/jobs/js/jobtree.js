@@ -197,6 +197,23 @@ function collect_filter_data () {
         filters: getFilters()
     })};
 }
+function err_notify(message) {
+    $.notify(message, {
+        autoHide: true,
+        autoHideDelay: 2500,
+        style: 'bootstrap',
+        className: 'error'
+    });
+}
+
+function success_notify(message) {
+    $.notify(message, {
+        autoHide: true,
+        autoHideDelay: 2500,
+        style: 'bootstrap',
+        className: 'success'
+    });
+}
 
 $(document).ready(function () {
 
@@ -316,74 +333,87 @@ $(document).ready(function () {
         return false;
     });
 
-    // On click button "Show selected" we are making post request to the same page
     $('#show_unsaved_view_btn').click(function () {
         $.redirectPost('', collect_filter_data());
     });
 
-    // On click to the "Save" view button we are saving it and reloading page
     $('#save_view_btn').click(function () {
         var view_title = $('#new_view_name_input').val();
         var reserved_titles = [];
         $('#available_views').children('option').each(function () {
             reserved_titles.push($(this).html());
         });
-        if (reserved_titles.indexOf(view_title) > -1) {
-            $.notify("Please choose another view name.", {
-                autoHide: true,
-                autoHideDelay: 1500,
-                style: 'bootstrap',
-                className: 'error'
-            });
-            return false;
-        }
-        if (view_title.length == 0) {
-            $.notify("View name is required.", {
-                autoHide: true,
-                autoHideDelay: 1500,
-                style: 'bootstrap',
-                className: 'error'
-            });
-            return false;
-        }
-        var request_data = collect_filter_data();
-        request_data['title'] = view_title;
         $.ajax({
             method: 'post',
-            url: ajax_url + 'save_view/',
+            url: ajax_url + 'check_view_name/',
             dataType: 'json',
-            data: request_data,
-            success: function() {
-                window.location.replace('')
+            data: {view_title: view_title},
+            success: function(data) {
+                if (data.status == 0) {
+                    var request_data = collect_filter_data();
+                    request_data['title'] = view_title;
+                    $.ajax({
+                        method: 'post',
+                        url: ajax_url + 'save_view/',
+                        dataType: 'json',
+                        data: request_data,
+                        success: function(save_data) {
+                            if (save_data.status == 0) {
+                                $('#available_views').append($('<option>', {
+                                    text: save_data.view_name,
+                                    value: save_data.view_id
+                                }));
+                                $('#new_view_name_input').val('');
+                                success_notify(save_data.message);
+                            }
+                            else {
+                                err_notify(data.message);
+                            }
+                        }
+                    });
+                }
+                else {
+                    err_notify(data.message);
+                }
             }
         });
     });
 
-    // On click to the "Show" view button we are changing preferable view and reloading page
     $('#show_view_btn').click(function () {
-        var view_id = $('#available_views').children('option:selected').val();
-        $.ajax({
-            method: 'post',
-            url: ajax_url + 'change_preferable/',
-            dataType: 'json',
-            data: {view_id: view_id},
-            success: function() {
-                window.location.replace('')
-            }
-        });
+        $.redirectPost('', {view_id: $('#available_views').children('option:selected').val()});
     });
 
-    // On click to the "Remove" view button we are removing preferable view,
-    // needed view and then reloading page
     $('#remove_view_btn').click(function () {
-        var view_id = $('#available_views').children('option:selected').val();
         $.ajax({
             method: 'post',
             url: ajax_url + 'remove_view/',
             dataType: 'json',
-            data: {view_id: view_id},
-            success: function() {
-                window.location.replace('')
+            data: {view_id: $('#available_views').children('option:selected').val()},
+            success: function(data) {
+                if (data.status == 0) {
+                    $('#available_views').children('option:selected').remove();
+                    success_notify(data.message)
+                }
+                else {
+                    err_notify(data.message)
+                }
+            }
+        });
+    });
+
+    $('#make_preferable_view_btn').click(function () {
+        $.ajax({
+            method: 'post',
+            url: ajax_url + 'preferable_view/',
+            dataType: 'json',
+            data: {view_id: $('#available_views').children('option:selected').val()},
+            success: function(data) {
+                if (data.status == 0) {
+                    success_notify(data.message);
+                }
+                else {
+                    err_notify(data.message)
+                }
             }
         });
     });

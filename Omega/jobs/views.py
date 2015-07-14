@@ -13,7 +13,8 @@ from users.models import View, PreferableView, USER_ROLES
 import jobs.table_prop as tp
 import jobs.job_functions as job_f
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils import translation
+from django.utils.translation import activate
+
 
 class Counter(object):
     def __init__(self):
@@ -39,9 +40,12 @@ class Flag(object):
             self.f = True
 
 
+##################
+# Jobs tree page #
+##################
 @login_required
 def tree_view(request):
-    translation.activate(request.user.extended.language)
+    activate(request.user.extended.language)
     if request.method == 'POST':
         filters = tp.FilterForm(
             request.user,
@@ -82,7 +86,7 @@ def tree_view(request):
 
 @login_required
 def get_jobtable(request):
-    translation.activate(request.user.extended.language)
+    activate(request.user.extended.language)
     if request.method == 'GET':
         return HttpResponse('')
 
@@ -133,50 +137,99 @@ def get_jobtable(request):
 
 
 @login_required
+def preferable_view(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'status': 1, 'message': _("Unknown error")})
+
+    view_id = request.POST.get('view_id', None)
+    if view_id is None:
+        return JsonResponse({'status': 2, 'message': _("Unknown error")})
+
+    if view_id == 'default':
+        pref_views = request.user.preferableview_set.filter(view__type='1')
+        if len(pref_views):
+            pref_views.delete()
+            return JsonResponse({
+                'status': 0,
+                'message': _("Default view was set as preferable.")
+            })
+        else:
+            return JsonResponse({
+                'status': 1,
+                'message': _("Default view is already preferable!")
+            })
+
+    try:
+        user_view = View.objects.get(pk=view_id, author=request.user, type='1')
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'status': 1,
+            'message': _("View was not found!")
+        })
+    request.user.preferableview_set.filter(view__type='1').delete()
+    pref_view = PreferableView()
+    pref_view.user = request.user
+    pref_view.view = user_view
+    pref_view.save()
+    return JsonResponse({
+        'status': 0,
+        'message': _("Preferable view was successfully changed!")
+    })
+
+
+@login_required
+def check_view_name(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'status': 1, 'message': "Error 1"})
+
+    view_name = request.POST.get('view_title', None)
+    if view_name is None:
+        return JsonResponse({'status': 2, 'message': "Error 2"})
+
+    if view_name == _('Default'):
+        return JsonResponse(
+            {'status': 3, 'message': _("Please choose another view name")}
+        )
+
+    if view_name == '':
+        return JsonResponse(
+            {'status': 4, 'message': _("View name is required")}
+        )
+
+    if len(request.user.view_set.filter(type='1', name=view_name)):
+        return JsonResponse(
+            {'status': 5, 'message': _("Please choose another view name")}
+        )
+    return JsonResponse({'status': 0})
+
+
+@login_required
 def save_view(request):
-    translation.activate(request.user.extended.language)
-    is_success = False
-    view_id = None
+    activate(request.user.extended.language)
     if request.method == 'POST':
         view_data = request.POST.get('view', None)
-        view_name = request.POST.get('title', None)
-        if view_data and view_name:
+        view_name = request.POST.get('title', '')
+        if view_data and len(view_name):
             new_view = View()
             new_view.name = view_name
             new_view.view = view_data
             new_view.author = request.user
             new_view.type = '1'
             new_view.save()
-            view_id = new_view.id
-            request.user.preferableview_set.filter(view__type='1').delete()
-            pref_view = PreferableView()
-            pref_view.user = request.user
-            pref_view.view = new_view
-            pref_view.save()
-            is_success = True
-    return JsonResponse({'success': is_success, 'view_id': view_id})
-
-
-@login_required
-def change_preferable(request):
-    if request.method == 'POST':
-        view_id = request.POST.get('view_id', None)
-        request.user.preferableview_set.filter(view__type='1').delete()
-        if view_id != 'default':
-            new_pref_view = View.objects.filter(
-                author=request.user,
-                pk=int(view_id), type='1'
-            )
-            if len(new_pref_view):
-                pref_view = PreferableView()
-                pref_view.user = request.user
-                pref_view.view = new_pref_view[0]
-                pref_view.save()
-    return JsonResponse({})
+            return JsonResponse({
+                'status': 0,
+                'view_id': new_view.pk,
+                'view_name': new_view.name,
+                'message': _("Successfully saved")
+            })
+    return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
 
 @login_required
 def remove_view(request):
+    activate(request.user.extended.language)
     if request.method == 'POST':
         view_id = request.POST.get('view_id', None)
         request.user.preferableview_set.filter(view__type='1').delete()
@@ -187,12 +240,32 @@ def remove_view(request):
             )
             if len(new_pref_view):
                 new_pref_view[0].delete()
-    return JsonResponse({})
+                return JsonResponse({
+                    'status': 0,
+                    'message': _("View was successfully removed")
+                })
+            else:
+                return JsonResponse({
+                    'status': 1,
+                    'message': _("View was not found")
+                })
+        else:
+            return JsonResponse({
+                'status': 2,
+                'message': _("You can't remove Default view")
+            })
+    return JsonResponse({
+        'status': 3,
+        'message': _("Unknown error")
+    })
 
 
+#################
+# View job page #
+#################
 @login_required
 def show_job(request, job_id=None):
-    translation.activate(request.user.extended.language)
+    activate(request.user.extended.language)
 
     # Get needed job or return error 404 (page doesn't exist)
     job = get_object_or_404(Job, pk=int(job_id))
@@ -274,7 +347,7 @@ def show_job(request, job_id=None):
 
 @login_required
 def get_version_data(request, template='jobs/editJob.html'):
-    translation.activate(request.user.extended.language)
+    activate(request.user.extended.language)
 
     if request.method != 'POST':
         return HttpResponse('')
@@ -426,7 +499,9 @@ def save_job(request):
     job.global_role = global_role
     job.save()
     if parent_identifier and job_id is None:
-        time_encoded = job.change_date.strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
+        time_encoded = job.change_date.strftime(
+            "%Y%m%d%H%M%S%f%z"
+        ).encode('utf-8')
         job.identifier = hashlib.md5(time_encoded).hexdigest()
         job.save()
 

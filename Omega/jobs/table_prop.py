@@ -7,7 +7,7 @@ from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import string_concat
 from jobs.job_model import Job
-from users.models import PreferableView
+from users.models import PreferableView, View
 from reports.models import STATUS
 import jobs.job_functions as job_f
 from Omega.vars import JOB_DEF_VIEW
@@ -89,16 +89,15 @@ FILTER_NAME_TITLES = {
 def get_view(user, view=None, view_id=None):
     if view is None:
         if view_id is None:
-            pref_view = PreferableView.objects.filter(user=user)
+            pref_view = user.preferableview_set.filter(view__type='1')
+            if len(pref_view):
+                return json.loads(pref_view[0].view.view), pref_view[0].view_id
         elif view_id == 'default':
             return JOB_DEF_VIEW, 'default'
         else:
-            pref_view = PreferableView.objects.filter(
-                user=user,
-                pk=int(view_id)
-            )
-        if len(pref_view):
-            return json.loads(pref_view[0].view.view), pref_view[0].view_id
+            user_view = user.view_set.filter(pk=int(view_id), type='1')
+            if len(user_view):
+                return json.loads(user_view[0].view), user_view[0].pk
     else:
         return json.loads(view), None
     return JOB_DEF_VIEW, 'default'
