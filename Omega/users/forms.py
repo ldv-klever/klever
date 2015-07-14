@@ -5,10 +5,14 @@ from django.utils.translation import ugettext_lazy as _
 
 
 class UserForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput())
-    retype_password = forms.CharField(widget=forms.PasswordInput(),
-                                      help_text='Retype password',
-                                      required=True)
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
+    retype_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        help_text='Retype password',
+        required=True
+    )
 
     def __init__(self, *args, **kwargs):
         super(UserForm, self).__init__(*args, **kwargs)
@@ -24,6 +28,10 @@ class UserForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ('username', 'password', 'retype_password', 'email')
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
 
 
 class EditUserForm(forms.ModelForm):
@@ -67,6 +75,7 @@ class UserExtendedForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(UserExtendedForm, self).__init__(*args, **kwargs)
+        self.fields['accuracy'].label = _("Accuracy")
         self.fields['last_name'].label = _("Last name")
         self.fields['first_name'].label = _("First name")
         self.fields['language'].label = _("Language")

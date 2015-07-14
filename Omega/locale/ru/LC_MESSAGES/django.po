@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-14 16:09+0300\n"
+"POT-Creation-Date: 2015-07-14 17:08+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -289,6 +289,7 @@ msgid "Configuration"
 msgstr ""
 
 #: jobs/templates/jobs/editJob.html:90
+#: users/templates/users/edit-profile.html:54
 msgid "Save"
 msgstr ""
 
@@ -576,13 +577,43 @@ msgstr ""
 msgid "Sign In"
 msgstr ""
 
-#: users/forms.py:15
+#: users/forms.py:19
 msgid "Password"
 msgstr ""
 
-#: users/forms.py:44
+#: users/forms.py:52
 msgid "New password"
 msgstr "Новый пароль"
+
+#: users/forms.py:53
+#, fuzzy
+#| msgid "New password"
+msgid "Retype password"
+msgstr "Новый пароль"
+
+#: users/forms.py:78
+msgid "Accuracy"
+msgstr ""
+
+#: users/forms.py:79
+#, fuzzy
+#| msgid "Parent name"
+msgid "Last name"
+msgstr "Имя родителя"
+
+#: users/forms.py:80
+#, fuzzy
+#| msgid "Parent name"
+msgid "First name"
+msgstr "Имя родителя"
+
+#: users/forms.py:81
+msgid "Language"
+msgstr ""
+
+#: users/forms.py:82
+msgid "Data format"
+msgstr ""
 
 #: users/models.py:13
 msgid "Producer"
@@ -620,8 +651,8 @@ msgstr ""
 msgid "Your profile was changed!"
 msgstr ""
 
-#: users/templates/users/edit-profile.html:33
-#: users/templates/users/register.html:25
+#: users/templates/users/edit-profile.html:37
+#: users/templates/users/register.html:38
 msgid "Time zone"
 msgstr ""
 
@@ -633,14 +664,15 @@ msgstr ""
 msgid "Sign in"
 msgstr "Войти"
 
+#: users/templates/users/register.html:9
+#: users/templates/users/register.html:20
+msgid "Registration"
+msgstr ""
+
 #: users/templates/users/register.html:18
 msgid "Thank you for registering!"
 msgstr ""
 
-#: users/templates/users/register.html:20
-msgid "Registration..."
-msgstr ""
-
-#: users/views.py:24
+#: users/views.py:28
 msgid "Invalid login details supplied."
 msgstr ""
