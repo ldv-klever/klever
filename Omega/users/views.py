@@ -44,7 +44,7 @@ def register(request):
     if request.method == 'POST':
         user_form = UserForm(data=request.POST)
         profile_form = UserExtendedForm(data=request.POST)
-        user_tz = request.POST.get('timezone')
+        user_tz = request.POST.get('timezone', None)
         if user_form.is_valid() and profile_form.is_valid():
             user = user_form.save()
             user.set_password(user.password)
