@@ -273,22 +273,12 @@ def show_job(request, job_id=None):
     if not job_f.has_job_access(request.user, job=job):
         raise Http404(_("You don't have access to this verification job!"))
 
-    # Can user remove job?
-    can_delete = True
-    can_edit = True
-    can_create = job_f.has_job_access(request.user, action='create')
-
     # Get author of the job (who had created first version)
     created_by = None
     first_version = job.jobhistory_set.filter(version=1)
     if first_version:
         created_by = first_version[0].change_author.extended.last_name
         created_by += ' ' + first_version[0].change_author.extended.first_name
-        if (request.user.extended.role not in
-                [USER_ROLES[2][0], USER_ROLES[3][0]]) and (
-                    first_version[0].change_author != request.user):
-            can_delete = False
-            can_edit = False
 
     # Collect parents of the job
     parents = []
@@ -310,11 +300,9 @@ def show_job(request, job_id=None):
 
     # Collect children of the job
     children = job.children_set.all()
-    if len(children) > 0:
-        can_delete = False
     have_access_children = []
     for child in children:
-        if job_f.has_job_access(request.user, job=child):
+        if job_f.has_job_access(request.user, action="view", job=child):
             job_id = child.pk
         else:
             job_id = None
@@ -338,9 +326,15 @@ def show_job(request, job_id=None):
             'unknowns': job_f.unknowns_info(job),
             'resources': job_f.resource_info(job, request.user),
             'created_by': created_by,
-            'can_delete': can_delete,
-            'can_edit': can_edit,
-            'can_create': can_create,
+            'can_delete': job_f.has_job_access(
+                request.user, action='remove', job=job
+            ),
+            'can_edit': job_f.has_job_access(
+                request.user, action='edit', job=job
+            ),
+            'can_create': job_f.has_job_access(
+                request.user, action='create'
+            ),
         }
     )
 
@@ -354,31 +348,29 @@ def get_version_data(request, template='jobs/editJob.html'):
 
     # If None than we are creating new version
     job_id = request.POST.get('job_id', None)
+
+    # If None than we are editing old version
     parent_id = request.POST.get('parent_id', None)
+
     version = request.POST.get('version', 0)
     version = int(version)
 
+    # job and parent id can't be both None or both not None
     if (job_id and parent_id) or (job_id is None and parent_id is None):
         return HttpResponse('')
-
-    # If user is not producer he can't create new job
-    if request.user.extended.role not in [USER_ROLES[1][0], USER_ROLES[3][0]]:
-        raise Http404(
-            _("You are not Producer to create or edit Verification Job!")
-        )
 
     # Get needed job or return error 404 (page doesn't exist)
     try:
         if job_id:
             job = get_object_or_404(Job, pk=int(job_id))
+            if not job_f.has_job_access(request.user, action='edit', job=job):
+                return HttpResponse('')
         else:
             job = get_object_or_404(Job, pk=int(parent_id))
+            if not job_f.has_job_access(request.user, action='create'):
+                return HttpResponse('')
     except ValueError:
         return HttpResponse('')
-
-    # Check if user can edit this job
-    if not job_f.has_job_access(request.user, job=job):
-        raise Http404(_("You don't have access to this verification job!"))
 
     # Collecting existing job data
     job_parent_id = None

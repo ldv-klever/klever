@@ -190,7 +190,7 @@ $(document).ready(function () {
         set_actions_for_edit_form();
     }
 
-    $('button[id^=edit_job__]').click(function () {
+    $('button[id^="edit_job__"]').click(function () {
         var edit_job_div = $('#edit_job_div');
         $('#view_job_div').attr('class', 'col-sm-5');
         edit_job_div.attr('class', 'col-sm-7');
