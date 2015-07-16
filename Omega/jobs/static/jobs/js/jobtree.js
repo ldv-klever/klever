@@ -461,4 +461,19 @@ $(document).ready(function () {
             );
         }
     });
+
+    $('#move_columns_up').click(function () {
+        var $op = $('#selected_columns').children('option:selected');
+        console.log($op);
+        if ($op.length) {
+            $op.first().prev().before($op);
+        }
+    });
+
+    $('#move_columns_down').click(function () {
+        var $op = $('#selected_columns').children('option:selected');
+        if ($op.length) {
+            $op.last().next().after($op);
+        }
+    });
 });

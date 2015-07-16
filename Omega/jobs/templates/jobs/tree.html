@@ -41,7 +41,13 @@
                                         {% endfor %}
                                     </select>
                                 </div>
-                                <div class="col-sm-5">
+                                <div class="col-vertical-buttons">
+                                    <div style="margin-top: 70px;">
+                                        <button id="move_columns_up" type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-arrow-up"></span></button><br>
+                                        <button id="move_columns_down" type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
                                     <div class="form-inline">
                                         <label for="available_columns">{% trans 'Columns' %}</label><br>
                                         <select id="available_columns" class="form-control">
@@ -53,9 +59,9 @@
                                     </div>
 
                                     <button id="remove_column_btn" style="margin-top: 15px;" type="button" class="btn btn-danger">{% trans 'Remove selected' %}</button>
-                                    <br>
-
-                                    <div id="available_orders_form" class="form-inline" style="margin-top: 15px;">
+                                </div>
+                                <div class="col-sm-4">
+                                    <div id="available_orders_form" class="form-inline">
                                         <label for="available_orders">{% trans 'Add order by' %}</label><br>
                                         <select id="available_orders" class="form-control">
                                             {% for col in available_orders %}
@@ -64,9 +70,7 @@
                                         </select>
                                         <button id="add_order_btn" type="button" class="btn btn-primary">{% trans 'Add' %}</button>
                                     </div>
-                                </div>
-                                <div class="col-sm-4">
-                                    <div id="all_selected_orders">
+                                    <div id="all_selected_orders" style="margin-top: 15px;">
                                         {% if selected_orders %}
                                             {% for so in selected_orders %}
                                                 <div class="form-inline" id="order__{{ so.value }}">

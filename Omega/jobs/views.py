@@ -459,7 +459,7 @@ def create_job_page(request):
 @login_required
 def save_job(request):
     if request.method != 'POST':
-        return JsonResponse({'status': 1})
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
     title = request.POST.get('title', '')
     comment = request.POST.get('comment', '')
@@ -470,37 +470,47 @@ def save_job(request):
     user_roles = request.POST.get('user_roles', '[]')
     user_roles = json.loads(user_roles)
 
-    if job_id and parent_identifier:
-        try:
-            parent = Job.objects.get(identifier=parent_identifier)
-            job = Job.objects.get(pk=int(job_id))
-        except ObjectDoesNotExist:
-            return JsonResponse({'status': 3})
-        if not job_f.has_job_access(request.user, action='edit', job=job):
-            return JsonResponse({'status': 10})
-        if job.parent.identifier != parent.identifier:
-            return JsonResponse({'status': 5})
-        job.version += 1
-    elif job_id:
+    last_version = int(request.POST.get('last_version', 0))
+
+    if job_id:
         try:
             job = Job.objects.get(pk=int(job_id))
         except ObjectDoesNotExist:
-            return JsonResponse({'status': 3})
+            return JsonResponse({
+                'status': 1,
+                'message': _('Job was not found')
+            })
         if not job_f.has_job_access(request.user, action='edit', job=job):
-            return JsonResponse({'status': 10})
+            return JsonResponse({
+                'status': 1,
+                'message': _("You don't have access to edit this job.")
+            })
+        if parent_identifier and job.parent.identifier != parent_identifier:
+            return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        if job.version != last_version:
+            return JsonResponse({
+                'status': 1,
+                'message': _("Your version is expired. Please reload page.")
+            })
         job.version += 1
-    elif parent_identifier:
+    elif job_id is None and parent_identifier:
         try:
             parent = Job.objects.get(identifier=parent_identifier)
         except ObjectDoesNotExist:
-            return JsonResponse({'status': 3})
+            return JsonResponse({
+                'status': 1,
+                'message': _('Job was not found')
+            })
         if not job_f.has_job_access(request.user, action='create'):
-            return JsonResponse({'status': 10})
+            return JsonResponse({
+                'status': 1,
+                'message': _("You don't have access to create new job.")
+            })
         job = Job()
         job.type = parent.type
         job.parent = parent
     else:
-        return JsonResponse({'status': 3})
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
     job.change_author = request.user
     job.name = title

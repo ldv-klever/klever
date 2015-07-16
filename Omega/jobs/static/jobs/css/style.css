@@ -67,3 +67,12 @@ th {
 #new_view_name_input {
     width: 300px;
 }
+
+#available_columns {
+    max-width: 150px;
+}
+
+.col-vertical-buttons {
+    float: left;
+    width: 4%;
+}

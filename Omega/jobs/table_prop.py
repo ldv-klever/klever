@@ -7,7 +7,6 @@ from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import string_concat
 from jobs.job_model import Job
-from users.models import PreferableView, View
 from reports.models import STATUS
 import jobs.job_functions as job_f
 from Omega.vars import JOB_DEF_VIEW
@@ -663,12 +662,12 @@ class TableTree(object):
         elif col.startswith('problem:'):
             m = re.match(r'problem:pr_component_(\d+):problem_(\d+)', col)
             if m:
-                try:
-                    comp_mark_unkn = job.componentmarkunknownproblem_set.get(
-                        component_id=int(m.group(1)), problem_id=int(m.group(2))
-                    )
-                    return comp_mark_unkn.number
-                except ObjectDoesNotExist:
+                comp_mark_unkn = job.componentmarkunknownproblem_set.filter(
+                    component_id=int(m.group(1)), problem_id=int(m.group(2))
+                )
+                if len(comp_mark_unkn):
+                    return comp_mark_unkn[0].number
+                else:
                     return '-'
             m = re.match(r'problem:pr_component_(\d+):z_total', col)
             if m:
@@ -680,12 +679,12 @@ class TableTree(object):
                     return '-'
             m = re.match(r'problem:pr_component_(\d+):z_no_mark', col)
             if m:
-                try:
-                    comp_mark_unkn_t = job.componentmarkunknownproblem_set.get(
-                        component_id=int(m.group(1)), problem=None
-                    )
-                    return comp_mark_unkn_t.number
-                except ObjectDoesNotExist:
+                comp_mark_unkn_t = job.componentmarkunknownproblem_set.filter(
+                    component_id=int(m.group(1)), problem=None
+                )
+                if len(comp_mark_unkn_t):
+                    return comp_mark_unkn_t[0].number
+                else:
                     return '-'
         elif col.startswith('resource:'):
             accuracy = self.user.extended.accuracy

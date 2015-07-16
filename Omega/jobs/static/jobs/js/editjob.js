@@ -127,6 +127,15 @@ function set_actions_for_edit_form () {
             configuration = $('#job_config').val(),
             global_role = $('#job_global_roles').children('option:selected').val(),
             user_roles = [], job_id, job_id_input = $('#job_id_input');
+
+        var last_job_version = 0;
+        $('#job_version_selector').children('option').each(function () {
+            var child_version = parseInt($(this).val());
+            if (child_version > last_job_version) {
+                last_job_version = child_version;
+            }
+        });
+
         if (job_id_input.length) {
             job_id = job_id_input.val();
         }
@@ -145,7 +154,8 @@ function set_actions_for_edit_form () {
                 configuration: configuration,
                 global_role: global_role,
                 user_roles: user_roles,
-                parent_identifier: $('#job_parent_identifier').val()
+                parent_identifier: $('#job_parent_identifier').val(),
+                last_version: last_job_version
             },
             function (data) {
                 replace_or_notify(data, '/jobs/' + data.job_id + '/');
