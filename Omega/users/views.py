@@ -96,7 +96,6 @@ def edit_profile(request):
             new_pass = request.POST.get('new_password')
             do_redirect = False
             if len(new_pass):
-                print(new_pass)
                 user.set_password(new_pass)
                 do_redirect = True
             user.save()

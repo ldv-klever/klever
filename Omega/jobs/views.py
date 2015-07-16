@@ -172,13 +172,10 @@ def preferable_view(request):
     pref_view.user = request.user
     pref_view.view = user_view
     pref_view.save()
-    print(1)
-    resp = JsonResponse({
+    return JsonResponse({
         'status': 0,
         'message': _("Preferable view was successfully changed!")
     })
-    print(2)
-    return resp
 
 
 @login_required
