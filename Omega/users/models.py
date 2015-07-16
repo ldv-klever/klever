@@ -11,9 +11,7 @@ LANGUAGES = (
 USER_ROLES = (
     ('0', _('No access')),
     ('1', _('Producer')),
-    ('2', _('Manager')),
-    ('3', _('Producer and Manager')),
-    ('4', _('Administrator')),
+    ('2', _('Manager'))
 )
 
 VIEW_TYPES = {

@@ -23,7 +23,7 @@ def user_signin(request):
                 login(request, user)
                 return HttpResponseRedirect(reverse('jobs:tree'))
             else:
-                login_error = "Your account is disabled!"
+                login_error = _("Your account is disabled!")
         else:
             login_error = _("Invalid login details supplied.")
         return render(request, 'users/login.html',

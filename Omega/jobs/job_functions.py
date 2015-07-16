@@ -4,6 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from jobs.job_model import JOB_ROLES
 from users.models import USER_ROLES
+from reports.models import STATUS
 
 
 COLORS = {
@@ -279,6 +280,8 @@ def role_info(job, user):
 
 def has_job_access(user, action='view', job=None):
     if action == 'view' and job:
+        if user.extended.role == USER_ROLES[2][0]:
+            return True
         job_first_ver = job.jobhistory_set.filter(version=1)
         if len(job_first_ver) and job_first_ver[0].change_author == user:
             return True
@@ -291,19 +294,31 @@ def has_job_access(user, action='view', job=None):
             return False
         return True
     elif action == 'create':
-        return user.extended.role in [USER_ROLES[1][0], USER_ROLES[3][0]]
+        return user.extended.role == USER_ROLES[1][0]
     elif action == 'edit' and job:
-        first_version = job.jobhistory_set.filter(version=1)
-        if first_version:
-            if (user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]) or \
-                    (first_version[0].change_author == user):
+        first_v = job.jobhistory_set.filter(version=1)
+        if first_v:
+            try:
+                status = job.reportroot.status
+            except ObjectDoesNotExist:
+                # TODO: return False for jobs without status
                 return True
-    elif action == 'remove' and job:
-        first_version = job.jobhistory_set.filter(version=1)
-        if len(first_version):
-            children = job.children_set.all()
-            if len(children) == 0:
-                if (user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]) or \
-                        (first_version[0].change_author == user):
+            if status == STATUS[0][0]:
+                if first_v[0].change_author == user or \
+                                user.extended.role == USER_ROLES[2][0]:
                     return True
+        return False
+    elif action == 'remove' and job:
+        if user.extended.role == USER_ROLES[2][0]:
+            return True
+        first_version = job.jobhistory_set.filter(version=1)
+        if len(first_version) and len(job.children_set.all()) == 0:
+            try:
+                status = job.reportroot.status
+            except ObjectDoesNotExist:
+                status = None
+            if status in [STATUS[1][0], STATUS[2][0], STATUS[3][0]]:
+                return False
+            if first_version[0].change_author == user:
+                return True
     return False
