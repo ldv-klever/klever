@@ -20,7 +20,7 @@
             <div class="form-inline">
                 <div class="btn-group" role="group">
                     {% if can_create %}<button id="copy_job__{{ job.pk }}" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
-                    <button id="load_job__{{ job.pk }}" class="btn btn-success">{% trans 'Load' %}</button>
+                    <button id="load_job__{{ job.pk }}" class="btn btn-success">{% trans 'Upload' %}</button>
                     {% if can_edit %}<button id="edit_job__{{ job.pk }}" class="btn btn-primary">{% trans 'Edit' %}</button>{% endif %}
                     {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">{% trans 'Remove' %}</button>{% endif %}
                 </div>

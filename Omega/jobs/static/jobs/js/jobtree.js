@@ -28,7 +28,6 @@ function fill_all_values() {
 }
 
 function fill_checked_values() {
-    console.log('Entered!');
     $("td[id^='checked__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
         if (cell_id_data.length > 0) {
@@ -339,10 +338,6 @@ $(document).ready(function () {
 
     $('#save_view_btn').click(function () {
         var view_title = $('#new_view_name_input').val();
-        var reserved_titles = [];
-        $('#available_views').children('option').each(function () {
-            reserved_titles.push($(this).html());
-        });
         $.ajax({
             method: 'post',
             url: ajax_url + 'check_view_name/',
@@ -374,6 +369,26 @@ $(document).ready(function () {
                 }
                 else {
                     err_notify(data.message);
+                }
+            }
+        });
+    });
+
+    $('#update_view_btn').click(function () {
+        var view_id = $('#available_views').children('option:selected').val();
+        var request_data = collect_filter_data();
+        request_data['view_id'] = view_id;
+        $.ajax({
+            method: 'post',
+            url: ajax_url + 'save_view/',
+            dataType: 'json',
+            data: request_data,
+            success: function(save_data) {
+                if (save_data.status == 0) {
+                    success_notify(save_data.message);
+                }
+                else {
+                    err_notify(save_data.message);
                 }
             }
         });
@@ -416,5 +431,34 @@ $(document).ready(function () {
                 }
             }
         });
+    });
+
+    $('#delete_jobs_btn').click(function () {
+        var jobs_for_delete = [];
+        $("input[id^='job_checkbox__']").each(function () {
+            if ($(this).is(':checked')) {
+                jobs_for_delete.push($(this).attr('id').replace('job_checkbox__', ''));
+            }
+        });
+        if (jobs_for_delete.length) {
+            $.post(
+                ajax_url + 'remove_jobs/',
+                {jobs: JSON.stringify(jobs_for_delete)},
+                function (data) {
+                    if (data.status == 0) {
+                        window.location.replace('')
+                    }
+                    else {
+                        $.notify(data.message, {
+                            autoHide: true,
+                            autoHideDelay: 2500,
+                            style: 'bootstrap',
+                            className: 'error'
+                        });
+                    }
+                },
+                'json'
+            );
+        }
     });
 });

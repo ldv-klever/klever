@@ -211,19 +211,37 @@ def save_view(request):
     if request.method == 'POST':
         view_data = request.POST.get('view', None)
         view_name = request.POST.get('title', '')
-        if view_data and len(view_name):
+        view_id = request.POST.get('view_id', None)
+        if view_data is None:
+            return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        if view_id == 'default':
+            return JsonResponse({
+                'status': 1,
+                'message': _("You can't edit Default view!")
+            })
+        elif view_id:
+            try:
+                new_view = request.user.view_set.get(pk=int(view_id))
+            except ObjectDoesNotExist:
+                return JsonResponse({
+                    'status': 1,
+                    'message': _('View was not found!')
+                })
+        elif len(view_name):
             new_view = View()
             new_view.name = view_name
-            new_view.view = view_data
-            new_view.author = request.user
             new_view.type = '1'
-            new_view.save()
-            return JsonResponse({
-                'status': 0,
-                'view_id': new_view.pk,
-                'view_name': new_view.name,
-                'message': _("Successfully saved")
-            })
+            new_view.author = request.user
+        else:
+            return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        new_view.view = view_data
+        new_view.save()
+        return JsonResponse({
+            'status': 0,
+            'view_id': new_view.pk,
+            'view_name': new_view.name,
+            'message': _("View was successfully saved")
+        })
     return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
 
@@ -251,11 +269,11 @@ def remove_view(request):
                 })
         else:
             return JsonResponse({
-                'status': 2,
+                'status': 1,
                 'message': _("You can't remove Default view")
             })
     return JsonResponse({
-        'status': 3,
+        'status': 1,
         'message': _("Unknown error")
     })
 
@@ -541,4 +559,31 @@ def remove_job(request):
         return JsonResponse({'status': 10})
 
     job.delete()
+    return JsonResponse({'status': 0})
+
+@login_required
+def remove_jobs(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+    job_ids = request.POST.get('jobs', [])
+    job_ids = json.loads(job_ids)
+    jobs = []
+    for job_id in job_ids:
+        try:
+            jobs.append(Job.objects.get(pk=int(job_id)))
+        except ObjectDoesNotExist:
+            return JsonResponse({
+                'status': 1,
+                'message': _('Job was not found, please reload page.')
+            })
+    for job in jobs:
+        if not job_f.has_job_access(request.user, action="remove", job=job):
+            return JsonResponse({
+                'status': 1,
+                'message':
+                    _("You don't have access to remove one of selected jobs.")
+            })
+    for job in jobs:
+        job.delete()
     return JsonResponse({'status': 0})

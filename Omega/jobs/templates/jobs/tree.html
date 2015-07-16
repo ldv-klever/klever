@@ -16,11 +16,11 @@
 {% block body_block %}
     <div class="row" id="jobstree-first-big-part"><form autocomplete="off" onsubmit="return false">
         <div class="col-sm-2">
-            <a class="btn btn-primary btn-block" href="#">{% trans 'Upload VJ' %}</a>
-            <a class="btn btn-primary btn-block" href="#">{% trans 'Download VJ' %}</a>
-            <a class="btn btn-primary btn-block" href="#">{% trans 'Upload EM' %}</a>
-            <a id="compare_btn_job" class="btn btn-success btn-block" href="#">{% trans 'Compare reports' %}</a>
-            <a id="delete_btn_job" class="btn btn-danger btn-block" href="#">{% trans 'Delete' %}</a>
+            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload VJ' %}</button>
+            <button type="button" class="btn btn-primary btn-block">{% trans 'Download VJ' %}</button>
+            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload EM' %}</button>
+            <button id="compare_btn_job" class="btn btn-success btn-block">{% trans 'Compare reports' %}</button>
+            <button type="button" data-toggle="modal" data-target="#remove_jobs_popup" class="btn btn-danger btn-block">{% trans 'Delete' %}</button>
         </div>
         <div class="col-sm-10" id="table_filters">
             <div class="panel-group" id="accordion">
@@ -270,11 +270,12 @@
                 <select id="available_views" class="form-control">
                     <option value="default">{% trans 'Default' %}</option>
                     {% for v in available_views %}
-                        <option value="{{ v.id }}"{% if v.selected %} selected{% endif %}>{{ v.title }}</option>
+                        <option title="{{ v.title }}" value="{{ v.id }}"{% if v.selected %} selected{% endif %}>{{ v.title }}</option>
                     {% endfor %}
                 </select>
                 <div class="btn-group">
-                    <button id="show_view_btn" type="button" class="btn btn-primary">{% trans 'Show' %}</button>
+                    <button id="show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
+                    <button id="update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
                     <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Preferable' %}</button>
                     <button id="remove_view_btn" type="button" class="btn btn-danger">{% trans 'Remove' %}</button>
                 </div>
@@ -441,6 +442,23 @@
             <button id="temp___remove__filter__format" class="btn-close-x" style="float:right;">
                 <span class="glyphicon glyphicon-remove"></span>
             </button>
+        </div>
+    </div>
+    <div id="remove_jobs_popup" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{% trans 'Are you sure?' %}</h4>
+                </div>
+                <div class="modal-body">
+                    <p>{% trans 'All versions and all data of selected verification job(s) will be deleted!' %}</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="delete_jobs_btn" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Remove' %}</button>
+                    <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
         </div>
     </div>
 {% endblock %}

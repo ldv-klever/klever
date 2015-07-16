@@ -45,22 +45,14 @@ function remove_user_role_form (id) {
     $('#job_user_role__' + id).remove();
 }
 
-function replace_or_notify(status, url) {
-    if (status == 0) {
+function replace_or_notify(data, url) {
+    if (data.status == 0) {
         window.location.replace(url)
     }
-    else if (status == 10) {
-        $.notify("No access", {
-            autoHide: true,
-            autoHideDelay: 1000,
-            style: 'bootstrap',
-            className: 'error'
-        });
-    }
     else {
-        $.notify("Error " + status, {
+        $.notify(data.message, {
             autoHide: true,
-            autoHideDelay: 1000,
+            autoHideDelay: 2500,
             style: 'bootstrap',
             className: 'error'
         });
@@ -156,7 +148,7 @@ function set_actions_for_edit_form () {
                 parent_identifier: $('#job_parent_identifier').val()
             },
             function (data) {
-                replace_or_notify(data.status, '/jobs/job/' + data.job_id + '/');
+                replace_or_notify(data, '/jobs/' + data.job_id + '/');
             },
             "json"
         );
@@ -164,7 +156,6 @@ function set_actions_for_edit_form () {
 
     $('#job_version_selector').change(function () {
         var version = $(this).children('option:selected').val();
-
         $.post(
             '/jobs/editjob/',
             {
@@ -172,7 +163,8 @@ function set_actions_for_edit_form () {
                 version: version
             },
             function (data) {
-                $('#edit_job_div').html(data);
+                var edit_job_div = $('#edit_job_div');
+                edit_job_div.html(data);
                 set_actions_for_edit_form();
                 $('#cancel_edit_job_btn').click(function () {
                     $('#view_job_div').attr('class', 'col-sm-11');
@@ -222,7 +214,7 @@ $(document).ready(function () {
             '/jobs/removejob/',
             {job_id: job_id},
             function (data) {
-                replace_or_notify(data.status, '/jobs/');
+                replace_or_notify(data, '/jobs/');
             },
             'json'
         );

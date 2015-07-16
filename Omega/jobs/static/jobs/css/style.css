@@ -59,3 +59,11 @@ th {
 .show-job-name {
     font-style: italic;
 }
+
+#available_views {
+    max-width: 187px;
+}
+
+#new_view_name_input {
+    width: 300px;
+}
