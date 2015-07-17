@@ -7,10 +7,10 @@
     {% endif %}
 
     {% if job_versions|length %}
-        <label for="job_version_selector" class="show-job-title">{% trans 'You can choose old Verification Job version' %}</label>
+        <label for="job_version_selector" class="show-job-title">{% trans 'You can choose old Verification Job version' %}**</label>
         <select id="job_version_selector" class="form-control">
             {% for jv in job_versions %}
-                <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %} >{{ jv.title }}</option>
+                <option title="{{ jv.comment }}" value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
             {% endfor %}
         </select>
         <label class="show-job-title">{% trans 'or change it:' %}</label>
@@ -28,7 +28,7 @@
     {% endif %}
 
     <label style="width: 100%;">
-        {% trans 'Comment' %}:<textarea id="job_comment" class="form-control" style="resize: none" placeholder="{% trans 'Comment' %}">{{ job.comment }}</textarea>
+        {% trans 'Description' %}:<textarea id="job_description" class="form-control" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
     </label>
 
     <ul class="list-group">
@@ -47,17 +47,15 @@
                     </div>
                 </div>
                 <div class="col-sm-6">
-                    {% if roles.available_users|length > 0 %}
-                        <div id="job_user_role_div" class="form-inline">
-                            <label for="job_available_users">{% trans 'Add role to user' %}:</label><br>
-                            <select id="job_available_users" class="form-control">
-                                {% for au in roles.available_users %}
-                                    <option value="{{ au.id }}">{{ au.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <button id="add_user_for_role" class="btn btn-primary">{% trans 'Add' %}</button>
-                        </div>
-                    {% endif %}
+                    <div id="job_user_role_div" class="form-inline">
+                        <label for="job_available_users">{% trans 'Add role to user' %}:</label><br>
+                        <select id="job_available_users" class="form-control">
+                            {% for au in roles.available_users %}
+                                <option value="{{ au.id }}">{{ au.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button id="add_user_for_role" class="btn btn-primary">{% trans 'Add' %}</button>
+                    </div>
                 </div>
             </div>
             <br>
@@ -86,8 +84,11 @@
     </ul>
 
     <label style="width: 100%;">{% trans 'Configuration' %}:<textarea id="job_config" class="form-control" style="resize: none" placeholder="{% trans 'Configuration' %}">{{ job.configuration }}</textarea></label>
+    {% if job_versions|length %}
+        <label style="width: 100%;">{% trans "Change's comment" %}:<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
+    {% endif %}
     <hr>
-    <button id="save_job_btn" class="btn btn-success">{% trans 'Save' %}</button>
+    <button id="save_job_btn" type="submit" class="btn btn-success">{% trans 'Save' %}</button>
     {% if job_versions|length %}
         <button id="cancel_edit_job_btn" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</button>
     {% endif %}
@@ -106,3 +107,8 @@
         <span class="glyphicon glyphicon-remove"></span>
     </button>
 </div>
+{% if job_versions|length %}
+    <hr><small style="color: #868686">**{% trans "User roles can't be restored from old versions." %}</small>
+{% endif %}
+<div id="comment_required_div" hidden>{% trans 'Change comment is required' %}</div>
+<div id="title_required_div" hidden>{% trans 'Title is required' %}</div>

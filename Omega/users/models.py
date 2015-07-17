@@ -12,8 +12,6 @@ class Extended(models.Model):
     user = models.OneToOneField(User)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
-    change_date = models.DateTimeField(auto_now=True)
-    change_author = models.ForeignKey(User, related_name='+')
     accuracy = models.SmallIntegerField(default=2)
     data_format = models.CharField(max_length=3, choices=DATAFORMAT,
                                    default='row')

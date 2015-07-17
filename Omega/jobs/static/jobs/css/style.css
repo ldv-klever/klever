@@ -76,3 +76,16 @@ th {
     float: left;
     width: 4%;
 }
+
+dt {
+    color: #6416ad;
+}
+
+.dt-text {
+    white-space: pre-wrap;
+    padding-left: 5px;
+    -webkit-border-radius: 15px;
+    -moz-border-radius: 15px;
+    border-radius: 15px;
+    border: 1px solid #202223;
+}

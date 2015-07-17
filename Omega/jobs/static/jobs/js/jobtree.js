@@ -196,23 +196,6 @@ function collect_filter_data () {
         filters: getFilters()
     })};
 }
-function err_notify(message) {
-    $.notify(message, {
-        autoHide: true,
-        autoHideDelay: 2500,
-        style: 'bootstrap',
-        className: 'error'
-    });
-}
-
-function success_notify(message) {
-    $.notify(message, {
-        autoHide: true,
-        autoHideDelay: 2500,
-        style: 'bootstrap',
-        className: 'success'
-    });
-}
 
 $(document).ready(function () {
 

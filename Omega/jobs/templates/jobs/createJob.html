@@ -5,12 +5,14 @@
 {% block title %}{% trans 'Create Job' %}{% endblock %}
 
 {% block head_block %}
+    <script src="/static/jobs/js/notify.min.js"></script>
     <script src="/static/jobs/js/common.js"></script>
     <script src="/static/jobs/js/editjob.js"></script>
-    <script src="/static/jobs/js/notify.min.js"></script>
     <link href="/static/jobs/css/style.css" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
-    {% include "jobs/editJob.html" %}
+    <div id="create_job_global_div">
+        {% include "jobs/editJob.html" %}
+    </div>
 {% endblock %}

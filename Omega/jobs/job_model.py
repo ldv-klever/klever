@@ -9,17 +9,17 @@ class JobBase(models.Model):
     change_author = models.ForeignKey(User, blank=True, null=True,
                                       on_delete=models.SET_NULL,
                                       related_name="%(class)s")
-    name = models.CharField(max_length=150, default=_('Verification job'))
+    name = models.CharField(max_length=150)
     global_role = models.CharField(max_length=1, choices=JOB_ROLES, default='0')
     configuration = models.TextField()
-    comment = models.TextField()
+    description = models.TextField()
     version = models.PositiveSmallIntegerField(default=1)
 
     def __str__(self):
         return str(self.pk)
 
     class Meta:
-        abstract=True
+        abstract = True
 
 
 class Job(JobBase):
@@ -34,6 +34,7 @@ class Job(JobBase):
                                on_delete=models.PROTECT,
                                related_name='children_set')
     change_date = models.DateTimeField(auto_now=True)
+
     class Meta:
         db_table = 'job'
 
@@ -41,5 +42,7 @@ class Job(JobBase):
 class JobHistory(JobBase):
     job = models.ForeignKey(Job)
     change_date = models.DateTimeField()
+    comment = models.CharField(max_length=255)
+
     class Meta:
         db_table = 'jobhistory'

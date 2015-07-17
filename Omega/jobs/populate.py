@@ -15,19 +15,20 @@ def clear_table(table):
     for row in rows:
         row.delete()
 
+
 def populate_jobs():
     author = User.objects.get(username='vladimir')
     identifiers = [''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)]) for x in range(10)]
     jobtype = '0'
     names = ['Title of the job %s' % str(x) for x in range(1, 11)]
     configuration = "A lot of text (configuration)!"
-    comment = "A lot of text (comment)!"
+    description = "A lot of text (description)!"
     for i in range(10):
         newjob = Job()
         newjob.pk = i + 1
         newjob.name = names[i]
         newjob.change_author = author
-        newjob.comment = comment
+        newjob.description = description
         newjob.configuration = configuration
         newjob.type = jobtype
         newjob.identifier = identifiers[i]
@@ -73,6 +74,7 @@ def populate_problems():
         problem.pk = i + 1
         problem.save()
 
+
 def populate_components():
     components = [
         'DSCV',
@@ -86,6 +88,7 @@ def populate_components():
         component.name = components[i]
         component.pk = i + 1
         component.save()
+
 
 def populate_resourses():
     clear_table(ComponentResource)
@@ -106,6 +109,7 @@ def populate_resourses():
                 res.cpu_time = random.randint(1, 10000)
                 res.memory = random.randint(100, 10**10)
                 res.save()
+
 
 def populate_mark_probl():
     clear_table(ComponentMarkUnknownProblem)
@@ -154,6 +158,7 @@ def populate_mark_probl():
             mark_prob.number = random.randint(1, 10)
             mark_prob.save()
 
+
 def populate_verdict():
     clear_table(Verdict)
     cnt = 0
@@ -179,6 +184,7 @@ def populate_verdict():
             verd.safe_inconclusive = random.randint(0, 5)
             verd.unknown = random.randint(0, 5)
             verd.save()
+
 
 def populate_tags():
     clear_table(SafeTag)
@@ -250,7 +256,7 @@ def create_version(job, version=1):
     job_v.job = job
     job_v.change_author = job.change_author
     job_v.change_date = job.change_date
-    job_v.comment = job.comment
+    job_v.description = job.description
     job_v.configuration = job.configuration
     job_v.format = job.format
     job_v.version = job.version

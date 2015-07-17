@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% load i18n %}
+
+{% block title %}Profile{% endblock %}
+
+{% block body_block %}
+    <div class="row">
+        <div class="col-sm-5">
+            <h2>{{ target.username }}</h2>
+            <h4><cite>{{ target.extended.first_name }} {{ target.extended.last_name }}</cite></h4>
+            <ul>
+                {% if target.email %}
+                    <li>{% trans 'Email' %}: <ins style="color: #204d74">{{ target.email }}</ins></li>
+                {% endif %}
+                {% if target.is_superuser %}
+                    <li>{% trans 'Administrator' %}</li>
+                {% endif %}
+                <li><span style="color: #a7aab4">{% trans 'Role' %}:</span> {{ target.extended.get_role_display }}</li>
+                <li><span style="color: #a7aab4">{% trans 'Timezone' %}:</span> {{ target.extended.timezone }}</li>
+                <li><span style="color: #a7aab4">{% trans 'Used language' %}:</span> {{ target.extended.get_language_display }}</li>
+            </ul>
+        </div>
+        <div class="col-sm-7">
+            <h2>{% trans 'Activity' %}</h2>
+            <!--Todo: create list of activity-->
+            <ul>
+                {% for act in activity %}
+                    <li>{{ act }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endblock %}

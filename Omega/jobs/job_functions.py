@@ -294,6 +294,8 @@ def has_job_access(user, action='view', job=None):
     elif action == 'create':
         return user.extended.role != USER_ROLES[0][0]
     elif action == 'edit' and job:
+        if user.extended.role == USER_ROLES[0][0]:
+            return False
         first_v = job.jobhistory_set.filter(version=1)
         if first_v:
             try:

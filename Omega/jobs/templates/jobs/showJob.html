@@ -1,0 +1,14 @@
+{% load i18n %}
+
+<dl class="dl-horizontal">
+    {% if job.description %}
+        <dt>Description:</dt><dd class="dt-text">{{ job.description }}</dd><br>
+    {% endif %}
+    {% if job.parent_id %}
+        <dt>{% trans 'Parent identifier:' %}</dt>
+        <dd style="color: #15c46b">{{ job.parent.identifier }}</dd><br>
+    {% endif %}
+    {% if job.configuration%}
+        <dt>Configuration:</dt><dd class="dt-text">{{ job.configuration }}</dd>
+    {% endif %}
+</dl>

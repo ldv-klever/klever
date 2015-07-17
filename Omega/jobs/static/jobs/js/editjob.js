@@ -61,6 +61,7 @@ function replace_or_notify(data, url) {
 
 function set_actions_for_edit_form () {
     check_all_roles();
+    check_add_user_role();
 
     $('#add_user_for_role').click(function () {
         var selected_user = $('#job_available_users').children('option:selected');
@@ -122,11 +123,29 @@ function set_actions_for_edit_form () {
     });
 
     $('#save_job_btn').click(function () {
-        var title = $('#job_title').val(),
-            comment = $('#job_comment').val(),
+        var title_input = $('#job_title');
+        var title = title_input.val(),
+            comment = '',
+            description = $('#job_description').val(),
             configuration = $('#job_config').val(),
             global_role = $('#job_global_roles').children('option:selected').val(),
             user_roles = [], job_id, job_id_input = $('#job_id_input');
+
+        if (title.length == 0) {
+            err_notify($('#title_required_div').html());
+            title_input.focus();
+            return false;
+        }
+
+        var job_coment = $('#job_comment');
+        if (job_coment.length) {
+            comment = job_coment.val();
+            if (comment.length == 0) {
+                err_notify($('#comment_required_div').html());
+                job_coment.focus();
+                return false;
+            }
+        }
 
         var last_job_version = 0;
         $('#job_version_selector').children('option').each(function () {
@@ -151,6 +170,7 @@ function set_actions_for_edit_form () {
                 job_id: job_id,
                 title: title,
                 comment: comment,
+                description: description,
                 configuration: configuration,
                 global_role: global_role,
                 user_roles: user_roles,
@@ -169,17 +189,14 @@ function set_actions_for_edit_form () {
         $.post(
             '/jobs/editjob/',
             {
-                job_id: $("[id^='load_job__']").attr('id').replace('load_job__', ''),
+                job_id: $("#job_id_input").val(),
                 version: version
             },
             function (data) {
-                var edit_job_div = $('#edit_job_div');
-                edit_job_div.html(data);
+                $('#edit_job_div').html(data);
                 set_actions_for_edit_form();
                 $('#cancel_edit_job_btn').click(function () {
-                    $('#view_job_div').attr('class', 'col-sm-11');
-                    edit_job_div.html('');
-                    edit_job_div.attr('class', 'col-sm-1');
+                    window.location.replace('');
                 });
             }
         );
@@ -187,32 +204,36 @@ function set_actions_for_edit_form () {
 }
 
 $(document).ready(function () {
+
     if (!$('#resource_title_span').length) {
         $('#resource_star_div').hide();
     }
-    check_add_user_role();
-    if (window.location.pathname == '/jobs/create/') {
-        set_actions_for_edit_form();
-    }
 
-    $('button[id^="edit_job__"]').click(function () {
-        var edit_job_div = $('#edit_job_div');
-        $('#view_job_div').attr('class', 'col-sm-5');
-        edit_job_div.attr('class', 'col-sm-7');
+    if ($('#edit_job_div').length) {
         $.post(
             '/jobs/editjob/',
-            {job_id: $(this).attr('id').replace('edit_job__', '')},
+            {job_id: $('#job_pk').html()},
             function (data) {
                 $('#edit_job_div').html(data);
                 set_actions_for_edit_form();
                 $('#cancel_edit_job_btn').click(function () {
-                    $('#view_job_div').attr('class', 'col-sm-11');
-                    edit_job_div.html('');
-                    edit_job_div.attr('class', 'col-sm-1');
+                    window.location.replace('');
                 });
             }
         );
-    });
+    }
+    else if($('#show_job_div').length) {
+        $.post(
+            '/jobs/showjobdata/',
+            {job_id: $('#job_pk').html()},
+            function (data) {
+                $('#show_job_div').html(data);
+            }
+        );
+    }
+    else if($('#create_job_global_div').length) {
+        set_actions_for_edit_form();
+    }
 
     $("button[id^='copy_job__']").click(function () {
         var post_data = {

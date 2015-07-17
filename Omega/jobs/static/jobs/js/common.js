@@ -37,3 +37,21 @@ $.extend({
         $('<form action="' + location + '" method="POST">' + form + '</form>').appendTo($(document.body)).submit();
     }
 });
+
+window.err_notify = function (message) {
+    $.notify(message, {
+        autoHide: true,
+        autoHideDelay: 2500,
+        style: 'bootstrap',
+        className: 'error'
+    });
+};
+
+window.success_notify = function (message) {
+    $.notify(message, {
+        autoHide: true,
+        autoHideDelay: 2500,
+        style: 'bootstrap',
+        className: 'success'
+    });
+};

@@ -1,5 +1,6 @@
 import pytz
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.forms import ValidationError
@@ -9,6 +10,7 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from Omega.vars import LANGUAGES
+from django.shortcuts import get_object_or_404
 
 
 def user_signin(request):
@@ -49,7 +51,6 @@ def register(request):
             user.set_password(user.password)
             profile = profile_form.save(commit=False)
             profile.user = user
-            profile.change_author = user
 
             if user_tz:
                 profile.timezone = user_tz
@@ -62,8 +63,6 @@ def register(request):
                 raise ValidationError("Can't save user to the database!")
             user.save()
             registered = True
-        else:
-            print(user_form.errors, profile_form.errors)
     else:
         user_form = UserForm()
         profile_form = UserExtendedForm()
@@ -99,7 +98,6 @@ def edit_profile(request):
                 do_redirect = True
             user.save()
             profile = profile_form.save(commit=False)
-            profile.change_author = request.user
             profile.user = user
             if user_tz:
                 profile.timezone = user_tz
@@ -117,12 +115,12 @@ def edit_profile(request):
         request,
         'users/edit-profile.html',
         {
-                      'user_form': user_form,
-                      'profile_form': profile_form,
-                      'changed': changed,
-                      'timezones': pytz.common_timezones,
-                      'LANGUAGES': LANGUAGES
-                  })
+            'user_form': user_form,
+            'profile_form': profile_form,
+            'changed': changed,
+            'timezones': pytz.common_timezones,
+            'LANGUAGES': LANGUAGES
+        })
 
 
 def index_page(request):
@@ -132,5 +130,9 @@ def index_page(request):
 
 
 @login_required
-def show_profile(request):
-    return HttpResponseRedirect(reverse('jobs:tree'))
+def show_profile(request, user_id=None):
+    activate(request.user.extended.language)
+    if len(user_id) == 0:
+        return HttpResponseRedirect(reverse('jobs:tree'))
+    target = get_object_or_404(User, pk=int(user_id))
+    return render(request, 'users/showProfile.html', {'target': target})

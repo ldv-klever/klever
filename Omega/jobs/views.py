@@ -1,11 +1,12 @@
 import pytz
 import json
 import hashlib
+from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _
-from django.http import HttpResponse, JsonResponse, Http404
+from django.http import HttpResponse, JsonResponse
 from jobs.job_model import Job, JobHistory
 from jobs.models import UserRole
 from users.models import View, PreferableView
@@ -288,10 +289,13 @@ def show_job(request, job_id=None):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return job404(request, job_id)
+        return job404(request, _('Job was not found!'))
 
     if not job_f.has_job_access(request.user, job=job):
-        raise Http404(_("You don't have access to this verification job!"))
+        return job404(
+            request,
+            _("You don't have access to this verification job!")
+        )
 
     # Get author of the job (who had created first version)
     created_by = None
@@ -410,7 +414,7 @@ def get_version_data(request, template='jobs/editJob.html'):
         'parent_id': job_parent_id,
         'name': old_job.name,
         'configuration': old_job.configuration,
-        'comment': old_job.comment,
+        'description': old_job.description,
         'version': None
     }
     if job_id:
@@ -429,9 +433,20 @@ def get_version_data(request, template='jobs/editJob.html'):
                     pytz.timezone(request.user.extended.timezone)
                 )
                 title = job_time.strftime("%d.%m.%Y %H:%M:%S")
+                title += " (%s %s)" % (
+                    j.change_author.extended.last_name,
+                    j.change_author.extended.first_name,
+                )
+                version_comment = j.comment
+                if len(version_comment) > 30:
+                    version_comment = version_comment[:27]
+                    version_comment += '...'
+                if len(version_comment):
+                    title += ': ' + version_comment
             job_versions.append({
                 'version': j.version,
-                'title': title
+                'title': title,
+                'comment': j.comment,
             })
 
     roles = job_f.role_info(job, request.user)
@@ -441,6 +456,14 @@ def get_version_data(request, template='jobs/editJob.html'):
     if version > 0:
         roles['user_roles'] = []
         roles['global'] = old_job.global_role
+        roles['available_users'] = []
+        for u in User.objects.filter(~Q(pk=request.user.pk)):
+            roles['available_users'].append({
+                'id': u.pk,
+                'name': u.extended.last_name + ' ' + u.extended.first_name
+            })
+
+
     return render(
         request,
         template,
@@ -464,6 +487,7 @@ def save_job(request):
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
     title = request.POST.get('title', '')
+    description = request.POST.get('description', '')
     comment = request.POST.get('comment', '')
     config = request.POST.get('configuration', '')
     job_id = request.POST.get('job_id', None)
@@ -516,7 +540,7 @@ def save_job(request):
 
     job.change_author = request.user
     job.name = title
-    job.comment = comment
+    job.description = description
     job.configuration = config
     job.global_role = global_role
     job.save()
@@ -530,7 +554,8 @@ def save_job(request):
     new_version = JobHistory()
     new_version.job = job
     new_version.name = job.name
-    new_version.comment = job.comment
+    new_version.description = job.description
+    new_version.comment = comment
     new_version.configuration = job.configuration
     new_version.global_role = job.global_role
     new_version.type = job.type
@@ -602,9 +627,18 @@ def remove_jobs(request):
     return JsonResponse({'status': 0})
 
 
-def job404(request, job_id=None):
-    return render(
-        request,
-        'jobs/job404.html',
-        {'job_id': request.POST.get('job_id', job_id)}
-    )
+def job404(request, message=None):
+    return render(request, 'jobs/job404.html', {'message': message})
+
+
+def showjobdata(request):
+    if request.method != 'POST':
+        return HttpResponse('')
+    job_id = request.POST.get('job_id', None)
+    if job_id:
+        try:
+            job = Job.objects.get(pk=int(job_id))
+        except ObjectDoesNotExist:
+            return HttpResponse('')
+        return render(request, 'jobs/showJob.html', {'job': job})
+    return HttpResponse('')
