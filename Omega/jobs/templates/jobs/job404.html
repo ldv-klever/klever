@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% load i18n %}
+
+{% block body_block %}
+    {% if job_id %}
+        <h1 style="color: #ef2f6c">{% blocktrans %} Job with id {{ job_id }} was not found! {% endblocktrans %}</h1>
+    {% else %}
+        <h1 style="color: #ef2f6c">{% trans 'Job was not found!' %}</h1>
+    {% endif %}
+{% endblock %}

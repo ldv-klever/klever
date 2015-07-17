@@ -292,7 +292,7 @@ def has_job_access(user, action='view', job=None):
             return False
         return True
     elif action == 'create':
-        return user.extended.role == USER_ROLES[1][0]
+        return user.extended.role != USER_ROLES[0][0]
     elif action == 'edit' and job:
         first_v = job.jobhistory_set.filter(version=1)
         if first_v:

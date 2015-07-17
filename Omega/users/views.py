@@ -113,8 +113,10 @@ def edit_profile(request):
         user_form = EditUserForm(instance=request.user)
         profile_form = UserExtendedForm(instance=request.user.extended)
 
-    return render(request, 'users/edit-profile.html',
-                  {
+    return render(
+        request,
+        'users/edit-profile.html',
+        {
                       'user_form': user_form,
                       'profile_form': profile_form,
                       'changed': changed,
@@ -127,3 +129,8 @@ def index_page(request):
     if request.user.is_authenticated():
         return HttpResponseRedirect(reverse('jobs:tree'))
     return HttpResponseRedirect(reverse('users:login'))
+
+
+@login_required
+def show_profile(request):
+    return HttpResponseRedirect(reverse('jobs:tree'))

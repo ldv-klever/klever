@@ -285,8 +285,10 @@ def remove_view(request):
 def show_job(request, job_id=None):
     activate(request.user.extended.language)
 
-    # Get needed job or return error 404 (page doesn't exist)
-    job = get_object_or_404(Job, pk=int(job_id))
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return job404(request, job_id)
 
     if not job_f.has_job_access(request.user, job=job):
         raise Http404(_("You don't have access to this verification job!"))
@@ -598,3 +600,11 @@ def remove_jobs(request):
     for job in jobs:
         job.delete()
     return JsonResponse({'status': 0})
+
+
+def job404(request, job_id=None):
+    return render(
+        request,
+        'jobs/job404.html',
+        {'job_id': request.POST.get('job_id', job_id)}
+    )

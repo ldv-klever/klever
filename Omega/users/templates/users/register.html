@@ -22,19 +22,19 @@
             {% csrf_token %}
             <div class="row">
                 <div class="col-sm-4">
-                    <label>{{ user_form.username.label }}:</label> {{ user_form.username }} <small style="color: silver">{{ user_form.username.help_text }}</small><br><br>
-                    <label>{{ user_form.password.label }}:</label> {{ user_form.password }}<br>
-                    <label>{{ user_form.retype_password.label }}:</label> {{ user_form.retype_password }}
+                    <small>{{ user_form.username.errors }}</small><label>{{ user_form.username.label }}:</label> {{ user_form.username }} <small style="color: silver">{{ user_form.username.help_text }}</small><br><br>
+                    <small>{{ user_form.password.errors }}</small><label>{{ user_form.password.label }}:</label> {{ user_form.password }}<br>
+                    <small>{{ user_form.retype_password.errors }}</small><label>{{ user_form.retype_password.label }}:</label> {{ user_form.retype_password }}
                 </div>
                 <div class="col-sm-4">
-                    <label>{{ user_form.email.label }}:</label> {{ user_form.email }}<br>
-                    <label>{{ profile_form.first_name.label }}:</label> {{ profile_form.first_name }}<br>
-                    <label>{{ profile_form.last_name.label }}:</label> {{ profile_form.last_name }}
+                    <small>{{ user_form.email.errors }}</small><label>{{ user_form.email.label }}:</label> {{ user_form.email }}<br>
+                    <small>{{ profile_form.first_name.errors }}</small><label>{{ profile_form.first_name.label }}:</label> {{ profile_form.first_name }}<br>
+                    <small>{{ profile_form.last_name.errors }}</small><label>{{ profile_form.last_name.label }}:</label> {{ profile_form.last_name }}
                 </div>
                 <div class="col-sm-4">
-                    <label>{{ profile_form.accuracy.label }}:</label> {{ profile_form.accuracy }}<br>
-                    <label>{{ profile_form.data_format.label }}:</label> {{ profile_form.data_format }}<br>
-                    <label>{{ profile_form.language.label }}:</label> {{ profile_form.language }}<br>
+                    <small>{{ profile_form.accuracy.errors }}</small><label>{{ profile_form.accuracy.label }}:</label> {{ profile_form.accuracy }}<br>
+                    <small>{{ profile_form.data_format.errors }}</small><label>{{ profile_form.data_format.label }}:</label> {{ profile_form.data_format }}<br>
+                    <small>{{ profile_form.language.errors }}</small><label>{{ profile_form.language.label }}:</label> {{ profile_form.language }}<br>
                     <label for="timezone">{% trans 'Time zone' %}:</label>
                     <select id="timezone" class="form-control" name="timezone">
                         {% for tmz in timezones %}
