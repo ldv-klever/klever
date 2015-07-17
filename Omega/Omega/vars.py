@@ -59,3 +59,34 @@ JOB_DEF_VIEW = {
         # },
     },
 }
+
+LANGUAGES = (
+    ('en', 'English'),
+    ('ru', 'Русский'),
+)
+
+USER_ROLES = (
+    ('0', _('No access')),
+    ('1', _('Producer')),
+    ('2', _('Manager'))
+)
+
+VIEW_TYPES = {
+    ('1', _('Job tree')),
+    ('2', _('Other')),
+}
+
+JOB_STATUS = (
+    ('0', _('Not Solved')),
+    ('1', _('Solving')),
+    ('2', _('Stopped')),
+    ('3', _('Solved')),
+    ('4', _('Failed')),
+)
+
+MARK_STATUS = (
+    ('0', _('Unreported')),
+    ('1', _('Reported')),
+    ('2', _('Fixed')),
+    ('3', _('Rejected')),
+)

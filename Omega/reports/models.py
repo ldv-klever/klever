@@ -1,7 +1,7 @@
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 from jobs.job_model import Job
+from Omega.vars import JOB_STATUS
 
 
 # Current differences from the original database schema:
@@ -11,14 +11,6 @@ from jobs.job_model import Job
 # __str__ must return string.
 # Storing files in the database is bad in 99% cases. Try to find another way.
 # TODO: check if some ForeignKey fields can be OneToOneField.
-
-STATUS = (
-    ('0', _('Not Solved')),
-    ('1', _('Solving')),
-    ('2', _('Stopped')),
-    ('3', _('Solved')),
-    ('4', _('Failed')),
-)
 
 
 class AttrName(models.Model):
@@ -96,7 +88,7 @@ class ReportRoot(Report):
     job = models.OneToOneField(Job)
     computer = models.ForeignKey(Computer, related_name='+')
     resource = models.ForeignKey(Resource, related_name='+')
-    status = models.CharField(max_length=1, choices=STATUS, default='0')
+    status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
     start_date = models.DateTimeField()
     last_request_date = models.DateTimeField()
     finish_date = models.DateTimeField()

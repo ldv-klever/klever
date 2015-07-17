@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
-from Omega.vars import FORMAT, JOB_CLASSES
+from Omega.vars import FORMAT, JOB_CLASSES, MARK_STATUS
 
 
 class Mark(models.Model):
@@ -16,13 +16,7 @@ class Mark(models.Model):
         default='0',
         verbose_name=_('job class')
     )
-    STATUS = (
-        ('0', _('Unreported')),
-        ('1', _('Reported')),
-        ('2', _('Fixed')),
-        ('3', _('Rejected')),
-    )
-    status = models.CharField(max_length=1, choices=STATUS, default='0')
+    status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField()
     change_date = models.DateTimeField(auto_now=True)
     comment = models.TextField()

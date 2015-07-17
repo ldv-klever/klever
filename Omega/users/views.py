@@ -8,8 +8,7 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
-from users.models import LANGUAGES
-from django.utils.translation import get_language
+from Omega.vars import LANGUAGES
 
 
 def user_signin(request):

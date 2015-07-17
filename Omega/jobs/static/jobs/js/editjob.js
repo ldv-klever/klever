@@ -187,6 +187,9 @@ function set_actions_for_edit_form () {
 }
 
 $(document).ready(function () {
+    if (!$('#resource_title_span').length) {
+        $('#resource_star_div').hide();
+    }
     check_add_user_role();
     if (window.location.pathname == '/jobs/create/') {
         set_actions_for_edit_form();

@@ -7,9 +7,8 @@ from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import string_concat
 from jobs.job_model import Job
-from reports.models import STATUS
 import jobs.job_functions as job_f
-from Omega.vars import JOB_DEF_VIEW
+from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
     TITLES
 
@@ -753,6 +752,8 @@ class TableTree(object):
             if len(first_version):
                 if first_version[0].change_author == self.user:
                     return _('Author')
+            if self.user.extended.role == USER_ROLES[2][0]:
+                return self.user.extended.get_role_display()
             user_role = job.userrole_set.filter(user=self.user)
             if len(user_role):
                 return user_role[0].get_role_display()
@@ -823,7 +824,7 @@ def query_filter(filter_name, filter_data):
             fil[filter_name] = filter_data['value']
         elif filter_data['type'] == 'isnot':
             other_vals = []
-            for st_id in STATUS:
+            for st_id in JOB_STATUS:
                 if st_id[0] != filter_data['value']:
                     other_vals.append(st_id[0])
             fil[filter_name + '__in'] = other_vals

@@ -1,23 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
-
-
-LANGUAGES = (
-    ('en', 'English'),
-    ('ru', 'Русский'),
-)
-
-USER_ROLES = (
-    ('0', _('No access')),
-    ('1', _('Producer')),
-    ('2', _('Manager'))
-)
-
-VIEW_TYPES = {
-    ('1', _('Job tree')),
-    ('2', _('Other')),
-}
+from Omega.vars import LANGUAGES, USER_ROLES, VIEW_TYPES
 
 
 class Extended(models.Model):

@@ -130,7 +130,7 @@
             {% endif %}
 
             {% if resources %}
-                <span class="show-job-title"><b>{% trans 'Resources' %}*</b></span>
+                <span id="resource_title_span" class="show-job-title"><b>{% trans 'Resources' %}*</b></span>
                 <ul>
                     {% for res_data in resources %}
                         <li>{{ res_data.component }}: <span style="color: darkblue">{{ res_data.val }}</span></li>
@@ -138,7 +138,7 @@
                 </ul>
             {% endif %}
 
-            <hr><small>*{% trans "For each component and 'total' the format of resources is [(wall time) (cpu time) (maximum memory)]" %}</small>
+            <div id="resource_star_div"><hr><small>*{% trans "For each component and 'total' the format of resources is [(wall time) (cpu time) (maximum memory)]" %}</small></div>
         </div>
         <div id="edit_job_div" class="col-sm-1"></div>
     </div>

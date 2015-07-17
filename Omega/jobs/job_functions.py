@@ -2,9 +2,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from jobs.job_model import JOB_ROLES
-from users.models import USER_ROLES
-from reports.models import STATUS
+from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 
 
 COLORS = {
@@ -303,21 +301,22 @@ def has_job_access(user, action='view', job=None):
             except ObjectDoesNotExist:
                 # TODO: return False for jobs without status
                 return True
-            if status == STATUS[0][0]:
-                if first_v[0].change_author == user or \
-                                user.extended.role == USER_ROLES[2][0]:
+            if status == JOB_STATUS[0][0]:
+                if first_v[0].change_author == user:
+                    return True
+                if user.extended.role == USER_ROLES[2][0]:
                     return True
         return False
     elif action == 'remove' and job:
-        if user.extended.role == USER_ROLES[2][0]:
-            return True
         first_version = job.jobhistory_set.filter(version=1)
         if len(first_version) and len(job.children_set.all()) == 0:
+            if user.extended.role == USER_ROLES[2][0]:
+                return True
             try:
                 status = job.reportroot.status
             except ObjectDoesNotExist:
                 status = None
-            if status in [STATUS[1][0], STATUS[2][0], STATUS[3][0]]:
+            if status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[3][0]]:
                 return False
             if first_version[0].change_author == user:
                 return True

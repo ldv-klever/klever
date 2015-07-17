@@ -6,14 +6,14 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _
 from django.http import HttpResponse, JsonResponse, Http404
-from jobs.job_model import Job, JOB_ROLES, JobHistory
+from jobs.job_model import Job, JobHistory
 from jobs.models import UserRole
-from reports.models import STATUS
-from users.models import View, PreferableView, USER_ROLES
+from users.models import View, PreferableView
 import jobs.table_prop as tp
 import jobs.job_functions as job_f
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import activate
+from Omega.vars import JOB_ROLES, JOB_STATUS
 
 
 class Counter(object):
@@ -64,7 +64,7 @@ def tree_view(request):
             'selected': (filters.view_id == v.pk),
         })
     statuses = []
-    for status in STATUS:
+    for status in JOB_STATUS:
         statuses.append({
             'title': status[1],
             'value': status[0],
@@ -570,6 +570,7 @@ def remove_job(request):
 
     job.delete()
     return JsonResponse({'status': 0})
+
 
 @login_required
 def remove_jobs(request):
