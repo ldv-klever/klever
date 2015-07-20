@@ -85,7 +85,7 @@
 
             <span class="show-job-title">{% trans 'Status' %}: </span>
             {% if job.reportroot %}
-                {{ job.reportroot.status }}
+                <a href="{% url 'reports:report_root' job.reportroot.id %}">{{ job.reportroot.status }}</a>
             {% else %}
                 -
             {% endif %}

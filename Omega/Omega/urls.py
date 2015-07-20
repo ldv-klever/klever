@@ -6,5 +6,6 @@ urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
     url(r'^users/', include('users.urls', namespace='users')),
     url(r'^jobs/', include('jobs.urls', namespace='jobs')),
+    url(r'^reports/', include('reports.urls', namespace='reports')),
     url(r'^$', 'users.views.index_page'),
 ]
