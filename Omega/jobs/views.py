@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _
 from django.http import HttpResponse, JsonResponse
-from jobs.job_model import Job, JobHistory
+from jobs.job_model import Job, JobHistory, JobStatus
 from jobs.models import UserRole
 from users.models import View, PreferableView
 import jobs.table_prop as tp
@@ -453,6 +453,12 @@ def get_version_data(request, template='jobs/editJob.html'):
     if parent_id:
         roles['user_roles'] = []
         roles['global'] = JOB_ROLES[0][0]
+        roles['available_users'] = []
+        for u in User.objects.filter(~Q(pk=request.user.pk)):
+            roles['available_users'].append({
+                'id': u.pk,
+                'name': u.extended.last_name + ' ' + u.extended.first_name
+            })
     if version > 0:
         roles['user_roles'] = []
         roles['global'] = old_job.global_role
@@ -462,7 +468,6 @@ def get_version_data(request, template='jobs/editJob.html'):
                 'id': u.pk,
                 'name': u.extended.last_name + ' ' + u.extended.first_name
             })
-
 
     return render(
         request,
@@ -511,8 +516,33 @@ def save_job(request):
                 'status': 1,
                 'message': _("You don't have access to edit this job.")
             })
-        if parent_identifier and job.parent.identifier != parent_identifier:
-            return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        if parent_identifier:
+            parents = Job.objects.filter(
+                identifier__startswith=parent_identifier
+            )
+            if len(parents) == 0:
+                return JsonResponse({
+                    'status': 1,
+                    'message': _('Job parent was not found.')
+                })
+            elif len(parents) > 1:
+                return JsonResponse({
+                    'status': 1,
+                    'message': _('Increase length of parent identifier.')
+                })
+            parent = parents[0]
+            if parent == job or job.type != parent.type:
+                return JsonResponse({
+                    'status': 1,
+                    'message': _("Specified parent can't be set for this job.")
+                })
+            job.parent = parent
+        elif job.parent:
+            return JsonResponse({
+                'status': 1,
+                'message': _("Parent identifier is required for this job.")
+            })
+
         if job.version != last_version:
             return JsonResponse({
                 'status': 1,
@@ -525,7 +555,7 @@ def save_job(request):
         except ObjectDoesNotExist:
             return JsonResponse({
                 'status': 1,
-                'message': _('Job was not found')
+                'message': _('Job parent was not found')
             })
         if not job_f.has_job_access(request.user, action='create'):
             return JsonResponse({
@@ -550,6 +580,9 @@ def save_job(request):
         ).encode('utf-8')
         job.identifier = hashlib.md5(time_encoded).hexdigest()
         job.save()
+        jobstatus = JobStatus()
+        jobstatus.job = job
+        jobstatus.save()
 
     new_version = JobHistory()
     new_version.job = job
@@ -563,6 +596,7 @@ def save_job(request):
     new_version.change_date = job.change_date
     new_version.format = job.format
     new_version.version = job.version
+    new_version.parent = job.parent
     new_version.save()
 
     UserRole.objects.filter(job=job).delete()
@@ -642,3 +676,10 @@ def showjobdata(request):
             return HttpResponse('')
         return render(request, 'jobs/showJob.html', {'job': job})
     return HttpResponse('')
+
+
+def loadfile(request):
+    filesdata = job_f.FileData(Job.objects.get(pk=4))
+    return render(request, 'jobs/filesTree.html', {
+        'filedata': filesdata.filedata
+    })

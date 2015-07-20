@@ -88,7 +88,6 @@ class ReportRoot(Report):
     job = models.OneToOneField(Job)
     computer = models.ForeignKey(Computer, related_name='+')
     resource = models.ForeignKey(Resource, related_name='+')
-    status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
     start_date = models.DateTimeField()
     last_request_date = models.DateTimeField()
     finish_date = models.DateTimeField()

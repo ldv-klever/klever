@@ -609,7 +609,7 @@ class TableTree(object):
             return job.change_date
         elif col == 'status':
             try:
-                return job.reportroot.get_status_display()
+                return job.jobstatus.get_status_display()
             except ObjectDoesNotExist:
                 return '-'
         elif col.startswith('unsafe:'):

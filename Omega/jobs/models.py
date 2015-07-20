@@ -19,10 +19,13 @@ class File(models.Model):
     class Meta:
         db_table = 'file'
 
+    def __str__(self):
+        return self.hash_sum
+
 
 class FileSystem(models.Model):
     job = models.ForeignKey(Job, related_name='file_set')
-    file = models.ForeignKey(File, related_name='+')
+    file = models.ForeignKey(File, related_name='+', null=True, blank=True)
     name = models.CharField(max_length=150)
     parent = models.ForeignKey('self', null=True, blank=True,
                                related_name='children_set')

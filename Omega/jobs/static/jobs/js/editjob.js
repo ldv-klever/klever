@@ -203,7 +203,32 @@ function set_actions_for_edit_form () {
     });
 }
 
+function set_actions_for_file_form() {
+    $('#new_folder_btn').click(function () {
+        var new_form = $('#new_folder_form').html(),
+            editform = $('#edit_files_form');
+        editform.html(new_form);
+        editform.find("[id^='tmp___']").each(function () {
+            var new_id = $(this).attr('id').replace('tmp___', '');
+            $(this).attr('id', new_id);
+        });
+        $('#clear_file_form').click(function () {
+            $('#edit_files_form').html('');
+        });
+    });
+    return false;
+}
+
+
 $(document).ready(function () {
+    if ($('#file_tree_table').length) {
+        $('.tree').treegrid({
+             treeColumn: 1,
+             expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
+             expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
+         });
+        set_actions_for_file_form();
+    }
 
     if (!$('#resource_title_span').length) {
         $('#resource_star_div').hide();

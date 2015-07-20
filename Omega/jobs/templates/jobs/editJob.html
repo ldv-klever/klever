@@ -21,11 +21,15 @@
         {% trans 'Title' %}:<input class="form-control" id="job_title" type="text" value="{{ job.name }}">
     </label>
 
-    {% if job.parent_id %}
-        <br><label>{% trans 'Parent identifier:' %}</label>
-        <span style="color: #15c46b"> {{ job.parent_id }}</span>
-        <input id="job_parent_identifier" type="hidden" value="{{ job.parent_id }}">
+    {% if job_versions|length %}
+        <label for="job_parent_identifier">{% trans 'Parent identifier:' %}</label>
+        <input class="form-control" id="job_parent_identifier" type="text"{% if job.parent_id %} value="{{ job.parent_id }}"{% endif %}>
+    {% else %}
+        {% if job.parent_id %}
+            <input id="job_parent_identifier" type="hidden" value="{{ job.parent_id }}">
+        {% endif %}
     {% endif %}
+
 
     <label style="width: 100%;">
         {% trans 'Description' %}:<textarea id="job_description" class="form-control" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>

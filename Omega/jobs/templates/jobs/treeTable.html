@@ -16,7 +16,7 @@
     </thead>
     <tbody>
         {% for row_data in values %}
-            <tr class="treegrid-{{ row_data.id }} {% if row_data.parent %}treegrid-parent-{{ row_data.parent }}{% endif %}"
+            <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
                 style="{% if counter.dark %}background: #f0f5fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
             <td id="value__{{ row_data.id }}">
                 <label><input type="checkbox" id="job_checkbox__{{ row_data.id }}"></label>

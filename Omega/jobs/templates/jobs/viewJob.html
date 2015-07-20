@@ -6,9 +6,11 @@
 
 {% block head_block %}
     <script src="/static/jobs/js/notify.min.js"></script>
+    <script src="/static/jobs/js/jquery.treegrid.js"></script>
     <script src="/static/jobs/js/common.js"></script>
     <script src="/static/jobs/js/editjob.js"></script>
     <link href="/static/jobs/css/style.css" rel="stylesheet">
+    <link href="/static/jobs/css/jquery.treegrid.css" rel="stylesheet">
 {% endblock %}
 
 {% block title %}{% trans 'Verification Job' %}{% endblock %}
@@ -84,8 +86,26 @@
 
 
             <span class="show-job-title">{% trans 'Status' %}: </span>
-            {% if job.reportroot %}
-                <a href="{% url 'reports:report_root' job.reportroot.id %}">{{ job.reportroot.status }}</a>
+            {% if job.jobstatus %}
+                <span style="color:
+                        {% if job.jobstatus.status == '0' %}
+                            #887AB8
+                        {% elif job.jobstatus.status == '1' %}
+                            #FF8533
+                        {% elif job.jobstatus.status == '2' %}
+                            #335CD6
+                        {% elif job.jobstatus.status == '3' %}
+                            #00E600
+                        {% elif job.jobstatus.status == '4' %}
+                            #CC0000
+                        {% endif %}
+                ">
+                    {% if job.reportroot %}
+                        <a href="{% url 'reports:report_root' job.reportroot.id %}">{{ job.jobstatus.get_status_display }}</a>
+                    {% else %}
+                        <ins>{{ job.jobstatus.get_status_display }}</ins>
+                    {% endif %}
+                </span>
             {% else %}
                 -
             {% endif %}

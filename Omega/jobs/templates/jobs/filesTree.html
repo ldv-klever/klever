@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block head_block %}
+    <script src="/static/jobs/js/jquery.treegrid.js"></script>
+    <script src="/static/jobs/js/editjob.js"></script>
+    <link href="/static/jobs/css/jquery.treegrid.css" rel="stylesheet">
+{% endblock %}
+
+{% block body_block %}
+    <input type="hidden" value="{{ job_id }}">
+    <div class="row">
+        <div class="col-sm-7">
+            <table id="file_tree_table" class="table tree table-fixed" style="width:70%;">
+                <tbody>
+                {% for f in filedata %}
+                    <tr class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}{% if f.type == 0 %} success{% endif %}">
+                        <td><label><input id="selected_filerow__{{ f.type }}__{{ f.id }}" type="radio" name="selected_filerow" value="{{ f.type }}__{{ f.id }}"></label></td>
+                        <td>{{ f.title }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <div class="btn-group">
+                <button id="new_folder_btn" type="button" class="btn btn-success">New folder</button>
+                <button id="new_file_btn" type="button" class="btn btn-info">New file</button>
+                <button id="rename_file_btn" type="button" class="btn btn-primary">Rename</button>
+                <button id="move_file_btn" type="button" class="btn btn-success">Move</button>
+                <button id="remove_file_btn" type="button" class="btn btn-danger">Remove</button>
+            </div>
+            <div id="files_form_changes" hidden></div>
+            <div id="edit_files_form"></div>
+        </div>
+    </div>
+
+    <div id="new_folder_form" hidden>
+    <hr>
+        <label for="new_folder_name">Folder name</label>
+            <input id="tmp___new_folder_name" type="text" class="form-control" placeholder="Name">
+        <br>
+        <label for="new_folder_parent">Subfolder of:</label>
+        <select id="tmp___new_folder_parent" class="form-control">
+            <option value="root">Root</option>
+            {% for f in filedata %}
+                {% if f.type == 0 %}
+                    <option value="{{ f.id }}">{{ f.title }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+        <br>
+        <button id="tmp___create_new_folder_btn" type="button" class="btn btn-success">Create</button>
+        <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">Cancel</button>
+    </div>
+{% endblock %}

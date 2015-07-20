@@ -17,4 +17,5 @@ urlpatterns = [
     url(r'^savejob/$', views.save_job),
     url(r'^removejob/$', views.remove_job),
     url(r'^showjobdata/$', views.showjobdata),
+    url(r'^loadfile/$', views.loadfile)
 ]

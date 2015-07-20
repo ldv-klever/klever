@@ -70,6 +70,65 @@ TITLES = {
 }
 
 
+class FileData(object):
+
+    def __init__(self, job):
+        self.filedata = []
+        self.__get_filedata(job)
+        self.__order_by_type()
+        self.__order_by_lvl()
+
+    def __get_filedata(self, job):
+        for f in job.file_set.all().order_by('name'):
+            file_info = {
+                'title': f.name,
+                'id': f.pk,
+                'parent': None,
+                'type': 0
+            }
+            if f.parent:
+                file_info['parent'] = f.parent_id
+            if f.file:
+                file_info['type'] = 1
+            self.filedata.append(file_info)
+
+    def __order_by_type(self):
+        newfilesdata = []
+        for fd in self.filedata:
+            if fd['type'] == 0:
+                newfilesdata.append(fd)
+        for fd in self.filedata:
+            if fd['type'] == 1:
+                newfilesdata.append(fd)
+        self.filedata = newfilesdata
+
+    def __order_by_lvl(self):
+        lvl = 1
+        ordered_filedata = []
+        for fd in self.filedata:
+            if fd['parent'] is None:
+                fd['lvl'] = lvl
+                ordered_filedata.append(fd)
+        while len(ordered_filedata) < len(self.filedata):
+            ordered_filedata = self.__insert_level(lvl, ordered_filedata)
+            lvl += 1
+            # maximum depth of folders: 1000
+            if lvl > 1000:
+                return ordered_filedata
+        self.filedata = ordered_filedata
+
+    def __insert_level(self, lvl, ordered_filedata):
+        ordered_data = []
+        for o_fd in ordered_filedata:
+            ordered_data.append(o_fd)
+            if o_fd['lvl'] == lvl:
+                for f_fd in self.filedata:
+                    if f_fd['parent'] == o_fd['id']:
+                        f_fd['lvl'] = lvl + 1
+                        ordered_data.append(f_fd)
+        return ordered_data
+
+
 def convert_time(val, acc):
     new_time = int(val)
     time_format = "%%1.%df%%s" % int(acc)
@@ -299,10 +358,9 @@ def has_job_access(user, action='view', job=None):
         first_v = job.jobhistory_set.filter(version=1)
         if first_v:
             try:
-                status = job.reportroot.status
+                status = job.jobstatus.status
             except ObjectDoesNotExist:
-                # TODO: return False for jobs without status
-                return True
+                return False
             if status == JOB_STATUS[0][0]:
                 if first_v[0].change_author == user:
                     return True
@@ -310,15 +368,16 @@ def has_job_access(user, action='view', job=None):
                     return True
         return False
     elif action == 'remove' and job:
+        notedit_status = [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[3][0]]
         first_version = job.jobhistory_set.filter(version=1)
         if len(first_version) and len(job.children_set.all()) == 0:
             if user.extended.role == USER_ROLES[2][0]:
                 return True
             try:
-                status = job.reportroot.status
+                status = job.jobstatus.status
             except ObjectDoesNotExist:
-                status = None
-            if status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[3][0]]:
+                return False
+            if status in notedit_status:
                 return False
             if first_version[0].change_author == user:
                 return True
