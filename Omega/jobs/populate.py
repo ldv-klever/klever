@@ -16,8 +16,8 @@ def clear_table(table):
         row.delete()
 
 
-def populate_jobs():
-    author = User.objects.get(username='vladimir')
+def populate_jobs(username):
+    author = User.objects.get(username=username)
     identifiers = [''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)]) for x in range(10)]
     jobtype = '0'
     names = ['Title of the job %s' % str(x) for x in range(1, 11)]
@@ -232,8 +232,19 @@ def populate_tags():
                 mark_tag.save()
 
 
-def main_population():
-    populate_jobs()
+def main_population(username):
+    """
+    To populate test data you need to:
+    - register a new user with role Producer;
+    - run the "shell" manage.py task;
+    - import jobs;
+    - jobs.populate.main_population('username')
+
+    Note that this works only on a fresh database.
+
+    :param username: login of the user that will become an author of created jobs.
+    """
+    populate_jobs(username)
     populate_problems()
     populate_components()
     populate_resourses()
