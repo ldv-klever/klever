@@ -11,6 +11,7 @@ import jobs.job_functions as job_f
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
     TITLES
+from reports.models import ReportRoot
 
 
 # List of main classes of columns
@@ -694,9 +695,9 @@ class TableTree(object):
                     comp_res = job.componentresource_set.get(
                         component_id=int(m.group(1))
                     )
-                    wt = comp_res.wall_time
-                    ct = comp_res.cpu_time
-                    mem = comp_res.memory
+                    wt = comp_res.resource.wall_time
+                    ct = comp_res.resource.cpu_time
+                    mem = comp_res.resource.memory
                     if data_format == 'hum':
                         wt = convert_time(wt, accuracy)
                         ct = convert_time(ct, accuracy)
@@ -708,9 +709,9 @@ class TableTree(object):
             if m:
                 try:
                     comp_res = job.componentresource_set.get(component=None)
-                    wt = comp_res.wall_time
-                    ct = comp_res.cpu_time
-                    mem = comp_res.memory
+                    wt = comp_res.resource.wall_time
+                    ct = comp_res.resource.cpu_time
+                    mem = comp_res.resource.memory
                     if data_format == 'hum':
                         wt = convert_time(wt, accuracy)
                         ct = convert_time(ct, accuracy)
@@ -768,6 +769,12 @@ class TableTree(object):
                 return None
             elif col == 'name':
                 return reverse('jobs:job', args=[job.pk])
+        if col == 'status':
+            try:
+                report_id = ReportRoot.objects.get(job_id=job.pk).id
+                return reverse('reports:report_root', args=[report_id])
+            except ObjectDoesNotExist:
+                return None
         return None
 
 

@@ -4,7 +4,7 @@ from Omega.formatChecker import RestrictedFileField
 from Omega.vars import JOB_ROLES
 from jobs.job_model import Job
 from marks.models import UnsafeTag, SafeTag, UnknownProblem
-from reports.models import Component
+from reports.models import Component, Resource
 
 
 class File(models.Model):
@@ -122,9 +122,7 @@ class ComponentResource(models.Model):
     job = models.ForeignKey(Job)
     component = models.ForeignKey(Component, null=True, blank=True,
                                   on_delete=models.SET_NULL)
-    wall_time = models.BigIntegerField()
-    cpu_time = models.BigIntegerField()
-    memory = models.BigIntegerField()
+    resource = models.ForeignKey(Resource)
 
     class Meta:
         db_table = 'cache_job_component_resource'

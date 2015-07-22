@@ -273,9 +273,9 @@ def resource_info(job, user):
     for cr in res_set:
         if cr.component.name not in res_data:
             res_data[cr.component.name] = {}
-        wall = cr.wall_time
-        cpu = cr.cpu_time
-        mem = cr.memory
+        wall = cr.resource.wall_time
+        cpu = cr.resource.cpu_time
+        mem = cr.resource.memory
         if data_format == 'hum':
             wall = convert_time(wall, accuracy)
             cpu = convert_time(cpu, accuracy)
@@ -285,9 +285,9 @@ def resource_info(job, user):
         {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
     res_total = job.componentresource_set.filter(component=None)
     if len(res_total):
-        wall = res_total[0].wall_time
-        cpu = res_total[0].cpu_time
-        mem = res_total[0].memory
+        wall = res_total[0].resource.wall_time
+        cpu = res_total[0].resource.cpu_time
+        mem = res_total[0].resource.memory
         if data_format == 'hum':
             wall = convert_time(wall, accuracy)
             cpu = convert_time(cpu, accuracy)
