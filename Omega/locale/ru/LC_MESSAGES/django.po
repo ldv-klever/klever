@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-22 20:07+0000\n"
+"POT-Creation-Date: 2015-07-22 20:16+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -130,7 +130,8 @@ msgstr "Дата последнего изменения"
 msgid "Decision status"
 msgstr "Статус решения"
 
-#: jobs/job_functions.py:42 jobs/templates/jobs/viewJob.html:122
+#: jobs/job_functions.py:42 jobs/templates/jobs/base.html:15
+#: jobs/templates/jobs/viewJob.html:122
 msgid "Safes"
 msgstr "Доказательства корректности"
 
@@ -160,7 +161,8 @@ msgstr "Нет оценок"
 msgid "Total"
 msgstr "Всего"
 
-#: jobs/job_functions.py:49 jobs/templates/jobs/viewJob.html:114
+#: jobs/job_functions.py:49 jobs/templates/jobs/base.html:13
+#: jobs/templates/jobs/viewJob.html:114
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
@@ -176,7 +178,7 @@ msgstr "Целевые ошибки"
 msgid "False positives"
 msgstr "Ложные сообщения об ошибках"
 
-#: jobs/job_functions.py:57
+#: jobs/job_functions.py:57 jobs/templates/jobs/base.html:14
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
@@ -353,19 +355,7 @@ msgstr ""
 
 #: jobs/templates/jobs/base.html:10
 msgid "Marks"
-msgstr ""
-
-#: jobs/templates/jobs/base.html:13
-msgid "Of found errors"
-msgstr ""
-
-#: jobs/templates/jobs/base.html:14
-msgid "Problems in components"
-msgstr ""
-
-#: jobs/templates/jobs/base.html:15
-msgid "Proof of correctness"
-msgstr ""
+msgstr "Оценки"
 
 #: jobs/templates/jobs/createJob.html:5
 msgid "Create Job"
@@ -961,8 +951,5 @@ msgstr "Учетная запись заблокирована"
 msgid "Incorrect username or password"
 msgstr "Неправильное имя пользователя или пароль"
 
-#~ msgid "Download VJ"
-#~ msgstr "Загрузить ВЗ"
-
-#~ msgid "Unassociated with marks"
-#~ msgstr "Отсутствуют оценки"
+#~ msgid "Of found errors"
+#~ msgstr "Предупреждений об ошибках"
