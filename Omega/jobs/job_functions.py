@@ -152,11 +152,11 @@ class DBFileData(object):
                         'pk', None
                     )
                     if parent_pk is None:
-                        return "Parent was not saved to database"
+                        return _("Parent was not saved to database")
                     try:
                         parent = FileSystem.objects.get(pk=parent_pk, file=None)
                     except ObjectDoesNotExist:
-                        return "Parent was not saved to the database"
+                        return _("Parent was not saved to the database")
                     fs_elem.parent = parent
                 if lvl_elem['type'] == '1':
                     try:
@@ -164,7 +164,7 @@ class DBFileData(object):
                             hash_sum=lvl_elem['hash_sum']
                         )
                     except ObjectDoesNotExist:
-                        return "File was not found"
+                        return _("File was not found")
                 fs_elem.name = lvl_elem['title']
                 fs_elem.save()
                 self.filedata_hash[lvl_elem['id']]['pk'] = fs_elem.pk
@@ -177,7 +177,7 @@ class DBFileData(object):
         while num_of_elements < len(self.filedata):
             cnt += 1
             if cnt > 1000:
-                return "Unknown error"
+                return _("Unknown error.")
             num_of_elements += len(element_of_lvl)
             element_of_lvl = self.__get_lower_level(element_of_lvl)
             if len(element_of_lvl):
@@ -187,13 +187,13 @@ class DBFileData(object):
             for fd in lvl:
                 self.filedata_hash[fd['id']] = fd
                 if len(fd['title']) == 0:
-                    return "Empty name"
+                    return _("Empty name!")
                 if fd['type'] == '1' and fd['hash_sum'] is None:
-                    return "File was not uploaded"
+                    return _("File was not uploaded!")
                 names_of_lvl.append(fd['title'])
             for name in names_of_lvl:
                 if names_of_lvl.count(name) != 1:
-                    return "Same names on one level!"
+                    return _("Same names in one folder!")
         return None
 
     def __get_lower_level(self, data):
@@ -216,16 +216,16 @@ def convert_time(val, acc):
     time_format = "%%1.%df%%s" % int(acc)
     try_div = new_time / 1000
     if try_div < 1:
-        return time_format % (new_time, 'ms')
+        return time_format % (new_time, _('ms'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, 's')
+        return time_format % (new_time, _('s'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, 'm')
-    return time_format % (try_div, 'h')
+        return time_format % (new_time, _('m'))
+    return time_format % (try_div, _('h'))
 
 
 def convert_memory(val, acc):
@@ -233,16 +233,16 @@ def convert_memory(val, acc):
     mem_format = "%%1.%df%%s" % int(acc)
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, 'b')
+        return mem_format % (new_mem, _('b'))
     new_mem = try_div
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, 'Kb')
+        return mem_format % (new_mem, _('Kb'))
     new_mem = try_div
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, 'Mb')
-    return mem_format % (try_div, 'Gb')
+        return mem_format % (new_mem, _('Mb'))
+    return mem_format % (try_div, _('Gb'))
 
 
 def verdict_info(job):

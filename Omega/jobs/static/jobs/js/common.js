@@ -56,7 +56,7 @@ jQuery.expr[':'].regex = function(elem, index, match) {
         regexFlags = 'ig',
         regex = new RegExp(matchParams.join('').replace(/^s+|s+$/g,''), regexFlags);
     return regex.test(jQuery(elem)[attr.method](attr.property));
-}
+};
 
 window.err_notify = function (message, duration) {
     if (isNaN(duration)) {

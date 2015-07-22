@@ -48,21 +48,6 @@ function remove_user_role_form (id) {
 }
 
 
-function replace_or_notify(data, url) {
-    if (data.status == 0) {
-        window.location.replace(url)
-    }
-    else {
-        $.notify(data.message, {
-            autoHide: true,
-            autoHideDelay: 2500,
-            style: 'bootstrap',
-            className: 'error'
-        });
-    }
-}
-
-
 function set_actions_for_edit_form () {
     check_all_roles();
     check_add_user_role();
@@ -190,7 +175,7 @@ function set_actions_for_edit_form () {
                 last_version: last_job_version
             },
             function (data) {
-                replace_or_notify(data, '/jobs/' + data.job_id + '/');
+                data.status == 0 ? window.location.replace('/jobs/' + data.job_id + '/'):err_notify(data.message);
             },
             "json"
         );
@@ -644,24 +629,20 @@ $(document).ready(function () {
         });
     }
     else if($('#show_job_div').length) {
-        var ajax_request = $.ajax({
+        $.ajax({
             url: '/jobs/showjobdata/',
             data: {job_id: $('#job_pk').html()},
             type: 'POST',
             success: function (data) {
                 $('#show_job_div').html(data);
-                console.log(1);
             },
-            error: function (x, y, z) {
-                $('#show_job_div').html(x.responseText);
+            done: function () {
+                $('.tree').treegrid({
+                    treeColumn: 0,
+                    expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
+                    expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
+                });
             }
-        });
-        ajax_request.done(function () {
-            $('.tree').treegrid({
-                treeColumn: 0,
-                expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
-                expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
-            });
         });
     }
     else if($('#create_job_global_div').length) {
@@ -681,7 +662,7 @@ $(document).ready(function () {
             '/jobs/removejob/',
             {job_id: job_id},
             function (data) {
-                replace_or_notify(data, '/jobs/');
+                data.status == 0 ? window.location.replace('/jobs/'):err_notify(data.message);
             },
             'json'
         );

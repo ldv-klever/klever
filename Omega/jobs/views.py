@@ -341,11 +341,13 @@ def show_job(request, job_id=None):
 
     # Get user time zone
     user_tz = request.user.extended.timezone
+    last_change_comment = job.jobhistory_set.get(version=job.version).comment
     return render(
         request,
         'jobs/viewJob.html',
         {
             'job': job,
+            'change_comment': last_change_comment,
             'parents': have_access_parents,
             'children': have_access_children,
             'user_tz': user_tz,
@@ -399,19 +401,10 @@ def get_version_data(request, template='jobs/editJob.html'):
     except ValueError:
         return HttpResponse('')
 
-    # Collecting existing job data
-    job_parent_id = None
-    if job_id:
-        if job.parent:
-            job_parent_id = job.parent.identifier
-    else:
-        job_parent_id = job.identifier
-
     if len(job.jobhistory_set.all()) == 0:
         return HttpResponse('')
     if version > 0:
-        old_job = job.jobhistory_set.filter(version=version)[0]
-        job_version = old_job
+        job_version = job.jobhistory_set.get(version=version)
     else:
         job_version = job.jobhistory_set.all().order_by('-change_date')[0]
 
@@ -419,12 +412,14 @@ def get_version_data(request, template='jobs/editJob.html'):
 
     job_data = {
         'id': None,
-        'parent_id': job_parent_id,
+        'parent_id': job.identifier,
         'name': job_version.name,
         'configuration': job_version.configuration,
         'description': job_version.description,
         'version': None
     }
+    if job_id and job_version.parent:
+        job_data['parent_id'] = job_version.parent.identifier
     if job_id:
         job_data['id'] = job.pk
         job_data['version'] = job.version
@@ -678,6 +673,7 @@ def job404(request, message=None):
     return render(request, 'jobs/job404.html', {'message': message})
 
 
+@login_required
 def showjobdata(request):
     if request.method != 'POST':
         return HttpResponse('')
@@ -696,6 +692,7 @@ def showjobdata(request):
     return HttpResponse('')
 
 
+@login_required
 def upload_files(request):
     if request.method != 'POST':
         return HttpResponse('')
@@ -722,6 +719,7 @@ def upload_files(request):
     })
 
 
+@login_required
 def download_file(request, file_id):
     if request.method == 'POST':
         return HttpResponse('')

@@ -18,7 +18,9 @@ def clear_table(table):
 
 def populate_jobs(username):
     author = User.objects.get(username=username)
-    identifiers = [''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)]) for x in range(10)]
+    identifiers = [''.join([random.choice(
+        string.ascii_letters + string.digits
+    ) for n in range(32)]) for x in range(10)]
     jobtype = '0'
     names = ['Title of the job %s' % str(x) for x in range(1, 11)]
     configuration = "A lot of text (configuration)!"
@@ -66,7 +68,6 @@ def populate_jobs(username):
         newstatus = JobStatus()
         newstatus.job = job
         newstatus.save()
-
 
 
 def populate_problems():
@@ -246,7 +247,8 @@ def main_population(username):
 
     Note that this works only on a fresh database.
 
-    :param username: login of the user that will become an author of created jobs.
+    :param username: login of the user that will become an author of created
+    jobs.
     """
     populate_jobs(username)
     populate_problems()
@@ -257,15 +259,7 @@ def main_population(username):
     populate_tags()
 
 
-def update_job():
-    old_job = Job.objects.get(pk=1)
-    old_job.name = 'New name of the job 1'
-    old_job.version += 1
-    old_job.save()
-    create_version(old_job)
-
-
-def create_version(job, version=1):
+def create_version(job):
     job_v = JobHistory()
     job_v.name = job.name
     job_v.job = job
@@ -275,4 +269,5 @@ def create_version(job, version=1):
     job_v.configuration = job.configuration
     job_v.format = job.format
     job_v.version = job.version
+    job_v.parent = job.parent
     job_v.save()

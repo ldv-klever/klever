@@ -67,6 +67,10 @@
 
             <span class="show-job-title">{% trans 'Last change author' %}: </span>
             {{ job.change_author.extended.last_name }} {{ job.change_author.extended.first_name }}
+            {% if change_comment|length %}
+                <br><small style="color: silver">({{ change_comment }})</small><br>
+            {% endif %}
+
 
             {% if created_by %}
                 <br><span class="show-job-title">{% trans 'Created by' %}: </span>
