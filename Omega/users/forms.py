@@ -50,7 +50,7 @@ class EditUserForm(forms.ModelForm):
         self.request = kwargs.pop('request', None)
         super(EditUserForm, self).__init__(*args, **kwargs)
         self.fields['new_password'].label = _("New password")
-        self.fields['retype_password'].label = _("Retype password")
+        self.fields['retype_password'].label = _("Confirmation")
 
     def clean(self):
         cleaned_data = super(EditUserForm, self).clean()

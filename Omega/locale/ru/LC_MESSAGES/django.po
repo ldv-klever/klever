@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-22 19:18+0000\n"
+"POT-Creation-Date: 2015-07-22 19:35+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -849,30 +849,24 @@ msgid "New password"
 msgstr "Новый пароль"
 
 #: users/forms.py:53
-#, fuzzy
-#| msgid "New password"
-msgid "Retype password"
-msgstr "Новый пароль"
+msgid "Confirmation"
+msgstr "Подтверждение"
 
 #: users/forms.py:78
 msgid "Accuracy"
 msgstr ""
 
 #: users/forms.py:79
-#, fuzzy
-#| msgid "Parent name"
 msgid "Last name"
-msgstr "Имя родителя"
+msgstr "Фамилия"
 
 #: users/forms.py:80
-#, fuzzy
-#| msgid "Parent name"
 msgid "First name"
-msgstr "Имя родителя"
+msgstr "Имя"
 
 #: users/forms.py:81
 msgid "Language"
-msgstr ""
+msgstr "Язык"
 
 #: users/forms.py:82
 msgid "Data format"
@@ -893,7 +887,7 @@ msgstr ""
 #: users/templates/users/edit-profile.html:40
 #: users/templates/users/register.html:38
 msgid "Time zone"
-msgstr ""
+msgstr "Часовой пояс"
 
 #: users/templates/users/login.html:14
 msgid "Username"
