@@ -9,6 +9,7 @@
         <dd style="color: #15c46b">{{ job.parent.identifier }}</dd><br>
     {% endif %}
     {% if job.configuration%}
-        <dt>Configuration:</dt><dd class="dt-text">{{ job.configuration }}</dd>
+        <dt>Configuration:</dt><dd class="dt-text">{{ job.configuration }}</dd><br>
     {% endif %}
+        <dt>Files:</dt><dd>{% include 'jobs/viewFileTable.html' %}</dd>
 </dl>

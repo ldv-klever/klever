@@ -1,4 +1,4 @@
-from jobs.job_model import Job, JobHistory
+from jobs.job_model import Job, JobHistory, JobStatus
 from marks.models import UnknownProblem, UnsafeTag, SafeTag
 from jobs.models import ComponentMarkUnknownProblem,\
     ComponentUnknown, ComponentResource, Component, Verdict,\
@@ -63,6 +63,10 @@ def populate_jobs():
             job.save()
     for job in Job.objects.all():
         create_version(job)
+        newstatus = JobStatus()
+        newstatus.job = job
+        newstatus.save()
+
 
 
 def populate_problems():

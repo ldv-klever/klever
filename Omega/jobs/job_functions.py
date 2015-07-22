@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from jobs.models import FileSystem, File
 
 
 COLORS = {
@@ -84,12 +85,14 @@ class FileData(object):
                 'title': f.name,
                 'id': f.pk,
                 'parent': None,
+                'hash_sum': None,
                 'type': 0
             }
             if f.parent:
                 file_info['parent'] = f.parent_id
             if f.file:
                 file_info['type'] = 1
+                file_info['hash_sum'] = f.file.hash_sum
             self.filedata.append(file_info)
 
     def __order_by_type(self):
@@ -127,6 +130,85 @@ class FileData(object):
                         f_fd['lvl'] = lvl + 1
                         ordered_data.append(f_fd)
         return ordered_data
+
+
+class DBFileData(object):
+    def __init__(self, filedata, job):
+        self.filedata = filedata
+        self.job = job
+        self.filedata_by_lvl = []
+        self.filedata_hash = {}
+        self.err_message = self.__validate()
+        if self.err_message is None:
+            self.err_message = self.__save_file_data()
+
+    def __save_file_data(self):
+        for lvl in self.filedata_by_lvl:
+            for lvl_elem in lvl:
+                fs_elem = FileSystem()
+                fs_elem.job = self.job
+                if lvl_elem['parent']:
+                    parent_pk = self.filedata_hash[lvl_elem['parent']].get(
+                        'pk', None
+                    )
+                    if parent_pk is None:
+                        return "Parent was not saved to database"
+                    try:
+                        parent = FileSystem.objects.get(pk=parent_pk, file=None)
+                    except ObjectDoesNotExist:
+                        return "Parent was not saved to the database"
+                    fs_elem.parent = parent
+                if lvl_elem['type'] == '1':
+                    try:
+                        fs_elem.file = File.objects.get(
+                            hash_sum=lvl_elem['hash_sum']
+                        )
+                    except ObjectDoesNotExist:
+                        return "File was not found"
+                fs_elem.name = lvl_elem['title']
+                fs_elem.save()
+                self.filedata_hash[lvl_elem['id']]['pk'] = fs_elem.pk
+        return None
+
+    def __validate(self):
+        num_of_elements = 0
+        element_of_lvl = []
+        cnt = 0
+        while num_of_elements < len(self.filedata):
+            cnt += 1
+            if cnt > 1000:
+                return "Unknown error"
+            num_of_elements += len(element_of_lvl)
+            element_of_lvl = self.__get_lower_level(element_of_lvl)
+            if len(element_of_lvl):
+                self.filedata_by_lvl.append(element_of_lvl)
+        for lvl in self.filedata_by_lvl:
+            names_of_lvl = []
+            for fd in lvl:
+                self.filedata_hash[fd['id']] = fd
+                if len(fd['title']) == 0:
+                    return "Empty name"
+                if fd['type'] == '1' and fd['hash_sum'] is None:
+                    return "File was not uploaded"
+                names_of_lvl.append(fd['title'])
+            for name in names_of_lvl:
+                if names_of_lvl.count(name) != 1:
+                    return "Same names on one level!"
+        return None
+
+    def __get_lower_level(self, data):
+        new_level = []
+        if len(data):
+            for d in data:
+                for fd in self.filedata:
+                    if fd['parent'] == d['id']:
+                        if fd not in new_level:
+                            new_level.append(fd)
+        else:
+            for fd in self.filedata:
+                if fd['parent'] is None:
+                    new_level.append(fd)
+        return new_level
 
 
 def convert_time(val, acc):
@@ -301,11 +383,13 @@ def resource_info(job, user):
 
 
 def role_info(job, user):
-    roles_data = {'global': job.global_role}
+    roles_data = {'global': job.job.global_role}
 
     users = []
     user_roles_data = []
     users_roles = job.userrole_set.filter(~Q(user=user))
+    job_author = job.job.jobhistory_set.get(version=1).change_author
+
     for ur in users_roles:
         title = ur.user.extended.last_name + ' ' + ur.user.extended.first_name
         u_id = ur.user_id
@@ -319,10 +403,11 @@ def role_info(job, user):
 
     available_users = []
     for u in User.objects.filter(~Q(pk__in=users) & ~Q(pk=user.pk)):
-        available_users.append({
-            'id': u.pk,
-            'name': u.extended.last_name + ' ' + u.extended.first_name
-        })
+        if u != job_author:
+            available_users.append({
+                'id': u.pk,
+                'name': u.extended.last_name + ' ' + u.extended.first_name
+            })
     roles_data['available_users'] = available_users
 
     available_roles = []
@@ -337,12 +422,13 @@ def role_info(job, user):
 
 def has_job_access(user, action='view', job=None):
     if action == 'view' and job:
+        last_version = job.jobhistory_set.all().order_by('-change_date')[0]
         if user.extended.role == USER_ROLES[2][0]:
             return True
         job_first_ver = job.jobhistory_set.filter(version=1)
         if len(job_first_ver) and job_first_ver[0].change_author == user:
             return True
-        user_role = job.userrole_set.filter(user=user)
+        user_role = last_version.userrole_set.filter(user=user)
         if len(user_role):
             if user_role[0].role == JOB_ROLES[0][0]:
                 return False

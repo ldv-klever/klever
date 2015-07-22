@@ -1,6 +1,9 @@
 import pytz
 import json
 import hashlib
+import mimetypes
+import os
+from io import BytesIO
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -8,7 +11,8 @@ from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _
 from django.http import HttpResponse, JsonResponse
 from jobs.job_model import Job, JobHistory, JobStatus
-from jobs.models import UserRole
+from jobs.models import UserRole, File, FileSystem
+from jobs.forms import FileForm
 from users.models import View, PreferableView
 import jobs.table_prop as tp
 import jobs.job_functions as job_f
@@ -291,7 +295,7 @@ def show_job(request, job_id=None):
     except ObjectDoesNotExist:
         return job404(request, _('Job was not found!'))
 
-    if not job_f.has_job_access(request.user, job=job):
+    if not job_f.has_job_access(request.user, action="view", job=job):
         return job404(
             request,
             _("You don't have access to this verification job!")
@@ -337,7 +341,6 @@ def show_job(request, job_id=None):
 
     # Get user time zone
     user_tz = request.user.extended.timezone
-
     return render(
         request,
         'jobs/viewJob.html',
@@ -403,18 +406,23 @@ def get_version_data(request, template='jobs/editJob.html'):
             job_parent_id = job.parent.identifier
     else:
         job_parent_id = job.identifier
-    old_job = job
+
+    if len(job.jobhistory_set.all()) == 0:
+        return HttpResponse('')
     if version > 0:
-        old_job_set = job.jobhistory_set.filter(version=version)
-        if len(old_job_set):
-            old_job = old_job_set[0]
+        old_job = job.jobhistory_set.filter(version=version)[0]
+        job_version = old_job
+    else:
+        job_version = job.jobhistory_set.all().order_by('-change_date')[0]
+
+    roles = job_f.role_info(job_version, request.user)
 
     job_data = {
         'id': None,
         'parent_id': job_parent_id,
-        'name': old_job.name,
-        'configuration': old_job.configuration,
-        'description': old_job.description,
+        'name': job_version.name,
+        'configuration': job_version.configuration,
+        'description': job_version.description,
         'version': None
     }
     if job_id:
@@ -449,7 +457,6 @@ def get_version_data(request, template='jobs/editJob.html'):
                 'comment': j.comment,
             })
 
-    roles = job_f.role_info(job, request.user)
     if parent_id:
         roles['user_roles'] = []
         roles['global'] = JOB_ROLES[0][0]
@@ -459,15 +466,8 @@ def get_version_data(request, template='jobs/editJob.html'):
                 'id': u.pk,
                 'name': u.extended.last_name + ' ' + u.extended.first_name
             })
-    if version > 0:
-        roles['user_roles'] = []
-        roles['global'] = old_job.global_role
-        roles['available_users'] = []
-        for u in User.objects.filter(~Q(pk=request.user.pk)):
-            roles['available_users'].append({
-                'id': u.pk,
-                'name': u.extended.last_name + ' ' + u.extended.first_name
-            })
+
+    filesdata = job_f.FileData(job_version)
 
     return render(
         request,
@@ -476,7 +476,8 @@ def get_version_data(request, template='jobs/editJob.html'):
             'job': job_data,
             'roles': roles,
             'job_versions': job_versions,
-            'version': version
+            'version': version,
+            'filedata': filesdata.filedata
         }
     )
 
@@ -500,6 +501,9 @@ def save_job(request):
     global_role = request.POST.get('global_role', JOB_ROLES[0][0])
     user_roles = request.POST.get('user_roles', '[]')
     user_roles = json.loads(user_roles)
+
+    file_data = request.POST.get('file_data', '[]')
+    file_data = json.loads(file_data)
 
     last_version = int(request.POST.get('last_version', 0))
 
@@ -599,17 +603,26 @@ def save_job(request):
     new_version.parent = job.parent
     new_version.save()
 
-    UserRole.objects.filter(job=job).delete()
+    # UserRole.objects.filter(job=job).delete()
     for ur in user_roles:
         user_id = int(ur['user'])
         role = ur['role']
         ur_user = User.objects.filter(pk=user_id)
         if len(ur_user):
             new_ur = UserRole()
-            new_ur.job = job
+            new_ur.job = new_version
             new_ur.user = ur_user[0]
             new_ur.role = role
             new_ur.save()
+
+    saving_filedata = job_f.DBFileData(file_data, new_version)
+    if saving_filedata.err_message:
+        err_message = saving_filedata.err_message
+        err_message += ' ' + _("Please reload page and try again.")
+        return JsonResponse({
+            'status': 1,
+            'message': err_message,
+        })
     return JsonResponse({'status': 0, 'job_id': job.pk})
 
 
@@ -674,12 +687,53 @@ def showjobdata(request):
             job = Job.objects.get(pk=int(job_id))
         except ObjectDoesNotExist:
             return HttpResponse('')
-        return render(request, 'jobs/showJob.html', {'job': job})
+        job_version = JobHistory.objects.all().order_by('-change_date')[0]
+        filesdata = job_f.FileData(job_version)
+        return render(request, 'jobs/showJob.html', {
+            'job': job,
+            'filedata': filesdata.filedata
+        })
     return HttpResponse('')
 
 
-def loadfile(request):
-    filesdata = job_f.FileData(Job.objects.get(pk=4))
-    return render(request, 'jobs/filesTree.html', {
-        'filedata': filesdata.filedata
+def upload_files(request):
+    if request.method != 'POST':
+        return HttpResponse('')
+    form = FileForm(request.POST, request.FILES)
+    if form.is_valid():
+        new_file = form.save(commit=False)
+        check_sum = hashlib.md5(new_file.file.read()).hexdigest()
+        if len(File.objects.filter(hash_sum=check_sum)):
+            return JsonResponse({
+                'hash_sum': check_sum,
+                'status': 0
+            })
+        new_file.hash_sum = check_sum
+        new_file.save()
+        return JsonResponse({
+            'hash_sum': check_sum,
+            'status': 0
+        })
+    print("%s" % form.errors)
+    return JsonResponse({
+        'message': 'Loading failed!',
+        'form_errors': form.errors,
+        'status': 1
     })
+
+
+def download_file(request, file_id):
+    if request.method == 'POST':
+        return HttpResponse('')
+    try:
+        source = FileSystem.objects.get(pk=int(file_id))
+    except ObjectDoesNotExist:
+        return HttpResponse('')
+    if source.file is None:
+        return HttpResponse('')
+    file_content = source.file.file.read()
+    new_file = BytesIO(file_content)
+    mimetype = mimetypes.guess_type(os.path.basename(source.file.file.name))[0]
+    response = HttpResponse(new_file.read(), content_type=mimetype)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % source.name
+    return response

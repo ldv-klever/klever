@@ -748,13 +748,16 @@ class TableTree(object):
             else:
                 return job.parent.identifier
         elif col == 'role':
-            first_version = job.jobhistory_set.filter(version=1)
-            if len(first_version):
-                if first_version[0].change_author == self.user:
-                    return _('Author')
+            try:
+                first_version = job.jobhistory_set.get(version=1)
+            except ObjectDoesNotExist:
+                return ''
+            if first_version.change_author == self.user:
+                return _('Author')
             if self.user.extended.role == USER_ROLES[2][0]:
                 return self.user.extended.get_role_display()
-            user_role = job.userrole_set.filter(user=self.user)
+            last_version = job.jobhistory_set.all().order_by('-change_date')[0]
+            user_role = last_version.userrole_set.filter(user=self.user)
             if len(user_role):
                 return user_role[0].get_role_display()
             else:
