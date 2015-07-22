@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-22 21:09+0300\n"
+"POT-Creation-Date: 2015-07-22 19:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -840,9 +840,9 @@ msgstr ""
 msgid "Sign In"
 msgstr ""
 
-#: users/forms.py:19
+#: users/forms.py:19 users/templates/users/login.html:15
 msgid "Password"
-msgstr ""
+msgstr "Пароль"
 
 #: users/forms.py:52
 msgid "New password"
@@ -895,11 +895,11 @@ msgstr ""
 msgid "Time zone"
 msgstr ""
 
-#: users/templates/users/login.html:11
-msgid "Please sign in"
-msgstr ""
+#: users/templates/users/login.html:14
+msgid "Username"
+msgstr "Имя пользователя"
 
-#: users/templates/users/login.html:18
+#: users/templates/users/login.html:16
 msgid "Sign in"
 msgstr "Войти"
 
@@ -957,9 +957,9 @@ msgid "Hover over the comment to see all of it."
 msgstr ""
 
 #: users/views.py:28
-msgid "Your account is disabled!"
-msgstr ""
+msgid "Account has been disabled"
+msgstr "Учетная запись заблокирована"
 
 #: users/views.py:30
-msgid "Invalid login details supplied."
-msgstr ""
+msgid "Incorrect username or password"
+msgstr "Неправильное имя пользователя или пароль"

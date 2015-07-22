@@ -20,14 +20,14 @@ def user_signin(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
         user = authenticate(username=username, password=password)
-        if user:
+        if user is not None:
             if user.is_active:
                 login(request, user)
                 return HttpResponseRedirect(reverse('jobs:tree'))
             else:
-                login_error = _("Your account is disabled!")
+                login_error = _("Account has been disabled")
         else:
-            login_error = _("Invalid login details supplied.")
+            login_error = _("Incorrect username or password")
         return render(request, 'users/login.html',
                       {'login_errors': login_error})
     else:
