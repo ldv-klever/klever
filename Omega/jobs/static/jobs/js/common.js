@@ -17,6 +17,13 @@ function csrfSafeMethod(method) {
     return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method))
 }
 
+$(document).on('change', '.btn-file :file', function () {
+    var input = $(this),
+        numFiles = input.get(0).files ? input.get(0).files.length : 1,
+        label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+    input.trigger('fileselect', [numFiles, label]);
+});
+
 // For making safe post requests
 $.ajaxSetup({
     beforeSend: function(xhr, settings) {
@@ -38,10 +45,26 @@ $.extend({
     }
 });
 
-window.err_notify = function (message) {
+jQuery.expr[':'].regex = function(elem, index, match) {
+    var matchParams = match[3].split(','),
+        validLabels = /^(data|css):/,
+        attr = {
+            method: matchParams[0].match(validLabels) ?
+                        matchParams[0].split(':')[0] : 'attr',
+            property: matchParams.shift().replace(validLabels,'')
+        },
+        regexFlags = 'ig',
+        regex = new RegExp(matchParams.join('').replace(/^s+|s+$/g,''), regexFlags);
+    return regex.test(jQuery(elem)[attr.method](attr.property));
+}
+
+window.err_notify = function (message, duration) {
+    if (isNaN(duration)) {
+        duration = 2500;
+    }
     $.notify(message, {
         autoHide: true,
-        autoHideDelay: 2500,
+        autoHideDelay: duration,
         style: 'bootstrap',
         className: 'error'
     });

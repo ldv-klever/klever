@@ -7,7 +7,7 @@
     {% endif %}
 
     {% if job_versions|length %}
-        <label for="job_version_selector" class="show-job-title">{% trans 'You can choose old Verification Job version' %}**</label>
+        <label for="job_version_selector" class="show-job-title">{% trans 'You can choose old Verification Job version' %}</label>
         <select id="job_version_selector" class="form-control">
             {% for jv in job_versions %}
                 <option title="{{ jv.comment }}" value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
@@ -77,9 +77,7 @@
                             </select>
                         </td>
                         <td>
-                            <button id="remove_user_role__{{ ur.user.id }}" class="btn-close-x">
-                                <span class="glyphicon glyphicon-remove"></span>
-                            </button>
+                            <button id="remove_user_role__{{ ur.user.id }}" class="btn-close-x"><span class="glyphicon glyphicon-remove"></span></button>
                         </td>
                     </tr>
                 {% endfor %}
@@ -91,6 +89,9 @@
     {% if job_versions|length %}
         <label style="width: 100%;">{% trans "Change's comment" %}:<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
     {% endif %}
+    <hr>
+    <h4>Files</h4>
+    {% include 'jobs/filesTree.html' %}
     <hr>
     <button id="save_job_btn" type="submit" class="btn btn-success">{% trans 'Save' %}</button>
     {% if job_versions|length %}
@@ -107,12 +108,7 @@
             <option value="{{ jr.value }}">{{ jr.title }}</option>
         {% endfor %}
     </select>
-    <button id="remove_user_role__" class="btn-close-x">
-        <span class="glyphicon glyphicon-remove"></span>
-    </button>
+    <button id="remove_user_role__" class="btn-close-x"><span class="glyphicon glyphicon-remove"></span></button>
 </div>
-{% if job_versions|length %}
-    <hr><small style="color: #868686">**{% trans "User roles can't be restored from old versions." %}</small>
-{% endif %}
 <div id="comment_required_div" hidden>{% trans 'Change comment is required' %}</div>
 <div id="title_required_div" hidden>{% trans 'Title is required' %}</div>

@@ -1,0 +1,17 @@
+{% load staticfiles %}
+
+<table id="file_tree_table" class="table tree table-fixed">
+    <tbody>
+    {% for f in filedata %}
+        <tr class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}{% if f.type == 0 %} success{% endif %}">
+            <td>
+                {% if f.type == 1 %}
+                    <a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>
+                {% else %}
+                    {{ f.title }}
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
