@@ -7,9 +7,7 @@
         {% for column_row in columns %}
             <tr class="info">
             {% for coldata in column_row %}
-                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">
-                    {{ coldata.title }}
-                </th>
+                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
             {% endfor %}
             </tr>
         {% endfor %}
@@ -28,14 +26,14 @@
                         {% if v.href %}
                             <a href="{{ v.href }}">{{ v.value }}</a>
                         {% else %}
-                            {{ v.value }}
+                            <span>{{ v.value }}</span>
                         {% endif %}
                     {% endtimezone %}
                 {% else %}
                     {% if v.href %}
                         <a href="{{ v.href }}">{{ v.value }}</a>
                     {% else %}
-                        {{ v.value }}
+                        <span>{{ v.value }}</span>
                     {% endif %}
                 {% endif %}
                 </td>

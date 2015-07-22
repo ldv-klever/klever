@@ -47,6 +47,7 @@ th {
 .show-job-title {
     color: #6416ad;
     font-weight: bold;
+    font-size: 1.2em;
 }
 
 .show-job-name {
@@ -68,10 +69,6 @@ th {
 .col-vertical-buttons {
     float: left;
     width: 4%;
-}
-
-dt {
-    color: #6416ad;
 }
 
 .dt-text {
@@ -101,4 +98,16 @@ dt {
     background: white;
     cursor: inherit;
     display: block;
+}
+
+.glyphicon-button {
+    padding-left: 3px;
+}
+
+.unimportant-text {
+    color: silver;
+}
+
+.job-subtitle {
+    color: #73b284;
 }

@@ -22,7 +22,7 @@
             <div class="form-inline">
                 <div class="btn-group" role="group">
                     {% if can_create %}<button id="copy_job__{{ job.pk }}" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
-                    <button id="load_job__{{ job.pk }}" class="btn btn-success">{% trans 'Upload' %}</button>
+                    <button id="load_job__{{ job.pk }}" class="btn btn-success">{% trans 'Download' %}</button>
                     {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">{% trans 'Remove' %}</button>{% endif %}
                 </div>
                 <span id="job_pk" hidden>{{ job.pk }}</span>
@@ -33,8 +33,9 @@
             <span class="show-job-title">{% trans 'Type' %}:</span> {{ job.get_type_display }}
             <br>
             <span class="show-job-title">{% trans 'ID' %}:</span> <span style="color: #15c46b">{{ job.identifier }}</span>
+            <br><span class="show-job-title">{% trans 'Created by' %}: </span>
+            <a href="{% url 'users:show_profile' created_by.pk %}">{{ created_by.extended.last_name }} {{ created_by.extended.first_name }}</a>
             <br>
-
             {% if parents %}
                 <span class="show-job-title">{% trans 'Job parents' %}:</span>
                 {% for parent in parents %}
@@ -42,7 +43,7 @@
                     {% if parent.pk %}
                         <a href="{% url 'jobs:job' parent.pk %}">{{ parent.name }}</a>
                     {% else %}
-                        <span style="text-decoration: underline;">{{ parent.name }}</span>
+                        <ins>{{ parent.name }}</ins>
                     {% endif %}
                 {% endfor %}
                 {% for parent in parents %}
@@ -58,27 +59,18 @@
                         {% if child.pk %}
                             <a href="{% url 'jobs:job' child.pk %}">{{ child.name }}</a>
                         {% else %}
-                            <span style="text-decoration: underline;">{{ child.name }}</span>
+                            <span><ins>{{ child.name }}</ins></span>
                         {% endif %}
                     </li>
                 {% endfor %}
                 </ul>
             {% endif %}
 
-            <span class="show-job-title">{% trans 'Last change author' %}: </span>
-            {{ job.change_author.extended.last_name }} {{ job.change_author.extended.first_name }}
-            {% if change_comment|length %}
-                <br><small style="color: silver">({{ change_comment }})</small><br>
-            {% endif %}
-
-
-            {% if created_by %}
-                <br><span class="show-job-title">{% trans 'Created by' %}: </span>
-                {{ created_by }}
-            {% endif %}
-
+            <span class="show-job-title">{% trans 'Last change' %}: </span>
             <br>
-            <span class="show-job-title">{% trans 'Last change date' %}: </span>
+            <span class="job-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' job.change_author.pk %}">{{ job.change_author.extended.last_name }} {{ job.change_author.extended.first_name }}</a>
+            <br>
+            <span class="job-subtitle">{% trans 'Date' %}: </span>
             {% if user_tz %}
                 {% timezone user_tz %}
                     {{ job.change_date|date:'d.m.y H:i:s' }}
@@ -86,9 +78,11 @@
             {% else %}
                 {{ job.change_date|date:'d.m.y H:i:s' }}
             {% endif %}
-            <br><br>
-
-
+            {% if change_comment|length %}
+                <br>
+                <span class="job-subtitle">{% trans 'Comment' %}:</span> <small>"{{ change_comment }}"</small><br>
+            {% endif %}
+            <br>
             <span class="show-job-title">{% trans 'Status' %}: </span>
             {% if job.jobstatus %}
                 <span style="color:

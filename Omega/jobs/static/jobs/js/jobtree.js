@@ -11,7 +11,7 @@ function fill_all_values() {
             var value_start = "td[id^='value__" + cell_id_data.join('__') + "__']";
             var sum = 0, have_numbers = false;
             $(value_start).each(function() {
-                var num = parseInt($(this).html());
+                var num = parseInt($(this).children('span').first().html());
                 if (isNaN(num) || cell_id_data[0].match(do_not_count)) {
                     num = 0;
                 }
@@ -38,7 +38,7 @@ function fill_checked_values() {
                 var row_id = $(this).attr('id').split('__').slice(-1)[0];
                 if ($('#job_checkbox__' + row_id).is(':checked')) {
                     is_checked = true;
-                    var num = parseInt($(this).html());
+                    var num = parseInt($(this).children('span').first().html());
                     if (isNaN(num) || cell_id_data[0].match(do_not_count)) {
                         num = 0;
                     }

@@ -1,16 +1,12 @@
+{% load i18n %}
+
 <table id="file_tree_table" class="table tree table-fixed" style="width:70%;">
     <tbody>
     {% for f in filedata %}
         <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}{% if f.type == 0 %} success{% endif %}">
             <td><label><input id="selected_filerow__{{ f.type }}__{{ f.id }}" type="radio" name="selected_filerow" value="{{ f.type }}__{{ f.id }}"></label></td>
             <td>
-                <span id="file_title__{{ f.type }}__{{ f.id }}">
-                    {% if f.type == 1 %}
-                        <a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>
-                    {% else %}
-                        {{ f.title }}
-                    {% endif %}
-                </span>
+                <span id="file_title__{{ f.type }}__{{ f.id }}">{% if f.type == 1 %}<a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>{% else %}{{ f.title }}{% endif %}</span>
                 {% if f.type == 1 %}<span id="file_hash_sum__{{ f.type }}__{{ f.id }}" hidden>{{ f.hash_sum }}</span>{% endif %}
             </td>
         </tr>
@@ -18,66 +14,64 @@
     </tbody>
 </table>
 <div class="btn-group">
-    <button id="new_folder_btn" type="button" class="btn btn-info">New folder</button>
-    <button id="new_file_btn" type="button" class="btn btn-info">New file</button>
-    <button id="rename_file_btn" type="button" class="btn btn-primary">Rename</button>
-    <button id="move_file_btn" type="button" class="btn btn-primary">Move file</button>
-    <button id="remove_file_btn" type="button" class="btn btn-danger">Remove</button>
+    <button id="new_folder_btn" type="button" class="btn btn-info">{% trans 'New folder' %}</button>
+    <button id="new_file_btn" type="button" class="btn btn-info">{% trans 'New file' %}</button>
+    <button id="rename_file_btn" type="button" class="btn btn-primary">{% trans 'Rename' %}</button>
+    <button id="move_file_btn" type="button" class="btn btn-primary">{% trans 'Move file' %}</button>
+    <button id="remove_file_btn" type="button" class="btn btn-danger">{% trans 'Remove' %}</button>
 </div>
 <div id="files_for_upload" hidden></div>
 <div id="edit_files_form"></div>
 
 <div id="new_folder_template" hidden>
     <hr>
-    <label for="new_folder_name">Folder name</label>
+    <label for="new_folder_name">{% trans 'Folder name' %}</label>
         <input id="tmp___new_folder_name" type="text" class="form-control" placeholder="Name">
     <br>
-    <label for="tmp___new_folder_parent">Subfolder of:</label>
+    <label for="tmp___new_folder_parent">{% trans 'Subfolder of' %}:</label>
     <select id="tmp___new_folder_parent" class="form-control">
-        <option value="root">Root</option>
+        <option value="root">{% trans 'Root' %}</option>
     </select>
     <br>
-    <button id="tmp___create_new_folder_btn" type="button" class="btn btn-success">Create</button>
-    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">Cancel</button>
+    <button id="tmp___create_new_folder_btn" type="button" class="btn btn-success">{% trans 'Create' %}</button>
+    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">{% trans 'Cancel' %}</button>
 </div>
 <div id="rename_template" hidden>
     <hr>
-    <label for="tmp___object_name">New Name:</label>
+    <label for="tmp___object_name">{% trans 'New Name' %}:</label>
     <input id="tmp___object_name" type="text" class="form-control">
     <br>
-    <button id="tmp___change_name_btn" type="button" class="btn btn-success">Rename</button>
-    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">Cancel</button>
+    <button id="tmp___change_name_btn" type="button" class="btn btn-success">{% trans 'Rename' %}</button>
+    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">{% trans 'Cancel' %}</button>
 </div>
 <div id="move_object_template" hidden>
     <hr>
-    <label for="tmp___move_object_parent">Move '<span id="tmp___moving_object_title"></span>' to:</label>
+    <label for="tmp___move_object_parent">{% trans 'Move' %} '<span id="tmp___moving_object_title"></span>' {% trans 'to' %}:</label>
     <select id="tmp___move_object_parent" class="form-control">
-        <option value="root">Root</option>
+        <option value="root">{% trans 'Root' %}</option>
     </select>
     <br>
-    <button id="tmp___move_obj_btn" type="button" class="btn btn-success">Move</button>
-    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">Cancel</button>
+    <button id="tmp___move_obj_btn" type="button" class="btn btn-success">{% trans 'Move' %}</button>
+    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">{% trans 'Cancel' %}</button>
 </div>
 <div id="remove_object_template" hidden>
     <hr>
-    <p>"<span id="tmp___remove_object_title"></span>" with its content will be deleted. Do you want to continue?</p>
+    <p>"<span id="tmp___remove_object_title"></span>" {% trans 'with its content will be deleted. Do you want to continue?' %}</p>
     <button id="tmp___remove_object_btn" class="btn btn-warning" type="button">Remove</button>
     <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">Cancel</button>
 </div>
 <div id="new_file_template" hidden>
     <hr>
-    <span class="btn btn-warning btn-file">
-        Browse <input id="tmp___new_file_input" type="file">
-    </span>
+    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="tmp___new_file_input" type="file"></span>
     <br><br>
-    <label for="tmp___new_file_name">Name:</label>
+    <label for="tmp___new_file_name">{% trans 'Name' %}:</label>
     <input id="tmp___new_file_name" type="text" class="form-control">
     <br>
-    <label for="tmp___new_file_parent">Load to folder:</label>
+    <label for="tmp___new_file_parent">{% trans 'Upload to folder' %}:</label>
     <select id="tmp___new_file_parent" class="form-control">
-        <option value="root">Root</option>
+        <option value="root">{% trans 'Root' %}</option>
     </select>
     <br>
-    <button id="tmp___save_new_file_btn" class="btn btn-success" type="button">Add</button>
-    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">Cancel</button>
+    <button id="tmp___save_new_file_btn" class="btn btn-success" type="button">{% trans 'Add' %}</button>
+    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">{% trans 'Cancel' %}</button>
 </div>

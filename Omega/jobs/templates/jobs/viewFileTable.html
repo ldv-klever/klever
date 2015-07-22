@@ -8,7 +8,7 @@
                 {% if f.type == 1 %}
                     <a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>
                 {% else %}
-                    {{ f.title }}
+                    <span>{{ f.title }}</span>
                 {% endif %}
             </td>
         </tr>

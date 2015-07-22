@@ -301,12 +301,7 @@ def show_job(request, job_id=None):
             _("You don't have access to this verification job!")
         )
 
-    # Get author of the job (who had created first version)
-    created_by = None
-    first_version = job.jobhistory_set.filter(version=1)
-    if first_version:
-        created_by = first_version[0].change_author.extended.last_name
-        created_by += ' ' + first_version[0].change_author.extended.first_name
+    created_by = job.jobhistory_set.get(version=1).change_author
 
     # Collect parents of the job
     parents = []

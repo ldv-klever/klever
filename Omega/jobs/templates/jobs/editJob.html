@@ -43,9 +43,7 @@
                         <label for="job_global_roles">{% trans 'Global roles' %}:</label><br>
                         <select id="job_global_roles" class="form-control">
                             {% for jr in roles.job_roles %}
-                                <option value="{{ jr.value }}"{% if roles.global == jr.value %} selected{% endif %} >
-                                    {{ jr.title }}
-                                </option>
+                                <option value="{{ jr.value }}"{% if roles.global == jr.value %} selected{% endif %} >{{ jr.title }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -84,20 +82,17 @@
             </table>
         </li>
     </ul>
-
     <label style="width: 100%;">{% trans 'Configuration' %}:<textarea id="job_config" class="form-control" style="resize: none" placeholder="{% trans 'Configuration' %}">{{ job.configuration }}</textarea></label>
-    {% if job_versions|length %}
-        <label style="width: 100%;">{% trans "Change's comment" %}:<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
-    {% endif %}
-    <hr>
     <h4>Files</h4>
     {% include 'jobs/filesTree.html' %}
     <hr>
+    {% if job_versions|length %}
+        <label style="width: 100%;">{% trans "Change's comment" %}:<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
+    {% endif %}
     <button id="save_job_btn" type="submit" class="btn btn-success">{% trans 'Save' %}</button>
     {% if job_versions|length %}
         <button id="cancel_edit_job_btn" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</button>
     {% endif %}
-
 </form>
 
 <!-- Templates for jQuery -->

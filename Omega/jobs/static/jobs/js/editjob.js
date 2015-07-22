@@ -137,9 +137,11 @@ function set_actions_for_edit_form () {
             }
         }
         if (load_new_files()){
+            console.log(111);
             var file_data = JSON.stringify(collect_filetable_data());
         }
         else {
+            console.log(222);
             return false;
         }
 
@@ -221,6 +223,7 @@ function load_new_files() {
     if (file_inputs.length > 0) {
 
         file_inputs.each(function () {
+            console.log($(this).attr('id'));
             var current_input = $(this),
                 data = new FormData(),
                 curr_id = current_input.attr('id').replace('new_file_input__', '');
@@ -237,11 +240,13 @@ function load_new_files() {
                 success: function (data) {
                     if (data.status == 0) {
                         var file_hashsum = $('#file_hash_sum__1__' + curr_id);
+                        console.log("ID:" + curr_id);
                         if (file_hashsum.length) {
                             file_hashsum.html(data.hash_sum);
                             current_input.remove();
                         }
                         else {
+                            console.log(data);
                             success = false;
                         }
                     }
@@ -584,9 +589,8 @@ function set_actions_for_file_form() {
                             new_filetable_row(1, 'newfile_' + cnt, null, filename)
                         );
                     }
-                    var cloned = file_input.clone(true);
-                    cloned.attr('id', 'new_file_input__newfile_' + cnt);
-                    $('#files_for_upload').append(cloned);
+                    file_input.attr('id', 'new_file_input__newfile_' + cnt);
+                    $('#files_for_upload').append(file_input);
 
                     update_treegrid();
                     $('#edit_files_form').html('');
@@ -635,8 +639,6 @@ $(document).ready(function () {
             type: 'POST',
             success: function (data) {
                 $('#show_job_div').html(data);
-            },
-            done: function () {
                 $('.tree').treegrid({
                     treeColumn: 0,
                     expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
