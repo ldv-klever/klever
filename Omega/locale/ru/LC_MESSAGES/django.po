@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-22 19:05+0000\n"
+"POT-Creation-Date: 2015-07-22 19:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -818,7 +818,7 @@ msgstr ""
 
 #: templates/base.html:42
 msgid "Jobs Tree"
-msgstr ""
+msgstr "Дерево заданий"
 
 #: templates/base.html:43
 msgid "Admin Tools"
@@ -830,15 +830,15 @@ msgstr "Настройки"
 
 #: templates/base.html:50
 msgid "Sign Out"
-msgstr ""
+msgstr "Выйти"
 
 #: templates/base.html:52
 msgid "Register"
-msgstr ""
+msgstr "Регистрация"
 
 #: templates/base.html:53
 msgid "Sign In"
-msgstr ""
+msgstr "Войти"
 
 #: users/forms.py:19 users/templates/users/login.html:15
 msgid "Password"
