@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-22 19:35+0000\n"
+"POT-Creation-Date: 2015-07-22 20:07+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -76,24 +76,24 @@ msgid "Other"
 msgstr ""
 
 #: Omega/vars.py:80
-msgid "Not Solved"
-msgstr ""
+msgid "Not solved"
+msgstr "Не решено"
 
 #: Omega/vars.py:81
-msgid "Solving"
-msgstr ""
+msgid "Is solving"
+msgstr "Решается"
 
 #: Omega/vars.py:82
 msgid "Stopped"
-msgstr ""
+msgstr "Приостановлено"
 
 #: Omega/vars.py:83
 msgid "Solved"
-msgstr ""
+msgstr "Решено"
 
 #: Omega/vars.py:84
 msgid "Failed"
-msgstr ""
+msgstr "Провалено"
 
 #: Omega/vars.py:88
 msgid "Unreported"
@@ -114,47 +114,45 @@ msgstr ""
 #: jobs/job_functions.py:38 jobs/table_prop.py:48 jobs/table_prop.py:76
 #: jobs/templates/jobs/editJob.html:21
 msgid "Title"
-msgstr ""
+msgstr "Название"
 
 #: jobs/job_functions.py:39 jobs/table_prop.py:77 jobs/table_prop.py:756
 #: jobs/templates/jobs/viewJob.html:71
 msgid "Author"
-msgstr ""
+msgstr "Автор"
 
-#: jobs/job_functions.py:40 jobs/table_prop.py:50
-#: jobs/templates/jobs/viewJob.html:73
-#: users/templates/users/showProfile.html:30
-msgid "Date"
-msgstr ""
+#: jobs/job_functions.py:40
+msgid "Last change date"
+msgstr "Дата последнего изменения"
 
 #: jobs/job_functions.py:41 jobs/table_prop.py:51 jobs/table_prop.py:79
 #: jobs/templates/jobs/viewJob.html:86
-msgid "Status"
-msgstr ""
+msgid "Decision status"
+msgstr "Статус решения"
 
 #: jobs/job_functions.py:42 jobs/templates/jobs/viewJob.html:122
 msgid "Safes"
-msgstr ""
+msgstr "Доказательства корректности"
 
 #: jobs/job_functions.py:43
-msgid "Missed bug"
-msgstr ""
+msgid "Missed target bugs"
+msgstr "Пропуски целевых ошибок"
 
 #: jobs/job_functions.py:44
 msgid "Incorrect proof"
-msgstr ""
+msgstr "Некорректное доказательство"
 
 #: jobs/job_functions.py:45 jobs/job_functions.py:53
 msgid "Unknown"
-msgstr ""
+msgstr "Неизвестно"
 
 #: jobs/job_functions.py:46 jobs/job_functions.py:54
-msgid "Inconclusive"
-msgstr ""
+msgid "Incompatible marks"
+msgstr "Несовместимые оценки"
 
 #: jobs/job_functions.py:47 jobs/job_functions.py:55
-msgid "Unassociated"
-msgstr ""
+msgid "Without marks"
+msgstr "Нет оценок"
 
 #: jobs/job_functions.py:48 jobs/job_functions.py:56 jobs/job_functions.py:58
 #: jobs/job_functions.py:60 jobs/job_functions.py:333
@@ -167,24 +165,24 @@ msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
 #: jobs/job_functions.py:50
-msgid "Bug"
+msgid "Bugs"
 msgstr "Ошибки"
 
 #: jobs/job_functions.py:51
-msgid "Target bug"
+msgid "Target bugs"
 msgstr "Целевые ошибки"
 
 #: jobs/job_functions.py:52
-msgid "False positive"
-msgstr ""
+msgid "False positives"
+msgstr "Ложные сообщения об ошибках"
 
 #: jobs/job_functions.py:57
 msgid "Unknowns"
-msgstr ""
+msgstr "Проблемы в компонентах"
 
 #: jobs/job_functions.py:59
 msgid "Resourses"
-msgstr ""
+msgstr "Ресурсы"
 
 #: jobs/job_functions.py:61
 msgid "Tags"
@@ -224,7 +222,7 @@ msgstr ""
 
 #: jobs/job_functions.py:70
 msgid "Your role"
-msgstr ""
+msgstr "Ваша роль"
 
 #: jobs/job_functions.py:155
 msgid "Parent was not saved to database"
@@ -298,6 +296,11 @@ msgstr ""
 
 #: jobs/table_prop.py:49
 msgid "Author last name"
+msgstr ""
+
+#: jobs/table_prop.py:50 jobs/templates/jobs/viewJob.html:73
+#: users/templates/users/showProfile.html:30
+msgid "Date"
 msgstr ""
 
 #: jobs/table_prop.py:55 jobs/table_prop.py:57
@@ -509,24 +512,24 @@ msgid "Verification Tree"
 msgstr ""
 
 #: jobs/templates/jobs/tree.html:19
-msgid "Upload VJ"
-msgstr "Выгрузить ВЗ"
+msgid "Upload jobs"
+msgstr "Загрузить задания"
 
 #: jobs/templates/jobs/tree.html:20
-msgid "Download VJ"
-msgstr "Загрузить ВЗ"
+msgid "Download jobs"
+msgstr "Выгрузить задания"
 
 #: jobs/templates/jobs/tree.html:21
-msgid "Upload EM"
-msgstr ""
+msgid "Upload marks"
+msgstr "Загрузить оценки"
 
 #: jobs/templates/jobs/tree.html:22
 msgid "Compare reports"
-msgstr ""
+msgstr "Сравнить отчеты"
 
 #: jobs/templates/jobs/tree.html:23
 msgid "Delete"
-msgstr ""
+msgstr "Удалить"
 
 #: jobs/templates/jobs/tree.html:30 jobs/templates/jobs/tree.html.py:52
 msgid "Columns"
@@ -647,7 +650,7 @@ msgstr "Всего"
 
 #: jobs/templates/jobs/treeTable.html:54
 msgid "All for checked"
-msgstr ""
+msgstr "Всего для отмеченных"
 
 #: jobs/templates/jobs/viewJob.html:16
 msgid "Verification Job"
@@ -957,3 +960,9 @@ msgstr "Учетная запись заблокирована"
 #: users/views.py:30
 msgid "Incorrect username or password"
 msgstr "Неправильное имя пользователя или пароль"
+
+#~ msgid "Download VJ"
+#~ msgstr "Загрузить ВЗ"
+
+#~ msgid "Unassociated with marks"
+#~ msgstr "Отсутствуют оценки"

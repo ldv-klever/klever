@@ -48,7 +48,7 @@ ORDER_TITLES = {
     'name':  _('Title'),
     'author': _('Author last name'),
     'date': _('Date'),
-    'status': _('Status'),
+    'status': _('Decision status'),
 }
 
 FILTER_TYPE_TITLES = {
@@ -76,7 +76,7 @@ FILTER_NAME_TITLES = {
     'name': _('Title'),
     'change_author': _('Author'),
     'change_date': _('Last change'),
-    'status': _('Status'),
+    'status': _('Decision status'),
     'resource_component': _('Resource/Component'),
     'problem_component': _('Problem/Component'),
     'problem_problem': _('Problem name'),

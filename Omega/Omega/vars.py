@@ -77,8 +77,8 @@ VIEW_TYPES = {
 }
 
 JOB_STATUS = (
-    ('0', _('Not Solved')),
-    ('1', _('Solving')),
+    ('0', _('Not solved')),
+    ('1', _('Is solving')),
     ('2', _('Stopped')),
     ('3', _('Solved')),
     ('4', _('Failed')),
