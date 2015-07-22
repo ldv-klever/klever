@@ -19,5 +19,7 @@ urlpatterns = [
     url(r'^showjobdata/$', views.showjobdata),
     url(r'^upload_files/$', views.upload_files),
     url(r'^downloadfile/(?P<file_id>[0-9]+)/$', views.download_file,
-        name='download_file')
+        name='download_file'),
+    url(r'^test/$', views.test_page),
+    url(r'^downloadjob/(?P<job_id>[0-9]+)/$', views.download_job),
 ]

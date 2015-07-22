@@ -669,4 +669,10 @@ $(document).ready(function () {
             'json'
         );
     });
+
+    $('button[id^="load_job__"]').click(function () {
+        console.log("Downloading...");
+        var job_id = $(this).attr('id').replace('load_job__', '');
+        window.location.replace('/jobs/downloadjob/' + job_id + '/');
+    });
 });
