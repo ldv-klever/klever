@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 15:55+0000\n"
+"POT-Creation-Date: 2015-07-23 16:33+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,13 +19,15 @@ msgstr ""
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: Omega/formatChecker.py:39
-msgid "__Filetype not supported."
-msgstr ""
+msgid "The file type is not supported"
+msgstr "Тип файла не поддерживается"
 
 #: Omega/formatChecker.py:42
 #, python-format
-msgid "__Please keep filesize under %s. Current filesize %s."
+msgid "Please keep the file size under %s (the current file size is %s)"
 msgstr ""
+"Пожалуйста, не загружайте файлы размером больше %s (текущий размер файла - "
+"%s)"
 
 #: Omega/vars.py:6
 msgid "Verification of Linux kernel modules"
@@ -847,6 +849,3 @@ msgstr "Учетная запись заблокирована"
 #: users/views.py:30
 msgid "Incorrect username or password"
 msgstr "Неправильное имя пользователя или пароль"
-
-#~ msgid "Downloading job is locked!"
-#~ msgstr "Загружаемое задание заблокировано"
