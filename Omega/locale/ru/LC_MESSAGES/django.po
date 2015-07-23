@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 11:48+0000\n"
+"POT-Creation-Date: 2015-07-23 12:27+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -68,11 +68,11 @@ msgid "Manager"
 msgstr "Руководитель"
 
 #: Omega/vars.py:76
-msgid "Job tree"
+msgid "__Job tree"
 msgstr ""
 
 #: Omega/vars.py:77
-msgid "Other"
+msgid "__Other"
 msgstr ""
 
 #: Omega/vars.py:81
@@ -779,7 +779,7 @@ msgid "You don't have access to remove one of selected jobs."
 msgstr ""
 
 #: templates/base.html:34
-msgid "Toggle navigation"
+msgid "__Toggle navigation"
 msgstr ""
 
 #: templates/base.html:42
@@ -823,7 +823,7 @@ msgid "Confirmation"
 msgstr "Подтверждение"
 
 #: users/forms.py:79
-msgid "Accuracy"
+msgid "__Accuracy"
 msgstr ""
 
 #: users/forms.py:81
@@ -835,15 +835,15 @@ msgid "Language"
 msgstr "Язык"
 
 #: users/forms.py:83
-msgid "Data format"
+msgid "__Data format"
 msgstr ""
 
 #: users/models.py:9
-msgid "Row"
+msgid "__Row"
 msgstr ""
 
 #: users/models.py:10
-msgid "Human-readable"
+msgid "__Human-readable"
 msgstr ""
 
 #: users/templates/users/edit-profile.html:20

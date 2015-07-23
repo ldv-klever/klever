@@ -73,8 +73,8 @@ USER_ROLES = (
 
 # TODO: this doesn't need translation as well as english aliases. May be make comments instead.
 VIEW_TYPES = {
-    ('1', _('Job tree')),
-    ('2', _('Other')),
+    ('1', _('__Job tree')),
+    ('2', _('__Other')),
 }
 
 JOB_STATUS = (
