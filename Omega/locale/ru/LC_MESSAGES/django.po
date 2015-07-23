@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 13:22+0000\n"
+"POT-Creation-Date: 2015-07-23 14:10+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -672,111 +672,101 @@ msgstr ""
 #: jobs/views.py:250 jobs/views.py:282 jobs/views.py:483 jobs/views.py:563
 #: jobs/views.py:643
 msgid "Unknown error"
-msgstr ""
+msgstr "Неизвестная ошибка"
 
 #: jobs/views.py:160
-msgid "Default view was set as preferable."
+msgid "The default view was made preferred"
 msgstr ""
+"Представление, которое используется по умолчанию, было сделано предпочитаемым"
 
 #: jobs/views.py:165
-msgid "Default view is already preferable!"
+msgid "The default view is already preferred"
 msgstr ""
+"Представление, которое используется по умолчанию, уже является предпочитаемым"
 
-#: jobs/views.py:173 jobs/views.py:233
-msgid "View was not found!"
-msgstr ""
+#: jobs/views.py:173 jobs/views.py:233 jobs/views.py:273
+msgid "The view was not found"
+msgstr "Представление не было найдено"
 
 #: jobs/views.py:182
-msgid "Preferable view was successfully changed!"
-msgstr ""
+msgid "The preferred view was successfully changed"
+msgstr "Предпочитаемое представление было успешно изменено"
 
 #: jobs/views.py:198 jobs/views.py:208
 msgid "Please choose another view name"
-msgstr ""
+msgstr "Пожалуйста, выберете другое название представления"
 
 #: jobs/views.py:203
-msgid "View name is required"
-msgstr ""
+msgid "The view name is required"
+msgstr "Требуется указать название представления"
 
 #: jobs/views.py:225
-msgid "You can't edit Default view!"
-msgstr ""
+msgid "You can't edit the default view"
+msgstr "Вы не можете изменить представление, которое используется по умолчанию"
 
 #: jobs/views.py:248
-msgid "View was successfully saved"
-msgstr ""
+msgid "The view was successfully saved"
+msgstr "Представление было успешно сохранено"
 
 #: jobs/views.py:268
-msgid "View was successfully removed"
-msgstr ""
-
-#: jobs/views.py:273
-msgid "View was not found"
-msgstr ""
+msgid "The view was successfully removed"
+msgstr "Представление было успешно удалено"
 
 #: jobs/views.py:278
-msgid "You can't remove Default view"
-msgstr ""
+msgid "You can't remove the default view"
+msgstr "Вы не можете удалить представление, которое используется по умолчанию"
 
-#: jobs/views.py:296
-msgid "Job was not found!"
-msgstr ""
+#: jobs/views.py:296 jobs/views.py:506
+msgid "The job was not found"
+msgstr "Задание не было найдено"
 
 #: jobs/views.py:301
-msgid "You don't have access to this verification job!"
-msgstr ""
+msgid "You don't have an access to this job"
+msgstr "У Вас нет прав на данное задание"
 
 #: jobs/views.py:428
 msgid "Current version"
-msgstr ""
-
-#: jobs/views.py:506
-msgid "Job was not found"
-msgstr ""
+msgstr "Текущая версия"
 
 #: jobs/views.py:511
-msgid "You don't have access to edit this job."
-msgstr ""
+msgid "You don't have an access to edit this job"
+msgstr "У Вас нет прав редактировать данное задание"
 
-#: jobs/views.py:520
-msgid "Job parent was not found."
-msgstr ""
+#: jobs/views.py:520 jobs/views.py:552
+msgid "The job parent was not found"
+msgstr "Родитель задания не был найден"
 
 #: jobs/views.py:525
 msgid "Increase length of parent identifier."
 msgstr ""
 
 #: jobs/views.py:531
-msgid "Specified parent can't be set for this job."
-msgstr ""
+msgid "The specified parent can't be set for this job"
+msgstr "Для этого задания не может быть установлен указанный родитель"
 
 #: jobs/views.py:537
-msgid "Parent identifier is required for this job."
-msgstr ""
+msgid "A parent identifier is required for this job"
+msgstr "Для этого задания требуется идентификатор родителя"
 
 #: jobs/views.py:543
-msgid "Your version is expired. Please reload page."
-msgstr ""
-
-#: jobs/views.py:552
-msgid "Job parent was not found"
-msgstr ""
+msgid "Your version is expired, please reload the page"
+msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
 #: jobs/views.py:557
-msgid "You don't have access to create new job."
-msgstr ""
+msgid "You don't have an access to create a new job"
+msgstr "У Вас нет прав создать новое задание"
 
 #: jobs/views.py:611
-msgid "Please reload page and try again."
-msgstr ""
+msgid "Please reload the page and try again"
+msgstr "Пожалуйста, обновите страницу и попробуйте еще раз"
 
 #: jobs/views.py:653
-msgid "Job was not found, please reload page."
-msgstr ""
+msgid "The job was not found, please reload the page"
+msgstr "Задание не было найдено, пожалуйста, обновите страницу"
 
 #: jobs/views.py:660
-msgid "You don't have access to remove one of selected jobs."
-msgstr ""
+msgid "You don't have an access to remove one of the selected jobs"
+msgstr "У Вас нет прав удалить одно из отмеченных заданий"
 
 #: templates/base.html:34
 msgid "__Toggle navigation"
