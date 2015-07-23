@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 11:17+0000\n"
+"POT-Creation-Date: 2015-07-23 11:39+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -285,14 +285,14 @@ msgstr ""
 msgid "job class"
 msgstr ""
 
-#: jobs/table_prop.py:48 users/forms.py:79
+#: jobs/table_prop.py:48 users/forms.py:80
 msgid "Last name"
 msgstr "Фамилия"
 
 #: jobs/table_prop.py:49 jobs/templates/jobs/viewJob.html:73
 #: users/templates/users/showProfile.html:30
 msgid "Date"
-msgstr ""
+msgstr "Дата"
 
 #: jobs/table_prop.py:54 jobs/table_prop.py:56
 msgid "Is"
@@ -387,7 +387,7 @@ msgstr ""
 #: jobs/templates/jobs/editJob.html:90 jobs/templates/jobs/viewJob.html:83
 #: users/templates/users/showProfile.html:33
 msgid "Comment"
-msgstr ""
+msgstr "Комментарий"
 
 #: jobs/templates/jobs/editJob.html:92 jobs/templates/jobs/tree.html:289
 #: users/templates/users/edit-profile.html:57
@@ -810,27 +810,31 @@ msgstr "Войти"
 msgid "Password"
 msgstr "Пароль"
 
-#: users/forms.py:52
+#: users/forms.py:20 users/templates/users/showProfile.html:15
+msgid "Email"
+msgstr "Адрес электронной почты"
+
+#: users/forms.py:53
 msgid "New password"
 msgstr "Новый пароль"
 
-#: users/forms.py:53
+#: users/forms.py:54
 msgid "Confirmation"
 msgstr "Подтверждение"
 
-#: users/forms.py:78
+#: users/forms.py:79
 msgid "Accuracy"
 msgstr ""
 
-#: users/forms.py:80
+#: users/forms.py:81
 msgid "First name"
 msgstr "Имя"
 
-#: users/forms.py:81
+#: users/forms.py:82 users/templates/users/showProfile.html:22
 msgid "Language"
 msgstr "Язык"
 
-#: users/forms.py:82
+#: users/forms.py:83
 msgid "Data format"
 msgstr ""
 
@@ -848,6 +852,7 @@ msgstr ""
 
 #: users/templates/users/edit-profile.html:40
 #: users/templates/users/register.html:38
+#: users/templates/users/showProfile.html:21
 msgid "Time zone"
 msgstr "Часовой пояс"
 
@@ -868,49 +873,33 @@ msgstr ""
 msgid "Thank you for registering!"
 msgstr ""
 
-#: users/templates/users/showProfile.html:15
-msgid "Email"
-msgstr ""
-
 #: users/templates/users/showProfile.html:18
 msgid "Administrator"
 msgstr ""
 
 #: users/templates/users/showProfile.html:20
 msgid "Role"
-msgstr ""
-
-#: users/templates/users/showProfile.html:21
-msgid "Timezone"
-msgstr ""
-
-#: users/templates/users/showProfile.html:22
-msgid "Using language"
-msgstr ""
+msgstr "Роль"
 
 #: users/templates/users/showProfile.html:26
 msgid "Last Activity"
-msgstr ""
+msgstr "Последние действия"
 
 #: users/templates/users/showProfile.html:31
-msgid "Action"
-msgstr ""
+msgid "Action Kind"
+msgstr "Вид действия"
 
 #: users/templates/users/showProfile.html:32
-msgid "Job name"
-msgstr ""
+msgid "Job Title"
+msgstr "Название задания"
 
 #: users/templates/users/showProfile.html:47
-msgid "Created"
-msgstr ""
+msgid "Creation"
+msgstr "Создание"
 
 #: users/templates/users/showProfile.html:49
-msgid "Changed"
-msgstr ""
-
-#: users/templates/users/showProfile.html:65
-msgid "Hover over the comment to see all of it."
-msgstr ""
+msgid "Modification"
+msgstr "Изменение"
 
 #: users/views.py:28
 msgid "Account has been disabled"

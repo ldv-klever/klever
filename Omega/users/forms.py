@@ -17,6 +17,7 @@ class UserForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(UserForm, self).__init__(*args, **kwargs)
         self.fields['password'].label = _("Password")
+        self.fields['email'].label = _("Email")
 
     def clean(self):
         cleaned_data = super(UserForm, self).clean()
