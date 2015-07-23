@@ -4,6 +4,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from jobs.models import FileSystem, File
+from django.conf import settings
+import os
+import zipfile
+from io import BytesIO, StringIO
 
 
 COLORS = {
@@ -209,6 +213,97 @@ class DBFileData(object):
                 if fd['parent'] is None:
                     new_level.append(fd)
         return new_level
+
+
+class JobArchive(object):
+    def __init__(self, user, job):
+        self.lockfile = 'lock'
+        self.workdir = 'ZIPcreation'
+        self.config_file = 'configuration.txt'
+        self.description_file = 'description.txt'
+        self.title_file = 'title.txt'
+        self.jobzip_name = 'VJ__' + job.identifier + '.zip'
+        self.files_for_zip = []
+        self.user = user
+        self.job = job
+        self.__prepare_workdir()
+        self.__get_filedata()
+        self.message = ''
+        self.memory = BytesIO()
+
+    def __prepare_workdir(self):
+        self.workdir = os.path.join(settings.MEDIA_ROOT, self.workdir)
+        if not os.path.isdir(self.workdir):
+            os.mkdir(self.workdir)
+        self.lockfile = os.path.join(self.workdir, self.lockfile)
+        if not os.path.isfile(self.lockfile):
+            f = open(self.lockfile, 'w')
+            f.write('unlocked')
+            f.close()
+
+    def __trylock(self):
+        f = open(self.lockfile, 'r')
+        if f.readline() == 'unlocked':
+            f.close()
+            f = open(self.lockfile, 'w')
+            f.write('locked')
+            f.close()
+            return True
+        return False
+
+    def unlock(self):
+        f = open(self.lockfile, 'r')
+        if f.readline() == 'unlocked':
+            f.close()
+            return
+        f = open(self.lockfile, 'w')
+        f.write('unlocked')
+        f.close()
+
+    def __get_filedata(self):
+        job_version = self.job.jobhistory_set.get(version=self.job.version)
+        files = job_version.file_set.all()
+        for f in files:
+            if f.file:
+                file_path = f.name
+                file_parent = f.parent
+                while file_parent:
+                    file_path = file_parent.name + '/' + file_path
+                    file_parent = file_parent.parent
+                self.files_for_zip.append({
+                    'path': 'root' + '/' + file_path,
+                    'src': os.path.join(settings.MEDIA_ROOT, f.file.file.name)
+                })
+
+    def create_zip(self):
+        if self.__trylock():
+            job_zip_file = zipfile.ZipFile(self.memory, 'a')
+            self.__write_file_str(
+                job_zip_file, self.title_file, self.job.name
+            )
+            self.__write_file_str(
+                job_zip_file, self.config_file, self.job.configuration
+            )
+            self.__write_file_str(
+                job_zip_file, self.description_file, self.job.description
+            )
+            for f in self.files_for_zip:
+                self.__write_file(job_zip_file, f)
+            job_zip_file.close()
+            self.message = 'ZIP was created'
+            self.unlock()
+        else:
+            self.message = 'Action is locked!'
+
+    def __write_file_str(self, jobzip, file_name, file_content):
+        title = StringIO()
+        title.write(file_content)
+        jobzip.writestr(file_name, title.getvalue(), zipfile.ZIP_DEFLATED)
+        title.close()
+
+    def __write_file(self, jobzip, file_data):
+        print("Writing...", file_data)
+        jobzip.write(file_data['src'], file_data['path'], zipfile.ZIP_DEFLATED)
 
 
 def convert_time(val, acc):

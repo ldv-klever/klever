@@ -2,6 +2,7 @@ import pytz
 import json
 import hashlib
 import mimetypes
+import zipfile
 import os
 from io import BytesIO
 from django.db.models import Q
@@ -724,9 +725,33 @@ def download_file(request, file_id):
         return HttpResponse('')
     if source.file is None:
         return HttpResponse('')
-    file_content = source.file.file.read()
-    new_file = BytesIO(file_content)
+    new_file = BytesIO(source.file.file.read())
     mimetype = mimetypes.guess_type(os.path.basename(source.file.file.name))[0]
     response = HttpResponse(new_file.read(), content_type=mimetype)
     response['Content-Disposition'] = 'attachment; filename="%s"' % source.name
     return response
+
+
+def download_job(request, job_id):
+    if request.method == 'POST':
+        return HttpResponse('')
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return HttpResponse('')
+    if not job_f.has_job_access(request.user, action='view', job=job):
+        return HttpResponse('')
+    job_zip = job_f.JobArchive(request.user, job)
+    job_zip.create_zip()
+
+    response = HttpResponse(content_type="application/zip")
+    response["Content-Disposition"] = "attachment; filename=%s" % job_zip.jobzip_name
+
+    job_zip.memory.seek(0)
+    response.write(job_zip.memory.read())
+    job_zip.unlock()
+    return response
+
+
+def test_page(request):
+    return render(request, 'jobs/testpage.html', {})
