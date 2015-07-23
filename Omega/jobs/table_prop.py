@@ -51,13 +51,13 @@ ORDER_TITLES = {
 }
 
 FILTER_TYPE_TITLES = {
-    'is': _('Is'),
-    'isnot': _('Is not'),
-    'iexact': _('Is'),
-    'istartswith': _('Starts with'),
-    'icontains': _('Contains'),
-    'younger': _('Younger than'),
-    'older': _('Older than'),
+    'is': _('__Is'),
+    'isnot': _('__Is not'),
+    'iexact': _('__Is'),
+    'istartswith': _('__Starts with'),
+    'icontains': _('__Contains'),
+    'younger': _('__Younger than'),
+    'older': _('__Older than'),
 }
 
 ALL_FILTERS = [
@@ -514,12 +514,12 @@ class TableTree(object):
                     if comp_id in problems:
                         if 'z_no_mark' not in problems[comp_id]['problems']:
                             problems[comp_id]['problems']['z_no_mark'] = \
-                                _('No EM')
+                                _('Without marks')
                     else:
                         problems[comp_id] = {
                             'title': comp.name,
                             'problems': {
-                                'z_no_mark': _('No EM'),
+                                'z_no_mark': _('Without marks'),
                                 'z_total': _('Total')
                             }
                         }

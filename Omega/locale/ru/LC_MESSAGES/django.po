@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 14:42+0000\n"
+"POT-Creation-Date: 2015-07-23 15:04+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -152,6 +152,7 @@ msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
 #: jobs/job_functions.py:47 jobs/job_functions.py:55 jobs/job_functions.py:328
+#: jobs/table_prop.py:517 jobs/table_prop.py:522
 msgid "Without marks"
 msgstr "Нет оценок"
 
@@ -287,27 +288,27 @@ msgid "Date"
 msgstr "Дата"
 
 #: jobs/table_prop.py:54 jobs/table_prop.py:56
-msgid "Is"
+msgid "__Is"
 msgstr ""
 
 #: jobs/table_prop.py:55
-msgid "Is not"
+msgid "__Is not"
 msgstr ""
 
 #: jobs/table_prop.py:57
-msgid "Starts with"
+msgid "__Starts with"
 msgstr ""
 
 #: jobs/table_prop.py:58
-msgid "Contains"
+msgid "__Contains"
 msgstr ""
 
 #: jobs/table_prop.py:59
-msgid "Younger than"
+msgid "__Younger than"
 msgstr ""
 
 #: jobs/table_prop.py:60
-msgid "Older than"
+msgid "__Older than"
 msgstr ""
 
 #: jobs/table_prop.py:79 jobs/templates/jobs/viewJob.html:150
@@ -322,55 +323,51 @@ msgstr "Название компонента"
 msgid "Problem name"
 msgstr "Название проблемы"
 
-#: jobs/table_prop.py:517 jobs/table_prop.py:522
-msgid "No EM"
-msgstr ""
-
 #: jobs/templates/jobs/base.html:5
-msgid "Verification Jobs"
-msgstr ""
+msgid "Jobs"
+msgstr "Задания"
 
 #: jobs/templates/jobs/base.html:10
 msgid "Marks"
 msgstr "Оценки"
 
 #: jobs/templates/jobs/createJob.html:5
-msgid "Create Job"
+msgid "__Create Job"
 msgstr ""
 
 #: jobs/templates/jobs/editJob.html:10
-msgid "You can choose old Verification Job version"
-msgstr ""
+msgid "You can choose one of the previous versions"
+msgstr "Вы можете выбрать оду из предыдущих версий"
 
 #: jobs/templates/jobs/editJob.html:16
-msgid "or change it:"
-msgstr ""
+msgid "or change the job"
+msgstr "или изменить задание"
 
 #: jobs/templates/jobs/editJob.html:25 jobs/templates/jobs/showJob.html:8
-msgid "Parent identifier:"
-msgstr ""
+msgid "Parent identifier"
+msgstr "Идентификатор родителя"
 
 #: jobs/templates/jobs/editJob.html:35 jobs/templates/jobs/showJob.html:5
 msgid "Description"
-msgstr ""
+msgstr "Описание"
 
 #: jobs/templates/jobs/editJob.html:43
-msgid "Global roles"
-msgstr ""
+msgid "Role for all users"
+msgstr "Роль для всех пользователей"
 
 #: jobs/templates/jobs/editJob.html:53
 msgid "Add role to user"
-msgstr ""
+msgstr "Добавить роль для пользователя"
 
 #: jobs/templates/jobs/editJob.html:59 jobs/templates/jobs/filesTree.html:75
 #: jobs/templates/jobs/tree.html:58 jobs/templates/jobs/tree.html.py:71
 #: jobs/templates/jobs/tree.html:116
 msgid "Add"
-msgstr ""
+msgstr "Добавить"
 
 #: jobs/templates/jobs/editJob.html:85 jobs/templates/jobs/showJob.html:12
 msgid "Configuration"
-msgstr ""
+msgstr "Конфигурация"
 
 #: jobs/templates/jobs/editJob.html:86 jobs/templates/jobs/showJob.html:14
 msgid "Files"
@@ -378,7 +375,7 @@ msgstr "Файлы"
 
 #: jobs/templates/jobs/editJob.html:90
 msgid "Change's comment"
-msgstr ""
+msgstr "Комментарий к изменению"
 
 #: jobs/templates/jobs/editJob.html:90 jobs/templates/jobs/viewJob.html:83
 #: users/templates/users/showProfile.html:33
@@ -388,7 +385,7 @@ msgstr "Комментарий"
 #: jobs/templates/jobs/editJob.html:92 jobs/templates/jobs/tree.html:289
 #: users/templates/users/edit-profile.html:57
 msgid "Save"
-msgstr ""
+msgstr "Сохранить"
 
 #: jobs/templates/jobs/editJob.html:94 jobs/templates/jobs/filesTree.html:37
 #: jobs/templates/jobs/filesTree.html:45 jobs/templates/jobs/filesTree.html:55
@@ -398,12 +395,12 @@ msgid "Cancel"
 msgstr "Отменить"
 
 #: jobs/templates/jobs/editJob.html:108
-msgid "Change comment is required"
-msgstr ""
+msgid "Change's comment is required"
+msgstr "Требуется написать комментарий к изменению"
 
 #: jobs/templates/jobs/editJob.html:109
 msgid "Title is required"
-msgstr ""
+msgstr "Требуется указать название"
 
 #: jobs/templates/jobs/filesTree.html:17
 msgid "New folder"
