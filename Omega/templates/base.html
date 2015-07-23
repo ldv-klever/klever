@@ -39,7 +39,9 @@
                 </div>
                 <div class="navbar-collapse collapse">
                     <ul class="nav navbar-nav">
-                        <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
+                        {% endif %}
                         {% if user.is_staff %}<li><a href="/admin/">{% trans 'Admin Tools' %}</a></li>{% endif %}
                         {% block navbar_block %}{% endblock %}
                     </ul>

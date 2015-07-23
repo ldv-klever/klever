@@ -4,7 +4,7 @@
     <tbody>
     {% for f in filedata %}
         <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}{% if f.type == 0 %} success{% endif %}">
-            <td><label><input id="selected_filerow__{{ f.type }}__{{ f.id }}" type="radio" name="selected_filerow" value="{{ f.type }}__{{ f.id }}"></label></td>
+            <td class="col-sm-1"><label><input id="selected_filerow__{{ f.type }}__{{ f.id }}" type="radio" name="selected_filerow" value="{{ f.type }}__{{ f.id }}"></label></td>
             <td>
                 <span id="file_title__{{ f.type }}__{{ f.id }}">{% if f.type == 1 %}<a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>{% else %}{{ f.title }}{% endif %}</span>
                 {% if f.type == 1 %}<span id="file_hash_sum__{{ f.type }}__{{ f.id }}" hidden>{{ f.hash_sum }}</span>{% endif %}

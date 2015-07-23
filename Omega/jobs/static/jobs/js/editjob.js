@@ -321,7 +321,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
         id: 'filerow__' + type + '__' + id,
         class: row_class
     });
-    new_row.append($('<td>').append($('<label>').append($('<input>', {
+    new_row.append($('<td>', {class: 'col-sm-1'}).append($('<label>').append($('<input>', {
         id: 'selected_filerow__' + type + '__' + id,
         type: 'radio',
         name: 'selected_filerow',

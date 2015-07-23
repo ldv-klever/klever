@@ -198,17 +198,20 @@ function collect_filter_data () {
 }
 
 $(document).ready(function () {
+    var max_table_height = $(window).height() - 100,
+        small_table_height = $(window).height() - 300,
+        job_table_div = $('#jobtable');
 
     var ajax_url = window.location.href + 'ajax/',
         available_orders = $('#available_orders');
     check_order_form();
     check_filters_form();
-    if($('#jobtable').length) {
+    if(job_table_div.length) {
         $.post(
             '/jobs/jobtable/',
             collect_filter_data(),
             function(data) {
-                $('#jobtable').html(data);
+                job_table_div.html(data);
                 fill_all_values();
                 $("input[id^='job_checkbox__']").change(fill_checked_values);
                 $('.tree').treegrid({
@@ -216,6 +219,7 @@ $(document).ready(function () {
                     expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-chevron-down',
                     expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-chevron-right'
                 });
+                job_table_div.attr('style', 'max-height: ' + small_table_height + 'px;')
             }
         );
     }
@@ -274,11 +278,13 @@ $(document).ready(function () {
         var tree_1_bigpart = $('#jobstree-first-big-part');
         if (tree_1_bigpart.is(':visible')) {
             tree_1_bigpart.hide();
-            $(this).find('span').attr('class', "glyphicon glyphicon-save")
+            $(this).find('span').attr('class', "glyphicon glyphicon-save");
+            job_table_div.attr('style', 'max-height: ' + max_table_height + 'px;')
         }
         else {
             tree_1_bigpart.show();
-            $(this).find('span').attr('class', "glyphicon glyphicon-fullscreen")
+            $(this).find('span').attr('class', "glyphicon glyphicon-fullscreen");
+            job_table_div.attr('style', 'max-height: ' + small_table_height + 'px;')
         }
         return false;
     });
