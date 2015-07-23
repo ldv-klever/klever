@@ -221,9 +221,7 @@ function load_new_files() {
     var file_inputs = $('#files_for_upload').children('input'),
         success = true;
     if (file_inputs.length > 0) {
-
         file_inputs.each(function () {
-            console.log($(this).attr('id'));
             var current_input = $(this),
                 data = new FormData(),
                 curr_id = current_input.attr('id').replace('new_file_input__', '');

@@ -1,16 +1,17 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File as NewFile
 from django.utils.translation import ugettext_lazy as _
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from jobs.models import FileSystem, File
 from django.conf import settings
 import os
-import re
-import zipfile
+import tarfile
 from datetime import datetime
-from io import BytesIO, StringIO
+from io import BytesIO
 import hashlib
+from jobs.job_model import Job, JobHistory, JobStatus
 
 
 COLORS = {
@@ -143,6 +144,7 @@ class FileData(object):
 
 
 class DBFileData(object):
+
     def __init__(self, filedata, job):
         self.filedata = filedata
         self.job = job
@@ -221,19 +223,233 @@ class DBFileData(object):
         return new_level
 
 
+class ReadZipJob(object):
+
+    def __init__(self, parent, user, zip_archive):
+        self.costyl = 1
+        self.parent = parent
+        self.job = None
+        self.job_id = None
+        self.user = user
+        self.zip_file = zip_archive
+        self.__create_job_from_tar()
+
+    def __create_job_from_tar(self):
+        inmemory = BytesIO(self.zip_file.read())
+        jobzip_file = tarfile.open(fileobj=inmemory, mode='r')
+        job_title = ''
+        job_description = ''
+        job_configuration = ''
+        file_data = []
+        for f in jobzip_file.getmembers():
+            file_name = f.name
+            file_obj = jobzip_file.extractfile(f)
+            if file_name == 'configuration':
+                job_configuration = file_obj.read().decode('utf-8')
+            elif file_name == 'description':
+                job_description = file_obj.read().decode('utf-8')
+            elif file_name == 'title':
+                job_title = file_obj.read().decode('utf-8')
+            elif file_name.startswith('root/'):
+                file_content = BytesIO(file_obj.read())
+                check_sum = hashlib.md5(file_content.read()).hexdigest()
+                file_in_db = File.objects.filter(hash_sum=check_sum)
+                if len(file_in_db) == 0:
+                    db_file = File()
+                    db_file.file.save(
+                        os.path.basename(file_name),
+                        NewFile(file_content)
+                    )
+                    db_file.hash_sum = check_sum
+                    db_file.save()
+                    file_data.append([file_name, db_file])
+                else:
+                    file_data.append([file_name, file_in_db[0]])
+        if len(job_title) > 0:
+            self.__create_job(
+                job_title, job_configuration, job_description, file_data
+            )
+
+    def __create_job(self, title, config, description, filedata):
+        newjob = Job()
+        newjob.name = title
+        newjob.change_author = self.user
+        newjob.configuration = config
+        newjob.description = description
+        newjob.parent = self.parent
+        newjob.type = self.parent.type
+        newjob.format = self.parent.format
+        time_encoded = datetime.now().strftime(
+            "%Y%m%d%H%M%S%f%z"
+        ).encode('utf-8')
+        newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+        newjob.save()
+        jobstatus = JobStatus()
+        jobstatus.job = newjob
+        jobstatus.save()
+
+        new_version = JobHistory()
+        new_version.job = newjob
+        new_version.name = newjob.name
+        new_version.description = newjob.description
+        new_version.comment = ''
+        new_version.configuration = newjob.configuration
+        new_version.global_role = newjob.global_role
+        new_version.type = newjob.type
+        new_version.change_author = newjob.change_author
+        new_version.change_date = newjob.change_date
+        new_version.format = newjob.format
+        new_version.version = newjob.version
+        new_version.parent = newjob.parent
+        new_version.save()
+        self.job = new_version
+        self.__create_filesystem(filedata)
+        self.job_id = newjob.pk
+
+    def __create_filesystem(self, filedata):
+        parsed_data = []
+        tar_dirs = []
+        for fd in filedata:
+            (dir_name, file_name) = os.path.split(fd[0])
+            dir_list = [file_name]
+            while len(dir_name) > 0:
+                (dir_name, d) = os.path.split(dir_name)
+                dir_list.insert(0, d)
+            parsed_data.append({
+                'dirs': dir_list[1:],
+                'filename': file_name,
+                'file': fd[1]
+            })
+            tar_dirs.append(dir_list)
+
+        new_lvl = self.__get_level(parsed_data, 0)
+        lvl = 1
+        all_levels = []
+        while len(new_lvl):
+            all_levels.append(new_lvl)
+            new_lvl = self.__get_level(parsed_data, lvl)
+            lvl += 1
+        merged_levels = {}
+        for dir_lvl in all_levels:
+            for d in dir_lvl:
+                merged_levels[d['id']] = {
+                    'parent': d['parent'],
+                    'type': d['type'],
+                    'title': d['title']
+                }
+                if d['type'] == 1:
+                    merged_levels[d['id']]['file'] = d['file']
+        for dir_lvl in all_levels:
+            for d in dir_lvl:
+                self.__create_fs(d, merged_levels)
+
+    def __get_level(self, parsed_data, lvl):
+        self.costyl += 1
+        res_lvl = []
+        for fd in parsed_data:
+            if len(fd['dirs']) > lvl:
+                if fd['dirs'][lvl] not in res_lvl:
+                    id_enc = '#'.join(fd['dirs'][:(lvl + 1)]).encode('utf-8')
+                    curr_id = hashlib.md5(id_enc).hexdigest()
+                    parrent_id = None
+                    if len(fd['dirs'][:lvl]):
+                        id_enc = '#'.join(fd['dirs'][:lvl]).encode('utf-8')
+                        parrent_id = hashlib.md5(id_enc).hexdigest()
+                    new_lvl_data = {
+                        'title': fd['dirs'][lvl],
+                        'type': 0,
+                        'id': curr_id,
+                        'parent': parrent_id
+                    }
+                    if len(fd['dirs']) == lvl + 1:
+                        new_lvl_data['type'] = 1
+                        new_lvl_data['file'] = fd['file']
+                    if new_lvl_data not in res_lvl:
+                        res_lvl.append(new_lvl_data)
+        return res_lvl
+
+    def __create_fs(self, d, dirdata):
+        new_fs = FileSystem()
+
+        if d['parent']:
+            if dirdata[d['parent']]['fs']:
+                new_fs.parent = dirdata[d['parent']]['fs']
+                new_fs.name = d['title']
+                new_fs.job = self.job
+                if d['type'] == 1:
+                    new_fs.file = d['file']
+        else:
+            new_fs.name = d['title']
+            new_fs.job = self.job
+            if d['type'] == 1:
+                new_fs.file = d['file']
+        new_fs.save()
+        dirdata[d['id']]['fs'] = new_fs
+
+
 # For first lock: job = None, hash_sum = None, user != None;
 #  if first_lock return True self.hash_sum =- hash_sum in lock file.
+# After it create JobArchive with job != None, hash_sum != None
+# and call create_tar(); then read tar archive from 'memory'.
 class JobArchive(object):
     def __init__(self, job=None, hash_sum=None, user=None):
+        self.costyl = 1
         self.lockfile = DOWNLOAD_LOCKFILE
-        self.workdir = 'ZIPcreation'
-        self.jobzip_name = ''
+        self.workdir = 'TARcreation'
+        self.jobtar_name = ''
         self.job = job
         self.user = user
         self.hash_sum = hash_sum
         self.__prepare_workdir()
         self.memory = BytesIO()
         self.err_code = 0
+
+    def first_lock(self):
+        f = open(self.lockfile, 'r')
+        line = f.readline()
+        f.close()
+        curr_time = (datetime.now() - datetime(2000, 1, 1)).total_seconds()
+        if line == 'unlocked':
+            self.__update_hash_sum()
+            if self.hash_sum:
+                f = open(self.lockfile, 'w')
+                f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
+                f.close()
+                return True
+        elif line.startswith('locked#'):
+            line_lock_time = float(line.split('#')[1])
+            if (curr_time - line_lock_time) > 10:
+                self.__update_hash_sum()
+                if self.hash_sum:
+                    f = open(self.lockfile, 'w')
+                    f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
+                    f.close()
+                    return True
+        return False
+
+    def create_tar(self):
+        if self.job is None:
+            self.err_code = 404
+            return
+        if self.__second_lock():
+            self.jobtar_name = 'VJ__' + self.job.identifier + '.tar.gz'
+            files_for_tar = self.__get_filedata()
+            jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
+            self.__write_file_str(
+                jobtar_obj, 'title', self.job.name
+            )
+            self.__write_file_str(
+                jobtar_obj, 'configuration', self.job.configuration
+            )
+            self.__write_file_str(
+                jobtar_obj, 'description', self.job.description
+            )
+            for f in files_for_tar:
+                jobtar_obj.add(f['src'], f['path'])
+            jobtar_obj.close()
+            self.__unlock()
+        else:
+            self.err_code = 450
 
     def __prepare_workdir(self):
         self.workdir = os.path.join(settings.MEDIA_ROOT, self.workdir)
@@ -245,31 +461,6 @@ class JobArchive(object):
             f.write('unlocked')
             f.close()
 
-    def first_lock(self):
-        f = open(self.lockfile, 'r')
-        line = f.readline()
-        f.close()
-        curr_time = (datetime.now() - datetime(2000, 1, 1)).total_seconds()
-        if line == 'unlocked':
-            self.__update_hash_sum()
-            if self.hash_sum:
-                f = open(self.lockfile, 'w')
-                print("Locking with hash: " + self.hash_sum)
-                f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
-                f.close()
-                return True
-        elif line.startswith('locked#'):
-            line_lock_time = float(line.split('#')[1])
-            if (curr_time - line_lock_time) > 10:
-                self.__update_hash_sum()
-                if self.hash_sum:
-                    f = open(self.lockfile, 'w')
-                    print("Locking with hash: " + self.hash_sum)
-                    f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
-                    f.close()
-                    return True
-        return False
-
     def __update_hash_sum(self):
         if self.user:
             hash_data = (
@@ -277,7 +468,7 @@ class JobArchive(object):
             ).encode('utf-8')
             self.hash_sum = hashlib.md5(hash_data).hexdigest()
 
-    def second_lock(self):
+    def __second_lock(self):
         f = open(self.lockfile, 'r')
         line = f.readline()
         f.close()
@@ -285,13 +476,12 @@ class JobArchive(object):
         if len(line_data) == 3 and line_data[0] == 'locked':
             if self.hash_sum == line_data[2]:
                 f = open(self.lockfile, 'w')
-                print("Double lock: " + self.hash_sum)
                 f.write('doublelocked')
                 f.close()
                 return True
         return False
 
-    def unlock(self):
+    def __unlock(self):
         f = open(self.lockfile, 'r')
         status = f.readline()
         f.close()
@@ -304,7 +494,7 @@ class JobArchive(object):
     def __get_filedata(self):
         job_version = self.job.jobhistory_set.get(version=self.job.version)
         files = job_version.file_set.all()
-        files_for_zip = []
+        files_for_tar = []
         for f in files:
             if f.file:
                 file_path = f.name
@@ -312,41 +502,18 @@ class JobArchive(object):
                 while file_parent:
                     file_path = file_parent.name + '/' + file_path
                     file_parent = file_parent.parent
-                files_for_zip.append({
+                files_for_tar.append({
                     'path': 'root' + '/' + file_path,
                     'src': os.path.join(settings.MEDIA_ROOT, f.file.file.name)
                 })
-        return files_for_zip
+        return files_for_tar
 
-    def create_zip(self):
-        if self.job is None:
-            self.err_code = 404
-            return
-        if self.second_lock():
-            self.jobzip_name = 'VJ__' + self.job.identifier + '.zip'
-            files_for_zip = self.__get_filedata()
-            job_zip_file = zipfile.ZipFile(self.memory, 'w')
-            self.__write_file_str(
-                job_zip_file, 'title', self.job.name
-            )
-            self.__write_file_str(
-                job_zip_file, 'configuration', self.job.configuration
-            )
-            self.__write_file_str(
-                job_zip_file, 'description', self.job.description
-            )
-            for f in files_for_zip:
-                job_zip_file.write(f['src'], f['path'], zipfile.ZIP_DEFLATED)
-            job_zip_file.close()
-            self.unlock()
-        else:
-            self.err_code = 450
-
-    def __write_file_str(self, jobzip, file_name, file_content):
-        virt_file = StringIO()
-        virt_file.write(file_content)
-        jobzip.writestr(file_name, virt_file.getvalue(), zipfile.ZIP_DEFLATED)
-        virt_file.close()
+    def __write_file_str(self, jobtar, file_name, file_content):
+        self.costyl += 1
+        file_content = file_content.encode('utf-8')
+        t = tarfile.TarInfo(file_name)
+        t.size = len(file_content)
+        jobtar.addfile(t, BytesIO(file_content))
 
 
 def convert_time(val, acc):

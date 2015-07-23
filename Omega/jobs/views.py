@@ -3,6 +3,7 @@ import json
 import hashlib
 import mimetypes
 import os
+import zipfile
 from io import BytesIO
 from urllib.parse import quote, unquote
 from django.db.models import Q
@@ -86,7 +87,8 @@ def tree_view(request):
         'authors': users,
         'statuses': statuses,
         'available_filters': filters.available_filters,
-        'available_views': available_views
+        'available_views': available_views,
+        'can_create': job_f.has_job_access(request.user, action='create')
     }
     return render(request, 'jobs/tree.html', context)
 
@@ -762,15 +764,15 @@ def download_job(request, job_id):
             reverse('jobs:error', args=[451]) + "?back=%s" % back_url
         )
     job_zip = job_f.JobArchive(job=job, hash_sum=hash_sum)
-    job_zip.create_zip()
+    job_zip.create_tar()
     if job_zip.err_code > 0:
         response = HttpResponseRedirect(
             reverse('jobs:error',
                     args=[job_zip.err_code]) + "?back=%s" % back_url
         )
     else:
-        response = HttpResponse(content_type="application/zip")
-        zipname = job_zip.jobzip_name
+        response = HttpResponse(content_type="application/x-tar-gz")
+        zipname = job_zip.jobtar_name
         response["Content-Disposition"] = "attachment; filename=%s" % zipname
         job_zip.memory.seek(0)
         response.write(job_zip.memory.read())
@@ -810,6 +812,7 @@ def download_lock(request):
         response_data['hash_sum'] = ziplock.hash_sum
     return JsonResponse(response_data)
 
+
 @login_required
 def check_access(request):
     if request.method == 'POST':
@@ -831,3 +834,41 @@ def check_access(request):
             'status': True,
             'message': ''
         })
+
+
+@login_required
+def upload_job(request, parent_id=None):
+    if len(parent_id) > 0:
+        parents = Job.objects.filter(identifier__startswith=parent_id)
+        if len(parents) == 0:
+            return JsonResponse({
+                'status': False,
+                'message': _("Parent with this id was not found.")
+            })
+        elif len(parents) > 1:
+            return JsonResponse({
+                'status': False,
+                'message': _("Too many parents starts with this id.")
+            })
+        parent = parents[0]
+        if len(request.FILES) == 0:
+            return JsonResponse({
+                'status': False,
+                'message': _("Zip archive was not got.")
+            })
+
+        zipdata = job_f.ReadZipJob(parent, request.user, request.FILES['file'])
+        if zipdata.job_id:
+            return JsonResponse({
+                'status': True,
+                'job_id': zipdata.job_id
+            })
+        else:
+            return JsonResponse({
+                'status': False,
+                'message': _("Job was not saved!")
+            })
+    return JsonResponse({
+        'status': False,
+        'message': _("Parent id was not got.")
+    })
