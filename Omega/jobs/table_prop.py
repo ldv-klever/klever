@@ -15,6 +15,7 @@ from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
 # List of main classes of columns
 MAIN_COLUMNS = [
     'name',
+    'role',
     'author',
     'date',
     'status',
@@ -31,7 +32,6 @@ ADDITIONAL_COLUMNS = [
     'type',
     'parent_title',
     'parent_id',
-    'role',
 ]
 
 
