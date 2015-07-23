@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 15:04+0000\n"
+"POT-Creation-Date: 2015-07-23 15:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,12 +19,12 @@ msgstr ""
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: Omega/formatChecker.py:39
-msgid "Filetype not supported."
+msgid "__Filetype not supported."
 msgstr ""
 
 #: Omega/formatChecker.py:42
 #, python-format
-msgid "Please keep filesize under %s. Current filesize %s."
+msgid "__Please keep filesize under %s. Current filesize %s."
 msgstr ""
 
 #: Omega/vars.py:6
@@ -275,7 +275,7 @@ msgid "__Gb"
 msgstr ""
 
 #: jobs/job_model.py:30 marks/models.py:17
-msgid "job class"
+msgid "__job class"
 msgstr ""
 
 #: jobs/table_prop.py:48 users/forms.py:80
@@ -420,8 +420,8 @@ msgstr "Переместить файл"
 
 #: jobs/templates/jobs/filesTree.html:21 jobs/templates/jobs/filesTree.html:60
 #: jobs/templates/jobs/tree.html:23 jobs/templates/jobs/tree.html.py:61
-#: jobs/templates/jobs/tree.html:284 jobs/templates/jobs/viewJob.html:26
-#: jobs/templates/jobs/viewJob.html:178
+#: jobs/templates/jobs/tree.html:284 jobs/templates/jobs/tree.html.py:462
+#: jobs/templates/jobs/viewJob.html:26 jobs/templates/jobs/viewJob.html:178
 msgid "Delete"
 msgstr "Удалить"
 
@@ -591,17 +591,12 @@ msgid "New view name"
 msgstr "Название нового представления"
 
 #: jobs/templates/jobs/tree.html:456 jobs/templates/jobs/viewJob.html:172
-msgid "Are you sure?"
-msgstr ""
+msgid "Are you sure"
+msgstr "Вы уверены"
 
 #: jobs/templates/jobs/tree.html:459
-msgid ""
-"All versions and all data of selected verification job(s) will be deleted!"
-msgstr ""
-
-#: jobs/templates/jobs/tree.html:462
-msgid "Remove"
-msgstr ""
+msgid "All versions and all data of the selected jobs will be deleted"
+msgstr "Все версии и все данные отмеченных заданий будут удалены"
 
 #: jobs/templates/jobs/treeTable.html:48
 msgid "All"
