@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 14:34+0000\n"
+"POT-Creation-Date: 2015-07-23 14:42+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -151,7 +151,7 @@ msgstr "Неизвестно"
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: jobs/job_functions.py:47 jobs/job_functions.py:55
+#: jobs/job_functions.py:47 jobs/job_functions.py:55 jobs/job_functions.py:328
 msgid "Without marks"
 msgstr "Нет оценок"
 
@@ -215,70 +215,62 @@ msgstr "Родитель"
 msgid "Your role"
 msgstr "Ваша роль"
 
-#: jobs/job_functions.py:155
-msgid "Parent was not saved to database"
-msgstr ""
-
-#: jobs/job_functions.py:159
-msgid "Parent was not saved to the database"
-msgstr ""
+#: jobs/job_functions.py:155 jobs/job_functions.py:159
+msgid "Parent was not saved"
+msgstr "Родитель не был сохранен"
 
 #: jobs/job_functions.py:167
-msgid "File was not found"
-msgstr ""
+msgid "The file was not found"
+msgstr "Файл не был найден"
 
-#: jobs/job_functions.py:180
-msgid "Unknown error."
-msgstr ""
+#: jobs/job_functions.py:180 jobs/views.py:148 jobs/views.py:152
+#: jobs/views.py:221 jobs/views.py:241 jobs/views.py:250 jobs/views.py:282
+#: jobs/views.py:483 jobs/views.py:563 jobs/views.py:643
+msgid "Unknown error"
+msgstr "Неизвестная ошибка"
 
 #: jobs/job_functions.py:190
-#, fuzzy
-#| msgid "Parent name"
-msgid "Empty name!"
-msgstr "Имя родителя"
+msgid "You can't specify an empty name"
+msgstr "Вы не можете указать пустое имя"
 
 #: jobs/job_functions.py:192
-msgid "File was not uploaded!"
-msgstr ""
+msgid "The file was not uploaded"
+msgstr "Файл не был загружен"
 
 #: jobs/job_functions.py:196
-msgid "Same names in one folder!"
-msgstr ""
+msgid "You can't use the same name in one folder"
+msgstr "Вы не можете использовать одно и тоже имя в одной папке"
 
 #: jobs/job_functions.py:219
-msgid "ms"
+msgid "__ms"
 msgstr ""
 
 #: jobs/job_functions.py:223
-msgid "s"
+msgid "__s"
 msgstr ""
 
 #: jobs/job_functions.py:227
-msgid "m"
+msgid "__m"
 msgstr ""
 
 #: jobs/job_functions.py:228
-msgid "h"
+msgid "__h"
 msgstr ""
 
 #: jobs/job_functions.py:236
-msgid "b"
+msgid "__b"
 msgstr ""
 
 #: jobs/job_functions.py:240
-msgid "Kb"
+msgid "__Kb"
 msgstr ""
 
 #: jobs/job_functions.py:244
-msgid "Mb"
+msgid "__Mb"
 msgstr ""
 
 #: jobs/job_functions.py:245
-msgid "Gb"
-msgstr ""
-
-#: jobs/job_functions.py:328
-msgid "No mark"
+msgid "__Gb"
 msgstr ""
 
 #: jobs/job_model.py:30 marks/models.py:17
@@ -668,12 +660,6 @@ msgstr ""
 msgid ""
 "All versions and all data connected to this verification job will be deleted!"
 msgstr ""
-
-#: jobs/views.py:148 jobs/views.py:152 jobs/views.py:221 jobs/views.py:241
-#: jobs/views.py:250 jobs/views.py:282 jobs/views.py:483 jobs/views.py:563
-#: jobs/views.py:643
-msgid "Unknown error"
-msgstr "Неизвестная ошибка"
 
 #: jobs/views.py:160
 msgid "The default view was made preferred"

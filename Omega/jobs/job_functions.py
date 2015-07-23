@@ -152,11 +152,11 @@ class DBFileData(object):
                         'pk', None
                     )
                     if parent_pk is None:
-                        return _("Parent was not saved to database")
+                        return _("Parent was not saved")
                     try:
                         parent = FileSystem.objects.get(pk=parent_pk, file=None)
                     except ObjectDoesNotExist:
-                        return _("Parent was not saved to the database")
+                        return _("Parent was not saved")
                     fs_elem.parent = parent
                 if lvl_elem['type'] == '1':
                     try:
@@ -164,7 +164,7 @@ class DBFileData(object):
                             hash_sum=lvl_elem['hash_sum']
                         )
                     except ObjectDoesNotExist:
-                        return _("File was not found")
+                        return _("The file was not found")
                 fs_elem.name = lvl_elem['title']
                 fs_elem.save()
                 self.filedata_hash[lvl_elem['id']]['pk'] = fs_elem.pk
@@ -177,7 +177,7 @@ class DBFileData(object):
         while num_of_elements < len(self.filedata):
             cnt += 1
             if cnt > 1000:
-                return _("Unknown error.")
+                return _("Unknown error")
             num_of_elements += len(element_of_lvl)
             element_of_lvl = self.__get_lower_level(element_of_lvl)
             if len(element_of_lvl):
@@ -187,13 +187,13 @@ class DBFileData(object):
             for fd in lvl:
                 self.filedata_hash[fd['id']] = fd
                 if len(fd['title']) == 0:
-                    return _("Empty name!")
+                    return _("You can't specify an empty name")
                 if fd['type'] == '1' and fd['hash_sum'] is None:
-                    return _("File was not uploaded!")
+                    return _("The file was not uploaded")
                 names_of_lvl.append(fd['title'])
             for name in names_of_lvl:
                 if names_of_lvl.count(name) != 1:
-                    return _("Same names in one folder!")
+                    return _("You can't use the same name in one folder")
         return None
 
     def __get_lower_level(self, data):
@@ -216,16 +216,16 @@ def convert_time(val, acc):
     time_format = "%%1.%df%%s" % int(acc)
     try_div = new_time / 1000
     if try_div < 1:
-        return time_format % (new_time, _('ms'))
+        return time_format % (new_time, _('__ms'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('s'))
+        return time_format % (new_time, _('__s'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('m'))
-    return time_format % (try_div, _('h'))
+        return time_format % (new_time, _('__m'))
+    return time_format % (try_div, _('__h'))
 
 
 def convert_memory(val, acc):
@@ -233,16 +233,16 @@ def convert_memory(val, acc):
     mem_format = "%%1.%df%%s" % int(acc)
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('b'))
+        return mem_format % (new_mem, _('__b'))
     new_mem = try_div
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('Kb'))
+        return mem_format % (new_mem, _('__Kb'))
     new_mem = try_div
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('Mb'))
-    return mem_format % (try_div, _('Gb'))
+        return mem_format % (new_mem, _('__Mb'))
+    return mem_format % (try_div, _('__Gb'))
 
 
 def verdict_info(job):
@@ -325,7 +325,7 @@ def unknowns_info(job):
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
             unknowns_data[cmup.component.name] = {}
-        unknowns_data[cmup.component.name][_('No mark')] = cmup.number
+        unknowns_data[cmup.component.name][_('Without marks')] = cmup.number
     unkn_set = job.componentunknown_set.all()
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
