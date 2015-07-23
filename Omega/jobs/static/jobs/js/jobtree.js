@@ -491,9 +491,11 @@ $(document).ready(function () {
         $('input[id^="job_checkbox__"]:checked').each(function () {
             job_ids.push($(this).attr('id').replace('job_checkbox__', ''));
         });
-        if (check_jobs_access(job_ids)) {
-            for (var i = 0; i < job_ids.length; i++) {
-                download_job(job_ids[i]);
+        if (job_ids.length) {
+            if (check_jobs_access(job_ids)) {
+                for (var i = 0; i < job_ids.length; i++) {
+                    download_job(job_ids[i]);
+                }
             }
         }
     });

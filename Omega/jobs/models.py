@@ -13,7 +13,6 @@ class File(models.Model):
     file = RestrictedFileField(
         upload_to='JobFiles',
         max_upload_size=104857600,
-        # max_upload_size=10485760,
         null=False
     )
 
