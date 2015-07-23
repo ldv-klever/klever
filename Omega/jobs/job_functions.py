@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from jobs.models import FileSystem, File
 
@@ -59,14 +59,14 @@ TITLES = {
     'resource': _('Resourses'),
     'resource:total': _('Total'),
     'tag': _('Tags'),
-    'tag:safe': _('Safe tags'),
-    'tag:unsafe': _('Unsafe tags'),
+    'tag:safe': _('Safes'),
+    'tag:unsafe': _('Unsafes'),
     'identifier': _('Identifier'),
     'format': _('Format'),
     'version': _('Version'),
-    'type': _('Job type'),
-    'parent_name': _('Parent name'),
-    'parent_id': _('Parent identifier'),
+    'type': _('Class'),
+    'parent_title': string_concat(_('Parent'), '/', _('Title')),
+    'parent_id': string_concat(_('Parent'), '/', _('Identifier')),
     'role': _('Your role'),
 }
 

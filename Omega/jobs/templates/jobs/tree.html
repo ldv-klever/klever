@@ -49,7 +49,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="form-inline">
-                                        <label for="available_columns">{% trans 'Columns' %}</label><br>
+                                        <label for="available_columns">{% trans 'Available columns' %}</label><br>
                                         <select id="available_columns" class="form-control">
                                             {% for col in available %}
                                                 <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
@@ -58,7 +58,7 @@
                                         <button id="add_column_btn" type="button" class="btn btn-primary">{% trans 'Add' %}</button>
                                     </div>
 
-                                    <button id="remove_column_btn" style="margin-top: 15px;" type="button" class="btn btn-danger">{% trans 'Remove selected' %}</button>
+                                    <button id="remove_column_btn" style="margin-top: 15px;" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
                                 </div>
                                 <div class="col-sm-4">
                                     <div id="available_orders_form" class="form-inline">
@@ -280,10 +280,10 @@
                 <div class="btn-group">
                     <button id="show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
                     <button id="update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
-                    <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Preferable' %}</button>
+                    <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Make preferred' %}</button>
                     <button id="remove_view_btn" type="button" class="btn btn-danger">{% trans 'Remove' %}</button>
                 </div>
-                <button id="show_unsaved_view_btn" type="button" style="float: right" class="btn btn-primary">{% trans 'Show selected' %}</button>
+                <button id="show_unsaved_view_btn" type="button" style="float: right" class="btn btn-primary">{% trans 'Show' %}</button>
                 <br><br>
                 <label><input id="new_view_name_input" type="text" class="form-control" placeholder="{% trans 'New view name' %}"></label>
                 <button id="save_view_btn" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
