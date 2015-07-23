@@ -17,6 +17,7 @@ class UserForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(UserForm, self).__init__(*args, **kwargs)
         self.fields['password'].label = _("Password")
+        self.fields['email'].label = _("Email")
 
     def clean(self):
         cleaned_data = super(UserForm, self).clean()
@@ -50,7 +51,7 @@ class EditUserForm(forms.ModelForm):
         self.request = kwargs.pop('request', None)
         super(EditUserForm, self).__init__(*args, **kwargs)
         self.fields['new_password'].label = _("New password")
-        self.fields['retype_password'].label = _("Retype password")
+        self.fields['retype_password'].label = _("Confirmation")
 
     def clean(self):
         cleaned_data = super(EditUserForm, self).clean()
@@ -75,11 +76,11 @@ class UserExtendedForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(UserExtendedForm, self).__init__(*args, **kwargs)
-        self.fields['accuracy'].label = _("Accuracy")
+        self.fields['accuracy'].label = _("__Accuracy")
         self.fields['last_name'].label = _("Last name")
         self.fields['first_name'].label = _("First name")
         self.fields['language'].label = _("Language")
-        self.fields['data_format'].label = _("Data format")
+        self.fields['data_format'].label = _("__Data format")
 
     class Meta:
         model = Extended

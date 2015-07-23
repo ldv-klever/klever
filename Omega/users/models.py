@@ -6,8 +6,8 @@ from Omega.vars import LANGUAGES, USER_ROLES, VIEW_TYPES
 
 class Extended(models.Model):
     DATAFORMAT = (
-        ('row', _('Row')),
-        ('hum', _('Human-readable')),
+        ('row', _('__Row')),
+        ('hum', _('__Human-readable')),
     )
     user = models.OneToOneField(User)
     first_name = models.CharField(max_length=255)

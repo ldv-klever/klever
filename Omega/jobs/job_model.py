@@ -27,7 +27,7 @@ class Job(JobBase):
         max_length=1,
         choices=JOB_CLASSES,
         default='0',
-        verbose_name=_('job class')
+        verbose_name=_('__job class')
     )
     parent = models.ForeignKey('self', null=True, blank=True,
                                on_delete=models.PROTECT,

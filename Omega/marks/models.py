@@ -14,7 +14,7 @@ class Mark(models.Model):
         max_length=1,
         choices=JOB_CLASSES,
         default='0',
-        verbose_name=_('job class')
+        verbose_name=_('__job class')
     )
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField()

@@ -36,12 +36,11 @@ class RestrictedFileField(FileField):
             content_type = file.content_type
             if self.content_types is not None:
                 if content_type not in self.content_types:
-                    raise forms.ValidationError(_('Filetype not supported.'))
+                    raise forms.ValidationError(_('The file type is not supported'))
             if file.size > self.max_upload_size > 0:
                 raise forms.ValidationError(
-                    _('Please keep filesize under %s. Current filesize %s.')
-                    % (filesizeformat(self.max_upload_size),
-                       filesizeformat(file.size))
+                    _('Please keep the file size under {0} (the current file size is {1})'.format(filesizeformat(self.max_upload_size),
+                       filesizeformat(file.size)))
                 )
         except AttributeError:
             pass

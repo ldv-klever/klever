@@ -161,12 +161,12 @@ def preferable_view(request):
             pref_views.delete()
             return JsonResponse({
                 'status': 0,
-                'message': _("Default view was set as preferable.")
+                'message': _("The default view was made preferred")
             })
         else:
             return JsonResponse({
                 'status': 1,
-                'message': _("Default view is already preferable!")
+                'message': _("The default view is already preferred")
             })
 
     try:
@@ -174,7 +174,7 @@ def preferable_view(request):
     except ObjectDoesNotExist:
         return JsonResponse({
             'status': 1,
-            'message': _("View was not found!")
+            'message': _("The view was not found")
         })
     request.user.preferableview_set.filter(view__type='1').delete()
     pref_view = PreferableView()
@@ -183,7 +183,7 @@ def preferable_view(request):
     pref_view.save()
     return JsonResponse({
         'status': 0,
-        'message': _("Preferable view was successfully changed!")
+        'message': _("The preferred view was successfully changed")
     })
 
 
@@ -204,7 +204,7 @@ def check_view_name(request):
 
     if view_name == '':
         return JsonResponse(
-            {'status': 4, 'message': _("View name is required")}
+            {'status': 4, 'message': _("The view name is required")}
         )
 
     if len(request.user.view_set.filter(type='1', name=view_name)):
@@ -226,7 +226,7 @@ def save_view(request):
         if view_id == 'default':
             return JsonResponse({
                 'status': 1,
-                'message': _("You can't edit Default view!")
+                'message': _("You can't edit the default view")
             })
         elif view_id:
             try:
@@ -234,7 +234,7 @@ def save_view(request):
             except ObjectDoesNotExist:
                 return JsonResponse({
                     'status': 1,
-                    'message': _('View was not found!')
+                    'message': _('The view was not found')
                 })
         elif len(view_name):
             new_view = View()
@@ -249,7 +249,7 @@ def save_view(request):
             'status': 0,
             'view_id': new_view.pk,
             'view_name': new_view.name,
-            'message': _("View was successfully saved")
+            'message': _("The view was successfully saved")
         })
     return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
@@ -269,17 +269,17 @@ def remove_view(request):
                 new_pref_view[0].delete()
                 return JsonResponse({
                     'status': 0,
-                    'message': _("View was successfully removed")
+                    'message': _("The view was successfully removed")
                 })
             else:
                 return JsonResponse({
                     'status': 1,
-                    'message': _("View was not found")
+                    'message': _("The view was not found")
                 })
         else:
             return JsonResponse({
                 'status': 1,
-                'message': _("You can't remove Default view")
+                'message': _("You can't remove the default view")
             })
     return JsonResponse({
         'status': 1,
@@ -300,7 +300,7 @@ def show_job(request, job_id=None):
         return HttpResponseRedirect(
             reverse('jobs:error', args=[404]) + "?back=%s" % quote(
                 reverse('jobs:tree')))
-        # return job404(request, _('Job was not found!'))
+        # return job404(request, _('The job was not found'))
 
     if not job_f.has_job_access(request.user, action="view", job=job):
         return HttpResponseRedirect(
@@ -308,7 +308,7 @@ def show_job(request, job_id=None):
                 reverse('jobs:tree')))
         # return job404(
         #     request,
-        #     _("You don't have access to this verification job!")
+        #     _("You don't have an access to this job")
         # )
 
     created_by = job.jobhistory_set.get(version=1).change_author
@@ -511,12 +511,12 @@ def save_job(request):
         except ObjectDoesNotExist:
             return JsonResponse({
                 'status': 1,
-                'message': _('Job was not found')
+                'message': _('The job was not found')
             })
         if not job_f.has_job_access(request.user, action='edit', job=job):
             return JsonResponse({
                 'status': 1,
-                'message': _("You don't have access to edit this job.")
+                'message': _("You don't have an access to edit this job")
             })
         if parent_identifier:
             parents = Job.objects.filter(
@@ -525,30 +525,30 @@ def save_job(request):
             if len(parents) == 0:
                 return JsonResponse({
                     'status': 1,
-                    'message': _('Job parent was not found.')
+                    'message': _('The job parent was not found')
                 })
             elif len(parents) > 1:
                 return JsonResponse({
                     'status': 1,
-                    'message': _('Increase length of parent identifier.')
+                    'message': _('Several parents match the specified identifier, please increase the length of the parent identifier')
                 })
             parent = parents[0]
             if parent == job or job.type != parent.type:
                 return JsonResponse({
                     'status': 1,
-                    'message': _("Specified parent can't be set for this job.")
+                    'message': _("The specified parent can't be set for this job")
                 })
             job.parent = parent
         elif job.parent:
             return JsonResponse({
                 'status': 1,
-                'message': _("Parent identifier is required for this job.")
+                'message': _("A parent identifier is required for this job")
             })
 
         if job.version != last_version:
             return JsonResponse({
                 'status': 1,
-                'message': _("Your version is expired. Please reload page.")
+                'message': _("Your version is expired, please reload the page")
             })
         job.version += 1
     elif job_id is None and parent_identifier:
@@ -557,12 +557,12 @@ def save_job(request):
         except ObjectDoesNotExist:
             return JsonResponse({
                 'status': 1,
-                'message': _('Job parent was not found')
+                'message': _('The job parent was not found')
             })
         if not job_f.has_job_access(request.user, action='create'):
             return JsonResponse({
                 'status': 1,
-                'message': _("You don't have access to create new job.")
+                'message': _("You don't have an access to create a new job")
             })
         job = Job()
         job.type = parent.type
@@ -622,7 +622,7 @@ def save_job(request):
             job.save()
             new_version.delete()
         err_message = saving_filedata.err_message
-        err_message += ' ' + _("Please reload page and try again.")
+        err_message += ' ' + _("Please reload the page and try again")
         return JsonResponse({
             'status': 1,
             'message': err_message,
@@ -664,14 +664,14 @@ def remove_jobs(request):
         except ObjectDoesNotExist:
             return JsonResponse({
                 'status': 1,
-                'message': _('Job was not found, please reload page.')
+                'message': _('The job was not found, please reload the page')
             })
     for job in jobs:
         if not job_f.has_job_access(request.user, action="remove", job=job):
             return JsonResponse({
                 'status': 1,
                 'message':
-                    _("You don't have access to remove one of selected jobs.")
+                    _("You don't have an access to remove one of the selected jobs")
             })
     for job in jobs:
         job.delete()
@@ -792,13 +792,13 @@ def job_error(request, err_code=0):
         if back:
             back = unquote(back)
     if err_code == 404:
-        message = _('Job was not found')
+        message = _('The job was not found')
     elif err_code == 400:
-        message = _('You don\'t have access to this job.')
+        message = _("You don't have an access to this job")
     elif err_code == 450:
-        message = _('Downloading job is locked!')
+        message = _('Somebody is downloading a job right now, please try again later')
     elif err_code == 451:
-        message = _('Wrong parameters! Please reload page and try again.')
+        message = _('Wrong parameters, please reload page and try again.')
     return render(request, 'jobs/error.html',
                   {'message': message, 'back': back})
 
@@ -823,12 +823,12 @@ def check_access(request):
             except ObjectDoesNotExist:
                 return JsonResponse({
                     'status': False,
-                    'message': _('Job was not found.')
+                    'message': _('The job was not found')
                 })
             if not job_f.has_job_access(request.user, action='view', job=job):
                 return JsonResponse({
                     'status': False,
-                    'message': _("You don't have access to the job.")
+                    'message': _("You don't have an access to this job")
                 })
         return JsonResponse({
             'status': True,

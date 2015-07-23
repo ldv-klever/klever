@@ -2,7 +2,7 @@
 
 {% load i18n %}
 
-{% block title %}{% trans 'Verification Tree' %}{% endblock %}
+{% block title %}{% trans 'Jobs Tree' %}{% endblock %}
 
 {% block head_block %}
     <script src="/static/jobs/js/jquery.treegrid.js"></script>
@@ -17,10 +17,10 @@
     <div class="row" id="jobstree-first-big-part"><form autocomplete="off" onsubmit="return false">
         <div class="col-sm-2">
             {% if can_create %}
-                <button type="button" data-toggle="modal" data-target="#upload_job_popup" class="btn btn-primary btn-block">{% trans 'Upload VJ' %}</button>
+                <button type="button" data-toggle="modal" data-target="#upload_job_popup" class="btn btn-primary btn-block">{% trans 'Upload jobs' %}</button>
             {% endif %}
-            <button id="download_selected_jobs" type="button" class="btn btn-primary btn-block">{% trans 'Download VJ' %}</button>
-            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload EM' %}</button>
+            <button id="download_selected_jobs" type="button" class="btn btn-primary btn-block">{% trans 'Download jobs' %}</button>
+            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload marks' %}</button>
             <button id="compare_btn_job" class="btn btn-success btn-block">{% trans 'Compare reports' %}</button>
             <button type="button" data-toggle="modal" data-target="#remove_jobs_popup" class="btn btn-danger btn-block">{% trans 'Delete' %}</button>
         </div>
@@ -51,7 +51,7 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="form-inline">
-                                        <label for="available_columns">{% trans 'Columns' %}</label><br>
+                                        <label for="available_columns">{% trans 'Available columns' %}</label><br>
                                         <select id="available_columns" class="form-control">
                                             {% for col in available %}
                                                 <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
@@ -60,7 +60,7 @@
                                         <button id="add_column_btn" type="button" class="btn btn-primary">{% trans 'Add' %}</button>
                                     </div>
 
-                                    <button id="remove_column_btn" style="margin-top: 15px;" type="button" class="btn btn-danger">{% trans 'Remove selected' %}</button>
+                                    <button id="remove_column_btn" style="margin-top: 15px;" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
                                 </div>
                                 <div class="col-sm-4">
                                     <div id="available_orders_form" class="form-inline">
@@ -282,10 +282,10 @@
                 <div class="btn-group">
                     <button id="show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
                     <button id="update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
-                    <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Preferable' %}</button>
-                    <button id="remove_view_btn" type="button" class="btn btn-danger">{% trans 'Remove' %}</button>
+                    <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Make preferred' %}</button>
+                    <button id="remove_view_btn" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
                 </div>
-                <button id="show_unsaved_view_btn" type="button" style="float: right" class="btn btn-primary">{% trans 'Show selected' %}</button>
+                <button id="show_unsaved_view_btn" type="button" style="float: right" class="btn btn-primary">{% trans 'Show' %}</button>
                 <br><br>
                 <label><input id="new_view_name_input" type="text" class="form-control" placeholder="{% trans 'New view name' %}"></label>
                 <button id="save_view_btn" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
@@ -455,13 +455,13 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{% trans 'Are you sure?' %}</h4>
+                    <h4 class="modal-title">{% trans 'Are you sure' %}?</h4>
                 </div>
                 <div class="modal-body">
-                    <p>{% trans 'All versions and all data of selected verification job(s) will be deleted!' %}</p>
+                    <p>{% trans 'All versions and all data of the selected jobs will be deleted' %}</p>
                 </div>
                 <div class="modal-footer">
-                    <button id="delete_jobs_btn" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Remove' %}</button>
+                    <button id="delete_jobs_btn" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
                     <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
                 </div>
             </div>

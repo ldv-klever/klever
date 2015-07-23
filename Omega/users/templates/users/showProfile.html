@@ -12,14 +12,18 @@
             <h4><cite>{{ target.extended.first_name }} {{ target.extended.last_name }}</cite></h4>
             <ul>
                 {% if target.email %}
-                    <li>{% trans 'Email' %}: <ins style="color: #204d74">{{ target.email }}</ins></li>
+                    <li>{% trans 'Email' %}: <ins style="color: #a7aab4">{{ target.email }}</ins></li>
                 {% endif %}
-                {% if target.is_superuser %}
-                    <li>{% trans 'Administrator' %}</li>
-                {% endif %}
+                <li>{% trans 'Administrator' %}:
+                    {% if target.is_superuser %}
+                        {% trans 'Yes' %}
+                    {% else %}
+                        {% trans 'No' %}
+                    {% endif %}
+                </li>
                 <li><span style="color: #a7aab4">{% trans 'Role' %}:</span> {{ target.extended.get_role_display }}</li>
-                <li><span style="color: #a7aab4">{% trans 'Timezone' %}:</span> {{ target.extended.timezone }}</li>
-                <li><span style="color: #a7aab4">{% trans 'Using language' %}:</span> {{ target.extended.get_language_display }}</li>
+                <li><span style="color: #a7aab4">{% trans 'Time zone' %}:</span> {{ target.extended.timezone }}</li>
+                <li><span style="color: #a7aab4">{% trans 'Language' %}:</span> {{ target.extended.get_language_display }}</li>
             </ul>
         </div>
         <div class="col-sm-9">
@@ -28,9 +32,9 @@
                 <table class="table">
                     <tr>
                         <th>{% trans 'Date' %}</th>
-                        <th>{% trans 'Action' %}</th>
-                        <th>{% trans 'Job name' %}</th>
-                        <th>{% trans 'Comment' %}*</th>
+                        <th>{% trans 'Action Kind' %}</th>
+                        <th>{% trans 'Job Title' %}</th>
+                        <th>{% trans 'Comment' %}</th>
                     </tr>
                     {% for act in activity %}
                         <tr>
@@ -44,9 +48,9 @@
                                 {% endif %}
                             </td>
                             {% if act.version == 1 %}
-                                <td class="col-sm-1" style="color: green">{% trans 'Created' %}</td>
+                                <td class="col-sm-1" style="color: green">{% trans 'Creation' %}</td>
                             {% else %}
-                                <td style="color: blue">{% trans 'Changed' %}</td>
+                                <td style="color: blue">{% trans 'Modification' %}</td>
                             {% endif %}
                             {% if act.href %}
                                 <td class="col-sm-6"><a href="{{ act.href }}">{{ act.job_name }}</a></td>
@@ -62,7 +66,6 @@
                     {% endfor %}
                 </table>
                 <hr>
-                <p style="color: #a3a3a3; float: right">*{% trans 'Hover over the comment to see all of it.' %}</p>
             {% endif %}
 
         </div>

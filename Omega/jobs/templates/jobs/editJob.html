@@ -7,13 +7,13 @@
     {% endif %}
 
     {% if job_versions|length %}
-        <label for="job_version_selector" class="show-job-title">{% trans 'You can choose old Verification Job version' %}</label>
+        <label for="job_version_selector" class="show-job-title">{% trans 'You can choose one of the previous versions' %}</label>
         <select id="job_version_selector" class="form-control">
             {% for jv in job_versions %}
                 <option title="{{ jv.comment }}" value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
             {% endfor %}
         </select>
-        <label class="show-job-title">{% trans 'or change it:' %}</label>
+        <label class="show-job-title">{% trans 'or change the job' %}:</label>
         <br>
     {% endif %} 
 
@@ -22,7 +22,7 @@
     </label>
 
     {% if job_versions|length %}
-        <label for="job_parent_identifier">{% trans 'Parent identifier:' %}</label>
+        <label for="job_parent_identifier">{% trans 'Parent identifier' %}:</label>
         <input class="form-control" id="job_parent_identifier" type="text"{% if job.parent_id %} value="{{ job.parent_id }}"{% endif %}>
     {% else %}
         {% if job.parent_id %}
@@ -40,7 +40,7 @@
             <div class="row">
                 <div class="col-sm-6">
                     <div class="form-inline">
-                        <label for="job_global_roles">{% trans 'Global roles' %}:</label><br>
+                        <label for="job_global_roles">{% trans 'Role for all users' %}:</label><br>
                         <select id="job_global_roles" class="form-control">
                             {% for jr in roles.job_roles %}
                                 <option value="{{ jr.value }}"{% if roles.global == jr.value %} selected{% endif %} >{{ jr.title }}</option>
@@ -83,7 +83,7 @@
         </li>
     </ul>
     <label style="width: 100%;">{% trans 'Configuration' %}:<textarea id="job_config" class="form-control" style="resize: none" placeholder="{% trans 'Configuration' %}">{{ job.configuration }}</textarea></label>
-    <h4>Files</h4>
+    <h4>{% trans 'Files' %}</h4>
     {% include 'jobs/filesTree.html' %}
     <hr>
     {% if job_versions|length %}
@@ -105,5 +105,5 @@
     </select>
     <button id="remove_user_role__" class="btn-close-x"><span class="glyphicon glyphicon-remove"></span></button>
 </div>
-<div id="comment_required_div" hidden>{% trans 'Change comment is required' %}</div>
+<div id="comment_required_div" hidden>{% trans "Change's comment is required" %}</div>
 <div id="title_required_div" hidden>{% trans 'Title is required' %}</div>

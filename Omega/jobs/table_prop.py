@@ -4,8 +4,7 @@ import pytz
 from datetime import datetime, timedelta
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import string_concat
+from django.utils.translation import ugettext_lazy as _, string_concat
 from jobs.job_model import Job
 import jobs.job_functions as job_f
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
@@ -16,6 +15,7 @@ from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
 # List of main classes of columns
 MAIN_COLUMNS = [
     'name',
+    'role',
     'author',
     'date',
     'status',
@@ -30,9 +30,8 @@ ADDITIONAL_COLUMNS = [
     'format',
     'version',
     'type',
-    'parent_name',
+    'parent_title',
     'parent_id',
-    'role',
 ]
 
 
@@ -46,9 +45,9 @@ ORDERS = [
 
 ORDER_TITLES = {
     'name':  _('Title'),
-    'author': _('Author last name'),
+    'author': string_concat(_('Author'), '/', _('Last name')),
     'date': _('Date'),
-    'status': _('Status'),
+    'status': _('Decision status'),
 }
 
 ALL_FILTERS = [
@@ -65,10 +64,10 @@ ALL_FILTERS = [
 FILTER_NAME_TITLES = {
     'name': _('Title'),
     'change_author': _('Author'),
-    'change_date': _('Last change'),
-    'status': _('Status'),
-    'resource_component': _('Resource/Component'),
-    'problem_component': _('Problem/Component'),
+    'change_date': _('Last change date'),
+    'status': _('Decision status'),
+    'resource_component': string_concat(_('Resources'), '/', _('Component name')),
+    'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
     'format': _('Format'),
 }
@@ -503,12 +502,12 @@ class TableTree(object):
                     if comp_id in problems:
                         if 'z_no_mark' not in problems[comp_id]['problems']:
                             problems[comp_id]['problems']['z_no_mark'] = \
-                                _('No EM')
+                                _('Without marks')
                     else:
                         problems[comp_id] = {
                             'title': comp.name,
                             'problems': {
-                                'z_no_mark': _('No EM'),
+                                'z_no_mark': _('Without marks'),
                                 'z_total': _('Total')
                             }
                         }
