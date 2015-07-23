@@ -12,11 +12,15 @@
             <h4><cite>{{ target.extended.first_name }} {{ target.extended.last_name }}</cite></h4>
             <ul>
                 {% if target.email %}
-                    <li>{% trans 'Email' %}: <ins style="color: #204d74">{{ target.email }}</ins></li>
+                    <li>{% trans 'Email' %}: <ins style="color: #a7aab4">{{ target.email }}</ins></li>
                 {% endif %}
-                {% if target.is_superuser %}
-                    <li>{% trans '__Administrator' %}</li>
-                {% endif %}
+                <li>{% trans 'Administrator' %}:
+                    {% if target.is_superuser %}
+                        {% trans 'Yes' %}
+                    {% else %}
+                        {% trans 'No' %}
+                    {% endif %}
+                </li>
                 <li><span style="color: #a7aab4">{% trans 'Role' %}:</span> {{ target.extended.get_role_display }}</li>
                 <li><span style="color: #a7aab4">{% trans 'Time zone' %}:</span> {{ target.extended.timezone }}</li>
                 <li><span style="color: #a7aab4">{% trans 'Language' %}:</span> {{ target.extended.get_language_display }}</li>

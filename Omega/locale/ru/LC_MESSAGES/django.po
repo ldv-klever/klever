@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 16:33+0000\n"
+"POT-Creation-Date: 2015-07-23 16:38+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -278,7 +278,7 @@ msgid "Last name"
 msgstr "Фамилия"
 
 #: jobs/table_prop.py:49 jobs/templates/jobs/viewJob.html:73
-#: users/templates/users/showProfile.html:30
+#: users/templates/users/showProfile.html:34
 msgid "Date"
 msgstr "Дата"
 
@@ -349,7 +349,7 @@ msgid "Change's comment"
 msgstr "Комментарий к изменению"
 
 #: jobs/templates/jobs/editJob.html:90 jobs/templates/jobs/viewJob.html:83
-#: users/templates/users/showProfile.html:33
+#: users/templates/users/showProfile.html:37
 msgid "Comment"
 msgstr "Комментарий"
 
@@ -772,7 +772,7 @@ msgstr ""
 msgid "First name"
 msgstr "Имя"
 
-#: users/forms.py:82 users/templates/users/showProfile.html:22
+#: users/forms.py:82 users/templates/users/showProfile.html:26
 msgid "Language"
 msgstr "Язык"
 
@@ -794,7 +794,7 @@ msgstr "Ваша учетная запись была успешно измен�
 
 #: users/templates/users/edit-profile.html:40
 #: users/templates/users/register.html:37
-#: users/templates/users/showProfile.html:21
+#: users/templates/users/showProfile.html:25
 msgid "Time zone"
 msgstr "Часовой пояс"
 
@@ -814,31 +814,39 @@ msgstr "Регистрация"
 msgid "__Thank you for registering!"
 msgstr ""
 
-#: users/templates/users/showProfile.html:18
-msgid "__Administrator"
-msgstr ""
+#: users/templates/users/showProfile.html:17
+msgid "Administrator"
+msgstr "Администратор"
 
-#: users/templates/users/showProfile.html:20
+#: users/templates/users/showProfile.html:19
+msgid "Yes"
+msgstr "Да"
+
+#: users/templates/users/showProfile.html:21
+msgid "No"
+msgstr "Нет"
+
+#: users/templates/users/showProfile.html:24
 msgid "Role"
 msgstr "Роль"
 
-#: users/templates/users/showProfile.html:26
+#: users/templates/users/showProfile.html:30
 msgid "Last Activity"
 msgstr "Последние действия"
 
-#: users/templates/users/showProfile.html:31
+#: users/templates/users/showProfile.html:35
 msgid "Action Kind"
 msgstr "Вид действия"
 
-#: users/templates/users/showProfile.html:32
+#: users/templates/users/showProfile.html:36
 msgid "Job Title"
 msgstr "Название задания"
 
-#: users/templates/users/showProfile.html:47
+#: users/templates/users/showProfile.html:51
 msgid "Creation"
 msgstr "Создание"
 
-#: users/templates/users/showProfile.html:49
+#: users/templates/users/showProfile.html:53
 msgid "Modification"
 msgstr "Изменение"
 
