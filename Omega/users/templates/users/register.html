@@ -15,7 +15,7 @@
 {% block body_block %}
 
     {% if registered %}
-        <strong>{% trans 'Thank you for registering!' %}</strong>
+        <strong>{% trans '__Thank you for registering!' %}</strong>
     {% else %}
         <form id="user_form" method="post" action="{% url 'users:register' %}" enctype="multipart/form-data">
             {% csrf_token %}

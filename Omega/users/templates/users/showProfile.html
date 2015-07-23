@@ -15,7 +15,7 @@
                     <li>{% trans 'Email' %}: <ins style="color: #204d74">{{ target.email }}</ins></li>
                 {% endif %}
                 {% if target.is_superuser %}
-                    <li>{% trans 'Administrator' %}</li>
+                    <li>{% trans '__Administrator' %}</li>
                 {% endif %}
                 <li><span style="color: #a7aab4">{% trans 'Role' %}:</span> {{ target.extended.get_role_display }}</li>
                 <li><span style="color: #a7aab4">{% trans 'Time zone' %}:</span> {{ target.extended.timezone }}</li>

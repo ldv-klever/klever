@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 12:27+0000\n"
+"POT-Creation-Date: 2015-07-23 13:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -788,7 +788,7 @@ msgstr "Дерево заданий"
 
 #: templates/base.html:43
 msgid "Admin Tools"
-msgstr ""
+msgstr "Панель администатора"
 
 #: templates/base.html:49 users/templates/users/edit-profile.html:23
 msgid "Settings"
@@ -847,8 +847,8 @@ msgid "__Human-readable"
 msgstr ""
 
 #: users/templates/users/edit-profile.html:20
-msgid "Your profile was successfully changed!"
-msgstr ""
+msgid "Your profile was successfully changed"
+msgstr "Ваша учетная запись была успешно изменена"
 
 #: users/templates/users/edit-profile.html:40
 #: users/templates/users/register.html:37
@@ -869,11 +869,11 @@ msgid "Registration"
 msgstr "Регистрация"
 
 #: users/templates/users/register.html:18
-msgid "Thank you for registering!"
+msgid "__Thank you for registering!"
 msgstr ""
 
 #: users/templates/users/showProfile.html:18
-msgid "Administrator"
+msgid "__Administrator"
 msgstr ""
 
 #: users/templates/users/showProfile.html:20
