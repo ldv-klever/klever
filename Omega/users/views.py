@@ -41,7 +41,6 @@ def user_signout(request):
 
 def register(request):
     activate(request.LANGUAGE_CODE)
-    registered = False
 
     if request.method == 'POST':
         user_form = UserForm(data=request.POST)
@@ -52,18 +51,14 @@ def register(request):
             user.set_password(user.password)
             profile = profile_form.save(commit=False)
             profile.user = user
-
             if user_tz:
                 profile.timezone = user_tz
-            # if 'picture' in request.FILES:
-            #    profile.picture = request.FILES['picture']
-
             try:
                 profile.save()
             except:
                 raise ValidationError("Can't save user to the database!")
             user.save()
-            registered = True
+            return HttpResponseRedirect(reverse('users:login'))
     else:
         user_form = UserForm()
         profile_form = UserExtendedForm()
@@ -72,7 +67,6 @@ def register(request):
                   {
                       'user_form': user_form,
                       'profile_form': profile_form,
-                      'registered': registered,
                       'timezones': pytz.common_timezones,
                   })
 
@@ -80,7 +74,6 @@ def register(request):
 @login_required
 def edit_profile(request):
     activate(request.user.extended.language)
-    changed = False
 
     if request.method == 'POST':
         user_form = EditUserForm(data=request.POST, request=request,
@@ -103,11 +96,11 @@ def edit_profile(request):
             if user_tz:
                 profile.timezone = user_tz
             profile.save()
-            changed = True
+
             if do_redirect:
                 return HttpResponseRedirect(reverse('users:login'))
-        else:
-            print(user_form.errors, profile_form.errors)
+            else:
+                return HttpResponseRedirect(reverse('users:edit_profile'))
     else:
         user_form = EditUserForm(instance=request.user)
         profile_form = UserExtendedForm(instance=request.user.extended)
@@ -118,7 +111,6 @@ def edit_profile(request):
         {
             'user_form': user_form,
             'profile_form': profile_form,
-            'changed': changed,
             'timezones': pytz.common_timezones,
             'LANGUAGES': LANGUAGES
         })
@@ -141,8 +133,8 @@ def show_profile(request, user_id=None):
     for act in user_activity:
         act_comment = act.comment
         small_comment = act_comment
-        if len(act_comment) > 17:
-            small_comment = act_comment[:20] + '...'
+        if len(act_comment) > 47:
+            small_comment = act_comment[:50] + '...'
         new_act = {
             'date': act.change_date,
             'comment': act_comment,

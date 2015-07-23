@@ -415,9 +415,12 @@ def get_version_data(request, template='jobs/editJob.html'):
 
     roles = job_f.role_info(job_version, request.user)
 
+    parent_identifier = None
+    if job.parent:
+        parent_identifier = job.parent.identifier
     job_data = {
         'id': None,
-        'parent_id': job.identifier,
+        'parent_id': parent_identifier,
         'name': job_version.name,
         'configuration': job_version.configuration,
         'description': job_version.description,
@@ -537,6 +540,11 @@ def save_job(request):
                 return JsonResponse({
                     'status': 1,
                     'message': _("The specified parent can't be set for this job")
+                })
+            if job.parent is None:
+                return JsonResponse({
+                    'status': 1,
+                    'message': _("Root jobs can't become another child!")
                 })
             job.parent = parent
         elif job.parent:

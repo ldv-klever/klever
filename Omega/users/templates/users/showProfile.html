@@ -8,8 +8,7 @@
 {% block body_block %}
     <div class="row">
         <div class="col-sm-3">
-            <h2>{{ target.username }}</h2>
-            <h4><cite>{{ target.extended.first_name }} {{ target.extended.last_name }}</cite></h4>
+            <h3><cite>{{ target.extended.first_name }} {{ target.extended.last_name }}</cite></h3>
             <ul>
                 {% if target.email %}
                     <li>{% trans 'Email' %}: <ins style="color: #a7aab4">{{ target.email }}</ins></li>
@@ -53,14 +52,14 @@
                                 <td style="color: blue">{% trans 'Modification' %}</td>
                             {% endif %}
                             {% if act.href %}
-                                <td class="col-sm-6"><a href="{{ act.href }}">{{ act.job_name }}</a></td>
+                                <td class="col-sm-4"><a href="{{ act.href }}">{{ act.job_name }}</a></td>
                             {% else %}
-                                <td class="col-sm-6">{{ act.job_name }}</td>
+                                <td class="col-sm-4">{{ act.job_name }}</td>
                             {% endif %}
                             {% if act.comment %}
-                                <td class="col-sm-3" title="{{ act.comment }}"><small>{{ act.small_comment }}</small></td>
+                                <td class="col-sm-5" title="{{ act.comment }}"><small>{{ act.small_comment }}</small></td>
                             {% else %}
-                                <td class="col-sm-3"></td>
+                                <td class="col-sm-5"></td>
                             {% endif %}
                         </tr>
                     {% endfor %}

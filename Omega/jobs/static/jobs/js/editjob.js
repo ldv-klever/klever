@@ -643,6 +643,9 @@ $(document).ready(function () {
                     expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
                     expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
                 });
+            },
+            error: function(x) {
+                console.log(x.responseText);
             }
         });
     }
