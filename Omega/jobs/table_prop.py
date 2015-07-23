@@ -502,12 +502,12 @@ class TableTree(object):
                     if comp_id in problems:
                         if 'z_no_mark' not in problems[comp_id]['problems']:
                             problems[comp_id]['problems']['z_no_mark'] = \
-                                _('No EM')
+                                _('Without marks')
                     else:
                         problems[comp_id] = {
                             'title': comp.name,
                             'problems': {
-                                'z_no_mark': _('No EM'),
+                                'z_no_mark': _('Without marks'),
                                 'z_total': _('Total')
                             }
                         }

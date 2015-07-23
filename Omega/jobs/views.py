@@ -790,13 +790,13 @@ def job_error(request, err_code=0):
         if back:
             back = unquote(back)
     if err_code == 404:
-        message = _('Job was not found')
+        message = _('The job was not found')
     elif err_code == 400:
-        message = _('You don\'t have access to this job.')
+        message = _("You don't have an access to this job")
     elif err_code == 450:
-        message = _('Downloading job is locked!')
+        message = _('Somebody is downloading a job right now, please try again later')
     elif err_code == 451:
-        message = _('Wrong parameters! Please reload page and try again.')
+        message = _('Wrong parameters, please reload page and try again.')
     return render(request, 'jobs/error.html',
                   {'message': message, 'back': back})
 
@@ -820,12 +820,12 @@ def check_access(request):
             except ObjectDoesNotExist:
                 return JsonResponse({
                     'status': False,
-                    'message': _('Job was not found.')
+                    'message': _('The job was not found')
                 })
             if not job_f.has_job_access(request.user, action='view', job=job):
                 return JsonResponse({
                     'status': False,
-                    'message': _("You don't have access to the job.")
+                    'message': _("You don't have an access to this job")
                 })
         return JsonResponse({
             'status': True,
