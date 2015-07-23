@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 16:38+0000\n"
+"POT-Creation-Date: 2015-07-23 16:48+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -303,8 +303,8 @@ msgid "Marks"
 msgstr "Оценки"
 
 #: jobs/templates/jobs/createJob.html:5
-msgid "__Create Job"
-msgstr ""
+msgid "Job Copying"
+msgstr "Копирование задания"
 
 #: jobs/templates/jobs/editJob.html:10
 msgid "You can choose one of the previous versions"
