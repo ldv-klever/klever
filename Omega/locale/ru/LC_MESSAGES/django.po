@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 14:10+0000\n"
+"POT-Creation-Date: 2015-07-23 14:34+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -380,6 +380,10 @@ msgstr ""
 msgid "Configuration"
 msgstr ""
 
+#: jobs/templates/jobs/editJob.html:86 jobs/templates/jobs/showJob.html:14
+msgid "Files"
+msgstr "Файлы"
+
 #: jobs/templates/jobs/editJob.html:90
 msgid "Change's comment"
 msgstr ""
@@ -396,10 +400,10 @@ msgstr ""
 
 #: jobs/templates/jobs/editJob.html:94 jobs/templates/jobs/filesTree.html:37
 #: jobs/templates/jobs/filesTree.html:45 jobs/templates/jobs/filesTree.html:55
-#: jobs/templates/jobs/filesTree.html:76 jobs/templates/jobs/tree.html:463
-#: jobs/templates/jobs/viewJob.html:179
+#: jobs/templates/jobs/filesTree.html:61 jobs/templates/jobs/filesTree.html:76
+#: jobs/templates/jobs/tree.html:463 jobs/templates/jobs/viewJob.html:179
 msgid "Cancel"
-msgstr ""
+msgstr "Отменить"
 
 #: jobs/templates/jobs/editJob.html:108
 msgid "Change comment is required"
@@ -411,74 +415,71 @@ msgstr ""
 
 #: jobs/templates/jobs/filesTree.html:17
 msgid "New folder"
-msgstr ""
+msgstr "Новая папка"
 
 #: jobs/templates/jobs/filesTree.html:18
 msgid "New file"
-msgstr ""
+msgstr "Новый файл"
 
 #: jobs/templates/jobs/filesTree.html:19 jobs/templates/jobs/filesTree.html:44
 msgid "Rename"
-msgstr ""
+msgstr "Переименовать"
 
 #: jobs/templates/jobs/filesTree.html:20
 msgid "Move file"
-msgstr ""
+msgstr "Переместить файл"
 
-#: jobs/templates/jobs/filesTree.html:21 jobs/templates/jobs/tree.html:284
-#: jobs/templates/jobs/tree.html.py:462 jobs/templates/jobs/viewJob.html:26
+#: jobs/templates/jobs/filesTree.html:21 jobs/templates/jobs/filesTree.html:60
+#: jobs/templates/jobs/tree.html:23 jobs/templates/jobs/tree.html.py:61
+#: jobs/templates/jobs/tree.html:284 jobs/templates/jobs/viewJob.html:26
 #: jobs/templates/jobs/viewJob.html:178
-msgid "Remove"
-msgstr ""
+msgid "Delete"
+msgstr "Удалить"
 
 #: jobs/templates/jobs/filesTree.html:28
 msgid "Folder name"
 msgstr "Название папки"
 
+#: jobs/templates/jobs/filesTree.html:29 jobs/templates/jobs/filesTree.html:67
+msgid "Name"
+msgstr "Название"
+
 #: jobs/templates/jobs/filesTree.html:31
 msgid "Subfolder of"
-msgstr ""
+msgstr "Подпапка"
 
 #: jobs/templates/jobs/filesTree.html:33 jobs/templates/jobs/filesTree.html:51
 #: jobs/templates/jobs/filesTree.html:72
 msgid "Root"
-msgstr ""
+msgstr "Корневая папка"
 
 #: jobs/templates/jobs/filesTree.html:36
 msgid "Create"
-msgstr ""
+msgstr "Создать"
 
 #: jobs/templates/jobs/filesTree.html:41
-msgid "New Name"
-msgstr ""
+msgid "New name"
+msgstr "Новое название"
 
 #: jobs/templates/jobs/filesTree.html:49 jobs/templates/jobs/filesTree.html:54
 msgid "Move"
-msgstr ""
+msgstr "Переместить"
 
 #: jobs/templates/jobs/filesTree.html:49
 msgid "to"
-msgstr ""
+msgstr "в"
 
 #: jobs/templates/jobs/filesTree.html:59
-msgid "with its content will be deleted. Do you want to continue?"
-msgstr ""
+msgid "will be deleted. Do you want to continue?"
+msgstr "будет удален(а). Вы хотите продолжить?"
 
 #: jobs/templates/jobs/filesTree.html:65
 msgid "Browse"
-msgstr ""
-
-#: jobs/templates/jobs/filesTree.html:67
-msgid "Name"
-msgstr ""
+msgstr "Выбрать файл"
 
 #: jobs/templates/jobs/filesTree.html:70
 msgid "Upload to folder"
-msgstr ""
-
-#: jobs/templates/jobs/showJob.html:14
-msgid "Files"
-msgstr ""
+msgstr "Загрузить в папку"
 
 #: jobs/templates/jobs/tree.html:5 templates/base.html:42
 msgid "Jobs Tree"
@@ -499,10 +500,6 @@ msgstr "Загрузить оценки"
 #: jobs/templates/jobs/tree.html:22
 msgid "Compare reports"
 msgstr "Сравнить отчеты"
-
-#: jobs/templates/jobs/tree.html:23 jobs/templates/jobs/tree.html.py:61
-msgid "Delete"
-msgstr "Удалить"
 
 #: jobs/templates/jobs/tree.html:30
 msgid "Columns"
@@ -611,6 +608,10 @@ msgstr ""
 #: jobs/templates/jobs/tree.html:459
 msgid ""
 "All versions and all data of selected verification job(s) will be deleted!"
+msgstr ""
+
+#: jobs/templates/jobs/tree.html:462
+msgid "Remove"
 msgstr ""
 
 #: jobs/templates/jobs/treeTable.html:48

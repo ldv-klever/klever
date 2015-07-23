@@ -23,7 +23,7 @@
                 <div class="btn-group" role="group">
                     {% if can_create %}<button id="copy_job__{{ job.pk }}" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
                     <button id="load_job__{{ job.pk }}" class="btn btn-success">{% trans 'Download' %}</button>
-                    {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">{% trans 'Remove' %}</button>{% endif %}
+                    {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">{% trans 'Delete' %}</button>{% endif %}
                 </div>
                 <span id="job_pk" hidden>{{ job.pk }}</span>
             </div>
@@ -175,7 +175,7 @@
                             <p>{% trans 'All versions and all data connected to this verification job will be deleted!' %}</p>
                         </div>
                         <div class="modal-footer">
-                            <button id="remove_job__{{ job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Remove' %}</button>
+                            <button id="remove_job__{{ job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
                             <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
                         </div>
                     </div>

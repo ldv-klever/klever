@@ -83,7 +83,7 @@
         </li>
     </ul>
     <label style="width: 100%;">{% trans 'Configuration' %}:<textarea id="job_config" class="form-control" style="resize: none" placeholder="{% trans 'Configuration' %}">{{ job.configuration }}</textarea></label>
-    <h4>Files</h4>
+    <h4>{% trans 'Files' %}</h4>
     {% include 'jobs/filesTree.html' %}
     <hr>
     {% if job_versions|length %}
