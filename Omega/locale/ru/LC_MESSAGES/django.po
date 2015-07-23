@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 16:48+0000\n"
+"POT-Creation-Date: 2015-07-23 17:09+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -23,8 +23,9 @@ msgid "The file type is not supported"
 msgstr "Тип файла не поддерживается"
 
 #: Omega/formatChecker.py:42
-#, python-format
-msgid "Please keep the file size under %s (the current file size is %s)"
+#, fuzzy, python-brace-format
+#| msgid "Please keep the file size under %s (the current file size is %s)"
+msgid "Please keep the file size under {0} (the current file size is {1})"
 msgstr ""
 "Пожалуйста, не загружайте файлы размером больше %s (текущий размер файла - "
 "%s)"
