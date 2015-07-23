@@ -2,15 +2,16 @@ import pytz
 import json
 import hashlib
 import mimetypes
-import zipfile
 import os
 from io import BytesIO
+from urllib.parse import quote, unquote
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from jobs.job_model import Job, JobHistory, JobStatus
 from jobs.models import UserRole, File, FileSystem
 from jobs.forms import FileForm
@@ -294,13 +295,19 @@ def show_job(request, job_id=None):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return job404(request, _('Job was not found!'))
+        return HttpResponseRedirect(
+            reverse('jobs:error', args=[404]) + "?back=%s" % quote(
+                reverse('jobs:tree')))
+        # return job404(request, _('Job was not found!'))
 
     if not job_f.has_job_access(request.user, action="view", job=job):
-        return job404(
-            request,
-            _("You don't have access to this verification job!")
-        )
+        return HttpResponseRedirect(
+            reverse('jobs:error', args=[400]) + "?back=%s" % quote(
+                reverse('jobs:tree')))
+        # return job404(
+        #     request,
+        #     _("You don't have access to this verification job!")
+        # )
 
     created_by = job.jobhistory_set.get(version=1).change_author
 
@@ -414,15 +421,13 @@ def get_version_data(request, template='jobs/editJob.html'):
         'description': job_version.description,
         'version': None
     }
-    if job_id and job_version.parent:
-        job_data['parent_id'] = job_version.parent.identifier
-    if job_id:
-        job_data['id'] = job.pk
-        job_data['version'] = job.version
 
-    # Get list of job versions
     job_versions = []
     if job_id:
+        if job_version.parent:
+            job_data['parent_id'] = job_version.parent.identifier
+        job_data['id'] = job.pk
+        job_data['version'] = job.version
         jobs = job.jobhistory_set.all().order_by('-version')
         for j in jobs:
             if j.version == job.version:
@@ -665,10 +670,6 @@ def remove_jobs(request):
     return JsonResponse({'status': 0})
 
 
-def job404(request, message=None):
-    return render(request, 'jobs/job404.html', {'message': message})
-
-
 @login_required
 def showjobdata(request):
     if request.method != 'POST':
@@ -679,7 +680,7 @@ def showjobdata(request):
             job = Job.objects.get(pk=int(job_id))
         except ObjectDoesNotExist:
             return HttpResponse('')
-        job_version = JobHistory.objects.all().order_by('-change_date')[0]
+        job_version = job.jobhistory_set.filter(version=job.version)[0]
         filesdata = job_f.FileData(job_version)
         return render(request, 'jobs/showJob.html', {
             'job': job,
@@ -732,26 +733,73 @@ def download_file(request, file_id):
     return response
 
 
+@login_required
 def download_job(request, job_id):
     if request.method == 'POST':
         return HttpResponse('')
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponse('')
+        back_url = quote(reverse('jobs:tree'))
+        return HttpResponseRedirect(
+            reverse('jobs:error', args=[404]) + "?back=%s" % back_url
+        )
     if not job_f.has_job_access(request.user, action='view', job=job):
-        return HttpResponse('')
-    job_zip = job_f.JobArchive(request.user, job)
+        back_url = quote(reverse('jobs:tree'))
+        return HttpResponseRedirect(
+            reverse('jobs:error', args=[400]) + "?back=%s" % back_url
+        )
+    back_url = quote(reverse('jobs:job', args=[job_id]))
+    hash_sum = request.GET.get('hashsum', None)
+    if hash_sum is None:
+        return HttpResponseRedirect(
+            reverse('jobs:error', args=[451]) + "?back=%s" % back_url
+        )
+    job_zip = job_f.JobArchive(job=job, hash_sum=hash_sum)
     job_zip.create_zip()
-
-    response = HttpResponse(content_type="application/zip")
-    response["Content-Disposition"] = "attachment; filename=%s" % job_zip.jobzip_name
-
-    job_zip.memory.seek(0)
-    response.write(job_zip.memory.read())
-    job_zip.unlock()
+    if job_zip.err_code > 0:
+        response = HttpResponseRedirect(
+            reverse('jobs:error',
+                    args=[job_zip.err_code]) + "?back=%s" % back_url
+        )
+    else:
+        response = HttpResponse(content_type="application/zip")
+        zipname = job_zip.jobzip_name
+        response["Content-Disposition"] = "attachment; filename=%s" % zipname
+        job_zip.memory.seek(0)
+        response.write(job_zip.memory.read())
     return response
 
 
 def test_page(request):
     return render(request, 'jobs/testpage.html', {})
+
+
+def job_error(request, err_code=0):
+    err_code = int(err_code)
+    message = _('Unknown error')
+    back = None
+    if request.method == 'GET':
+        back = request.GET.get('back', None)
+        if back:
+            back = unquote(back)
+    if err_code == 404:
+        message = _('Job was not found')
+    elif err_code == 400:
+        message = _('You don\'t have access to this job.')
+    elif err_code == 450:
+        message = _('Downloading job is locked!')
+    elif err_code == 451:
+        message = _('Wrong parameters! Please reload page and try again.')
+    return render(request, 'jobs/error.html',
+                  {'message': message, 'back': back})
+
+
+@login_required
+def download_lock(request):
+    ziplock = job_f.JobArchive(user=request.user)
+    status = ziplock.first_lock()
+    response_data = {'status': status}
+    if status:
+        response_data['hash_sum'] = ziplock.hash_sum
+    return JsonResponse(response_data)

@@ -72,8 +72,8 @@ USER_ROLES = (
 )
 
 VIEW_TYPES = {
-    ('1', _('Job tree')),
-    ('2', _('Other')),
+    ('1', 'job tree'),
+    ('2', 'other'),
 }
 
 JOB_STATUS = (

@@ -671,8 +671,27 @@ $(document).ready(function () {
     });
 
     $('button[id^="load_job__"]').click(function () {
-        console.log("Downloading...");
         var job_id = $(this).attr('id').replace('load_job__', '');
-        window.location.replace('/jobs/downloadjob/' + job_id + '/');
+        var interval = null;
+        var try_lock = function() {
+            $.ajax({
+                url: '/jobs/downloadlock/',
+                type: 'GET',
+                dataType: 'json',
+                async: false,
+                success: function (resp) {
+                    if (resp.status) {
+                        clearInterval(interval);
+                        $('body').removeClass("loading");
+                        window.location.replace('/jobs/downloadjob/' + job_id + '/' + '?hashsum=' + resp.hash_sum);
+                    }
+                },
+                error: function(res) {
+                    console.log(res.responseText);
+                }
+            });
+        };
+        $('body').addClass("loading");
+        interval = setInterval(try_lock, 1000);
     });
 });

@@ -4,4 +4,7 @@
     {% if message %}
         <h1 style="color: #ef2f6c">{{ message }}</h1>
     {% endif %}
+    {% if back %}
+        <a class="btn btn-success" href="{{ back }}">Ok :(</a>
+    {% endif %}
 {% endblock %}

@@ -6,8 +6,11 @@ from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from jobs.models import FileSystem, File
 from django.conf import settings
 import os
+import re
 import zipfile
+from datetime import datetime
 from io import BytesIO, StringIO
+import hashlib
 
 
 COLORS = {
@@ -73,6 +76,9 @@ TITLES = {
     'parent_id': _('Parent identifier'),
     'role': _('Your role'),
 }
+
+
+DOWNLOAD_LOCKFILE = 'download.lock'
 
 
 class FileData(object):
@@ -215,21 +221,19 @@ class DBFileData(object):
         return new_level
 
 
+# For first lock: job = None, hash_sum = None, user != None;
+#  if first_lock return True self.hash_sum =- hash_sum in lock file.
 class JobArchive(object):
-    def __init__(self, user, job):
-        self.lockfile = 'lock'
+    def __init__(self, job=None, hash_sum=None, user=None):
+        self.lockfile = DOWNLOAD_LOCKFILE
         self.workdir = 'ZIPcreation'
-        self.config_file = 'configuration.txt'
-        self.description_file = 'description.txt'
-        self.title_file = 'title.txt'
-        self.jobzip_name = 'VJ__' + job.identifier + '.zip'
-        self.files_for_zip = []
-        self.user = user
+        self.jobzip_name = ''
         self.job = job
+        self.user = user
+        self.hash_sum = hash_sum
         self.__prepare_workdir()
-        self.__get_filedata()
-        self.message = ''
         self.memory = BytesIO()
+        self.err_code = 0
 
     def __prepare_workdir(self):
         self.workdir = os.path.join(settings.MEDIA_ROOT, self.workdir)
@@ -241,20 +245,54 @@ class JobArchive(object):
             f.write('unlocked')
             f.close()
 
-    def __trylock(self):
+    def first_lock(self):
         f = open(self.lockfile, 'r')
-        if f.readline() == 'unlocked':
-            f.close()
-            f = open(self.lockfile, 'w')
-            f.write('locked')
-            f.close()
-            return True
+        line = f.readline()
+        f.close()
+        curr_time = (datetime.now() - datetime(2000, 1, 1)).total_seconds()
+        if line == 'unlocked':
+            self.__update_hash_sum()
+            if self.hash_sum:
+                f = open(self.lockfile, 'w')
+                f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
+                f.close()
+                return True
+        elif line.startswith('locked#'):
+            line_lock_time = float(line.split('#')[1])
+            if (curr_time - line_lock_time) > 10:
+                self.__update_hash_sum()
+                if self.hash_sum:
+                    f = open(self.lockfile, 'w')
+                    f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
+                    f.close()
+                    return True
+        return False
+
+    def __update_hash_sum(self):
+        if self.user:
+            hash_data = (
+                '%s%s' % (self.user.extended.pk, datetime.now().isoformat())
+            ).encode('utf-8')
+            self.hash_sum = hashlib.md5(hash_data).hexdigest()
+
+    def second_lock(self):
+        f = open(self.lockfile, 'r')
+        line = f.readline()
+        f.close()
+        line_data = line.split('#')
+        if len(line_data) == 3 and line_data[0] == 'locked':
+            if self.hash_sum == line_data[2]:
+                f = open(self.lockfile, 'w')
+                f.write('doublelocked')
+                f.close()
+                return True
         return False
 
     def unlock(self):
         f = open(self.lockfile, 'r')
-        if f.readline() == 'unlocked':
-            f.close()
+        status = f.readline()
+        f.close()
+        if status == 'unlocked':
             return
         f = open(self.lockfile, 'w')
         f.write('unlocked')
@@ -263,6 +301,7 @@ class JobArchive(object):
     def __get_filedata(self):
         job_version = self.job.jobhistory_set.get(version=self.job.version)
         files = job_version.file_set.all()
+        files_for_zip = []
         for f in files:
             if f.file:
                 file_path = f.name
@@ -270,40 +309,41 @@ class JobArchive(object):
                 while file_parent:
                     file_path = file_parent.name + '/' + file_path
                     file_parent = file_parent.parent
-                self.files_for_zip.append({
+                files_for_zip.append({
                     'path': 'root' + '/' + file_path,
                     'src': os.path.join(settings.MEDIA_ROOT, f.file.file.name)
                 })
+        return files_for_zip
 
     def create_zip(self):
-        if self.__trylock():
-            job_zip_file = zipfile.ZipFile(self.memory, 'a')
+        if self.job is None:
+            self.err_code = 404
+            return
+        if self.second_lock():
+            self.jobzip_name = 'VJ__' + self.job.identifier + '.zip'
+            files_for_zip = self.__get_filedata()
+            job_zip_file = zipfile.ZipFile(self.memory, 'w')
             self.__write_file_str(
-                job_zip_file, self.title_file, self.job.name
+                job_zip_file, 'title', self.job.name
             )
             self.__write_file_str(
-                job_zip_file, self.config_file, self.job.configuration
+                job_zip_file, 'configuration', self.job.configuration
             )
             self.__write_file_str(
-                job_zip_file, self.description_file, self.job.description
+                job_zip_file, 'description', self.job.description
             )
-            for f in self.files_for_zip:
-                self.__write_file(job_zip_file, f)
+            for f in files_for_zip:
+                job_zip_file.write(f['src'], f['path'], zipfile.ZIP_DEFLATED)
             job_zip_file.close()
-            self.message = 'ZIP was created'
             self.unlock()
         else:
-            self.message = 'Action is locked!'
+            self.err_code = 450
 
     def __write_file_str(self, jobzip, file_name, file_content):
-        title = StringIO()
-        title.write(file_content)
-        jobzip.writestr(file_name, title.getvalue(), zipfile.ZIP_DEFLATED)
-        title.close()
-
-    def __write_file(self, jobzip, file_data):
-        print("Writing...", file_data)
-        jobzip.write(file_data['src'], file_data['path'], zipfile.ZIP_DEFLATED)
+        virt_file = StringIO()
+        virt_file.write(file_content)
+        jobzip.writestr(file_name, virt_file.getvalue(), zipfile.ZIP_DEFLATED)
+        virt_file.close()
 
 
 def convert_time(val, acc):

@@ -51,16 +51,6 @@ ORDER_TITLES = {
     'status': _('Status'),
 }
 
-FILTER_TYPE_TITLES = {
-    'is': _('Is'),
-    'isnot': _('Is not'),
-    'iexact': _('Is'),
-    'istartswith': _('Starts with'),
-    'icontains': _('Contains'),
-    'younger': _('Younger than'),
-    'older': _('Older than'),
-}
-
 ALL_FILTERS = [
     'name',
     'change_author',
@@ -213,8 +203,6 @@ class FilterForm(object):
                     'name': f_name,
                     'name_title': FILTER_NAME_TITLES[f_name],
                     'type': f['type'],
-                    'type_title': FILTER_TYPE_TITLES.get(f['type'],
-                                                         'ERR404:type_title'),
                     'value': f_val,
                 })
         for f_name in ALL_FILTERS:
