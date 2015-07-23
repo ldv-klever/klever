@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 13:20+0000\n"
+"POT-Creation-Date: 2015-07-23 13:22+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -480,9 +480,9 @@ msgstr ""
 msgid "Files"
 msgstr ""
 
-#: jobs/templates/jobs/tree.html:5
-msgid "Verification Tree"
-msgstr ""
+#: jobs/templates/jobs/tree.html:5 templates/base.html:42
+msgid "Jobs Tree"
+msgstr "Дерево заданий"
 
 #: jobs/templates/jobs/tree.html:19
 msgid "Upload jobs"
@@ -781,10 +781,6 @@ msgstr ""
 #: templates/base.html:34
 msgid "__Toggle navigation"
 msgstr ""
-
-#: templates/base.html:42
-msgid "Jobs Tree"
-msgstr "Дерево заданий"
 
 #: templates/base.html:43
 msgid "Admin Tools"
