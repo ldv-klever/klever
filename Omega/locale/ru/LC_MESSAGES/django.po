@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 11:39+0000\n"
+"POT-Creation-Date: 2015-07-23 11:48+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -798,7 +798,7 @@ msgstr "Настройки"
 msgid "Sign Out"
 msgstr "Выйти"
 
-#: templates/base.html:52
+#: templates/base.html:52 users/templates/users/register.html:53
 msgid "Register"
 msgstr "Регистрация"
 
@@ -851,7 +851,7 @@ msgid "Your profile was successfully changed!"
 msgstr ""
 
 #: users/templates/users/edit-profile.html:40
-#: users/templates/users/register.html:38
+#: users/templates/users/register.html:37
 #: users/templates/users/showProfile.html:21
 msgid "Time zone"
 msgstr "Часовой пояс"
@@ -865,9 +865,8 @@ msgid "Sign in"
 msgstr "Войти"
 
 #: users/templates/users/register.html:9
-#: users/templates/users/register.html:20
 msgid "Registration"
-msgstr ""
+msgstr "Регистрация"
 
 #: users/templates/users/register.html:18
 msgid "Thank you for registering!"
