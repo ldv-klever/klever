@@ -5,7 +5,7 @@
         <dt class="show-job-title">{% trans 'Description' %}:</dt><dd class="dt-text">{{ job.description }}</dd><br>
     {% endif %}
     {% if job.parent_id %}
-        <dt class="show-job-title">{% trans 'Parent identifier:' %}</dt>
+        <dt class="show-job-title">{% trans 'Parent identifier': %}</dt>
         <dd style="color: #15c46b">{{ job.parent.identifier }}</dd><br>
     {% endif %}
     {% if job.configuration%}

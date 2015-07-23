@@ -4,7 +4,7 @@ FORMAT = 1
 
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
-    ('1', _('Verification of commits to Linux kernel Git repositories')),
+    ('1', _('Verification of commits in Linux kernel Git repositories')),
     ('2', _('Verification of C programs')),
 )
 
@@ -77,8 +77,8 @@ VIEW_TYPES = {
 }
 
 JOB_STATUS = (
-    ('0', _('Not Solved')),
-    ('1', _('Solving')),
+    ('0', _('Not solved')),
+    ('1', _('Is solving')),
     ('2', _('Stopped')),
     ('3', _('Solved')),
     ('4', _('Failed')),

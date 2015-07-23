@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from jobs.models import FileSystem, File
 from django.conf import settings
@@ -44,36 +44,36 @@ UNSAFES = [
 TITLES = {
     'name': _('Title'),
     'author': _('Author'),
-    'date': _('Date'),
-    'status': _('Status'),
+    'date': _('Last change date'),
+    'status': _('Decision status'),
     'safe': _('Safes'),
-    'safe:missed_bug': _('Missed bug'),
+    'safe:missed_bug': _('Missed target bugs'),
     'safe:incorrect': _('Incorrect proof'),
     'safe:unknown': _('Unknown'),
-    'safe:inconclusive': _('Inconclusive'),
-    'safe:unassociated': _('Unassociated'),
+    'safe:inconclusive': _('Incompatible marks'),
+    'safe:unassociated': _('Without marks'),
     'safe:total': _('Total'),
     'unsafe': _('Unsafes'),
-    'unsafe:bug': _('Bug'),
-    'unsafe:target_bug': _('Target bug'),
-    'unsafe:false_positive': _('False positive'),
+    'unsafe:bug': _('Bugs'),
+    'unsafe:target_bug': _('Target bugs'),
+    'unsafe:false_positive': _('False positives'),
     'unsafe:unknown': _('Unknown'),
-    'unsafe:inconclusive': _('Inconclusive'),
-    'unsafe:unassociated': _('Unassociated'),
+    'unsafe:inconclusive': _('Incompatible marks'),
+    'unsafe:unassociated': _('Without marks'),
     'unsafe:total': _('Total'),
     'problem': _('Unknowns'),
     'problem:total': _('Total'),
     'resource': _('Resourses'),
     'resource:total': _('Total'),
     'tag': _('Tags'),
-    'tag:safe': _('Safe tags'),
-    'tag:unsafe': _('Unsafe tags'),
+    'tag:safe': _('Safes'),
+    'tag:unsafe': _('Unsafes'),
     'identifier': _('Identifier'),
     'format': _('Format'),
     'version': _('Version'),
-    'type': _('Job type'),
-    'parent_name': _('Parent name'),
-    'parent_id': _('Parent identifier'),
+    'type': _('Class'),
+    'parent_title': string_concat(_('Parent'), '/', _('Title')),
+    'parent_id': string_concat(_('Parent'), '/', _('Identifier')),
     'role': _('Your role'),
 }
 
@@ -162,11 +162,11 @@ class DBFileData(object):
                         'pk', None
                     )
                     if parent_pk is None:
-                        return _("Parent was not saved to database")
+                        return _("Parent was not saved")
                     try:
                         parent = FileSystem.objects.get(pk=parent_pk, file=None)
                     except ObjectDoesNotExist:
-                        return _("Parent was not saved to the database")
+                        return _("Parent was not saved")
                     fs_elem.parent = parent
                 if lvl_elem['type'] == '1':
                     try:
@@ -174,7 +174,7 @@ class DBFileData(object):
                             hash_sum=lvl_elem['hash_sum']
                         )
                     except ObjectDoesNotExist:
-                        return _("File was not found")
+                        return _("The file was not found")
                 fs_elem.name = lvl_elem['title']
                 fs_elem.save()
                 self.filedata_hash[lvl_elem['id']]['pk'] = fs_elem.pk
@@ -187,7 +187,7 @@ class DBFileData(object):
         while num_of_elements < len(self.filedata):
             cnt += 1
             if cnt > 1000:
-                return _("Unknown error.")
+                return _("Unknown error")
             num_of_elements += len(element_of_lvl)
             element_of_lvl = self.__get_lower_level(element_of_lvl)
             if len(element_of_lvl):
@@ -197,13 +197,13 @@ class DBFileData(object):
             for fd in lvl:
                 self.filedata_hash[fd['id']] = fd
                 if len(fd['title']) == 0:
-                    return _("Empty name!")
+                    return _("You can't specify an empty name")
                 if fd['type'] == '1' and fd['hash_sum'] is None:
-                    return _("File was not uploaded!")
+                    return _("The file was not uploaded")
                 names_of_lvl.append(fd['title'])
             for name in names_of_lvl:
                 if names_of_lvl.count(name) != 1:
-                    return _("Same names in one folder!")
+                    return _("You can't use the same name in one folder")
         return None
 
     def __get_lower_level(self, data):
@@ -354,16 +354,16 @@ def convert_time(val, acc):
     time_format = "%%1.%df%%s" % int(acc)
     try_div = new_time / 1000
     if try_div < 1:
-        return time_format % (new_time, _('ms'))
+        return time_format % (new_time, _('__ms'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('s'))
+        return time_format % (new_time, _('__s'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('m'))
-    return time_format % (try_div, _('h'))
+        return time_format % (new_time, _('__m'))
+    return time_format % (try_div, _('__h'))
 
 
 def convert_memory(val, acc):
@@ -371,16 +371,16 @@ def convert_memory(val, acc):
     mem_format = "%%1.%df%%s" % int(acc)
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('b'))
+        return mem_format % (new_mem, _('__b'))
     new_mem = try_div
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('Kb'))
+        return mem_format % (new_mem, _('__Kb'))
     new_mem = try_div
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('Mb'))
-    return mem_format % (try_div, _('Gb'))
+        return mem_format % (new_mem, _('__Mb'))
+    return mem_format % (try_div, _('__Gb'))
 
 
 def verdict_info(job):
@@ -463,7 +463,7 @@ def unknowns_info(job):
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
             unknowns_data[cmup.component.name] = {}
-        unknowns_data[cmup.component.name][_('No mark')] = cmup.number
+        unknowns_data[cmup.component.name][_('Without marks')] = cmup.number
     unkn_set = job.componentunknown_set.all()
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:

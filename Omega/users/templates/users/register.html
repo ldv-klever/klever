@@ -15,9 +15,8 @@
 {% block body_block %}
 
     {% if registered %}
-        <strong>{% trans 'Thank you for registering!' %}</strong>
+        <strong>{% trans '__Thank you for registering!' %}</strong>
     {% else %}
-        <h3><strong>{% trans 'Registration' %}</strong></h3><hr>
         <form id="user_form" method="post" action="{% url 'users:register' %}" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="row">
@@ -51,7 +50,7 @@
                 <label>{{ profile_form.role.label }}:</label> {{ profile_form.role }}
             </div>
             <hr>
-            <input type="submit" class="btn btn-success" name="submit" value="Register">
+            <input type="submit" class="btn btn-success" name="submit" value="{% trans 'Register' %}">
         </form>
     {% endif %}
 
