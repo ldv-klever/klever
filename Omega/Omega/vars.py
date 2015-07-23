@@ -4,7 +4,7 @@ FORMAT = 1
 
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
-    ('1', _('Verification of commits to Linux kernel Git repositories')),
+    ('1', _('Verification of commits in Linux kernel Git repositories')),
     ('2', _('Verification of C programs')),
 )
 
@@ -71,6 +71,7 @@ USER_ROLES = (
     ('2', _('Manager'))
 )
 
+# TODO: this doesn't need translation as well as english aliases. May be make comments instead.
 VIEW_TYPES = {
     ('1', _('Job tree')),
     ('2', _('Other')),

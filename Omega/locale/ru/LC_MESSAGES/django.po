@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 10:26+0000\n"
+"POT-Creation-Date: 2015-07-23 11:17+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -32,84 +32,84 @@ msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
 #: Omega/vars.py:7
-msgid "Verification of commits to Linux kernel Git repositories"
-msgstr ""
+msgid "Verification of commits in Linux kernel Git repositories"
+msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
 #: Omega/vars.py:8
 msgid "Verification of C programs"
-msgstr ""
+msgstr "Верификация Си-программ"
 
 #: Omega/vars.py:12 Omega/vars.py:69
 msgid "No access"
-msgstr ""
+msgstr "Нет доступа"
 
 #: Omega/vars.py:13
 msgid "Observer"
-msgstr ""
+msgstr "Обозреватель"
 
 #: Omega/vars.py:14
 msgid "Expert"
-msgstr ""
+msgstr "Эксперт"
 
 #: Omega/vars.py:15
 msgid "Observer and Operator"
-msgstr ""
+msgstr "Обозреватель и оператор"
 
 #: Omega/vars.py:16
 msgid "Expert and Operator"
-msgstr ""
+msgstr "Эксперт и оператор"
 
 #: Omega/vars.py:70
 msgid "Producer"
-msgstr ""
+msgstr "Постановщик"
 
 #: Omega/vars.py:71
 msgid "Manager"
-msgstr ""
+msgstr "Руководитель"
 
-#: Omega/vars.py:75
+#: Omega/vars.py:76
 msgid "Job tree"
 msgstr ""
 
-#: Omega/vars.py:76
+#: Omega/vars.py:77
 msgid "Other"
 msgstr ""
 
-#: Omega/vars.py:80
+#: Omega/vars.py:81
 msgid "Not solved"
 msgstr "Не решено"
 
-#: Omega/vars.py:81
+#: Omega/vars.py:82
 msgid "Is solving"
 msgstr "Решается"
 
-#: Omega/vars.py:82
+#: Omega/vars.py:83
 msgid "Stopped"
 msgstr "Приостановлено"
 
-#: Omega/vars.py:83
+#: Omega/vars.py:84
 msgid "Solved"
 msgstr "Решено"
 
-#: Omega/vars.py:84
+#: Omega/vars.py:85
 msgid "Failed"
 msgstr "Провалено"
 
-#: Omega/vars.py:88
-msgid "Unreported"
-msgstr ""
-
 #: Omega/vars.py:89
-msgid "Reported"
-msgstr ""
+msgid "Unreported"
+msgstr "Не сообщена"
 
 #: Omega/vars.py:90
-msgid "Fixed"
-msgstr ""
+msgid "Reported"
+msgstr "Сообщена"
 
 #: Omega/vars.py:91
+msgid "Fixed"
+msgstr "Исправлена"
+
+#: Omega/vars.py:92
 msgid "Rejected"
-msgstr ""
+msgstr "Отклонена"
 
 #: jobs/job_functions.py:38 jobs/job_functions.py:68 jobs/table_prop.py:47
 #: jobs/table_prop.py:75 jobs/templates/jobs/editJob.html:21
