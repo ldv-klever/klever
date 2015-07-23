@@ -465,4 +465,37 @@ $(document).ready(function () {
             $op.last().next().after($op);
         }
     });
+
+    function check_jobs_access(jobs) {
+        var status = true;
+        console.log(jobs);
+        $.ajax({
+            url: 'check_access/',
+            type: 'POST',
+            dataType: 'json',
+            data: {jobs: JSON.stringify(jobs)},
+            async: false,
+            success: function (res) {
+                console.log(res);
+                status = res.status;
+                if (status == false) {
+                    err_notify(res.message);
+                }
+            }
+        });
+        return status;
+    }
+
+    $('#download_selected_jobs').click(function () {
+        var job_ids = [];
+        $('input[id^="job_checkbox__"]:checked').each(function () {
+            job_ids.push($(this).attr('id').replace('job_checkbox__', ''));
+        });
+        if (check_jobs_access(job_ids)) {
+            for (var i = 0; i < job_ids.length; i++) {
+                download_job(job_ids[i]);
+            }
+        }
+    });
 });
+

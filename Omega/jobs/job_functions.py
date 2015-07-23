@@ -254,6 +254,7 @@ class JobArchive(object):
             self.__update_hash_sum()
             if self.hash_sum:
                 f = open(self.lockfile, 'w')
+                print("Locking with hash: " + self.hash_sum)
                 f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
                 f.close()
                 return True
@@ -263,6 +264,7 @@ class JobArchive(object):
                 self.__update_hash_sum()
                 if self.hash_sum:
                     f = open(self.lockfile, 'w')
+                    print("Locking with hash: " + self.hash_sum)
                     f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
                     f.close()
                     return True
@@ -283,6 +285,7 @@ class JobArchive(object):
         if len(line_data) == 3 and line_data[0] == 'locked':
             if self.hash_sum == line_data[2]:
                 f = open(self.lockfile, 'w')
+                print("Double lock: " + self.hash_sum)
                 f.write('doublelocked')
                 f.close()
                 return True

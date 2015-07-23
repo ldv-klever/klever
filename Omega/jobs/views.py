@@ -613,6 +613,12 @@ def save_job(request):
 
     saving_filedata = job_f.DBFileData(file_data, new_version)
     if saving_filedata.err_message:
+        if job.version == 1:
+            job.delete()
+        else:
+            job.version -= 1
+            job.save()
+            new_version.delete()
         err_message = saving_filedata.err_message
         err_message += ' ' + _("Please reload page and try again.")
         return JsonResponse({
@@ -803,3 +809,25 @@ def download_lock(request):
     if status:
         response_data['hash_sum'] = ziplock.hash_sum
     return JsonResponse(response_data)
+
+@login_required
+def check_access(request):
+    if request.method == 'POST':
+        jobs = json.loads(request.POST.get('jobs', '[]'))
+        for job_id in jobs:
+            try:
+                job = Job.objects.get(pk=int(job_id))
+            except ObjectDoesNotExist:
+                return JsonResponse({
+                    'status': False,
+                    'message': _('Job was not found.')
+                })
+            if not job_f.has_job_access(request.user, action='view', job=job):
+                return JsonResponse({
+                    'status': False,
+                    'message': _("You don't have access to the job.")
+                })
+        return JsonResponse({
+            'status': True,
+            'message': ''
+        })

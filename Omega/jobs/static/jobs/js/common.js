@@ -78,3 +78,27 @@ window.success_notify = function (message) {
         className: 'success'
     });
 };
+
+window.download_job = function(job_id) {
+    var interval = null;
+    var try_lock = function() {
+        $.ajax({
+            url: '/jobs/downloadlock/',
+            type: 'GET',
+            dataType: 'json',
+            async: false,
+            success: function (resp) {
+                if (resp.status) {
+                    clearInterval(interval);
+                    $('body').removeClass("loading");
+                    window.location.replace('/jobs/downloadjob/' + job_id + '/' + '?hashsum=' + resp.hash_sum);
+                }
+                else {
+                    $('body').addClass("loading");
+                }
+            }
+        });
+    };
+    $('body').addClass("loading");
+    interval = setInterval(try_lock, 1000);
+};

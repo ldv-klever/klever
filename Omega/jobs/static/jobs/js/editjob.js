@@ -612,6 +612,7 @@ function set_actions_for_file_form() {
     return false;
 }
 
+
 $(document).ready(function () {
     if (!$('#resource_title_span').length) {
         $('#resource_star_div').hide();
@@ -671,27 +672,6 @@ $(document).ready(function () {
     });
 
     $('button[id^="load_job__"]').click(function () {
-        var job_id = $(this).attr('id').replace('load_job__', '');
-        var interval = null;
-        var try_lock = function() {
-            $.ajax({
-                url: '/jobs/downloadlock/',
-                type: 'GET',
-                dataType: 'json',
-                async: false,
-                success: function (resp) {
-                    if (resp.status) {
-                        clearInterval(interval);
-                        $('body').removeClass("loading");
-                        window.location.replace('/jobs/downloadjob/' + job_id + '/' + '?hashsum=' + resp.hash_sum);
-                    }
-                },
-                error: function(res) {
-                    console.log(res.responseText);
-                }
-            });
-        };
-        $('body').addClass("loading");
-        interval = setInterval(try_lock, 1000);
+        download_job($(this).attr('id').replace('load_job__', ''));
     });
 });

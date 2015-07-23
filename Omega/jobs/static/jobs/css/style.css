@@ -112,7 +112,7 @@ th {
     color: #73b284;
 }
 
-.modal {
+.modal-loading {
     display: none;
     position: fixed;
     z-index: 1000;
@@ -130,6 +130,6 @@ body.loading {
     overflow: hidden;
 }
 
-body.loading .modal {
+body.loading .modal-loading {
     display: block;
 }

@@ -23,4 +23,5 @@ urlpatterns = [
     url(r'^test/$', views.test_page),
     url(r'^downloadjob/(?P<job_id>[0-9]+)/$', views.download_job),
     url(r'^downloadlock/$', views.download_lock),
+    url(r'^check_access/$', views.check_access),
 ]
