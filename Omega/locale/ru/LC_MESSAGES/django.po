@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 15:11+0000\n"
+"POT-Creation-Date: 2015-07-23 15:21+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -193,6 +193,7 @@ msgid "Tags"
 msgstr "Теги"
 
 #: jobs/job_functions.py:64 jobs/job_functions.py:69
+#: jobs/templates/jobs/viewJob.html:35
 msgid "Identifier"
 msgstr "Идентификатор"
 
@@ -204,7 +205,7 @@ msgstr "Формат"
 msgid "Version"
 msgstr "Версия"
 
-#: jobs/job_functions.py:67
+#: jobs/job_functions.py:67 jobs/templates/jobs/viewJob.html:33
 msgid "Class"
 msgstr "Класс"
 
@@ -607,36 +608,28 @@ msgid "All for checked"
 msgstr "Всего для отмеченных"
 
 #: jobs/templates/jobs/viewJob.html:16
-msgid "Verification Job"
-msgstr ""
+msgid "Job"
+msgstr "Задание"
 
 #: jobs/templates/jobs/viewJob.html:24
 msgid "Make copy"
-msgstr ""
+msgstr "Создать копию"
 
 #: jobs/templates/jobs/viewJob.html:25
 msgid "Download"
 msgstr "Загрузить"
 
-#: jobs/templates/jobs/viewJob.html:33
-msgid "Type"
-msgstr ""
-
-#: jobs/templates/jobs/viewJob.html:35
-msgid "ID"
-msgstr ""
-
 #: jobs/templates/jobs/viewJob.html:36
 msgid "Created by"
-msgstr ""
+msgstr "Создано"
 
 #: jobs/templates/jobs/viewJob.html:40
-msgid "Job parents"
-msgstr ""
+msgid "Parents"
+msgstr "Родители"
 
 #: jobs/templates/jobs/viewJob.html:55
-msgid "Job children"
-msgstr ""
+msgid "Children"
+msgstr "Потомки"
 
 #: jobs/templates/jobs/viewJob.html:69
 msgid "Last change"
@@ -644,14 +637,15 @@ msgstr "Последнее изменение"
 
 #: jobs/templates/jobs/viewJob.html:158
 msgid ""
-"For each component and 'total' the format of resources is [(wall time) (cpu "
-"time) (maximum memory)]"
+"Resources (wall time, CPU time and maximum memory) are shown for each "
+"component and totally"
 msgstr ""
+"Показаны ресурсы (астрономическое время, процессорное время и максимальный "
+"объекм оперативной памяти) по отдельности для каждого компонента и суммарно"
 
 #: jobs/templates/jobs/viewJob.html:175
-msgid ""
-"All versions and all data connected to this verification job will be deleted!"
-msgstr ""
+msgid "All versions and all data of this job will be deleted"
+msgstr "Все версии и все данные данного задания будут удалены"
 
 #: jobs/views.py:160
 msgid "The default view was made preferred"

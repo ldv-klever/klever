@@ -13,7 +13,7 @@
     <link href="/static/jobs/css/jquery.treegrid.css" rel="stylesheet">
 {% endblock %}
 
-{% block title %}{% trans 'Verification Job' %}{% endblock %}
+{% block title %}{% trans 'Job' %}{% endblock %}
 
 {% block body_block %}
     {% if job %}
@@ -30,14 +30,14 @@
 
             <h4><span class="show-job-name show-job-title"><ins>{{ job.name }}</ins></span></h4>
 
-            <span class="show-job-title">{% trans 'Type' %}:</span> {{ job.get_type_display }}
+            <span class="show-job-title">{% trans 'Class' %}:</span> {{ job.get_type_display }}
             <br>
-            <span class="show-job-title">{% trans 'ID' %}:</span> <span style="color: #15c46b">{{ job.identifier }}</span>
+            <span class="show-job-title">{% trans 'Identifier' %}:</span> <span style="color: #15c46b">{{ job.identifier }}</span>
             <br><span class="show-job-title">{% trans 'Created by' %}: </span>
             <a href="{% url 'users:show_profile' created_by.pk %}">{{ created_by.extended.last_name }} {{ created_by.extended.first_name }}</a>
             <br>
             {% if parents %}
-                <span class="show-job-title">{% trans 'Job parents' %}:</span>
+                <span class="show-job-title">{% trans 'Parents' %}:</span>
                 {% for parent in parents %}
                     <ul><li>
                     {% if parent.pk %}
@@ -52,7 +52,7 @@
             {% endif %}
 
             {% if children %}
-                <span class="show-job-title">{% trans 'Job children' %}:</span>
+                <span class="show-job-title">{% trans 'Children' %}:</span>
                 <ul>
                 {% for child in children %}
                     <li>
@@ -155,7 +155,7 @@
                 </ul>
             {% endif %}
 
-            <div id="resource_star_div"><hr><small style="color: #868686">*{% trans "For each component and 'total' the format of resources is [(wall time) (cpu time) (maximum memory)]" %}</small></div>
+            <div id="resource_star_div"><hr><small style="color: #868686">*{% trans "Resources (wall time, CPU time and maximum memory) are shown for each component and totally" %}</small></div>
         </div>
         {% if can_edit %}
             <div id="edit_job_div" class="col-sm-7"></div>
@@ -172,7 +172,7 @@
                             <h4 class="modal-title">{% trans 'Are you sure' %}?</h4>
                         </div>
                         <div class="modal-body">
-                            <p>{% trans 'All versions and all data connected to this verification job will be deleted!' %}</p>
+                            <p>{% trans 'All versions and all data of this job will be deleted' %}</p>
                         </div>
                         <div class="modal-footer">
                             <button id="remove_job__{{ job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
