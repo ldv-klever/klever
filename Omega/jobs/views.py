@@ -522,7 +522,7 @@ def save_job(request):
             elif len(parents) > 1:
                 return JsonResponse({
                     'status': 1,
-                    'message': _('Increase length of parent identifier.')
+                    'message': _('Several parents match the specified identifier, please increase the length of the parent identifier')
                 })
             parent = parents[0]
             if parent == job or job.type != parent.type:

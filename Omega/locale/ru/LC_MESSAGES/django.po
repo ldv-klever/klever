@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-23 15:21+0000\n"
+"POT-Creation-Date: 2015-07-23 15:24+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -710,8 +710,12 @@ msgid "The job parent was not found"
 msgstr "Родитель задания не был найден"
 
 #: jobs/views.py:525
-msgid "Increase length of parent identifier."
+msgid ""
+"Several parents match the specified identifier, please increase the length "
+"of the parent identifier"
 msgstr ""
+"Указанному идентификатору соответствуют несколько родителей, пожалуйста, "
+"увеличьте длину идентификатора родителя"
 
 #: jobs/views.py:531
 msgid "The specified parent can't be set for this job"
