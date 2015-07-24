@@ -889,8 +889,9 @@ def upload_job(request, parent_id=None):
     })
 
 
-@login_required
-def set_status(request):
+def psi_set_status(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 305})
     if request.method == 'POST':
         identifier = request.POST.get('identifier', None)
         status = request.POST.get('status', None)
@@ -898,38 +899,46 @@ def set_status(request):
             try:
                 job = Job.objects.get(identifier=identifier)
             except ObjectDoesNotExist:
-                return JsonResponse({'status': 1})
+                return JsonResponse({'error': 304})
             if job_f.is_operator(request.user, job):
                 if status in [x[0] for x in JOB_STATUS]:
                     job.jobstatus.status = status
                     job.jobstatus.save()
-                    return JsonResponse({'status': 0})
-    return JsonResponse({'status': 1})
+                    return JsonResponse({'error': 0})
+                else:
+                    JsonResponse({'error': 302})
+            else:
+                JsonResponse({'error': 303})
+        else:
+            print(2)
+    print(1)
+    return JsonResponse({'error': 500})
 
 
 def psi_download_job(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 305})
     if request.method != 'POST':
-        return JsonResponse({'status': 1})
+        return JsonResponse({'error': 500})
     job_identifier = request.POST.get('identifier', None)
     hash_sum = request.POST.get('hash_sum', None)
     if job_identifier is None or hash_sum is None:
-        return JsonResponse({'status': 2})
+        return JsonResponse({'error': 300})
     try:
         job = Job.objects.get(identifier=job_identifier)
     except ObjectDoesNotExist:
-        return JsonResponse({'status': 3})
+        return JsonResponse({'error': 304})
 
     if not job_f.is_operator(request.user, job):
-        return JsonResponse({'status': 4})
+        return JsonResponse({'error': 303})
 
-    job_zip = job_f.JobArchive(job=job, hash_sum=hash_sum)
-    job_zip.create_tar()
-    if job_zip.err_code > 0:
-        return JsonResponse({'status': job_zip.err_code})
+    job_tar = job_f.JobArchive(job=job, hash_sum=hash_sum)
+    if not job_tar.create_tar():
+        return JsonResponse({'error': 500})
 
     response = HttpResponse(content_type="application/x-tar-gz")
-    zipname = job_zip.jobtar_name
+    zipname = job_tar.jobtar_name
     response["Content-Disposition"] = "attachment; filename=%s" % zipname
-    job_zip.memory.seek(0)
-    response.write(job_zip.memory.read())
+    job_tar.memory.seek(0)
+    response.write(job_tar.memory.read())
     return response

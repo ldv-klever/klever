@@ -402,7 +402,6 @@ class JobArchive(object):
         self.hash_sum = hash_sum
         self.__prepare_workdir()
         self.memory = BytesIO()
-        self.err_code = 0
 
     def first_lock(self):
         f = open(self.lockfile, 'r')
@@ -429,8 +428,7 @@ class JobArchive(object):
 
     def create_tar(self):
         if self.job is None:
-            self.err_code = 404
-            return
+            return False
         if self.__second_lock():
             self.jobtar_name = 'VJ__' + self.job.identifier + '.tar.gz'
             files_for_tar = self.__get_filedata()
@@ -449,7 +447,8 @@ class JobArchive(object):
             jobtar_obj.close()
             self.__unlock()
         else:
-            self.err_code = 450
+            return False
+        return True
 
     def __prepare_workdir(self):
         self.workdir = os.path.join(settings.MEDIA_ROOT, self.workdir)

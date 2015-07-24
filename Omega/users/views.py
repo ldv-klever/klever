@@ -167,18 +167,13 @@ def psi_signin(request):
                     template.render(RequestContext(request, {}))
                 )
             else:
-                login_error = _("Account has been disabled")
-        else:
-            login_error = _("Incorrect username or password")
-        return JsonResponse({'status': 1, 'message': login_error})
-    return JsonResponse({'status': 1, 'message': 'Unknown error'})
+                return JsonResponse({'error': 306})
+        return JsonResponse({'error': 307})
+    return JsonResponse({'error': 500})
 
-
-def test(request):
-    if request.user.is_authenticated():
-        return JsonResponse({'status': 0})
-    return JsonResponse({'status': 1})
 
 def psi_signout(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 305})
     logout(request)
-    return JsonResponse({'status': 0})
+    return JsonResponse({'error': 0})
