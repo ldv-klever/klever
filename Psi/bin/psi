@@ -33,6 +33,7 @@ def exit_handler():
     if 'is_solving_file' in globals() and os.path.isfile(is_solving_file):
         os.remove(is_solving_file)
 
+
 # Execute exit_handler() right before exit.
 atexit.register(exit_handler)
 
@@ -100,8 +101,13 @@ for logger_conf in conf['logging']['loggers']:
                     handler_conf['name']))
 
             # Set up handler logging level.
-            # TODO: print better error message if level isn't valid!
-            handler.setLevel(logging._nameToLevel[handler_conf['level']])
+            log_levels = {'NOTSET': logging.NOTSET, 'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
+                          'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
+            if not handler_conf['level'] in log_levels:
+                raise KeyError('Logging level "{0}" is not supported, please use one of "{1}"'.format(
+                    handler_conf['level'], '", "'.join(log_levels.keys())))
+
+            handler.setLevel(log_level)
 
             # Find and set up handler formatter.
             formatter = None
