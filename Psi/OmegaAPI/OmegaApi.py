@@ -73,14 +73,15 @@ class JobSession(object):
         else:
             return self.__error(404)
 
-    def download_file(self, identifier, destination, timelimit=60):
+    def download_file(self, id, destination, timelimit=60, supported_format=1):
         url = self.omega_url + 'jobs/psi_downloadjob/'
         hash_sum = self.__download_lock(timelimit)
         if hash_sum:
             data = {
                 'csrfmiddlewaretoken': self.session.cookies['csrftoken'],
                 'hash_sum': hash_sum,
-                'identifier': identifier
+                'identifier': id,
+                'supported_format': supported_format
             }
             resp = self.session.post(url, data, stream=True)
             if resp.headers['content-type'] == 'application/x-tar-gz':
