@@ -97,17 +97,22 @@ for logger_conf in conf['logging']['loggers']:
                 # Always print log to file "log" in working directory.
                 handler = logging.FileHandler('log')
             else:
-                raise KeyError('Handler "{0}" is not supported, please use either "console" or "file"'.format(
-                    handler_conf['name']))
+                raise KeyError(
+                    'Handler "{0}" (logger "{1}) is not supported, please use either "console" or "file"'.format(
+                        handler_conf['name'], logger_conf['name']))
 
             # Set up handler logging level.
             log_levels = {'NOTSET': logging.NOTSET, 'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
                           'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
             if not handler_conf['level'] in log_levels:
-                raise KeyError('Logging level "{0}" is not supported, please use one of "{1}"'.format(
-                    handler_conf['level'], '", "'.join(log_levels.keys())))
+                raise KeyError(
+                    'Logging level "{0}" {1} is not supported{2}'.format(
+                        handler_conf['level'],
+                        '(logger "{0}", handler "{1}")'.format(logger_conf['name'], handler_conf['name']),
+                        ', please use one of the following logging levels: "{0}"'.format(
+                            '", "'.join(log_levels.keys()))))
 
-            handler.setLevel(log_level)
+            handler.setLevel(log_levels[handler_conf['level']])
 
             # Find and set up handler formatter.
             formatter = None
