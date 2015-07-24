@@ -6,9 +6,11 @@ import getpass
 import json
 import logging
 import os
+import resource
 import shutil
 import subprocess
 import sys
+import timeit
 
 job_format = '1'
 
@@ -35,6 +37,9 @@ def exit_handler():
 atexit.register(exit_handler)
 
 default_conf_file = 'psi-conf.json'
+
+# Remember approximate time of start.
+start = timeit.default_timer()
 
 # Get configuration file from command-line options.
 parser = argparse.ArgumentParser(description='Main script of Psi.')
@@ -163,8 +168,14 @@ with open('start report.json', 'w') as fp:
 
 # TODO: remove cgroups.
 
-# TODO: counts resources consumed by Psi.
-resources = {}
+# Note that launching in PyCharm gives its maximum memory size.
+logger.info('Count consumed resources')
+utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
+resources = {'wall time': round(timeit.default_timer() - start), 'CPU time': round(utime + stime),
+             'max mem size': 1000 * maxrss}
+logger.debug('Consumed resources are:')
+for resource in sorted(resources):
+    logger.debug('    {0} - {1}'.format(resource, resources[resource]))
 
 logger.info('Encode finish report file')
 with open('finish report.json', 'w') as finish_report_fp:
