@@ -666,7 +666,7 @@ $(document).ready(function () {
             '/jobs/removejob/',
             {job_id: job_id},
             function (data) {
-                data.status == 0 ? window.location.replace('/jobs/'):err_notify(data.message);
+                data.status == 0 ? window.location.replace('/jobs/') : err_notify(data.message);
             },
             'json'
         );

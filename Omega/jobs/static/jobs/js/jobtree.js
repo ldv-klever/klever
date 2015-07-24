@@ -1,7 +1,7 @@
 //-------------
 // FOR TABLE
 //-------------
-var do_not_count = "resource|format|version|type|identifier|parent_id|parent_name|date";
+var do_not_count = "resource|format|version|type|identifier|parent_id|date";
 
 function fill_all_values() {
     $("td[id^='all__']").each(function() {

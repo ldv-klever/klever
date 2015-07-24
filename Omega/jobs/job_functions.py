@@ -773,3 +773,15 @@ def has_job_access(user, action='view', job=None):
             if first_version[0].change_author == user:
                 return True
     return False
+
+
+def check_new_parent(job, parent):
+    if job.type != parent.type:
+        return False
+    if job.parent == parent:
+        return True
+    while parent is not None:
+        if parent == job:
+            return False
+        parent = parent.parent
+    return True

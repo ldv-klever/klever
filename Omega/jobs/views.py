@@ -1,9 +1,8 @@
+import os
 import pytz
 import json
 import hashlib
 import mimetypes
-import os
-import zipfile
 from io import BytesIO
 from urllib.parse import quote, unquote
 from django.db.models import Q
@@ -533,18 +532,21 @@ def save_job(request):
             elif len(parents) > 1:
                 return JsonResponse({
                     'status': 1,
-                    'message': _('Several parents match the specified identifier, please increase the length of the parent identifier')
+                    'message': _('Several parents match the specified '
+                                 'identifier, please increase the length '
+                                 'of the parent identifier')
                 })
             parent = parents[0]
-            if parent == job or job.type != parent.type:
-                return JsonResponse({
-                    'status': 1,
-                    'message': _("The specified parent can't be set for this job")
-                })
             if job.parent is None:
                 return JsonResponse({
                     'status': 1,
                     'message': _("Root jobs can't become another child!")
+                })
+            if not job_f.check_new_parent(job, parent):
+                return JsonResponse({
+                    'status': 1,
+                    'message': _("The specified parent can't "
+                                 "be set for this job")
                 })
             job.parent = parent
         elif job.parent:
@@ -609,7 +611,6 @@ def save_job(request):
     new_version.parent = job.parent
     new_version.save()
 
-    # UserRole.objects.filter(job=job).delete()
     for ur in user_roles:
         user_id = int(ur['user'])
         role = ur['role']
@@ -641,19 +642,23 @@ def save_job(request):
 @login_required
 def remove_job(request):
     if request.method != 'POST':
-        return JsonResponse({'status': 1})
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
     job_id = request.POST.get('job_id', None)
     if job_id is None:
-        return JsonResponse({'status': 2})
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
     try:
         job = Job.objects.get(pk=job_id)
     except ObjectDoesNotExist:
-        return JsonResponse({'status': 3})
+        return JsonResponse({
+            'status': 1, 'message': _('The job was not found')
+        })
 
     if not job_f.has_job_access(request.user, action='remove', job=job):
-        return JsonResponse({'status': 10})
-
+        return JsonResponse({
+            'status': 1,
+            'message': _("You don't have an access to remove this job")
+        })
     job.delete()
     return JsonResponse({'status': 0})
 
@@ -679,7 +684,8 @@ def remove_jobs(request):
             return JsonResponse({
                 'status': 1,
                 'message':
-                    _("You don't have an access to remove one of the selected jobs")
+                    _("You don't have an access to "
+                      "remove one of the selected jobs")
             })
     for job in jobs:
         job.delete()
@@ -804,7 +810,8 @@ def job_error(request, err_code=0):
     elif err_code == 400:
         message = _("You don't have an access to this job")
     elif err_code == 450:
-        message = _('Somebody is downloading a job right now, please try again later')
+        message = _('Somebody is downloading a job right now, '
+                    'please try again later')
     elif err_code == 451:
         message = _('Wrong parameters, please reload page and try again.')
     return render(request, 'jobs/error.html',
