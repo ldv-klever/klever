@@ -730,7 +730,6 @@ def upload_files(request):
             'hash_sum': check_sum,
             'status': 0
         })
-    print("%s" % form.errors)
     return JsonResponse({
         'message': 'Loading failed!',
         'form_errors': form.errors,
@@ -777,19 +776,18 @@ def download_job(request, job_id):
         return HttpResponseRedirect(
             reverse('jobs:error', args=[451]) + "?back=%s" % back_url
         )
-    job_zip = job_f.JobArchive(job=job, hash_sum=hash_sum)
-    job_zip.create_tar()
-    if job_zip.err_code > 0:
+    job_tar = job_f.JobArchive(job=job, hash_sum=hash_sum)
+
+    if not job_tar.create_tar():
         response = HttpResponseRedirect(
-            reverse('jobs:error',
-                    args=[job_zip.err_code]) + "?back=%s" % back_url
+            reverse('jobs:error', args=[500]) + "?back=%s" % back_url
         )
     else:
         response = HttpResponse(content_type="application/x-tar-gz")
-        zipname = job_zip.jobtar_name
+        zipname = job_tar.jobtar_name
         response["Content-Disposition"] = "attachment; filename=%s" % zipname
-        job_zip.memory.seek(0)
-        response.write(job_zip.memory.read())
+        job_tar.memory.seek(0)
+        response.write(job_tar.memory.read())
     return response
 
 
@@ -909,9 +907,6 @@ def psi_set_status(request):
                     JsonResponse({'error': 302})
             else:
                 JsonResponse({'error': 303})
-        else:
-            print(2)
-    print(1)
     return JsonResponse({'error': 500})
 
 
@@ -922,10 +917,12 @@ def psi_download_job(request):
         return JsonResponse({'error': 500})
     job_identifier = request.POST.get('identifier', None)
     hash_sum = request.POST.get('hash_sum', None)
-    if job_identifier is None or hash_sum is None:
+    supported_format = request.POST.get('supported_format', None)
+    if job_identifier is None or hash_sum is None or supported_format is None:
         return JsonResponse({'error': 300})
     try:
-        job = Job.objects.get(identifier=job_identifier)
+        job = Job.objects.get(identifier=job_identifier,
+                              format=int(supported_format))
     except ObjectDoesNotExist:
         return JsonResponse({'error': 304})
 
