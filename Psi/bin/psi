@@ -9,6 +9,11 @@ import os
 import shutil
 import sys
 
+def get_passwd(name):
+    logger.info('Get ' + name + ' password')
+    passwd = getpass.getpass() if not conf[name]['passwd'] else conf[name]['passwd']
+    return passwd
+
 def get_user(name):
     logger.info('Get ' + name + ' user name')
     user = getpass.getuser() if not conf[name]['user'] else conf[name]['user']
@@ -102,9 +107,8 @@ verification_task_scheduler = {}
 omega['user'] = get_user('Omega')
 verification_task_scheduler['user'] = get_user('Verification Task Scheduler')
 
-logger.info('Get Omega password')
-# TODO: this doesn't hide password!
-#omega['passwd'] = getpass.getpass() if not conf['Omega']['passwd'] else conf['Omega']['passwd']
+omega['passwd'] = get_passwd('Omega')
+verification_task_scheduler['passwd'] = get_passwd('Verification Task Scheduler')
 
 # TODO: remove this when everything will work fine!
 exit(1)
