@@ -1,0 +1,109 @@
+#!/usr/bin/python3
+
+import argparse
+import atexit
+import getpass
+import json
+import logging
+import os
+import shutil
+import sys
+
+def exit_handler():
+    # Release working directory if it was occupied.
+    if 'is_solving_file' in globals() and os.path.isfile(is_solving_file):
+        os.remove(is_solving_file)
+
+# Execute exit_handler() right before exit.
+atexit.register(exit_handler)
+
+default_conf_file = 'psi-conf.json'
+
+# Get configuration file from command-line options.
+parser = argparse.ArgumentParser(description='Main script of Psi.')
+parser.add_argument('conf file', nargs='?', default=default_conf_file, help='configuration file (default: {0})'.format(default_conf_file))
+conf_file = vars(parser.parse_args())['conf file']
+
+# Decode configuration file.
+with open(conf_file) as fp:
+    conf = json.load(fp)
+
+# Test whether another Psi occupies the same working directory.
+is_solving_file = conf['work dir'] + '/' + 'is solving'
+if os.path.isfile(is_solving_file):
+    raise FileExistsError('Another Psi occupies working directory "{0}"'.format(conf['work dir']))
+
+# Remove (if exists) and create (if doesn't exist) working directory.
+# Note, that shutil.rmtree() doesn't allow to ignore files as required by specification. So, we first remove the whole
+# working directory (if exists), then create working directory (pass if it is created by another Psi), then test
+# one more time whether another Psi occupies the same working directory and just then occupy working directory.
+shutil.rmtree(conf['work dir'], True)
+os.makedirs(conf['work dir'], exist_ok=True)
+
+if os.path.isfile(is_solving_file):
+    raise FileExistsError('Another Psi occupies working directory "{0}"'.format(conf['work dir']))
+
+# Occupy working directory until the end of operation.
+# Yes there may be race condition, but it won't be.
+open(is_solving_file, 'w').close()
+
+# Move to working directory until the end of operation.
+# We can use path for "is solving" file relative to working directory since exceptions aren't raised when we have
+# relative path but don't change directory yet.
+is_solving_file = os.path.relpath(is_solving_file, conf['work dir'])
+os.chdir(conf['work dir'])
+
+# TODO: extract this code to library.
+# Set up logger.
+logger = logging.getLogger(os.path.basename(__file__))
+# Actual levels will be set for logger handlers.
+logger.setLevel(logging.DEBUG)
+for logger_conf in conf['logging']['loggers']:
+    # TODO: find a tool specific logger!
+    if logger_conf['name'] == 'default':
+        # Set up handlers
+        for handler_conf in logger_conf['handlers']:
+            if handler_conf['name'] == 'console':
+                # Always print log to STDOUT.
+                handler = logging.StreamHandler(sys.stdout)
+            elif handler_conf['name'] == 'file':
+                # Always print log to file "log" in working directory.
+                handler = logging.FileHandler('log')
+            else:
+                raise KeyError('Handler "{0}" is not supported, please use either "console" or "file"'.format(handler_conf['name']))
+
+            # Set up handler logging level.
+            # TODO: print better error message if level isn't valid!
+            handler.setLevel(logging._nameToLevel[handler_conf['level']])
+
+            # Find and set up handler formatter.
+            formatter = None
+            for formatter_conf in conf['logging']['formatters']:
+                if formatter_conf['name'] == handler_conf['formatter']:
+                    formatter = logging.Formatter(formatter_conf['value'], "%Y-%m-%d %H:%M:%S")
+                    break
+            if not formatter:
+                raise KeyError('Handler "{0}" references undefined formatter "{1}"'.format(handler_conf['name'], handler_conf['formatter']))
+            handler.setFormatter(formatter)
+
+            logger.addHandler(handler)
+
+# Configuration for Omega.
+omega = {}
+# Configuration for Verification Task Scheduler.
+verification_task_scheduler = {}
+
+# TODO: make this as functions!
+logger.info('Get Omega user name')
+omega['user'] = getpass.getuser() if not conf['Omega']['user'] else conf['Omega']['user']
+logger.debug('Omega user name is "{}"'.format(omega['user']))
+# logger.info('Get Verification Task Scheduler user name')
+# omega['user'] = getpass.getuser() if not conf['Verification Task Scheduler']['user'] else conf['Verification Task Scheduler']['user']
+# logger.info('Verification Task Scheduler user name is "{}"'.format(omega['user']))
+
+logger.info('Get Omega password')
+# TODO: this doesn't hide password!
+#omega['passwd'] = getpass.getpass() if not conf['Omega']['passwd'] else conf['Omega']['passwd']
+
+# TODO: remove this when everything will work fine!
+exit(1)
