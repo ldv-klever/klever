@@ -77,11 +77,7 @@
                 <td><span class="TableTitle">{% trans 'Value' %}</span></td>
             </tr>
             {% for attr in report.attr.all %}
-            {% if attr.id|divisibleby:"2" %}
-            <tr class="TableRawEven">
-            {% else %}
             <tr class="TableRawOdd">
-            {% endif %}
                 <td>{{attr.name.name}}</td>
                 <td>{{attr.value}}</td>
             </tr>
@@ -97,11 +93,7 @@
                 <td><span class="TableTitle">{% trans 'Memory' %}</span></td>
             </tr>
             {% for resource in resources %}
-            {% if resource.id|divisibleby:"2" %}
-            <tr class="TableRawEven">
-            {% else %}
             <tr class="TableRawOdd">
-            {% endif %}
                 {% if resource.component.name %}
                     <td>{{ resource.component.name }}</td>
                 {% else %}
@@ -116,24 +108,58 @@
 
         {% if parents %}
         </br><span class="Title">{% trans 'Parents' %}</span>
-            <ul>
-            {% for parent in parents %}
+        <table class="RootReportTable" border="1">
+            <tr class="TableRawEven">
+                <td><span class="TableTitle">{% trans 'Component' %}</span></td>
+                {% for attr in parents_attr %}
+                    <td><span class="TableTitle">{{ attr.name }}</span></td>
+                {% endfor %}
+            </tr>
+            {% for parent, attr_values in parents.iteritems %}
+                <tr class="TableRawOdd">
+
                 {% if not parent.parent %}
-                    <li><a href="{% url 'reports:report_root' parent.id %}">{{ parent.identifier }}</a></li>
+                    <td><a href="{% url 'reports:report_root' parent.id %}">{{ parent.component.name }}</a></td>
                 {% else %}
-                    <li><a href="{% url 'reports:report_component' parent.id %}">{{ parent.identifier }}</a></li>
+                    <td><a href="{% url 'reports:report_component' parent.id %}">{{ parent.component.name }}</a></td>
                 {% endif %}
+
+                {% for attr in attr_values %}
+                    {% if attr %}
+                        <td>{{ attr.0.value }}</td>
+                    {% else %}
+                        <td></td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
             {% endfor %}
-            </ul>
+        </table>
         {% endif %}
 
-        {% if children %}
-        <span class="Title">{% trans 'Children' %}</span>
-        <ul>
-            {% for child in children %}
-                <li><a href="{% url 'reports:report_component' child.id %}">{{ child.identifier }}</a></li>
+        {% if children_values %}
+        </br><span class="Title">{% trans 'Children' %}</span>
+        <table class="RootReportTable" border="1">
+            <tr class="TableRawEven">
+                <td><span class="TableTitle">{% trans 'Component' %}</span></td>
+                {% for attr in children_attr %}
+                    <td><span class="TableTitle">{{ attr.name }}</span></td>
+                {% endfor %}
+            </tr>
+            {% for child, attr_values in children_values.iteritems %}
+                <tr class="TableRawOdd">
+
+                <td><a href="{% url 'reports:report_component' child.id %}">{{ child.component.name }}</a></td>
+
+                {% for attr in attr_values %}
+                    {% if attr %}
+                        <td>{{ attr.0.value }}</td>
+                    {% else %}
+                        <td></td>
+                    {% endif %}
+                {% endfor %}
+            </tr>
             {% endfor %}
-        </ul>
+        </table>
         {% endif %}
 
         <span class="Title">{% trans 'Log' %}</span>

@@ -95,3 +95,13 @@ class ReportUnknown(Report):
 
     class Meta:
         db_table = 'report_unknown'
+
+
+class ReportAttr(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    attr = models.ForeignKey(Attr)
+
+    class Meta:
+        db_table = 'cache_report_attr'
+
+# TODO: add cache table for report_component - report_leaf
