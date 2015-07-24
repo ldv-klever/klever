@@ -134,8 +134,9 @@ for handler_conf in pref_logger_conf['handlers']:
                                                                                    handler_conf['formatter']))
     handler.setFormatter(formatter)
 
-    logger.addHandler(handler)  # Configuration for Omega.
+    logger.addHandler(handler)
 
+# Configuration for Omega.
 omega = {}
 # Configuration for Verification Task Scheduler.
 verification_task_scheduler = {}
