@@ -9,16 +9,19 @@ import os
 import shutil
 import sys
 
+
 def get_passwd(name):
     logger.info('Get ' + name + ' password')
     passwd = getpass.getpass() if not conf[name]['passwd'] else conf[name]['passwd']
     return passwd
+
 
 def get_user(name):
     logger.info('Get ' + name + ' user name')
     user = getpass.getuser() if not conf[name]['user'] else conf[name]['user']
     logger.debug(name + ' user name is "{}"'.format(user))
     return user
+
 
 def exit_handler():
     # Release working directory if it was occupied.
@@ -32,7 +35,8 @@ default_conf_file = 'psi-conf.json'
 
 # Get configuration file from command-line options.
 parser = argparse.ArgumentParser(description='Main script of Psi.')
-parser.add_argument('conf file', nargs='?', default=default_conf_file, help='configuration file (default: {0})'.format(default_conf_file))
+parser.add_argument('conf file', nargs='?', default=default_conf_file,
+                    help='configuration file (default: {0})'.format(default_conf_file))
 conf_file = vars(parser.parse_args())['conf file']
 
 # Decode configuration file.
@@ -81,7 +85,8 @@ for logger_conf in conf['logging']['loggers']:
                 # Always print log to file "log" in working directory.
                 handler = logging.FileHandler('log')
             else:
-                raise KeyError('Handler "{0}" is not supported, please use either "console" or "file"'.format(handler_conf['name']))
+                raise KeyError('Handler "{0}" is not supported, please use either "console" or "file"'.format(
+                    handler_conf['name']))
 
             # Set up handler logging level.
             # TODO: print better error message if level isn't valid!
@@ -94,7 +99,8 @@ for logger_conf in conf['logging']['loggers']:
                     formatter = logging.Formatter(formatter_conf['value'], "%Y-%m-%d %H:%M:%S")
                     break
             if not formatter:
-                raise KeyError('Handler "{0}" references undefined formatter "{1}"'.format(handler_conf['name'], handler_conf['formatter']))
+                raise KeyError('Handler "{0}" references undefined formatter "{1}"'.format(handler_conf['name'],
+                                                                                           handler_conf['formatter']))
             handler.setFormatter(formatter)
 
             logger.addHandler(handler)
