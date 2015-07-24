@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
 from django.forms import ValidationError
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from django.utils.translation import activate
@@ -12,6 +12,7 @@ from users.forms import UserExtendedForm, UserForm, EditUserForm
 from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
 from jobs.job_functions import has_job_access
+from django.template import Template, RequestContext
 
 
 def user_signin(request):
@@ -151,3 +152,33 @@ def show_profile(request, user_id=None):
         'activity': activity,
         'user_tz': user_tz
     })
+
+
+def psi_signin(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            if user.is_active:
+                login(request, user)
+                template = Template('')
+                return HttpResponse(
+                    template.render(RequestContext(request, {}))
+                )
+            else:
+                login_error = _("Account has been disabled")
+        else:
+            login_error = _("Incorrect username or password")
+        return JsonResponse({'status': 1, 'message': login_error})
+    return JsonResponse({'status': 1, 'message': 'Unknown error'})
+
+
+def test(request):
+    if request.user.is_authenticated():
+        return JsonResponse({'status': 0})
+    return JsonResponse({'status': 1})
+
+def psi_signout(request):
+    logout(request)
+    return JsonResponse({'status': 0})
