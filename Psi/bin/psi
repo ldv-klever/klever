@@ -135,6 +135,15 @@ logger.debug('Psi version is "{0}"'.format(version))
 
 logger.debug('Psi supports jobs of format "{0}"'.format(job_format))
 
+# TODO: create cgroups.
+
+# TODO: get computer description.
+comp_desc = []
+
+# Encode start report file.
+with open('start report.json', 'w') as fp:
+    json.dump({'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc}, fp)
+
 # TODO: remove this when everything will work fine!
 logger.error("Fatal error")
 exit(1)
