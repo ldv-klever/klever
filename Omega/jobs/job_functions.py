@@ -775,6 +775,18 @@ def has_job_access(user, action='view', job=None):
     return False
 
 
+def is_operator(user, job):
+    last_version =  job.jobhistory_set.get(version=job.version)
+    user_role = last_version.userrole_set.filter(user=user)
+    if len(user_role):
+        if user_role[0].role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
+            return True
+        return False
+    if job.global_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
+        return True
+    return False
+
+
 def check_new_parent(job, parent):
     if job.type != parent.type:
         return False
