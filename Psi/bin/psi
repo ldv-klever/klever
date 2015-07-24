@@ -81,7 +81,7 @@ os.chdir(conf['work dir'])
 
 # TODO: extract this code to library.
 # Set up logger.
-logger = logging.getLogger(os.path.basename(__file__))
+logger = logging.getLogger(os.path.basename(__file__).upper())
 # Actual levels will be set for logger handlers.
 logger.setLevel(logging.DEBUG)
 for logger_conf in conf['logging']['loggers']:
