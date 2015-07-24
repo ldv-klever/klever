@@ -1,0 +1,37 @@
+For using Omega API you need only class JobSession():
+
+
+1) Initialization with args: (username, password, [omega=None])
+  where 'username' and 'password' - usernames and password of user registered in
+  the Omega system. 'omega' is name of the server (default is 'localhost:8998')
+  with port or without it.
+
+
+2) After each call you can check if it was completed successfully:
+- JobSession.status is boolean ('True' when everything is good);
+- JobSession.err_code is last error code;
+- JobSession.err_message is last error message;
+
+
+3) Functions:
+   # JobSession.set_status(identifier, status)
+     - set status for the job with identifier = 'identifier'.
+
+   # JobSession.download_file(identifier, destination)
+     - download job archive .tar.gz and save to the file 'destination'
+       with job's identifier is 'identifier'.
+
+
+4) Job statuses:
+    '0' - job is not started solving yet;
+    '1' - job is solving;
+    '2' - job solving was stopped;
+    '3' - job was solved;
+    '4' - job solving failed.
+
+
+5) Only job operator can change job status and download it.
+
+
+6) Job error status codes:
+# TODO: write status codes.
