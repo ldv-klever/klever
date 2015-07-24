@@ -11,5 +11,4 @@ urlpatterns = [
         name='show_profile'),
     url(r'^psi_signin/$', views.psi_signin),
     url(r'^psi_signout/$', views.psi_signout),
-    url(r'^test/$', views.test)
 ]

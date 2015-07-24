@@ -25,6 +25,6 @@ urlpatterns = [
     url(r'^downloadlock/$', views.download_lock),
     url(r'^check_access/$', views.check_access),
     url(r'^upload_job/(?P<parent_id>.*)/$', views.upload_job),
-    url(r'^setstatus/$', views.set_status),
+    url(r'^setstatus/$', views.psi_set_status),
     url(r'^psi_downloadjob/$', views.psi_download_job),
 ]
