@@ -40,7 +40,7 @@ with open(conf_file) as fp:
     conf = json.load(fp)
 
 # Test whether another Psi occupies the same working directory.
-is_solving_file = conf['work dir'] + '/' + 'is solving'
+is_solving_file = os.path.join(conf['work dir'], 'is solving')
 if os.path.isfile(is_solving_file):
     raise FileExistsError('Another Psi occupies working directory "{0}"'.format(conf['work dir']))
 
