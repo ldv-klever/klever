@@ -127,21 +127,21 @@ verification_task_scheduler['user'] = get_user('Verification Task Scheduler')
 omega['passwd'] = get_passwd('Omega')
 verification_task_scheduler['passwd'] = get_passwd('Verification Task Scheduler')
 
-logger.info('Get Psi version')
-# Psi Git repository directory may be located in parent directory of Psi parent directory.
+logger.info('Get version')
+# Git repository directory may be located in parent directory of parent directory.
 git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
 if os.path.isdir(git_repo_dir):
     proc = subprocess.Popen(['git', '--git-dir', git_repo_dir, 'describe', '--always', '--abbrev=7', '--dirty'],
                             stdout=subprocess.PIPE)
     version = proc.stdout.readline().decode('utf-8').rstrip()
     if not version:
-        raise ValueError('Could not get Psi Git repository tag')
+        raise ValueError('Could not get Git repository tag')
 else:
     # TODO: get version of installed Psi.
     version = ''
-logger.debug('Psi version is "{0}"'.format(version))
+logger.debug('Version is "{0}"'.format(version))
 
-logger.debug('Psi supports jobs of format "{0}"'.format(job_format))
+logger.debug('Support jobs of format "{0}"'.format(job_format))
 
 # TODO: create cgroups.
 
