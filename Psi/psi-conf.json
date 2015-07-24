@@ -3,12 +3,12 @@
   "Omega": {
     "name": "localhost:8000",
     "user": null,
-    "passwd": null
+    "passwd": "stub"
   },
   "Verification Task Scheduler": {
     "name": "localhost:8000",
     "user": null,
-    "passwd": null
+    "passwd": "stub"
   },
   "logging": {
     "formatters": [
