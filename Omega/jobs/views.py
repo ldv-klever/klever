@@ -1,8 +1,8 @@
+import os
 import pytz
 import json
 import hashlib
 import mimetypes
-import os
 from io import BytesIO
 from urllib.parse import quote, unquote
 from django.db.models import Q
@@ -86,7 +86,8 @@ def tree_view(request):
         'authors': users,
         'statuses': statuses,
         'available_filters': filters.available_filters,
-        'available_views': available_views
+        'available_views': available_views,
+        'can_create': job_f.has_job_access(request.user, action='create')
     }
     return render(request, 'jobs/tree.html', context)
 
@@ -413,9 +414,12 @@ def get_version_data(request, template='jobs/editJob.html'):
 
     roles = job_f.role_info(job_version, request.user)
 
+    parent_identifier = None
+    if job.parent:
+        parent_identifier = job.parent.identifier
     job_data = {
         'id': None,
-        'parent_id': job.identifier,
+        'parent_id': parent_identifier,
         'name': job_version.name,
         'configuration': job_version.configuration,
         'description': job_version.description,
@@ -528,13 +532,21 @@ def save_job(request):
             elif len(parents) > 1:
                 return JsonResponse({
                     'status': 1,
-                    'message': _('Several parents match the specified identifier, please increase the length of the parent identifier')
+                    'message': _('Several parents match the specified '
+                                 'identifier, please increase the length '
+                                 'of the parent identifier')
                 })
             parent = parents[0]
-            if parent == job or job.type != parent.type:
+            if job.parent is None:
                 return JsonResponse({
                     'status': 1,
-                    'message': _("The specified parent can't be set for this job")
+                    'message': _("Root jobs can't become another child!")
+                })
+            if not job_f.check_new_parent(job, parent):
+                return JsonResponse({
+                    'status': 1,
+                    'message': _("The specified parent can't "
+                                 "be set for this job")
                 })
             job.parent = parent
         elif job.parent:
@@ -599,7 +611,6 @@ def save_job(request):
     new_version.parent = job.parent
     new_version.save()
 
-    # UserRole.objects.filter(job=job).delete()
     for ur in user_roles:
         user_id = int(ur['user'])
         role = ur['role']
@@ -631,19 +642,23 @@ def save_job(request):
 @login_required
 def remove_job(request):
     if request.method != 'POST':
-        return JsonResponse({'status': 1})
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
     job_id = request.POST.get('job_id', None)
     if job_id is None:
-        return JsonResponse({'status': 2})
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
     try:
         job = Job.objects.get(pk=job_id)
     except ObjectDoesNotExist:
-        return JsonResponse({'status': 3})
+        return JsonResponse({
+            'status': 1, 'message': _('The job was not found')
+        })
 
     if not job_f.has_job_access(request.user, action='remove', job=job):
-        return JsonResponse({'status': 10})
-
+        return JsonResponse({
+            'status': 1,
+            'message': _("You don't have an access to remove this job")
+        })
     job.delete()
     return JsonResponse({'status': 0})
 
@@ -669,7 +684,8 @@ def remove_jobs(request):
             return JsonResponse({
                 'status': 1,
                 'message':
-                    _("You don't have an access to remove one of the selected jobs")
+                    _("You don't have an access to "
+                      "remove one of the selected jobs")
             })
     for job in jobs:
         job.delete()
@@ -762,15 +778,15 @@ def download_job(request, job_id):
             reverse('jobs:error', args=[451]) + "?back=%s" % back_url
         )
     job_zip = job_f.JobArchive(job=job, hash_sum=hash_sum)
-    job_zip.create_zip()
+    job_zip.create_tar()
     if job_zip.err_code > 0:
         response = HttpResponseRedirect(
             reverse('jobs:error',
                     args=[job_zip.err_code]) + "?back=%s" % back_url
         )
     else:
-        response = HttpResponse(content_type="application/zip")
-        zipname = job_zip.jobzip_name
+        response = HttpResponse(content_type="application/x-tar-gz")
+        zipname = job_zip.jobtar_name
         response["Content-Disposition"] = "attachment; filename=%s" % zipname
         job_zip.memory.seek(0)
         response.write(job_zip.memory.read())
@@ -794,7 +810,8 @@ def job_error(request, err_code=0):
     elif err_code == 400:
         message = _("You don't have an access to this job")
     elif err_code == 450:
-        message = _('Somebody is downloading a job right now, please try again later')
+        message = _('Somebody is downloading a job right now, '
+                    'please try again later')
     elif err_code == 451:
         message = _('Wrong parameters, please reload page and try again.')
     return render(request, 'jobs/error.html',
@@ -809,6 +826,7 @@ def download_lock(request):
     if status:
         response_data['hash_sum'] = ziplock.hash_sum
     return JsonResponse(response_data)
+
 
 @login_required
 def check_access(request):
@@ -831,3 +849,41 @@ def check_access(request):
             'status': True,
             'message': ''
         })
+
+
+@login_required
+def upload_job(request, parent_id=None):
+    if len(parent_id) > 0:
+        parents = Job.objects.filter(identifier__startswith=parent_id)
+        if len(parents) == 0:
+            return JsonResponse({
+                'status': False,
+                'message': _("Parent with this id was not found.")
+            })
+        elif len(parents) > 1:
+            return JsonResponse({
+                'status': False,
+                'message': _("Too many parents starts with this id.")
+            })
+        parent = parents[0]
+        if len(request.FILES) == 0:
+            return JsonResponse({
+                'status': False,
+                'message': _("Zip archive was not got.")
+            })
+
+        zipdata = job_f.ReadZipJob(parent, request.user, request.FILES['file'])
+        if zipdata.job_id:
+            return JsonResponse({
+                'status': True,
+                'job_id': zipdata.job_id
+            })
+        else:
+            return JsonResponse({
+                'status': False,
+                'message': _("Job was not saved!")
+            })
+    return JsonResponse({
+        'status': False,
+        'message': _("Parent id was not got.")
+    })

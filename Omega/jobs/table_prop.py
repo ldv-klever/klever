@@ -30,7 +30,6 @@ ADDITIONAL_COLUMNS = [
     'format',
     'version',
     'type',
-    'parent_title',
     'parent_id',
 ]
 
@@ -66,7 +65,8 @@ FILTER_NAME_TITLES = {
     'change_author': _('Author'),
     'change_date': _('Last change date'),
     'status': _('Decision status'),
-    'resource_component': string_concat(_('Resources'), '/', _('Component name')),
+    'resource_component': string_concat(
+        _('Resources'), '/', _('Component name')),
     'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
     'format': _('Format'),
@@ -724,11 +724,6 @@ class TableTree(object):
                     return mark_tag.number
                 except ObjectDoesNotExist:
                     return '-'
-        elif col == 'parent_name':
-            if job.parent is None:
-                return '-'
-            else:
-                return job.parent.name
         elif col == 'parent_id':
             if job.parent is None:
                 return '-'

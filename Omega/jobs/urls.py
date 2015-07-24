@@ -24,4 +24,5 @@ urlpatterns = [
     url(r'^downloadjob/(?P<job_id>[0-9]+)/$', views.download_job),
     url(r'^downloadlock/$', views.download_lock),
     url(r'^check_access/$', views.check_access),
+    url(r'^upload_job/(?P<parent_id>.*)/$', views.upload_job),
 ]

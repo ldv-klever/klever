@@ -1,7 +1,7 @@
 //-------------
 // FOR TABLE
 //-------------
-var do_not_count = "resource|format|version|type|identifier|parent_id|parent_name|date";
+var do_not_count = "resource|format|version|type|identifier|parent_id|date";
 
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
@@ -125,6 +125,26 @@ function getOrders() {
         orders.push(order_name);
     });
     return orders
+}
+
+function check_jobs_access(jobs) {
+    var status = true;
+    console.log(jobs);
+    $.ajax({
+        url: 'check_access/',
+        type: 'POST',
+        dataType: 'json',
+        data: {jobs: JSON.stringify(jobs)},
+        async: false,
+        success: function (res) {
+            console.log(res);
+            status = res.status;
+            if (status == false) {
+                err_notify(res.message);
+            }
+        }
+    });
+    return status;
 }
 
 function getFilters() {
@@ -438,12 +458,7 @@ $(document).ready(function () {
                         window.location.replace('')
                     }
                     else {
-                        $.notify(data.message, {
-                            autoHide: true,
-                            autoHideDelay: 2500,
-                            style: 'bootstrap',
-                            className: 'error'
-                        });
+                        err_notify(data.message);
                     }
                 },
                 'json'
@@ -466,26 +481,6 @@ $(document).ready(function () {
         }
     });
 
-    function check_jobs_access(jobs) {
-        var status = true;
-        console.log(jobs);
-        $.ajax({
-            url: 'check_access/',
-            type: 'POST',
-            dataType: 'json',
-            data: {jobs: JSON.stringify(jobs)},
-            async: false,
-            success: function (res) {
-                console.log(res);
-                status = res.status;
-                if (status == false) {
-                    err_notify(res.message);
-                }
-            }
-        });
-        return status;
-    }
-
     $('#download_selected_jobs').click(function () {
         var job_ids = [];
         $('input[id^="job_checkbox__"]:checked').each(function () {
@@ -498,6 +493,46 @@ $(document).ready(function () {
                 }
             }
         }
+    });
+
+    $('.btn-file :file').on('fileselect', function (event, numFiles, label) {
+        $('#upload_job_filename').html(label);
+    });
+
+    $('#upload_job_cancel').click(function () {
+        var file_input = $('#upload_job_file_input');
+        file_input.replaceWith(file_input = file_input.clone( true ));
+        $('#upload_job_parent_id').val('');
+        $('#upload_job_filename').html('');
+    });
+
+    $('#upload_jobs_start').click(function () {
+        var parent_id = $('#upload_job_parent_id').val();
+        if (parent_id.length == 0) {
+            err_notify('Parent identifier is required!');
+            return false;
+        }
+        var data = new FormData();
+        data.append('file', $('#upload_job_file_input')[0].files[0]);
+        $.ajax({
+            url: '/jobs/upload_job/' + encodeURIComponent(parent_id) + '/',
+            data: data,
+            dataType: 'json',
+            processData: false,
+            type: 'POST',
+            contentType: false,
+            mimeType: 'multipart/form-data',
+            async: false,
+            success: function (data) {
+                console.log(data);
+                if (data.status) {
+                    window.location.replace('/jobs/' + data.job_id + '/')
+                }
+                else {
+                    err_notify(data.message);
+                }
+            }
+        });
     });
 });
 

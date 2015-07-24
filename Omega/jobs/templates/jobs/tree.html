@@ -16,7 +16,9 @@
 {% block body_block %}
     <div class="row" id="jobstree-first-big-part"><form autocomplete="off" onsubmit="return false">
         <div class="col-sm-2">
-            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload jobs' %}</button>
+            {% if can_create %}
+                <button type="button" data-toggle="modal" data-target="#upload_job_popup" class="btn btn-primary btn-block">{% trans 'Upload jobs' %}</button>
+            {% endif %}
             <button id="download_selected_jobs" type="button" class="btn btn-primary btn-block">{% trans 'Download jobs' %}</button>
             <button type="button" class="btn btn-primary btn-block">{% trans 'Upload marks' %}</button>
             <button id="compare_btn_job" class="btn btn-success btn-block">{% trans 'Compare reports' %}</button>
@@ -461,6 +463,28 @@
                 <div class="modal-footer">
                     <button id="delete_jobs_btn" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
                     <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="upload_job_popup" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{% trans 'Uploading job.' %}</h4>
+                </div>
+                <div class="modal-body">
+                    <p>{% trans 'Set parent identifier. Mind that job type will be inherited from parent.' %}</p>
+                    <label><input id="upload_job_parent_id" type="text" class="form-control" placeholder="Identifier"></label>
+                    <br>
+                    <br>
+                    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file"></span>
+                    <span id="upload_job_filename"></span>
+                </div>
+                <div class="modal-footer">
+                    <button id="upload_jobs_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
+                    <button id="upload_job_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
                 </div>
             </div>
         </div>

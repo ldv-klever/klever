@@ -13,45 +13,39 @@
 {% endblock %}
 
 {% block body_block %}
+<form id="user_form" method="post" action="{% url 'users:register' %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="row">
+        <div class="col-sm-4">
+            <small>{{ user_form.username.errors }}</small><label>{{ user_form.username.label }}:</label> {{ user_form.username }} <small style="color: silver">{{ user_form.username.help_text }}</small><br><br>
+            <small>{{ user_form.password.errors }}</small><label>{{ user_form.password.label }}:</label> {{ user_form.password }}<br>
+            <small>{{ user_form.retype_password.errors }}</small><label>{{ user_form.retype_password.label }}:</label> {{ user_form.retype_password }}
+        </div>
+        <div class="col-sm-4">
+            <small>{{ user_form.email.errors }}</small><label>{{ user_form.email.label }}:</label> {{ user_form.email }}<br>
+            <small>{{ profile_form.first_name.errors }}</small><label>{{ profile_form.first_name.label }}:</label> {{ profile_form.first_name }}<br>
+            <small>{{ profile_form.last_name.errors }}</small><label>{{ profile_form.last_name.label }}:</label> {{ profile_form.last_name }}
+        </div>
+        <div class="col-sm-4">
+            <small>{{ profile_form.accuracy.errors }}</small><label>{{ profile_form.accuracy.label }}:</label> {{ profile_form.accuracy }}<br>
+            <small>{{ profile_form.data_format.errors }}</small><label>{{ profile_form.data_format.label }}:</label> {{ profile_form.data_format }}<br>
+            <small>{{ profile_form.language.errors }}</small><label>{{ profile_form.language.label }}:</label> {{ profile_form.language }}<br>
+            <label for="timezone">{% trans 'Time zone' %}:</label>
+            <select id="timezone" class="form-control" name="timezone">
+                {% for tmz in timezones %}
+                    <option value="{{ tmz }}"{% if tmz == TIME_ZONE %} selected="selected"{% endif %}>{{ tmz }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
 
-    {% if registered %}
-        <strong>{% trans '__Thank you for registering!' %}</strong>
-    {% else %}
-        <form id="user_form" method="post" action="{% url 'users:register' %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="row">
-                <div class="col-sm-4">
-                    <small>{{ user_form.username.errors }}</small><label>{{ user_form.username.label }}:</label> {{ user_form.username }} <small style="color: silver">{{ user_form.username.help_text }}</small><br><br>
-                    <small>{{ user_form.password.errors }}</small><label>{{ user_form.password.label }}:</label> {{ user_form.password }}<br>
-                    <small>{{ user_form.retype_password.errors }}</small><label>{{ user_form.retype_password.label }}:</label> {{ user_form.retype_password }}
-                </div>
-                <div class="col-sm-4">
-                    <small>{{ user_form.email.errors }}</small><label>{{ user_form.email.label }}:</label> {{ user_form.email }}<br>
-                    <small>{{ profile_form.first_name.errors }}</small><label>{{ profile_form.first_name.label }}:</label> {{ profile_form.first_name }}<br>
-                    <small>{{ profile_form.last_name.errors }}</small><label>{{ profile_form.last_name.label }}:</label> {{ profile_form.last_name }}
-                </div>
-                <div class="col-sm-4">
-                    <small>{{ profile_form.accuracy.errors }}</small><label>{{ profile_form.accuracy.label }}:</label> {{ profile_form.accuracy }}<br>
-                    <small>{{ profile_form.data_format.errors }}</small><label>{{ profile_form.data_format.label }}:</label> {{ profile_form.data_format }}<br>
-                    <small>{{ profile_form.language.errors }}</small><label>{{ profile_form.language.label }}:</label> {{ profile_form.language }}<br>
-                    <label for="timezone">{% trans 'Time zone' %}:</label>
-                    <select id="timezone" class="form-control" name="timezone">
-                        {% for tmz in timezones %}
-                            <option value="{{ tmz }}"{% if tmz == TIME_ZONE %} selected="selected"{% endif %}>{{ tmz }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <!--TODO: remove before release-->
-            <br>
-            <div class="table-bordered">
-                <span style="color: #ef1924">Will be removed before release:</span><br>
-                <label>{{ profile_form.role.label }}:</label> {{ profile_form.role }}
-            </div>
-            <hr>
-            <input type="submit" class="btn btn-success" name="submit" value="{% trans 'Register' %}">
-        </form>
-    {% endif %}
-
+    <!--TODO: remove before release-->
+    <br>
+    <div class="table-bordered">
+        <span style="color: #ef1924">Will be removed before release:</span><br>
+        <label>{{ profile_form.role.label }}:</label> {{ profile_form.role }}
+    </div>
+    <hr>
+    <input type="submit" class="btn btn-success" name="submit" value="{% trans 'Register' %}">
+</form>
 {% endblock %}

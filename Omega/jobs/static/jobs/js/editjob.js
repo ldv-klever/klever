@@ -221,9 +221,7 @@ function load_new_files() {
     var file_inputs = $('#files_for_upload').children('input'),
         success = true;
     if (file_inputs.length > 0) {
-
         file_inputs.each(function () {
-            console.log($(this).attr('id'));
             var current_input = $(this),
                 data = new FormData(),
                 curr_id = current_input.attr('id').replace('new_file_input__', '');
@@ -645,6 +643,9 @@ $(document).ready(function () {
                     expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
                     expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
                 });
+            },
+            error: function(x) {
+                console.log(x.responseText);
             }
         });
     }
@@ -665,7 +666,7 @@ $(document).ready(function () {
             '/jobs/removejob/',
             {job_id: job_id},
             function (data) {
-                data.status == 0 ? window.location.replace('/jobs/'):err_notify(data.message);
+                data.status == 0 ? window.location.replace('/jobs/') : err_notify(data.message);
             },
             'json'
         );
