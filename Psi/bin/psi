@@ -65,6 +65,9 @@ if os.path.isfile(is_solving_file):
 # Yes there may be race condition, but it won't be.
 open(is_solving_file, 'w').close()
 
+# Remember path to configuration file relative to working directory before changing directory.
+conf_file = os.path.relpath(conf_file, conf['work dir'])
+
 # Move to working directory until the end of operation.
 # We can use path for "is solving" file relative to working directory since exceptions aren't raised when we have
 # relative path but don't change directory yet.
@@ -161,8 +164,15 @@ with open('start report.json', 'w') as fp:
 # TODO: remove cgroups.
 
 # TODO: counts resources consumed by Psi.
+resources = {}
 
-# TODO: create finish report file.
+logger.info('Encode finish report file')
+with open('finish report.json', 'w') as finish_report_fp:
+    with open(conf_file) as conf_fp:
+        with open('log') as log_fp:
+            json.dump(
+                {'type': 'finish', 'id': 'psi', 'resources': resources, 'desc': conf_fp.read(), 'log': log_fp.read()},
+                finish_report_fp)
 
 # TODO: send request about successful decision of job to Omega.
 
