@@ -17,9 +17,14 @@ For using Omega API you need only class JobSession():
    # JobSession.set_status(identifier, status)
      - set status for the job with identifier = 'identifier'.
 
-   # JobSession.download_file(identifier, destination)
+   # JobSession.download_file(identifier, destination, [timelimit=60])
      - download job archive .tar.gz and save to the file 'destination'
-       with job's identifier is 'identifier'.
+       with job's identifier is 'identifier'. Timelimit is limit (in seconds)
+       how long will downloading will wait its queue.
+
+   # JobSession.sign_out()
+     - sign out.
+   # sign_in(self)
 
 
 4) Job statuses:
@@ -34,4 +39,13 @@ For using Omega API you need only class JobSession():
 
 
 6) Job error status codes:
-# TODO: write status codes.
+    404: 'Connection refused'
+    500: 'Unknown error'
+    300: 'Invalid arguments'
+    301: 'Timeout'
+    302: 'Incorrect status'
+    303: 'No access to the verification job'
+    304: 'Job with specified identifier was not found'
+    305: 'Your session is expired'
+    306: 'Account has been disabled'
+    307: 'Incorrect username or password'
