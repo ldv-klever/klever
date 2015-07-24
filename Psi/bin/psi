@@ -111,4 +111,5 @@ omega['passwd'] = get_passwd('Omega')
 verification_task_scheduler['passwd'] = get_passwd('Verification Task Scheduler')
 
 # TODO: remove this when everything will work fine!
+logger.error("Fatal error")
 exit(1)
