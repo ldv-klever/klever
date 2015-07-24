@@ -24,7 +24,9 @@ For using Omega API you need only class JobSession():
 
    # JobSession.sign_out()
      - sign out.
-   # sign_in(self)
+
+   # JobSession.sign_in()
+     - sign in. Called at initialization stage. Always call it after sign_out().
 
 
 4) Job statuses:
