@@ -140,9 +140,35 @@ logger.debug('Psi supports jobs of format "{0}"'.format(job_format))
 # TODO: get computer description.
 comp_desc = []
 
-# Encode start report file.
+logger.info('Encode start report file')
 with open('start report.json', 'w') as fp:
     json.dump({'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc}, fp)
+
+# TODO: get job from Omega.
+
+# TODO: create parallel process to send requests about successful operation to Omega.
+
+# TODO: create parallel process (1) to send requests with reports from reports message queue to Omega.
+
+# TODO: extract job archive to directory "job".
+
+# TODO: create components configuration file.
+
+# TODO: get job class.
+
+# TODO: launch components.
+
+# TODO: remove cgroups.
+
+# TODO: counts resources consumed by Psi.
+
+# TODO: create finish report file.
+
+# TODO: send request about successful decision of job to Omega.
+
+# TODO: send terminator to reports message queue
+
+# TODO: wait for completion of (1)
 
 # TODO: remove this when everything will work fine!
 logger.error("Fatal error")
