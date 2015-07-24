@@ -10,6 +10,8 @@ import shutil
 import subprocess
 import sys
 
+job_format = '1'
+
 
 def get_passwd(name):
     logger.info('Get ' + name + ' password')
@@ -130,6 +132,8 @@ else:
     # TODO: get version of installed Psi.
     version = ''
 logger.debug('Psi version is "{0}"'.format(version))
+
+logger.debug('Psi supports jobs of format "{0}"'.format(job_format))
 
 # TODO: remove this when everything will work fine!
 logger.error("Fatal error")
