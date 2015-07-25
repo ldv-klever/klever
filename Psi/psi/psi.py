@@ -102,10 +102,11 @@ class Psi:
         # TODO: get computer description.
         comp_desc = []
 
-        self.logger.info('Encode start report file')
+        self.logger.info('Dump start report')
         with open('start report.json', 'w') as fp:
             psi.utils.dump_report(
                 {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc}, fp)
+        self.logger.debug('Finish report was dumped to file "{0}"'.format('start report.json'))
 
         # TODO: get job from Omega.
 
@@ -133,7 +134,7 @@ class Psi:
         for res in sorted(resources):
             self.logger.debug('    {0} - {1}'.format(res, resources[res]))
 
-        self.logger.info('Encode finish report file')
+        self.logger.info('Dump finish report')
         with open('finish report.json', 'w') as finish_report_fp:
             with open(conf_file) as conf_fp:
                 with open('log') as log_fp:
@@ -141,16 +142,13 @@ class Psi:
                         {'type': 'finish', 'id': 'psi', 'resources': resources, 'desc': conf_fp.read(),
                          'log': log_fp.read()},
                         finish_report_fp)
+        self.logger.debug('Finish report was dumped to file "{0}"'.format('finish report.json'))
 
-                    # TODO: send request about successful decision of job to Omega.
+        # TODO: send request about successful decision of job to Omega.
 
-                    # TODO: send terminator to reports message queue
+        # TODO: send terminator to reports message queue
 
-                    # TODO: wait for completion of (1)
-
-    # # TODO: remove this when everything will work fine!
-    # logger.error("Fatal error")
-    # exit(1)
+        # TODO: wait for completion of (1)
 
     def get_passwd(self, name):
         self.logger.info('Get ' + name + ' password')
