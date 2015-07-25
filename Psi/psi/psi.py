@@ -31,11 +31,7 @@ class Psi:
         # Remember approximate time of start.
         start = timeit.default_timer()
 
-        # Get configuration file from command-line options.
-        parser = argparse.ArgumentParser(description='Main script of Psi.')
-        parser.add_argument('conf file', nargs='?', default=self.default_conf_file,
-                            help='configuration file (default: {0})'.format(self.default_conf_file))
-        conf_file = vars(parser.parse_args())['conf file']
+        conf_file = self.get_conf_file()
 
         # Decode configuration file.
         with open(conf_file) as fp:
@@ -152,6 +148,17 @@ class Psi:
         # TODO: send terminator to reports message queue
 
         # TODO: wait for completion of (1)
+
+    # TODO: may be this function can be reused by other components.
+    def get_conf_file(self):
+        """
+        Try to get configuration file from command-line options. If it is not specified, then use the default one.
+        :return: a configuration file.
+        """
+        parser = argparse.ArgumentParser(description='Main script of Psi.')
+        parser.add_argument('conf file', nargs='?', default=self.default_conf_file,
+                            help='configuration file (default: {0})'.format(self.default_conf_file))
+        return vars(parser.parse_args())['conf file']
 
     def get_passwd(self, name):
         """
