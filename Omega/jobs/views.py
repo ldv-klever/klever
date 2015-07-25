@@ -9,18 +9,17 @@ from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.shortcuts import get_object_or_404, render
-from django.utils.translation import ugettext as _
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
+from django.utils.translation import ugettext as _, activate
+from Omega.vars import JOB_ROLES, JOB_STATUS
 from jobs.job_model import Job, JobHistory, JobStatus
 from jobs.models import UserRole, File, FileSystem
 from jobs.forms import FileForm
-from users.models import View, PreferableView
-import jobs.table_prop as tp
+from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
-from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import activate
-from Omega.vars import JOB_ROLES, JOB_STATUS
+from users.models import View, PreferableView
 
 
 class Counter(object):
@@ -36,58 +35,24 @@ class Counter(object):
             self.dark = True
 
 
-class Flag(object):
-    def __init__(self):
-        self.f = True
-
-    def change_flag(self):
-        if self.f:
-            self.f = False
-        else:
-            self.f = True
-
-
-##################
-# Jobs tree page #
-##################
 @login_required
 def tree_view(request):
     activate(request.user.extended.language)
+
     if request.method == 'POST':
-        filters = tp.FilterForm(
+        filter_form = FilterForm(
             request.user,
-            view=request.POST.get('view', None),
-            view_id=request.POST.get('view_id', None)
+            request.POST.get('view', None),
+            request.POST.get('view_id', None)
         )
     else:
-        filters = tp.FilterForm(request.user)
+        filter_form = FilterForm(request.user)
 
-    users = User.objects.all()
-    available_views = []
-    for v in request.user.view_set.filter(type='1'):
-        available_views.append({
-            'title': v.name,
-            'id': v.pk,
-            'selected': (filters.view_id == v.pk),
-        })
-    statuses = []
-    for status in JOB_STATUS:
-        statuses.append({
-            'title': status[1],
-            'value': status[0],
-        })
     context = {
-        'available': filters.available_columns,
-        'selected': filters.selected_columns,
-        'available_orders': filters.available_orders,
-        'selected_orders': filters.selected_orders,
-        'user_views': filters.user_views,
-        'selected_filters': filters.filters,
-        'authors': users,
-        'statuses': statuses,
-        'available_filters': filters.available_filters,
-        'available_views': available_views,
-        'can_create': job_f.has_job_access(request.user, action='create')
+        'FF': filter_form,
+        'users': User.objects.all(),
+        'statuses': JOB_STATUS,
+        'can_create': job_f.JobAccess(request.user).can_create()
     }
     return render(request, 'jobs/tree.html', context)
 
@@ -95,51 +60,48 @@ def tree_view(request):
 @login_required
 def get_jobtable(request):
     activate(request.user.extended.language)
+
     if request.method == 'GET':
         return HttpResponse('')
 
-    # Reading all required data from the database and
-    # user view for drawing the table.
-    table_data = tp.TableTree(
+    tt = TableTree(
         request.user,
-        view=request.POST.get('view', None),
-        view_id=request.POST.get('view_id', None)
+        request.POST.get('view', None),
+        request.POST.get('view_id', None)
     )
-
-    header_data = table_data.tableheader
-    sum_of_columns = len(table_data.columns) + 1
 
     # The first column of the table is with checkboxes, so we have to
     # append to table's header data information for this column
-    header_data[0].insert(0, {
+    tt.tableheader[0].insert(0, {
         'column': '',
-        'rows': max([col['rows'] for col in header_data[0]]),
+        'rows': max([col['rows'] for col in tt.tableheader[0]]),
         'columns': 1,
         'title': '',
     })
 
+    context = {
+        'columns': tt.tableheader,
+        'values': tt.values,
+        'counter': Counter(),
+    }
+
     # Counting how many columns the header of footer of the table needs
     # ('All', and 'All for checked')
-    all_head_num = 0
-    for col in header_data[0]:
-        if col['column'] in ['name', 'author', 'date', 'status', '']:
-            all_head_num += 1
+    foot_head_num = 0
+    for col in tt.tableheader[0]:
+        if col['column'] in ['name', 'author', 'date', 'status', '',
+                             'resource', 'format', 'version', 'type',
+                             'identifier', 'parent_id']:
+            foot_head_num += col['columns']
         else:
             break
 
-    # Table rows
-    values_data = table_data.values
-    counter = Counter()
-    context = {
-        'columns': header_data,
-        'values': values_data,
-        'counter': counter,
-    }
     # If we have any rows in values data we print table footer and
     # give each column except header of footer id that we can get from this list
-    if len(values_data) and (sum_of_columns - all_head_num) > 0:
-        context['foot_cols'] = values_data[0]['values'][(all_head_num - 1):]
-        context['foot_head_num'] = all_head_num
+    sum_of_columns = len(tt.columns) + 1
+    if len(tt.values) and (sum_of_columns - foot_head_num) > 0:
+        context['foot_cols'] = tt.values[0]['values'][(foot_head_num - 1):]
+        context['foot_head_num'] = foot_head_num
 
     return render(request, 'jobs/treeTable.html', context)
 
@@ -299,16 +261,12 @@ def show_job(request, job_id=None):
         return HttpResponseRedirect(
             reverse('jobs:error', args=[404]) + "?back=%s" % quote(
                 reverse('jobs:tree')))
-        # return job404(request, _('The job was not found'))
 
-    if not job_f.has_job_access(request.user, action="view", job=job):
+    job_access = job_f.JobAccess(request.user, job)
+    if not job_access.can_view():
         return HttpResponseRedirect(
             reverse('jobs:error', args=[400]) + "?back=%s" % quote(
                 reverse('jobs:tree')))
-        # return job404(
-        #     request,
-        #     _("You don't have an access to this job")
-        # )
 
     created_by = job.jobhistory_set.get(version=1).change_author
 
@@ -321,7 +279,7 @@ def show_job(request, job_id=None):
     parents.reverse()
     have_access_parents = []
     for parent in parents:
-        if job_f.has_job_access(request.user, job=parent):
+        if job_f.JobAccess(request.user, parent).can_view():
             job_id = parent.pk
         else:
             job_id = None
@@ -334,7 +292,7 @@ def show_job(request, job_id=None):
     children = job.children_set.all()
     have_access_children = []
     for child in children:
-        if job_f.has_job_access(request.user, action="view", job=child):
+        if job_f.JobAccess(request.user, child).can_view():
             job_id = child.pk
         else:
             job_id = None
@@ -359,15 +317,9 @@ def show_job(request, job_id=None):
             'unknowns': job_f.unknowns_info(job),
             'resources': job_f.resource_info(job, request.user),
             'created_by': created_by,
-            'can_delete': job_f.has_job_access(
-                request.user, action='remove', job=job
-            ),
-            'can_edit': job_f.has_job_access(
-                request.user, action='edit', job=job
-            ),
-            'can_create': job_f.has_job_access(
-                request.user, action='create'
-            ),
+            'can_delete': job_access.can_delete(),
+            'can_edit': job_access.can_edit(),
+            'can_create': job_access.can_create()
         }
     )
 
@@ -393,17 +345,14 @@ def get_version_data(request, template='jobs/editJob.html'):
         return HttpResponse('')
 
     # Get needed job or return error 404 (page doesn't exist)
-    try:
-        if job_id:
-            job = get_object_or_404(Job, pk=int(job_id))
-            if not job_f.has_job_access(request.user, action='edit', job=job):
-                return HttpResponse('')
-        else:
-            job = get_object_or_404(Job, pk=int(parent_id))
-            if not job_f.has_job_access(request.user, action='create'):
-                return HttpResponse('')
-    except ValueError:
-        return HttpResponse('')
+    if job_id is None:
+        job = get_object_or_404(Job, pk=int(parent_id))
+        if not job_f.JobAccess(request.user).can_create():
+            return HttpResponse('')
+    else:
+        job = get_object_or_404(Job, pk=int(job_id))
+        if not job_f.JobAccess(request.user, job).can_edit():
+            return HttpResponse('')
 
     if len(job.jobhistory_set.all()) == 0:
         return HttpResponse('')
@@ -515,7 +464,7 @@ def save_job(request):
                 'status': 1,
                 'message': _('The job was not found')
             })
-        if not job_f.has_job_access(request.user, action='edit', job=job):
+        if not job_f.JobAccess(request.user, job).can_edit():
             return JsonResponse({
                 'status': 1,
                 'message': _("You don't have an access to edit this job")
@@ -569,7 +518,7 @@ def save_job(request):
                 'status': 1,
                 'message': _('The job parent was not found')
             })
-        if not job_f.has_job_access(request.user, action='create'):
+        if not job_f.JobAccess(request.user).can_create():
             return JsonResponse({
                 'status': 1,
                 'message': _("You don't have an access to create a new job")
@@ -654,7 +603,7 @@ def remove_job(request):
             'status': 1, 'message': _('The job was not found')
         })
 
-    if not job_f.has_job_access(request.user, action='remove', job=job):
+    if not job_f.JobAccess(request.user, job).can_delete():
         return JsonResponse({
             'status': 1,
             'message': _("You don't have an access to remove this job")
@@ -680,7 +629,7 @@ def remove_jobs(request):
                 'message': _('The job was not found, please reload the page')
             })
     for job in jobs:
-        if not job_f.has_job_access(request.user, action="remove", job=job):
+        if not job_f.JobAccess(request.user, job).can_delete():
             return JsonResponse({
                 'status': 1,
                 'message':
@@ -765,7 +714,7 @@ def download_job(request, job_id):
         return HttpResponseRedirect(
             reverse('jobs:error', args=[404]) + "?back=%s" % back_url
         )
-    if not job_f.has_job_access(request.user, action='view', job=job):
+    if not job_f.JobAccess(request.user, job).can_view():
         back_url = quote(reverse('jobs:tree'))
         return HttpResponseRedirect(
             reverse('jobs:error', args=[400]) + "?back=%s" % back_url
@@ -838,7 +787,7 @@ def check_access(request):
                     'status': False,
                     'message': _('The job was not found')
                 })
-            if not job_f.has_job_access(request.user, action='view', job=job):
+            if not job_f.JobAccess(request.user, job).can_view():
                 return JsonResponse({
                     'status': False,
                     'message': _("You don't have an access to this job")

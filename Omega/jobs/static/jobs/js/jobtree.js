@@ -1,23 +1,18 @@
 //-------------
 // FOR TABLE
 //-------------
-var do_not_count = "resource|format|version|type|identifier|parent_id|date";
+var do_not_count = "resource|format|version|type|identifier|parent_id|name|author|date|status";
 
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (cell_id_data.length > 0) {
+        if (!cell_id_data[1].match(do_not_count)) {
             cell_id_data.shift();
-            var value_start = "td[id^='value__" + cell_id_data.join('__') + "__']";
-            var sum = 0, have_numbers = false;
-            $(value_start).each(function() {
+            var value_start = "td[id^='value__" + cell_id_data.join('__') + "__']",
+                sum = 0, have_numbers = false;
+            $(value_start).each(function () {
                 var num = parseInt($(this).children('span').first().html());
-                if (isNaN(num) || cell_id_data[0].match(do_not_count)) {
-                    num = 0;
-                }
-                else {
-                    have_numbers = true
-                }
+                isNaN(num) ? num = 0 : have_numbers = true;
                 sum += num;
             });
             if (have_numbers == true) {
@@ -150,27 +145,32 @@ function check_jobs_access(jobs) {
 function getFilters() {
     var filters = {};
     $('#selected_filters_list').children().each(function () {
-        var filter_name = $(this).attr('id').replace('filter_form__', '');
-        var filter_data;
+        var filter_name = $(this).attr('id').replace('filter_form__', ''),
+            filter_value, filter_data;
         if (filter_name == 'name') {
-            filter_data = {
-                type: $('#filter_type__' + filter_name ).children("option:selected").val(),
-                value: $('#filter_value__' + filter_name).val()
-            };
+            filter_value = $('#filter_value__' + filter_name).val();
+            if (filter_value.length) {
+                filter_data = {
+                    type: $('#filter_type__' + filter_name ).children("option:selected").val(),
+                    value: filter_value
+                };
+            }
         }
         else if (filter_name == 'change_author') {
             filter_data = {
-                type: $('#filter_type__' + filter_name ).val(),
+                type: $('#filter_type__' + filter_name).val(),
                 value: $('#filter_value__' + filter_name).children("option:selected").val()
             };
         }
         else if (filter_name == 'change_date') {
             var fil_val_0 = $('#filter_value_0__change_date').children('option:selected').val(),
                 fil_val_1 = $('#filter_value_1__change_date').val();
-            filter_data = {
-                type: $('#filter_type__' + filter_name ).children('option:selected').val(),
-                value: (fil_val_0 + ':' + fil_val_1)
-            };
+            if (fil_val_1.length) {
+                filter_data = {
+                    type: $('#filter_type__' + filter_name ).children('option:selected').val(),
+                    value: (fil_val_0 + ':' + fil_val_1)
+                };
+            }
         }
         else if (filter_name == 'status') {
             filter_data = {
@@ -179,28 +179,41 @@ function getFilters() {
             };
         }
         else if (filter_name == 'resource_component') {
-            filter_data = {
-                type: $('#filter_type__' + filter_name ).children("option:selected").val(),
-                value: $('#filter_value__' + filter_name).val()
-            };
+            filter_value = $('#filter_value__' + filter_name).val();
+            if (filter_value.length) {
+                filter_data = {
+                    type: $('#filter_type__' + filter_name ).children("option:selected").val(),
+                    value: filter_value
+                };
+            }
         }
         else if (filter_name == 'problem_component') {
-            filter_data = {
-                type: $('#filter_type__' + filter_name ).children("option:selected").val(),
-                value: $('#filter_value__' + filter_name).val()
-            };
+            filter_value = $('#filter_value__' + filter_name).val();
+            if (filter_value.length) {
+                filter_data = {
+                    type: $('#filter_type__' + filter_name).children("option:selected").val(),
+                    value: filter_value
+                };
+            }
         }
         else if (filter_name == 'problem_problem') {
-            filter_data = {
-                type: $('#filter_type__' + filter_name ).children("option:selected").val(),
-                value: $('#filter_value__' + filter_name).val()
-            };
+            filter_value = $('#filter_value__' + filter_name).val();
+            if (filter_value.length) {
+                filter_data = {
+                    type: $('#filter_type__' + filter_name).children("option:selected").val(),
+                    value: filter_value
+                };
+            }
         }
         else if (filter_name == 'format') {
-            filter_data = {
-                type: $('#filter_type__' + filter_name ).val(),
-                value: $('#filter_value__' + filter_name).val()
-            };
+            filter_value = $('#filter_value__' + filter_name).val();
+            console.log(filter_value.length);
+            if (filter_value.length) {
+                filter_data = {
+                    type: $('#filter_type__' + filter_name).val(),
+                    value: filter_value
+                };
+            }
         }
         if (filter_data) {
             filters[filter_name] = filter_data;
@@ -241,7 +254,9 @@ $(document).ready(function () {
                 });
                 job_table_div.attr('style', 'max-height: ' + small_table_height + 'px;')
             }
-        );
+        ).fail(function (x) {
+                console.log(x.responseText);
+            });
     }
 
     $("button[id^='remove__order__']").click(function () {

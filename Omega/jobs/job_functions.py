@@ -73,13 +73,73 @@ TITLES = {
     'format': _('Format'),
     'version': _('Version'),
     'type': _('Class'),
-    'parent_title': string_concat(_('Parent'), '/', _('Title')),
     'parent_id': string_concat(_('Parent'), '/', _('Identifier')),
     'role': _('Your role'),
 }
 
 
 DOWNLOAD_LOCKFILE = 'download.lock'
+
+
+class JobAccess(object):
+    def __init__(self, user, job=None):
+        self.job = job
+        self.__is_author = False
+        self.__job_role = None
+        self.__user_role = user.extended.role
+        self.__get_prop(user)
+
+    def can_view(self):
+        if self.job is None:
+            return False
+        if self.__user_role == USER_ROLES[2][0] or self.__is_author or \
+           self.__job_role != JOB_ROLES[0][0]:
+            return True
+        return False
+
+    def can_create(self):
+        return self.__user_role != USER_ROLES[0][0]
+
+    def can_edit(self):
+        if self.job is None:
+            return False
+        if self.__user_role == USER_ROLES[0][0]:
+            return False
+        try:
+            status = self.job.jobstatus.status
+        except ObjectDoesNotExist:
+            return False
+        if status == JOB_STATUS[0][0]:
+            if self.__is_author or self.__user_role == USER_ROLES[2][0]:
+                return True
+        return False
+
+    def can_delete(self):
+        if self.job is None:
+            return False
+        if len(self.job.children_set.all()) == 0:
+            if self.__user_role == USER_ROLES[2][0]:
+                return True
+            try:
+                status = self.job.jobstatus.status
+            except ObjectDoesNotExist:
+                return False
+            if status in [js[0] for js in JOB_STATUS[1:4]]:
+                return False
+            if self.__is_author:
+                return True
+        return False
+
+    def __get_prop(self, user):
+        if self.job is not None:
+            first_version = self.job.jobhistory_set.filter(version=1)[0]
+            self.__is_author = (first_version.change_author == user)
+            job_versions = self.job.jobhistory_set.all().order_by('-change_date')[0]
+            last_v_role = job_versions.userrole_set.filter(user=user)
+            if len(last_v_role) > 0:
+                self.__job_role = last_v_role[0].role
+            else:
+                self.__job_role = self.job.global_role
 
 
 class FileData(object):
@@ -724,58 +784,8 @@ def role_info(job, user):
     return roles_data
 
 
-def has_job_access(user, action='view', job=None):
-    if action == 'view' and job:
-        last_version = job.jobhistory_set.all().order_by('-change_date')[0]
-        if user.extended.role == USER_ROLES[2][0]:
-            return True
-        job_first_ver = job.jobhistory_set.filter(version=1)
-        if len(job_first_ver) and job_first_ver[0].change_author == user:
-            return True
-        user_role = last_version.userrole_set.filter(user=user)
-        if len(user_role):
-            if user_role[0].role == JOB_ROLES[0][0]:
-                return False
-            return True
-        if job.global_role == JOB_ROLES[0][0]:
-            return False
-        return True
-    elif action == 'create':
-        return user.extended.role != USER_ROLES[0][0]
-    elif action == 'edit' and job:
-        if user.extended.role == USER_ROLES[0][0]:
-            return False
-        first_v = job.jobhistory_set.filter(version=1)
-        if first_v:
-            try:
-                status = job.jobstatus.status
-            except ObjectDoesNotExist:
-                return False
-            if status == JOB_STATUS[0][0]:
-                if first_v[0].change_author == user:
-                    return True
-                if user.extended.role == USER_ROLES[2][0]:
-                    return True
-        return False
-    elif action == 'remove' and job:
-        notedit_status = [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[3][0]]
-        first_version = job.jobhistory_set.filter(version=1)
-        if len(first_version) and len(job.children_set.all()) == 0:
-            if user.extended.role == USER_ROLES[2][0]:
-                return True
-            try:
-                status = job.jobstatus.status
-            except ObjectDoesNotExist:
-                return False
-            if status in notedit_status:
-                return False
-            if first_version[0].change_author == user:
-                return True
-    return False
-
-
 def is_operator(user, job):
-    last_version =  job.jobhistory_set.get(version=job.version)
+    last_version = job.jobhistory_set.get(version=job.version)
     user_role = last_version.userrole_set.filter(user=user)
     if len(user_role):
         if user_role[0].role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
