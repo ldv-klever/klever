@@ -33,30 +33,11 @@ class Psi:
 
         conf_file = self.get_conf_file()
 
-        # Decode configuration file.
+        # Read configuration from file.
         with open(conf_file) as fp:
             self.conf = json.load(fp)
 
-        # Test whether another Psi occupies the same working directory.
-        self.is_solving_file = os.path.join(self.conf['work dir'], 'is solving')
-        if os.path.isfile(self.is_solving_file):
-            raise FileExistsError('Another Psi occupies working directory "{0}"'.format(self.conf['work dir']))
-
-        # Remove (if exists) and create (if doesn't exist) working directory.
-        # Note, that shutil.rmtree() doesn't allow to ignore files as required by specification. So, we have to:
-        # - remove the whole working directory (if exists),
-        # - create working directory (pass if it is created by another Psi),
-        # - test one more time whether another Psi occupies the same working directory,
-        # - occupy working directory.
-        shutil.rmtree(self.conf['work dir'], True)
-        os.makedirs(self.conf['work dir'], exist_ok=True)
-
-        if os.path.isfile(self.is_solving_file):
-            raise FileExistsError('Another Psi occupies working directory "{0}"'.format(self.conf['work dir']))
-
-        # Occupy working directory until the end of operation.
-        # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w')
+        self.prepare_work_dir()
 
         # Remember path to configuration file relative to working directory before changing directory.
         conf_file = os.path.relpath(conf_file, self.conf['work dir'])
@@ -180,3 +161,29 @@ class Psi:
         user = getpass.getuser() if not self.conf[name]['user'] else self.conf[name]['user']
         self.logger.debug(name + ' user name is "{}"'.format(user))
         return user
+
+    def prepare_work_dir(self):
+        """
+        Clean up and create the working directory. Prevent simultaneous usage of the same working directory.
+        """
+        # Test whether another Psi occupies the same working directory.
+        self.is_solving_file = os.path.join(self.conf['work dir'], 'is solving')
+        if os.path.isfile(self.is_solving_file):
+            raise FileExistsError('Another Psi occupies working directory "{0}"'.format(self.conf['work dir']))
+
+        # Remove (if exists) and create (if doesn't exist) working directory.
+        # Note, that shutil.rmtree() doesn't allow to ignore files as required by specification. So, we have to:
+        # - remove the whole working directory (if exists),
+        # - create working directory (pass if it is created by another Psi),
+        # - test one more time whether another Psi occupies the same working directory,
+        # - occupy working directory.
+        shutil.rmtree(self.conf['work dir'], True)
+        os.makedirs(self.conf['work dir'], exist_ok=True)
+
+        if os.path.isfile(self.is_solving_file):
+            raise FileExistsError('Another Psi occupies working directory "{0}"'.format(self.conf['work dir']))
+
+        # Occupy working directory until the end of operation.
+        # Yes there may be race condition, but it won't be.
+        self.is_solving_file_fp = open(self.is_solving_file, 'w')
+
