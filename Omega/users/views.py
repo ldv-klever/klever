@@ -11,7 +11,7 @@ from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
-from jobs.job_functions import has_job_access
+from jobs.job_functions import JobAccess
 from django.template import Template, RequestContext
 
 
@@ -143,7 +143,7 @@ def show_profile(request, user_id=None):
             'version': act.version,
             'job_name': act.name
         }
-        if has_job_access(request.user, action='view', job=act.job):
+        if JobAccess(request.user, act.job).can_view():
             new_act['href'] = reverse('jobs:job', args=[act.job_id])
         activity.append(new_act)
     user_tz = request.user.extended.timezone
