@@ -61,19 +61,7 @@ class Psi:
         omega['passwd'] = self.get_passwd('Omega')
         verification_task_scheduler['passwd'] = self.get_passwd('Verification Task Scheduler')
 
-        self.logger.info('Get version')
-        # Git repository directory may be located in parent directory of parent directory.
-        git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
-        if os.path.isdir(git_repo_dir):
-            proc = subprocess.Popen(['git', '--git-dir', git_repo_dir, 'describe', '--always', '--abbrev=7', '--dirty'],
-                                    stdout=subprocess.PIPE)
-            version = proc.stdout.readline().decode('utf-8').rstrip()
-            if not version:
-                raise ValueError('Could not get Git repository tag')
-        else:
-            # TODO: get version of installed Psi.
-            version = ''
-        self.logger.debug('Version is "{0}"'.format(version))
+        version = self.get_version()
 
         self.logger.debug('Support jobs of format "{0}"'.format(self.job_format))
 
@@ -162,6 +150,26 @@ class Psi:
         self.logger.debug(name + ' user name is "{}"'.format(user))
         return user
 
+    def get_version(self):
+        """
+        Get version either as a tag in the Git repository of Psi or from the file created when installing Psi.
+        :return: a version.
+        """
+        self.logger.info('Get version')
+        # Git repository directory may be located in parent directory of parent directory.
+        git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
+        if os.path.isdir(git_repo_dir):
+            proc = subprocess.Popen(['git', '--git-dir', git_repo_dir, 'describe', '--always', '--abbrev=7', '--dirty'],
+                                    stdout=subprocess.PIPE)
+            version = proc.stdout.readline().decode('utf-8').rstrip()
+            if not version:
+                raise ValueError('Could not get Git repository tag')
+        else:
+            # TODO: get version of installed Psi.
+            version = ''
+        self.logger.debug('Version is "{0}"'.format(version))
+        return version
+
     def prepare_work_dir(self):
         """
         Clean up and create the working directory. Prevent simultaneous usage of the same working directory.
@@ -186,4 +194,3 @@ class Psi:
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
         self.is_solving_file_fp = open(self.is_solving_file, 'w')
-
