@@ -1,5 +1,15 @@
+import json
 import logging
 import sys
+
+
+def dump_report(report, fp):
+    """
+    Pretty dump the specified report to the specified stream.
+    :param report: a report object (usually it should be a dictionary).
+    :param fp: a stream where report will be dumped.
+    """
+    json.dump(report, fp, sort_keys=True, indent=4)
 
 
 def get_logger(name, conf):

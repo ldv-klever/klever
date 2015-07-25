@@ -104,7 +104,8 @@ class Psi:
 
         self.logger.info('Encode start report file')
         with open('start report.json', 'w') as fp:
-            json.dump({'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc}, fp)
+            psi.utils.dump_report(
+                {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc}, fp)
 
         # TODO: get job from Omega.
 
@@ -136,7 +137,7 @@ class Psi:
         with open('finish report.json', 'w') as finish_report_fp:
             with open(conf_file) as conf_fp:
                 with open('log') as log_fp:
-                    json.dump(
+                    psi.utils.dump_report(
                         {'type': 'finish', 'id': 'psi', 'resources': resources, 'desc': conf_fp.read(),
                          'log': log_fp.read()},
                         finish_report_fp)
