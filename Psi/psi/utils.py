@@ -15,6 +15,8 @@ def dump_report(report, fp):
 def get_logger(name, conf):
     """
     Return a logger with the specified name, creating it in accordance with the specified configuration if necessary.
+    :param name: a logger name (usually it should be a name of tool that is going to use this logger).
+    :param conf: a logger configuration.
     """
     logger = logging.getLogger(name.upper())
     # Actual levels will be set for logger handlers.
