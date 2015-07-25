@@ -1,216 +1,163 @@
-#!/usr/bin/python3
-
 import argparse
-import atexit
 import getpass
 import json
-import logging
 import os
 import resource
 import shutil
 import subprocess
-import sys
 import timeit
-
-job_format = '1'
-
-
-def get_passwd(name):
-    logger.info('Get ' + name + ' password')
-    passwd = getpass.getpass() if not conf[name]['passwd'] else conf[name]['passwd']
-    return passwd
+import psi.utils
 
 
-def get_user(name):
-    logger.info('Get ' + name + ' user name')
-    user = getpass.getuser() if not conf[name]['user'] else conf[name]['user']
-    logger.debug(name + ' user name is "{}"'.format(user))
-    return user
+class Psi:
+    default_conf_file = 'psi-conf.json'
+    job_format = '1'
 
+    def __init__(self):
+        self.conf = None
+        self.is_solving_file = None
+        self.is_solving_file_fp = None
+        self.logger = None
 
-def exit_handler():
-    # Release working directory if it was occupied.
-    if 'is_solving_file' in globals() and os.path.isfile(is_solving_file):
-        os.remove(is_solving_file)
+    def __del__(self):
+        # Release working directory if it was occupied.
+        if self.is_solving_file and self.is_solving_file_fp and not self.is_solving_file_fp.closed:
+            os.remove(self.is_solving_file)
 
+    def run(self):
+        # Remember approximate time of start.
+        start = timeit.default_timer()
 
-# Execute exit_handler() right before exit.
-atexit.register(exit_handler)
+        # Get configuration file from command-line options.
+        parser = argparse.ArgumentParser(description='Main script of Psi.')
+        parser.add_argument('conf file', nargs='?', default=self.default_conf_file,
+                            help='configuration file (default: {0})'.format(self.default_conf_file))
+        conf_file = vars(parser.parse_args())['conf file']
 
-default_conf_file = 'psi-conf.json'
+        # Decode configuration file.
+        with open(conf_file) as fp:
+            self.conf = json.load(fp)
 
-# Remember approximate time of start.
-start = timeit.default_timer()
+        # Test whether another Psi occupies the same working directory.
+        self.is_solving_file = os.path.join(self.conf['work dir'], 'is solving')
+        if os.path.isfile(self.is_solving_file):
+            raise FileExistsError('Another Psi occupies working directory "{0}"'.format(self.conf['work dir']))
 
-# Get configuration file from command-line options.
-parser = argparse.ArgumentParser(description='Main script of Psi.')
-parser.add_argument('conf file', nargs='?', default=default_conf_file,
-                    help='configuration file (default: {0})'.format(default_conf_file))
-conf_file = vars(parser.parse_args())['conf file']
+        # Remove (if exists) and create (if doesn't exist) working directory.
+        # Note, that shutil.rmtree() doesn't allow to ignore files as required by specification. So, we have to:
+        # - remove the whole working directory (if exists),
+        # - create working directory (pass if it is created by another Psi),
+        # - test one more time whether another Psi occupies the same working directory,
+        # - occupy working directory.
+        shutil.rmtree(self.conf['work dir'], True)
+        os.makedirs(self.conf['work dir'], exist_ok=True)
 
-# Decode configuration file.
-with open(conf_file) as fp:
-    conf = json.load(fp)
+        if os.path.isfile(self.is_solving_file):
+            raise FileExistsError('Another Psi occupies working directory "{0}"'.format(self.conf['work dir']))
 
-# Test whether another Psi occupies the same working directory.
-is_solving_file = os.path.join(conf['work dir'], 'is solving')
-if os.path.isfile(is_solving_file):
-    raise FileExistsError('Another Psi occupies working directory "{0}"'.format(conf['work dir']))
+        # Occupy working directory until the end of operation.
+        # Yes there may be race condition, but it won't be.
+        self.is_solving_file_fp = open(self.is_solving_file, 'w')
 
-# Remove (if exists) and create (if doesn't exist) working directory.
-# Note, that shutil.rmtree() doesn't allow to ignore files as required by specification. So, we first remove the whole
-# working directory (if exists), then create working directory (pass if it is created by another Psi), then test
-# one more time whether another Psi occupies the same working directory and just then occupy working directory.
-shutil.rmtree(conf['work dir'], True)
-os.makedirs(conf['work dir'], exist_ok=True)
+        # Remember path to configuration file relative to working directory before changing directory.
+        conf_file = os.path.relpath(conf_file, self.conf['work dir'])
 
-if os.path.isfile(is_solving_file):
-    raise FileExistsError('Another Psi occupies working directory "{0}"'.format(conf['work dir']))
+        # Move to working directory until the end of operation.
+        # We can use path for "is solving" file relative to working directory since exceptions aren't raised when we
+        # have relative path but don't change directory yet.
+        self.is_solving_file = os.path.relpath(self.is_solving_file, self.conf['work dir'])
+        os.chdir(self.conf['work dir'])
 
-# Occupy working directory until the end of operation.
-# Yes there may be race condition, but it won't be.
-open(is_solving_file, 'w').close()
+        self.logger = psi.utils.get_logger(os.path.basename(__file__), self.conf['logging'])
 
-# Remember path to configuration file relative to working directory before changing directory.
-conf_file = os.path.relpath(conf_file, conf['work dir'])
+        # Configuration for Omega.
+        omega = {}
+        # Configuration for Verification Task Scheduler.
+        verification_task_scheduler = {}
 
-# Move to working directory until the end of operation.
-# We can use path for "is solving" file relative to working directory since exceptions aren't raised when we have
-# relative path but don't change directory yet.
-is_solving_file = os.path.relpath(is_solving_file, conf['work dir'])
-os.chdir(conf['work dir'])
+        omega['user'] = self.get_user('Omega')
+        verification_task_scheduler['user'] = self.get_user('Verification Task Scheduler')
 
-# TODO: extract this code to library.
-# Set up logger.
-logger = logging.getLogger(os.path.basename(__file__).upper())
-# Actual levels will be set for logger handlers.
-logger.setLevel(logging.DEBUG)
-# Tool specific logger (with name equals to tool name) is more preferred then "default" logger.
-pref_logger_conf = None
-for pref_logger_conf in conf['logging']['loggers']:
-    if pref_logger_conf['name'] == os.path.basename(__file__):
-        preferred_logger_conf = pref_logger_conf
-        break
-    elif pref_logger_conf['name'] == 'default':
-        preferred_logger_conf = pref_logger_conf
+        omega['passwd'] = self.get_passwd('Omega')
+        verification_task_scheduler['passwd'] = self.get_passwd('Verification Task Scheduler')
 
-if not pref_logger_conf:
-    raise KeyError('Neither "default" nor tool specific logger "{0}" is specified'.format(os.path.basename(__file__)))
+        self.logger.info('Get version')
+        # Git repository directory may be located in parent directory of parent directory.
+        git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
+        if os.path.isdir(git_repo_dir):
+            proc = subprocess.Popen(['git', '--git-dir', git_repo_dir, 'describe', '--always', '--abbrev=7', '--dirty'],
+                                    stdout=subprocess.PIPE)
+            version = proc.stdout.readline().decode('utf-8').rstrip()
+            if not version:
+                raise ValueError('Could not get Git repository tag')
+        else:
+            # TODO: get version of installed Psi.
+            version = ''
+        self.logger.debug('Version is "{0}"'.format(version))
 
-# Set up logger handlers.
-for handler_conf in pref_logger_conf['handlers']:
-    if handler_conf['name'] == 'console':
-        # Always print log to STDOUT.
-        handler = logging.StreamHandler(sys.stdout)
-    elif handler_conf['name'] == 'file':
-        # Always print log to file "log" in working directory.
-        handler = logging.FileHandler('log')
-    else:
-        raise KeyError(
-            'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
-                handler_conf['name'], pref_logger_conf['name']))
+        self.logger.debug('Support jobs of format "{0}"'.format(self.job_format))
 
-    # Set up handler logging level.
-    log_levels = {'NOTSET': logging.NOTSET, 'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
-                  'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
-    if not handler_conf['level'] in log_levels:
-        raise KeyError(
-            'Logging level "{0}" {1} is not supported{2}'.format(
-                handler_conf['level'],
-                '(logger "{0}", handler "{1}")'.format(pref_logger_conf['name'], handler_conf['name']),
-                ', please use one of the following logging levels: "{0}"'.format(
-                    '", "'.join(log_levels.keys()))))
+        # TODO: create cgroups.
 
-    handler.setLevel(log_levels[handler_conf['level']])
+        # TODO: get computer description.
+        comp_desc = []
 
-    # Find and set up handler formatter.
-    formatter = None
-    for formatter_conf in conf['logging']['formatters']:
-        if formatter_conf['name'] == handler_conf['formatter']:
-            formatter = logging.Formatter(formatter_conf['value'], "%Y-%m-%d %H:%M:%S")
-            break
-    if not formatter:
-        raise KeyError('Handler "{0}" references undefined formatter "{1}"'.format(handler_conf['name'],
-                                                                                   handler_conf['formatter']))
-    handler.setFormatter(formatter)
+        self.logger.info('Encode start report file')
+        with open('start report.json', 'w') as fp:
+            json.dump({'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc}, fp)
 
-    logger.addHandler(handler)
+        # TODO: get job from Omega.
 
-# Configuration for Omega.
-omega = {}
-# Configuration for Verification Task Scheduler.
-verification_task_scheduler = {}
+        # TODO: create parallel process to send requests about successful operation to Omega.
 
-omega['user'] = get_user('Omega')
-verification_task_scheduler['user'] = get_user('Verification Task Scheduler')
+        # TODO: create parallel process (1) to send requests with reports from reports message queue to Omega.
 
-omega['passwd'] = get_passwd('Omega')
-verification_task_scheduler['passwd'] = get_passwd('Verification Task Scheduler')
+        # TODO: extract job archive to directory "job".
 
-logger.info('Get version')
-# Git repository directory may be located in parent directory of parent directory.
-git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
-if os.path.isdir(git_repo_dir):
-    proc = subprocess.Popen(['git', '--git-dir', git_repo_dir, 'describe', '--always', '--abbrev=7', '--dirty'],
-                            stdout=subprocess.PIPE)
-    version = proc.stdout.readline().decode('utf-8').rstrip()
-    if not version:
-        raise ValueError('Could not get Git repository tag')
-else:
-    # TODO: get version of installed Psi.
-    version = ''
-logger.debug('Version is "{0}"'.format(version))
+        # TODO: create components configuration file.
 
-logger.debug('Support jobs of format "{0}"'.format(job_format))
+        # TODO: get job class.
 
-# TODO: create cgroups.
+        # TODO: launch components.
 
-# TODO: get computer description.
-comp_desc = []
+        # TODO: remove cgroups.
 
-logger.info('Encode start report file')
-with open('start report.json', 'w') as fp:
-    json.dump({'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc}, fp)
+        # Note that launching in PyCharm gives its maximum memory size.
+        self.logger.info('Count consumed resources')
+        utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
+        resources = {'wall time': round(100 * (timeit.default_timer() - start)),
+                     'CPU time': round(100 * (utime + stime)),
+                     'max mem size': 1000 * maxrss}
+        self.logger.debug('Consumed resources are:')
+        for res in sorted(resources):
+            self.logger.debug('    {0} - {1}'.format(res, resources[res]))
 
-# TODO: get job from Omega.
+        self.logger.info('Encode finish report file')
+        with open('finish report.json', 'w') as finish_report_fp:
+            with open(conf_file) as conf_fp:
+                with open('log') as log_fp:
+                    json.dump(
+                        {'type': 'finish', 'id': 'psi', 'resources': resources, 'desc': conf_fp.read(),
+                         'log': log_fp.read()},
+                        finish_report_fp)
 
-# TODO: create parallel process to send requests about successful operation to Omega.
+                    # TODO: send request about successful decision of job to Omega.
 
-# TODO: create parallel process (1) to send requests with reports from reports message queue to Omega.
+                    # TODO: send terminator to reports message queue
 
-# TODO: extract job archive to directory "job".
+                    # TODO: wait for completion of (1)
 
-# TODO: create components configuration file.
+    # # TODO: remove this when everything will work fine!
+    # logger.error("Fatal error")
+    # exit(1)
 
-# TODO: get job class.
+    def get_passwd(self, name):
+        self.logger.info('Get ' + name + ' password')
+        passwd = getpass.getpass() if not self.conf[name]['passwd'] else self.conf[name]['passwd']
+        return passwd
 
-# TODO: launch components.
-
-# TODO: remove cgroups.
-
-# Note that launching in PyCharm gives its maximum memory size.
-logger.info('Count consumed resources')
-utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
-resources = {'wall time': round(timeit.default_timer() - start), 'CPU time': round(utime + stime),
-             'max mem size': 1000 * maxrss}
-logger.debug('Consumed resources are:')
-for resource in sorted(resources):
-    logger.debug('    {0} - {1}'.format(resource, resources[resource]))
-
-logger.info('Encode finish report file')
-with open('finish report.json', 'w') as finish_report_fp:
-    with open(conf_file) as conf_fp:
-        with open('log') as log_fp:
-            json.dump(
-                {'type': 'finish', 'id': 'psi', 'resources': resources, 'desc': conf_fp.read(), 'log': log_fp.read()},
-                finish_report_fp)
-
-# TODO: send request about successful decision of job to Omega.
-
-# TODO: send terminator to reports message queue
-
-# TODO: wait for completion of (1)
-
-# TODO: remove this when everything will work fine!
-logger.error("Fatal error")
-exit(1)
+    def get_user(self, name):
+        self.logger.info('Get ' + name + ' user name')
+        user = getpass.getuser() if not self.conf[name]['user'] else self.conf[name]['user']
+        self.logger.debug(name + ' user name is "{}"'.format(user))
+        return user
