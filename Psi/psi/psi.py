@@ -25,6 +25,9 @@ class Psi:
             os.remove(self.is_solving_file)
 
     def run(self):
+        """
+        Main Psi function.
+        """
         # Remember approximate time of start.
         start = timeit.default_timer()
 
@@ -151,11 +154,21 @@ class Psi:
         # TODO: wait for completion of (1)
 
     def get_passwd(self, name):
+        """
+        Get password for the specified name either from configuration or by using password prompt.
+        :param name: a name of service for which password is required.
+        :return: a password for the specified name.
+        """
         self.logger.info('Get ' + name + ' password')
         passwd = getpass.getpass() if not self.conf[name]['passwd'] else self.conf[name]['passwd']
         return passwd
 
     def get_user(self, name):
+        """
+        Get user for the specified name either from configuration or by using OS user.
+        :param name: a name of service for which user is required.
+        :return: a user for the specified name.
+        """
         self.logger.info('Get ' + name + ' user name')
         user = getpass.getuser() if not self.conf[name]['user'] else self.conf[name]['user']
         self.logger.debug(name + ' user name is "{}"'.format(user))
