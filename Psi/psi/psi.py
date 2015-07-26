@@ -70,11 +70,8 @@ class Psi:
         # TODO: get computer description.
         comp_desc = []
 
-        self.logger.info('Dump start report')
-        with open('start report.json', 'w') as fp:
-            psi.utils.dump_report(
-                {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc}, fp)
-        self.logger.debug('Finish report was dumped to file "{0}"'.format('start report.json'))
+        psi.utils.dump_report(self.logger, 'start',
+                              {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc})
 
         # TODO: get job from Omega.
 
@@ -94,15 +91,13 @@ class Psi:
 
         resources = self.count_consumed_resources(start_time)
 
-        self.logger.info('Dump finish report')
-        with open('finish report.json', 'w') as finish_report_fp:
-            with open(conf_file) as conf_fp:
-                with open('log') as log_fp:
-                    psi.utils.dump_report(
-                        {'type': 'finish', 'id': 'psi', 'resources': resources, 'desc': conf_fp.read(),
-                         'log': log_fp.read()},
-                        finish_report_fp)
-        self.logger.debug('Finish report was dumped to file "{0}"'.format('finish report.json'))
+        with open(conf_file) as conf_fp:
+            with open('log') as log_fp:
+                psi.utils.dump_report(self.logger, 'finish',
+                                      {'type': 'finish', 'id': 'psi', 'resources': resources, 'desc': conf_fp.read(),
+                                       'log': log_fp.read()})
+
+        pass
 
         # TODO: send request about successful decision of job to Omega.
 

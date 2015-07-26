@@ -3,13 +3,18 @@ import logging
 import sys
 
 
-def dump_report(report, fp):
+def dump_report(logger, kind, report):
     """
-    Pretty dump the specified report to the specified stream.
+    Dump the specified report of the specified kind to a file.
+    :param logger: a logger for debug printing.
+    :param kind: a report kind (a file where a report will be dumped will be named "kind report.json").
     :param report: a report object (usually it should be a dictionary).
-    :param fp: a stream where report will be dumped.
     """
-    json.dump(report, fp, sort_keys=True, indent=4)
+    logger.info('Dump {0} report'.format(kind))
+    report_file = '{0} report.json'.format(kind)
+    with open(report_file, 'w') as fp:
+        json.dump(report, fp, sort_keys=True, indent=4)
+    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), report_file))
 
 
 def get_logger(name, conf):
