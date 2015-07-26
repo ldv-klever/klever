@@ -64,6 +64,36 @@ function add_order_to_available(value, title) {
     check_order_form()
 }
 
+function add_new_order() {
+    var available_orders = $('#available_orders'),
+        selected_order = available_orders.children('option:selected');
+
+    if (selected_order.length == 1) {
+        var sel_title = selected_order.html();
+        var sel_value = selected_order.val();
+        var selected_orders_div = $('#all_selected_orders');
+        if (selected_orders_div.find('div[id=order__' + sel_value + ']').length > 0) {
+            return false;
+        }
+        selected_orders_div.append($('#selected_order_template').html());
+
+        var new_item = selected_orders_div.find('div[id=order__]');
+        new_item.attr('id', 'order__' + sel_value);
+
+        var span_obj = new_item.find('span[id=selected_order_title__]');
+        span_obj.attr('id', 'selected_order_title__' + sel_value);
+        span_obj.html(sel_title);
+
+        var new_button = new_item.find('button[id=remove__order__]');
+        new_button.attr('id', 'remove__order__' + sel_value);
+        new_button.click(delete_selected_order);
+        new_item.find('input').attr('name', sel_value);
+        available_orders.children('option[value=' + sel_value + ']').remove();
+        check_order_form();
+    }
+    return false;
+}
+
 function check_order_form() {
     if ($('#available_orders').children('option').length > 0) {
         $('#available_orders_form').show();
@@ -82,15 +112,15 @@ function check_filters_form() {
     }
 }
 
-function delete_selected_order(form) {
-    var order_value = form.attr('id').split('__').slice(-1)[0];
+function delete_selected_order() {
+    var order_value = $(this).attr('id').split('__').slice(-1)[0];
     var order_form_id = 'order__' + order_value;
     add_order_to_available(order_value, $('#selected_order_title__' + order_value).html());
     $('#' + order_form_id).remove();
 }
 
-function remove_filter_form(filter_form) {
-    var filter_name = filter_form.attr('id').split('__').slice(-1)[0];
+function remove_filter_form() {
+    var filter_name = $(this).attr('id').split('__').slice(-1)[0];
     var filter_title = $('#filter_title__' + filter_name).html();
     $('#available_filters').append($('<option>', {
         value: filter_name,
@@ -132,7 +162,6 @@ function check_jobs_access(jobs) {
         data: {jobs: JSON.stringify(jobs)},
         async: false,
         success: function (res) {
-            console.log(res);
             status = res.status;
             if (status == false) {
                 err_notify(res.message);
@@ -233,66 +262,20 @@ function collect_filter_data () {
 $(document).ready(function () {
     var max_table_height = $(window).height() - 100,
         small_table_height = $(window).height() - 300,
-        job_table_div = $('#jobtable');
-
-    var ajax_url = window.location.href + 'ajax/',
-        available_orders = $('#available_orders');
+        ajax_url = window.location.href + 'ajax/';
+    $('.tree').treegrid({
+        treeColumn: 1,
+        expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-chevron-down',
+        expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-chevron-right'
+    });
+    $('#jobtable').attr('style', 'max-height: ' + small_table_height + 'px;');
     check_order_form();
     check_filters_form();
-    if(job_table_div.length) {
-        $.post(
-            '/jobs/jobtable/',
-            collect_filter_data(),
-            function(data) {
-                job_table_div.html(data);
-                fill_all_values();
-                $("input[id^='job_checkbox__']").change(fill_checked_values);
-                $('.tree').treegrid({
-                    treeColumn: 1,
-                    expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-chevron-down',
-                    expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-chevron-right'
-                });
-                job_table_div.attr('style', 'max-height: ' + small_table_height + 'px;')
-            }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
-    }
+    fill_all_values();
+    $("input[id^='job_checkbox__']").change(fill_checked_values);
+    $("button[id^='remove__order__']").click(delete_selected_order);
 
-    $("button[id^='remove__order__']").click(function () {
-        delete_selected_order($(this));
-        return false;
-    });
-
-    $("#add_order_btn").click(function() {
-        var selected_order = available_orders.children('option:selected');
-        if (selected_order.length == 1) {
-            var sel_title = selected_order.html();
-            var sel_value = selected_order.val();
-            var selected_orders_div = $('#all_selected_orders');
-            if (selected_orders_div.find('div[id=order__' + sel_value + ']').length > 0) {
-                return false;
-            }
-            selected_orders_div.append($('#selected_order_template').html());
-
-            var new_item = selected_orders_div.find('div[id=order__]');
-            new_item.attr('id', 'order__' + sel_value);
-
-            var span_obj = new_item.find('span[id=selected_order_title__]');
-            span_obj.attr('id', 'selected_order_title__' + sel_value);
-            span_obj.html(sel_title);
-
-            var new_button = new_item.find('button[id=remove__order__]');
-            new_button.attr('id', 'remove__order__' + sel_value);
-            new_button.click(function () {
-                delete_selected_order($(this));
-            });
-            new_item.find('input').attr('name', sel_value);
-            available_orders.children('option[value=' + sel_value + ']').remove();
-            check_order_form();
-        }
-        return false;
-    });
+    $("#add_order_btn").click(add_new_order);
 
     $('#add_column_btn').click(function () {
         var selected_column = $('#available_columns').children('option:selected');
@@ -314,20 +297,17 @@ $(document).ready(function () {
         if (tree_1_bigpart.is(':visible')) {
             tree_1_bigpart.hide();
             $(this).find('span').attr('class', "glyphicon glyphicon-save");
-            job_table_div.attr('style', 'max-height: ' + max_table_height + 'px;')
+            $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;')
         }
         else {
             tree_1_bigpart.show();
             $(this).find('span').attr('class', "glyphicon glyphicon-fullscreen");
-            job_table_div.attr('style', 'max-height: ' + small_table_height + 'px;')
+            $('#jobtable').attr('style', 'max-height: ' + small_table_height + 'px;')
         }
         return false;
     });
 
-    $('button[id^=remove__filter__]').click(function () {
-        remove_filter_form($(this));
-        return false;
-    });
+    $('button[id^=remove__filter__]').click(remove_filter_form);
 
     $('#add_filter_btn').click(function () {
         var selected_filter = $('#available_filters').children('option:selected');
@@ -347,10 +327,7 @@ $(document).ready(function () {
             }
         });
         global_filter_list.append(new_filter_element);
-        $('#remove__filter__' + filter_name).click(function () {
-            remove_filter_form($(this));
-            return false;
-        });
+        $('#remove__filter__' + filter_name).click(remove_filter_form);
         selected_filter.remove();
         check_filters_form();
         return false;
@@ -516,7 +493,7 @@ $(document).ready(function () {
 
     $('#upload_job_cancel').click(function () {
         var file_input = $('#upload_job_file_input');
-        file_input.replaceWith(file_input = file_input.clone( true ));
+        file_input.replaceWith(file_input.clone( true ));
         $('#upload_job_parent_id').val('');
         $('#upload_job_filename').html('');
     });
@@ -547,7 +524,9 @@ $(document).ready(function () {
                     err_notify(data.message);
                 }
             }
-        });
+        }).fail(function (x) {
+                console.log(x.responseText);
+            });
     });
 });
 

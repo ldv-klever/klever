@@ -4,7 +4,6 @@ from jobs import views
 
 urlpatterns = [
     url(r'^$', views.tree_view, name='tree'),
-    url(r'^jobtable/$', views.get_jobtable),
     url(r'^(?P<job_id>[0-9]+)/$', views.show_job, name='job'),
     url(r'^joberror/(?P<err_code>[0-9]+)/$', views.job_error, name='error'),
     url(r'^ajax/save_view/$', views.save_view),

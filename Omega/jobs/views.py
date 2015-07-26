@@ -20,62 +20,24 @@ from jobs.forms import FileForm
 from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
 from users.models import View, PreferableView
-from datetime import datetime
-
-class Counter(object):
-    def __init__(self):
-        self.cnt = 1
-        self.dark = False
-
-    def increment(self):
-        self.cnt += 1
-        if self.cnt % 2:
-            self.dark = False
-        else:
-            self.dark = True
 
 
 @login_required
 def tree_view(request):
     activate(request.user.extended.language)
 
+    tree_args = [request.user]
     if request.method == 'POST':
-        filter_form = FilterForm(
-            request.user,
-            request.POST.get('view', None),
-            request.POST.get('view_id', None)
-        )
-    else:
-        filter_form = FilterForm(request.user)
+        tree_args.append(request.POST.get('view', None))
+        tree_args.append(request.POST.get('view_id', None))
 
-    context = {
-        'FF': filter_form,
+    return render(request, 'jobs/tree.html', {
+        'FF': FilterForm(*tree_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
-        'can_create': job_f.JobAccess(request.user).can_create()
-    }
-    return render(request, 'jobs/tree.html', context)
-
-
-@login_required
-def get_jobtable(request):
-    activate(request.user.extended.language)
-
-    if request.method == 'GET':
-        return HttpResponse('')
-
-    start = datetime.now()
-    tt = TableTree(
-        request.user,
-        request.POST.get('view', None),
-        request.POST.get('view_id', None)
-    )
-    print(datetime.now() - start)
-    context = {
-        'TableData': tt,
-        'counter': Counter()
-    }
-    return render(request, 'jobs/treeTable.html', context)
+        'can_create': job_f.JobAccess(request.user).can_create(),
+        'TableData': TableTree(*tree_args)
+    })
 
 
 @login_required
@@ -413,20 +375,17 @@ def save_job(request):
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
-    title = request.POST.get('title', '')
-    description = request.POST.get('description', '')
-    comment = request.POST.get('comment', '')
-    config = request.POST.get('configuration', '')
+    job_kwargs = {
+        'name': request.POST.get('title', ''),
+        'description': request.POST.get('description', ''),
+        'configuration': request.POST.get('configuration', ''),
+        'global_role': request.POST.get('global_role', JOB_ROLES[0][0]),
+        'user_roles': json.loads(request.POST.get('user_roles', '[]')),
+        'filedata': json.loads(request.POST.get('file_data', '[]')),
+        'author': request.user
+    }
     job_id = request.POST.get('job_id', None)
     parent_identifier = request.POST.get('parent_identifier', None)
-    global_role = request.POST.get('global_role', JOB_ROLES[0][0])
-    user_roles = request.POST.get('user_roles', '[]')
-    user_roles = json.loads(user_roles)
-
-    file_data = request.POST.get('file_data', '[]')
-    file_data = json.loads(file_data)
-
-    last_version = int(request.POST.get('last_version', 0))
 
     if job_id:
         try:
@@ -469,19 +428,21 @@ def save_job(request):
                     'message': _("The specified parent can't "
                                  "be set for this job")
                 })
-            job.parent = parent
+            job_kwargs['parent'] = parent
         elif job.parent:
             return JsonResponse({
                 'status': 1,
                 'message': _("A parent identifier is required for this job")
             })
-
-        if job.version != last_version:
+        if job.version != int(request.POST.get('last_version', 0)):
             return JsonResponse({
                 'status': 1,
                 'message': _("Your version is expired, please reload the page")
             })
-        job.version += 1
+        job_kwargs['job'] = job
+        job_kwargs['comment'] = request.POST.get('comment', '')
+        if job_f.update_job(**job_kwargs) is not None:
+            return JsonResponse({'status': 0, 'job_id': job.pk})
     elif job_id is None and parent_identifier:
         try:
             parent = Job.objects.get(identifier=parent_identifier)
@@ -495,69 +456,11 @@ def save_job(request):
                 'status': 1,
                 'message': _("You don't have an access to create a new job")
             })
-        job = Job()
-        job.type = parent.type
-        job.parent = parent
-    else:
-        return JsonResponse({'status': 1, 'message': _('Unknown error')})
-
-    job.change_author = request.user
-    job.name = title
-    job.description = description
-    job.configuration = config
-    job.global_role = global_role
-    job.save()
-    if parent_identifier and job_id is None:
-        time_encoded = job.change_date.strftime(
-            "%Y%m%d%H%M%S%f%z"
-        ).encode('utf-8')
-        job.identifier = hashlib.md5(time_encoded).hexdigest()
-        job.save()
-        jobstatus = JobStatus()
-        jobstatus.job = job
-        jobstatus.save()
-
-    new_version = JobHistory()
-    new_version.job = job
-    new_version.name = job.name
-    new_version.description = job.description
-    new_version.comment = comment
-    new_version.configuration = job.configuration
-    new_version.global_role = job.global_role
-    new_version.type = job.type
-    new_version.change_author = job.change_author
-    new_version.change_date = job.change_date
-    new_version.format = job.format
-    new_version.version = job.version
-    new_version.parent = job.parent
-    new_version.save()
-
-    for ur in user_roles:
-        user_id = int(ur['user'])
-        role = ur['role']
-        ur_user = User.objects.filter(pk=user_id)
-        if len(ur_user):
-            new_ur = UserRole()
-            new_ur.job = new_version
-            new_ur.user = ur_user[0]
-            new_ur.role = role
-            new_ur.save()
-
-    saving_filedata = job_f.DBFileData(file_data, new_version)
-    if saving_filedata.err_message:
-        if job.version == 1:
-            job.delete()
-        else:
-            job.version -= 1
-            job.save()
-            new_version.delete()
-        err_message = saving_filedata.err_message
-        err_message += ' ' + _("Please reload the page and try again")
-        return JsonResponse({
-            'status': 1,
-            'message': err_message,
-        })
-    return JsonResponse({'status': 0, 'job_id': job.pk})
+        job_kwargs['parent'] = parent
+        newjob = job_f.create_job(**job_kwargs)
+        if newjob is not None:
+            return JsonResponse({'status': 0, 'job_id': newjob.pk})
+    return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
 
 @login_required
@@ -774,6 +677,11 @@ def check_access(request):
 def upload_job(request, parent_id=None):
     if len(parent_id) > 0:
         parents = Job.objects.filter(identifier__startswith=parent_id)
+        if len(request.FILES) == 0:
+            return JsonResponse({
+                'status': False,
+                'message': _("Job archive was not got.")
+            })
         if len(parents) == 0:
             return JsonResponse({
                 'status': False,
@@ -785,23 +693,17 @@ def upload_job(request, parent_id=None):
                 'message': _("Too many parents starts with this id.")
             })
         parent = parents[0]
-        if len(request.FILES) == 0:
-            return JsonResponse({
-                'status': False,
-                'message': _("Zip archive was not got.")
-            })
-
         zipdata = job_f.ReadZipJob(parent, request.user, request.FILES['file'])
-        if zipdata.job_id:
-            return JsonResponse({
-                'status': True,
-                'job_id': zipdata.job_id
-            })
-        else:
+        if zipdata.job_id is None:
             return JsonResponse({
                 'status': False,
                 'message': _("Job was not saved!")
             })
+        return JsonResponse({
+            'status': True,
+            'job_id': zipdata.job_id
+        })
+
     return JsonResponse({
         'status': False,
         'message': _("Parent id was not got.")

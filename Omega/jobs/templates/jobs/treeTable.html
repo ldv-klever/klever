@@ -15,7 +15,7 @@
     <tbody>
         {% for row_data in TableData.values %}
             <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
-                style="{% if counter.dark %}background: #f0f5fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
+                style="{% if TableData.counter.dark %}background: #f0f5fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
             <td id="value__{{ row_data.id }}">
                 <label><input type="checkbox" id="job_checkbox__{{ row_data.id }}"></label>
             </td>
@@ -38,7 +38,7 @@
                 {% endif %}
                 </td>
             {% endfor %}
-            <span hidden>{{ counter.increment }}</span>
+            <span hidden>{{ TableData.counter.increment }}</span>
             </tr>
         {%  endfor %}
     </tbody>
