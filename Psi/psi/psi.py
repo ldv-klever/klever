@@ -61,14 +61,12 @@ class Psi:
         omega['passwd'] = self.get_passwd('Omega')
         verification_task_scheduler['passwd'] = self.get_passwd('Verification Task Scheduler')
 
-        version = self.get_version()
-
         self.logger.debug('Support jobs of format "{0}"'.format(self.job_format))
 
         # TODO: create cgroups.
 
         psi.utils.dump_report(self.logger, 'start',
-                              {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}],
+                              {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': self.get_version()}],
                                'comp': psi.utils.get_comp_desc(self.logger)})
 
         # TODO: get job from Omega.
@@ -87,12 +85,10 @@ class Psi:
 
         # TODO: remove cgroups.
 
-        resources = self.count_consumed_resources(start_time)
-
         with open(conf_file) as conf_fp:
             with open('log') as log_fp:
                 psi.utils.dump_report(self.logger, 'finish',
-                                      {'type': 'finish', 'id': 'psi', 'resources': resources, 'desc': conf_fp.read(),
+                                      {'type': 'finish', 'id': 'psi', 'resources': self.count_consumed_resources(start_time), 'desc': conf_fp.read(),
                                        'log': log_fp.read()})
 
         pass
