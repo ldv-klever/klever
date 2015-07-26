@@ -67,11 +67,9 @@ class Psi:
 
         # TODO: create cgroups.
 
-        # TODO: get computer description.
-        comp_desc = []
-
         psi.utils.dump_report(self.logger, 'start',
-                              {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}], 'comp': comp_desc})
+                              {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': version}],
+                               'comp': psi.utils.get_comp_desc(self.logger)})
 
         # TODO: get job from Omega.
 
@@ -158,19 +156,14 @@ class Psi:
         Get version either as a tag in the Git repository of Psi or from the file created when installing Psi.
         :return: a version.
         """
-        self.logger.info('Get version')
         # Git repository directory may be located in parent directory of parent directory.
         git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
         if os.path.isdir(git_repo_dir):
-            proc = subprocess.Popen(['git', '--git-dir', git_repo_dir, 'describe', '--always', '--abbrev=7', '--dirty'],
-                                    stdout=subprocess.PIPE)
-            version = proc.stdout.readline().decode('utf-8').rstrip()
-            if not version:
-                raise ValueError('Could not get Git repository tag')
+            version = psi.utils.get_entity_val(self.logger, 'version', 'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(git_repo_dir))
         else:
             # TODO: get version of installed Psi.
             version = ''
-        self.logger.debug('Version is "{0}"'.format(version))
+
         return version
 
     def prepare_work_dir(self):

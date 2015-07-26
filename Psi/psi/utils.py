@@ -1,12 +1,13 @@
 import json
 import logging
+import subprocess
 import sys
 
 
 def dump_report(logger, kind, report):
     """
     Dump the specified report of the specified kind to a file.
-    :param logger: a logger for debug printing.
+    :param logger: a logger for printing debug messages.
     :param kind: a report kind (a file where a report will be dumped will be named "kind report.json").
     :param report: a report object (usually it should be a dictionary).
     """
@@ -15,6 +16,42 @@ def dump_report(logger, kind, report):
     with open(report_file, 'w') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
     logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), report_file))
+
+
+def get_comp_desc(logger):
+    """
+    Return a given computer description (a node name, a CPU model, a number of CPUs, a memory size, a Linux kernel
+    version and an architecture).
+    :param logger: a logger for printing debug messages.
+    """
+    logger.info('Get computer description')
+
+    return [{entity_name_cmd[0]: get_entity_val(logger,
+                                                entity_name_cmd[1] if entity_name_cmd[1] else entity_name_cmd[0],
+                                                entity_name_cmd[2])} for entity_name_cmd in
+            [['node name', '', 'uname -n'],
+             ['CPU model', '', 'cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"'],
+             ['CPUs num', 'number of CPUs', 'cat /proc/cpuinfo | grep processor | wc -l'],
+             ['mem size', 'memory size',
+              'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'],
+             ['Linux kernel version', '', 'uname -r'],
+             ['arch', 'architecture', 'uname -m']]]
+
+
+def get_entity_val(logger, name, cmd):
+    """
+    Return a value of the specified entity name by executing the specified command and reading its first string
+    printed to STDOUT.
+    :param logger: a logger for printing debug messages.
+    :param name: an entity name.
+    :param cmd: a command to be executed to get an entity value.
+    """
+    logger.info('Get {0}'.format(name))
+    val = subprocess.getoutput(cmd)
+    if not val:
+        raise ValueError('Could not get {0}'.format(name))
+    logger.debug('{0} is "{1}"'.format(name.capitalize(), val))
+    return val
 
 
 def get_logger(name, conf):
