@@ -766,13 +766,14 @@ def create_job(**kwargs):
 
 
 def update_job(**kwargs):
-    if any(x not in kwargs for x in ['parent', 'name', 'author', 'comment']):
+    if any(x not in kwargs for x in ['name', 'author', 'comment']):
         return None
     if len(kwargs['name']) == 0 or len(kwargs['comment']) == 0:
         return None
-    kwargs['job'].parent = kwargs['parent']
     kwargs['job'].name = kwargs['name']
     kwargs['job'].change_author = kwargs['author']
+    if 'parent' in kwargs:
+        kwargs['job'].parent = kwargs['parent']
     if 'configuration' in kwargs:
         kwargs['job'].configuration = kwargs['configuration']
     if 'description' in kwargs:
