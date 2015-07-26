@@ -20,7 +20,7 @@ from jobs.forms import FileForm
 from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
 from users.models import View, PreferableView
-
+from datetime import datetime
 
 class Counter(object):
     def __init__(self):
@@ -64,45 +64,17 @@ def get_jobtable(request):
     if request.method == 'GET':
         return HttpResponse('')
 
+    start = datetime.now()
     tt = TableTree(
         request.user,
         request.POST.get('view', None),
         request.POST.get('view_id', None)
     )
-
-    # The first column of the table is with checkboxes, so we have to
-    # append to table's header data information for this column
-    tt.tableheader[0].insert(0, {
-        'column': '',
-        'rows': max([col['rows'] for col in tt.tableheader[0]]),
-        'columns': 1,
-        'title': '',
-    })
-
+    print(datetime.now() - start)
     context = {
-        'columns': tt.tableheader,
-        'values': tt.values,
-        'counter': Counter(),
+        'TableData': tt,
+        'counter': Counter()
     }
-
-    # Counting how many columns the header of footer of the table needs
-    # ('All', and 'All for checked')
-    foot_head_num = 0
-    for col in tt.tableheader[0]:
-        if col['column'] in ['name', 'author', 'date', 'status', '',
-                             'resource', 'format', 'version', 'type',
-                             'identifier', 'parent_id']:
-            foot_head_num += col['columns']
-        else:
-            break
-
-    # If we have any rows in values data we print table footer and
-    # give each column except header of footer id that we can get from this list
-    sum_of_columns = len(tt.columns) + 1
-    if len(tt.values) and (sum_of_columns - foot_head_num) > 0:
-        context['foot_cols'] = tt.values[0]['values'][(foot_head_num - 1):]
-        context['foot_head_num'] = foot_head_num
-
     return render(request, 'jobs/treeTable.html', context)
 
 

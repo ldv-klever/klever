@@ -134,7 +134,8 @@ class JobAccess(object):
         if self.job is not None:
             first_version = self.job.jobhistory_set.filter(version=1)[0]
             self.__is_author = (first_version.change_author == user)
-            job_versions = self.job.jobhistory_set.all().order_by('-change_date')[0]
+            job_versions = self.job.jobhistory_set.all().order_by(
+                '-change_date')[0]
             last_v_role = job_versions.userrole_set.filter(user=user)
             if len(last_v_role) > 0:
                 self.__job_role = last_v_role[0].role
