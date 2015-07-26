@@ -28,8 +28,8 @@ class Psi:
         """
         Main Psi function.
         """
-        # Remember approximate time of start.
-        start = timeit.default_timer()
+        # Remember approximate time of start to count wall time.
+        start_time = timeit.default_timer()
 
         conf_file = self.get_conf_file()
 
@@ -92,15 +92,7 @@ class Psi:
 
         # TODO: remove cgroups.
 
-        # Note that launching in PyCharm gives its maximum memory size.
-        self.logger.info('Count consumed resources')
-        utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
-        resources = {'wall time': round(100 * (timeit.default_timer() - start)),
-                     'CPU time': round(100 * (utime + stime)),
-                     'max mem size': 1000 * maxrss}
-        self.logger.debug('Consumed resources are:')
-        for res in sorted(resources):
-            self.logger.debug('    {0} - {1}'.format(res, resources[res]))
+        resources = self.count_consumed_resources(start_time)
 
         self.logger.info('Dump finish report')
         with open('finish report.json', 'w') as finish_report_fp:
@@ -117,6 +109,22 @@ class Psi:
         # TODO: send terminator to reports message queue
 
         # TODO: wait for completion of (1)
+
+    def count_consumed_resources(self, start_time):
+        """
+        Count resources (wall time, CPU time and maximum memory size) consumed by Psi without its childred.
+        Note that launching under PyCharm gives its maximum memory size.
+        :return: resources.
+        """
+        self.logger.info('Count consumed resources')
+        utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
+        resources = {'wall time': round(100 * (timeit.default_timer() - start_time)),
+                     'CPU time': round(100 * (utime + stime)),
+                     'max mem size': 1000 * maxrss}
+        self.logger.debug('Consumed resources are:')
+        for res in sorted(resources):
+            self.logger.debug('    {0} - {1}'.format(res, resources[res]))
+        return resources
 
     # TODO: may be this function can be reused by other components.
     def get_conf_file(self):
