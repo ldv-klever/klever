@@ -202,12 +202,25 @@ class TableTree(object):
         self.jobdata = []
         self.__collect_jobdata()
         self.__table_columns()
-        self.header = self.__Header(self.columns, self.titles).head_struct()
+        self.header = self.Header(self.columns, self.titles).head_struct()
         self.footer_title_length = self.__count_footer()
         self.values = self.__values()
         self.footer = self.__get_footer()
+        self.counter = self.Counter()
 
-    class __Header(object):
+    class Counter(object):
+        def __init__(self):
+            self.cnt = 1
+            self.dark = False
+
+        def increment(self):
+            self.cnt += 1
+            if self.cnt % 2:
+                self.dark = False
+            else:
+                self.dark = True
+
+    class Header(object):
 
         def __init__(self, columns, titles):
             self.columns = columns
@@ -301,10 +314,11 @@ class TableTree(object):
 
     def __get_footer(self):
         footer = []
-        if len(self.values):
-            f_len = len(self.values[0]['values'])
-            for i in range(self.footer_title_length - 1, f_len):
-                footer.append(self.values[0]['values'][i]['id'])
+        if self.footer_title_length is not None:
+            if len(self.values):
+                f_len = len(self.values[0]['values'])
+                for i in range(self.footer_title_length - 1, f_len):
+                    footer.append(self.values[0]['values'][i]['id'])
         return footer
 
     def __collect_jobdata(self):

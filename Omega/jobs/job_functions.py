@@ -5,6 +5,7 @@ from django.core.files import File as NewFile
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from jobs.models import FileSystem, File
+from jobs.models import UserRole
 from django.conf import settings
 import os
 import tarfile
@@ -178,30 +179,29 @@ class FileData(object):
         self.filedata = newfilesdata
 
     def __order_by_lvl(self):
-        lvl = 1
-        ordered_filedata = []
+        ordered_data = []
+        first_lvl = []
+        other_data = []
         for fd in self.filedata:
             if fd['parent'] is None:
-                fd['lvl'] = lvl
-                ordered_filedata.append(fd)
-        while len(ordered_filedata) < len(self.filedata):
-            ordered_filedata = self.__insert_level(lvl, ordered_filedata)
-            lvl += 1
-            # maximum depth of folders: 1000
-            if lvl > 1000:
-                return ordered_filedata
-        self.filedata = ordered_filedata
+                first_lvl.append(fd)
+            else:
+                other_data.append(fd)
 
-    def __insert_level(self, lvl, ordered_filedata):
-        ordered_data = []
-        for o_fd in ordered_filedata:
-            ordered_data.append(o_fd)
-            if o_fd['lvl'] == lvl:
-                for f_fd in self.filedata:
-                    if f_fd['parent'] == o_fd['id']:
-                        f_fd['lvl'] = lvl + 1
-                        ordered_data.append(f_fd)
-        return ordered_data
+        def __get_all_children(file_info):
+            children = []
+            if file_info['type'] == 1:
+                return children
+            for fi in other_data:
+                if fi['parent'] == file_info['id']:
+                    children.append(fi)
+                    children.extend(__get_all_children(fi))
+            return children
+
+        for fd in first_lvl:
+            ordered_data.append(fd)
+            ordered_data.extend(__get_all_children(fd))
+        self.filedata = ordered_data
 
 
 class DBFileData(object):
@@ -225,11 +225,11 @@ class DBFileData(object):
                         'pk', None
                     )
                     if parent_pk is None:
-                        return _("Parent was not saved")
+                        return _("Failed saving folder")
                     try:
                         parent = FileSystem.objects.get(pk=parent_pk, file=None)
                     except ObjectDoesNotExist:
-                        return _("Parent was not saved")
+                        return _("Failed saving folder")
                     fs_elem.parent = parent
                 if lvl_elem['type'] == '1':
                     try:
@@ -237,7 +237,7 @@ class DBFileData(object):
                             hash_sum=lvl_elem['hash_sum']
                         )
                     except ObjectDoesNotExist:
-                        return _("The file was not found")
+                        return _("The file was not uploaded")
                 fs_elem.name = lvl_elem['title']
                 fs_elem.save()
                 self.filedata_hash[lvl_elem['id']]['pk'] = fs_elem.pk
@@ -289,7 +289,6 @@ class ReadZipJob(object):
     def __init__(self, parent, user, zip_archive):
         self.costyl = 1
         self.parent = parent
-        self.job = None
         self.job_id = None
         self.user = user
         self.zip_file = zip_archive
@@ -312,140 +311,59 @@ class ReadZipJob(object):
             elif file_name == 'title':
                 job_title = file_obj.read().decode('utf-8')
             elif file_name.startswith('root/'):
-                file_content = BytesIO(file_obj.read())
-                check_sum = hashlib.md5(file_content.read()).hexdigest()
-                file_in_db = File.objects.filter(hash_sum=check_sum)
-                if len(file_in_db) == 0:
-                    db_file = File()
-                    db_file.file.save(
-                        os.path.basename(file_name),
-                        NewFile(file_content)
-                    )
-                    db_file.hash_sum = check_sum
-                    db_file.save()
-                    file_data.append([file_name, db_file])
+                if f.isreg():
+                    file_content = BytesIO(file_obj.read())
+                    check_sum = hashlib.md5(file_content.read()).hexdigest()
+                    file_in_db = File.objects.filter(hash_sum=check_sum)
+                    if len(file_in_db) == 0:
+                        db_file = File()
+                        db_file.file.save(
+                            os.path.basename(file_name),
+                            NewFile(file_content)
+                        )
+                        db_file.hash_sum = check_sum
+                        db_file.save()
+                    file_data.append([file_name, check_sum])
                 else:
-                    file_data.append([file_name, file_in_db[0]])
+                    file_data.append([file_name, None])
+
+        def create_filesystem(filedata):
+            fulldata = {}
+            for fd in filedata:
+                dir_list = []
+                dir_name = fd[0][len('root/'):]
+                while len(dir_name) > 0:
+                    (dir_name, d) = os.path.split(dir_name)
+                    dir_list.insert(0, d)
+                prev_parent = None
+                for i in range(0, len(dir_list)):
+                    fdid = '#'.join(dir_list[:(i + 1)])
+                    curr_id = hashlib.md5(fdid.encode('utf-8')).hexdigest()
+                    if curr_id not in fulldata:
+                        fulldata[curr_id] = {
+                            'title': dir_list[i],
+                            'type': '0',
+                            'id': curr_id,
+                            'parent': prev_parent,
+                            'hash_sum': None
+                        }
+                        if fd[1] is not None:
+                            fulldata[curr_id]['hash_sum'] = fd[1]
+                            fulldata[curr_id]['type'] = '1'
+                    prev_parent = curr_id
+            return list(fulldata[x] for x in fulldata)
+
         if len(job_title) > 0:
-            self.__create_job(
-                job_title, job_configuration, job_description, file_data
-            )
-
-    def __create_job(self, title, config, description, filedata):
-        newjob = Job()
-        newjob.name = title
-        newjob.change_author = self.user
-        newjob.configuration = config
-        newjob.description = description
-        newjob.parent = self.parent
-        newjob.type = self.parent.type
-        newjob.format = self.parent.format
-        time_encoded = datetime.now().strftime(
-            "%Y%m%d%H%M%S%f%z"
-        ).encode('utf-8')
-        newjob.identifier = hashlib.md5(time_encoded).hexdigest()
-        newjob.save()
-        jobstatus = JobStatus()
-        jobstatus.job = newjob
-        jobstatus.save()
-
-        new_version = JobHistory()
-        new_version.job = newjob
-        new_version.name = newjob.name
-        new_version.description = newjob.description
-        new_version.comment = ''
-        new_version.configuration = newjob.configuration
-        new_version.global_role = newjob.global_role
-        new_version.type = newjob.type
-        new_version.change_author = newjob.change_author
-        new_version.change_date = newjob.change_date
-        new_version.format = newjob.format
-        new_version.version = newjob.version
-        new_version.parent = newjob.parent
-        new_version.save()
-        self.job = new_version
-        self.__create_filesystem(filedata)
-        self.job_id = newjob.pk
-
-    def __create_filesystem(self, filedata):
-        parsed_data = []
-        tar_dirs = []
-        for fd in filedata:
-            (dir_name, file_name) = os.path.split(fd[0])
-            dir_list = [file_name]
-            while len(dir_name) > 0:
-                (dir_name, d) = os.path.split(dir_name)
-                dir_list.insert(0, d)
-            parsed_data.append({
-                'dirs': dir_list[1:],
-                'filename': file_name,
-                'file': fd[1]
+            job = create_job(**{
+                'name': job_title,
+                'author': self.user,
+                'configuration': job_configuration,
+                'description': job_description,
+                'parent': self.parent,
+                'filedata': create_filesystem(file_data)
             })
-            tar_dirs.append(dir_list)
-
-        new_lvl = self.__get_level(parsed_data, 0)
-        lvl = 1
-        all_levels = []
-        while len(new_lvl):
-            all_levels.append(new_lvl)
-            new_lvl = self.__get_level(parsed_data, lvl)
-            lvl += 1
-        merged_levels = {}
-        for dir_lvl in all_levels:
-            for d in dir_lvl:
-                merged_levels[d['id']] = {
-                    'parent': d['parent'],
-                    'type': d['type'],
-                    'title': d['title']
-                }
-                if d['type'] == 1:
-                    merged_levels[d['id']]['file'] = d['file']
-        for dir_lvl in all_levels:
-            for d in dir_lvl:
-                self.__create_fs(d, merged_levels)
-
-    def __get_level(self, parsed_data, lvl):
-        self.costyl += 1
-        res_lvl = []
-        for fd in parsed_data:
-            if len(fd['dirs']) > lvl:
-                if fd['dirs'][lvl] not in res_lvl:
-                    id_enc = '#'.join(fd['dirs'][:(lvl + 1)]).encode('utf-8')
-                    curr_id = hashlib.md5(id_enc).hexdigest()
-                    parrent_id = None
-                    if len(fd['dirs'][:lvl]):
-                        id_enc = '#'.join(fd['dirs'][:lvl]).encode('utf-8')
-                        parrent_id = hashlib.md5(id_enc).hexdigest()
-                    new_lvl_data = {
-                        'title': fd['dirs'][lvl],
-                        'type': 0,
-                        'id': curr_id,
-                        'parent': parrent_id
-                    }
-                    if len(fd['dirs']) == lvl + 1:
-                        new_lvl_data['type'] = 1
-                        new_lvl_data['file'] = fd['file']
-                    if new_lvl_data not in res_lvl:
-                        res_lvl.append(new_lvl_data)
-        return res_lvl
-
-    def __create_fs(self, d, dirdata):
-        new_fs = FileSystem()
-
-        if d['parent']:
-            if dirdata[d['parent']]['fs']:
-                new_fs.parent = dirdata[d['parent']]['fs']
-                new_fs.name = d['title']
-                new_fs.job = self.job
-                if d['type'] == 1:
-                    new_fs.file = d['file']
-        else:
-            new_fs.name = d['title']
-            new_fs.job = self.job
-            if d['type'] == 1:
-                new_fs.file = d['file']
-        new_fs.save()
-        dirdata[d['id']]['fs'] = new_fs
+            if job is not None:
+                self.job_id = job.pk
 
 
 # For first lock: job = None, hash_sum = None, user != None;
@@ -453,6 +371,7 @@ class ReadZipJob(object):
 # After it create JobArchive with job != None, hash_sum != None
 # and call create_tar(); then read tar archive from 'memory'.
 class JobArchive(object):
+
     def __init__(self, job=None, hash_sum=None, user=None):
         self.costyl = 1
         self.lockfile = DOWNLOAD_LOCKFILE
@@ -491,16 +410,23 @@ class JobArchive(object):
         if self.job is None:
             return False
         if self.__second_lock():
+
+            def __write_file_str(jobtar, file_name, file_content):
+                file_content = file_content.encode('utf-8')
+                t = tarfile.TarInfo(file_name)
+                t.size = len(file_content)
+                jobtar.addfile(t, BytesIO(file_content))
+
             self.jobtar_name = 'VJ__' + self.job.identifier + '.tar.gz'
             files_for_tar = self.__get_filedata()
             jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
-            self.__write_file_str(
+            __write_file_str(
                 jobtar_obj, 'title', self.job.name
             )
-            self.__write_file_str(
+            __write_file_str(
                 jobtar_obj, 'configuration', self.job.configuration
             )
-            self.__write_file_str(
+            __write_file_str(
                 jobtar_obj, 'description', self.job.description
             )
             for f in files_for_tar:
@@ -567,13 +493,6 @@ class JobArchive(object):
                     'src': os.path.join(settings.MEDIA_ROOT, f.file.file.name)
                 })
         return files_for_tar
-
-    def __write_file_str(self, jobtar, file_name, file_content):
-        self.costyl += 1
-        file_content = file_content.encode('utf-8')
-        t = tarfile.TarInfo(file_name)
-        t.size = len(file_content)
-        jobtar.addfile(t, BytesIO(file_content))
 
 
 def convert_time(val, acc):
@@ -795,6 +714,91 @@ def is_operator(user, job):
     if job.global_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
         return True
     return False
+
+
+def create_version(job, comment=None):
+    new_version = JobHistory()
+    new_version.job = job
+    new_version.name = job.name
+    new_version.description = job.description
+    if comment is not None:
+        new_version.comment = comment
+    new_version.configuration = job.configuration
+    new_version.global_role = job.global_role
+    new_version.type = job.type
+    new_version.change_author = job.change_author
+    new_version.change_date = job.change_date
+    new_version.format = job.format
+    new_version.version = job.version
+    new_version.parent = job.parent
+    new_version.save()
+    return new_version
+
+
+def create_job(**kwargs):
+    newjob = Job()
+    if 'parent' not in kwargs or 'name' not in kwargs or \
+            len(kwargs['name']) == 0 or 'author' not in kwargs:
+        return None
+    newjob.parent = kwargs['parent']
+    newjob.type = kwargs['parent'].type
+    newjob.format = kwargs['parent'].format
+    newjob.name = kwargs['name']
+    newjob.change_author = kwargs['author']
+    if 'configuration' in kwargs:
+        newjob.configuration = kwargs['configuration']
+    if 'description' in kwargs:
+        newjob.description = kwargs['description']
+    time_encoded = datetime.now().strftime(
+        "%Y%m%d%H%M%S%f%z"
+    ).encode('utf-8')
+    newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+    newjob.save()
+    jobstatus = JobStatus()
+    jobstatus.job = newjob
+    jobstatus.save()
+    new_version = create_version(newjob)
+    if 'filedata' in kwargs:
+        if DBFileData(kwargs['filedata'], new_version).err_message is not None:
+            newjob.delete()
+            return None
+    return newjob
+
+
+def update_job(**kwargs):
+    if any(x not in kwargs for x in ['parent', 'name', 'author', 'comment']):
+        return None
+    if len(kwargs['name']) == 0 or len(kwargs['comment']) == 0:
+        return None
+    kwargs['job'].parent = kwargs['parent']
+    kwargs['job'].name = kwargs['name']
+    kwargs['job'].change_author = kwargs['author']
+    if 'configuration' in kwargs:
+        kwargs['job'].configuration = kwargs['configuration']
+    if 'description' in kwargs:
+        kwargs['job'].description = kwargs['description']
+    if 'global_role' in kwargs and \
+            kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
+        kwargs['job'].global_role = kwargs['global_role']
+    kwargs['job'].version += 1
+    kwargs['job'].save()
+    newversion = create_version(kwargs['job'], kwargs['comment'])
+    if 'user_roles' in kwargs:
+        for ur in kwargs['user_roles']:
+            ur_user = User.objects.filter(pk=int(ur['user']))
+            if len(ur_user):
+                new_ur = UserRole()
+                new_ur.job = newversion
+                new_ur.user = ur_user[0]
+                new_ur.role = ur['role']
+                new_ur.save()
+    if 'filedata' in kwargs:
+        if DBFileData(kwargs['filedata'], newversion).err_message is not None:
+            newversion.delete()
+            kwargs['job'].version -= 1
+            kwargs['job'].save()
+            return None
+    return kwargs['job']
 
 
 def check_new_parent(job, parent):
