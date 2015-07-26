@@ -1,11 +1,12 @@
 import json
-import re
 import pytz
 from datetime import datetime, timedelta
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
-from jobs.job_model import Job
+from jobs.job_model import Job, JobStatus
+from jobs.models import Verdict, MarkSafeTag, MarkUnsafeTag, ComponentResource,\
+    ComponentUnknown, ComponentMarkUnknownProblem
 import jobs.job_functions as job_f
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
@@ -44,24 +45,14 @@ FILTER_TITLES = {
 
 
 def all_user_columns():
-    def_columns = ['name', 'role', 'author', 'date', 'status', 'unsafe', 'safe',
-                   'problem', 'resource']
-    add_columns = ['tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format',
-                   'version', 'type', 'parent_id']
-    columns = []
-    for col in def_columns:
-        if col == 'safe':
-            columns.append('safe')
-            for safe in SAFES:
-                columns.append("%s:%s" % (col, safe))
-        elif col == 'unsafe':
-            columns.append('unsafe')
-            for unsafe in UNSAFES:
-                columns.append("%s:%s" % (col, unsafe))
-
-        elif col != 'name':
-            columns.append(col)
-    columns.extend(add_columns)
+    columns = ['role', 'author', 'date', 'status', 'unsafe']
+    for unsafe in UNSAFES:
+        columns.append("unsafe:%s" % unsafe)
+    columns.append('safe')
+    for safe in SAFES:
+        columns.append("safe:%s" % safe)
+    columns.extend(['problem', 'resource', 'tag', 'tag:safe', 'tag:unsafe',
+                    'identifier', 'format', 'version', 'type', 'parent_id'])
     return columns
 
 
@@ -199,82 +190,8 @@ class FilterForm(object):
         return view_filters
 
 
-class TableHeader(object):
-
-    def __init__(self, columns, titles):
-        self.columns = columns
-        self.titles = titles
-
-    def header_struct(self):
-        col_data = []
-        depth = self.__max_depth()
-        for d in range(1, depth + 1):
-            col_data.append(self.__cellspan_level(d, depth))
-        return col_data
-
-    def __max_depth(self):
-        max_depth = 0
-        if len(self.columns):
-            max_depth = 1
-        for col in self.columns:
-            depth = len(col.split(':'))
-            if depth > max_depth:
-                max_depth = depth
-        return max_depth
-
-    def __title(self, column):
-        if column in self.titles:
-            return self.titles[column]
-        return column
-
-    def __cellspan_level(self, lvl, max_depth):
-        # Get first lvl identifiers of all table columns.
-        # Example: 'a:b:c:d:e' (lvl=3) -> 'a:b:c'
-        # Example: 'a:b' (lvl=3) -> ''
-        # And then colecting single identifiers and their amount without ''.
-        # Example: [a, a, a, b, '', c, c, c, c, '', '', c, d, d] ->
-        # [(a, 3), (b, 1), (c, 4), (c, 1), (d, 2)]
-        columns_of_lvl = []
-        prev_col = ''
-        cnt = 0
-        for col in self.columns:
-            col_start = ''
-            col_parts = col.split(':')
-            if len(col_parts) >= lvl:
-                col_start = ':'.join(col_parts[:lvl])
-                if col_start == prev_col:
-                    cnt += 1
-                else:
-                    if prev_col != '':
-                        columns_of_lvl.append([prev_col, cnt])
-                    cnt = 1
-            else:
-                if prev_col != '':
-                    columns_of_lvl.append([prev_col, cnt])
-                cnt = 0
-            prev_col = col_start
-
-        if len(prev_col) > 0 and cnt > 0:
-            columns_of_lvl.append([prev_col, cnt])
-
-        # Collecting data of cell span for columns.
-        columns_data = []
-        for col in columns_of_lvl:
-            nrows = max_depth - lvl + 1
-            for column in self.columns:
-                if column.startswith(col[0]) and col[0] != column:
-                    nrows = 1
-                    break
-            columns_data.append({
-                'column': col[0],
-                'rows': nrows,
-                'columns': col[1],
-                'title': self.__title(col[0]),
-            })
-        return columns_data
-
-
 class TableTree(object):
+
     def __init__(self, user, view=None, view_id=None):
         self.cnt = 1
         self.user = user
@@ -285,12 +202,110 @@ class TableTree(object):
         self.jobdata = []
         self.__collect_jobdata()
         self.__table_columns()
-        self.tableheader = TableHeader(
-            self.columns, self.titles
-        ).header_struct()
-
-        # TODO: refactoring
+        self.header = self.__Header(self.columns, self.titles).head_struct()
+        self.footer_title_length = self.__count_footer()
         self.values = self.__values()
+        self.footer = self.__get_footer()
+
+    class __Header(object):
+
+        def __init__(self, columns, titles):
+            self.columns = columns
+            self.titles = titles
+
+        def head_struct(self):
+            col_data = []
+            depth = self.__max_depth()
+            for d in range(1, depth + 1):
+                col_data.append(self.__cellspan_level(d, depth))
+            # For checkboxes
+            col_data[0].insert(0, {
+                'column': '',
+                'rows': depth,
+                'columns': 1,
+                'title': '',
+            })
+            return col_data
+
+        def __max_depth(self):
+            max_depth = 0
+            if len(self.columns):
+                max_depth = 1
+            for col in self.columns:
+                depth = len(col.split(':'))
+                if depth > max_depth:
+                    max_depth = depth
+            return max_depth
+
+        def __title(self, column):
+            if column in self.titles:
+                return self.titles[column]
+            return column
+
+        def __cellspan_level(self, lvl, max_depth):
+            # Get first lvl identifiers of all table columns.
+            # Example: 'a:b:c:d:e' (lvl=3) -> 'a:b:c'
+            # Example: 'a:b' (lvl=3) -> ''
+            # And then colecting single identifiers and their amount without ''.
+            # Example: [a, a, a, b, '', c, c, c, c, '', '', c, d, d] ->
+            # [(a, 3), (b, 1), (c, 4), (c, 1), (d, 2)]
+            columns_of_lvl = []
+            prev_col = ''
+            cnt = 0
+            for col in self.columns:
+                col_start = ''
+                col_parts = col.split(':')
+                if len(col_parts) >= lvl:
+                    col_start = ':'.join(col_parts[:lvl])
+                    if col_start == prev_col:
+                        cnt += 1
+                    else:
+                        if prev_col != '':
+                            columns_of_lvl.append([prev_col, cnt])
+                        cnt = 1
+                else:
+                    if prev_col != '':
+                        columns_of_lvl.append([prev_col, cnt])
+                    cnt = 0
+                prev_col = col_start
+
+            if len(prev_col) > 0 and cnt > 0:
+                columns_of_lvl.append([prev_col, cnt])
+
+            # Collecting data of cell span for columns.
+            columns_data = []
+            for col in columns_of_lvl:
+                nrows = max_depth - lvl + 1
+                for column in self.columns:
+                    if column.startswith(col[0]) and col[0] != column:
+                        nrows = 1
+                        break
+                columns_data.append({
+                    'column': col[0],
+                    'rows': nrows,
+                    'columns': col[1],
+                    'title': self.__title(col[0]),
+                })
+            return columns_data
+
+    def __count_footer(self):
+        foot_length = 0
+        for col in self.header[0]:
+            if col['column'] in ['name', 'author', 'date', 'status', '',
+                                 'resource', 'format', 'version', 'type',
+                                 'identifier', 'parent_id', 'role']:
+                foot_length += col['columns']
+            else:
+                return foot_length
+        return None
+
+    def __get_footer(self):
+        footer = []
+        if len(self.values):
+            f_len = len(self.values[0]['values'])
+            for i in range(self.footer_title_length - 1, f_len):
+                footer.append(self.values[0]['values'][i]['id'])
+        return footer
 
     def __collect_jobdata(self):
         orders = []
@@ -306,26 +321,40 @@ class TableTree(object):
         for job in Job.objects.filter(
                 **self.__view_filters()
         ).order_by(*orders):
-            if job_f.JobAccess(self.user, job).can_view():
+            job_access = job_f.JobAccess(self.user, job)
+            if job_access.can_view():
                 rowdata.append(job)
 
+        cnt = 0
         for job in rowdata:
             parent = job.parent
-            self.jobdata.append({
+            row_job_data = {
                 'job': job,
                 'parent': parent,
-                'black': False
-            })
+                'parent_pk': None,
+                'black': False,
+                'pk': job.pk
+            }
+            if parent is not None:
+                row_job_data['parent_id'] = parent.identifier
+                row_job_data['parent_pk'] = parent.pk
+            self.jobdata.append(row_job_data)
             while parent is not None and \
                     parent not in list(blackdata + rowdata):
                 next_parent = parent.parent
-                self.jobdata.append({
+                row_job_data = {
                     'job': parent,
                     'parent': next_parent,
-                    'black': True
-                })
+                    'parent_pk': None,
+                    'black': True,
+                    'pk': parent.pk
+                }
+                if next_parent is not None:
+                    row_job_data['parent_pk'] = next_parent.pk
+                self.jobdata.append(row_job_data)
                 blackdata.append(parent)
                 parent = next_parent
+            cnt += 1
         self.__order_jobs()
 
     def __order_jobs(self):
@@ -554,203 +583,204 @@ class TableTree(object):
         return new_columns
 
     def __values(self):
+        values_data = {}
+        names_data = {}
+        for job in self.jobdata:
+            if not job['black']:
+                parent_id = '-'
+                if 'parent_id' in job:
+                    parent_id = job['parent_id']
+                values_data[job['pk']] = {
+                    'parent_id': parent_id
+                }
+
+        job_pks = [job['pk'] for job in self.jobdata]
+
+        def collect_authors():
+            for j in self.jobdata:
+                if j['pk'] in values_data:
+                    author = j['job'].change_author
+                    if author is not None:
+                        values_data[j['pk']]['author'] = \
+                            author.extended.last_name \
+                            + ' ' + author.extended.first_name
+                        values_data[j['pk']]['author_pk'] = author.pk
+
+        def collect_jobs_data():
+            for j in self.jobdata:
+                if j['pk'] in values_data:
+                    values_data[j['pk']].update({
+                        'identifier': j['job'].identifier,
+                        'format': j['job'].format,
+                        'version': j['job'].version,
+                        'type': j['job'].get_type_display(),
+                        'date': j['job'].change_date,
+                    })
+                names_data[j['pk']] = j['job'].name
+
+        def collect_statuses():
+            for status in JobStatus.objects.filter(job_id__in=job_pks):
+                if status.job_id in values_data:
+                    values_data[status.job_id]['status'] = \
+                        status.get_status_display()
+
+        def collect_verdicts():
+            for verdict in Verdict.objects.filter(job_id__in=job_pks):
+                if verdict.job_id in values_data:
+                    values_data[verdict.job_id].update({
+                        'unsafe:total': verdict.unsafe,
+                        'unsafe:bug': verdict.unsafe_bug,
+                        'unsafe:target_bug': verdict.unsafe_target_bug,
+                        'unsafe:false_positive': verdict.unsafe_false_positive,
+                        'unsafe:unknown': verdict.unsafe_unknown,
+                        'unsafe:unassociated': verdict.unsafe_unassociated,
+                        'unsafe:inconclusive': verdict.unsafe_inconclusive,
+                        'safe:total': verdict.safe,
+                        'safe:missed_bug': verdict.safe_missed_bug,
+                        'safe:unknown': verdict.safe_unknown,
+                        'safe:inconclusive': verdict.safe_inconclusive,
+                        'safe:unassociated': verdict.safe_unassociated,
+                        'safe:incorrect': verdict.safe_incorrect_proof,
+                        'problem:total': verdict.unknown
+                    })
+
+        def collect_roles():
+            user_role = self.user.extended.role
+            for j in self.jobdata:
+                if j['pk'] in values_data:
+                    try:
+                        first_version = j['job'].jobhistory_set.get(version=1)
+                    except ObjectDoesNotExist:
+                        return
+                    if first_version.change_author == self.user:
+                        values_data[j['pk']]['role'] = _('Author')
+                    elif user_role == USER_ROLES[2][0]:
+                        values_data[j['pk']]['role'] = \
+                            self.user.extended.get_role_display()
+                    else:
+                        last_version = j['job'].jobhistory_set.all().order_by(
+                            '-change_date')[0]
+                        job_user_role = last_version.userrole_set.filter(
+                            user=self.user)
+                        if len(job_user_role):
+                            values_data[j['pk']]['role'] = \
+                                job_user_role[0].get_role_display()
+                        else:
+                            values_data[j['pk']]['role'] = \
+                                j['job'].get_global_role_display()
+
+        def collect_safe_tags():
+            for st in MarkSafeTag.objects.filter(job_id__in=job_pks):
+                if st.job_id in values_data:
+                    values_data[st.job_id]['tag:safe:tag_' + str(st.tag_id)] = \
+                        st.number
+
+        def collect_unsafe_tags():
+            for ut in MarkUnsafeTag.objects.filter(job_id__in=job_pks):
+                if ut.job_id in values_data:
+                    values_data[ut.job_id]['tag:unsafe:tag_' + str(ut.tag_id)] \
+                        = ut.number
+
+        def collect_resourses():
+            for cr in ComponentResource.objects.filter(job_id__in=job_pks):
+                job_pk = cr.job_id
+                if job_pk in values_data:
+                    accuracy = self.user.extended.accuracy
+                    data_format = self.user.extended.data_format
+                    wt = cr.wall_time
+                    ct = cr.cpu_time
+                    mem = cr.memory
+                    if data_format == 'hum':
+                        wt = convert_time(wt, accuracy)
+                        ct = convert_time(ct, accuracy)
+                        mem = convert_memory(mem, accuracy)
+                    resourses_value = "%s %s %s" % (wt, ct, mem)
+                    if cr.component_id is None:
+                        values_data[job_pk]['resource:total'] = resourses_value
+                    else:
+                        values_data[job_pk][
+                            'resource:component_' + str(cr.component_id)
+                        ] = resourses_value
+
+        def collect_unknowns():
+            for cmup in ComponentMarkUnknownProblem.objects.filter(
+                    job_id__in=job_pks):
+                job_pk = cmup.job_id
+                if job_pk in values_data:
+                    if cmup.problem is None:
+                        values_data[job_pk][
+                            'problem:pr_component_' + str(cmup.component_id) +
+                            ':z_no_mark'
+                        ] = cmup.number
+                    else:
+                        values_data[job_pk][
+                            'problem:pr_component_' + str(cmup.component_id) +
+                            ':problem_' + str(cmup.problem_id)
+                        ] = cmup.number
+            for cu in ComponentUnknown.objects.filter(
+                    job_id__in=job_pks):
+                job_pk = cu.job_id
+                if job_pk in values_data:
+                    values_data[job_pk][
+                        'problem:pr_component_' + str(cu.component_id) +
+                        ':z_total'
+                    ] = cu.number
+
+        def get_href(job_pk, column, black):
+            if job_pk in values_data and not black:
+                if column == 'name':
+                    return reverse('jobs:job', args=[job_pk])
+                elif column == 'author' and 'author_pk' in values_data[job_pk]:
+                    return reverse('users:show_profile',
+                                   args=[values_data[job_pk]['author_pk']])
+            return None
+
+        if 'author' in self.columns:
+            collect_authors()
+        if any(x in [
+            'name', 'identifier', 'format', 'version', 'type', 'date'
+        ] for x in self.columns):
+            collect_jobs_data()
+        if 'status' in self.columns:
+            collect_statuses()
+        if any(x.startswith('safe:') or x.startswith('unsafe:') or
+                x == 'problem:total' for x in self.columns):
+            collect_verdicts()
+        if any(x.startswith('problem:pr_component_') for x in self.columns):
+            collect_unknowns()
+        if any(x.startswith('resource:') for x in self.columns):
+            collect_resourses()
+        if any(x.startswith('tag:safe:') for x in self.columns):
+            collect_safe_tags()
+        if any(x.startswith('tag:unsafe:') for x in self.columns):
+            collect_unsafe_tags()
+        if 'role' in self.columns:
+            collect_roles()
+
         table_rows = []
         for job in self.jobdata:
             row_values = []
             col_id = 0
             for col in self.columns:
                 col_id += 1
+                if job['black']:
+                    cell_value = ''
+                else:
+                    cell_value = '-'
+                if col == 'name' and job['pk'] in names_data:
+                    cell_value = names_data[job['pk']]
+                elif job['pk'] in values_data:
+                    if col in values_data[job['pk']]:
+                        cell_value = values_data[job['pk']][col]
                 row_values.append({
-                    'value': self.__get_value(job['job'], col, job['black']),
+                    'value': cell_value,
                     'id': '__'.join(col.split(':')) + ('__%d' % col_id),
-                    'href': self.__get_href(job['job'], col, job['black']),
+                    'href': get_href(job['pk'], col, job['black']),
                 })
-            row_data = {
-                'id': job['job'].pk,
-                'parent': job['job'].parent_id,
+            table_rows.append({
+                'id': job['pk'],
+                'parent': job['parent_pk'],
                 'values': row_values,
-                'black': job['black'],
-            }
-            table_rows.append(row_data)
+                'black': job['black']
+            })
         return table_rows
-
-    def __get_value(self, job, col, black):
-        if col == 'name':
-            if len(job.name) > 0:
-                return job.name
-            return '...'
-        elif black:
-            return ''
-        elif col == 'author':
-            author = job.change_author.extended
-            return author.last_name + ' ' + author.first_name
-        elif col == 'identifier':
-            return job.identifier
-        elif col == 'format':
-            return job.format
-        elif col == 'version':
-            return job.version
-        elif col == 'type':
-            return job.get_type_display()
-        elif col == 'date':
-            return job.change_date
-        elif col == 'status':
-            try:
-                return job.jobstatus.get_status_display()
-            except ObjectDoesNotExist:
-                return '-'
-        elif col.startswith('unsafe:'):
-            try:
-                verdicts = job.verdict
-            except ObjectDoesNotExist:
-                return '-'
-            if col == 'unsafe:total':
-                return verdicts.unsafe
-            elif col == 'unsafe:bug':
-                return verdicts.unsafe_bug
-            elif col == 'unsafe:target_bug':
-                return verdicts.unsafe_target_bug
-            elif col == 'unsafe:false_positive':
-                return verdicts.unsafe_false_positive
-            elif col == 'unsafe:unknown':
-                return verdicts.unsafe_unknown
-            elif col == 'unsafe:unassociated':
-                return verdicts.unsafe_unassociated
-            elif col == 'unsafe:inconclusive':
-                return verdicts.unsafe_inconclusive
-            else:
-                return 'E404:unsafe'
-        elif col.startswith('safe:'):
-            try:
-                verdicts = job.verdict
-            except ObjectDoesNotExist:
-                return '-'
-            if col == 'safe:total':
-                return verdicts.safe
-            elif col == 'safe:missed_bug':
-                return verdicts.safe_missed_bug
-            elif col == 'safe:unknown':
-                return verdicts.safe_unknown
-            elif col == 'safe:inconclusive':
-                return verdicts.safe_inconclusive
-            elif col == 'safe:unassociated':
-                return verdicts.safe_unassociated
-            elif col == 'safe:incorrect':
-                return verdicts.safe_incorrect_proof
-            else:
-                return 'E404:safe'
-        elif col == 'problem:total':
-            try:
-                verdicts = job.verdict
-                return verdicts.unknown
-            except ObjectDoesNotExist:
-                return '-'
-        elif col.startswith('problem:'):
-            m = re.match(r'problem:pr_component_(\d+):problem_(\d+)', col)
-            if m:
-                comp_mark_unkn = job.componentmarkunknownproblem_set.filter(
-                    component_id=int(m.group(1)), problem_id=int(m.group(2))
-                )
-                if len(comp_mark_unkn):
-                    return comp_mark_unkn[0].number
-                else:
-                    return '-'
-            m = re.match(r'problem:pr_component_(\d+):z_total', col)
-            if m:
-                try:
-                    comp_unkn = job.componentunknown_set.get(
-                        component_id=int(m.group(1)))
-                    return comp_unkn.number
-                except ObjectDoesNotExist:
-                    return '-'
-            m = re.match(r'problem:pr_component_(\d+):z_no_mark', col)
-            if m:
-                comp_mark_unkn_t = job.componentmarkunknownproblem_set.filter(
-                    component_id=int(m.group(1)), problem=None
-                )
-                if len(comp_mark_unkn_t):
-                    return comp_mark_unkn_t[0].number
-                else:
-                    return '-'
-        elif col.startswith('resource:'):
-            accuracy = self.user.extended.accuracy
-            data_format = self.user.extended.data_format
-            m = re.match(r'resource:component_(\d+)', col)
-            if m:
-                try:
-                    comp_res = job.componentresource_set.get(
-                        component_id=int(m.group(1))
-                    )
-                    wt = comp_res.wall_time
-                    ct = comp_res.cpu_time
-                    mem = comp_res.memory
-                    if data_format == 'hum':
-                        wt = convert_time(wt, accuracy)
-                        ct = convert_time(ct, accuracy)
-                        mem = convert_memory(mem, accuracy)
-                    return "%s %s %s" % (wt, ct, mem)
-                except ObjectDoesNotExist:
-                    return '-'
-            m = re.match(r'resource:total', col)
-            if m:
-                try:
-                    comp_res = job.componentresource_set.get(component=None)
-                    wt = comp_res.wall_time
-                    ct = comp_res.cpu_time
-                    mem = comp_res.memory
-                    if data_format == 'hum':
-                        wt = convert_time(wt, accuracy)
-                        ct = convert_time(ct, accuracy)
-                        mem = convert_memory(mem, accuracy)
-                    return "%s %s %s" % (wt, ct, mem)
-                except ObjectDoesNotExist:
-                    return '-'
-        elif col.startswith('tag:'):
-            m = re.match(r'tag:safe:tag_(\d+)', col)
-            if m:
-                try:
-                    mark_tag = job.safe_tags.get(
-                        tag__pk=int(m.group(1))
-                    )
-                    return mark_tag.number
-                except ObjectDoesNotExist:
-                    return '-'
-            m = re.match(r'tag:unsafe:tag_(\d+)', col)
-            if m:
-                try:
-                    mark_tag = job.unsafe_tags.get(
-                        tag__pk=int(m.group(1))
-                    )
-                    return mark_tag.number
-                except ObjectDoesNotExist:
-                    return '-'
-        elif col == 'parent_id':
-            if job.parent is None:
-                return '-'
-            else:
-                return job.parent.identifier
-        elif col == 'role':
-            try:
-                first_version = job.jobhistory_set.get(version=1)
-            except ObjectDoesNotExist:
-                return ''
-            if first_version.change_author == self.user:
-                return _('Author')
-            if self.user.extended.role == USER_ROLES[2][0]:
-                return self.user.extended.get_role_display()
-            last_version = job.jobhistory_set.all().order_by('-change_date')[0]
-            user_role = last_version.userrole_set.filter(user=self.user)
-            if len(user_role):
-                return user_role[0].get_role_display()
-            else:
-                return job.get_global_role_display()
-        return ''
-
-    def __get_href(self, job, col, black):
-        self.cnt = 1
-        if job:
-            if black:
-                return None
-            elif col == 'name':
-                return reverse('jobs:job', args=[job.pk])
-        return None
