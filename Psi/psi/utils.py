@@ -50,6 +50,7 @@ def get_entity_val(logger, name, cmd):
     val = subprocess.getoutput(cmd)
     if not val:
         raise ValueError('Could not get {0}'.format(name))
+    # TODO: str.capitalize() capilalizes a first symbol and makes all other symbols lower.
     logger.debug('{0} is "{1}"'.format(name.capitalize(), val))
     return val
 
