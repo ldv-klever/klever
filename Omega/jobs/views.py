@@ -290,7 +290,6 @@ def edit_job(request):
     if job_version.parent is not None:
         parent_identifier = job_version.parent.identifier
 
-    print(parent_identifier)
     return render(request, 'jobs/editJob.html', {
         'parent_id': parent_identifier,
         'job': job_version,
@@ -406,7 +405,7 @@ def save_job(request):
             })
         job_kwargs['job'] = job
         job_kwargs['comment'] = request.POST.get('comment', '')
-        if job_f.update_job(**job_kwargs) is not None:
+        if job_f.update_job(job_kwargs) is not None:
             return JsonResponse({'status': 0, 'job_id': job.pk})
     elif job_id is None and parent_identifier is not None:
         try:
@@ -422,7 +421,7 @@ def save_job(request):
                 'message': _("You don't have an access to create a new job")
             })
         job_kwargs['parent'] = parent
-        newjob = job_f.create_job(**job_kwargs)
+        newjob = job_f.create_job(job_kwargs)
         if newjob is not None:
             return JsonResponse({'status': 0, 'job_id': newjob.pk})
     return JsonResponse({'status': 1, 'message': _('Unknown error')})
