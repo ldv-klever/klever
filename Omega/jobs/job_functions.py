@@ -733,7 +733,7 @@ def create_version(job, comment=None):
     return new_version
 
 
-def create_job(**kwargs):
+def create_job(kwargs):
     newjob = Job()
     if 'name' not in kwargs or \
             len(kwargs['name']) == 0 or 'author' not in kwargs:
@@ -758,6 +758,9 @@ def create_job(**kwargs):
         newjob.configuration = kwargs['configuration']
     if 'description' in kwargs:
         newjob.description = kwargs['description']
+    if 'global_role' in kwargs and \
+            kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
+        newjob.global_role = kwargs['global_role']
     time_encoded = datetime.now().strftime(
         "%Y%m%d%H%M%S%f%z"
     ).encode('utf-8')
@@ -767,6 +770,15 @@ def create_job(**kwargs):
     jobstatus.job = newjob
     jobstatus.save()
     new_version = create_version(newjob)
+    if 'user_roles' in kwargs:
+        for ur in kwargs['user_roles']:
+            ur_user = User.objects.filter(pk=int(ur['user']))
+            if len(ur_user):
+                new_ur = UserRole()
+                new_ur.job = new_version
+                new_ur.user = ur_user[0]
+                new_ur.role = ur['role']
+                new_ur.save()
     if 'filedata' in kwargs:
         if DBFileData(kwargs['filedata'], new_version).err_message is not None:
             newjob.delete()
@@ -774,7 +786,7 @@ def create_job(**kwargs):
     return newjob
 
 
-def update_job(**kwargs):
+def update_job(kwargs):
     if any(x not in kwargs for x in ['author', 'comment']):
         return None
     if len(kwargs['comment']) == 0:
