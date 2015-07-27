@@ -2,8 +2,8 @@
 
 <form id="edit_job_form" autocomplete="off" onsubmit="return false">
 
-    {% if job.id %}
-        <input id="job_id_input" type="hidden" value="{{ job.id }}">
+    {% if job_id %}
+        <input id="job_id_input" type="hidden" value="{{ job_id }}">
     {% endif %}
 
     {% if job_versions|length %}
@@ -23,11 +23,9 @@
 
     {% if job_versions|length %}
         <label for="job_parent_identifier">{% trans 'Parent identifier' %}:</label>
-        <input class="form-control" id="job_parent_identifier" type="text"{% if job.parent_id %} value="{{ job.parent_id }}"{% endif %}>
+        <input class="form-control" id="job_parent_identifier" type="text"{% if parent_id %} value="{{ parent_id }}"{% endif %}>
     {% else %}
-        {% if job.parent_id %}
-            <input id="job_parent_identifier" type="hidden" value="{{ job.parent_id }}">
-        {% endif %}
+        <input id="job_parent_identifier" type="hidden" value="{{ parent_id }}">
     {% endif %}
 
 
@@ -42,8 +40,8 @@
                     <div class="form-inline">
                         <label for="job_global_roles">{% trans 'Role for all users' %}:</label><br>
                         <select id="job_global_roles" class="form-control">
-                            {% for jr in roles.job_roles %}
-                                <option value="{{ jr.value }}"{% if roles.global == jr.value %} selected{% endif %} >{{ jr.title }}</option>
+                            {% for jr in job_roles %}
+                                <option value="{{ jr.0 }}"{% if roles.global == jr.0 %} selected{% endif %} >{{ jr.1 }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -69,8 +67,8 @@
                         </td>
                         <td>
                             <select id="job_user_role_select__{{ ur.user.id }}" class="form-control">
-                                {% for jr in roles.job_roles %}
-                                    <option value="{{ jr.value }}"{% if ur.role.val == jr.value %} selected{% endif %}>{{ jr.title }}</option>
+                                {% for jr in job_roles %}
+                                    <option value="{{ jr.0 }}"{% if ur.role.val == jr.0 %} selected{% endif %}>{{ jr.1 }}</option>
                                 {% endfor %}
                             </select>
                         </td>
@@ -99,8 +97,8 @@
 <div id="template__user_role" hidden>
     <label for="job_user_role_select__"></label>
     <select id="job_user_role_select__" class="form-control">
-        {% for jr in roles.job_roles %}
-            <option value="{{ jr.value }}">{{ jr.title }}</option>
+        {% for jr in job_roles %}
+            <option value="{{ jr.0 }}">{{ jr.1 }}</option>
         {% endfor %}
     </select>
     <button id="remove_user_role__" class="btn-close-x"><span class="glyphicon glyphicon-remove"></span></button>

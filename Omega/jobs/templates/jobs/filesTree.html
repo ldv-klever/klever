@@ -1,6 +1,6 @@
 {% load i18n %}
 
-<table id="file_tree_table" class="table tree table-fixed" style="width:70%;">
+<table id="file_tree_table" class="table tree table-fixed" style="width:400px;">
     <tbody>
     {% for f in filedata %}
         <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}{% if f.type == 0 %} success{% endif %}">

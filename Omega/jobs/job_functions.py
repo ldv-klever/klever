@@ -409,6 +409,7 @@ class JobArchive(object):
     def create_tar(self):
         if self.job is None:
             return False
+
         if self.__second_lock():
 
             def __write_file_str(jobtar, file_name, file_content):
@@ -418,7 +419,6 @@ class JobArchive(object):
                 jobtar.addfile(t, BytesIO(file_content))
 
             self.jobtar_name = 'VJ__' + self.job.identifier + '.tar.gz'
-            files_for_tar = self.__get_filedata()
             jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
             __write_file_str(
                 jobtar_obj, 'title', self.job.name
@@ -429,13 +429,17 @@ class JobArchive(object):
             __write_file_str(
                 jobtar_obj, 'description', self.job.description
             )
-            for f in files_for_tar:
-                jobtar_obj.add(f['src'], f['path'])
+            for f in self.__get_filedata():
+                if f['src'] is None:
+                    folder = tarfile.TarInfo(f['path'])
+                    folder.type = tarfile.DIRTYPE
+                    jobtar_obj.addfile(folder)
+                else:
+                    jobtar_obj.add(f['src'], f['path'])
             jobtar_obj.close()
             self.__unlock()
-        else:
-            return False
-        return True
+            return True
+        return False
 
     def __prepare_workdir(self):
         self.workdir = os.path.join(settings.MEDIA_ROOT, self.workdir)
@@ -482,15 +486,18 @@ class JobArchive(object):
         files = job_version.file_set.all()
         files_for_tar = []
         for f in files:
-            if f.file:
+            if len(f.children_set.all()) == 0:
+                src = None
+                if f.file is not None:
+                    src = os.path.join(settings.MEDIA_ROOT, f.file.file.name)
                 file_path = f.name
                 file_parent = f.parent
-                while file_parent:
+                while file_parent is not None:
                     file_path = file_parent.name + '/' + file_path
                     file_parent = file_parent.parent
                 files_for_tar.append({
                     'path': 'root' + '/' + file_path,
-                    'src': os.path.join(settings.MEDIA_ROOT, f.file.file.name)
+                    'src': src
                 })
         return files_for_tar
 
@@ -693,14 +700,6 @@ def role_info(job, user):
                 'name': u.extended.last_name + ' ' + u.extended.first_name
             })
     roles_data['available_users'] = available_users
-
-    available_roles = []
-    for role in JOB_ROLES:
-        available_roles.append({
-            'value': role[0],
-            'title': role[1],
-        })
-    roles_data['job_roles'] = available_roles
     return roles_data
 
 
@@ -801,6 +800,20 @@ def update_job(**kwargs):
             return None
     return kwargs['job']
 
+
+def remove_jobs_by_id(user, job_ids):
+    jobs = []
+    for job_id in job_ids:
+        try:
+            jobs.append(Job.objects.get(pk=job_id))
+        except ObjectDoesNotExist:
+            return 404
+    for job in jobs:
+        if not JobAccess(user, job).can_delete():
+            return 400
+    for job in jobs:
+        job.delete()
+    return 0
 
 def check_new_parent(job, parent):
     if job.type != parent.type:
