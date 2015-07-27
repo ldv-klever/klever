@@ -1,17 +1,16 @@
-from django.contrib.auth.models import User
-from django.db.models import Q
-from django.core.exceptions import ObjectDoesNotExist
-from django.core.files import File as NewFile
-from django.utils.translation import ugettext_lazy as _, string_concat
-from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
-from jobs.models import FileSystem, File
-from jobs.models import UserRole
-from django.conf import settings
 import os
 import tarfile
-from datetime import datetime
-from io import BytesIO
 import hashlib
+from io import BytesIO
+from datetime import datetime
+from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File as NewFile
+from django.db.models import Q
+from django.utils.translation import ugettext_lazy as _, string_concat
+from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from jobs.models import FileSystem, File, UserRole
 from jobs.job_model import Job, JobHistory, JobStatus
 
 
@@ -78,11 +77,11 @@ TITLES = {
     'role': _('Your role'),
 }
 
-
 DOWNLOAD_LOCKFILE = 'download.lock'
 
 
 class JobAccess(object):
+
     def __init__(self, user, job=None):
         self.job = job
         self.__is_author = False
@@ -266,7 +265,7 @@ class DBFileData(object):
                 names_of_lvl.append(fd['title'])
             for name in names_of_lvl:
                 if names_of_lvl.count(name) != 1:
-                    return _("You can't use the same name in one folder")
+                    return _("You can't use the same names in one folder")
         return None
 
     def __get_lower_level(self, data):
@@ -736,12 +735,23 @@ def create_version(job, comment=None):
 
 def create_job(**kwargs):
     newjob = Job()
-    if 'parent' not in kwargs or 'name' not in kwargs or \
+    if 'name' not in kwargs or \
             len(kwargs['name']) == 0 or 'author' not in kwargs:
         return None
-    newjob.parent = kwargs['parent']
-    newjob.type = kwargs['parent'].type
-    newjob.format = kwargs['parent'].format
+    if 'parent' in kwargs:
+        newjob.parent = kwargs['parent']
+        newjob.type = kwargs['parent'].type
+        newjob.format = kwargs['parent'].format
+    elif 'type' in kwargs and 'format' in kwargs:
+        newjob.type = kwargs['type']
+        newjob.format = kwargs['format']
+    else:
+        return None
+    if 'pk' in kwargs:
+        try:
+            Job.objects.get(pk=int(kwargs['pk']))
+        except ObjectDoesNotExist:
+            newjob.pk = int(kwargs['pk'])
     newjob.name = kwargs['name']
     newjob.change_author = kwargs['author']
     if 'configuration' in kwargs:
@@ -814,6 +824,7 @@ def remove_jobs_by_id(user, job_ids):
     for job in jobs:
         job.delete()
     return 0
+
 
 def check_new_parent(job, parent):
     if job.type != parent.type:

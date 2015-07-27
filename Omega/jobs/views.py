@@ -407,7 +407,7 @@ def save_job(request):
         job_kwargs['comment'] = request.POST.get('comment', '')
         if job_f.update_job(**job_kwargs) is not None:
             return JsonResponse({'status': 0, 'job_id': job.pk})
-    elif job_id is None and parent_identifier:
+    elif job_id is None and parent_identifier is not None:
         try:
             parent = Job.objects.get(identifier=parent_identifier)
         except ObjectDoesNotExist:
