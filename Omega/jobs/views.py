@@ -14,8 +14,8 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import JOB_ROLES, JOB_STATUS
-from jobs.job_model import Job, JobHistory, JobStatus
-from jobs.models import UserRole, File, FileSystem
+from jobs.job_model import Job
+from jobs.models import File, FileSystem
 from jobs.forms import FileForm
 from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
@@ -43,6 +43,7 @@ def tree_view(request):
 @login_required
 def preferable_view(request):
     activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _("Unknown error")})
 
@@ -58,14 +59,14 @@ def preferable_view(request):
                 'status': 0,
                 'message': _("The default view was made preferred")
             })
-        else:
-            return JsonResponse({
-                'status': 1,
-                'message': _("The default view is already preferred")
-            })
+        return JsonResponse({
+            'status': 1,
+            'message': _("The default view is already preferred")
+        })
 
     try:
-        user_view = View.objects.get(pk=view_id, author=request.user, type='1')
+        user_view = View.objects.get(pk=int(view_id),
+                                     author=request.user, type='1')
     except ObjectDoesNotExist:
         return JsonResponse({
             'status': 1,
@@ -86,105 +87,96 @@ def preferable_view(request):
 def check_view_name(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'status': 1, 'message': "Error 1"})
+        return JsonResponse({'status': False, 'message': _('Unknown error')})
 
     view_name = request.POST.get('view_title', None)
     if view_name is None:
-        return JsonResponse({'status': 2, 'message': "Error 2"})
+        return JsonResponse({'status': False, 'message': _('Unknown error')})
 
     if view_name == _('Default'):
-        return JsonResponse(
-            {'status': 3, 'message': _("Please choose another view name")}
-        )
+        return JsonResponse({
+            'status': False, 'message': _("Please choose another view name")
+        })
 
     if view_name == '':
-        return JsonResponse(
-            {'status': 4, 'message': _("The view name is required")}
-        )
+        return JsonResponse({
+            'status': False, 'message': _("The view name is required")
+        })
 
     if len(request.user.view_set.filter(type='1', name=view_name)):
-        return JsonResponse(
-            {'status': 5, 'message': _("Please choose another view name")}
-        )
-    return JsonResponse({'status': 0})
+        return JsonResponse({
+            'status': False, 'message': _("Please choose another view name")
+        })
+    return JsonResponse({'status': True})
 
 
 @login_required
 def save_view(request):
     activate(request.user.extended.language)
-    if request.method == 'POST':
-        view_data = request.POST.get('view', None)
-        view_name = request.POST.get('title', '')
-        view_id = request.POST.get('view_id', None)
-        if view_data is None:
-            return JsonResponse({'status': 1, 'message': _('Unknown error')})
-        if view_id == 'default':
+
+    if request.method != 'POST':
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+
+    view_data = request.POST.get('view', None)
+    view_name = request.POST.get('title', '')
+    view_id = request.POST.get('view_id', None)
+    if view_data is None:
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+    if view_id == 'default':
+        return JsonResponse({
+            'status': 1,
+            'message': _("You can't edit the default view")
+        })
+    elif view_id is not None:
+        try:
+            new_view = request.user.view_set.get(pk=int(view_id))
+        except ObjectDoesNotExist:
             return JsonResponse({
                 'status': 1,
-                'message': _("You can't edit the default view")
+                'message': _('The view was not found')
             })
-        elif view_id:
-            try:
-                new_view = request.user.view_set.get(pk=int(view_id))
-            except ObjectDoesNotExist:
-                return JsonResponse({
-                    'status': 1,
-                    'message': _('The view was not found')
-                })
-        elif len(view_name):
-            new_view = View()
-            new_view.name = view_name
-            new_view.type = '1'
-            new_view.author = request.user
-        else:
-            return JsonResponse({'status': 1, 'message': _('Unknown error')})
-        new_view.view = view_data
-        new_view.save()
-        return JsonResponse({
-            'status': 0,
-            'view_id': new_view.pk,
-            'view_name': new_view.name,
-            'message': _("The view was successfully saved")
-        })
-    return JsonResponse({'status': 1, 'message': _('Unknown error')})
+    elif len(view_name):
+        new_view = View()
+        new_view.name = view_name
+        new_view.type = '1'
+        new_view.author = request.user
+    else:
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+    new_view.view = view_data
+    new_view.save()
+    return JsonResponse({
+        'status': 0,
+        'view_id': new_view.pk,
+        'view_name': new_view.name,
+        'message': _("The view was successfully saved")
+    })
 
 
 @login_required
 def remove_view(request):
     activate(request.user.extended.language)
-    if request.method == 'POST':
-        view_id = request.POST.get('view_id', None)
-        request.user.preferableview_set.filter(view__type='1').delete()
-        if view_id != 'default':
-            new_pref_view = View.objects.filter(
-                author=request.user,
-                pk=int(view_id), type='1'
-            )
-            if len(new_pref_view):
-                new_pref_view[0].delete()
-                return JsonResponse({
-                    'status': 0,
-                    'message': _("The view was successfully removed")
-                })
-            else:
-                return JsonResponse({
-                    'status': 1,
-                    'message': _("The view was not found")
-                })
-        else:
-            return JsonResponse({
-                'status': 1,
-                'message': _("You can't remove the default view")
-            })
+
+    if request.method != 'POST':
+        return JsonResponse({'status': 1, 'message': _("Unknown error")})
+    v_id = request.POST.get('view_id', 0)
+    if v_id == 'default':
+        return JsonResponse({
+            'status': 1,
+            'message': _("You can't remove the default view")
+        })
+    try:
+        View.objects.get(author=request.user, pk=int(v_id), type='1').delete()
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'status': 1,
+            'message': _("The view was not found")
+        })
     return JsonResponse({
-        'status': 1,
-        'message': _("Unknown error")
+        'status': 0,
+        'message': _("The view was successfully removed")
     })
 
 
-#################
-# View job page #
-#################
 @login_required
 def show_job(request, job_id=None):
     activate(request.user.extended.language)
@@ -202,55 +194,47 @@ def show_job(request, job_id=None):
             reverse('jobs:error', args=[400]) + "?back=%s" % quote(
                 reverse('jobs:tree')))
 
-    created_by = job.jobhistory_set.get(version=1).change_author
-
-    # Collect parents of the job
+    parent_set = []
+    next_parent = job.parent
+    while next_parent is not None:
+        parent_set.append(next_parent)
+        next_parent = next_parent.parent
+    parent_set.reverse()
     parents = []
-    job_parent = job.parent
-    while job_parent:
-        parents.append(job_parent)
-        job_parent = job_parent.parent
-    parents.reverse()
-    have_access_parents = []
-    for parent in parents:
+    for parent in parent_set:
         if job_f.JobAccess(request.user, parent).can_view():
             job_id = parent.pk
         else:
             job_id = None
-        have_access_parents.append({
+        parents.append({
             'pk': job_id,
             'name': parent.name,
         })
 
-    # Collect children of the job
-    children = job.children_set.all()
-    have_access_children = []
-    for child in children:
+    children = []
+    for child in job.children_set.all():
         if job_f.JobAccess(request.user, child).can_view():
             job_id = child.pk
         else:
             job_id = None
-        have_access_children.append({
+        children.append({
             'pk': job_id,
             'name': child.name,
         })
 
-    # Get user time zone
-    user_tz = request.user.extended.timezone
-    last_change_comment = job.jobhistory_set.get(version=job.version).comment
     return render(
         request,
         'jobs/viewJob.html',
         {
             'job': job,
-            'change_comment': last_change_comment,
-            'parents': have_access_parents,
-            'children': have_access_children,
-            'user_tz': user_tz,
+            'comment': job.jobhistory_set.get(version=job.version).comment,
+            'parents': parents,
+            'children': children,
+            'user_tz': request.user.extended.timezone,
             'verdict': job_f.verdict_info(job),
             'unknowns': job_f.unknowns_info(job),
             'resources': job_f.resource_info(job, request.user),
-            'created_by': created_by,
+            'created_by': job.jobhistory_set.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),
             'can_create': job_access.can_create()
@@ -259,115 +243,95 @@ def show_job(request, job_id=None):
 
 
 @login_required
-def get_version_data(request, template='jobs/editJob.html'):
+def edit_job(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
         return HttpResponse('')
 
-    # If None than we are creating new version
-    job_id = request.POST.get('job_id', None)
+    job_id = request.POST.get('job_id', 0)
 
-    # If None than we are editing old version
-    parent_id = request.POST.get('parent_id', None)
-
-    version = request.POST.get('version', 0)
-    version = int(version)
-
-    # job and parent id can't be both None or both not None
-    if (job_id and parent_id) or (job_id is None and parent_id is None):
+    job = get_object_or_404(Job, pk=int(job_id))
+    if not job_f.JobAccess(request.user, job).can_edit():
         return HttpResponse('')
 
-    # Get needed job or return error 404 (page doesn't exist)
-    if job_id is None:
-        job = get_object_or_404(Job, pk=int(parent_id))
-        if not job_f.JobAccess(request.user).can_create():
-            return HttpResponse('')
-    else:
-        job = get_object_or_404(Job, pk=int(job_id))
-        if not job_f.JobAccess(request.user, job).can_edit():
-            return HttpResponse('')
-
-    if len(job.jobhistory_set.all()) == 0:
-        return HttpResponse('')
+    version = int(request.POST.get('version', 0))
     if version > 0:
         job_version = job.jobhistory_set.get(version=version)
     else:
         job_version = job.jobhistory_set.all().order_by('-change_date')[0]
 
-    roles = job_f.role_info(job_version, request.user)
+    job_versions = []
+    for j in job.jobhistory_set.all().order_by('-version'):
+        if j.version == job.version:
+            title = _("Current version")
+        else:
+            job_time = j.change_date.astimezone(
+                pytz.timezone(request.user.extended.timezone)
+            )
+            title = job_time.strftime("%d.%m.%Y %H:%M:%S")
+            title += " (%s %s)" % (
+                j.change_author.extended.last_name,
+                j.change_author.extended.first_name,
+            )
+            version_comment = j.comment
+            if len(version_comment) > 30:
+                version_comment = version_comment[:27]
+                version_comment += '...'
+            if len(version_comment):
+                title += ': ' + version_comment
+        job_versions.append({
+            'version': j.version,
+            'title': title,
+            'comment': j.comment,
+        })
 
     parent_identifier = None
-    if job.parent:
-        parent_identifier = job.parent.identifier
-    job_data = {
-        'id': None,
+    if job_version.parent is not None:
+        parent_identifier = job_version.parent.identifier
+
+    return render(request, 'jobs/editJob.html', {
         'parent_id': parent_identifier,
-        'name': job_version.name,
-        'configuration': job_version.configuration,
-        'description': job_version.description,
-        'version': None
-    }
-
-    job_versions = []
-    if job_id:
-        if job_version.parent:
-            job_data['parent_id'] = job_version.parent.identifier
-        job_data['id'] = job.pk
-        job_data['version'] = job.version
-        jobs = job.jobhistory_set.all().order_by('-version')
-        for j in jobs:
-            if j.version == job.version:
-                title = _("Current version")
-            else:
-                job_time = j.change_date.astimezone(
-                    pytz.timezone(request.user.extended.timezone)
-                )
-                title = job_time.strftime("%d.%m.%Y %H:%M:%S")
-                title += " (%s %s)" % (
-                    j.change_author.extended.last_name,
-                    j.change_author.extended.first_name,
-                )
-                version_comment = j.comment
-                if len(version_comment) > 30:
-                    version_comment = version_comment[:27]
-                    version_comment += '...'
-                if len(version_comment):
-                    title += ': ' + version_comment
-            job_versions.append({
-                'version': j.version,
-                'title': title,
-                'comment': j.comment,
-            })
-
-    if parent_id:
-        roles['user_roles'] = []
-        roles['global'] = JOB_ROLES[0][0]
-        roles['available_users'] = []
-        for u in User.objects.filter(~Q(pk=request.user.pk)):
-            roles['available_users'].append({
-                'id': u.pk,
-                'name': u.extended.last_name + ' ' + u.extended.first_name
-            })
-
-    filesdata = job_f.FileData(job_version)
-
-    return render(
-        request,
-        template,
-        {
-            'job': job_data,
-            'roles': roles,
-            'job_versions': job_versions,
-            'version': version,
-            'filedata': filesdata.filedata
-        }
-    )
+        'job': job_version,
+        'job_id': job_id,
+        'roles': job_f.role_info(job_version, request.user),
+        'job_roles': JOB_ROLES,
+        'job_versions': job_versions,
+        'version': version,
+        'filedata': job_f.FileData(job_version).filedata
+    })
 
 
 @login_required
-def create_job_page(request):
-    return get_version_data(request, 'jobs/createJob.html')
+def create_job(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return HttpResponse('')
+    if not job_f.JobAccess(request.user).can_create():
+        return HttpResponse('')
+
+    roles = {
+        'user_roles': [],
+        'global': JOB_ROLES[0][0],
+        'available_users': []
+    }
+    for u in User.objects.filter(~Q(pk=request.user.pk)):
+        roles['available_users'].append({
+            'id': u.pk,
+            'name': u.extended.last_name + ' ' + u.extended.first_name
+        })
+
+    job = get_object_or_404(Job, pk=int(request.POST.get('parent_id', 0)))
+    job_version = job.jobhistory_set.all().order_by('-change_date')[0]
+
+    return render(request, 'jobs/createJob.html', {
+        'parent_id': job.identifier,
+        'job': job_version,
+        'roles': roles,
+        'job_roles': JOB_ROLES,
+        'filedata': job_f.FileData(job_version).filedata
+    })
 
 
 @login_required
@@ -469,93 +433,82 @@ def remove_job(request):
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
     job_id = request.POST.get('job_id', None)
-    if job_id is None:
-        return JsonResponse({'status': 1, 'message': _('Unknown error')})
-    try:
-        job = Job.objects.get(pk=job_id)
-    except ObjectDoesNotExist:
+    status = job_f.remove_jobs_by_id(request.user, [job_id])
+    if status == 404:
         return JsonResponse({
             'status': 1, 'message': _('The job was not found')
         })
-
-    if not job_f.JobAccess(request.user, job).can_delete():
+    elif status == 400:
         return JsonResponse({
             'status': 1,
             'message': _("You don't have an access to remove this job")
         })
-    job.delete()
     return JsonResponse({'status': 0})
 
 
 @login_required
 def remove_jobs(request):
     activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
-    job_ids = request.POST.get('jobs', [])
-    job_ids = json.loads(job_ids)
-    jobs = []
-    for job_id in job_ids:
-        try:
-            jobs.append(Job.objects.get(pk=int(job_id)))
-        except ObjectDoesNotExist:
-            return JsonResponse({
-                'status': 1,
-                'message': _('The job was not found, please reload the page')
-            })
-    for job in jobs:
-        if not job_f.JobAccess(request.user, job).can_delete():
-            return JsonResponse({
-                'status': 1,
-                'message':
-                    _("You don't have an access to "
-                      "remove one of the selected jobs")
-            })
-    for job in jobs:
-        job.delete()
+    status = job_f.remove_jobs_by_id(request.user,
+                                     json.loads(request.POST.get('jobs', '[]')))
+    if status == 404:
+        return JsonResponse({
+            'status': 1,
+            'message': _('The job was not found')
+        })
+    elif status == 400:
+        return JsonResponse({
+            'status': 1,
+            'message':
+                _("You don't have an access to "
+                  "remove one of the selected jobs")
+        })
     return JsonResponse({'status': 0})
 
 
 @login_required
 def showjobdata(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return HttpResponse('')
-    job_id = request.POST.get('job_id', None)
-    if job_id:
-        try:
-            job = Job.objects.get(pk=int(job_id))
-        except ObjectDoesNotExist:
-            return HttpResponse('')
-        job_version = job.jobhistory_set.filter(version=job.version)[0]
-        filesdata = job_f.FileData(job_version)
-        return render(request, 'jobs/showJob.html', {
-            'job': job,
-            'filedata': filesdata.filedata
-        })
-    return HttpResponse('')
+    try:
+        job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
+    except ObjectDoesNotExist:
+        return HttpResponse('')
+
+    return render(request, 'jobs/showJob.html', {
+        'job': job,
+        'filedata': job_f.FileData(
+            job.jobhistory_set.filter(version=job.version)[0]
+        ).filedata
+    })
 
 
 @login_required
-def upload_files(request):
+def upload_file(request):
     if request.method != 'POST':
         return HttpResponse('')
     form = FileForm(request.POST, request.FILES)
     if form.is_valid():
         new_file = form.save(commit=False)
-        check_sum = hashlib.md5(new_file.file.read()).hexdigest()
-        if len(File.objects.filter(hash_sum=check_sum)):
+        hash_sum = hashlib.md5(new_file.file.read()).hexdigest()
+        if len(File.objects.filter(hash_sum=hash_sum)):
             return JsonResponse({
-                'hash_sum': check_sum,
+                'hash_sum': hash_sum,
                 'status': 0
             })
-        new_file.hash_sum = check_sum
+        new_file.hash_sum = hash_sum
         new_file.save()
         return JsonResponse({
-            'hash_sum': check_sum,
+            'hash_sum': hash_sum,
             'status': 0
         })
     return JsonResponse({
-        'message': 'Loading failed!',
+        'message': _('File uploading failed!'),
         'form_errors': form.errors,
         'status': 1
     })
@@ -603,41 +556,15 @@ def download_job(request, job_id):
     job_tar = job_f.JobArchive(job=job, hash_sum=hash_sum)
 
     if not job_tar.create_tar():
-        response = HttpResponseRedirect(
+        return HttpResponseRedirect(
             reverse('jobs:error', args=[500]) + "?back=%s" % back_url
         )
-    else:
-        response = HttpResponse(content_type="application/x-tar-gz")
-        zipname = job_tar.jobtar_name
-        response["Content-Disposition"] = "attachment; filename=%s" % zipname
-        job_tar.memory.seek(0)
-        response.write(job_tar.memory.read())
+    response = HttpResponse(content_type="application/x-tar-gz")
+    zipname = job_tar.jobtar_name
+    response["Content-Disposition"] = "attachment; filename=%s" % zipname
+    job_tar.memory.seek(0)
+    response.write(job_tar.memory.read())
     return response
-
-
-def test_page(request):
-    return render(request, 'jobs/testpage.html', {})
-
-
-def job_error(request, err_code=0):
-    err_code = int(err_code)
-    message = _('Unknown error')
-    back = None
-    if request.method == 'GET':
-        back = request.GET.get('back', None)
-        if back:
-            back = unquote(back)
-    if err_code == 404:
-        message = _('The job was not found')
-    elif err_code == 400:
-        message = _("You don't have an access to this job")
-    elif err_code == 450:
-        message = _('Somebody is downloading a job right now, '
-                    'please try again later')
-    elif err_code == 451:
-        message = _('Wrong parameters, please reload page and try again.')
-    return render(request, 'jobs/error.html',
-                  {'message': message, 'back': back})
 
 
 @login_required
@@ -708,6 +635,27 @@ def upload_job(request, parent_id=None):
         'status': False,
         'message': _("Parent id was not got.")
     })
+
+
+def job_error(request, err_code=0):
+    err_code = int(err_code)
+    message = _('Unknown error')
+    back = None
+    if request.method == 'GET':
+        back = request.GET.get('back', None)
+        if back is not None:
+            back = unquote(back)
+    if err_code == 404:
+        message = _('The job was not found')
+    elif err_code == 400:
+        message = _("You don't have an access to this job")
+    elif err_code == 450:
+        message = _('Somebody is downloading a job right now, '
+                    'please try again later')
+    elif err_code == 451:
+        message = _('Wrong parameters, please reload page and try again.')
+    return render(request, 'jobs/error.html',
+                  {'message': message, 'back': back})
 
 
 def psi_set_status(request):

@@ -78,9 +78,9 @@
             {% else %}
                 {{ job.change_date|date:'d.m.y H:i:s' }}
             {% endif %}
-            {% if change_comment|length %}
+            {% if comment|length %}
                 <br>
-                <span class="job-subtitle">{% trans 'Comment' %}:</span> <small>"{{ change_comment }}"</small><br>
+                <span class="job-subtitle">{% trans 'Comment' %}:</span> <small>"{{ comment }}"</small><br>
             {% endif %}
             <br>
             <span class="show-job-title">{% trans 'Decision status' %}: </span>

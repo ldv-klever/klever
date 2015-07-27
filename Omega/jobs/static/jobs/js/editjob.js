@@ -136,16 +136,11 @@ function set_actions_for_edit_form () {
                 return false;
             }
         }
-        if (load_new_files()){
-            console.log(111);
-            var file_data = JSON.stringify(collect_filetable_data());
-        }
-        else {
-            console.log(222);
+        if (!load_new_files()) {
             return false;
         }
-
-        var last_job_version = 0;
+        var file_data = JSON.stringify(collect_filetable_data()),
+            last_job_version = 0;
         $('#job_version_selector').children('option').each(function () {
             var child_version = parseInt($(this).val());
             if (child_version > last_job_version) {
@@ -163,7 +158,7 @@ function set_actions_for_edit_form () {
         });
         user_roles = JSON.stringify(user_roles);
         $.post(
-            '/jobs/savejob/',
+            job_ajax_url + 'savejob/',
             {
                 job_id: job_id,
                 title: title,
@@ -186,7 +181,7 @@ function set_actions_for_edit_form () {
     $('#job_version_selector').change(function () {
         var version = $(this).children('option:selected').val();
         $.post(
-            '/jobs/editjob/',
+            job_ajax_url + 'editjob/',
             {
                 job_id: $("#job_id_input").val(),
                 version: version
@@ -227,7 +222,7 @@ function load_new_files() {
                 curr_id = current_input.attr('id').replace('new_file_input__', '');
             data.append('file', current_input[0].files[0]);
             $.ajax({
-                url: '/jobs/upload_files/',
+                url: job_ajax_url + 'upload_file/',
                 data: data,
                 dataType: 'json',
                 processData: false,
@@ -618,7 +613,7 @@ $(document).ready(function () {
 
     if ($('#edit_job_div').length) {
         $.post(
-            '/jobs/editjob/',
+            job_ajax_url + 'editjob/',
             {job_id: $('#job_pk').html()},
             function (data) {
                 $('#edit_job_div').html(data);
@@ -627,13 +622,11 @@ $(document).ready(function () {
                     window.location.replace('');
                 });
             }
-        ).fail(function (x) {
-            console.log(x.responseText);
-        });
+        );
     }
     else if($('#show_job_div').length) {
         $.ajax({
-            url: '/jobs/showjobdata/',
+            url: job_ajax_url + 'showjobdata/',
             data: {job_id: $('#job_pk').html()},
             type: 'POST',
             success: function (data) {
@@ -643,9 +636,6 @@ $(document).ready(function () {
                     expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
                     expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
                 });
-            },
-            error: function(x) {
-                console.log(x.responseText);
             }
         });
     }
@@ -654,16 +644,15 @@ $(document).ready(function () {
     }
 
     $("button[id^='copy_job__']").click(function () {
-        var post_data = {
+        $.redirectPost(job_ajax_url + 'create/', {
             parent_id: $(this).attr('id').replace('copy_job__', '')
-        };
-        $.redirectPost('/jobs/create/', post_data);
+        });
     });
 
     $('button[id^="remove_job__"]').click(function () {
         var job_id = $(this).attr('id').replace('remove_job__', '');
         $.post(
-            '/jobs/removejob/',
+            job_ajax_url + 'removejob/',
             {job_id: job_id},
             function (data) {
                 data.status == 0 ? window.location.replace('/jobs/') : err_notify(data.message);

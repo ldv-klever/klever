@@ -156,7 +156,7 @@ function check_jobs_access(jobs) {
     var status = true;
     console.log(jobs);
     $.ajax({
-        url: 'check_access/',
+        url: job_ajax_url + 'check_access/',
         type: 'POST',
         dataType: 'json',
         data: {jobs: JSON.stringify(jobs)},
@@ -345,7 +345,7 @@ $(document).ready(function () {
             dataType: 'json',
             data: {view_title: view_title},
             success: function(data) {
-                if (data.status == 0) {
+                if (data.status) {
                     var request_data = collect_filter_data();
                     request_data['title'] = view_title;
                     $.ajax({
@@ -507,7 +507,7 @@ $(document).ready(function () {
         var data = new FormData();
         data.append('file', $('#upload_job_file_input')[0].files[0]);
         $.ajax({
-            url: '/jobs/upload_job/' + encodeURIComponent(parent_id) + '/',
+            url: job_ajax_url + 'upload_job/' + encodeURIComponent(parent_id) + '/',
             data: data,
             dataType: 'json',
             processData: false,
@@ -524,9 +524,7 @@ $(document).ready(function () {
                     err_notify(data.message);
                 }
             }
-        }).fail(function (x) {
-                console.log(x.responseText);
-            });
+        });
     });
 });
 
