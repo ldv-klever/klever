@@ -1,7 +1,7 @@
 import random
 from time import sleep
 from django.contrib.auth.models import User
-from jobs.job_functions import create_job
+from jobs.job_functions import create_job, update_job
 from jobs.job_model import Job
 from marks.models import UnknownProblem, UnsafeTag, SafeTag
 from jobs.models import ComponentMarkUnknownProblem,\
@@ -52,8 +52,14 @@ def populate_jobs(username):
             pid = 3
         if pid is not None:
             job = Job.objects.get(pk=i)
-            job.parent = Job.objects.get(pk=pid)
-            job.save()
+            update_kwargs = {
+                'author': User.objects.get(username=username),
+                'comment': 'Set parent',
+                'name': job.name,
+                'parent': Job.objects.get(pk=pid),
+                'job': job
+            }
+            update_job(**update_kwargs)
 
 
 def populate_problems():

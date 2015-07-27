@@ -290,6 +290,7 @@ def edit_job(request):
     if job_version.parent is not None:
         parent_identifier = job_version.parent.identifier
 
+    print(parent_identifier)
     return render(request, 'jobs/editJob.html', {
         'parent_id': parent_identifier,
         'job': job_version,
