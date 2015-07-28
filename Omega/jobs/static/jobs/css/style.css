@@ -1,9 +1,9 @@
 .tableScroll {
     width: 100%;
     max-width: 100%;
-    overflow-x: scroll;
+    overflow-x: auto;
     max-height: 670px;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 th {
