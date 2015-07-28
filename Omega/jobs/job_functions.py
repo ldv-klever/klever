@@ -1,3 +1,5 @@
+# coding: utf-8
+
 import os
 import tarfile
 import hashlib
@@ -9,7 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
-from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS, FORMAT
 from jobs.models import FileSystem, File, UserRole
 from jobs.job_model import Job, JobHistory, JobStatus
 
@@ -260,6 +262,10 @@ class DBFileData(object):
                 self.filedata_hash[fd['id']] = fd
                 if len(fd['title']) == 0:
                     return _("You can't specify an empty name")
+                if not all(ord(c) < 128 for c in fd['title']):
+                    title_size = len(fd['title'])
+                    if title_size > 30:
+                        fd['title'] = fd['title'][(title_size - 30):]
                 if fd['type'] == '1' and fd['hash_sum'] is None:
                     return _("The file was not uploaded")
                 names_of_lvl.append(fd['title'])
@@ -291,7 +297,7 @@ class ReadZipJob(object):
         self.job_id = None
         self.user = user
         self.zip_file = zip_archive
-        self.__create_job_from_tar()
+        self.err_message = self.__create_job_from_tar()
 
     def __create_job_from_tar(self):
         inmemory = BytesIO(self.zip_file.read())
@@ -299,6 +305,7 @@ class ReadZipJob(object):
         job_title = ''
         job_description = ''
         job_configuration = ''
+        job_format = None
         file_data = []
         for f in jobzip_file.getmembers():
             file_name = f.name
@@ -307,8 +314,14 @@ class ReadZipJob(object):
                 job_configuration = file_obj.read().decode('utf-8')
             elif file_name == 'description':
                 job_description = file_obj.read().decode('utf-8')
+            elif file_name == 'format':
+                job_format = file_obj.read().decode('utf-8')
+                if int(job_format) != FORMAT:
+                    return _("Job format is not supported!")
             elif file_name == 'title':
                 job_title = file_obj.read().decode('utf-8')
+                if len(job_title) == 0:
+                    return _("Job title is empty!")
             elif file_name.startswith('root/'):
                 if f.isreg():
                     file_content = BytesIO(file_obj.read())
@@ -324,7 +337,10 @@ class ReadZipJob(object):
                         db_file.save()
                     file_data.append([file_name, check_sum])
                 else:
+
                     file_data.append([file_name, None])
+        if job_format is None:
+            return _("Can't detect job format.")
 
         def create_filesystem(filedata):
             fulldata = {}
@@ -346,23 +362,24 @@ class ReadZipJob(object):
                             'parent': prev_parent,
                             'hash_sum': None
                         }
-                        if fd[1] is not None:
+                        if fd[1] is not None and i == len(dir_list) - 1:
                             fulldata[curr_id]['hash_sum'] = fd[1]
                             fulldata[curr_id]['type'] = '1'
                     prev_parent = curr_id
             return list(fulldata[x] for x in fulldata)
 
-        if len(job_title) > 0:
-            job = create_job(**{
-                'name': job_title,
-                'author': self.user,
-                'configuration': job_configuration,
-                'description': job_description,
-                'parent': self.parent,
-                'filedata': create_filesystem(file_data)
-            })
-            if job is not None:
-                self.job_id = job.pk
+        job = create_job({
+            'name': job_title,
+            'author': self.user,
+            'configuration': job_configuration,
+            'description': job_description,
+            'parent': self.parent,
+            'filedata': create_filesystem(file_data)
+        })
+        if isinstance(job, Job):
+            self.job_id = job.pk
+            return None
+        return _("One of the jobs was not saved!")
 
 
 # For first lock: job = None, hash_sum = None, user != None;
@@ -427,6 +444,9 @@ class JobArchive(object):
             )
             __write_file_str(
                 jobtar_obj, 'description', self.job.description
+            )
+            __write_file_str(
+                jobtar_obj, 'format', str(self.job.format)
             )
             for f in self.__get_filedata():
                 if f['src'] is None:
@@ -737,18 +757,17 @@ def create_job(kwargs):
     newjob = Job()
     if 'name' not in kwargs or \
             len(kwargs['name']) == 0 or 'author' not in kwargs:
-        return None
+        return _("Name and author are required")
     creation_comment = ''
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
         newjob.type = kwargs['parent'].type
         newjob.format = kwargs['parent'].format
         creation_comment = "Make copy of %s" % kwargs['parent'].identifier
-    elif 'type' in kwargs and 'format' in kwargs:
+    elif 'type' in kwargs:
         newjob.type = kwargs['type']
-        newjob.format = kwargs['format']
     else:
-        return None
+        return _("Parent or job type are required")
     if 'pk' in kwargs:
         try:
             Job.objects.get(pk=int(kwargs['pk']))
@@ -782,17 +801,18 @@ def create_job(kwargs):
                 new_ur.role = ur['role']
                 new_ur.save()
     if 'filedata' in kwargs:
-        if DBFileData(kwargs['filedata'], new_version).err_message is not None:
+        db_fdata = DBFileData(kwargs['filedata'], new_version)
+        if db_fdata.err_message is not None:
             newjob.delete()
-            return None
+            return db_fdata.err_message
     return newjob
 
 
 def update_job(kwargs):
     if any(x not in kwargs for x in ['author', 'comment']):
-        return None
+        return _('Author and comment are required')
     if len(kwargs['comment']) == 0:
-        return None
+        return _('Comment is required')
     kwargs['job'].change_author = kwargs['author']
     if 'name' in kwargs:
         kwargs['job'].name = kwargs['name']
@@ -818,11 +838,12 @@ def update_job(kwargs):
                 new_ur.role = ur['role']
                 new_ur.save()
     if 'filedata' in kwargs:
-        if DBFileData(kwargs['filedata'], newversion).err_message is not None:
+        db_fdata = DBFileData(kwargs['filedata'], newversion)
+        if db_fdata.err_message is not None:
             newversion.delete()
             kwargs['job'].version -= 1
             kwargs['job'].save()
-            return None
+            return db_fdata.err_message
     return kwargs['job']
 
 

@@ -29,6 +29,21 @@ function check_all_roles () {
 }
 
 
+function check_filename(str) {
+    if (str.length > 0) {
+        if (isASCII(str) || str.length < 30) {
+            return true;
+        }
+        else {
+            err_notify("Name with non-ASCII characters must be less than 30 characters!");
+            return false;
+        }
+    }
+    err_notify("Name is required!");
+    return false;
+}
+
+
 function check_add_user_role() {
     if ($('#job_available_users').children().length === 0) {
         $('#job_user_role_div').hide();
@@ -233,13 +248,11 @@ function load_new_files() {
                 success: function (data) {
                     if (data.status === 0) {
                         var file_hashsum = $('#file_hash_sum__1__' + curr_id);
-                        console.log("ID:" + curr_id);
                         if (file_hashsum.length) {
                             file_hashsum.html(data.hash_sum);
                             current_input.remove();
                         }
                         else {
-                            console.log(data);
                             success = false;
                         }
                     }
@@ -392,10 +405,7 @@ function set_actions_for_file_form() {
 
         $('#create_new_folder_btn').click(function () {
             var fname = $('#new_folder_name').val();
-            if (fname.length === 0) {
-                err_notify("Folder name is required!");
-            }
-            else {
+            if (check_filename(fname)) {
                 var parent_id = $('#new_folder_parent').children('option:selected').val(),
                     parent_row = $('#filerow__0__' + parent_id);
                 cnt++;
@@ -436,12 +446,9 @@ function set_actions_for_file_form() {
 
             $('#change_name_btn').click(function () {
                 var new_title = $('#object_name').val();
-                if (new_title.length > 0) {
+                if (check_filename(new_title)) {
                     title_span.html(new_title);
                     $('#edit_files_form').html('');
-                }
-                else {
-                    err_notify("Name is required!");
                 }
             });
 
@@ -569,7 +576,7 @@ function set_actions_for_file_form() {
                 file_input = $('#new_file_input');
 
             if (file_input.val().length > 0) {
-                if (filename.length > 0) {
+                if (check_filename(filename)) {
                     var parent_row = $('#filerow__0__' + parent_id);
                     cnt++;
                     if (parent_row.length) {
@@ -587,9 +594,6 @@ function set_actions_for_file_form() {
 
                     update_treegrid();
                     $('#edit_files_form').html('');
-                }
-                else {
-                    err_notify("File name is required!");
                 }
             }
             else {

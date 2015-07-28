@@ -405,8 +405,11 @@ def save_job(request):
             })
         job_kwargs['job'] = job
         job_kwargs['comment'] = request.POST.get('comment', '')
-        if job_f.update_job(job_kwargs) is not None:
+        updated_job = job_f.update_job(job_kwargs)
+        if isinstance(updated_job, Job):
             return JsonResponse({'status': 0, 'job_id': job.pk})
+        else:
+            return JsonResponse({'status': 1, 'message': updated_job + ''})
     elif job_id is None and parent_identifier is not None:
         try:
             parent = Job.objects.get(identifier=parent_identifier)
@@ -422,8 +425,9 @@ def save_job(request):
             })
         job_kwargs['parent'] = parent
         newjob = job_f.create_job(job_kwargs)
-        if newjob is not None:
+        if isinstance(newjob, Job):
             return JsonResponse({'status': 0, 'job_id': newjob.pk})
+        return JsonResponse({'status': 1, 'message': newjob + ''})
     return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
 
@@ -527,7 +531,8 @@ def download_file(request, file_id):
     new_file = BytesIO(source.file.file.read())
     mimetype = mimetypes.guess_type(os.path.basename(source.file.file.name))[0]
     response = HttpResponse(new_file.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % source.name
+    response['Content-Disposition'] = 'attachment; filename="%s"' % \
+                                      quote(source.name)
     return response
 
 
@@ -561,7 +566,7 @@ def download_job(request, job_id):
         )
     response = HttpResponse(content_type="application/x-tar-gz")
     zipname = job_tar.jobtar_name
-    response["Content-Disposition"] = "attachment; filename=%s" % zipname
+    response["Content-Disposition"] = "attachment; filename=%s" % quote(zipname)
     job_tar.memory.seek(0)
     response.write(job_tar.memory.read())
     return response
@@ -604,11 +609,6 @@ def check_access(request):
 def upload_job(request, parent_id=None):
     if len(parent_id) > 0:
         parents = Job.objects.filter(identifier__startswith=parent_id)
-        if len(request.FILES) == 0:
-            return JsonResponse({
-                'status': False,
-                'message': _("Job archive was not got.")
-            })
         if len(parents) == 0:
             return JsonResponse({
                 'status': False,
@@ -620,15 +620,19 @@ def upload_job(request, parent_id=None):
                 'message': _("Too many parents starts with this id.")
             })
         parent = parents[0]
-        zipdata = job_f.ReadZipJob(parent, request.user, request.FILES['file'])
-        if zipdata.job_id is None:
+        failed_jobs = []
+        for f in request.FILES.getlist('file'):
+            zipdata = job_f.ReadZipJob(parent, request.user, f)
+            if zipdata.err_message is not None:
+                # failed_jobs.append([f.name, zipdata.err_message])
+                failed_jobs.append([zipdata.err_message + '', f.name])
+        if len(failed_jobs) > 0:
             return JsonResponse({
                 'status': False,
-                'message': _("Job was not saved!")
+                'messages': failed_jobs
             })
         return JsonResponse({
-            'status': True,
-            'job_id': zipdata.job_id
+            'status': True
         })
 
     return JsonResponse({

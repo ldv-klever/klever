@@ -26,7 +26,6 @@ def populate_jobs(username):
     kwargs = {
         'author': User.objects.get(username=username),
         'type': '0',
-        'format': 1,
         'configuration': "A lot of text (configuration)!",
         'description': "A lot of text (description)!"
     }

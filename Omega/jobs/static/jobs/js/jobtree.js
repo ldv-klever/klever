@@ -441,8 +441,13 @@ $(document).ready(function () {
         }
     });
 
-    $('.btn-file :file').on('fileselect', function (event, numFiles, label) {
-        $('#upload_job_filename').html(label);
+    $('.btn-file :file').on('fileselect', function () {
+        var files = $('#upload_job_file_input')[0].files,
+            filename_list = $('<ul>');
+        for (var i = 0; i < files.length; i++) {
+            filename_list.append($('<li>', {text: files[i].name}));
+        }
+        $('#upload_job_filename').html(filename_list);
     });
 
     $('#upload_job_cancel').click(function () {
@@ -458,19 +463,38 @@ $(document).ready(function () {
             err_notify('Parent identifier is required!');
             return false;
         }
-        var data = new FormData();
-        data.append('file', $('#upload_job_file_input')[0].files[0]);
+        var files = $('#upload_job_file_input')[0].files,
+            data = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            data.append('file', files[i]);
+        }
         $.ajax({
             url: job_ajax_url + 'upload_job/' + encodeURIComponent(parent_id) + '/',
+            type: 'POST',
             data: data,
             dataType: 'json',
-            processData: false,
-            type: 'POST',
             contentType: false,
+            processData: false,
             mimeType: 'multipart/form-data',
             async: false,
+            xhr: function() {
+                return $.ajaxSettings.xhr();
+            },
             success: function (data) {
-                data.status ? window.location.replace('/jobs/' + data.job_id + '/') : err_notify(data.message);
+                if (data.status) {
+                    window.location.replace('')
+                }
+                else {
+                    if (data.messages) {
+                        for (var i = 0; i < data.messages.length; i++) {
+                            var err_message = data.messages[i][0] + ' (' + data.messages[i][1] + ')';
+                            err_notify(err_message, 10000);
+                        }
+                    }
+                    else {
+                        err_notify(data.message);
+                    }
+                }
             }
         });
     });
