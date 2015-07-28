@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-28 15:42+0000\n"
+"POT-Creation-Date: 2015-07-28 16:04+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -258,36 +258,36 @@ msgid "You can't use the same names in one folder"
 msgstr "Вы не можете использовать одни и те же имена в одной папке"
 
 #: jobs/job_functions.py:509
-msgid "__ms"
-msgstr ""
+msgid "ms"
+msgstr "мс"
 
 #: jobs/job_functions.py:513
-msgid "__s"
-msgstr ""
+msgid "s"
+msgstr "с"
 
 #: jobs/job_functions.py:517
-msgid "__m"
-msgstr ""
+msgid "min"
+msgstr "мин"
 
 #: jobs/job_functions.py:518
-msgid "__h"
-msgstr ""
+msgid "h"
+msgstr "ч"
 
 #: jobs/job_functions.py:526
-msgid "__b"
-msgstr ""
+msgid "B"
+msgstr "Б"
 
 #: jobs/job_functions.py:530
-msgid "__Kb"
-msgstr ""
+msgid "KiB"
+msgstr "Кбайт"
 
 #: jobs/job_functions.py:534
-msgid "__Mb"
-msgstr ""
+msgid "MiB"
+msgstr "Мбайт"
 
 #: jobs/job_functions.py:535
-msgid "__Gb"
-msgstr ""
+msgid "GiB"
+msgstr "Гбайт"
 
 #: jobs/templates/jobs/base.html:5
 msgid "Jobs"
@@ -803,8 +803,8 @@ msgid "Confirmation"
 msgstr "Подтверждение"
 
 #: users/forms.py:79
-msgid "__Accuracy"
-msgstr ""
+msgid "Accuracy"
+msgstr "Точность"
 
 #: users/forms.py:81
 msgid "First name"
@@ -815,16 +815,16 @@ msgid "Language"
 msgstr "Язык"
 
 #: users/forms.py:83
-msgid "__Data format"
-msgstr ""
+msgid "Data format"
+msgstr "Формат данных"
 
 #: users/models.py:9
-msgid "__Row"
-msgstr ""
+msgid "Raw"
+msgstr "Без обработки"
 
 #: users/models.py:10
-msgid "__Human-readable"
-msgstr ""
+msgid "Human-readable"
+msgstr "Удобочитаемый"
 
 #: users/templates/users/edit-profile.html:35
 #: users/templates/users/register.html:33
