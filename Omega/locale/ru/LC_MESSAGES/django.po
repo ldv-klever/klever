@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-28 16:04+0000\n"
+"POT-Creation-Date: 2015-07-28 16:33+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -240,7 +240,7 @@ msgstr "Сохранение папки провалилось"
 
 #: jobs/job_functions.py:239 jobs/job_functions.py:264
 msgid "The file was not uploaded"
-msgstr "Файл не был загружен"
+msgstr "Файл не был загружен на сервер"
 
 #: jobs/job_functions.py:252 jobs/views.py:48 jobs/views.py:52
 #: jobs/views.py:90 jobs/views.py:94 jobs/views.py:118 jobs/views.py:124
@@ -443,15 +443,15 @@ msgstr "Дерево заданий"
 
 #: jobs/templates/jobs/tree.html:20
 msgid "Upload jobs"
-msgstr "Загрузить задания"
+msgstr "Загрузить задания на сервер"
 
 #: jobs/templates/jobs/tree.html:22
 msgid "Download jobs"
-msgstr "Выгрузить задания"
+msgstr "Загрузить задания"
 
 #: jobs/templates/jobs/tree.html:23
 msgid "Upload marks"
-msgstr "Загрузить оценки"
+msgstr "Загрузить оценки на сервер"
 
 #: jobs/templates/jobs/tree.html:24
 msgid "Compare reports"
@@ -567,7 +567,7 @@ msgstr "Все версии и все данные отмеченных зада
 
 #: jobs/templates/jobs/tree.html:323
 msgid "Upload job"
-msgstr "Загрузить задание"
+msgstr "Загрузить задание на сервер"
 
 #: jobs/templates/jobs/tree.html:326
 msgid ""
@@ -579,7 +579,7 @@ msgstr ""
 
 #: jobs/templates/jobs/tree.html:334
 msgid "Upload"
-msgstr "Загрузить"
+msgstr "Загрузить на сервер"
 
 #: jobs/templates/jobs/treeTable.html:48
 msgid "All"
@@ -726,7 +726,7 @@ msgstr "У Вас нет прав удалить одно из отмеченн�
 
 #: jobs/views.py:511
 msgid "File uploading failed"
-msgstr "Загрузка файла провалилась"
+msgstr "Загрузка файла на сервер провалилась"
 
 #: jobs/views.py:595 jobs/views.py:651
 msgid "You don't have an access to this job"
