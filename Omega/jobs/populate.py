@@ -182,7 +182,7 @@ def main_population(username):
     To populate test data you need to:
     - register a new user with role Producer;
     - run the "shell" manage.py task;
-    - import jobs;
+    - import jobs.populate;
     - jobs.populate.main_population('username')
 
     :param username: login of the user that will become an author of created

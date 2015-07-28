@@ -24,11 +24,10 @@ msgstr "Тип файла не поддерживается"
 
 #: Omega/formatChecker.py:42
 #, fuzzy, python-brace-format
-#| msgid "Please keep the file size under %s (the current file size is %s)"
 msgid "Please keep the file size under {0} (the current file size is {1})"
 msgstr ""
-"Пожалуйста, не загружайте файлы размером больше %s (текущий размер файла - "
-"%s)"
+"Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - "
+"{1})"
 
 #: Omega/vars.py:6
 msgid "Verification of Linux kernel modules"
@@ -235,13 +234,13 @@ msgstr "Родитель"
 msgid "Your role"
 msgstr "Ваша роль"
 
-#: jobs/job_functions.py:229 jobs/job_functions.py:233
-msgid "Failed saving folder"
-msgstr ""
+#: jobs/job_functions.py:227 jobs/job_functions.py:231
+msgid "Saving folder failed"
+msgstr "Сохранение папки провалилось"
 
 #: jobs/job_functions.py:241 jobs/job_functions.py:270
 msgid "The file was not uploaded"
-msgstr "Файл не был загружен"
+msgstr "Файл не был загружен на сервер"
 
 #: jobs/job_functions.py:254 jobs/views.py:48 jobs/views.py:52
 #: jobs/views.py:90 jobs/views.py:94 jobs/views.py:118 jobs/views.py:124
@@ -258,7 +257,7 @@ msgstr "Вы не можете указать пустое имя"
 #, fuzzy
 #| msgid "You can't use the same name in one folder"
 msgid "You can't use the same names in one folder"
-msgstr "Вы не можете использовать одно и тоже имя в одной папке"
+msgstr "Вы не можете использовать одни и те же имена в одной папке"
 
 #: jobs/job_functions.py:320
 #, fuzzy
@@ -280,37 +279,37 @@ msgstr ""
 msgid "One of the jobs was not saved!"
 msgstr "Родитель не был сохранен"
 
-#: jobs/job_functions.py:529
-msgid "__ms"
-msgstr ""
+#: jobs/job_functions.py:509
+msgid "ms"
+msgstr "мс"
 
-#: jobs/job_functions.py:533
-msgid "__s"
-msgstr ""
+#: jobs/job_functions.py:513
+msgid "s"
+msgstr "с"
 
-#: jobs/job_functions.py:537
-msgid "__m"
-msgstr ""
+#: jobs/job_functions.py:517
+msgid "min"
+msgstr "мин"
 
-#: jobs/job_functions.py:538
-msgid "__h"
-msgstr ""
+#: jobs/job_functions.py:518
+msgid "h"
+msgstr "ч"
 
-#: jobs/job_functions.py:546
-msgid "__b"
-msgstr ""
+#: jobs/job_functions.py:526
+msgid "B"
+msgstr "Б"
 
-#: jobs/job_functions.py:550
-msgid "__Kb"
-msgstr ""
+#: jobs/job_functions.py:530
+msgid "KiB"
+msgstr "Кбайт"
 
-#: jobs/job_functions.py:554
-msgid "__Mb"
-msgstr ""
+#: jobs/job_functions.py:534
+msgid "MiB"
+msgstr "Мбайт"
 
-#: jobs/job_functions.py:555
-msgid "__Gb"
-msgstr ""
+#: jobs/job_functions.py:535
+msgid "GiB"
+msgstr "Гбайт"
 
 #: jobs/job_functions.py:760
 msgid "Name and author are required"
@@ -486,15 +485,15 @@ msgstr "Дерево заданий"
 
 #: jobs/templates/jobs/tree.html:20
 msgid "Upload jobs"
-msgstr "Загрузить задания"
+msgstr "Загрузить задания на сервер"
 
 #: jobs/templates/jobs/tree.html:22
 msgid "Download jobs"
-msgstr "Выгрузить задания"
+msgstr "Загрузить задания"
 
 #: jobs/templates/jobs/tree.html:23
 msgid "Upload marks"
-msgstr "Загрузить оценки"
+msgstr "Загрузить оценки на сервер"
 
 #: jobs/templates/jobs/tree.html:24
 msgid "Compare reports"
@@ -609,23 +608,20 @@ msgid "All versions and all data of the selected jobs will be deleted"
 msgstr "Все версии и все данные отмеченных заданий будут удалены"
 
 #: jobs/templates/jobs/tree.html:323
-#, fuzzy
-#| msgid "Upload jobs"
-msgid "Uploading jobs"
-msgstr "Загрузить задания"
+msgid "Upload job"
+msgstr "Загрузить задание на сервер"
 
 #: jobs/templates/jobs/tree.html:326
 msgid ""
-"Set parent identifier. Mind that jobs' types will be inherited from parent. "
-"All file or folder names with non-ASCII characters will be truncated to 30 "
-"characters."
+"Set parent identifier (keep in mind that job class will be inherited from "
+"parent)"
 msgstr ""
+"Задайте идентификатор родителя (помните, что класс задания будет унаследован "
+"от родителя)"
 
-#: jobs/templates/jobs/tree.html:335
-#, fuzzy
-#| msgid "Upload jobs"
+#: jobs/templates/jobs/tree.html:334
 msgid "Upload"
-msgstr "Загрузить задания"
+msgstr "Загрузить на сервер"
 
 #: jobs/templates/jobs/treeTable.html:48
 msgid "All"
@@ -743,8 +739,8 @@ msgstr ""
 "увеличьте длину идентификатора родителя"
 
 #: jobs/views.py:387
-msgid "Root jobs can't become another child!"
-msgstr ""
+msgid "Parent can't be specified for root jobs"
+msgstr "Нельзя указывать родителя для корневых заданий"
 
 #: jobs/views.py:392
 msgid "The specified parent can't be set for this job"
@@ -762,52 +758,51 @@ msgstr "Ваша версия устарела, пожалуйста, обнов
 msgid "You don't have an access to create a new job"
 msgstr "У Вас нет прав создать новое задание"
 
-#: jobs/views.py:448
-#, fuzzy
-#| msgid "You don't have an access to this job"
+#: jobs/views.py:444
 msgid "You don't have an access to remove this job"
-msgstr "У Вас нет прав на данное задание"
+msgstr "У Вас нет прав удалить данное задание"
 
 #: jobs/views.py:470
 msgid "You don't have an access to remove one of the selected jobs"
 msgstr "У Вас нет прав удалить одно из отмеченных заданий"
 
-#: jobs/views.py:515
-msgid "File uploading failed!"
-msgstr ""
+#: jobs/views.py:511
+msgid "File uploading failed"
+msgstr "Загрузка файла на сервер провалилась"
 
 #: jobs/views.py:600 jobs/views.py:655
 msgid "You don't have an access to this job"
 msgstr "У Вас нет прав на данное задание"
 
+#: jobs/views.py:610
+msgid "Job archive was not got"
+msgstr "Не был получаен архив задания"
+
 #: jobs/views.py:615
-#, fuzzy
-#| msgid "The job parent was not found"
-msgid "Parent with this id was not found."
-msgstr "Родитель задания не был найден"
+msgid "Parent with the specified identifier was not found"
+msgstr "Родитель с указанным идентификатором не был найден"
 
 #: jobs/views.py:620
-msgid "Too many parents starts with this id."
+msgid "Too many jobs starts with the specified identifier"
+msgstr "Слишком много заданий начинаются с указанного идентификатора"
+
+#: jobs/views.py:627
+msgid "Job was not saved"
+msgstr "Задание не было сохранено"
+
+#: jobs/views.py:636
+msgid "Parent identifier was not got"
+msgstr "Не был получен идентификатор родителя"
+
+#: jobs/views.py:653
+msgid "Some job is downloaded right now, please try again later"
 msgstr ""
-
-#: jobs/views.py:640
-#, fuzzy
-#| msgid "Parent was not saved"
-msgid "Parent id was not got."
-msgstr "Родитель не был сохранен"
-
-#: jobs/views.py:657
-msgid "Somebody is downloading a job right now, please try again later"
-msgstr "Кто-то сейчас загружает задание, пожалуйтса попробуйте снова позже"
+"Сейчас загружается некоторое задание, пожалуйста, попробуйте снова позже"
 
 #: jobs/views.py:660
 msgid "Wrong parameters, please reload page and try again."
 msgstr ""
 "Некорректные параметры, пожалуйста, обновите страницу и попробуйте еще раз"
-
-#: marks/models.py:17
-msgid "__job class"
-msgstr ""
 
 #: templates/base.html:34
 msgid "__Toggle navigation"
@@ -850,8 +845,8 @@ msgid "Confirmation"
 msgstr "Подтверждение"
 
 #: users/forms.py:79
-msgid "__Accuracy"
-msgstr ""
+msgid "Accuracy"
+msgstr "Точность"
 
 #: users/forms.py:81
 msgid "First name"
@@ -862,16 +857,16 @@ msgid "Language"
 msgstr "Язык"
 
 #: users/forms.py:83
-msgid "__Data format"
-msgstr ""
+msgid "Data format"
+msgstr "Формат данных"
 
 #: users/models.py:9
-msgid "__Row"
-msgstr ""
+msgid "Raw"
+msgstr "Без обработки"
 
 #: users/models.py:10
-msgid "__Human-readable"
-msgstr ""
+msgid "Human-readable"
+msgstr "Удобочитаемый"
 
 #: users/templates/users/edit-profile.html:35
 #: users/templates/users/register.html:33
@@ -934,23 +929,3 @@ msgstr "Учетная запись заблокирована"
 #: users/views.py:31
 msgid "Incorrect username or password"
 msgstr "Неправильное имя пользователя или пароль"
-
-#, fuzzy
-#~| msgid "Parent was not saved"
-#~ msgid "Job archive was not got."
-#~ msgstr "Родитель не был сохранен"
-
-#~ msgid "Parent was not saved"
-#~ msgstr "Родитель не был сохранен"
-
-#~ msgid "The file was not found"
-#~ msgstr "Файл не был найден"
-
-#~ msgid "Please reload the page and try again"
-#~ msgstr "Пожалуйста, обновите страницу и попробуйте еще раз"
-
-#~ msgid "The job was not found, please reload the page"
-#~ msgstr "Задание не было найдено, пожалуйста, обновите страницу"
-
-#~ msgid "Your profile was successfully changed"
-#~ msgstr "Ваша учетная запись была успешно изменена"

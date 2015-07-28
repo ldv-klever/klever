@@ -6,15 +6,15 @@ from Omega.vars import LANGUAGES, USER_ROLES, VIEW_TYPES
 
 class Extended(models.Model):
     DATAFORMAT = (
-        ('row', _('__Row')),
-        ('hum', _('__Human-readable')),
+        ('raw', _('Raw')),
+        ('hum', _('Human-readable')),
     )
     user = models.OneToOneField(User)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
     accuracy = models.SmallIntegerField(default=2)
     data_format = models.CharField(max_length=3, choices=DATAFORMAT,
-                                   default='row')
+                                   default='raw')
     language = models.CharField(max_length=2, choices=LANGUAGES, default='en')
     role = models.CharField(max_length=1, choices=USER_ROLES, default='0')
     timezone = models.CharField(max_length=255)

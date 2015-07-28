@@ -226,11 +226,11 @@ class DBFileData(object):
                         'pk', None
                     )
                     if parent_pk is None:
-                        return _("Failed saving folder")
+                        return _("Saving folder failed")
                     try:
                         parent = FileSystem.objects.get(pk=parent_pk, file=None)
                     except ObjectDoesNotExist:
-                        return _("Failed saving folder")
+                        return _("Saving folder failed")
                     fs_elem.parent = parent
                 if lvl_elem['type'] == '1':
                     try:
@@ -523,36 +523,36 @@ class JobArchive(object):
 
 def convert_time(val, acc):
     new_time = int(val)
-    time_format = "%%1.%df%%s" % int(acc)
+    time_format = "%%1.%df %%s" % int(acc)
     try_div = new_time / 1000
     if try_div < 1:
-        return time_format % (new_time, _('__ms'))
+        return time_format % (new_time, _('ms'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('__s'))
+        return time_format % (new_time, _('s'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('__m'))
-    return time_format % (try_div, _('__h'))
+        return time_format % (new_time, _('min'))
+    return time_format % (try_div, _('h'))
 
 
 def convert_memory(val, acc):
     new_mem = int(val)
-    mem_format = "%%1.%df%%s" % int(acc)
+    mem_format = "%%1.%df %%s" % int(acc)
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('__b'))
+        return mem_format % (new_mem, _('B'))
     new_mem = try_div
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('__Kb'))
+        return mem_format % (new_mem, _('KiB'))
     new_mem = try_div
     try_div = new_mem / 1024
     if try_div < 1:
-        return mem_format % (new_mem, _('__Mb'))
-    return mem_format % (try_div, _('__Gb'))
+        return mem_format % (new_mem, _('MiB'))
+    return mem_format % (try_div, _('GiB'))
 
 
 def verdict_info(job):
