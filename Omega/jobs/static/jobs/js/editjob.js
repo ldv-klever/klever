@@ -1,7 +1,7 @@
 function check_all_roles () {
     var global_role = $('#job_global_roles').children('option:selected').val();
     var gr_num = parseInt(global_role);
-    if (gr_num == 4) {
+    if (gr_num === 4) {
         $('#job_user_role_div').hide();
         return false;
     }
@@ -13,12 +13,12 @@ function check_all_roles () {
             if (opt_num < gr_num) {
                 $(this).attr('disabled', 'disabled');
             }
-            else if (opt_num == gr_num) {
+            else if (opt_num === gr_num) {
                 $(this).attr('disabled', 'disabled');
                 is_dis = true;
             }
             else if (is_dis) {
-                if (has_selected == 0) {
+                if (has_selected === 0) {
                     $(this).attr('selected', 'selected');
                 }
                 return false;
@@ -30,7 +30,7 @@ function check_all_roles () {
 
 
 function check_add_user_role() {
-    if ($('#job_available_users').children().length == 0) {
+    if ($('#job_available_users').children().length === 0) {
         $('#job_user_role_div').hide();
     }
     else {
@@ -55,7 +55,7 @@ function set_actions_for_edit_form () {
 
     $('#add_user_for_role').click(function () {
         var selected_user = $('#job_available_users').children('option:selected');
-        if (selected_user.length == 0) {
+        if (selected_user.length === 0) {
             return false;
         }
         var user_id = selected_user.val(), user_name = selected_user.html();
@@ -121,7 +121,7 @@ function set_actions_for_edit_form () {
             global_role = $('#job_global_roles').children('option:selected').val(),
             user_roles = [], job_id, job_id_input = $('#job_id_input');
 
-        if (title.length == 0) {
+        if (title.length === 0) {
             err_notify($('#title_required_div').html());
             title_input.focus();
             return false;
@@ -130,7 +130,7 @@ function set_actions_for_edit_form () {
         var job_coment = $('#job_comment');
         if (job_coment.length) {
             comment = job_coment.val();
-            if (comment.length == 0) {
+            if (comment.length === 0) {
                 err_notify($('#comment_required_div').html());
                 job_coment.focus();
                 return false;
@@ -172,7 +172,7 @@ function set_actions_for_edit_form () {
                 last_version: last_job_version
             },
             function (data) {
-                data.status == 0 ? window.location.replace('/jobs/' + data.job_id + '/'):err_notify(data.message);
+                data.status === 0 ? window.location.replace('/jobs/' + data.job_id + '/'):err_notify(data.message);
             },
             "json"
         );
@@ -231,7 +231,7 @@ function load_new_files() {
                 mimeType: 'multipart/form-data',
                 async: false,
                 success: function (data) {
-                    if (data.status == 0) {
+                    if (data.status === 0) {
                         var file_hashsum = $('#file_hash_sum__1__' + curr_id);
                         console.log("ID:" + curr_id);
                         if (file_hashsum.length) {
@@ -278,9 +278,9 @@ function collect_filetable_data() {
             else {
                 title = object_title_span.html();
             }
-            if (type == '1') {
+            if (type === '1') {
                 hash_sum = $('#file_hash_sum__' + type + '__' + row_id).html();
-                if (hash_sum.length == 0) {
+                if (hash_sum.length === 0) {
                     err_notify("One of the files was not uploaded!");
                     success = false;
                     return false;
@@ -307,7 +307,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
     if (parent_id) {
         row_class += ' treegrid-parent-' + parent_id;
     }
-    if (type == 0) {
+    if (type === 0) {
         row_class += ' success'
     }
     var new_row = $('<tr>', {
@@ -333,7 +333,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
         }));
     }
     var table_cell = $('<td>').append(title_span);
-    if (type == 1) {
+    if (type === 1) {
         table_cell.append($('<span>', {
             id: 'file_hash_sum__' + type + '__' + id,
             text: hash_sum,
@@ -392,7 +392,7 @@ function set_actions_for_file_form() {
 
         $('#create_new_folder_btn').click(function () {
             var fname = $('#new_folder_name').val();
-            if (fname.length == 0) {
+            if (fname.length === 0) {
                 err_notify("Folder name is required!");
             }
             else {
@@ -527,11 +527,11 @@ function set_actions_for_file_form() {
                         if (parent_arr) {
                             var parent_id = parent_arr[1];
                             for (var i = 0; i < objects_for_delete.length; i++) {
-                                if (objects_for_delete[i] == parent_id) {
+                                if (objects_for_delete[i] === parent_id) {
                                     for_del = true;
                                 }
                             }
-                            if (for_del && objects_for_delete.indexOf(curr_id) == -1) {
+                            if (for_del && objects_for_delete.indexOf(curr_id) === -1) {
                                 children.push(curr_id);
                             }
                         }
@@ -655,7 +655,7 @@ $(document).ready(function () {
             job_ajax_url + 'removejob/',
             {job_id: job_id},
             function (data) {
-                data.status == 0 ? window.location.replace('/jobs/') : err_notify(data.message);
+                data.status === 0 ? window.location.replace('/jobs/') : err_notify(data.message);
             },
             'json'
         );

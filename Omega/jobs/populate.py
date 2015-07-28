@@ -34,7 +34,7 @@ def populate_jobs(username):
     for i in range(10):
         kwargs['name'] = 'Title of the job %s' % str(i + 1)
         kwargs['pk'] = i + 1
-        create_job(**kwargs)
+        create_job(kwargs)
         sleep(0.1)
 
     # Filling parents
@@ -59,7 +59,7 @@ def populate_jobs(username):
                 'parent': Job.objects.get(pk=pid),
                 'job': job
             }
-            update_job(**update_kwargs)
+            update_job(update_kwargs)
 
 
 def populate_problems():
