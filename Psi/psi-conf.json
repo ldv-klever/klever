@@ -1,0 +1,42 @@
+{
+  "work dir": "psi-work-dir",
+  "Omega": {
+    "name": "localhost:8000",
+    "user": null,
+    "passwd": "stub"
+  },
+  "Verification Task Scheduler": {
+    "name": "localhost:8000",
+    "user": null,
+    "passwd": "stub"
+  },
+  "logging": {
+    "formatters": [
+      {
+        "name": "brief",
+        "value": "%(name)s %(levelname)5s> %(message)s"
+      },
+      {
+        "name": "detailed",
+        "value": "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+      }
+    ],
+    "loggers": [
+      {
+        "name": "default",
+        "handlers": [
+          {
+            "name": "console",
+            "level": "INFO",
+            "formatter": "brief"
+          },
+          {
+            "name": "file",
+            "level": "DEBUG",
+            "formatter": "detailed"
+          }
+        ]
+      }
+    ]
+  }
+}
