@@ -1,14 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import User
 from jobs.job_model import Job
-from Omega.vars import JOB_STATUS
 
 
 # Current differences from the original database schema:
 # MEDIUMBLOB -> LONGBLOB
 # TEXT, MEDIUMTEXT -> LONGTEXT
-# TODO: __str__ is useful only for debugging. Do you need it everywhere?
-# __str__ must return string.
 # Storing files in the database is bad in 99% cases. Try to find another way.
 # TODO: check if some ForeignKey fields can be OneToOneField.
 

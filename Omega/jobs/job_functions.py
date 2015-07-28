@@ -738,10 +738,12 @@ def create_job(kwargs):
     if 'name' not in kwargs or \
             len(kwargs['name']) == 0 or 'author' not in kwargs:
         return None
+    creation_comment = ''
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
         newjob.type = kwargs['parent'].type
         newjob.format = kwargs['parent'].format
+        creation_comment = "Make copy of %s" % kwargs['parent'].identifier
     elif 'type' in kwargs and 'format' in kwargs:
         newjob.type = kwargs['type']
         newjob.format = kwargs['format']
@@ -769,7 +771,7 @@ def create_job(kwargs):
     jobstatus = JobStatus()
     jobstatus.job = newjob
     jobstatus.save()
-    new_version = create_version(newjob)
+    new_version = create_version(newjob, creation_comment)
     if 'user_roles' in kwargs:
         for ur in kwargs['user_roles']:
             ur_user = User.objects.filter(pk=int(ur['user']))
