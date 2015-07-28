@@ -125,6 +125,7 @@ function getOrders() {
         }
         orders.push(order_name);
     });
+    console.log(orders);
     return orders
 }
 
@@ -217,7 +218,7 @@ function getFilters() {
                 };
             }
         }
-        if (filter_data.length) {
+        if (filter_data) {
             filters[filter_name] = filter_data;
         }
     });

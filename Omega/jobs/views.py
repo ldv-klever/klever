@@ -28,6 +28,7 @@ def tree_view(request):
 
     tree_args = [request.user]
     if request.method == 'POST':
+        print(request.POST.get('view', None))
         tree_args.append(request.POST.get('view', None))
         tree_args.append(request.POST.get('view_id', None))
 
