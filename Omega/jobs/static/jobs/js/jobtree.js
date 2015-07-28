@@ -440,6 +440,9 @@ $(document).ready(function () {
                 }
             }
         }
+        else {
+            err_notify("Please select jobs you want to download.")
+        }
     });
 
     $('.btn-file :file').on('fileselect', function () {
