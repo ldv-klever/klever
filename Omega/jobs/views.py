@@ -384,7 +384,7 @@ def save_job(request):
             if job.parent is None:
                 return JsonResponse({
                     'status': 1,
-                    'message': _("Root jobs can't become another child!")
+                    'message': _("Parent can't be specified for root jobs")
                 })
             if not job_f.check_new_parent(job, parent):
                 return JsonResponse({
@@ -508,7 +508,7 @@ def upload_file(request):
             'status': 0
         })
     return JsonResponse({
-        'message': _('File uploading failed!'),
+        'message': _('File uploading failed'),
         'form_errors': form.errors,
         'status': 1
     })
@@ -607,24 +607,24 @@ def upload_job(request, parent_id=None):
         if len(request.FILES) == 0:
             return JsonResponse({
                 'status': False,
-                'message': _("Job archive was not got.")
+                'message': _("Job archive was not got")
             })
         if len(parents) == 0:
             return JsonResponse({
                 'status': False,
-                'message': _("Parent with this id was not found.")
+                'message': _("Parent with the specified identifier was not found")
             })
         elif len(parents) > 1:
             return JsonResponse({
                 'status': False,
-                'message': _("Too many parents starts with this id.")
+                'message': _("Too many jobs starts with the specified identifier")
             })
         parent = parents[0]
         zipdata = job_f.ReadZipJob(parent, request.user, request.FILES['file'])
         if zipdata.job_id is None:
             return JsonResponse({
                 'status': False,
-                'message': _("Job was not saved!")
+                'message': _("Job was not saved")
             })
         return JsonResponse({
             'status': True,
@@ -633,7 +633,7 @@ def upload_job(request, parent_id=None):
 
     return JsonResponse({
         'status': False,
-        'message': _("Parent id was not got.")
+        'message': _("Parent identifier was not got")
     })
 
 
@@ -650,7 +650,7 @@ def job_error(request, err_code=0):
     elif err_code == 400:
         message = _("You don't have an access to this job")
     elif err_code == 450:
-        message = _('Somebody is downloading a job right now, '
+        message = _('Some job is downloaded right now, '
                     'please try again later')
     elif err_code == 451:
         message = _('Wrong parameters, please reload page and try again.')

@@ -224,11 +224,11 @@ class DBFileData(object):
                         'pk', None
                     )
                     if parent_pk is None:
-                        return _("Failed saving folder")
+                        return _("Saving folder failed")
                     try:
                         parent = FileSystem.objects.get(pk=parent_pk, file=None)
                     except ObjectDoesNotExist:
-                        return _("Failed saving folder")
+                        return _("Saving folder failed")
                     fs_elem.parent = parent
                 if lvl_elem['type'] == '1':
                     try:
