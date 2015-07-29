@@ -1,10 +1,13 @@
+
+window.job_ajax_url = '/jobs/ajax/';
+
 function getCookie(name) {
     var cookieValue = null;
     if (document.cookie && document.cookie != '') {
         var cookies = document.cookie.split(';');
         for (var i = 0; i < cookies.length; i++) {
             var cookie = $.trim(cookies[i]);
-            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
             }
@@ -16,6 +19,13 @@ function getCookie(name) {
 function csrfSafeMethod(method) {
     return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method))
 }
+
+$(document).on('change', '.btn-file :file', function () {
+    var input = $(this),
+        numFiles = input.get(0).files ? input.get(0).files.length : 1,
+        label = input.val().replace(/\\/g, '/').replace(/.*\//, '');
+    input.trigger('fileselect', [numFiles, label]);
+});
 
 // For making safe post requests
 $.ajaxSetup({
@@ -38,10 +48,26 @@ $.extend({
     }
 });
 
-window.err_notify = function (message) {
+jQuery.expr[':'].regex = function(elem, index, match) {
+    var matchParams = match[3].split(','),
+        validLabels = /^(data|css):/,
+        attr = {
+            method: matchParams[0].match(validLabels) ?
+                        matchParams[0].split(':')[0] : 'attr',
+            property: matchParams.shift().replace(validLabels,'')
+        },
+        regexFlags = 'ig',
+        regex = new RegExp(matchParams.join('').replace(/^s+|s+$/g,''), regexFlags);
+    return regex.test(jQuery(elem)[attr.method](attr.property));
+};
+
+window.err_notify = function (message, duration) {
+    if (isNaN(duration)) {
+        duration = 2500;
+    }
     $.notify(message, {
         autoHide: true,
-        autoHideDelay: 2500,
+        autoHideDelay: duration,
         style: 'bootstrap',
         className: 'error'
     });
@@ -55,3 +81,31 @@ window.success_notify = function (message) {
         className: 'success'
     });
 };
+
+window.download_job = function(job_id) {
+    var interval = null;
+    var try_lock = function() {
+        $.ajax({
+            url: job_ajax_url + 'downloadlock/',
+            type: 'GET',
+            dataType: 'json',
+            async: false,
+            success: function (resp) {
+                if (resp.status) {
+                    clearInterval(interval);
+                    $('body').removeClass("loading");
+                    window.location.replace(job_ajax_url + 'downloadjob/' + job_id + '/' + '?hashsum=' + resp.hash_sum);
+                }
+                else {
+                    $('body').addClass("loading");
+                }
+            }
+        });
+    };
+    $('body').addClass("loading");
+    interval = setInterval(try_lock, 1000);
+};
+
+window.isASCII = function (str) {
+    return /^[\x00-\x7F]*$/.test(str);
+}

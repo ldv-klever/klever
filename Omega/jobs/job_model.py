@@ -26,8 +26,7 @@ class Job(JobBase):
     type = models.CharField(
         max_length=1,
         choices=JOB_CLASSES,
-        default='0',
-        verbose_name=_('job class')
+        default='0'
     )
     parent = models.ForeignKey('self', null=True, blank=True,
                                on_delete=models.PROTECT,

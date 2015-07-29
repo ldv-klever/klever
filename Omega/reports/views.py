@@ -1,24 +1,9 @@
-from logging import exception
-import pytz
-import json
-import hashlib
-from django.db.models import Q
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.shortcuts import get_object_or_404, render
-from django.utils.translation import ugettext as _
-from django.http import HttpResponse, JsonResponse
-from jobs.job_functions import resource_info
-from jobs.job_model import Job, JobHistory, JobStatus
-from jobs.models import UserRole, ComponentResource
-from users.models import View, PreferableView
-import jobs.table_prop as tp
-import jobs.job_functions as job_f
-from django.core.exceptions import ObjectDoesNotExist
+from django.shortcuts import render
 from django.utils.translation import activate
-from Omega.vars import JOB_ROLES, JOB_STATUS
 from reports.models import *
-from datetime import datetime
+from jobs.models import ComponentResource
+import jobs.job_functions as job_f
 
 
 @login_required

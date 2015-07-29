@@ -2,7 +2,7 @@
 
 {% load i18n %}
 
-{% block title %}{% trans 'Verification Tree' %}{% endblock %}
+{% block title %}{% trans 'Jobs Tree' %}{% endblock %}
 
 {% block head_block %}
     <script src="/static/jobs/js/jquery.treegrid.js"></script>
@@ -16,9 +16,11 @@
 {% block body_block %}
     <div class="row" id="jobstree-first-big-part"><form autocomplete="off" onsubmit="return false">
         <div class="col-sm-2">
-            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload VJ' %}</button>
-            <button type="button" class="btn btn-primary btn-block">{% trans 'Download VJ' %}</button>
-            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload EM' %}</button>
+            {% if can_create %}
+                <button type="button" data-toggle="modal" data-target="#upload_job_popup" class="btn btn-primary btn-block">{% trans 'Upload jobs' %}</button>
+            {% endif %}
+            <button id="download_selected_jobs" type="button" class="btn btn-primary btn-block">{% trans 'Download jobs' %}</button>
+            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload marks' %}</button>
             <button id="compare_btn_job" class="btn btn-success btn-block">{% trans 'Compare reports' %}</button>
             <button type="button" data-toggle="modal" data-target="#remove_jobs_popup" class="btn btn-danger btn-block">{% trans 'Delete' %}</button>
         </div>
@@ -36,7 +38,7 @@
                                 <div class="col-sm-3">
                                     <label for="selected_columns">{% trans 'Selected columns' %}</label><br>
                                     <select id="selected_columns" style="width:100%; height: 160px;" multiple="multiple" class="form-control">
-                                        {% for col in selected %}
+                                        {% for col in FF.selected_columns %}
                                             <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
                                         {% endfor %}
                                     </select>
@@ -49,48 +51,46 @@
                                 </div>
                                 <div class="col-sm-4">
                                     <div class="form-inline">
-                                        <label for="available_columns">{% trans 'Columns' %}</label><br>
+                                        <label for="available_columns">{% trans 'Available columns' %}</label><br>
                                         <select id="available_columns" class="form-control">
-                                            {% for col in available %}
+                                            {% for col in FF.available_columns %}
                                                 <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
                                             {% endfor %}
                                         </select>
                                         <button id="add_column_btn" type="button" class="btn btn-primary">{% trans 'Add' %}</button>
                                     </div>
 
-                                    <button id="remove_column_btn" style="margin-top: 15px;" type="button" class="btn btn-danger">{% trans 'Remove selected' %}</button>
+                                    <button id="remove_column_btn" style="margin-top: 15px;" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
                                 </div>
                                 <div class="col-sm-4">
                                     <div id="available_orders_form" class="form-inline">
                                         <label for="available_orders">{% trans 'Add order by' %}</label><br>
                                         <select id="available_orders" class="form-control">
-                                            {% for col in available_orders %}
+                                            {% for col in FF.available_orders %}
                                                 <option  value="{{ col.value }}">{{ col.title }}</option>
                                             {% endfor %}
                                         </select>
                                         <button id="add_order_btn" type="button" class="btn btn-primary">{% trans 'Add' %}</button>
                                     </div>
                                     <div id="all_selected_orders" style="margin-top: 15px;">
-                                        {% if selected_orders %}
-                                            {% for so in selected_orders %}
-                                                <div class="form-inline" id="order__{{ so.value }}">
-                                                    <label><strong><span id="selected_order_title__{{ so.value }}">{{ so.title }}</span>:</strong></label>
-                                                    <div class="radio">
-                                                        <label>
-                                                            <input type="radio" name="{{ so.value }}" value="down" {% if so.up == '0' %}checked{% endif %}>
-                                                            <span class="glyphicon glyphicon-arrow-down"></span>
-                                                        </label>
-                                                        <label>
-                                                            <input type="radio" name="{{ so.value }}" value="up" {% if so.up == '1' %}checked{% endif %}>
-                                                            <span class="glyphicon glyphicon-arrow-up"></span>
-                                                        </label>
-                                                    </div>
-                                                    <button id="remove__order__{{ so.value }}" class="btn-close-x">
-                                                        <span class="glyphicon glyphicon-remove"></span>
-                                                    </button>
+                                        {% for so in FF.selected_orders %}
+                                            <div class="form-inline" id="order__{{ so.value }}">
+                                                <label><strong><span id="selected_order_title__{{ so.value }}">{{ so.title }}</span>:</strong></label>
+                                                <div class="radio">
+                                                    <label>
+                                                        <input type="radio" name="{{ so.value }}" value="down" {% if so.up == 0 %}checked{% endif %}>
+                                                        <span class="glyphicon glyphicon-arrow-down"></span>
+                                                    </label>
+                                                    <label>
+                                                        <input type="radio" name="{{ so.value }}" value="up" {% if so.up == 1 %}checked{% endif %}>
+                                                        <span class="glyphicon glyphicon-arrow-up"></span>
+                                                    </label>
                                                 </div>
-                                            {% endfor %}
-                                        {% endif %}
+                                                <button id="remove__order__{{ so.value }}" class="btn-close-x">
+                                                    <span class="glyphicon glyphicon-remove"></span>
+                                                </button>
+                                            </div>
+                                        {% endfor %}
                                     </div>
                                 </div>
                             </div>
@@ -108,7 +108,7 @@
                                     <div id="available_filters_form" class="form-inline">
                                         <label for="available_filters">{% trans 'Add filter by' %}</label><br>
                                         <select id="available_filters" class="form-control" style="width: 100%">
-                                            {% for fil in available_filters %}
+                                            {% for fil in FF.available_filters %}
                                                 <option  value="{{ fil.name }}">{{ fil.name_title }}</option>
                                             {% endfor %}
                                         </select>
@@ -118,7 +118,7 @@
                                 </div>
                                 <div class="col-sm-9">
                                     <ul class="list-group" id="selected_filters_list">
-                                    {% for fil in selected_filters %}
+                                    {% for fil in FF.selected_filters %}
                                         {% if fil.name == 'name' %}
                                             <li id="filter_form__name" class="list-group-item">
                                                 <div class="form-inline">
@@ -143,7 +143,7 @@
                                                         <span id="filter_title__change_author">{{ fil.name_title }}</span> is
                                                         <input type="hidden" value="is" id="filter_type__change_author">
                                                         <select class="form-control" id="filter_value__change_author">
-                                                            {% for u in authors %}
+                                                            {% for u in users %}
                                                                 <option value="{{ u.pk }}"{% if u.pk == fil.value %} selected{% endif %}>{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
                                                             {% endfor %}
                                                         </select>
@@ -187,7 +187,7 @@
                                                         </select>
                                                         <select id="filter_value__status" class="form-control">
                                                             {% for status in statuses %}
-                                                                <option value="{{ status.value }}"{% if fil.value == status.value %} selected{% endif %}>{{ status.title }}</option>
+                                                                <option value="{{ status.0 }}"{% if fil.value == status.0 %} selected{% endif %}>{{ status.1 }}</option>
                                                             {% endfor %}
                                                         </select>
                                                     </label>
@@ -273,196 +273,70 @@
                 <label for="available_views"></label>
                 <select id="available_views" class="form-control">
                     <option value="default">{% trans 'Default' %}</option>
-                    {% for v in available_views %}
+                    {% for v in FF.user_views %}
                         <option title="{{ v.title }}" value="{{ v.id }}"{% if v.selected %} selected{% endif %}>{{ v.title }}</option>
                     {% endfor %}
                 </select>
                 <div class="btn-group">
                     <button id="show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
                     <button id="update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
-                    <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Preferable' %}</button>
-                    <button id="remove_view_btn" type="button" class="btn btn-danger">{% trans 'Remove' %}</button>
+                    <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Make preferred' %}</button>
+                    <button id="remove_view_btn" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
                 </div>
-                <button id="show_unsaved_view_btn" type="button" style="float: right" class="btn btn-primary">{% trans 'Show selected' %}</button>
+                <button id="show_unsaved_view_btn" type="button" style="float: right" class="btn btn-primary">{% trans 'Show' %}</button>
                 <br><br>
                 <label><input id="new_view_name_input" type="text" class="form-control" placeholder="{% trans 'New view name' %}"></label>
                 <button id="save_view_btn" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
             </div>
         </div>
     </form></div>
-    <button type="button" class="btn btn-default" id="jobstree-fullscreen-btn">
+    <button type="button" class="btn btn-default glyphicon-button" id="jobstree-fullscreen-btn">
         <small><span class="glyphicon glyphicon-fullscreen"></span></small>
     </button>
     <br>
-    <div class="tableScroll" id="jobtable"></div>
+    <div class="tableScroll" id="jobtable">
+        {% include 'jobs/treeTable.html' %}
+    </div>
 
-    <!-- Templates for jQuery -->
-    <div id="selected_order_template" hidden>
-        <div class="form-inline" id="order__">
-            <label><strong><span id="selected_order_title__"></span>:</strong></label>
-            <div class="radio">
-                <label>
-                    <input type="radio" name="{{ so.value }}" value="down" checked>
-                    <span class="glyphicon glyphicon-arrow-down"></span>
-                </label>
-                <label>
-                    <input type="radio" name="{{ so.value }}" value="up">
-                    <span class="glyphicon glyphicon-arrow-up"></span>
-                </label>
-            </div>
-            <button id="remove__order__" class="btn-close-x">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
-    <div id="filter_form_template__name" hidden>
-        <div class="form-inline">
-            <label>
-                <span id="temp___filter_title__name"></span>
-                <select id="temp___filter_type__name" class="form-control">
-                    <option value="iexact">{% trans 'is' %}</option>
-                    <option value="istartswith">{% trans 'starts with' %}</option>
-                    <option value="icontains">{% trans 'contains' %}</option>
-                </select>
-            <input id="temp___filter_value__name" class="form-control" type="text">
-            </label>
-            <button id="temp___remove__filter__name" class="btn-close-x" style="float:right;">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
-    <div id="filter_form_template__change_author" hidden>
-        <div class="form-inline">
-            <label>
-                <span id="temp___filter_title__change_author"></span> {% trans 'is' %}
-                <input type="hidden" value="is" id="temp___filter_type__change_author">
-                <select class="form-control" id="temp___filter_value__change_author">
-                    {% for u in authors %}
-                        <option value="{{ u.pk }}">{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-            <button id="temp___remove__filter__change_author" class="btn-close-x" style="float:right;">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
-    <div id="filter_form_template__change_date" hidden>
-        <div class="form-inline">
-            <label>
-                <span id="temp___filter_title__change_date"></span>
-                <select id="temp___filter_type__change_date" class="form-control">
-                    <option value="older">{% trans 'older' %}</option>
-                    <option value="younger">{% trans 'younger' %}</option>
-                </select>
-                {% trans 'than' %}
-                <input style="width: 60px;" id="filter_value_1__change_date" class="form-control" type="text" value="{{ fil.value.valval }}">
-                <select id="temp___filter_value_0__change_date" class="form-control">
-                    <option value="minutes">{% trans 'minutes' %}</option>
-                    <option value="hours">{% trans 'hours' %}</option>
-                    <option value="days">{% trans 'days' %}</option>
-                    <option value="weeks">{% trans 'weeks' %}</option>
-                </select>
-            </label>
-            <button id="temp___remove__filter__change_date" class="btn-close-x" style="float:right;">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
-    <div id="filter_form_template__status" hidden>
-        <div class="form-inline">
-            <label>
-                <span id="temp___filter_title__status"></span>
-                <select id="temp___filter_type__status" class="form-control">
-                    <option value="is">{% trans 'is' %}</option>
-                    <option value="isnot">{% trans 'is not' %}</option>
-                </select>
-                <select id="temp___filter_value__status" class="form-control">
-                    {% for status in statuses %}
-                        <option value="{{ status.value }}">{{ status.title }}</option>
-                    {% endfor %}
-                </select>
-            </label>
-            <button id="temp___remove__filter__status" class="btn-close-x" style="float:right;">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
-    <div id="filter_form_template__resource_component" hidden>
-        <div class="form-inline">
-            <label>
-                <span id="temp___filter_title__resource_component"></span>
-                <select id="temp___filter_type__resource_component" class="form-control">
-                    <option value="iexact">{% trans 'is' %}</option>
-                    <option value="istartswith">{% trans 'starts with' %}</option>
-                    <option value="icontains">{% trans 'contains' %}</option>
-                </select>
-            <input id="temp___filter_value__resource_component" class="form-control" type="text">
-            </label>
-            <button id="temp___remove__filter__resource_component" class="btn-close-x" style="float:right;">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
-    <div id="filter_form_template__problem_component" hidden>
-        <div class="form-inline">
-            <label>
-                <span id="temp___filter_title__problem_component"></span>
-                <select id="temp___filter_type__problem_component" class="form-control">
-                    <option value="iexact">{% trans 'is' %}</option>
-                    <option value="istartswith">{% trans 'starts with' %}</option>
-                    <option value="icontains">{% trans 'contains' %}</option>
-                </select>
-            <input id="temp___filter_value__problem_component" class="form-control" type="text">
-            </label>
-            <button id="temp___remove__filter__problem_component" class="btn-close-x" style="float:right;">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
-    <div id="filter_form_template__problem_problem" hidden>
-        <div class="form-inline">
-            <label>
-                <span id="temp___filter_title__problem_problem"></span>
-                <select id="temp___filter_type__problem_problem" class="form-control">
-                    <option value="iexact">{% trans 'is' %}</option>
-                    <option value="istartswith">{% trans 'starts with' %}</option>
-                    <option value="icontains">{% trans 'contains' %}</option>
-                </select>
-            <input id="temp___filter_value__problem_problem" class="form-control" type="text">
-            </label>
-            <button id="temp___remove__filter__problem_problem" class="btn-close-x" style="float:right;">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
-    <div id="filter_form_template__format" hidden>
-        <div class="form-inline">
-            <label>
-                <span id="temp___filter_title__format"></span> {% trans 'is' %}
-                <input type="hidden" value="is" id="filter_type__format">
-                <input id="temp___filter_value__format" type="text" class="form-control" style="width: 60px;">
-            </label>
-            <button id="temp___remove__filter__format" class="btn-close-x" style="float:right;">
-                <span class="glyphicon glyphicon-remove"></span>
-            </button>
-        </div>
-    </div>
     <div id="remove_jobs_popup" class="modal fade" role="dialog">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{% trans 'Are you sure?' %}</h4>
+                    <h4 class="modal-title">{% trans 'Are you sure' %}?</h4>
                 </div>
                 <div class="modal-body">
-                    <p>{% trans 'All versions and all data of selected verification job(s) will be deleted!' %}</p>
+                    <p>{% trans 'All versions and all data of the selected jobs will be deleted' %}</p>
                 </div>
                 <div class="modal-footer">
-                    <button id="delete_jobs_btn" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Remove' %}</button>
+                    <button id="delete_jobs_btn" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
                     <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
                 </div>
             </div>
         </div>
     </div>
+    <div id="upload_job_popup" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{% trans 'Upload jobs' %}</h4>
+                </div>
+                <div class="modal-body">
+                    <p>{% trans "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
+                    <label><input id="upload_job_parent_id" type="text" class="form-control" placeholder="{% trans 'Identifier' %}"></label>
+                    <br>
+                    <br>
+                    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file" multiple></span>
+                    <br>
+                    <span id="upload_job_filename"></span>
+                </div>
+                <div class="modal-footer">
+                    <button id="upload_jobs_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
+                    <button id="upload_job_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% include 'jobs/treeTmp.html' %}
 {% endblock %}

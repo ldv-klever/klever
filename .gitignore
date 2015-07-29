@@ -1,7 +1,5 @@
 __pycache__/*
 __pycache__
-/Omega/.idea/workspace.xml
-/Omega/Omega/db.cnf
-/Omega/media/*
-migrations
-migrations/*
+*/.idea/workspace.xml
+_build/*
+_build

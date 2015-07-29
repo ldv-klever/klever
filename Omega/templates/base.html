@@ -31,7 +31,7 @@
                         <img height="26" width="50" src="/static/images/omega.png" alt="Omega">
                     </a>
                     <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
-                        <span class="sr-only">{% trans 'Toggle navigation' %}</span>
+                        <span class="sr-only">{% trans '__Toggle navigation' %}</span>
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
@@ -39,7 +39,9 @@
                 </div>
                 <div class="navbar-collapse collapse">
                     <ul class="nav navbar-nav">
-                        <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
+                        {% endif %}
                         {% if user.is_staff %}<li><a href="/admin/">{% trans 'Admin Tools' %}</a></li>{% endif %}
                         {% block navbar_block %}{% endblock %}
                     </ul>
@@ -59,5 +61,6 @@
         <div class="container-fluid">
         {% block body_block %}{% endblock %}
         </div>
+        <div class="modal-loading"></div>
     </body>
 </html>

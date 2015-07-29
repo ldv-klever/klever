@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-07-14 17:08+0300\n"
+"POT-Creation-Date: 2015-07-28 19:02+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,412 +19,609 @@ msgstr ""
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: Omega/formatChecker.py:39
-msgid "Filetype not supported."
-msgstr ""
+msgid "The file type is not supported"
+msgstr "Тип файла не поддерживается"
 
 #: Omega/formatChecker.py:42
-#, python-format
-msgid "Please keep filesize under %s. Current filesize %s."
+#, fuzzy, python-brace-format
+msgid "Please keep the file size under {0} (the current file size is {1})"
 msgstr ""
+"Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - "
+"{1})"
 
 #: Omega/vars.py:6
 msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
 #: Omega/vars.py:7
-msgid "Verification of commits to Linux kernel Git repositories"
-msgstr ""
+msgid "Verification of commits in Linux kernel Git repositories"
+msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
 #: Omega/vars.py:8
 msgid "Verification of C programs"
-msgstr ""
+msgstr "Верификация Си-программ"
 
-#: Omega/vars.py:12 users/models.py:12
+#: Omega/vars.py:12 Omega/vars.py:69
 msgid "No access"
-msgstr ""
+msgstr "Нет доступа"
 
 #: Omega/vars.py:13
 msgid "Observer"
-msgstr ""
+msgstr "Обозреватель"
 
 #: Omega/vars.py:14
 msgid "Expert"
-msgstr ""
+msgstr "Эксперт"
 
 #: Omega/vars.py:15
 msgid "Observer and Operator"
-msgstr ""
+msgstr "Обозреватель и оператор"
 
 #: Omega/vars.py:16
 msgid "Expert and Operator"
-msgstr ""
+msgstr "Эксперт и оператор"
 
-#: jobs/job_functions.py:38 jobs/table_prop.py:50 jobs/table_prop.py:78
-#: jobs/templates/jobs/editJob.html:21
+#: Omega/vars.py:70
+msgid "Producer"
+msgstr "Постановщик"
+
+#: Omega/vars.py:71
+msgid "Manager"
+msgstr "Руководитель"
+
+#: Omega/vars.py:80
+msgid "Not solved"
+msgstr "Не решено"
+
+#: Omega/vars.py:81
+msgid "Is solving"
+msgstr "Решается"
+
+#: Omega/vars.py:82
+msgid "Stopped"
+msgstr "Приостановлено"
+
+#: Omega/vars.py:83
+msgid "Solved"
+msgstr "Решено"
+
+#: Omega/vars.py:84
+msgid "Failed"
+msgstr "Провалено"
+
+#: Omega/vars.py:88
+msgid "Unreported"
+msgstr "Не сообщена"
+
+#: Omega/vars.py:89
+msgid "Reported"
+msgstr "Сообщена"
+
+#: Omega/vars.py:90
+msgid "Fixed"
+msgstr "Исправлена"
+
+#: Omega/vars.py:91
+msgid "Rejected"
+msgstr "Отклонена"
+
+#: jobs/JobTableProperties.py:24 jobs/JobTableProperties.py:35
+#: jobs/job_functions.py:48 jobs/templates/jobs/editJob.html:21
 msgid "Title"
-msgstr ""
+msgstr "Название"
 
-#: jobs/job_functions.py:39 jobs/table_prop.py:79 jobs/table_prop.py:757
+#: jobs/JobTableProperties.py:25 jobs/JobTableProperties.py:36
+#: jobs/JobTableProperties.py:670 jobs/job_functions.py:49
+#: jobs/templates/jobs/viewJob.html:71
 msgid "Author"
-msgstr ""
+msgstr "Автор"
 
-#: jobs/job_functions.py:40 jobs/table_prop.py:52
+#: jobs/JobTableProperties.py:25 users/forms.py:80
+msgid "Last name"
+msgstr "Фамилия"
+
+#: jobs/JobTableProperties.py:26 jobs/templates/jobs/viewJob.html:73
+#: users/templates/users/showProfile.html:27
 msgid "Date"
-msgstr ""
+msgstr "Дата"
 
-#: jobs/job_functions.py:41 jobs/table_prop.py:53 jobs/table_prop.py:81
-#: jobs/templates/jobs/viewJob.html:87
-msgid "Status"
-msgstr ""
+#: jobs/JobTableProperties.py:27 jobs/JobTableProperties.py:38
+#: jobs/job_functions.py:51 jobs/templates/jobs/viewJob.html:86
+msgid "Decision status"
+msgstr "Статус решения"
 
-#: jobs/job_functions.py:42 jobs/templates/jobs/viewJob.html:105
-msgid "Safes"
-msgstr ""
+#: jobs/JobTableProperties.py:37 jobs/job_functions.py:50
+msgid "Last change date"
+msgstr "Дата последнего изменения"
 
-#: jobs/job_functions.py:43
-msgid "Missed bug"
-msgstr ""
+#: jobs/JobTableProperties.py:40 jobs/templates/jobs/viewJob.html:150
+msgid "Resources"
+msgstr "Ресурсы"
 
-#: jobs/job_functions.py:44
-msgid "Incorrect proof"
-msgstr ""
+#: jobs/JobTableProperties.py:40 jobs/JobTableProperties.py:41
+msgid "Component name"
+msgstr "Название компонента"
 
-#: jobs/job_functions.py:45 jobs/job_functions.py:53
-msgid "Unknown"
-msgstr ""
+#: jobs/JobTableProperties.py:41 jobs/job_functions.py:67
+#: jobs/templates/jobs/base.html:14 jobs/templates/jobs/viewJob.html:134
+msgid "Unknowns"
+msgstr "Проблемы в компонентах"
 
-#: jobs/job_functions.py:46 jobs/job_functions.py:54
-msgid "Inconclusive"
-msgstr ""
+#: jobs/JobTableProperties.py:42
+msgid "Problem name"
+msgstr "Название проблемы"
 
-#: jobs/job_functions.py:47 jobs/job_functions.py:55
-msgid "Unassociated"
-msgstr ""
+#: jobs/JobTableProperties.py:43 jobs/job_functions.py:75
+msgid "Format"
+msgstr "Формат"
 
-#: jobs/job_functions.py:48 jobs/job_functions.py:56 jobs/job_functions.py:58
-#: jobs/job_functions.py:60 jobs/job_functions.py:193
-#: jobs/job_functions.py:239 jobs/table_prop.py:514 jobs/table_prop.py:527
+#: jobs/JobTableProperties.py:558 jobs/JobTableProperties.py:563
+#: jobs/job_functions.py:57 jobs/job_functions.py:65 jobs/job_functions.py:638
+msgid "Without marks"
+msgstr "Нет оценок"
+
+#: jobs/JobTableProperties.py:564 jobs/JobTableProperties.py:578
+#: jobs/job_functions.py:58 jobs/job_functions.py:66 jobs/job_functions.py:68
+#: jobs/job_functions.py:70 jobs/job_functions.py:643
+#: jobs/job_functions.py:689
 msgid "Total"
 msgstr "Всего"
 
-#: jobs/job_functions.py:49 jobs/templates/jobs/viewJob.html:97
+#: jobs/job_functions.py:52 jobs/job_functions.py:72
+#: jobs/templates/jobs/base.html:15 jobs/templates/jobs/viewJob.html:122
+msgid "Safes"
+msgstr "Доказательства корректности"
+
+#: jobs/job_functions.py:53
+msgid "Missed target bugs"
+msgstr "Пропуски целевых ошибок"
+
+#: jobs/job_functions.py:54
+msgid "Incorrect proof"
+msgstr "Некорректное доказательство"
+
+#: jobs/job_functions.py:55 jobs/job_functions.py:63
+msgid "Unknown"
+msgstr "Неизвестно"
+
+#: jobs/job_functions.py:56 jobs/job_functions.py:64
+msgid "Incompatible marks"
+msgstr "Несовместимые оценки"
+
+#: jobs/job_functions.py:59 jobs/job_functions.py:73
+#: jobs/templates/jobs/base.html:13 jobs/templates/jobs/viewJob.html:114
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
-#: jobs/job_functions.py:50
-msgid "Bug"
+#: jobs/job_functions.py:60
+msgid "Bugs"
 msgstr "Ошибки"
 
-#: jobs/job_functions.py:51
-msgid "Target bug"
+#: jobs/job_functions.py:61
+msgid "Target bugs"
 msgstr "Целевые ошибки"
 
-#: jobs/job_functions.py:52
-msgid "False positive"
-msgstr ""
-
-#: jobs/job_functions.py:57
-msgid "Unknowns"
-msgstr ""
-
-#: jobs/job_functions.py:59
-msgid "Resourses"
-msgstr ""
-
-#: jobs/job_functions.py:61
-msgid "Tags"
-msgstr ""
-
 #: jobs/job_functions.py:62
-msgid "Safe tags"
-msgstr ""
-
-#: jobs/job_functions.py:63
-msgid "Unsafe tags"
-msgstr ""
-
-#: jobs/job_functions.py:64
-msgid "Identifier"
-msgstr ""
-
-#: jobs/job_functions.py:65 jobs/table_prop.py:85
-msgid "Format"
-msgstr ""
-
-#: jobs/job_functions.py:66
-msgid "Version"
-msgstr ""
-
-#: jobs/job_functions.py:67
-msgid "Job type"
-msgstr ""
-
-#: jobs/job_functions.py:68
-msgid "Parent name"
-msgstr "Имя родителя"
+msgid "False positives"
+msgstr "Ложные сообщения об ошибках"
 
 #: jobs/job_functions.py:69
-msgid "Parent identifier"
-msgstr ""
+msgid "Resourses"
+msgstr "Ресурсы"
 
-#: jobs/job_functions.py:70
+#: jobs/job_functions.py:71
+msgid "Tags"
+msgstr "Теги"
+
+#: jobs/job_functions.py:74 jobs/job_functions.py:78
+#: jobs/templates/jobs/viewJob.html:35
+msgid "Identifier"
+msgstr "Идентификатор"
+
+#: jobs/job_functions.py:76
+msgid "Version"
+msgstr "Версия"
+
+#: jobs/job_functions.py:77 jobs/templates/jobs/viewJob.html:33
+msgid "Class"
+msgstr "Класс"
+
+#: jobs/job_functions.py:78
+msgid "Parent"
+msgstr "Родитель"
+
+#: jobs/job_functions.py:79
 msgid "Your role"
+msgstr "Ваша роль"
+
+#: jobs/job_functions.py:227 jobs/job_functions.py:231
+msgid "Saving folder failed"
+msgstr "Сохранение папки провалилось"
+
+#: jobs/job_functions.py:241 jobs/job_functions.py:270
+msgid "The file was not uploaded"
+msgstr "Файл не был загружен на сервер"
+
+#: jobs/job_functions.py:254 jobs/views.py:48 jobs/views.py:52
+#: jobs/views.py:90 jobs/views.py:94 jobs/views.py:118 jobs/views.py:124
+#: jobs/views.py:144 jobs/views.py:160 jobs/views.py:340 jobs/views.py:431
+#: jobs/views.py:437 jobs/views.py:458 jobs/views.py:646
+msgid "Unknown error"
+msgstr "Неизвестная ошибка"
+
+#: jobs/job_functions.py:264
+msgid "You can't specify an empty name"
+msgstr "Вы не можете указать пустое имя"
+
+#: jobs/job_functions.py:274
+#, fuzzy
+#| msgid "You can't use the same name in one folder"
+msgid "You can't use the same names in one folder"
+msgstr "Вы не можете использовать одни и те же имена в одной папке"
+
+#: jobs/job_functions.py:320
+#, fuzzy
+#| msgid "The file type is not supported"
+msgid "Job format is not supported!"
+msgstr "Тип файла не поддерживается"
+
+#: jobs/job_functions.py:324
+msgid "Job title is empty!"
 msgstr ""
 
-#: jobs/job_functions.py:188
-msgid "No mark"
+#: jobs/job_functions.py:343
+msgid "Can't detect job format."
 msgstr ""
 
-#: jobs/job_model.py:12
-msgid "Verification job"
+#: jobs/job_functions.py:382
+#, fuzzy
+#| msgid "Parent was not saved"
+msgid "One of the jobs was not saved!"
+msgstr "Родитель не был сохранен"
+
+#: jobs/job_functions.py:509
+msgid "ms"
+msgstr "мс"
+
+#: jobs/job_functions.py:513
+msgid "s"
+msgstr "с"
+
+#: jobs/job_functions.py:517
+msgid "min"
+msgstr "мин"
+
+#: jobs/job_functions.py:518
+msgid "h"
+msgstr "ч"
+
+#: jobs/job_functions.py:526
+msgid "B"
+msgstr "Б"
+
+#: jobs/job_functions.py:530
+msgid "KiB"
+msgstr "Кбайт"
+
+#: jobs/job_functions.py:534
+msgid "MiB"
+msgstr "Мбайт"
+
+#: jobs/job_functions.py:535
+msgid "GiB"
+msgstr "Гбайт"
+
+#: jobs/job_functions.py:760
+msgid "Name and author are required"
 msgstr ""
 
-#: jobs/job_model.py:31 marks/models.py:17
-msgid "job class"
+#: jobs/job_functions.py:770
+msgid "Parent or job type are required"
 msgstr ""
 
-#: jobs/table_prop.py:51
-msgid "Author last name"
-msgstr ""
+#: jobs/job_functions.py:813
+#, fuzzy
+#| msgid "Change's comment is required"
+msgid "Author and comment are required"
+msgstr "Требуется написать комментарий к изменению"
 
-#: jobs/table_prop.py:57 jobs/table_prop.py:59
-msgid "Is"
-msgstr ""
-
-#: jobs/table_prop.py:58
-msgid "Is not"
-msgstr ""
-
-#: jobs/table_prop.py:60
-msgid "Starts with"
-msgstr ""
-
-#: jobs/table_prop.py:61
-msgid "Contains"
-msgstr ""
-
-#: jobs/table_prop.py:62
-msgid "Younger than"
-msgstr ""
-
-#: jobs/table_prop.py:63
-msgid "Older than"
-msgstr ""
-
-#: jobs/table_prop.py:80
-msgid "Last change"
-msgstr ""
-
-#: jobs/table_prop.py:82
-msgid "Resource/Component"
-msgstr ""
-
-#: jobs/table_prop.py:83
-msgid "Problem/Component"
-msgstr ""
-
-#: jobs/table_prop.py:84
-msgid "Problem name"
-msgstr ""
-
-#: jobs/table_prop.py:521 jobs/table_prop.py:526
-msgid "No EM"
-msgstr ""
+#: jobs/job_functions.py:815
+#, fuzzy
+#| msgid "Change's comment is required"
+msgid "Comment is required"
+msgstr "Требуется написать комментарий к изменению"
 
 #: jobs/templates/jobs/base.html:5
-msgid "Verification Jobs"
-msgstr ""
+msgid "Jobs"
+msgstr "Задания"
 
-#: jobs/templates/jobs/base.html:9
-msgid "Show Marks"
-msgstr ""
-
-#: jobs/templates/jobs/base.html:11
-msgid "Of found errors"
-msgstr ""
-
-#: jobs/templates/jobs/base.html:12
-msgid "Problems in components"
-msgstr ""
-
-#: jobs/templates/jobs/base.html:13
-msgid "Proof of correctness"
-msgstr ""
+#: jobs/templates/jobs/base.html:10
+msgid "Marks"
+msgstr "Оценки"
 
 #: jobs/templates/jobs/createJob.html:5
-msgid "Create Job"
-msgstr ""
+msgid "Job Copying"
+msgstr "Копирование задания"
 
 #: jobs/templates/jobs/editJob.html:10
-msgid "You can choose old Verification Job version"
-msgstr ""
+msgid "You can choose one of the previous versions"
+msgstr "Вы можете выбрать оду из предыдущих версий"
 
 #: jobs/templates/jobs/editJob.html:16
-msgid "or change it:"
-msgstr ""
+msgid "or change the job"
+msgstr "или изменить задание"
 
-#: jobs/templates/jobs/editJob.html:25
-msgid "Parent identifier:"
-msgstr ""
+#: jobs/templates/jobs/editJob.html:25 jobs/templates/jobs/showJob.html:8
+msgid "Parent identifier"
+msgstr "Идентификатор родителя"
 
-#: jobs/templates/jobs/editJob.html:31
-msgid "Comment"
-msgstr ""
+#: jobs/templates/jobs/editJob.html:33 jobs/templates/jobs/showJob.html:5
+msgid "Description"
+msgstr "Описание"
 
-#: jobs/templates/jobs/editJob.html:39
-msgid "Global roles"
-msgstr ""
+#: jobs/templates/jobs/editJob.html:41
+msgid "Role for all users"
+msgstr "Роль для всех пользователей"
 
-#: jobs/templates/jobs/editJob.html:52
+#: jobs/templates/jobs/editJob.html:51
 msgid "Add role to user"
-msgstr ""
+msgstr "Добавить роль для пользователя"
 
-#: jobs/templates/jobs/editJob.html:58 jobs/templates/jobs/tree.html:52
-#: jobs/templates/jobs/tree.html.py:65 jobs/templates/jobs/tree.html:112
+#: jobs/templates/jobs/editJob.html:57 jobs/templates/jobs/filesTree.html:75
+#: jobs/templates/jobs/tree.html:60 jobs/templates/jobs/tree.html.py:73
+#: jobs/templates/jobs/tree.html:116
 msgid "Add"
-msgstr ""
+msgstr "Добавить"
+
+#: jobs/templates/jobs/editJob.html:83 jobs/templates/jobs/showJob.html:12
+msgid "Configuration"
+msgstr "Конфигурация"
+
+#: jobs/templates/jobs/editJob.html:84 jobs/templates/jobs/showJob.html:14
+msgid "Files"
+msgstr "Файлы"
 
 #: jobs/templates/jobs/editJob.html:88
-msgid "Configuration"
-msgstr ""
+msgid "Change's comment"
+msgstr "Комментарий к изменению"
 
-#: jobs/templates/jobs/editJob.html:90
-#: users/templates/users/edit-profile.html:54
+#: jobs/templates/jobs/editJob.html:88 jobs/templates/jobs/viewJob.html:83
+#: users/templates/users/showProfile.html:30
+msgid "Comment"
+msgstr "Комментарий"
+
+#: jobs/templates/jobs/editJob.html:90 jobs/templates/jobs/tree.html:289
+#: users/templates/users/edit-profile.html:52
 msgid "Save"
-msgstr ""
+msgstr "Сохранить"
 
-#: jobs/templates/jobs/editJob.html:92 jobs/templates/jobs/viewJob.html:158
+#: jobs/templates/jobs/editJob.html:92 jobs/templates/jobs/filesTree.html:37
+#: jobs/templates/jobs/filesTree.html:45 jobs/templates/jobs/filesTree.html:55
+#: jobs/templates/jobs/filesTree.html:61 jobs/templates/jobs/filesTree.html:76
+#: jobs/templates/jobs/tree.html:313 jobs/templates/jobs/tree.html.py:336
+#: jobs/templates/jobs/viewJob.html:179
 msgid "Cancel"
-msgstr ""
+msgstr "Отменить"
 
-#: jobs/templates/jobs/tree.html:5
-msgid "Verification Tree"
-msgstr ""
+#: jobs/templates/jobs/editJob.html:106
+msgid "Change's comment is required"
+msgstr "Требуется написать комментарий к изменению"
 
-#: jobs/templates/jobs/tree.html:19
-msgid "Upload VJ"
-msgstr "Выгрузить ВЗ"
+#: jobs/templates/jobs/editJob.html:107
+msgid "Title is required"
+msgstr "Требуется указать название"
+
+#: jobs/templates/jobs/filesTree.html:17
+msgid "New folder"
+msgstr "Новая папка"
+
+#: jobs/templates/jobs/filesTree.html:18
+msgid "New file"
+msgstr "Новый файл"
+
+#: jobs/templates/jobs/filesTree.html:19 jobs/templates/jobs/filesTree.html:44
+msgid "Rename"
+msgstr "Переименовать"
+
+#: jobs/templates/jobs/filesTree.html:20
+msgid "Move file"
+msgstr "Переместить файл"
+
+#: jobs/templates/jobs/filesTree.html:21 jobs/templates/jobs/filesTree.html:60
+#: jobs/templates/jobs/tree.html:25 jobs/templates/jobs/tree.html.py:63
+#: jobs/templates/jobs/tree.html:284 jobs/templates/jobs/tree.html.py:312
+#: jobs/templates/jobs/viewJob.html:26 jobs/templates/jobs/viewJob.html:178
+msgid "Delete"
+msgstr "Удалить"
+
+#: jobs/templates/jobs/filesTree.html:28
+msgid "Folder name"
+msgstr "Название папки"
+
+#: jobs/templates/jobs/filesTree.html:29 jobs/templates/jobs/filesTree.html:67
+msgid "Name"
+msgstr "Название"
+
+#: jobs/templates/jobs/filesTree.html:31
+msgid "Subfolder of"
+msgstr "Подпапка"
+
+#: jobs/templates/jobs/filesTree.html:33 jobs/templates/jobs/filesTree.html:51
+#: jobs/templates/jobs/filesTree.html:72
+msgid "Root"
+msgstr "Корневая папка"
+
+#: jobs/templates/jobs/filesTree.html:36
+msgid "Create"
+msgstr "Создать"
+
+#: jobs/templates/jobs/filesTree.html:41
+msgid "New name"
+msgstr "Новое название"
+
+#: jobs/templates/jobs/filesTree.html:49 jobs/templates/jobs/filesTree.html:54
+msgid "Move"
+msgstr "Переместить"
+
+#: jobs/templates/jobs/filesTree.html:49
+msgid "to"
+msgstr "в"
+
+#: jobs/templates/jobs/filesTree.html:59
+msgid "will be deleted. Do you want to continue?"
+msgstr "будет удален(а). Вы хотите продолжить?"
+
+#: jobs/templates/jobs/filesTree.html:65 jobs/templates/jobs/tree.html:330
+msgid "Browse"
+msgstr "Выбрать файл"
+
+#: jobs/templates/jobs/filesTree.html:70
+msgid "Upload to folder"
+msgstr "Загрузить в папку"
+
+#: jobs/templates/jobs/tree.html:5 templates/base.html:43
+msgid "Jobs Tree"
+msgstr "Дерево заданий"
 
 #: jobs/templates/jobs/tree.html:20
-msgid "Download VJ"
-msgstr "Загрузить ВЗ"
-
-#: jobs/templates/jobs/tree.html:21
-msgid "Upload EM"
-msgstr ""
+msgid "Upload jobs"
+msgstr "Загрузить задания на сервер"
 
 #: jobs/templates/jobs/tree.html:22
-msgid "Compare reports"
-msgstr ""
+msgid "Download jobs"
+msgstr "Загрузить задания"
 
 #: jobs/templates/jobs/tree.html:23
-msgid "Delete"
-msgstr ""
+msgid "Upload marks"
+msgstr "Загрузить оценки на сервер"
 
-#: jobs/templates/jobs/tree.html:30 jobs/templates/jobs/tree.html.py:46
+#: jobs/templates/jobs/tree.html:24
+msgid "Compare reports"
+msgstr "Сравнить отчеты"
+
+#: jobs/templates/jobs/tree.html:32
 msgid "Columns"
-msgstr ""
+msgstr "Столбцы"
 
-#: jobs/templates/jobs/tree.html:37
+#: jobs/templates/jobs/tree.html:39
 msgid "Selected columns"
-msgstr ""
+msgstr "Выбранные столбцы"
 
-#: jobs/templates/jobs/tree.html:55
-msgid "Remove selected"
-msgstr ""
+#: jobs/templates/jobs/tree.html:54
+msgid "Available columns"
+msgstr "Доступные столбцы"
 
-#: jobs/templates/jobs/tree.html:59
+#: jobs/templates/jobs/tree.html:67
 msgid "Add order by"
-msgstr ""
+msgstr "Добавить сортировку по"
 
-#: jobs/templates/jobs/tree.html:97
+#: jobs/templates/jobs/tree.html:101
 msgid "Filters"
-msgstr ""
+msgstr "Фильтры"
 
-#: jobs/templates/jobs/tree.html:105
+#: jobs/templates/jobs/tree.html:109
 msgid "Add filter by"
-msgstr ""
+msgstr "Добавить фильтр по"
 
-#: jobs/templates/jobs/tree.html:124 jobs/templates/jobs/tree.html.py:181
-#: jobs/templates/jobs/tree.html:201 jobs/templates/jobs/tree.html.py:218
-#: jobs/templates/jobs/tree.html:235 jobs/templates/jobs/tree.html.py:250
-#: jobs/templates/jobs/tree.html:316 jobs/templates/jobs/tree.html.py:330
-#: jobs/templates/jobs/tree.html:370 jobs/templates/jobs/tree.html.py:389
-#: jobs/templates/jobs/tree.html:405 jobs/templates/jobs/tree.html.py:421
-#: jobs/templates/jobs/tree.html:435
+#: jobs/templates/jobs/tree.html:128 jobs/templates/jobs/tree.html.py:185
+#: jobs/templates/jobs/tree.html:205 jobs/templates/jobs/tree.html.py:222
+#: jobs/templates/jobs/tree.html:239 jobs/templates/jobs/tree.html.py:254
+#: jobs/templates/jobs/treeTmp.html:26 jobs/templates/jobs/treeTmp.html:40
+#: jobs/templates/jobs/treeTmp.html:80 jobs/templates/jobs/treeTmp.html:99
+#: jobs/templates/jobs/treeTmp.html:115 jobs/templates/jobs/treeTmp.html:131
+#: jobs/templates/jobs/treeTmp.html:145
 msgid "is"
-msgstr ""
+msgstr "совпадает с"
 
-#: jobs/templates/jobs/tree.html:125 jobs/templates/jobs/tree.html.py:202
-#: jobs/templates/jobs/tree.html:219 jobs/templates/jobs/tree.html.py:236
-#: jobs/templates/jobs/tree.html:317 jobs/templates/jobs/tree.html.py:390
-#: jobs/templates/jobs/tree.html:406 jobs/templates/jobs/tree.html.py:422
+#: jobs/templates/jobs/tree.html:129 jobs/templates/jobs/tree.html.py:206
+#: jobs/templates/jobs/tree.html:223 jobs/templates/jobs/tree.html.py:240
+#: jobs/templates/jobs/treeTmp.html:27 jobs/templates/jobs/treeTmp.html:100
+#: jobs/templates/jobs/treeTmp.html:116 jobs/templates/jobs/treeTmp.html:132
 msgid "starts with"
-msgstr ""
+msgstr "начинается с"
 
-#: jobs/templates/jobs/tree.html:126 jobs/templates/jobs/tree.html.py:203
-#: jobs/templates/jobs/tree.html:220 jobs/templates/jobs/tree.html.py:237
-#: jobs/templates/jobs/tree.html:318 jobs/templates/jobs/tree.html.py:391
-#: jobs/templates/jobs/tree.html:407 jobs/templates/jobs/tree.html.py:423
+#: jobs/templates/jobs/tree.html:130 jobs/templates/jobs/tree.html.py:207
+#: jobs/templates/jobs/tree.html:224 jobs/templates/jobs/tree.html.py:241
+#: jobs/templates/jobs/treeTmp.html:28 jobs/templates/jobs/treeTmp.html:101
+#: jobs/templates/jobs/treeTmp.html:117 jobs/templates/jobs/treeTmp.html:133
 msgid "contains"
-msgstr ""
+msgstr "содержит"
 
-#: jobs/templates/jobs/tree.html:158 jobs/templates/jobs/tree.html.py:348
+#: jobs/templates/jobs/tree.html:162 jobs/templates/jobs/treeTmp.html:58
 msgid "older"
-msgstr ""
+msgstr "не ранее"
 
-#: jobs/templates/jobs/tree.html:159 jobs/templates/jobs/tree.html.py:349
+#: jobs/templates/jobs/tree.html:163 jobs/templates/jobs/treeTmp.html:59
 msgid "younger"
-msgstr ""
+msgstr "не позднее"
 
-#: jobs/templates/jobs/tree.html:161 jobs/templates/jobs/tree.html.py:351
+#: jobs/templates/jobs/tree.html:165 jobs/templates/jobs/treeTmp.html:61
 msgid "than"
-msgstr ""
+msgstr "чем"
 
-#: jobs/templates/jobs/tree.html:164 jobs/templates/jobs/tree.html.py:354
+#: jobs/templates/jobs/tree.html:168 jobs/templates/jobs/treeTmp.html:64
 msgid "minutes"
-msgstr ""
+msgstr "минут"
 
-#: jobs/templates/jobs/tree.html:165 jobs/templates/jobs/tree.html.py:355
+#: jobs/templates/jobs/tree.html:169 jobs/templates/jobs/treeTmp.html:65
 msgid "hours"
-msgstr ""
+msgstr "часов"
 
-#: jobs/templates/jobs/tree.html:166 jobs/templates/jobs/tree.html.py:356
+#: jobs/templates/jobs/tree.html:170 jobs/templates/jobs/treeTmp.html:66
 msgid "days"
-msgstr ""
+msgstr "дней"
 
-#: jobs/templates/jobs/tree.html:167 jobs/templates/jobs/tree.html.py:357
+#: jobs/templates/jobs/tree.html:171 jobs/templates/jobs/treeTmp.html:67
 msgid "weeks"
-msgstr ""
+msgstr "недель"
 
-#: jobs/templates/jobs/tree.html:182 jobs/templates/jobs/tree.html.py:371
+#: jobs/templates/jobs/tree.html:186 jobs/templates/jobs/treeTmp.html:81
 msgid "is not"
-msgstr ""
+msgstr "не совпадает с"
 
-#: jobs/templates/jobs/tree.html:273
+#: jobs/templates/jobs/tree.html:275 jobs/views.py:96
 msgid "Default"
-msgstr ""
+msgstr "По умолчанию"
 
-#: jobs/templates/jobs/tree.html:278
+#: jobs/templates/jobs/tree.html:281 jobs/templates/jobs/tree.html.py:286
 msgid "Show"
-msgstr ""
-
-#: jobs/templates/jobs/tree.html:279 jobs/templates/jobs/viewJob.html:25
-#: jobs/templates/jobs/viewJob.html:157
-msgid "Remove"
-msgstr ""
-
-#: jobs/templates/jobs/tree.html:280
-msgid "New view name"
-msgstr ""
-
-#: jobs/templates/jobs/tree.html:281
-msgid "Save and show"
-msgstr ""
+msgstr "Показать"
 
 #: jobs/templates/jobs/tree.html:282
-msgid "Show selected"
+msgid "Update"
+msgstr "Обновить"
+
+#: jobs/templates/jobs/tree.html:283
+msgid "Make preferred"
+msgstr "Сделать предпочитаемым"
+
+#: jobs/templates/jobs/tree.html:288
+msgid "New view name"
+msgstr "Название нового представления"
+
+#: jobs/templates/jobs/tree.html:306 jobs/templates/jobs/viewJob.html:172
+msgid "Are you sure"
+msgstr "Вы уверены"
+
+#: jobs/templates/jobs/tree.html:309
+msgid "All versions and all data of the selected jobs will be deleted"
+msgstr "Все версии и все данные отмеченных заданий будут удалены"
+
+#: jobs/templates/jobs/tree.html:323
+msgid "Upload job"
+msgstr "Загрузить задание на сервер"
+
+#: jobs/templates/jobs/tree.html:326
+msgid ""
+"Set parent identifier (keep in mind that job class will be inherited from "
+"parent)"
 msgstr ""
+"Задайте идентификатор родителя (помните, что класс задания будет унаследован "
+"от родителя)"
+
+#: jobs/templates/jobs/tree.html:334
+msgid "Upload"
+msgstr "Загрузить на сервер"
 
 #: jobs/templates/jobs/treeTable.html:48
 msgid "All"
@@ -432,247 +629,303 @@ msgstr "Всего"
 
 #: jobs/templates/jobs/treeTable.html:54
 msgid "All for checked"
-msgstr ""
+msgstr "Всего для отмеченных"
 
-#: jobs/templates/jobs/viewJob.html:14
-msgid "Verification Job"
-msgstr ""
-
-#: jobs/templates/jobs/viewJob.html:22
-msgid "Make copy"
-msgstr ""
-
-#: jobs/templates/jobs/viewJob.html:23
-msgid "Load"
-msgstr ""
+#: jobs/templates/jobs/viewJob.html:16
+msgid "Job"
+msgstr "Задание"
 
 #: jobs/templates/jobs/viewJob.html:24
-msgid "Edit"
-msgstr ""
+msgid "Make copy"
+msgstr "Создать копию"
 
-#: jobs/templates/jobs/viewJob.html:32
-msgid "Type"
-msgstr ""
+#: jobs/templates/jobs/viewJob.html:25
+msgid "Download"
+msgstr "Загрузить"
 
-#: jobs/templates/jobs/viewJob.html:34
-msgid "ID"
-msgstr ""
-
-#: jobs/templates/jobs/viewJob.html:38
-msgid "Job parents"
-msgstr ""
-
-#: jobs/templates/jobs/viewJob.html:53
-msgid "Job children"
-msgstr ""
-
-#: jobs/templates/jobs/viewJob.html:67
-msgid "Last change author"
-msgstr ""
-
-#: jobs/templates/jobs/viewJob.html:71
+#: jobs/templates/jobs/viewJob.html:36
 msgid "Created by"
-msgstr ""
+msgstr "Создано"
 
-#: jobs/templates/jobs/viewJob.html:76
-msgid "Last change date"
-msgstr ""
+#: jobs/templates/jobs/viewJob.html:40
+msgid "Parents"
+msgstr "Родители"
 
-#: jobs/templates/jobs/viewJob.html:117
-msgid "Problems"
-msgstr ""
+#: jobs/templates/jobs/viewJob.html:55
+msgid "Children"
+msgstr "Потомки"
 
-#: jobs/templates/jobs/viewJob.html:133
-msgid "Resources"
-msgstr ""
+#: jobs/templates/jobs/viewJob.html:69
+msgid "Last change"
+msgstr "Последнее изменение"
 
-#: jobs/templates/jobs/viewJob.html:141
+#: jobs/templates/jobs/viewJob.html:158
 msgid ""
-"For each component and 'total' the format of resources is [(wall time) (cpu "
-"time) (maximum memory)]"
+"Resources (wall time, CPU time and maximum memory) are shown for each "
+"component and totally"
 msgstr ""
+"Показаны ресурсы (астрономическое время, процессорное время и максимальный "
+"объекм оперативной памяти) по отдельности для каждого компонента и суммарно"
 
-#: jobs/templates/jobs/viewJob.html:151
-msgid "Are you sure?"
+#: jobs/templates/jobs/viewJob.html:175
+msgid "All versions and all data of this job will be deleted"
+msgstr "Все версии и все данные данного задания будут удалены"
+
+#: jobs/views.py:60
+msgid "The default view was made preferred"
 msgstr ""
+"Представление, которое используется по умолчанию, было сделано предпочитаемым"
 
-#: jobs/templates/jobs/viewJob.html:154
-msgid ""
-"All versions and all data connected to this verification job will be deleted!"
+#: jobs/views.py:64
+msgid "The default view is already preferred"
 msgstr ""
+"Представление, которое используется по умолчанию, уже является предпочитаемым"
 
-#: jobs/views.py:201 jobs/views.py:308
-msgid "You don't have access to this verification job!"
-msgstr ""
+#: jobs/views.py:73 jobs/views.py:136 jobs/views.py:172
+msgid "The view was not found"
+msgstr "Представление не было найдено"
 
-#: jobs/views.py:294
-msgid "You are not Producer to create or edit Verification Job!"
-msgstr ""
+#: jobs/views.py:82
+msgid "The preferred view was successfully changed"
+msgstr "Предпочитаемое представление было успешно изменено"
 
-#: jobs/views.py:341
+#: jobs/views.py:98 jobs/views.py:108
+msgid "Please choose another view name"
+msgstr "Пожалуйста, выберете другое название представления"
+
+#: jobs/views.py:103
+msgid "The view name is required"
+msgstr "Требуется указать название представления"
+
+#: jobs/views.py:128
+msgid "You can't edit the default view"
+msgstr "Вы не можете изменить представление, которое используется по умолчанию"
+
+#: jobs/views.py:151
+msgid "The view was successfully saved"
+msgstr "Представление было успешно сохранено"
+
+#: jobs/views.py:165
+msgid "You can't remove the default view"
+msgstr "Вы не можете удалить представление, которое используется по умолчанию"
+
+#: jobs/views.py:176
+msgid "The view was successfully removed"
+msgstr "Представление было успешно удалено"
+
+#: jobs/views.py:267
 msgid "Current version"
-msgstr ""
+msgstr "Текущая версия"
 
-#: marks/models.py:20
-msgid "Unreported"
-msgstr ""
+#: jobs/views.py:360 jobs/views.py:443 jobs/views.py:464 jobs/views.py:595
+#: jobs/views.py:653
+msgid "The job was not found"
+msgstr "Задание не было найдено"
 
-#: marks/models.py:21
-msgid "Reported"
-msgstr ""
+#: jobs/views.py:365
+msgid "You don't have an access to edit this job"
+msgstr "У Вас нет прав редактировать данное задание"
 
-#: marks/models.py:22
-msgid "Fixed"
-msgstr ""
+#: jobs/views.py:374 jobs/views.py:419
+msgid "The job parent was not found"
+msgstr "Родитель задания не был найден"
 
-#: marks/models.py:23
-msgid "Rejected"
+#: jobs/views.py:379
+msgid ""
+"Several parents match the specified identifier, please increase the length "
+"of the parent identifier"
 msgstr ""
+"Указанному идентификатору соответствуют несколько родителей, пожалуйста, "
+"увеличьте длину идентификатора родителя"
 
-#: reports/models.py:16
-msgid "Not Solved"
-msgstr ""
+#: jobs/views.py:387
+msgid "Parent can't be specified for root jobs"
+msgstr "Нельзя указывать родителя для корневых заданий"
 
-#: reports/models.py:17
-msgid "Solving"
-msgstr ""
+#: jobs/views.py:392
+msgid "The specified parent can't be set for this job"
+msgstr "Для этого задания не может быть установлен указанный родитель"
 
-#: reports/models.py:18
-msgid "Stopped"
-msgstr ""
+#: jobs/views.py:399
+msgid "A parent identifier is required for this job"
+msgstr "Для этого задания требуется идентификатор родителя"
 
-#: reports/models.py:19
-msgid "Solved"
-msgstr ""
+#: jobs/views.py:404
+msgid "Your version is expired, please reload the page"
+msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
-#: reports/models.py:20
-msgid "Failed"
+#: jobs/views.py:424
+msgid "You don't have an access to create a new job"
+msgstr "У Вас нет прав создать новое задание"
+
+#: jobs/views.py:444
+msgid "You don't have an access to remove this job"
+msgstr "У Вас нет прав удалить данное задание"
+
+#: jobs/views.py:470
+msgid "You don't have an access to remove one of the selected jobs"
+msgstr "У Вас нет прав удалить одно из отмеченных заданий"
+
+#: jobs/views.py:511
+msgid "File uploading failed"
+msgstr "Загрузка файла на сервер провалилась"
+
+#: jobs/views.py:600 jobs/views.py:655
+msgid "You don't have an access to this job"
+msgstr "У Вас нет прав на данное задание"
+
+#: jobs/views.py:610
+msgid "Job archive was not got"
+msgstr "Не был получаен архив задания"
+
+#: jobs/views.py:615
+msgid "Parent with the specified identifier was not found"
+msgstr "Родитель с указанным идентификатором не был найден"
+
+#: jobs/views.py:620
+msgid "Too many jobs starts with the specified identifier"
+msgstr "Слишком много заданий начинаются с указанного идентификатора"
+
+#: jobs/views.py:627
+msgid "Job was not saved"
+msgstr "Задание не было сохранено"
+
+#: jobs/views.py:636
+msgid "Parent identifier was not got"
+msgstr "Не был получен идентификатор родителя"
+
+#: jobs/views.py:653
+msgid "Some job is downloaded right now, please try again later"
 msgstr ""
+"Сейчас загружается некоторое задание, пожалуйста, попробуйте снова позже"
+
+#: jobs/views.py:660
+msgid "Wrong parameters, please reload page and try again."
+msgstr ""
+"Некорректные параметры, пожалуйста, обновите страницу и попробуйте еще раз"
 
 #: templates/base.html:34
-msgid "Toggle navigation"
+msgid "__Toggle navigation"
 msgstr ""
 
-#: templates/base.html:42
-msgid "Jobs Tree"
-msgstr ""
-
-#: templates/base.html:43
+#: templates/base.html:45
 msgid "Admin Tools"
-msgstr ""
+msgstr "Панель администатора"
 
-#: templates/base.html:48 users/templates/users/edit-profile.html:20
+#: templates/base.html:51 users/templates/users/edit-profile.html:18
 msgid "Settings"
 msgstr "Настройки"
 
-#: templates/base.html:49
-msgid "Sign Out"
-msgstr ""
-
-#: templates/base.html:51
-msgid "Register"
-msgstr ""
-
 #: templates/base.html:52
+msgid "Sign Out"
+msgstr "Выйти"
+
+#: templates/base.html:54 users/templates/users/register.html:49
+msgid "Register"
+msgstr "Регистрация"
+
+#: templates/base.html:55
 msgid "Sign In"
-msgstr ""
+msgstr "Войти"
 
-#: users/forms.py:19
+#: users/forms.py:19 users/templates/users/login.html:15
 msgid "Password"
-msgstr ""
+msgstr "Пароль"
 
-#: users/forms.py:52
+#: users/forms.py:20 users/templates/users/showProfile.html:14
+msgid "Email"
+msgstr "Адрес электронной почты"
+
+#: users/forms.py:53
 msgid "New password"
 msgstr "Новый пароль"
 
-#: users/forms.py:53
-#, fuzzy
-#| msgid "New password"
-msgid "Retype password"
-msgstr "Новый пароль"
-
-#: users/forms.py:78
-msgid "Accuracy"
-msgstr ""
+#: users/forms.py:54
+msgid "Confirmation"
+msgstr "Подтверждение"
 
 #: users/forms.py:79
-#, fuzzy
-#| msgid "Parent name"
-msgid "Last name"
-msgstr "Имя родителя"
-
-#: users/forms.py:80
-#, fuzzy
-#| msgid "Parent name"
-msgid "First name"
-msgstr "Имя родителя"
+msgid "Accuracy"
+msgstr "Точность"
 
 #: users/forms.py:81
+msgid "First name"
+msgstr "Имя"
+
+#: users/forms.py:82 users/templates/users/showProfile.html:19
 msgid "Language"
-msgstr ""
+msgstr "Язык"
 
-#: users/forms.py:82
+#: users/forms.py:83
 msgid "Data format"
-msgstr ""
+msgstr "Формат данных"
 
-#: users/models.py:13
-msgid "Producer"
-msgstr ""
+#: users/models.py:9
+msgid "Raw"
+msgstr "Без обработки"
 
-#: users/models.py:14
-msgid "Manager"
-msgstr ""
-
-#: users/models.py:15
-msgid "Producer and Manager"
-msgstr ""
-
-#: users/models.py:16
-msgid "Administrator"
-msgstr ""
-
-#: users/models.py:20
-msgid "Job tree"
-msgstr ""
-
-#: users/models.py:21
-msgid "Other"
-msgstr ""
-
-#: users/models.py:27
-msgid "Row"
-msgstr ""
-
-#: users/models.py:28
+#: users/models.py:10
 msgid "Human-readable"
-msgstr ""
+msgstr "Удобочитаемый"
 
-#: users/templates/users/edit-profile.html:18
-msgid "Your profile was changed!"
-msgstr ""
-
-#: users/templates/users/edit-profile.html:37
-#: users/templates/users/register.html:38
+#: users/templates/users/edit-profile.html:35
+#: users/templates/users/register.html:33
+#: users/templates/users/showProfile.html:18
 msgid "Time zone"
-msgstr ""
+msgstr "Часовой пояс"
 
-#: users/templates/users/login.html:11
-msgid "Please sign in"
-msgstr ""
+#: users/templates/users/login.html:14
+msgid "Username"
+msgstr "Имя пользователя"
 
-#: users/templates/users/login.html:18
+#: users/templates/users/login.html:16
 msgid "Sign in"
 msgstr "Войти"
 
 #: users/templates/users/register.html:9
-#: users/templates/users/register.html:20
 msgid "Registration"
-msgstr ""
+msgstr "Регистрация"
 
-#: users/templates/users/register.html:18
-msgid "Thank you for registering!"
-msgstr ""
+#: users/templates/users/showProfile.html:16
+msgid "Administrator"
+msgstr "Администратор"
 
-#: users/views.py:28
-msgid "Invalid login details supplied."
-msgstr ""
+#: users/templates/users/showProfile.html:16
+msgid "Yes"
+msgstr "Да"
+
+#: users/templates/users/showProfile.html:16
+msgid "No"
+msgstr "Нет"
+
+#: users/templates/users/showProfile.html:17
+msgid "Role"
+msgstr "Роль"
+
+#: users/templates/users/showProfile.html:23
+msgid "Last Activity"
+msgstr "Последние действия"
+
+#: users/templates/users/showProfile.html:28
+msgid "Action Kind"
+msgstr "Вид действия"
+
+#: users/templates/users/showProfile.html:29
+msgid "Job Title"
+msgstr "Название задания"
+
+#: users/templates/users/showProfile.html:44
+msgid "Creation"
+msgstr "Создание"
+
+#: users/templates/users/showProfile.html:46
+msgid "Modification"
+msgstr "Изменение"
+
+#: users/views.py:29
+msgid "Account has been disabled"
+msgstr "Учетная запись заблокирована"
+
+#: users/views.py:31
+msgid "Incorrect username or password"
+msgstr "Неправильное имя пользователя или пароль"

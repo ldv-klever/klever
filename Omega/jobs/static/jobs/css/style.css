@@ -1,9 +1,9 @@
 .tableScroll {
     width: 100%;
     max-width: 100%;
-    overflow-x: scroll;
+    overflow-x: auto;
     max-height: 670px;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 th {
@@ -16,18 +16,9 @@ th {
 
 .btn-close-x {
     background-color:#fd7e83;
-    -webkit-border-top-left-radius:25px;
-    -moz-border-radius-topleft:25px;
-    border-top-left-radius:25px;
-    -webkit-border-top-right-radius:25px;
-    -moz-border-radius-topright:25px;
-    border-top-right-radius:25px;
-    -webkit-border-bottom-right-radius:25px;
-    -moz-border-radius-bottomright:25px;
-    border-bottom-right-radius:25px;
-    -webkit-border-bottom-left-radius:25px;
-    -moz-border-radius-bottomleft:25px;
-    border-bottom-left-radius:25px;
+    border-radius: 25px;
+    -moz-border-radius: 25px;
+    -webkit-border-radius:25px;
     border:1px solid #ef1924;
     display:inline-block;
     color:#ffffff;
@@ -35,7 +26,9 @@ th {
     height:20px;
     line-height:20px;
     width:20px;
+    padding-left: 3px;
 }
+
 .btn-close-x:hover {
 	background-color: #e61924;
 }
@@ -54,6 +47,7 @@ th {
 .show-job-title {
     color: #6416ad;
     font-weight: bold;
+    font-size: 1.2em;
 }
 
 .show-job-name {
@@ -77,15 +71,65 @@ th {
     width: 4%;
 }
 
-dt {
-    color: #6416ad;
-}
-
 .dt-text {
     white-space: pre-wrap;
     padding-left: 5px;
-    -webkit-border-radius: 15px;
-    -moz-border-radius: 15px;
-    border-radius: 15px;
-    border: 1px solid #202223;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    border: 1px solid #a1b0dd;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+.glyphicon-button {
+    padding-left: 3px;
+}
+
+.unimportant-text {
+    color: silver;
+}
+
+.job-subtitle {
+    color: #73b284;
+}
+
+.modal-loading {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background: rgba(255, 255, 255, .8 )
+                url('/static/images/loading.gif')
+                50% 50%
+                no-repeat;
+}
+
+body.loading {
+    overflow: hidden;
+}
+
+body.loading .modal-loading {
+    display: block;
 }

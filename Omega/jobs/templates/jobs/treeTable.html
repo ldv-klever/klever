@@ -4,20 +4,18 @@
 
 <table class="table table-bordered tree table-fixed" style="margin-bottom: 0;">
     <thead>
-        {% for column_row in columns %}
+        {% for column_row in TableData.header %}
             <tr class="info">
             {% for coldata in column_row %}
-                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">
-                    {{ coldata.title }}
-                </th>
+                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
             {% endfor %}
             </tr>
         {% endfor %}
     </thead>
     <tbody>
-        {% for row_data in values %}
+        {% for row_data in TableData.values %}
             <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
-                style="{% if counter.dark %}background: #f0f5fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
+                style="{% if TableData.counter.dark %}background: #f0f5fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
             <td id="value__{{ row_data.id }}">
                 <label><input type="checkbox" id="job_checkbox__{{ row_data.id }}"></label>
             </td>
@@ -28,34 +26,34 @@
                         {% if v.href %}
                             <a href="{{ v.href }}">{{ v.value }}</a>
                         {% else %}
-                            {{ v.value }}
+                            <span>{{ v.value }}</span>
                         {% endif %}
                     {% endtimezone %}
                 {% else %}
                     {% if v.href %}
                         <a href="{{ v.href }}">{{ v.value }}</a>
                     {% else %}
-                        {{ v.value }}
+                        <span>{{ v.value }}</span>
                     {% endif %}
                 {% endif %}
                 </td>
             {% endfor %}
-            <span hidden>{{ counter.increment }}</span>
+            <span hidden>{{ TableData.counter.increment }}</span>
             </tr>
         {%  endfor %}
     </tbody>
 
-{% if foot_cols %}
+{% if TableData.footer|length %}
     <tr class="info">
-        <td colspan="{{ foot_head_num }}" align="right" class="text-nowrap">{% trans 'All' %}</td>
-        {% for fc in foot_cols %}
-            <td id="all__{{ fc.id }}">-</td>
+        <td colspan="{{ TableData.footer_title_length }}" align="right" class="text-nowrap">{% trans 'All' %}</td>
+        {% for fc in TableData.footer %}
+            <td id="all__{{ fc }}">-</td>
         {% endfor %}
     </tr>
     <tr class="info">
-        <td colspan="{{ foot_head_num }}" align="right" class="text-nowrap">{% trans 'All for checked' %}</td>
-        {% for fc in foot_cols %}
-            <td id="checked__{{ fc.id }}">-</td>
+        <td colspan="{{ TableData.footer_title_length }}" align="right" class="text-nowrap">{% trans 'All for checked' %}</td>
+        {% for fc in TableData.footer %}
+            <td id="checked__{{ fc }}">-</td>
         {% endfor %}
     </tr>
 {% endif %}

@@ -1,14 +1,14 @@
+import os
 from django.db import models
 from django.contrib.auth.models import User
 from Omega.formatChecker import RestrictedFileField
 from Omega.vars import JOB_ROLES
-from jobs.job_model import Job
+from jobs.job_model import Job, JobHistory
 from marks.models import UnsafeTag, SafeTag, UnknownProblem
 from reports.models import Component, Resource, ReportComponent
 
 
 class File(models.Model):
-    job = models.ForeignKey(Job, related_name='files')
     hash_sum = models.CharField(max_length=255)
     file = RestrictedFileField(
         upload_to='JobFiles',
@@ -24,8 +24,9 @@ class File(models.Model):
 
 
 class FileSystem(models.Model):
-    job = models.ForeignKey(Job, related_name='file_set')
-    file = models.ForeignKey(File, related_name='+', null=True, blank=True)
+    job = models.ForeignKey(JobHistory, related_name='file_set')
+    file = models.ForeignKey(File, related_name='filesystem_set',
+                             null=True, blank=True)
     name = models.CharField(max_length=150)
     parent = models.ForeignKey('self', null=True, blank=True,
                                related_name='children_set')
@@ -46,7 +47,7 @@ class JobFile(models.Model):
 
 class UserRole(models.Model):
     user = models.ForeignKey(User, related_name='+')
-    job = models.ForeignKey(Job)
+    job = models.ForeignKey(JobHistory)
     role = models.CharField(max_length=1, choices=JOB_ROLES)
 
     class Meta:
