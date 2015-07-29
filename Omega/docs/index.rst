@@ -11,6 +11,8 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   reqs
+   install
    modules/models
 
 Indices and tables
@@ -20,3 +22,4 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+.. todolist::
