@@ -3,18 +3,8 @@ from django.contrib.auth.models import User
 from jobs.job_model import Job
 
 
-# Current differences from the original database schema:
-# MEDIUMBLOB -> LONGBLOB
-# TEXT, MEDIUMTEXT -> LONGTEXT
-# Storing files in the database is bad in 99% cases. Try to find another way.
-# TODO: check if some ForeignKey fields can be OneToOneField.
-
-
 class AttrName(models.Model):
     name = models.CharField(max_length=31)
-
-    def __str__(self):
-        return self.name
 
     class Meta:
         db_table = 'attr_name'
@@ -23,9 +13,6 @@ class AttrName(models.Model):
 class Attr(models.Model):
     name = models.ForeignKey(AttrName)
     value = models.CharField(max_length=255)
-    
-    def __str__(self):
-        return self.name.name
 
     class Meta:
         db_table = 'attr'
@@ -34,12 +21,8 @@ class Attr(models.Model):
 class Report(models.Model):
     parent = models.ForeignKey('self', blank=True, null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
-    creation_date = models.DateTimeField(auto_now=True)
     description = models.BinaryField(null=True)
     attr = models.ManyToManyField(Attr)
-
-    def __str__(self):
-        return self.identifier
 
     class Meta:
         db_table = 'report'
@@ -48,18 +31,12 @@ class Report(models.Model):
 class Computer(models.Model):
     description = models.TextField()
 
-    def __str__(self):
-        return self.description
-
     class Meta:
         db_table = 'computer'
 
 
 class Component(models.Model):
     name = models.CharField(max_length=255)
-
-    def __str__(self):
-        return self.name
 
     class Meta:
         db_table = 'component'
@@ -70,31 +47,8 @@ class Resource(models.Model):
     wall_time = models.BigIntegerField()
     memory = models.BigIntegerField()
 
-    def __str__(self):
-        return str(self.pk)
-
     class Meta:
         db_table = 'resource'
-
-
-class ReportRoot(Report):
-    user = models.ForeignKey(User, blank=True, null=True,
-                             on_delete=models.SET_NULL, related_name='+')
-
-    # TODO: on_delete default is CASCADE. Is it OK?
-    job = models.OneToOneField(Job)
-    computer = models.ForeignKey(Computer, related_name='+')
-    resource = models.ForeignKey(Resource, related_name='+')
-    start_date = models.DateTimeField()
-    last_request_date = models.DateTimeField()
-    finish_date = models.DateTimeField()
-    log = models.BinaryField(null=True)
-
-    def __str__(self):
-        return self.identifier
-
-    class Meta:
-        db_table = 'report_root'
 
 
 class ReportComponent(Report):
@@ -103,19 +57,26 @@ class ReportComponent(Report):
     component = models.ForeignKey(Component, related_name='+')
     log = models.BinaryField(null=True)
     data = models.BinaryField(null=True)
-
-    def __str__(self):
-        return self.identifier
+    start_date = models.DateTimeField()
+    finish_date = models.DateTimeField()
 
     class Meta:
         db_table = 'report_component'
 
 
+class ReportRoot(ReportComponent):
+    user = models.ForeignKey(User, blank=True, null=True,
+                             on_delete=models.SET_NULL, related_name='+')
+    job = models.OneToOneField(Job)
+    last_request_date = models.DateTimeField()
+
+    class Meta:
+        db_table = 'report_root'
+
+
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
-
-    def __str__(self):
-        return self.identifier
+    error_trace_processed = models.BinaryField()
 
     class Meta:
         db_table = 'report_unsafe'
@@ -124,9 +85,6 @@ class ReportUnsafe(Report):
 class ReportSafe(Report):
     proof = models.BinaryField()
 
-    def __str__(self):
-        return self.identifier
-
     class Meta:
         db_table = 'report_safe'
 
@@ -134,8 +92,22 @@ class ReportSafe(Report):
 class ReportUnknown(Report):
     problem_description = models.BinaryField()
 
-    def __str__(self):
-        return self.identifier
-
     class Meta:
         db_table = 'report_unknown'
+
+
+class ReportAttr(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    attr = models.ForeignKey(Attr)
+
+    class Meta:
+        db_table = 'cache_report_attr'
+
+
+class ReportComponentLeaf(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    leaf_id = models.IntegerField()  # Should only be leafs (safe, unsafe, unknown) ids.
+
+    class Meta:
+        db_table = 'cache_report_component_report_leaf'
+

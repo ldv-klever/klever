@@ -1,8 +1,5 @@
 __pycache__/*
 __pycache__
-/Omega/.idea/workspace.xml
-/Omega/Omega/db.cnf
-/Omega/media/*
-migrations
-migrations/*
-Omega/locale/ru/LC_MESSAGES/django.mo
+*/.idea/workspace.xml
+_build/*
+_build

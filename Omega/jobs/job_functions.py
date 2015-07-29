@@ -555,9 +555,9 @@ def convert_memory(val, acc):
     return mem_format % (try_div, _('GiB'))
 
 
-def verdict_info(job):
+def verdict_info(report):
     try:
-        verdicts = job.verdict
+        verdicts = report.verdict
     except ObjectDoesNotExist:
         return None
 
@@ -624,19 +624,19 @@ def verdict_info(job):
     }
 
 
-def unknowns_info(job):
+def unknowns_info(report):
     unknowns_data = {}
-    unkn_set = job.componentmarkunknownproblem_set.filter(~Q(problem=None))
+    unkn_set = report.componentmarkunknownproblem_set.filter(~Q(problem=None))
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
             unknowns_data[cmup.component.name] = {}
         unknowns_data[cmup.component.name][cmup.problem.name] = cmup.number
-    unkn_set = job.componentmarkunknownproblem_set.filter(problem=None)
+    unkn_set = report.componentmarkunknownproblem_set.filter(problem=None)
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
             unknowns_data[cmup.component.name] = {}
         unknowns_data[cmup.component.name][_('Without marks')] = cmup.number
-    unkn_set = job.componentunknown_set.all()
+    unkn_set = report.componentunknown_set.all()
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
             unknowns_data[cmup.component.name] = {}
@@ -665,9 +665,9 @@ def resource_info(job, user):
     for cr in res_set:
         if cr.component.name not in res_data:
             res_data[cr.component.name] = {}
-        wall = cr.wall_time
-        cpu = cr.cpu_time
-        mem = cr.memory
+        wall = cr.resource.wall_time
+        cpu = cr.resource.cpu_time
+        mem = cr.resource.memory
         if data_format == 'hum':
             wall = convert_time(wall, accuracy)
             cpu = convert_time(cpu, accuracy)
@@ -677,9 +677,9 @@ def resource_info(job, user):
         {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
     res_total = job.componentresource_set.filter(component=None)
     if len(res_total):
-        wall = res_total[0].wall_time
-        cpu = res_total[0].cpu_time
-        mem = res_total[0].memory
+        wall = res_total[0].resource.wall_time
+        cpu = res_total[0].resource.cpu_time
+        mem = res_total[0].resource.memory
         if data_format == 'hum':
             wall = convert_time(wall, accuracy)
             cpu = convert_time(cpu, accuracy)
