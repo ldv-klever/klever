@@ -44,3 +44,12 @@ Installation for production purposes
 ------------------------------------
 
 .. todo:: please describe me!
+
+Documentation installation
+--------------------------
+
+* Execute the following command::
+
+    $ make -C docs html
+
+* Find the generated documenation index in :file:`docs/_build/index.html`.
