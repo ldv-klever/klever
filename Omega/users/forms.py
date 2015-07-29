@@ -38,12 +38,16 @@ class UserForm(forms.ModelForm):
 class EditUserForm(forms.ModelForm):
 
     new_password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(
+            attrs={'class': 'form-control', 'autocomplete': 'off'}
+        ),
         required=False
     )
 
     retype_password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(
+            attrs={'class': 'form-control', 'autocomplete': 'off'}
+        ),
         required=False
     )
 
@@ -58,7 +62,7 @@ class EditUserForm(forms.ModelForm):
         new_pass = cleaned_data.get("new_password")
         retyped = cleaned_data.get("retype_password")
         if new_pass != retyped:
-            raise forms.ValidationError("Passwords don't match")
+            raise forms.ValidationError({'retype_password': _("Passwords don't match")})
 
     class Meta:
         model = User

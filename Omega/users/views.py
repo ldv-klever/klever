@@ -112,6 +112,8 @@ def edit_profile(request):
         {
             'user_form': user_form,
             'profile_form': profile_form,
+            'profile_errors': profile_form.errors,
+            'user_errors': user_form.errors,
             'timezones': pytz.common_timezones,
             'LANGUAGES': LANGUAGES
         })
