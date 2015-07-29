@@ -78,6 +78,8 @@ th {
     -moz-border-radius: 5px;
     border-radius: 5px;
     border: 1px solid #a1b0dd;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .btn-file {

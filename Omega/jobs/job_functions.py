@@ -304,15 +304,12 @@ class ReadZipJob(object):
         jobzip_file = tarfile.open(fileobj=inmemory, mode='r')
         job_title = ''
         job_description = ''
-        job_configuration = ''
         job_format = None
         file_data = []
         for f in jobzip_file.getmembers():
             file_name = f.name
             file_obj = jobzip_file.extractfile(f)
-            if file_name == 'configuration':
-                job_configuration = file_obj.read().decode('utf-8')
-            elif file_name == 'description':
+            if file_name == 'description':
                 job_description = file_obj.read().decode('utf-8')
             elif file_name == 'format':
                 job_format = file_obj.read().decode('utf-8')
@@ -371,7 +368,6 @@ class ReadZipJob(object):
         job = create_job({
             'name': job_title,
             'author': self.user,
-            'configuration': job_configuration,
             'description': job_description,
             'parent': self.parent,
             'filedata': create_filesystem(file_data)
@@ -440,13 +436,13 @@ class JobArchive(object):
                 jobtar_obj, 'title', self.job.name
             )
             __write_file_str(
-                jobtar_obj, 'configuration', self.job.configuration
-            )
-            __write_file_str(
                 jobtar_obj, 'description', self.job.description
             )
             __write_file_str(
                 jobtar_obj, 'format', str(self.job.format)
+            )
+            __write_file_str(
+                jobtar_obj, 'type', str(self.job.type)
             )
             for f in self.__get_filedata():
                 if f['src'] is None:
@@ -555,9 +551,9 @@ def convert_memory(val, acc):
     return mem_format % (try_div, _('GiB'))
 
 
-def verdict_info(report):
+def verdict_info(job):
     try:
-        verdicts = report.verdict
+        verdicts = job.reportroot.verdict
     except ObjectDoesNotExist:
         return None
 
@@ -624,8 +620,13 @@ def verdict_info(report):
     }
 
 
-def unknowns_info(report):
+def unknowns_info(job):
     unknowns_data = {}
+    try:
+        report = job.reportroot
+    except ObjectDoesNotExist:
+        return unknowns_data
+
     unkn_set = report.componentmarkunknownproblem_set.filter(~Q(problem=None))
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
@@ -659,9 +660,13 @@ def unknowns_info(report):
 def resource_info(job, user):
     accuracy = user.extended.accuracy
     data_format = user.extended.data_format
-
-    res_set = job.componentresource_set.filter(~Q(component=None))
     res_data = {}
+    try:
+        res_set = job.reportroot.componentresource_set.filter(
+            ~Q(component=None))
+    except ObjectDoesNotExist:
+        return res_data
+
     for cr in res_set:
         if cr.component.name not in res_data:
             res_data[cr.component.name] = {}
@@ -741,7 +746,6 @@ def create_version(job, comment=None):
     new_version.description = job.description
     if comment is not None:
         new_version.comment = comment
-    new_version.configuration = job.configuration
     new_version.global_role = job.global_role
     new_version.type = job.type
     new_version.change_author = job.change_author
@@ -775,8 +779,6 @@ def create_job(kwargs):
             newjob.pk = int(kwargs['pk'])
     newjob.name = kwargs['name']
     newjob.change_author = kwargs['author']
-    if 'configuration' in kwargs:
-        newjob.configuration = kwargs['configuration']
     if 'description' in kwargs:
         newjob.description = kwargs['description']
     if 'global_role' in kwargs and \
@@ -818,8 +820,6 @@ def update_job(kwargs):
         kwargs['job'].name = kwargs['name']
     if 'parent' in kwargs:
         kwargs['job'].parent = kwargs['parent']
-    if 'configuration' in kwargs:
-        kwargs['job'].configuration = kwargs['configuration']
     if 'description' in kwargs:
         kwargs['job'].description = kwargs['description']
     if 'global_role' in kwargs and \

@@ -343,7 +343,6 @@ def save_job(request):
     job_kwargs = {
         'name': request.POST.get('title', ''),
         'description': request.POST.get('description', ''),
-        'configuration': request.POST.get('configuration', ''),
         'global_role': request.POST.get('global_role', JOB_ROLES[0][0]),
         'user_roles': json.loads(request.POST.get('user_roles', '[]')),
         'filedata': json.loads(request.POST.get('file_data', '[]')),

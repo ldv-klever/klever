@@ -521,12 +521,16 @@ class TableTree(object):
     def __resource_columns(self):
         components = {}
         for job in self.jobdata:
+            try:
+                cr_set = job['job'].reportroot.componentresource_set
+            except ObjectDoesNotExist:
+                continue
             if 'resource_component' in self.head_filters:
-                compres_set = job['job'].componentresource_set.filter(
+                compres_set = cr_set.filter(
                     **self.head_filters['resource_component']
                 )
             else:
-                compres_set = job['job'].componentresource_set.all()
+                compres_set = cr_set.all()
             for compres in compres_set:
                 comp = compres.component
                 if comp is not None:
@@ -546,8 +550,11 @@ class TableTree(object):
             cmup_filter.update(self.head_filters['problem_problem'])
 
         for job in self.jobdata:
-            for cmup in job['job'].componentmarkunknownproblem_set.filter(
-                    **cmup_filter):
+            try:
+                cmup_set = job['job'].reportroot.componentmarkunknownproblem_set.filter(**cmup_filter)
+            except ObjectDoesNotExist:
+                continue
+            for cmup in cmup_set:
                 problem = cmup.problem
                 comp_id = 'pr_component_%s' % str(cmup.component.pk)
                 comp_name = cmup.component.name
@@ -639,7 +646,8 @@ class TableTree(object):
                         status.get_status_display()
 
         def collect_verdicts():
-            for verdict in Verdict.objects.filter(job_id__in=job_pks):
+            for verdict in Verdict.objects.filter(
+                    report__reportroot__job_id__in=job_pks):
                 if verdict.job_id in values_data:
                     values_data[verdict.job_id].update({
                         'unsafe:total': verdict.unsafe,
@@ -696,7 +704,8 @@ class TableTree(object):
                         = ut.number
 
         def collect_resourses():
-            for cr in ComponentResource.objects.filter(job_id__in=job_pks):
+            for cr in ComponentResource.objects.filter(
+                    report__reportroot__job_id__in=job_pks):
                 job_pk = cr.job_id
                 if job_pk in values_data:
                     accuracy = self.user.extended.accuracy
@@ -718,7 +727,7 @@ class TableTree(object):
 
         def collect_unknowns():
             for cmup in ComponentMarkUnknownProblem.objects.filter(
-                    job_id__in=job_pks):
+                    report__reportroot__job_id__in=job_pks):
                 job_pk = cmup.job_id
                 if job_pk in values_data:
                     if cmup.problem is None:
@@ -732,7 +741,7 @@ class TableTree(object):
                             ':problem_' + str(cmup.problem_id)
                         ] = cmup.number
             for cu in ComponentUnknown.objects.filter(
-                    job_id__in=job_pks):
+                    report__reportroot__job_id__in=job_pks):
                 job_pk = cu.job_id
                 if job_pk in values_data:
                     values_data[job_pk][
