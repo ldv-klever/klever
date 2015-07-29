@@ -4,7 +4,7 @@ from Omega.formatChecker import RestrictedFileField
 from Omega.vars import JOB_ROLES
 from jobs.job_model import Job
 from marks.models import UnsafeTag, SafeTag, UnknownProblem
-from reports.models import Component, Resource
+from reports.models import Component, Resource, ReportComponent
 
 
 class File(models.Model):
@@ -54,7 +54,7 @@ class UserRole(models.Model):
 
 
 class Verdict(models.Model):
-    job = models.OneToOneField(Job)
+    report = models.OneToOneField(ReportComponent)
     unsafe = models.IntegerField(default=0)
     unsafe_bug = models.IntegerField(default=0)
     unsafe_target_bug = models.IntegerField(default=0)
@@ -99,7 +99,7 @@ class MarkUnsafeTag(models.Model):
 
 
 class ComponentUnknown(models.Model):
-    job = models.ForeignKey(Job)
+    report = models.ForeignKey(ReportComponent)
     component = models.ForeignKey(Component, related_name='+')
     number = models.IntegerField(default=0)
 
@@ -108,7 +108,7 @@ class ComponentUnknown(models.Model):
 
 
 class ComponentMarkUnknownProblem(models.Model):
-    job = models.ForeignKey(Job)
+    report = models.ForeignKey(ReportComponent)
     component = models.ForeignKey(Component)
     problem = models.ForeignKey(UnknownProblem, null=True, blank=True,
                                 on_delete=models.SET_NULL)
@@ -119,7 +119,7 @@ class ComponentMarkUnknownProblem(models.Model):
 
 
 class ComponentResource(models.Model):
-    job = models.ForeignKey(Job)
+    report = models.ForeignKey(ReportComponent)
     component = models.ForeignKey(Component, null=True, blank=True,
                                   on_delete=models.SET_NULL)
     resource = models.ForeignKey(Resource)

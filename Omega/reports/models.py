@@ -104,4 +104,11 @@ class ReportAttr(models.Model):
     class Meta:
         db_table = 'cache_report_attr'
 
-# TODO: add cache table for report_component - report_leaf
+
+class ReportComponentLeaf(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    leaf_id = models.IntegerField()  # Should only be leafs (safe, unsafe, unknown) ids.
+
+    class Meta:
+        db_table = 'cache_report_component_report_leaf'
+

@@ -5,6 +5,7 @@
 {% load tz %}
 
 {% block body_block %}
+
 <div class="row">
     <div class="col-sm-5">
         <span class="Title">{% trans 'General information' %}</span>
@@ -115,7 +116,7 @@
                     <td><span class="TableTitle">{{ attr.name }}</span></td>
                 {% endfor %}
             </tr>
-            {% for parent, attr_values in parents.iteritems %}
+            {% for parent, attr_values in parents.items %}
                 <tr class="TableRawOdd">
 
                 {% if not parent.parent %}
@@ -145,7 +146,7 @@
                     <td><span class="TableTitle">{{ attr.name }}</span></td>
                 {% endfor %}
             </tr>
-            {% for child, attr_values in children_values.iteritems %}
+            {% for child, attr_values in children_values.items %}
                 <tr class="TableRawOdd">
 
                 <td><a href="{% url 'reports:report_component' child.id %}">{{ child.component.name }}</a></td>
@@ -167,13 +168,18 @@
     </div>
     <div class="col-sm-5">
         <span class="Title">{% trans 'Results' %}</span>
-        {% if report.job.verdict %}
+        {% if report.verdict %}
                 <div class="row">
                     <div class="col-sm-6">
                         <span class="Title"><b>{% trans 'Unsafes' %}: </b></span>
                         <ul>
                             {% for v in verdict.unsafes %}
-                                <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
+                                <li><span style="color:{{ v.color }};">{{ v.title }}:
+                                {% if v.title = 'Total' %}
+                                    </span><a href="{% url 'reports:report_unsafes' report.id %}">{{ v.value }}</a></li>
+                                {% else %}
+                                    </span><a href="#">{{ v.value }}</a></li>
+                                {% endif %}
                             {% endfor %}
                         </ul>
                     </div>

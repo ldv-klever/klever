@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from jobs.models import Verdict
 
 
 COLORS = {
@@ -163,9 +164,9 @@ def convert_memory(val, acc):
     return mem_format % (try_div, 'Gb')
 
 
-def verdict_info(job):
+def verdict_info(report):
     try:
-        verdicts = job.verdict
+        verdicts = report.verdict
     except ObjectDoesNotExist:
         return None
 
@@ -232,19 +233,19 @@ def verdict_info(job):
     }
 
 
-def unknowns_info(job):
+def unknowns_info(report):
     unknowns_data = {}
-    unkn_set = job.componentmarkunknownproblem_set.filter(~Q(problem=None))
+    unkn_set = report.componentmarkunknownproblem_set.filter(~Q(problem=None))
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
             unknowns_data[cmup.component.name] = {}
         unknowns_data[cmup.component.name][cmup.problem.name] = cmup.number
-    unkn_set = job.componentmarkunknownproblem_set.filter(problem=None)
+    unkn_set = report.componentmarkunknownproblem_set.filter(problem=None)
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
             unknowns_data[cmup.component.name] = {}
         unknowns_data[cmup.component.name][_('No mark')] = cmup.number
-    unkn_set = job.componentunknown_set.all()
+    unkn_set = report.componentunknown_set.all()
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
             unknowns_data[cmup.component.name] = {}
