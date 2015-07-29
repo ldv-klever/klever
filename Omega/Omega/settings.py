@@ -23,11 +23,13 @@ LOGIN_URL = '/users/signin/'
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '-u7-e699vgy%8uu_ng%%h68v7k8txs&=(ki+6eh88y-yb9mspw'
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+# DEBUG = TEMPLATE_DEBUG = False
 
 ALLOWED_HOSTS = []
 
+# ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -63,7 +65,7 @@ ROOT_URLCONF = 'Omega.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates'],
+        'DIRS': ['templates', 'Omega/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -78,7 +80,7 @@ TEMPLATES = [
 ]
 
 TEMPLATE_DIRS = (
-    os.path.join(BASE_DIR,  'templates'),
+    os.path.join(BASE_DIR,  'Omega/templates'),
 )
 
 WSGI_APPLICATION = 'Omega.wsgi.application'
@@ -90,9 +92,11 @@ WSGI_APPLICATION = 'Omega.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {
-            'read_default_file': 'Omega/db.cnf',
-        },
+        'OPTIONS': {'read_default_file': 'Omega/db.cnf'},
+        # 'NAME': 'Omega',
+        # 'USER': 'username',
+        # 'PASSWORD': '12345',
+        # 'HOST': 'localhost',
     }
 }
 
@@ -122,9 +126,9 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
-)
+STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
+
+# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
 

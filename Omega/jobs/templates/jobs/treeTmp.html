@@ -20,14 +20,15 @@
 </div>
 <div id="filter_form_template__name" hidden>
     <div class="form-inline">
-        <label>
-            <span id="temp___filter_title__name"></span>
+        <label><span id="temp___filter_title__name"></span>
             <select id="temp___filter_type__name" class="form-control">
                 <option value="iexact">{% trans 'is' %}</option>
                 <option value="istartswith">{% trans 'starts with' %}</option>
                 <option value="icontains">{% trans 'contains' %}</option>
             </select>
-        <input id="temp___filter_value__name" class="form-control" type="text">
+        </label>
+        <label>
+            <input id="temp___filter_value__name" class="form-control" type="text">
         </label>
         <button id="temp___remove__filter__name" class="btn-close-x" style="float:right;">
             <span class="glyphicon glyphicon-remove"></span>
@@ -59,7 +60,11 @@
                 <option value="younger">{% trans 'younger' %}</option>
             </select>
             {% trans 'than' %}
+        </label>
+        <label>
             <input style="width: 60px;" id="filter_value_1__change_date" class="form-control" type="text" value="{{ fil.value.valval }}">
+        </label>
+        <label>
             <select id="temp___filter_value_0__change_date" class="form-control">
                 <option value="minutes">{% trans 'minutes' %}</option>
                 <option value="hours">{% trans 'hours' %}</option>
@@ -80,6 +85,8 @@
                 <option value="is">{% trans 'is' %}</option>
                 <option value="isnot">{% trans 'is not' %}</option>
             </select>
+        </label>
+        <label>
             <select id="temp___filter_value__status" class="form-control">
                 {% for status in statuses %}
                     <option value="{{ status.0 }}">{{ status.1 }}</option>
@@ -100,7 +107,9 @@
                 <option value="istartswith">{% trans 'starts with' %}</option>
                 <option value="icontains">{% trans 'contains' %}</option>
             </select>
-        <input id="temp___filter_value__resource_component" class="form-control" type="text">
+        </label>
+        <label>
+            <input id="temp___filter_value__resource_component" class="form-control" type="text">
         </label>
         <button id="temp___remove__filter__resource_component" class="btn-close-x" style="float:right;">
             <span class="glyphicon glyphicon-remove"></span>
@@ -116,7 +125,9 @@
                 <option value="istartswith">{% trans 'starts with' %}</option>
                 <option value="icontains">{% trans 'contains' %}</option>
             </select>
-        <input id="temp___filter_value__problem_component" class="form-control" type="text">
+        </label>
+        <label>
+            <input id="temp___filter_value__problem_component" class="form-control" type="text">
         </label>
         <button id="temp___remove__filter__problem_component" class="btn-close-x" style="float:right;">
             <span class="glyphicon glyphicon-remove"></span>
@@ -132,7 +143,9 @@
                 <option value="istartswith">{% trans 'starts with' %}</option>
                 <option value="icontains">{% trans 'contains' %}</option>
             </select>
-        <input id="temp___filter_value__problem_problem" class="form-control" type="text">
+        </label>
+        <label>
+            <input id="temp___filter_value__problem_problem" class="form-control" type="text">
         </label>
         <button id="temp___remove__filter__problem_problem" class="btn-close-x" style="float:right;">
             <span class="glyphicon glyphicon-remove"></span>
