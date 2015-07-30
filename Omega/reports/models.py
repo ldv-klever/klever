@@ -97,7 +97,7 @@ class ReportUnknown(Report):
 
 
 class ReportAttr(models.Model):
-    report = models.ForeignKey(ReportComponent)
+    report = models.ForeignKey(Report)
     attr = models.ForeignKey(Attr)
 
     class Meta:

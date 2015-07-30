@@ -4,6 +4,7 @@ from django.utils.translation import activate
 from reports.models import *
 from jobs.models import ComponentResource
 import jobs.job_functions as job_f
+from django.utils.translation import ugettext as _
 
 
 @login_required
@@ -131,12 +132,122 @@ def report_unsafes(request, report_id):
         except Exception:
             pass
 
+    attrs = []
+    for unsafe in unsafes:
+        attr = ReportAttr.objects.filter(report_id=unsafe.id)
+        for attr in attr:
+            attrs.append(attr.attr)
+    attrs = list(set(attrs))
+
+    unsafes_values = {}
+    for unsafe in unsafes:
+        attr_values = []
+        report_attr = ReportAttr.objects.filter(report_id=unsafe.id)
+        for attr in attrs:
+            attr_values.append(report_attr.filter(attr=attr))
+        unsafes_values[unsafe] = attr_values
+
     return render(
         request,
-        'reports/report_unsafes.html',
+        'reports/report_list.html',
         {
-            'report': report,
             'user_tz': user_tz,
-            'unsafes': unsafes,
+            'attrs': attrs,
+            'reports_values': unsafes_values,
+            'title': _('Unsafes')
+        }
+    )
+
+
+@login_required
+def report_safes(request, report_id):
+    activate(request.user.extended.language)
+    user_tz = request.user.extended.timezone
+
+    # Node which we intend to get all safes leaves for.
+    report = ReportComponent.objects.get(pk=int(report_id))
+
+    # Get all leaves..
+    safes_id = ReportComponentLeaf.objects.filter(report=report)
+
+    # List of safes.
+    safes = []
+    for safe_id in safes_id:
+        try:
+            report_safe = ReportSafe.objects.get(pk=int(safe_id.leaf_id))
+            safes.append(report_safe)
+        except Exception:
+            pass
+
+    attrs = []
+    for safe in safes:
+        attr = ReportAttr.objects.filter(report_id=safe.id)
+        for attr in attr:
+            attrs.append(attr.attr)
+    attrs = list(set(attrs))
+
+    safes_values = {}
+    for safe in safes:
+        attr_values = []
+        report_attr = ReportAttr.objects.filter(report_id=safe.id)
+        for attr in attrs:
+            attr_values.append(report_attr.filter(attr=attr))
+        safes_values[safe] = attr_values
+
+    return render(
+        request,
+        'reports/report_list.html',
+        {
+            'user_tz': user_tz,
+            'attrs': attrs,
+            'reports_values': safes_values,
+            'title': _('Safes')
+        }
+    )
+
+
+@login_required
+def report_unknowns(request, report_id):
+    activate(request.user.extended.language)
+    user_tz = request.user.extended.timezone
+
+    # Node which we intend to get all unknowns leaves for.
+    report = ReportComponent.objects.get(pk=int(report_id))
+
+    # Get all leaves..
+    unknowns_id = ReportComponentLeaf.objects.filter(report=report)
+
+    # List of unknowns.
+    unknowns = []
+    for unknown_id in unknowns_id:
+        try:
+            report_unknown = ReportUnknown.objects.get(pk=int(unknown_id.leaf_id))
+            unknowns.append(report_unknown)
+        except Exception:
+            pass
+
+    attrs = []
+    for unknown in unknowns:
+        attr = ReportAttr.objects.filter(report_id=unknown.id)
+        for attr in attr:
+            attrs.append(attr.attr)
+    attrs = list(set(attrs))
+
+    unknowns_values = {}
+    for unknown in unknowns:
+        attr_values = []
+        report_attr = ReportAttr.objects.filter(report_id=unknown.id)
+        for attr in attrs:
+            attr_values.append(report_attr.filter(attr=attr))
+        unknowns_values[unknown] = attr_values
+
+    return render(
+        request,
+        'reports/report_list.html',
+        {
+            'user_tz': user_tz,
+            'attrs': attrs,
+            'reports_values': unknowns_values,
+            'title': _('Unknowns')
         }
     )
