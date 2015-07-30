@@ -134,15 +134,18 @@ class JobAccess(object):
 
     def __get_prop(self, user):
         if self.job is not None:
-            first_version = self.job.jobhistory_set.filter(version=1)[0]
+            try:
+                first_version = self.job.jobhistory_set.get(version=1)
+                last_version = self.job.jobhistory_set.get(
+                    version=self.job.version)
+            except ObjectDoesNotExist:
+                return
             self.__is_author = (first_version.change_author == user)
-            job_versions = self.job.jobhistory_set.all().order_by(
-                '-change_date')[0]
-            last_v_role = job_versions.userrole_set.filter(user=user)
+            last_v_role = last_version.userrole_set.filter(user=user)
             if len(last_v_role) > 0:
                 self.__job_role = last_v_role[0].role
             else:
-                self.__job_role = self.job.global_role
+                self.__job_role = last_version.global_role
 
 
 class FileData(object):
@@ -292,7 +295,6 @@ class DBFileData(object):
 class ReadZipJob(object):
 
     def __init__(self, parent, user, zip_archive):
-        self.costyl = 1
         self.parent = parent
         self.job_id = None
         self.user = user
@@ -305,6 +307,7 @@ class ReadZipJob(object):
         job_title = ''
         job_description = ''
         job_format = None
+        job_type = None
         file_data = []
         for f in jobzip_file.getmembers():
             file_name = f.name
@@ -312,13 +315,17 @@ class ReadZipJob(object):
             if file_name == 'description':
                 job_description = file_obj.read().decode('utf-8')
             elif file_name == 'format':
-                job_format = file_obj.read().decode('utf-8')
-                if int(job_format) != FORMAT:
+                job_format = int(file_obj.read().decode('utf-8'))
+                if job_format != FORMAT:
                     return _("The job format is not supported")
+            elif file_name == 'type':
+                job_type = file_obj.read().decode('utf-8')
+                if job_type != self.parent.type:
+                    return _("The job type is not equals to parent's type")
             elif file_name == 'title':
                 job_title = file_obj.read().decode('utf-8')
                 if len(job_title) == 0:
-                    return _("Job title is empty!")
+                    return _("Job title is empty")
             elif file_name.startswith('root/'):
                 if f.isreg():
                     file_content = BytesIO(file_obj.read())
@@ -334,48 +341,52 @@ class ReadZipJob(object):
                         db_file.save()
                     file_data.append([file_name, check_sum])
                 else:
-
                     file_data.append([file_name, None])
-        if job_format is None:
-            return _("Can't detect job format.")
 
-        def create_filesystem(filedata):
-            fulldata = {}
-            for fd in filedata:
-                dir_list = []
-                dir_name = fd[0][len('root/'):]
-                while len(dir_name) > 0:
-                    (dir_name, d) = os.path.split(dir_name)
-                    dir_list.insert(0, d)
-                prev_parent = None
-                for i in range(0, len(dir_list)):
-                    fdid = '#'.join(dir_list[:(i + 1)])
-                    curr_id = hashlib.md5(fdid.encode('utf-8')).hexdigest()
-                    if curr_id not in fulldata:
-                        fulldata[curr_id] = {
-                            'title': dir_list[i],
-                            'type': '0',
-                            'id': curr_id,
-                            'parent': prev_parent,
-                            'hash_sum': None
-                        }
-                        if fd[1] is not None and i == len(dir_list) - 1:
-                            fulldata[curr_id]['hash_sum'] = fd[1]
-                            fulldata[curr_id]['type'] = '1'
-                    prev_parent = curr_id
-            return list(fulldata[x] for x in fulldata)
+        if job_format is None:
+            return _("Can't detect job's format")
+        if job_type is None:
+            return _("Can't detect job's class")
+        if len(job_title) == 0:
+            return _("Job title is empty")
+
+        fulldata = {}
+        for fd in file_data:
+            dir_list = []
+            dir_name = fd[0][len('root/'):]
+            while len(dir_name) > 0:
+                (dir_name, d) = os.path.split(dir_name)
+                dir_list.insert(0, d)
+            prev_parent = None
+            for i in range(0, len(dir_list)):
+                fdid = '#'.join(dir_list[:(i + 1)])
+                curr_id = hashlib.md5(fdid.encode('utf-8')).hexdigest()
+                if curr_id not in fulldata:
+                    fulldata[curr_id] = {
+                        'title': dir_list[i],
+                        'type': '0',
+                        'id': curr_id,
+                        'parent': prev_parent,
+                        'hash_sum': None
+                    }
+                    if fd[1] is not None and i == len(dir_list) - 1:
+                        fulldata[curr_id]['hash_sum'] = fd[1]
+                        fulldata[curr_id]['type'] = '1'
+                prev_parent = curr_id
+        filesystem_data = list(fulldata[x] for x in fulldata)
 
         job = create_job({
             'name': job_title,
             'author': self.user,
             'description': job_description,
             'parent': self.parent,
-            'filedata': create_filesystem(file_data)
+            'type': self.parent.type,
+            'filedata': filesystem_data
         })
         if isinstance(job, Job):
             self.job_id = job.pk
             return None
-        return _("One of the jobs was not saved")
+        return job
 
 
 # For first lock: job = None, hash_sum = None, user != None;
@@ -384,10 +395,10 @@ class ReadZipJob(object):
 # and call create_tar(); then read tar archive from 'memory'.
 class JobArchive(object):
 
-    def __init__(self, job=None, hash_sum=None, user=None):
-        self.costyl = 1
+    def __init__(self, job=None, hash_sum=None, user=None, full=True):
         self.lockfile = DOWNLOAD_LOCKFILE
         self.workdir = 'TARcreation'
+        self.full = full
         self.jobtar_name = ''
         self.job = job
         self.user = user
@@ -423,28 +434,44 @@ class JobArchive(object):
             return False
 
         if self.__second_lock():
+            try:
+                last_version = self.job.jobhistory_set.get(
+                    version=self.job.version)
+            except ObjectDoesNotExist:
+                return False
 
-            def __write_file_str(jobtar, file_name, file_content):
+            def write_file_str(jobtar, file_name, file_content):
                 file_content = file_content.encode('utf-8')
                 t = tarfile.TarInfo(file_name)
                 t.size = len(file_content)
                 jobtar.addfile(t, BytesIO(file_content))
 
+            files_for_tar = []
+            for f in last_version.file_set.all():
+                if len(f.children_set.all()) == 0:
+                    src = None
+                    if f.file is not None:
+                        src = os.path.join(
+                            settings.MEDIA_ROOT, f.file.file.name)
+                    file_path = f.name
+                    file_parent = f.parent
+                    while file_parent is not None:
+                        file_path = file_parent.name + '/' + file_path
+                        file_parent = file_parent.parent
+                    files_for_tar.append({
+                        'path': 'root' + '/' + file_path,
+                        'src': src
+                    })
+
             self.jobtar_name = 'VJ__' + self.job.identifier + '.tar.gz'
             jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
-            __write_file_str(
-                jobtar_obj, 'title', self.job.name
-            )
-            __write_file_str(
-                jobtar_obj, 'description', self.job.description
-            )
-            __write_file_str(
-                jobtar_obj, 'format', str(self.job.format)
-            )
-            __write_file_str(
-                jobtar_obj, 'type', str(self.job.type)
-            )
-            for f in self.__get_filedata():
+            if self.full:
+                write_file_str(jobtar_obj, 'title', self.job.name)
+                write_file_str(
+                    jobtar_obj, 'description', last_version.description)
+            write_file_str(jobtar_obj, 'format', str(self.job.format))
+            write_file_str(jobtar_obj, 'type', str(self.job.type))
+            for f in files_for_tar:
                 if f['src'] is None:
                     folder = tarfile.TarInfo(f['path'])
                     folder.type = tarfile.DIRTYPE
@@ -495,26 +522,6 @@ class JobArchive(object):
         f = open(self.lockfile, 'w')
         f.write('unlocked')
         f.close()
-
-    def __get_filedata(self):
-        job_version = self.job.jobhistory_set.get(version=self.job.version)
-        files = job_version.file_set.all()
-        files_for_tar = []
-        for f in files:
-            if len(f.children_set.all()) == 0:
-                src = None
-                if f.file is not None:
-                    src = os.path.join(settings.MEDIA_ROOT, f.file.file.name)
-                file_path = f.name
-                file_parent = f.parent
-                while file_parent is not None:
-                    file_path = file_parent.name + '/' + file_path
-                    file_parent = file_parent.parent
-                files_for_tar.append({
-                    'path': 'root' + '/' + file_path,
-                    'src': src
-                })
-        return files_for_tar
 
 
 def convert_time(val, acc):
@@ -621,12 +628,12 @@ def verdict_info(job):
 
 
 def unknowns_info(job):
-    unknowns_data = {}
     try:
         report = job.reportroot
     except ObjectDoesNotExist:
-        return unknowns_data
+        return None
 
+    unknowns_data = {}
     unkn_set = report.componentmarkunknownproblem_set.filter(~Q(problem=None))
     for cmup in unkn_set:
         if cmup.component.name not in unknowns_data:
@@ -658,16 +665,15 @@ def unknowns_info(job):
 
 
 def resource_info(job, user):
+    try:
+        report = job.reportroot
+    except ObjectDoesNotExist:
+        return None
+
     accuracy = user.extended.accuracy
     data_format = user.extended.data_format
     res_data = {}
-    try:
-        res_set = job.reportroot.componentresource_set.filter(
-            ~Q(component=None))
-    except ObjectDoesNotExist:
-        return res_data
-
-    for cr in res_set:
+    for cr in report.componentresource_set.filter(~Q(component=None)):
         if cr.component.name not in res_data:
             res_data[cr.component.name] = {}
         wall = cr.resource.wall_time
@@ -680,7 +686,8 @@ def resource_info(job, user):
         res_data[cr.component.name] = "%s %s %s" % (wall, cpu, mem)
     resource_data = [
         {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
-    res_total = job.componentresource_set.filter(component=None)
+
+    res_total = report.componentresource_set.filter(component=None)
     if len(res_total):
         wall = res_total[0].resource.wall_time
         cpu = res_total[0].resource.cpu_time
@@ -698,7 +705,7 @@ def resource_info(job, user):
 
 
 def role_info(job, user):
-    roles_data = {'global': job.job.global_role}
+    roles_data = {'global': job.global_role}
 
     users = []
     user_roles_data = []
@@ -734,40 +741,54 @@ def is_operator(user, job):
         if user_role[0].role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
             return True
         return False
-    if job.global_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
+    if last_version.global_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
         return True
     return False
 
 
-def create_version(job, comment=None):
+def create_version(job, kwargs):
     new_version = JobHistory()
     new_version.job = job
-    new_version.name = job.name
-    new_version.description = job.description
-    if comment is not None:
-        new_version.comment = comment
-    new_version.global_role = job.global_role
-    new_version.type = job.type
+    new_version.parent = job.parent
+    new_version.version = job.version
     new_version.change_author = job.change_author
     new_version.change_date = job.change_date
-    new_version.format = job.format
-    new_version.version = job.version
-    new_version.parent = job.parent
+    new_version.name = job.name
+    if 'comment' in kwargs:
+        new_version.comment = kwargs['comment']
+    if 'global_role' in kwargs and \
+            kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
+        new_version.global_role = kwargs['global_role']
+    if 'description' in kwargs:
+        new_version.description = kwargs['description']
     new_version.save()
+    if 'user_roles' in kwargs:
+        for ur in kwargs['user_roles']:
+            try:
+                ur_user = User.objects.get(pk=int(ur['user']))
+            except ObjectDoesNotExist:
+                continue
+            if len(ur_user):
+                new_ur = UserRole()
+                new_ur.job = new_version
+                new_ur.user = ur_user
+                new_ur.role = ur['role']
+                new_ur.save()
     return new_version
 
 
 def create_job(kwargs):
     newjob = Job()
-    if 'name' not in kwargs or \
-            len(kwargs['name']) == 0 or 'author' not in kwargs:
-        return _("Name and author are required")
-    creation_comment = ''
+    if 'name' not in kwargs or len(kwargs['name']) == 0:
+        return _("Job's title is required")
+    if 'author' not in kwargs or not isinstance(kwargs['author'], User):
+        return _("Job's author is required")
+    newjob.name = kwargs['name']
+    newjob.change_author = kwargs['author']
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
         newjob.type = kwargs['parent'].type
-        newjob.format = kwargs['parent'].format
-        creation_comment = "Make copy of %s" % kwargs['parent'].identifier
+        kwargs['comment'] = "Make copy of %s" % kwargs['parent'].identifier
     elif 'type' in kwargs:
         newjob.type = kwargs['type']
     else:
@@ -777,31 +798,19 @@ def create_job(kwargs):
             Job.objects.get(pk=int(kwargs['pk']))
         except ObjectDoesNotExist:
             newjob.pk = int(kwargs['pk'])
-    newjob.name = kwargs['name']
-    newjob.change_author = kwargs['author']
-    if 'description' in kwargs:
-        newjob.description = kwargs['description']
-    if 'global_role' in kwargs and \
-            kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
-        newjob.global_role = kwargs['global_role']
+
     time_encoded = datetime.now().strftime(
         "%Y%m%d%H%M%S%f%z"
     ).encode('utf-8')
     newjob.identifier = hashlib.md5(time_encoded).hexdigest()
     newjob.save()
+
     jobstatus = JobStatus()
     jobstatus.job = newjob
     jobstatus.save()
-    new_version = create_version(newjob, creation_comment)
-    if 'user_roles' in kwargs:
-        for ur in kwargs['user_roles']:
-            ur_user = User.objects.filter(pk=int(ur['user']))
-            if len(ur_user):
-                new_ur = UserRole()
-                new_ur.job = new_version
-                new_ur.user = ur_user[0]
-                new_ur.role = ur['role']
-                new_ur.save()
+
+    new_version = create_version(newjob, kwargs)
+
     if 'filedata' in kwargs:
         db_fdata = DBFileData(kwargs['filedata'], new_version)
         if db_fdata.err_message is not None:
@@ -811,32 +820,22 @@ def create_job(kwargs):
 
 
 def update_job(kwargs):
-    if any(x not in kwargs for x in ['author', 'comment']):
-        return _("Change's author and comment are required")
-    if len(kwargs['comment']) == 0:
+    if 'job' not in kwargs or not isinstance(kwargs['job'], Job):
+        return _("Unknown error")
+    if 'author' not in kwargs or not isinstance(kwargs['author'], User):
+        return _("Change's author is required")
+    if 'comment' not in kwargs or len(kwargs['comment']) == 0:
         return _("Change's comment is required")
-    kwargs['job'].change_author = kwargs['author']
-    if 'name' in kwargs:
-        kwargs['job'].name = kwargs['name']
     if 'parent' in kwargs:
         kwargs['job'].parent = kwargs['parent']
-    if 'description' in kwargs:
-        kwargs['job'].description = kwargs['description']
-    if 'global_role' in kwargs and \
-            kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
-        kwargs['job'].global_role = kwargs['global_role']
+    if 'name' in kwargs and len(kwargs['name']) > 0:
+        kwargs['job'].name = kwargs['name']
+    kwargs['job'].change_author = kwargs['author']
     kwargs['job'].version += 1
     kwargs['job'].save()
-    newversion = create_version(kwargs['job'], kwargs['comment'])
-    if 'user_roles' in kwargs:
-        for ur in kwargs['user_roles']:
-            ur_user = User.objects.filter(pk=int(ur['user']))
-            if len(ur_user):
-                new_ur = UserRole()
-                new_ur.job = newversion
-                new_ur.user = ur_user[0]
-                new_ur.role = ur['role']
-                new_ur.save()
+
+    newversion = create_version(kwargs['job'], kwargs)
+
     if 'filedata' in kwargs:
         db_fdata = DBFileData(kwargs['filedata'], newversion)
         if db_fdata.err_message is not None:

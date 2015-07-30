@@ -132,7 +132,6 @@ function set_actions_for_edit_form () {
         var title = title_input.val(),
             comment = '',
             description = $('#job_description').val(),
-            configuration = $('#job_config').val(),
             global_role = $('#job_global_roles').children('option:selected').val(),
             user_roles = [], job_id, job_id_input = $('#job_id_input');
 
@@ -179,7 +178,6 @@ function set_actions_for_edit_form () {
                 title: title,
                 comment: comment,
                 description: description,
-                configuration: configuration,
                 global_role: global_role,
                 user_roles: user_roles,
                 file_data: file_data,
