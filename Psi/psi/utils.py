@@ -1,7 +1,76 @@
 import json
 import logging
+import requests
 import subprocess
 import sys
+import time
+
+
+class Session:
+    def __init__(self, logger, user, passwd, name):
+        # Check arguments passed.
+        if not isinstance(logger, logging.Logger):
+            raise ValueError('Logger should be an instance of Logger')
+        if not isinstance(user, str):
+            raise ValueError('User name should be a string')
+        if len(user) == 0:
+            raise ValueError('User name should not be empty')
+        if not isinstance(passwd, str):
+            raise ValueError('Password should be a string')
+        if len(passwd) == 0:
+            raise ValueError('Password should not be empty')
+        if not isinstance(name, str):
+            raise ValueError('Server name should be a string')
+        if len(name) == 0:
+            raise ValueError('Server name should not be empty')
+
+        logger.info('Create session for user "{0}" on server "{1}"'.format(user, name))
+
+        self.logger = logger
+        self.user = user
+        self.name = name
+        self.session = requests.Session()
+
+        # Get CSRF token via GET request.
+        resp = self.__request('users/psi_signin/')
+
+        if 'CSRF token' in resp.json():
+            # Sign in.
+            resp = self.__request('users/psi_signin/', 'POST', {
+                'csrfmiddlewaretoken': resp.json()['CSRF token'],
+                'username': user,
+                'password': passwd,
+            })
+
+            if 'session id' in resp.json():
+                logger.debug('Session was created')
+                return
+            else:
+                raise IOError('Could not get session from "{0}"'.format(resp.request.url))
+        else:
+            raise IOError('Could not get CSRF token from "{0}"'.format(resp.request.url))
+
+    def __request(self, path_url, method='GET', data=None):
+        while True:
+            try:
+                url = 'http://' + self.name + '/' + path_url
+                self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
+                resp = self.session.get(url) if method == 'GET' else self.session.post(url, data)
+                if resp.status_code != 200:
+                    raise IOError(
+                        'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
+                                                                                                   method, url))
+                if 'error' in resp.json():
+                    raise IOError(
+                        'Got error "{0}" when send "{1}" request to "{2}"'.format(resp.json()['error'], method, url))
+                return resp
+            except requests.ConnectionError as err:
+                self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
+                time.sleep(1)
+
+    def sign_out(self):
+        self.logger.info('Finish session for user "{0}" on server "{1}"'.format(self.user, self.name))
+        self.__request('users/psi_signout/')
 
 
 def dump_report(logger, kind, report):

@@ -70,6 +70,10 @@ class Psi:
                                'comp': psi.utils.get_comp_desc(self.logger)})
 
         # TODO: get job from Omega.
+        session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
+
+        # TODO: move it to __del__.
+        session.sign_out()
 
         # TODO: create parallel process to send requests about successful operation to Omega.
 
