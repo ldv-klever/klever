@@ -31,3 +31,53 @@ To develop documentation it is recommended to use some visual editor.
 .. warning:: Please do not reinvent the wheel!
    If you are a newbie then examine carefully the existing documentation and create the new one on that basis.
    Just if you are a guru then you can suggest to improve the existing documentation.
+
+Using PyCharm IDE
+-----------------
+
+To use PyCharm IDE to develop Omega follow the following steps.
+
+Installation
+^^^^^^^^^^^^
+
+#. Download the PyCharm Professional Edition 4.5.x from `<https://www.jetbrains.com/pycharm/download/>`_ (other versions
+   weren't tested, below all settings are given for version 4.5.3).
+#. Follow installation instructions provided at that site.
+#. Activate the PyCharm license.
+#. Specify your preferences until the "Welcome to PyCharm" window.
+
+.. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JDK_HOME`, e.g.
+          :file:`/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/`.
+
+Setting project
+^^^^^^^^^^^^^^^
+
+#. At the "Welcome to PyCharm" window:
+    #. :menuselection:`Open`.
+    #. Specify the path to :file:`Omega`.
+    #. :menuselection:`OK`.
+#. Configure the Python interpreter:
+    #. :menuselection:`File --> Settings --> Project: Omega --> Project Interpreter --> Settings --> More..`.
+    #. Select Python 3.4.x in the list and press :kbd:`Enter`.
+    #. Input in field :guilabel:`name` *Python 3.4*.
+    #. :menuselection:`OK`.
+
+Run development server
+^^^^^^^^^^^^^^^^^^^^^^
+
+To run the development server press :kbd:`Shift+F10`. To run the debug version of development server press
+:kbd:`Shift+F9`.
+
+Run manage.py tasks
+^^^^^^^^^^^^^^^^^^^
+
+To run manage.py tasks:
+#. :menuselection:`Tools --> Run manage.py Task...`.
+#. Some manage.py tasks are described in the :ref:`install` section.
+
+Additional documentation
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
+available at the official `PyCharm documentation site <https://www.jetbrains.com/pycharm/documentation/>`_.
+
