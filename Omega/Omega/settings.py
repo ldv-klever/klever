@@ -94,8 +94,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'OPTIONS': {'read_default_file': 'Omega/db.cnf'},
         # 'NAME': 'Omega',
-        # 'USER': 'username',
-        # 'PASSWORD': '12345',
+        # 'USER': 'root',
+        # 'PASSWORD': '<password>',
         # 'HOST': 'localhost',
     }
 }
