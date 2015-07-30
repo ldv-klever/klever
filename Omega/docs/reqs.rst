@@ -7,10 +7,15 @@ To run Omega you need:
 * `Django <https://www.djangoproject.com/>`_.
 * `mysqlclient <https://github.com/PyMySQL/mysqlclient-python>`_.
 * `pytz <http://pythonhosted.org/pytz/>`_.
+* `mysql-server <https://www.mysql.com/>`_.
+* `mysql-client <https://www.mysql.com/>`_.
 
 To run a production server you additionally need:
 
-.. todo:: please, describe me!
+* `apache2 <http://httpd.apache.org/>`_.
+* `libapache2-mod-wsgi-py3 <https://packages.debian.org/wheezy/httpd/libapache2-mod-wsgi-py3>`_.
+* `python3-dev <https://packages.debian.org/sid/python3-dev>`_.
+* `libmysqlclient-dev <https://packages.debian.org/ru/sid/libmysqlclient-dev>`_.
 
 To build this documentation you need:
 
