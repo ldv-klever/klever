@@ -2,7 +2,6 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.utils.translation import activate
 from reports.models import *
-from jobs.models import ComponentResource
 import jobs.job_functions as job_f
 
 

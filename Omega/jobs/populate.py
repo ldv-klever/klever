@@ -3,10 +3,8 @@ from time import sleep
 from django.contrib.auth.models import User
 from jobs.job_functions import create_job, update_job
 from jobs.job_model import Job
-from marks.models import UnknownProblem, UnsafeTag, SafeTag
-from jobs.models import ComponentMarkUnknownProblem,\
-    ComponentUnknown, ComponentResource, Component, Verdict,\
-    MarkSafeTag, MarkUnsafeTag
+from marks.models import UnsafeTag, SafeTag
+from jobs.models import MarkSafeTag, MarkUnsafeTag
 
 
 def clear_table(table):
@@ -55,7 +53,8 @@ def populate_jobs(username):
                 'comment': 'Set parent',
                 'name': job.name,
                 'parent': Job.objects.get(pk=pid),
-                'job': job
+                'job': job,
+                'description': job.jobhistory_set.get(version=1).description
             }
             update_job(update_kwargs)
 
@@ -67,10 +66,10 @@ def populate_tags():
     clear_table(MarkUnsafeTag)
     for i in range(5):
         newtag = SafeTag()
-        newtag.tag = 'my:safe:tag:%s' % str(i + 1),
+        newtag.tag = 'my:safe:tag:%s' % str(i + 1)
         newtag.save()
         newtag = UnsafeTag()
-        newtag.tag = 'my:unsafe:tag:%s' % str(i + 1),
+        newtag.tag = 'my:unsafe:tag:%s' % str(i + 1)
         newtag.save()
     for job in Job.objects.all():
         for st in SafeTag.objects.all():

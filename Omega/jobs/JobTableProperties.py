@@ -5,9 +5,10 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _, string_concat
 from jobs.job_model import Job, JobStatus
-from jobs.models import Verdict, MarkSafeTag, MarkUnsafeTag, ComponentResource,\
-    ComponentUnknown, ComponentMarkUnknownProblem
+from jobs.models import MarkSafeTag, MarkUnsafeTag
 import jobs.job_functions as job_f
+from reports.models import Verdict, ComponentResource, ComponentUnknown,\
+    ComponentMarkUnknownProblem
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
     TITLES
@@ -381,17 +382,17 @@ class TableTree(object):
             else:
                 other_jobs.append(j)
 
-        def __get_all_children(job):
+        def get_all_children(job):
             children = []
             for oj in other_jobs:
                 if oj['parent'] == job['job']:
                     children.append(oj)
-                    children.extend(__get_all_children(oj))
+                    children.extend(get_all_children(oj))
             return children
 
         for j in first_jobs:
             ordered_jobs.append(j)
-            ordered_jobs.extend(__get_all_children(j))
+            ordered_jobs.extend(get_all_children(j))
         self.jobdata = ordered_jobs
 
     def __head_filters(self):
@@ -551,10 +552,10 @@ class TableTree(object):
 
         for job in self.jobdata:
             try:
-                cmup_set = job['job'].reportroot.componentmarkunknownproblem_set.filter(**cmup_filter)
+                cmup_set = job['job'].reportroot.componentmarkunknownproblem_set
             except ObjectDoesNotExist:
                 continue
-            for cmup in cmup_set:
+            for cmup in cmup_set.filter(**cmup_filter):
                 problem = cmup.problem
                 comp_id = 'pr_component_%s' % str(cmup.component.pk)
                 comp_name = cmup.component.name
@@ -680,8 +681,8 @@ class TableTree(object):
                         values_data[j['pk']]['role'] = \
                             self.user.extended.get_role_display()
                     else:
-                        last_version = j['job'].jobhistory_set.all().order_by(
-                            '-change_date')[0]
+                        last_version = j['job'].jobhistory_set.get(
+                            version=j['job'].version)
                         job_user_role = last_version.userrole_set.filter(
                             user=self.user)
                         if len(job_user_role):
@@ -710,9 +711,9 @@ class TableTree(object):
                 if job_pk in values_data:
                     accuracy = self.user.extended.accuracy
                     data_format = self.user.extended.data_format
-                    wt = cr.wall_time
-                    ct = cr.cpu_time
-                    mem = cr.memory
+                    wt = cr.resource.wall_time
+                    ct = cr.resource.cpu_time
+                    mem = cr.resource.memory
                     if data_format == 'hum':
                         wt = convert_time(wt, accuracy)
                         ct = convert_time(ct, accuracy)
@@ -728,7 +729,7 @@ class TableTree(object):
         def collect_unknowns():
             for cmup in ComponentMarkUnknownProblem.objects.filter(
                     report__reportroot__job_id__in=job_pks):
-                job_pk = cmup.job_id
+                job_pk = cmup.report.reportroot.job_id
                 if job_pk in values_data:
                     if cmup.problem is None:
                         values_data[job_pk][
@@ -742,7 +743,7 @@ class TableTree(object):
                         ] = cmup.number
             for cu in ComponentUnknown.objects.filter(
                     report__reportroot__job_id__in=job_pks):
-                job_pk = cu.job_id
+                job_pk = cu.report.reportroot.job_id
                 if job_pk in values_data:
                     values_data[job_pk][
                         'problem:pr_component_' + str(cu.component_id) +
