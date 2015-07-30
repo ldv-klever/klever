@@ -314,7 +314,7 @@ class ReadZipJob(object):
             elif file_name == 'format':
                 job_format = file_obj.read().decode('utf-8')
                 if int(job_format) != FORMAT:
-                    return _("Job format is not supported!")
+                    return _("The job format is not supported")
             elif file_name == 'title':
                 job_title = file_obj.read().decode('utf-8')
                 if len(job_title) == 0:
@@ -375,7 +375,7 @@ class ReadZipJob(object):
         if isinstance(job, Job):
             self.job_id = job.pk
             return None
-        return _("One of the jobs was not saved!")
+        return _("One of the jobs was not saved")
 
 
 # For first lock: job = None, hash_sum = None, user != None;
@@ -812,9 +812,9 @@ def create_job(kwargs):
 
 def update_job(kwargs):
     if any(x not in kwargs for x in ['author', 'comment']):
-        return _('Author and comment are required')
+        return _("Change's author and comment are required")
     if len(kwargs['comment']) == 0:
-        return _('Comment is required')
+        return _("Change's comment is required")
     kwargs['job'].change_author = kwargs['author']
     if 'name' in kwargs:
         kwargs['job'].name = kwargs['name']

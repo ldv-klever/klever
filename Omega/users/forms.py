@@ -10,13 +10,14 @@ class UserForm(forms.ModelForm):
     )
     retype_password = forms.CharField(
         widget=forms.PasswordInput(attrs={'class': 'form-control'}),
-        help_text='Retype password',
+        help_text=_('Confirmation'),
         required=True
     )
 
     def __init__(self, *args, **kwargs):
         super(UserForm, self).__init__(*args, **kwargs)
         self.fields['password'].label = _("Password")
+        self.fields['retype_password'].label = _("Confirmation")
         self.fields['email'].label = _("Email")
 
     def clean(self):
