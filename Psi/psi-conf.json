@@ -1,14 +1,14 @@
 {
   "work dir": "psi-work-dir",
   "Omega": {
-    "name": "localhost:8000",
-    "user": null,
-    "passwd": "stub"
+    "name": "localhost:8998",
+    "user": "__user",
+    "passwd": "__passwd"
   },
   "Verification Task Scheduler": {
     "name": "localhost:8000",
-    "user": null,
-    "passwd": "stub"
+    "user": "__user",
+    "passwd": "__passwd"
   },
   "logging": {
     "formatters": [
