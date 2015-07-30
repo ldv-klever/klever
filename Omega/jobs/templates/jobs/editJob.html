@@ -30,7 +30,7 @@
 
 
     <label style="width: 100%;">
-        {% trans 'Description' %}:<textarea id="job_description" class="form-control" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
+        {% trans 'Description' %}:<textarea id="job_description" class="form-control" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
     </label>
 
     <ul class="list-group">
@@ -80,7 +80,6 @@
             </table>
         </li>
     </ul>
-    <label style="width: 100%;">{% trans 'Configuration' %}:<textarea id="job_config" class="form-control" style="resize: none" placeholder="{% trans 'Configuration' %}">{{ job.configuration }}</textarea></label>
     <h4>{% trans 'Files' %}</h4>
     {% include 'jobs/filesTree.html' %}
     <hr>

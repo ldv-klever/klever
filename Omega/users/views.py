@@ -12,7 +12,7 @@ from users.forms import UserExtendedForm, UserForm, EditUserForm
 from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
 from jobs.job_functions import JobAccess
-from django.template import Template, RequestContext
+from django.middleware.csrf import get_token
 
 
 def user_signin(request):
@@ -112,6 +112,8 @@ def edit_profile(request):
         {
             'user_form': user_form,
             'profile_form': profile_form,
+            'profile_errors': profile_form.errors,
+            'user_errors': user_form.errors,
             'timezones': pytz.common_timezones,
             'LANGUAGES': LANGUAGES
         })
@@ -162,18 +164,14 @@ def psi_signin(request):
         if user is not None:
             if user.is_active:
                 login(request, user)
-                template = Template('')
-                return HttpResponse(
-                    template.render(RequestContext(request, {}))
-                )
+                return JsonResponse({'session id': request.session.session_key})
             else:
-                return JsonResponse({'error': 306})
-        return JsonResponse({'error': 307})
-    return JsonResponse({'error': 500})
+                return JsonResponse({'error': 'Account has been disabled'})
+        return JsonResponse({'error': 'Incorrect username or password'})
+    else:
+        return JsonResponse({'CSRF token': get_token(request)})
 
 
 def psi_signout(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 305})
     logout(request)
-    return JsonResponse({'error': 0})
+    return JsonResponse({})

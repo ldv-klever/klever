@@ -1,9 +1,9 @@
 .tableScroll {
     width: 100%;
     max-width: 100%;
-    overflow-x: scroll;
+    overflow-x: auto;
     max-height: 670px;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 th {
@@ -78,6 +78,8 @@ th {
     -moz-border-radius: 5px;
     border-radius: 5px;
     border: 1px solid #a1b0dd;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .btn-file {

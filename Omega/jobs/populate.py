@@ -26,8 +26,6 @@ def populate_jobs(username):
     kwargs = {
         'author': User.objects.get(username=username),
         'type': '0',
-        'format': 1,
-        'configuration': "A lot of text (configuration)!",
         'description': "A lot of text (description)!"
     }
 
@@ -60,93 +58,6 @@ def populate_jobs(username):
                 'job': job
             }
             update_job(update_kwargs)
-
-
-def populate_problems():
-    clear_table(UnknownProblem)
-    for i in range(15):
-        problem = UnknownProblem()
-        problem.name = 'Problem %s' % str(i + 1)
-        problem.pk = i + 1
-        problem.save()
-
-
-def populate_components():
-    clear_table(Component)
-    components = ['DSCV', 'RCV', 'DEG', 'CIL', 'Reporter']
-    for i in range(len(components)):
-        component = Component()
-        component.name = components[i]
-        component.pk = i + 1
-        component.save()
-
-
-def populate_resourses():
-    clear_table(ComponentResource)
-    cnt = 0
-    components = Component.objects.all()
-    jobs = Job.objects.all()
-    for job in jobs:
-        for comp in components:
-            if random.randint(1, 100) < 30:
-                res = ComponentResource()
-                cnt += 1
-                res.pk = cnt
-                res.component = comp
-                res.job = job
-                res.wall_time = random.randint(1, 10000)
-                res.cpu_time = random.randint(1, 10000)
-                res.memory = random.randint(100, 10**10)
-                res.save()
-
-
-def populate_mark_probl():
-    clear_table(ComponentMarkUnknownProblem)
-    clear_table(ComponentUnknown)
-
-    jobs = Job.objects.all()
-    components = Component.objects.all()
-    problems = UnknownProblem.objects.all()
-    for job in jobs:
-        if random.randint(1, 10) < 8:
-            mark_prob = ComponentMarkUnknownProblem()
-            mark_prob.job = job
-            comp_id = random.randint(1, len(components)) - 1
-            mark_prob.component = components[comp_id]
-            if random.randint(1, 10) < 4:
-                mark_prob.problem = None
-            else:
-                probl_id = (comp_id + 1) * 3 - random.randint(0, 2) - 1
-                if probl_id < len(problems):
-                    mark_prob.problem = problems[probl_id]
-            mark_prob.number = random.randint(1, 10)
-            mark_prob.save()
-
-
-def populate_verdict():
-    clear_table(Verdict)
-    cnt = 0
-    for job in Job.objects.all():
-        if random.randint(1, 10) < 8:
-            verd = Verdict()
-            cnt += 1
-            verd.pk = cnt
-            verd.job = job
-            verd.unsafe = random.randint(0, 5)
-            verd.unsafe_bug = random.randint(0, 5)
-            verd.unsafe_target_bug = random.randint(0, 5)
-            verd.unsafe_false_positive = random.randint(0, 5)
-            verd.unsafe_unknown = random.randint(0, 5)
-            verd.unsafe_unassociated = random.randint(0, 5)
-            verd.unsafe_inconclusive = random.randint(0, 5)
-            verd.safe = random.randint(0, 5)
-            verd.safe_missed_bug = random.randint(0, 5)
-            verd.safe_incorrect_proof = random.randint(0, 5)
-            verd.safe_unknown = random.randint(0, 5)
-            verd.safe_unassociated = random.randint(0, 5)
-            verd.safe_inconclusive = random.randint(0, 5)
-            verd.unknown = random.randint(0, 5)
-            verd.save()
 
 
 def populate_tags():
@@ -190,9 +101,4 @@ def main_population(username):
     jobs.
     """
     populate_jobs(username)
-    populate_verdict()
-    populate_problems()
-    populate_components()
-    populate_resourses()
-    populate_mark_probl()
     populate_tags()

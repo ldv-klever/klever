@@ -20,16 +20,16 @@
         {% csrf_token %}
         <div class="row">
             <div class="col-sm-4">
-                <label>{{ user_form.new_password.label }}:</label> {{ user_form.new_password }}<br>
-                <label>{{ user_form.retype_password.label }}:</label> {{ user_form.retype_password }}<br>
+                <label>{{ user_form.new_password.label }}:</label> {{ user_form.new_password }}<br>{{ user_form.errors.new_password }}
+                <label>{{ user_form.retype_password.label }}:</label> {{ user_form.retype_password }}<br>{{ user_form.errors.retype_password }}
                 <label>{{ user_form.email.label }}:</label> {{ user_form.email }}
             </div>
             <div class="col-sm-4">
-                <label>{{ profile_form.first_name.label }}:</label> {{ profile_form.first_name }}<br>
-                <label>{{ profile_form.last_name.label }}:</label> {{ profile_form.last_name }}
+                <label>{{ profile_form.first_name.label }}:</label> {{ profile_form.first_name }}<br>{{ profile_form.errors.first_name }}
+                <label>{{ profile_form.last_name.label }}:</label> {{ profile_form.last_name }}<br>{{ profile_form.errors.last_name }}
             </div>
             <div class="col-sm-4">
-                <label>{{ profile_form.accuracy.label }}:</label> {{ profile_form.accuracy }}<br>
+                <label>{{ profile_form.accuracy.label }}:</label> {{ profile_form.accuracy }}<br>{{ profile_form.errors.accuracy }}
                 <label>{{ profile_form.data_format.label }}:</label> {{ profile_form.data_format }}<br>
                 <label>{{ profile_form.language.label }}:</label> {{ profile_form.language }}<br>
                 <label for="timezone">{% trans 'Time zone' %}:</label>

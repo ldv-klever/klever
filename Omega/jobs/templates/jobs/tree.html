@@ -129,7 +129,9 @@
                                                             <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                                                             <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                                                         </select>
-                                                    <input id="filter_value__name" class="form-control" type="text" value="{{ fil.value }}">
+                                                    </label>
+                                                    <label>
+                                                        <input id="filter_value__name" class="form-control" type="text" value="{{ fil.value }}">
                                                     </label>
                                                     <button id="remove__filter__name" class="btn-close-x" style="float: right;">
                                                         <span class="glyphicon glyphicon-remove"></span>
@@ -141,7 +143,9 @@
                                                 <div class="form-inline">
                                                     <label>
                                                         <span id="filter_title__change_author">{{ fil.name_title }}</span> is
+                                                    </label>
                                                         <input type="hidden" value="is" id="filter_type__change_author">
+                                                    <label>
                                                         <select class="form-control" id="filter_value__change_author">
                                                             {% for u in users %}
                                                                 <option value="{{ u.pk }}"{% if u.pk == fil.value %} selected{% endif %}>{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
@@ -163,7 +167,11 @@
                                                             <option value="younger"{% if fil.type == 'younger' %} selected{% endif %}>{% trans 'younger' %}</option>
                                                         </select>
                                                         {% trans 'than' %}
+                                                    </label>
+                                                    <label>
                                                         <input id="filter_value_1__change_date" class="form-control" type="text" value="{{ fil.value.valval }}" style="width: 60px;">
+                                                    </label>
+                                                    <label>
                                                         <select id="filter_value_0__change_date" class="form-control">
                                                             <option value="minutes"{% if fil.value.valtype == 'minutes' %} selected{% endif %}>{% trans 'minutes' %}</option>
                                                             <option value="hours"{% if fil.value.valtype == 'hours' %} selected{% endif %}>{% trans 'hours' %}</option>
@@ -185,6 +193,8 @@
                                                             <option value="is"{% if fil.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
                                                             <option value="isnot"{% if fil.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
                                                         </select>
+                                                    </label>
+                                                    <label>
                                                         <select id="filter_value__status" class="form-control">
                                                             {% for status in statuses %}
                                                                 <option value="{{ status.0 }}"{% if fil.value == status.0 %} selected{% endif %}>{{ status.1 }}</option>
@@ -206,7 +216,9 @@
                                                             <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                                                             <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                                                         </select>
-                                                    <input id="filter_value__resource_component" class="form-control" type="text" value="{{ fil.value }}">
+                                                    </label>
+                                                    <label>
+                                                        <input id="filter_value__resource_component" class="form-control" type="text" value="{{ fil.value }}">
                                                     </label>
                                                     <button id="remove__filter__resource_component" class="btn-close-x" style="float: right;">
                                                         <span class="glyphicon glyphicon-remove"></span>
@@ -223,7 +235,9 @@
                                                             <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                                                             <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                                                         </select>
-                                                    <input id="filter_value__problem_component" class="form-control" type="text" value="{{ fil.value }}">
+                                                    </label>
+                                                    <label>
+                                                        <input id="filter_value__problem_component" class="form-control" type="text" value="{{ fil.value }}">
                                                     </label>
                                                     <button id="remove__filter__problem_component" class="btn-close-x" style="float: right;">
                                                         <span class="glyphicon glyphicon-remove"></span>
@@ -240,7 +254,9 @@
                                                             <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                                                             <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                                                         </select>
-                                                    <input id="filter_value__problem_problem" class="form-control" type="text" value="{{ fil.value }}">
+                                                    </label>
+                                                    <label>
+                                                        <input id="filter_value__problem_problem" class="form-control" type="text" value="{{ fil.value }}">
                                                     </label>
                                                     <button id="remove__filter__problem_problem" class="btn-close-x" style="float: right;">
                                                         <span class="glyphicon glyphicon-remove"></span>
@@ -320,14 +336,15 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{% trans 'Upload job' %}</h4>
+                    <h4 class="modal-title">{% trans 'Upload jobs' %}</h4>
                 </div>
                 <div class="modal-body">
-                    <p>{% trans 'Set parent identifier (keep in mind that job class will be inherited from parent)' %}</p>
+                    <p>{% trans "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
                     <label><input id="upload_job_parent_id" type="text" class="form-control" placeholder="{% trans 'Identifier' %}"></label>
                     <br>
                     <br>
-                    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file"></span>
+                    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file" multiple></span>
+                    <br>
                     <span id="upload_job_filename"></span>
                 </div>
                 <div class="modal-footer">

@@ -43,7 +43,7 @@
         {%  endfor %}
     </tbody>
 
-{% if TableData.footer_title_length %}
+{% if TableData.footer|length %}
     <tr class="info">
         <td colspan="{{ TableData.footer_title_length }}" align="right" class="text-nowrap">{% trans 'All' %}</td>
         {% for fc in TableData.footer %}
