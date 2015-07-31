@@ -28,7 +28,6 @@ def tree_view(request):
 
     tree_args = [request.user]
     if request.method == 'POST':
-        print(request.POST.get('view', None))
         tree_args.append(request.POST.get('view', None))
         tree_args.append(request.POST.get('view_id', None))
 
@@ -706,19 +705,31 @@ def decide_job(request):
         job = Job.objects.get(identifier=request.POST['job id'],
                               format=int(request.POST['job format']))
     except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Job with the specified identifier "{0}" was not found'.format(request.POST['job id'])})
+        return JsonResponse({
+            'error': 'Job with the specified identifier "{0}" was not found'
+            .format(request.POST['job id'])})
 
     if not job_f.is_operator(request.user, job):
-        return JsonResponse({'error': 'User "{0}" has not access to job "{1}"'.format(request.user, job.identifier)})
+        return JsonResponse({
+            'error': 'User "{0}" has not access to job "{1}"'.format(
+                request.user, job.identifier
+            )
+        })
 
-    job_tar = job_f.JobArchive(job=job, hash_sum=request.POST['hash sum'], user=request.user, full=False)
+    job_tar = job_f.JobArchive(job=job, hash_sum=request.POST['hash sum'],
+                               user=request.user, full=False)
     if not job_tar.create_tar():
-        return JsonResponse({'error': 'Couldn not prepare archive for job "{0}"'.format(job.identifier)})
+        return JsonResponse({
+            'error': 'Couldn not prepare archive for job "{0}"'.format(
+                job.identifier
+            )
+        })
 
     job_tar.memory.seek(0)
 
     response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = 'attachment; filename={0}'.format(job_tar.jobtar_name)
+    response["Content-Disposition"] = 'attachment; filename={0}'.format(
+        job_tar.jobtar_name)
     response.write(job_tar.memory.read())
 
     return response

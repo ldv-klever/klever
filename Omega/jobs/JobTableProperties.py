@@ -683,8 +683,6 @@ class TableTree(object):
                         values_data[j['pk']]['role'] = \
                             self.user.extended.get_role_display()
                     else:
-                        last_version = j['job'].jobhistory_set.get(
-                            version=j['job'].version)
                         job_user_role = last_version.userrole_set.filter(
                             user=self.user)
                         if len(job_user_role):
