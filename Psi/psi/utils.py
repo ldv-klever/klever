@@ -172,7 +172,7 @@ def get_logger(name, conf):
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log')
+            handler = logging.FileHandler('log', encoding='utf8')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(

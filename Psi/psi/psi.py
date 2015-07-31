@@ -18,8 +18,13 @@ class Psi:
         self.is_solving_file = None
         self.is_solving_file_fp = None
         self.logger = None
+        self.session = None
 
     def __del__(self):
+        # Sign out from Omega.
+        if self.session:
+            self.session.sign_out()
+
         # Release working directory if it was occupied.
         if self.is_solving_file and self.is_solving_file_fp and not self.is_solving_file_fp.closed:
             os.remove(self.is_solving_file)
@@ -71,11 +76,8 @@ class Psi:
 
         # TODO: get job from Omega.
         self.job.update({'id': self.conf['job']['id'], 'archive': 'job.tar.gz'})
-        session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
-        session.decide_job(self.job)
-
-        # TODO: move it to __del__.
-        session.sign_out()
+        self.session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
+        self.session.decide_job(self.job)
 
         # TODO: create parallel process to send requests about successful operation to Omega.
 
