@@ -665,7 +665,7 @@ def job_error(request, err_code=0):
 
 def psi_set_status(request):
     if not request.user.is_authenticated():
-        return JsonResponse({'error': 305})
+        return JsonResponse({'error': 'You are not signing in'})
     if request.method == 'POST':
         identifier = request.POST.get('identifier', None)
         status = request.POST.get('status', None)
@@ -686,34 +686,35 @@ def psi_set_status(request):
     return JsonResponse({'error': 500})
 
 
-def psi_download_job(request):
+def decide_job(request):
     if not request.user.is_authenticated():
-        return JsonResponse({'error': 305})
+        return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
-        return JsonResponse({'error': 500})
-    job_identifier = request.POST.get('identifier', None)
-    hash_sum = request.POST.get('hash_sum', None)
-    supported_format = request.POST.get('supported_format', None)
-    if job_identifier is None or hash_sum is None or supported_format is None:
-        return JsonResponse({'error': 300})
+        return JsonResponse({'error': 'Just POST requests are supported'})
+    if 'job id' not in request.POST:
+        return JsonResponse({'error': 'Job identifier is not specified'})
+    if 'job format' not in request.POST:
+        return JsonResponse({'error': 'Job format is not specified'})
+    if 'hash sum' not in request.POST:
+        return JsonResponse({'error': 'Hash sum is not specified'})
+
     try:
-        job = Job.objects.get(identifier=job_identifier,
-                              format=int(supported_format))
+        job = Job.objects.get(identifier=request.POST['job id'],
+                              format=int(request.POST['job format']))
     except ObjectDoesNotExist:
-        return JsonResponse({'error': 304})
+        return JsonResponse({'error': 'Job with the specified identifier "{0}" was not found'.format(request.POST['job id'])})
 
     if not job_f.is_operator(request.user, job):
-        return JsonResponse({'error': 303})
+        return JsonResponse({'error': 'User "{0}" has not access to job "{1}"'.format(request.user, job.identifier)})
 
-    job_tar = job_f.JobArchive(
-        job=job, hash_sum=hash_sum, user=request.user, full=False
-    )
+    job_tar = job_f.JobArchive(job=job, hash_sum=request.POST['hash sum'], user=request.user, full=False)
     if not job_tar.create_tar():
-        return JsonResponse({'error': 500})
+        return JsonResponse({'error': 'Couldn not prepare archive for job "{0}"'.format(job.identifier)})
+
+    job_tar.memory.seek(0)
 
     response = HttpResponse(content_type="application/x-tar-gz")
-    zipname = job_tar.jobtar_name
-    response["Content-Disposition"] = "attachment; filename=%s" % zipname
-    job_tar.memory.seek(0)
+    response["Content-Disposition"] = 'attachment; filename={0}'.format(job_tar.jobtar_name)
     response.write(job_tar.memory.read())
+
     return response
