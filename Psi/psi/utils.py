@@ -67,23 +67,23 @@ class Session:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 time.sleep(1)
 
-    def decide_job(self, job):  # destination
+    def decide_job(self, job, start_report_file):
         # Acquire download lock.
         resp = self.__request('jobs/downloadlock/')
         if 'status' not in resp.json() or 'hash_sum' not in resp.json():
             raise IOError('Could not get download lock at "{0}"'.format(resp.request.url))
 
-        resp = self.__request('jobs/decide_job/', 'POST', {
-            'job id': job['id'],
-            'job format': job['format'],
-            'hash sum': resp.json()['hash_sum']
-        }, stream=True)
+        with open(start_report_file) as fp:
+            resp = self.__request('jobs/decide_job/', 'POST', {
+                'job id': job['id'],
+                'job format': job['format'],
+                'start report': fp.read(),
+                'hash sum': resp.json()['hash_sum']
+            }, stream=True)
 
         with open(job['archive'], 'wb') as fp:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
-            fp.close()
-            return
 
     def sign_out(self):
         self.logger.info('Finish session for user "{0}" on server "{1}"'.format(self.user, self.name))
@@ -98,10 +98,14 @@ def dump_report(logger, kind, report):
     :param report: a report object (usually it should be a dictionary).
     """
     logger.info('Dump {0} report'.format(kind))
+
     report_file = '{0} report.json'.format(kind)
     with open(report_file, 'w') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
+
     logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), report_file))
+
+    return report_file
 
 
 def get_comp_desc(logger):

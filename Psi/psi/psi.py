@@ -70,14 +70,14 @@ class Psi:
 
         # TODO: create cgroups.
 
-        psi.utils.dump_report(self.logger, 'start',
+        start_report_file = psi.utils.dump_report(self.logger, 'start',
                               {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': self.get_version()}],
                                'comp': psi.utils.get_comp_desc(self.logger)})
 
         # TODO: get job from Omega.
         self.job.update({'id': self.conf['job']['id'], 'archive': 'job.tar.gz'})
         self.session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
-        self.session.decide_job(self.job)
+        self.session.decide_job(self.job, start_report_file)
 
         # TODO: create parallel process to send requests about successful operation to Omega.
 
