@@ -11,7 +11,7 @@ import psi.utils
 
 class Psi:
     default_conf_file = 'psi-conf.json'
-    job_format = '1'
+    job = {'format': 1}
 
     def __init__(self):
         self.conf = None
@@ -61,7 +61,7 @@ class Psi:
         omega['passwd'] = self.get_passwd('Omega')
         verification_task_scheduler['passwd'] = self.get_passwd('Verification Task Scheduler')
 
-        self.logger.debug('Support jobs of format "{0}"'.format(self.job_format))
+        self.logger.debug('Support jobs of format "{0}"'.format(self.job['format']))
 
         # TODO: create cgroups.
 
@@ -70,7 +70,9 @@ class Psi:
                                'comp': psi.utils.get_comp_desc(self.logger)})
 
         # TODO: get job from Omega.
+        self.job.update({'id': self.conf['job']['id'], 'archive': 'job.tar.gz'})
         session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
+        session.decide_job(self.job)
 
         # TODO: move it to __del__.
         session.sign_out()
@@ -92,7 +94,8 @@ class Psi:
         with open(conf_file) as conf_fp:
             with open('log') as log_fp:
                 psi.utils.dump_report(self.logger, 'finish',
-                                      {'type': 'finish', 'id': 'psi', 'resources': self.count_consumed_resources(start_time), 'desc': conf_fp.read(),
+                                      {'type': 'finish', 'id': 'psi',
+                                       'resources': self.count_consumed_resources(start_time), 'desc': conf_fp.read(),
                                        'log': log_fp.read()})
 
         pass
@@ -159,7 +162,9 @@ class Psi:
         # Git repository directory may be located in parent directory of parent directory.
         git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
         if os.path.isdir(git_repo_dir):
-            version = psi.utils.get_entity_val(self.logger, 'version', 'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(git_repo_dir))
+            version = psi.utils.get_entity_val(self.logger, 'version',
+                                               'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(
+                                                   git_repo_dir))
         else:
             # TODO: get version of installed Psi.
             version = ''
@@ -189,4 +194,5 @@ class Psi:
 
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w')
+        # TODO: uncomment line below after all.
+        # self.is_solving_file_fp = open(self.is_solving_file, 'w')

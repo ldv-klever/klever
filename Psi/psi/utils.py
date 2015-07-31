@@ -32,37 +32,58 @@ class Session:
         self.session = requests.Session()
 
         # Get CSRF token via GET request.
-        resp = self.__request('users/psi_signin/')
-        if 'CSRF token' in resp.json():
-            self.csrf_token = resp.json()['CSRF token']
-        else:
-            raise IOError('Could not get CSRF token from "{0}"'.format(resp.request.url))
+        self.__request('users/psi_signin/')
 
         # Sign in.
-        resp = self.__request('users/psi_signin/', 'POST', {
-            'csrfmiddlewaretoken': self.csrf_token,
+        self.__request('users/psi_signin/', 'POST', {
             'username': user,
             'password': passwd,
         })
         logger.debug('Session was created')
 
-    def __request(self, path_url, method='GET', data=None):
+    def __request(self, path_url, method='GET', data=None, **kwargs):
         while True:
             try:
                 url = 'http://' + self.name + '/' + path_url
+
                 self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
-                resp = self.session.get(url) if method == 'GET' else self.session.post(url, data)
+
+                if data:
+                    data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+
+                resp = self.session.get(url, **kwargs) if method == 'GET' else self.session.post(url, data, **kwargs)
+
                 if resp.status_code != 200:
                     raise IOError(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
                                                                                                    method, url))
-                if resp.text and 'error' in resp.json():
+                if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
                     raise IOError(
                         'Got error "{0}" when send "{1}" request to "{2}"'.format(resp.json()['error'], method, url))
+
                 return resp
             except requests.ConnectionError as err:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 time.sleep(1)
+
+    def decide_job(self, job):  # destination
+        # Acquire download lock.
+        resp = self.__request('jobs/downloadlock/')
+        if 'status' not in resp.json() or 'hash_sum' not in resp.json():
+            raise IOError('Could not get download lock at "{0}"'.format(resp.request.url))
+
+        resp = self.__request('jobs/decide_job/', 'POST', {
+            'job id': job['id'],
+            'job format': job['format'],
+            'hash sum': resp.json()['hash_sum']
+        }, stream=True)
+
+        with open(job['archive'], 'wb') as fp:
+            for chunk in resp.iter_content(1024):
+                fp.write(chunk)
+            fp.close()
+            return
+
 
     def sign_out(self):
         self.logger.info('Finish session for user "{0}" on server "{1}"'.format(self.user, self.name))
