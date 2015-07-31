@@ -41,12 +41,7 @@ class Session:
                 'username': user,
                 'password': passwd,
             })
-
-            if 'session id' in resp.json():
-                logger.debug('Session was created')
-                return
-            else:
-                raise IOError('Could not get session from "{0}"'.format(resp.request.url))
+            logger.debug('Session was created')
         else:
             raise IOError('Could not get CSRF token from "{0}"'.format(resp.request.url))
 
