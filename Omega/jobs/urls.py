@@ -28,5 +28,6 @@ urlpatterns = [
 
     # For psi
     url(r'^setstatus/$', views.psi_set_status),
-    url(r'^psi_downloadjob/$', views.psi_download_job),
+    url(r'^downloadlock/$', views.download_lock),
+    url(r'^decide_job/$', views.decide_job),
 ]
