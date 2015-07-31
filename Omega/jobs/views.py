@@ -486,6 +486,7 @@ def showjobdata(request):
 
     return render(request, 'jobs/showJob.html', {
         'job': job,
+        'description': job.jobhistory_set.get(version=job.version).description,
         'filedata': job_f.FileData(
             job.jobhistory_set.get(version=job.version)
         ).filedata
@@ -500,12 +501,16 @@ def upload_file(request):
     if form.is_valid():
         new_file = form.save(commit=False)
         hash_sum = hashlib.md5(new_file.file.read()).hexdigest()
-        if len(File.objects.filter(hash_sum=hash_sum)):
+        if len(File.objects.filter(hash_sum=hash_sum)) > 0:
             return JsonResponse({
                 'hash_sum': hash_sum,
                 'status': 0
             })
         new_file.hash_sum = hash_sum
+        if not all(ord(c) < 128 for c in new_file.file.name):
+            title_size = len(new_file.file.name)
+            if title_size > 30:
+                new_file.file.name = new_file.file.name[(title_size - 30):]
         new_file.save()
         return JsonResponse({
             'hash_sum': hash_sum,
@@ -531,8 +536,7 @@ def download_file(request, file_id):
     new_file = BytesIO(source.file.file.read())
     mimetype = mimetypes.guess_type(os.path.basename(source.file.file.name))[0]
     response = HttpResponse(new_file.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % \
-                                      quote(source.name)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % source.name
     return response
 
 
@@ -558,15 +562,15 @@ def download_job(request, job_id):
         return HttpResponseRedirect(
             reverse('jobs:error', args=[451]) + "?back=%s" % back_url
         )
-    job_tar = job_f.JobArchive(job=job, hash_sum=hash_sum)
+    job_tar = job_f.JobArchive(job=job, hash_sum=hash_sum, full=True)
 
     if not job_tar.create_tar():
         return HttpResponseRedirect(
             reverse('jobs:error', args=[500]) + "?back=%s" % back_url
         )
     response = HttpResponse(content_type="application/x-tar-gz")
-    zipname = job_tar.jobtar_name
-    response["Content-Disposition"] = "attachment; filename=%s" % quote(zipname)
+    response["Content-Disposition"] = "attachment; filename=%s" % \
+                                      job_tar.jobtar_name
     job_tar.memory.seek(0)
     response.write(job_tar.memory.read())
     return response
@@ -718,3 +722,33 @@ def decide_job(request):
     response.write(job_tar.memory.read())
 
     return response
+
+
+@login_required
+def getfilecontent(request):
+    if request.method != 'POST':
+        return JsonResponse({'message': _("Unknown error")})
+    try:
+        file_id = int(request.POST.get('file_id', 0))
+    except ValueError:
+        return JsonResponse({'message': _("Unknown error")})
+    try:
+        source = FileSystem.objects.get(pk=int(file_id))
+    except ObjectDoesNotExist:
+        return JsonResponse({'message': _("File was not found")})
+    return HttpResponse(source.file.file.read())
+
+
+@login_required
+def clear_files(request):
+    if request.user.is_staff:
+        deleted = []
+        for file in File.objects.all():
+            if len(file.filesystem_set.all()) == 0:
+                file.delete()
+                deleted.append("<li>%s</li>" % file.file.name)
+        if len(deleted) > 0:
+            return HttpResponse("<h1>Deleted files:</h1><ul>%s</ul>" %
+                                ''.join(deleted))
+        return HttpResponse("<h1>Nothing to delete</h1>")
+    return HttpResponse("<h1>You are not the staff</h1>")

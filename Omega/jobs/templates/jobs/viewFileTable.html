@@ -6,7 +6,7 @@
         <tr class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}{% if f.type == 0 %} success{% endif %}">
             <td>
                 {% if f.type == 1 %}
-                    <a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>
+                    <span id="file_title__{{ f.type }}__{{ f.id }}"><a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a></span>
                 {% else %}
                     <span>{{ f.title }}</span>
                 {% endif %}
@@ -15,3 +15,8 @@
     {% endfor %}
     </tbody>
 </table>
+<div id="file_content_div" class="file-view-div">
+    <button id="close_file_view" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span></button>
+    <button id="download_file_form_view" class="btn btn-success"><span class="glyphicon glyphicon-download"></span></button>
+    <div class="file-view-content"></div>
+</div>

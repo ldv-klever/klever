@@ -673,6 +673,8 @@ class TableTree(object):
                 if j['pk'] in values_data:
                     try:
                         first_version = j['job'].jobhistory_set.get(version=1)
+                        last_version = j['job'].jobhistory_set.get(
+                            version=j['job'].version)
                     except ObjectDoesNotExist:
                         return
                     if first_version.change_author == self.user:
@@ -690,7 +692,7 @@ class TableTree(object):
                                 job_user_role[0].get_role_display()
                         else:
                             values_data[j['pk']]['role'] = \
-                                j['job'].get_global_role_display()
+                                last_version.get_global_role_display()
 
         def collect_safe_tags():
             for st in MarkSafeTag.objects.filter(job_id__in=job_pks):

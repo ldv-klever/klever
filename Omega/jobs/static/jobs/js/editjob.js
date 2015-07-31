@@ -1,3 +1,11 @@
+var readable_extensions = ['', 'txt', 'json', 'conf', 'php'];
+
+function isFileReadable(name) {
+    var found = name.lastIndexOf('.') + 1,
+        extension = (found > 0 ? name.substr(found) : "");
+    return ($.inArray(extension, readable_extensions) !== -1);
+}
+
 function check_all_roles () {
     var global_role = $('#job_global_roles').children('option:selected').val();
     var gr_num = parseInt(global_role);
@@ -390,8 +398,42 @@ function selected_row() {
     return null;
 }
 
+function set_action_on_file_click () {
+    $('#file_tree_table').find('a').click(function () {
+        var file_div = $('#file_content_div'),
+            href = $(this).attr('href');
+        if (file_div.length && isFileReadable($(this).text())) {
+            event.preventDefault();
+            $.ajax({
+                url: job_ajax_url + 'getfilecontent/',
+                data: {file_id: $(this).parent().attr('id').split('__').pop()},
+                type: 'POST',
+                success: function (data) {
+                    try {
+                        JSON.stringify(data);
+                        err_notify(data.message);
+                    } catch (e) {
+                        $('#file_content_div').find('div').text(data);
+                        file_div.show();
+                        $('body').addClass("file-view");
+                        $('#close_file_view').click(function () {
+                            $('body').removeClass("file-view");
+                            $('#file_content_div').find('div').empty();
+                            file_div.hide();
+                        });
+                        $('#download_file_form_view').click(function () {
+                            window.location.replace(href);
+                        });
+                    }
+                }
+            });
+        }
+    });
+}
+
 function set_actions_for_file_form() {
     update_treegrid();
+    set_action_on_file_click();
     var cnt = 0;
 
     $('#new_folder_btn').click(function () {
@@ -498,6 +540,7 @@ function set_actions_for_file_form() {
                     );
                 }
                 update_treegrid();
+                set_action_on_file_click();
                 $('#edit_files_form').html('');
             });
 
@@ -638,12 +681,15 @@ $(document).ready(function () {
                     expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
                     expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
                 });
+                set_action_on_file_click();
             }
         });
     }
     else if($('#create_job_global_div').length) {
         set_actions_for_edit_form();
     }
+
+
 
     $("button[id^='copy_job__']").click(function () {
         $.redirectPost(job_ajax_url + 'create/', {
