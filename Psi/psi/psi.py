@@ -67,14 +67,18 @@ class Psi:
         omega['passwd'] = self.get_passwd('Omega')
         verification_task_scheduler['passwd'] = self.get_passwd('Verification Task Scheduler')
 
+        version = self.get_version()
+
         self.logger.debug('Support jobs of format "{0}"'.format(self.job['format']))
 
         # TODO: create cgroups.
 
+        comp = psi.utils.get_comp_desc(self.logger)
+
         start_report_file = psi.utils.dump_report(self.logger, 'start',
                                                   {'type': 'start', 'id': 'psi',
-                                                   'attrs': [{'psi version': self.get_version()}],
-                                                   'comp': psi.utils.get_comp_desc(self.logger)})
+                                                   'attrs': [{'psi version': version}],
+                                                   'comp': comp})
 
         self.job.update({'id': self.conf['job']['id'], 'archive': 'job.tar.gz'})
         self.session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
@@ -88,7 +92,7 @@ class Psi:
         with tarfile.open(self.job['archive']) as TarFile:
             TarFile.extractall('job')
 
-        # TODO: create components configuration file.
+        self.create_components_conf_file(comp)
 
         self.get_job_class()
 
@@ -126,6 +130,30 @@ class Psi:
         for res in sorted(resources):
             self.logger.debug('    {0} - {1}'.format(res, resources[res]))
         return resources
+
+    def create_components_conf_file(self, comp):
+        """
+        Create configuration file to be used by all Psi components.
+        :param comp: a computer description returned by psi.utils.get_comp_desc().
+        """
+        self.logger.info('Create components configuration file "components conf.json"')
+        components_conf = {}
+        # Read job configuration from file.
+        with open('job/root/conf.json') as fp:
+            components_conf = json.load(fp)
+        for comp_param in comp:
+            if 'CPUs num' in comp_param:
+                cpus_num = comp_param['CPUs num']
+            elif 'mem size' in comp_param:
+                mem_size = comp_param['mem size']
+        components_conf.update(
+            {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size},
+             'job priority': self.conf['job']['priority'],
+             'abstract verification tasks gen priority': self.conf['abstract verification tasks gen priority'],
+             'parallelism': self.conf['parallelism'],
+             'logging': self.conf['logging']})
+        with open('components conf.json', 'w') as fp:
+            json.dump(components_conf, fp, sort_keys=True, indent=4)
 
     # TODO: may be this function can be reused by other components.
     def get_conf_file(self):
