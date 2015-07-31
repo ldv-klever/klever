@@ -1,5 +1,6 @@
 import json
 import logging
+import os.path
 import requests
 import subprocess
 import sys
@@ -84,7 +85,6 @@ class Session:
             fp.close()
             return
 
-
     def sign_out(self):
         self.logger.info('Finish session for user "{0}" on server "{1}"'.format(self.user, self.name))
         self.__request('users/psi_signout/')
@@ -144,9 +144,11 @@ def get_entity_val(logger, name, cmd):
 def get_logger(name, conf):
     """
     Return a logger with the specified name, creating it in accordance with the specified configuration if necessary.
-    :param name: a logger name (usually it should be a name of tool that is going to use this logger).
+    :param name: a logger name (usually it should be a name of tool that is going to use this logger, note, that
+                 extensions are thrown away and name is converted to uppercase).
     :param conf: a logger configuration.
     """
+    name, ext = os.path.splitext(name)
     logger = logging.getLogger(name.upper())
     # Actual levels will be set for logger handlers.
     logger.setLevel(logging.DEBUG)
