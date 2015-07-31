@@ -8,6 +8,7 @@ urlpatterns = [
     url(r'^joberror/(?P<err_code>[0-9]+)/$', views.job_error, name='error'),
     url(r'^downloadfile/(?P<file_id>[0-9]+)/$', views.download_file,
         name='download_file'),
+    url(r'^clear_all_files/$', views.clear_files),
 
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),
@@ -25,6 +26,7 @@ urlpatterns = [
     url(r'^ajax/downloadlock/$', views.download_lock),
     url(r'^ajax/check_access/$', views.check_access),
     url(r'^ajax/upload_job/(?P<parent_id>.*)/$', views.upload_job),
+    url(r'^ajax/getfilecontent/$', views.getfilecontent),
 
     # For psi
     url(r'^setstatus/$', views.psi_set_status),

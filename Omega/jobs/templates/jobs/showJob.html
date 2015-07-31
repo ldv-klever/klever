@@ -1,8 +1,8 @@
 {% load i18n %}
 
 <dl class="dl-horizontal">
-    {% if job.description %}
-        <dt class="show-job-title">{% trans 'Description' %}:</dt><dd class="dt-text">{{ job.description }}</dd><br>
+    {% if description|length %}
+        <dt class="show-job-title">{% trans 'Description' %}:</dt><dd class="dt-text">{{ description|safe }}</dd><br>
     {% endif %}
     {% if job.parent_id %}
         <dt class="show-job-title">{% trans 'Parent identifier' %}:</dt>

@@ -5,11 +5,13 @@ from Omega.vars import JOB_ROLES
 from jobs.job_model import Job, JobHistory
 from marks.models import UnsafeTag, SafeTag
 
+JOBFILE_DIR = 'JobFiles'
+
 
 class File(models.Model):
     hash_sum = models.CharField(max_length=255)
     file = RestrictedFileField(
-        upload_to='JobFiles',
+        upload_to=JOBFILE_DIR,
         max_upload_size=104857600,
         null=False
     )
