@@ -677,7 +677,7 @@ def psi_set_status(request):
                 job = Job.objects.get(identifier=identifier)
             except ObjectDoesNotExist:
                 return JsonResponse({'error': 304})
-            if job_f.is_operator(request.user, job):
+            if job_f.JobAccess(request.user, job).can_download_for_deciding():
                 if status in [x[0] for x in JOB_STATUS]:
                     job.jobstatus.status = status
                     job.jobstatus.save()

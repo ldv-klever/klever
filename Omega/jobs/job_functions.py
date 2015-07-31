@@ -10,7 +10,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, string_concat, ugettext_noop
+from django.utils.translation import ugettext_lazy as _, string_concat,\
+    ugettext_noop
 from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
 from jobs.models import FileSystem, File, UserRole, JOBFILE_DIR
 from jobs.job_model import Job, JobHistory, JobStatus
@@ -115,31 +116,30 @@ class JobAccess(object):
     def can_edit(self):
         if self.job is None:
             return False
-        if self.__user_role == USER_ROLES[0][0]:
-            return False
         try:
             status = self.job.jobstatus.status
         except ObjectDoesNotExist:
             return False
-        if status == JOB_STATUS[0][0]:
-            if self.__is_author or self.__user_role == USER_ROLES[2][0]:
+        if status == JOB_STATUS[0][0] and \
+                (self.__is_author or self.__user_role == USER_ROLES[2][0]):
                 return True
         return False
 
     def can_delete(self):
         if self.job is None:
             return False
-        if len(self.job.children_set.all()) == 0:
-            if self.__user_role == USER_ROLES[2][0]:
-                return True
-            try:
-                status = self.job.jobstatus.status
-            except ObjectDoesNotExist:
-                return False
-            if status in [js[0] for js in JOB_STATUS[1:4]]:
-                return False
-            if self.__is_author:
-                return True
+        if len(self.job.children_set.all()) > 0:
+            return False
+        if self.__user_role == USER_ROLES[2][0]:
+            return True
+        try:
+            status = self.job.jobstatus.status
+        except ObjectDoesNotExist:
+            return False
+        if status in [js[0] for js in JOB_STATUS[1:4]]:
+            return False
+        if self.__is_author:
+            return True
         return False
 
     def __get_prop(self, user):
