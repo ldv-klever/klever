@@ -8,4 +8,5 @@ urlpatterns = [
     url(r'^unsafes/(?P<report_id>[0-9]+)/$', views.report_unsafes, name='report_unsafes'),
     url(r'^safes/(?P<report_id>[0-9]+)/$', views.report_safes, name='report_safes'),
     url(r'^unknowns/(?P<report_id>[0-9]+)/$', views.report_unknowns, name='report_unknowns'),
+    url(r'^unsafe/(?P<report_id>[0-9]+)/$', views.report_unsafe, name='report_unsafe'),
 ]
