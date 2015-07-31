@@ -1,10 +1,12 @@
 import random
 from time import sleep
+from django.contrib.auth.hashers import SHA1PasswordHasher
 from django.contrib.auth.models import User
 from jobs.job_functions import create_job, update_job
 from jobs.job_model import Job
 from marks.models import UnsafeTag, SafeTag
 from jobs.models import MarkSafeTag, MarkUnsafeTag
+from reports.models import *
 
 
 def clear_table(table):
@@ -88,6 +90,33 @@ def populate_tags():
                 mark_tag.save()
 
 
+def populate_root_report(username):
+    job = Job.objects.get(pk=1)
+    user = User.objects.get(username=username)
+    root_report = ReportRoot()
+    root_report.parent = None
+    root_report.identifier = "asdfghkk"
+    component = Component()
+    component.name = "ROOT"
+    component.save()
+    resource = Resource()
+    resource.cpu_time=0
+    resource.wall_time=0
+    resource.memory = 0
+    resource.save()
+    computer = Computer()
+    computer.description = "desc"
+    computer.save()
+    root_report.resource = resource
+    root_report.component = component
+    root_report.computer = computer
+    root_report.start_date = '31.07.15 15:25:17'
+    root_report.finish_date = '31.07.15 15:25:17'
+    root_report.user = user
+    root_report.job = job
+    root_report.save()
+
+
 def main_population(username):
     """
     To populate test data you need to:
@@ -100,4 +129,5 @@ def main_population(username):
     jobs.
     """
     populate_jobs(username)
+    populate_root_report(username)
     populate_tags()
