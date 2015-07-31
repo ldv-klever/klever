@@ -33,17 +33,18 @@ class Session:
 
         # Get CSRF token via GET request.
         resp = self.__request('users/psi_signin/')
-
         if 'CSRF token' in resp.json():
-            # Sign in.
-            resp = self.__request('users/psi_signin/', 'POST', {
-                'csrfmiddlewaretoken': resp.json()['CSRF token'],
-                'username': user,
-                'password': passwd,
-            })
-            logger.debug('Session was created')
+            self.csrf_token = resp.json()['CSRF token']
         else:
             raise IOError('Could not get CSRF token from "{0}"'.format(resp.request.url))
+
+        # Sign in.
+        resp = self.__request('users/psi_signin/', 'POST', {
+            'csrfmiddlewaretoken': self.csrf_token,
+            'username': user,
+            'password': passwd,
+        })
+        logger.debug('Session was created')
 
     def __request(self, path_url, method='GET', data=None):
         while True:
