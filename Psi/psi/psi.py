@@ -5,21 +5,27 @@ import os
 import resource
 import shutil
 import subprocess
+import tarfile
 import timeit
 import psi.utils
 
 
 class Psi:
     default_conf_file = 'psi-conf.json'
-    job_format = '1'
+    job = {'format': 1}
 
     def __init__(self):
         self.conf = None
         self.is_solving_file = None
         self.is_solving_file_fp = None
         self.logger = None
+        self.session = None
 
     def __del__(self):
+        # Sign out from Omega.
+        if self.session:
+            self.session.sign_out()
+
         # Release working directory if it was occupied.
         if self.is_solving_file and self.is_solving_file_fp and not self.is_solving_file_fp.closed:
             os.remove(self.is_solving_file)
@@ -61,25 +67,34 @@ class Psi:
         omega['passwd'] = self.get_passwd('Omega')
         verification_task_scheduler['passwd'] = self.get_passwd('Verification Task Scheduler')
 
-        self.logger.debug('Support jobs of format "{0}"'.format(self.job_format))
+        version = self.get_version()
+
+        self.logger.debug('Support jobs of format "{0}"'.format(self.job['format']))
 
         # TODO: create cgroups.
 
-        psi.utils.dump_report(self.logger, 'start',
-                              {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': self.get_version()}],
-                               'comp': psi.utils.get_comp_desc(self.logger)})
+        comp = psi.utils.get_comp_desc(self.logger)
 
-        # TODO: get job from Omega.
+        start_report_file = psi.utils.dump_report(self.logger, 'start',
+                                                  {'type': 'start', 'id': 'psi',
+                                                   'attrs': [{'psi version': version}],
+                                                   'comp': comp})
+
+        self.job.update({'id': self.conf['job']['id'], 'archive': 'job.tar.gz'})
+        self.session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
+        self.session.decide_job(self.job, start_report_file)
 
         # TODO: create parallel process to send requests about successful operation to Omega.
 
         # TODO: create parallel process (1) to send requests with reports from reports message queue to Omega.
 
-        # TODO: extract job archive to directory "job".
+        self.logger.info('Extract job archive "{0}" to directory "job"'.format(self.job['archive']))
+        with tarfile.open(self.job['archive']) as TarFile:
+            TarFile.extractall('job')
 
-        # TODO: create components configuration file.
+        self.create_components_conf_file(comp)
 
-        # TODO: get job class.
+        self.get_job_class()
 
         # TODO: launch components.
 
@@ -88,7 +103,8 @@ class Psi:
         with open(conf_file) as conf_fp:
             with open('log') as log_fp:
                 psi.utils.dump_report(self.logger, 'finish',
-                                      {'type': 'finish', 'id': 'psi', 'resources': self.count_consumed_resources(start_time), 'desc': conf_fp.read(),
+                                      {'type': 'finish', 'id': 'psi',
+                                       'resources': self.count_consumed_resources(start_time), 'desc': conf_fp.read(),
                                        'log': log_fp.read()})
 
         pass
@@ -115,6 +131,30 @@ class Psi:
             self.logger.debug('    {0} - {1}'.format(res, resources[res]))
         return resources
 
+    def create_components_conf_file(self, comp):
+        """
+        Create configuration file to be used by all Psi components.
+        :param comp: a computer description returned by psi.utils.get_comp_desc().
+        """
+        self.logger.info('Create components configuration file "components conf.json"')
+        components_conf = {}
+        # Read job configuration from file.
+        with open('job/root/conf.json') as fp:
+            components_conf = json.load(fp)
+        for comp_param in comp:
+            if 'CPUs num' in comp_param:
+                cpus_num = comp_param['CPUs num']
+            elif 'mem size' in comp_param:
+                mem_size = comp_param['mem size']
+        components_conf.update(
+            {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size},
+             'job priority': self.conf['job']['priority'],
+             'abstract verification tasks gen priority': self.conf['abstract verification tasks gen priority'],
+             'parallelism': self.conf['parallelism'],
+             'logging': self.conf['logging']})
+        with open('components conf.json', 'w') as fp:
+            json.dump(components_conf, fp, sort_keys=True, indent=4)
+
     # TODO: may be this function can be reused by other components.
     def get_conf_file(self):
         """
@@ -125,6 +165,15 @@ class Psi:
         parser.add_argument('conf file', nargs='?', default=self.default_conf_file,
                             help='configuration file (default: {0})'.format(self.default_conf_file))
         return vars(parser.parse_args())['conf file']
+
+    def get_job_class(self):
+        """
+        Get job class specified in file job/class.
+        """
+        self.logger.info('Get job class')
+        with open('job/class') as fp:
+            self.job['class'] = fp.read()
+        self.logger.debug('Job class is "{0}"'.format(self.job['class']))
 
     def get_passwd(self, name):
         """
@@ -155,7 +204,9 @@ class Psi:
         # Git repository directory may be located in parent directory of parent directory.
         git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
         if os.path.isdir(git_repo_dir):
-            version = psi.utils.get_entity_val(self.logger, 'version', 'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(git_repo_dir))
+            version = psi.utils.get_entity_val(self.logger, 'version',
+                                               'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(
+                                                   git_repo_dir))
         else:
             # TODO: get version of installed Psi.
             version = ''
@@ -183,6 +234,9 @@ class Psi:
         if os.path.isfile(self.is_solving_file):
             raise FileExistsError('Another Psi occupies working directory "{0}"'.format(self.conf['work dir']))
 
+        pass
+
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w')
+        # TODO: uncomment line below after all.
+        # self.is_solving_file_fp = open(self.is_solving_file, 'w')

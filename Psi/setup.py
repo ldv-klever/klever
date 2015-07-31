@@ -13,7 +13,8 @@ config = {
     'install_requires': ['nose'],
     'packages': ['Psi'],
     'scripts': [],
-    'name': 'Psi'
+    'name': 'Psi',
+    'requires': ['requests'],
 }
 
 setup(**config)

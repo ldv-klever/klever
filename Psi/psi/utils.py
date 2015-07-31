@@ -1,7 +1,93 @@
 import json
 import logging
+import os.path
+import requests
 import subprocess
 import sys
+import time
+
+
+class Session:
+    def __init__(self, logger, user, passwd, name):
+        # Check arguments passed.
+        if not isinstance(logger, logging.Logger):
+            raise ValueError('Logger should be an instance of Logger')
+        if not isinstance(user, str):
+            raise ValueError('User name should be a string')
+        if len(user) == 0:
+            raise ValueError('User name should not be empty')
+        if not isinstance(passwd, str):
+            raise ValueError('Password should be a string')
+        if len(passwd) == 0:
+            raise ValueError('Password should not be empty')
+        if not isinstance(name, str):
+            raise ValueError('Server name should be a string')
+        if len(name) == 0:
+            raise ValueError('Server name should not be empty')
+
+        logger.info('Create session for user "{0}" on server "{1}"'.format(user, name))
+
+        self.logger = logger
+        self.user = user
+        self.name = name
+        self.session = requests.Session()
+
+        # Get CSRF token via GET request.
+        self.__request('users/psi_signin/')
+
+        # Sign in.
+        self.__request('users/psi_signin/', 'POST', {
+            'username': user,
+            'password': passwd,
+        })
+        logger.debug('Session was created')
+
+    def __request(self, path_url, method='GET', data=None, **kwargs):
+        while True:
+            try:
+                url = 'http://' + self.name + '/' + path_url
+
+                self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
+
+                if data:
+                    data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+
+                resp = self.session.get(url, **kwargs) if method == 'GET' else self.session.post(url, data, **kwargs)
+
+                if resp.status_code != 200:
+                    raise IOError(
+                        'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
+                                                                                                   method, url))
+                if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
+                    raise IOError(
+                        'Got error "{0}" when send "{1}" request to "{2}"'.format(resp.json()['error'], method, url))
+
+                return resp
+            except requests.ConnectionError as err:
+                self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
+                time.sleep(1)
+
+    def decide_job(self, job, start_report_file):
+        # Acquire download lock.
+        resp = self.__request('jobs/downloadlock/')
+        if 'status' not in resp.json() or 'hash_sum' not in resp.json():
+            raise IOError('Could not get download lock at "{0}"'.format(resp.request.url))
+
+        with open(start_report_file) as fp:
+            resp = self.__request('jobs/decide_job/', 'POST', {
+                'job id': job['id'],
+                'job format': job['format'],
+                'start report': fp.read(),
+                'hash sum': resp.json()['hash_sum']
+            }, stream=True)
+
+        with open(job['archive'], 'wb') as fp:
+            for chunk in resp.iter_content(1024):
+                fp.write(chunk)
+
+    def sign_out(self):
+        self.logger.info('Finish session for user "{0}" on server "{1}"'.format(self.user, self.name))
+        self.__request('users/psi_signout/')
 
 
 def dump_report(logger, kind, report):
@@ -12,10 +98,14 @@ def dump_report(logger, kind, report):
     :param report: a report object (usually it should be a dictionary).
     """
     logger.info('Dump {0} report'.format(kind))
+
     report_file = '{0} report.json'.format(kind)
     with open(report_file, 'w') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
+
     logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), report_file))
+
+    return report_file
 
 
 def get_comp_desc(logger):
@@ -58,9 +148,11 @@ def get_entity_val(logger, name, cmd):
 def get_logger(name, conf):
     """
     Return a logger with the specified name, creating it in accordance with the specified configuration if necessary.
-    :param name: a logger name (usually it should be a name of tool that is going to use this logger).
+    :param name: a logger name (usually it should be a name of tool that is going to use this logger, note, that
+                 extensions are thrown away and name is converted to uppercase).
     :param conf: a logger configuration.
     """
+    name, ext = os.path.splitext(name)
     logger = logging.getLogger(name.upper())
     # Actual levels will be set for logger handlers.
     logger.setLevel(logging.DEBUG)
@@ -84,7 +176,7 @@ def get_logger(name, conf):
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log')
+            handler = logging.FileHandler('log', encoding='utf8')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
