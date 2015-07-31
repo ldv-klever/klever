@@ -164,14 +164,15 @@ def psi_signin(request):
         if user is not None:
             if user.is_active:
                 login(request, user)
-                return JsonResponse({})
+                return HttpResponse('')
             else:
                 return JsonResponse({'error': 'Account has been disabled'})
         return JsonResponse({'error': 'Incorrect username or password'})
     else:
-        return JsonResponse({'CSRF token': get_token(request)})
+        get_token(request)
+        return HttpResponse('')
 
 
 def psi_signout(request):
     logout(request)
-    return JsonResponse({})
+    return HttpResponse('')
