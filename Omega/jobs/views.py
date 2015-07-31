@@ -698,6 +698,8 @@ def decide_job(request):
         return JsonResponse({'error': 'Job identifier is not specified'})
     if 'job format' not in request.POST:
         return JsonResponse({'error': 'Job format is not specified'})
+    if 'start report' not in request.POST:
+        return JsonResponse({'error': 'Start report is not specified'})
     if 'hash sum' not in request.POST:
         return JsonResponse({'error': 'Hash sum is not specified'})
 
