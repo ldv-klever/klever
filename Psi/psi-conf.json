@@ -1,5 +1,8 @@
 {
   "work dir": "psi-work-dir",
+  "job": {
+    "id": "d3c8f5f04a4bed5848d493260b68c778 "
+  },
   "Omega": {
     "name": "localhost:8998",
     "user": "__user",
