@@ -711,7 +711,7 @@ def decide_job(request):
             'error': 'Job with the specified identifier "{0}" was not found'
             .format(request.POST['job id'])})
 
-    if not job_f.is_operator(request.user, job):
+    if not job_f.JobAccess(request.user, job).can_download_for_deciding():
         return JsonResponse({
             'error': 'User "{0}" has not access to job "{1}"'.format(
                 request.user, job.identifier
