@@ -72,8 +72,9 @@ class Psi:
         # TODO: create cgroups.
 
         start_report_file = psi.utils.dump_report(self.logger, 'start',
-                              {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': self.get_version()}],
-                               'comp': psi.utils.get_comp_desc(self.logger)})
+                                                  {'type': 'start', 'id': 'psi',
+                                                   'attrs': [{'psi version': self.get_version()}],
+                                                   'comp': psi.utils.get_comp_desc(self.logger)})
 
         self.job.update({'id': self.conf['job']['id'], 'archive': 'job.tar.gz'})
         self.session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
@@ -83,12 +84,13 @@ class Psi:
 
         # TODO: create parallel process (1) to send requests with reports from reports message queue to Omega.
 
+        self.logger.info('Extract job archive "{0}" to directory "job"'.format(self.job['archive']))
         with tarfile.open(self.job['archive']) as TarFile:
             TarFile.extractall('job')
 
         # TODO: create components configuration file.
 
-        # TODO: get job class.
+        self.get_job_class()
 
         # TODO: launch components.
 
@@ -135,6 +137,15 @@ class Psi:
         parser.add_argument('conf file', nargs='?', default=self.default_conf_file,
                             help='configuration file (default: {0})'.format(self.default_conf_file))
         return vars(parser.parse_args())['conf file']
+
+    def get_job_class(self):
+        """
+        Get job class specified in file job/class.
+        """
+        self.logger.info('Get job class')
+        with open('job/class') as fp:
+            self.job['class'] = fp.read()
+        self.logger.debug('Job class is "{0}"'.format(self.job['class']))
 
     def get_passwd(self, name):
         """
@@ -194,6 +205,8 @@ class Psi:
 
         if os.path.isfile(self.is_solving_file):
             raise FileExistsError('Another Psi occupies working directory "{0}"'.format(self.conf['work dir']))
+
+        pass
 
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
