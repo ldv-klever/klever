@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from jobs.job_model import Job
+from marks.models import UnknownProblem
 
 
 class AttrName(models.Model):
@@ -97,7 +98,7 @@ class ReportUnknown(Report):
 
 
 class ReportAttr(models.Model):
-    report = models.ForeignKey(ReportComponent)
+    report = models.ForeignKey(Report)
     attr = models.ForeignKey(Attr)
 
     class Meta:
@@ -106,8 +107,59 @@ class ReportAttr(models.Model):
 
 class ReportComponentLeaf(models.Model):
     report = models.ForeignKey(ReportComponent)
-    leaf_id = models.IntegerField()  # Should only be leafs (safe, unsafe, unknown) ids.
+    # Should only be leafs (safe, unsafe, unknown) ids.
+    leaf_id = models.IntegerField()
 
     class Meta:
         db_table = 'cache_report_component_report_leaf'
 
+
+class Verdict(models.Model):
+    report = models.OneToOneField(ReportComponent)
+    unsafe = models.IntegerField(default=0)
+    unsafe_bug = models.IntegerField(default=0)
+    unsafe_target_bug = models.IntegerField(default=0)
+    unsafe_false_positive = models.IntegerField(default=0)
+    unsafe_unknown = models.IntegerField(default=0)
+    unsafe_unassociated = models.IntegerField(default=0)
+    unsafe_inconclusive = models.IntegerField(default=0)
+    safe = models.IntegerField(default=0)
+    safe_missed_bug = models.IntegerField(default=0)
+    safe_incorrect_proof = models.IntegerField(default=0)
+    safe_unknown = models.IntegerField(default=0)
+    safe_unassociated = models.IntegerField(default=0)
+    safe_inconclusive = models.IntegerField(default=0)
+    unknown = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = "cache_job_verdict"
+
+
+class ComponentUnknown(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    component = models.ForeignKey(Component, related_name='+')
+    number = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_job_component_unknown'
+
+
+class ComponentMarkUnknownProblem(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    component = models.ForeignKey(Component)
+    problem = models.ForeignKey(UnknownProblem, null=True, blank=True,
+                                on_delete=models.SET_NULL)
+    number = models.IntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_job_component_mark_unknown_problem'
+
+
+class ComponentResource(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    component = models.ForeignKey(Component, null=True, blank=True,
+                                  on_delete=models.SET_NULL)
+    resource = models.ForeignKey(Resource)
+
+    class Meta:
+        db_table = 'cache_job_component_resource'

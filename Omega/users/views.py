@@ -164,7 +164,7 @@ def psi_signin(request):
         if user is not None:
             if user.is_active:
                 login(request, user)
-                return JsonResponse({'session id': request.session.session_key})
+                return JsonResponse({})
             else:
                 return JsonResponse({'error': 'Account has been disabled'})
         return JsonResponse({'error': 'Incorrect username or password'})

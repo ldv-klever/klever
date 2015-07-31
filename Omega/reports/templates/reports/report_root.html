@@ -187,7 +187,12 @@
                         <span class="Title"><b>{% trans 'Safes' %}: </b></span>
                         <ul>
                             {% for v in verdict.safes %}
-                                <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
+                                <li><span style="color:{{ v.color }};">{{ v.title }}:
+                                {% if v.title = 'Total' %}
+                                    </span><a href="{% url 'reports:report_safes' report.id %}">{{ v.value }}</a></li>
+                                {% else %}
+                                    </span><a href="#">{{ v.value }}</a></li>
+                                {% endif %}
                             {% endfor %}
                         </ul>
                     </div>
@@ -197,7 +202,8 @@
 
             {% if unknowns %}
                 <span class="Title"><b>{% trans 'Problems' %}</b></span>
-                {% if verdict %}(<a href="#">{{ verdict.unknowns }}</a>){% endif %}
+                {% if verdict %}(<a href="{% url 'reports:report_unknowns' report.id %}">{{ verdict.unknowns }}</a>)
+                {% endif %}
                 <ul>
                     {% for comp in unknowns %}
                         <li>{{ comp.component }}</li>

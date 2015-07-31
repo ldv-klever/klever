@@ -487,7 +487,7 @@ def showjobdata(request):
     return render(request, 'jobs/showJob.html', {
         'job': job,
         'filedata': job_f.FileData(
-            job.jobhistory_set.filter(version=job.version)[0]
+            job.jobhistory_set.get(version=job.version)
         ).filedata
     })
 
@@ -626,7 +626,6 @@ def upload_job(request, parent_id=None):
         for f in request.FILES.getlist('file'):
             zipdata = job_f.ReadZipJob(parent, request.user, f)
             if zipdata.err_message is not None:
-                # failed_jobs.append([f.name, zipdata.err_message])
                 failed_jobs.append([zipdata.err_message + '', f.name])
         if len(failed_jobs) > 0:
             return JsonResponse({
@@ -706,7 +705,9 @@ def psi_download_job(request):
     if not job_f.is_operator(request.user, job):
         return JsonResponse({'error': 303})
 
-    job_tar = job_f.JobArchive(job=job, hash_sum=hash_sum)
+    job_tar = job_f.JobArchive(
+        job=job, hash_sum=hash_sum, user=request.user, full=False
+    )
     if not job_tar.create_tar():
         return JsonResponse({'error': 500})
 

@@ -1,0 +1,29 @@
+{% extends 'reports/base.html' %}
+
+{% load i18n %}
+
+{% load tz %}
+
+{% block body_block %}
+
+<span class="TableTitle">{{ title }}</span>
+<table class="RootReportTable" border="1">
+    <tr class="TableRawEven">
+        <td><span class="TableTitle">{% trans 'ID' %}</span></td>
+        {% for attr in attrs %}
+        <td><span class="TableTitle">{{ attr.name.name }}</span></td>
+        {% endfor %}
+        <td><span class="TableTitle">{% trans 'Marks' %}</span></td>
+    </tr>
+    {% for report, value in reports_values.items %}
+        <tr class="TableRawOdd">
+            <td>{{ report.id }}</td>
+            {% for v in value %}
+            <td>{{ v.0.attr.value }}</td>
+            {% endfor %}
+            <td>Marks for {{ report.id }}</td>
+        </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
