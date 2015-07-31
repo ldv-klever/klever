@@ -5,6 +5,7 @@ import os
 import resource
 import shutil
 import subprocess
+import tarfile
 import timeit
 import psi.utils
 
@@ -74,7 +75,6 @@ class Psi:
                               {'type': 'start', 'id': 'psi', 'attrs': [{'psi version': self.get_version()}],
                                'comp': psi.utils.get_comp_desc(self.logger)})
 
-        # TODO: get job from Omega.
         self.job.update({'id': self.conf['job']['id'], 'archive': 'job.tar.gz'})
         self.session = psi.utils.Session(self.logger, omega['user'], omega['passwd'], self.conf['Omega']['name'])
         self.session.decide_job(self.job, start_report_file)
@@ -83,7 +83,8 @@ class Psi:
 
         # TODO: create parallel process (1) to send requests with reports from reports message queue to Omega.
 
-        # TODO: extract job archive to directory "job".
+        with tarfile.open(self.job['archive']) as TarFile:
+            TarFile.extractall('job')
 
         # TODO: create components configuration file.
 
