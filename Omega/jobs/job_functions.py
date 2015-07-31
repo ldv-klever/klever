@@ -92,6 +92,15 @@ class JobAccess(object):
         self.__user_role = user.extended.role
         self.__get_prop(user)
 
+    def can_download_for_deciding(self):
+        if self.job is None:
+            return False
+        if self.__user_role == USER_ROLES[2][0] or self.__is_author:
+            return True
+        if self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
+            return True
+        return False
+
     def can_view(self):
         if self.job is None:
             return False
@@ -791,18 +800,6 @@ def role_info(job, user):
             })
     roles_data['available_users'] = available_users
     return roles_data
-
-
-def is_operator(user, job):
-    last_version = job.jobhistory_set.get(version=job.version)
-    user_role = last_version.userrole_set.filter(user=user)
-    if len(user_role):
-        if user_role[0].role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
-            return True
-        return False
-    if last_version.global_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
-        return True
-    return False
 
 
 def create_version(job, kwargs):
