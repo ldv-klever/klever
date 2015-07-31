@@ -55,7 +55,7 @@ class Session:
                     raise IOError(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
                                                                                                    method, url))
-                if 'error' in resp.json():
+                if resp.text and 'error' in resp.json():
                     raise IOError(
                         'Got error "{0}" when send "{1}" request to "{2}"'.format(resp.json()['error'], method, url))
                 return resp
