@@ -72,14 +72,16 @@ th {
 }
 
 .dt-text {
-    white-space: pre-wrap;
+    /*white-space: pre-wrap;*/
     padding-left: 5px;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;
     border: 1px solid #a1b0dd;
-    max-height: 300px;
+    max-height: 450px;
     overflow-y: auto;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 .btn-file {
@@ -133,5 +135,45 @@ body.loading {
 }
 
 body.loading .modal-loading {
+    display: block;
+}
+
+.file-view-div {
+    display: none;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    z-index: 1000;
+    background: rgba(177, 238, 253, 0.8);
+}
+
+.file-view-div div {
+    position: fixed;
+    top: 10%;
+    left: 20%;
+    height: 85%;
+    width: 60%;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    padding: 10px;
+    background: rgba(255, 255, 255, 1);
+}
+
+#close_file_view {
+    position: absolute;
+    right: 20%;
+    top: 6%;
+}
+
+#download_file_form_view {
+    position: absolute;
+    left: 20%;
+    top: 6%;
+}
+
+body.file-view {
+    overflow: hidden;
     display: block;
 }

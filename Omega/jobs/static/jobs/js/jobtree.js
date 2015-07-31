@@ -125,7 +125,6 @@ function getOrders() {
         }
         orders.push(order_name);
     });
-    console.log(orders);
     return orders
 }
 
