@@ -10,8 +10,8 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, string_concat
-from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS, FORMAT
+from django.utils.translation import ugettext_lazy as _, string_concat, ugettext_noop
+from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
 from jobs.models import FileSystem, File, UserRole, JOBFILE_DIR
 from jobs.job_model import Job, JobHistory, JobStatus
 import json
@@ -489,7 +489,10 @@ class JobArchive(object):
         self.jobtar_name = 'VJ__' + self.job.identifier + '.tar.gz'
         jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
         write_file_str(jobtar_obj, 'format', str(self.job.format))
-        write_file_str(jobtar_obj, 'type', str(self.job.type))
+        for job_class in JOB_CLASSES:
+            if job_class[0] == self.job.type:
+                write_file_str(jobtar_obj, 'class', ugettext_noop(job_class[1]))
+                break
         for f in files_for_tar:
             if f['src'] is None:
                 folder = tarfile.TarInfo(f['path'])
