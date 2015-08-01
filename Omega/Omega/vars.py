@@ -73,7 +73,8 @@ USER_ROLES = (
 
 VIEW_TYPES = {
     ('1', 'job tree'),
-    ('2', 'other'),
+    ('2', 'job_view'),
+    ('3', 'others'),
 }
 
 JOB_STATUS = (
@@ -90,3 +91,53 @@ MARK_STATUS = (
     ('2', _('Fixed')),
     ('3', _('Rejected')),
 )
+
+VIEWJOB_DEF_VIEW = {
+    'data': [
+        'unsafes',
+        'safes',
+        'unknowns',
+        'resources',
+        'tags_safe',
+        'tags_unsafe'
+    ],
+    # Available filters (id [types], (example value)):
+    # unknown_component [iexact, istartswith, icontains] (<any text>)
+    # unknown_problem [iexact, istartswith, icontains] (<any text>)
+    # resource_component [iexact, istartswith, icontains] (<any text>)
+    # safe_tag [iexact, istartswith, icontains] (<any text>)
+    # unsafe_tag [iexact, istartswith, icontains] (<any text>)
+    # unknowns_total [hide, show]
+    # unknowns_nomark [hide, show]
+    'filters': {
+        # 'unknown_component': {
+        #     'type': 'istartswith',
+        #     'value': 'D'
+        # },
+        # 'unknown_problem': {
+        #     'type': 'icontains',
+        #     'value': 'Problem'
+        # },
+        # 'resource_component': {
+        #     'type': 'icontains',
+        #     'value': 'S'
+        # },
+        # 'safe_tag': {
+        #     'type': 'iexact',
+        #     'value': 'my:safe:tag:4'
+        # },
+        # 'unsafe_tag': {
+        #     'type': 'istartswith',
+        #     'value': 'my:unsafe:'
+        # },
+        # 'unknowns_total': {
+        #     'type': 'hide'
+        # },
+        # 'unknowns_nomark': {
+        #     'type': 'hide'
+        # },
+        # 'resource_total': {
+        #     'type': 'hide'
+        # },
+    }
+}

@@ -108,4 +108,4 @@ window.download_job = function(job_id) {
 
 window.isASCII = function (str) {
     return /^[\x00-\x7F]*$/.test(str);
-}
+};

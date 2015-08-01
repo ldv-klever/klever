@@ -723,7 +723,7 @@ def unknowns_info(job):
     unknowns_sorted = []
     for comp in sorted(unknowns_data):
         problems_sorted = []
-        for probl in unknowns_data[comp]:
+        for probl in sorted(unknowns_data[comp]):
             problems_sorted.append({
                 'num': unknowns_data[comp][probl],
                 'problem': probl,
@@ -739,7 +739,7 @@ def resource_info(job, user):
     try:
         report = job.reportroot
     except ObjectDoesNotExist:
-        return None
+        return []
 
     accuracy = user.extended.accuracy
     data_format = user.extended.data_format
@@ -773,6 +773,28 @@ def resource_info(job, user):
             'val': total_value,
         })
     return resource_data
+
+
+def tags_info(job):
+    tags_data = {
+        'safe': [],
+        'unsafe': []
+    }
+
+    for st in job.safe_tags.all():
+        tags_data['safe'].append({
+            'number': st.number,
+            'href': '#',
+            'name': st.tag.tag,
+        })
+
+    for ut in job.unsafe_tags.all():
+        tags_data['unsafe'].append({
+            'number': ut.number,
+            'href': '#',
+            'name': ut.tag.tag,
+        })
+    return tags_data
 
 
 def role_info(job, user):

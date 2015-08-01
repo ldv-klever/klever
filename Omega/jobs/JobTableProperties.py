@@ -649,8 +649,8 @@ class TableTree(object):
         def collect_verdicts():
             for verdict in Verdict.objects.filter(
                     report__reportroot__job_id__in=job_pks):
-                if verdict.job_id in values_data:
-                    values_data[verdict.job_id].update({
+                if verdict.report.reportroot.job_id in values_data:
+                    values_data[verdict.report.reportroot.job_id].update({
                         'unsafe:total': verdict.unsafe,
                         'unsafe:bug': verdict.unsafe_bug,
                         'unsafe:target_bug': verdict.unsafe_target_bug,
@@ -707,7 +707,7 @@ class TableTree(object):
         def collect_resourses():
             for cr in ComponentResource.objects.filter(
                     report__reportroot__job_id__in=job_pks):
-                job_pk = cr.job_id
+                job_pk = cr.report.reportroot.job_id
                 if job_pk in values_data:
                     accuracy = self.user.extended.accuracy
                     data_format = self.user.extended.data_format

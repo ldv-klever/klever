@@ -13,10 +13,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
-from Omega.vars import JOB_ROLES, JOB_STATUS
+from Omega.vars import JOB_ROLES, JOB_STATUS, VIEW_TYPES
 from jobs.job_model import Job
 from jobs.models import File, FileSystem
 from jobs.forms import FileForm
+from jobs.viewjob_functions import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
 from users.models import View, PreferableView
@@ -48,11 +49,13 @@ def preferable_view(request):
         return JsonResponse({'status': 1, 'message': _("Unknown error")})
 
     view_id = request.POST.get('view_id', None)
-    if view_id is None:
-        return JsonResponse({'status': 2, 'message': _("Unknown error")})
+    view_type = request.POST.get('view_type', None)
+    if view_id is None or view_type is None:
+        return JsonResponse({'status': 1, 'message': _("Unknown error")})
 
     if view_id == 'default':
-        pref_views = request.user.preferableview_set.filter(view__type='1')
+        pref_views = request.user.preferableview_set.filter(
+            view__type=view_type)
         if len(pref_views):
             pref_views.delete()
             return JsonResponse({
@@ -66,13 +69,13 @@ def preferable_view(request):
 
     try:
         user_view = View.objects.get(pk=int(view_id),
-                                     author=request.user, type='1')
+                                     author=request.user, type=view_type)
     except ObjectDoesNotExist:
         return JsonResponse({
             'status': 1,
             'message': _("The view was not found")
         })
-    request.user.preferableview_set.filter(view__type='1').delete()
+    request.user.preferableview_set.filter(view__type=view_type).delete()
     pref_view = PreferableView()
     pref_view.user = request.user
     pref_view.view = user_view
@@ -90,7 +93,8 @@ def check_view_name(request):
         return JsonResponse({'status': False, 'message': _('Unknown error')})
 
     view_name = request.POST.get('view_title', None)
-    if view_name is None:
+    view_type = request.POST.get('view_type', None)
+    if view_name is None or view_type is None:
         return JsonResponse({'status': False, 'message': _('Unknown error')})
 
     if view_name == _('Default'):
@@ -103,7 +107,7 @@ def check_view_name(request):
             'status': False, 'message': _("The view name is required")
         })
 
-    if len(request.user.view_set.filter(type='1', name=view_name)):
+    if len(request.user.view_set.filter(type=view_type, name=view_name)):
         return JsonResponse({
             'status': False, 'message': _("Please choose another view name")
         })
@@ -120,7 +124,9 @@ def save_view(request):
     view_data = request.POST.get('view', None)
     view_name = request.POST.get('title', '')
     view_id = request.POST.get('view_id', None)
-    if view_data is None:
+    view_type = request.POST.get('view_type', None)
+    if view_data is None or view_type is None or \
+            view_type not in list(x[0] for x in VIEW_TYPES):
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
     if view_id == 'default':
         return JsonResponse({
@@ -138,10 +144,12 @@ def save_view(request):
     elif len(view_name):
         new_view = View()
         new_view.name = view_name
-        new_view.type = '1'
+        new_view.type = view_type
         new_view.author = request.user
     else:
-        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        return JsonResponse({
+            'status': 1, 'message': _('The view name is required')
+        })
     new_view.view = view_data
     new_view.save()
     return JsonResponse({
@@ -159,13 +167,18 @@ def remove_view(request):
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _("Unknown error")})
     v_id = request.POST.get('view_id', 0)
+    view_type = request.POST.get('view_type', None)
+    if view_type is None:
+        return JsonResponse({'status': 1, 'message': _("Unknown error")})
     if v_id == 'default':
         return JsonResponse({
             'status': 1,
             'message': _("You can't remove the default view")
         })
     try:
-        View.objects.get(author=request.user, pk=int(v_id), type='1').delete()
+        View.objects.get(
+            author=request.user, pk=int(v_id), type=view_type
+        ).delete()
     except ObjectDoesNotExist:
         return JsonResponse({
             'status': 1,
@@ -222,6 +235,11 @@ def show_job(request, job_id=None):
             'name': child.name,
         })
 
+    view_args = [request.user, job]
+    if request.method == 'POST':
+        view_args.append(request.POST.get('view', None))
+        view_args.append(request.POST.get('view_id', None))
+
     return render(
         request,
         'jobs/viewJob.html',
@@ -231,9 +249,7 @@ def show_job(request, job_id=None):
             'parents': parents,
             'children': children,
             'user_tz': request.user.extended.timezone,
-            'verdict': job_f.verdict_info(job),
-            'unknowns': job_f.unknowns_info(job),
-            'resources': job_f.resource_info(job, request.user),
+            'jobdata': ViewJobData(*view_args),
             'created_by': job.jobhistory_set.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),
