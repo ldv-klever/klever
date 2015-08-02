@@ -1,7 +1,5 @@
 import json
 from Omega.vars import VIEWJOB_DEF_VIEW
-from jobs.job_model import Job
-from users.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from jobs.job_functions import convert_memory, convert_time, SAFES, UNSAFES,\
     TITLES
@@ -39,7 +37,6 @@ class ViewJobData(object):
         self.user = user
         (self.view, self.view_id) = get_view_view(user, view_id, view)
         self.views = self.all_views()
-        print(self.view_id)
         self.unknowns_total = None
         self.show_verdicts = False
         self.show_tags = False

@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import json
 import tarfile
 import hashlib
 from io import BytesIO
@@ -15,7 +16,7 @@ from django.utils.translation import ugettext_lazy as _, string_concat,\
 from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
 from jobs.models import FileSystem, File, UserRole, JOBFILE_DIR
 from jobs.job_model import Job, JobHistory, JobStatus
-import json
+from users.notifications import Notify
 
 
 COLORS = {
@@ -849,12 +850,11 @@ def create_version(job, kwargs):
                 ur_user = User.objects.get(pk=int(ur['user']))
             except ObjectDoesNotExist:
                 continue
-            if len(ur_user):
-                new_ur = UserRole()
-                new_ur.job = new_version
-                new_ur.user = ur_user
-                new_ur.role = ur['role']
-                new_ur.save()
+            new_ur = UserRole()
+            new_ur.job = new_version
+            new_ur.user = ur_user
+            new_ur.role = ur['role']
+            new_ur.save()
     return new_version
 
 
@@ -897,6 +897,7 @@ def create_job(kwargs):
         if db_fdata.err_message is not None:
             newjob.delete()
             return db_fdata.err_message
+    Notify(newjob, 0)
     return newjob
 
 
@@ -924,6 +925,7 @@ def update_job(kwargs):
             kwargs['job'].version -= 1
             kwargs['job'].save()
             return db_fdata.err_message
+    Notify(kwargs['job'], 1)
     return kwargs['job']
 
 
@@ -938,6 +940,7 @@ def remove_jobs_by_id(user, job_ids):
         if not JobAccess(user, job).can_delete():
             return 400
     for job in jobs:
+        Notify(job, 2)
         job.delete()
     return 0
 

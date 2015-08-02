@@ -208,7 +208,9 @@ function set_actions_for_edit_form () {
                 data.status === 0 ? window.location.replace('/jobs/' + data.job_id + '/'):err_notify(data.message);
             },
             "json"
-        );
+        ).fail(function (x) {
+                console.log(x.responseText);
+            });
     });
 
     $('#job_version_selector').change(function () {

@@ -1,7 +1,9 @@
 import pytz
+import json
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.forms import ValidationError
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
@@ -9,10 +11,12 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
+from users.models import Notifications
 from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
 from jobs.job_functions import JobAccess
 from django.middleware.csrf import get_token
+from users.notifications import NotifyData
 
 
 def user_signin(request):
@@ -111,6 +115,7 @@ def edit_profile(request):
         'users/edit-profile.html',
         {
             'user_form': user_form,
+            'tdata': NotifyData(request.user),
             'profile_form': profile_form,
             'profile_errors': profile_form.errors,
             'user_errors': user_form.errors,
@@ -176,3 +181,20 @@ def psi_signin(request):
 def psi_signout(request):
     logout(request)
     return HttpResponse('')
+
+
+@login_required
+def save_notifications(request):
+    if request.method == 'POST':
+        notifications = request.POST.get('notifications', '[]')
+        self_ntf = json.loads(request.POST.get('self_ntf', False))
+        try:
+            new_ntf = request.user.notifications
+        except ObjectDoesNotExist:
+            new_ntf = Notifications()
+            new_ntf.user = request.user
+        new_ntf.settings = notifications
+        new_ntf.self_ntf = self_ntf
+        new_ntf.save()
+        return JsonResponse({'status': 0, 'message': _('Saved')})
+    return JsonResponse({'status': 1, 'message': _('Unknown error')})
