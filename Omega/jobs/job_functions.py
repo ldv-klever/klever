@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import os
+import json
 import tarfile
 import hashlib
 from io import BytesIO
@@ -10,11 +11,12 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, string_concat, ugettext_noop
+from django.utils.translation import ugettext_lazy as _, string_concat,\
+    ugettext_noop
 from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
 from jobs.models import FileSystem, File, UserRole, JOBFILE_DIR
 from jobs.job_model import Job, JobHistory, JobStatus
-import json
+from users.notifications import Notify
 
 
 COLORS = {
@@ -92,6 +94,15 @@ class JobAccess(object):
         self.__user_role = user.extended.role
         self.__get_prop(user)
 
+    def can_download_for_deciding(self):
+        if self.job is None:
+            return False
+        if self.__user_role == USER_ROLES[2][0] or self.__is_author:
+            return True
+        if self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
+            return True
+        return False
+
     def can_view(self):
         if self.job is None:
             return False
@@ -106,31 +117,30 @@ class JobAccess(object):
     def can_edit(self):
         if self.job is None:
             return False
-        if self.__user_role == USER_ROLES[0][0]:
-            return False
         try:
             status = self.job.jobstatus.status
         except ObjectDoesNotExist:
             return False
-        if status == JOB_STATUS[0][0]:
-            if self.__is_author or self.__user_role == USER_ROLES[2][0]:
+        if status == JOB_STATUS[0][0] and \
+                (self.__is_author or self.__user_role == USER_ROLES[2][0]):
                 return True
         return False
 
     def can_delete(self):
         if self.job is None:
             return False
-        if len(self.job.children_set.all()) == 0:
-            if self.__user_role == USER_ROLES[2][0]:
-                return True
-            try:
-                status = self.job.jobstatus.status
-            except ObjectDoesNotExist:
-                return False
-            if status in [js[0] for js in JOB_STATUS[1:4]]:
-                return False
-            if self.__is_author:
-                return True
+        if len(self.job.children_set.all()) > 0:
+            return False
+        if self.__user_role == USER_ROLES[2][0]:
+            return True
+        try:
+            status = self.job.jobstatus.status
+        except ObjectDoesNotExist:
+            return False
+        if status in [js[0] for js in JOB_STATUS[1:4]]:
+            return False
+        if self.__is_author:
+            return True
         return False
 
     def __get_prop(self, user):
@@ -714,7 +724,7 @@ def unknowns_info(job):
     unknowns_sorted = []
     for comp in sorted(unknowns_data):
         problems_sorted = []
-        for probl in unknowns_data[comp]:
+        for probl in sorted(unknowns_data[comp]):
             problems_sorted.append({
                 'num': unknowns_data[comp][probl],
                 'problem': probl,
@@ -730,7 +740,7 @@ def resource_info(job, user):
     try:
         report = job.reportroot
     except ObjectDoesNotExist:
-        return None
+        return []
 
     accuracy = user.extended.accuracy
     data_format = user.extended.data_format
@@ -766,6 +776,28 @@ def resource_info(job, user):
     return resource_data
 
 
+def tags_info(job):
+    tags_data = {
+        'safe': [],
+        'unsafe': []
+    }
+
+    for st in job.safe_tags.all():
+        tags_data['safe'].append({
+            'number': st.number,
+            'href': '#',
+            'name': st.tag.tag,
+        })
+
+    for ut in job.unsafe_tags.all():
+        tags_data['unsafe'].append({
+            'number': ut.number,
+            'href': '#',
+            'name': ut.tag.tag,
+        })
+    return tags_data
+
+
 def role_info(job, user):
     roles_data = {'global': job.global_role}
 
@@ -796,18 +828,6 @@ def role_info(job, user):
     return roles_data
 
 
-def is_operator(user, job):
-    last_version = job.jobhistory_set.get(version=job.version)
-    user_role = last_version.userrole_set.filter(user=user)
-    if len(user_role):
-        if user_role[0].role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
-            return True
-        return False
-    if last_version.global_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
-        return True
-    return False
-
-
 def create_version(job, kwargs):
     new_version = JobHistory()
     new_version.job = job
@@ -830,12 +850,11 @@ def create_version(job, kwargs):
                 ur_user = User.objects.get(pk=int(ur['user']))
             except ObjectDoesNotExist:
                 continue
-            if len(ur_user):
-                new_ur = UserRole()
-                new_ur.job = new_version
-                new_ur.user = ur_user
-                new_ur.role = ur['role']
-                new_ur.save()
+            new_ur = UserRole()
+            new_ur.job = new_version
+            new_ur.user = ur_user
+            new_ur.role = ur['role']
+            new_ur.save()
     return new_version
 
 
@@ -878,6 +897,7 @@ def create_job(kwargs):
         if db_fdata.err_message is not None:
             newjob.delete()
             return db_fdata.err_message
+    Notify(newjob, 0)
     return newjob
 
 
@@ -905,6 +925,7 @@ def update_job(kwargs):
             kwargs['job'].version -= 1
             kwargs['job'].save()
             return db_fdata.err_message
+    Notify(kwargs['job'], 1)
     return kwargs['job']
 
 
@@ -919,6 +940,7 @@ def remove_jobs_by_id(user, job_ids):
         if not JobAccess(user, job).can_delete():
             return 400
     for job in jobs:
+        Notify(job, 2)
         job.delete()
     return 0
 

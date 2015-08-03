@@ -10,6 +10,7 @@
 
 {% block head_block %}
     <script src="/static/jobs/js/notify.min.js"></script>
+    <script src="/static/jobs/js/common.js"></script>
     <script src="/static/users/js/users.js"></script>
     <link href="/static/users/css/style.css" rel="stylesheet">
 {% endblock %}
@@ -51,4 +52,6 @@
         <hr>
         <input type="submit" class="btn btn-success" name="submit" value="{% trans 'Save' %}">
     </form>
+    <hr>
+    {% include 'users/notifications.html' %}
 {% endblock %}

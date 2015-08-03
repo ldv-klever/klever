@@ -62,8 +62,17 @@ th {
     width: 300px;
 }
 
-#available_columns {
+#jobview_view_name_input {
+    width: 250px;
+    margin-left: 5px;
+}
+
+#jobview_available_views {
     max-width: 150px;
+}
+
+input[type=checkbox] {
+    margin-right: 3px;
 }
 
 .col-vertical-buttons {
@@ -72,7 +81,6 @@ th {
 }
 
 .dt-text {
-    /*white-space: pre-wrap;*/
     padding-left: 5px;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
@@ -150,13 +158,13 @@ body.loading .modal-loading {
 }
 
 .file-view-div div {
+    white-space: pre-wrap;
     position: fixed;
     top: 10%;
     left: 20%;
     height: 85%;
     width: 60%;
     overflow-y: auto;
-    white-space: pre-wrap;
     padding: 10px;
     background: rgba(255, 255, 255, 1);
 }
@@ -176,4 +184,8 @@ body.loading .modal-loading {
 body.file-view {
     overflow: hidden;
     display: block;
+}
+
+.view-job-column {
+    margin-left: 10px;
 }

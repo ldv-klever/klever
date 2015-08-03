@@ -107,34 +107,35 @@
             {% else %}
                 -
             {% endif %}
-            <br><br>
-            {% if verdict %}
-                <div class="row">
+            {% include 'jobs/viewJobFilters.html' %}
+            <div class="row">
+                {% if jobdata.view_data.unsafes|length %}
                     <div class="col-sm-6">
                         <span class="show-job-title"><b>{% trans 'Unsafes' %}: </b></span>
                         <ul>
-                            {% for v in verdict.unsafes %}
+                            {% for v in jobdata.view_data.unsafes %}
                                 <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
                             {% endfor %}
                         </ul>
                     </div>
+                {% endif %}
+                {% if jobdata.view_data.safes|length %}
                     <div class="col-sm-6">
                         <span class="show-job-title"><b>{% trans 'Safes' %}: </b></span>
                         <ul>
-                            {% for v in verdict.safes %}
+                            {% for v in jobdata.view_data.safes %}
                                 <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
                             {% endfor %}
                         </ul>
                     </div>
-                </div>
+                {% endif %}
+            </div>
 
-            {% endif %}
-
-            {% if unknowns %}
+            {% if jobdata.view_data.unknowns|length %}
                 <span class="show-job-title"><b>{% trans 'Unknowns' %}</b></span>
-                {% if verdict %}(<a href="#">{{ verdict.unknowns }}</a>){% endif %}
+                {% if jobdata.unknowns_total %}(<a href="#">{{ jobdata.unknowns_total }}</a>){% endif %}
                 <ul>
-                    {% for comp in unknowns %}
+                    {% for comp in jobdata.view_data.unknowns %}
                         <li>{{ comp.component }}</li>
                         <ul>
                         {% for probl in comp.problems %}
@@ -146,16 +147,45 @@
                 </ul>
             {% endif %}
 
-            {% if resources %}
+            {% if jobdata.view_data.resources|length %}
                 <span id="resource_title_span" class="show-job-title"><b>{% trans 'Resources' %}*</b></span>
                 <ul>
-                    {% for res_data in resources %}
+                    {% for res_data in jobdata.view_data.resources %}
                         <li>{{ res_data.component }}: <span style="color: darkblue">{{ res_data.val }}</span></li>
                     {% endfor %}
                 </ul>
             {% endif %}
 
-            <div id="resource_star_div"><hr><small style="color: #868686">*{% trans "Resources (wall time, CPU time and maximum memory) are shown for each component and totally" %}</small></div>
+            {% if jobdata.show_tags and jobdata.view_data.tags_unsafe|length and jobdata.view_data.tags_safe|length %}
+                <br><span class="show-job-title"><b>{% trans 'Tags' %}</b></span>
+                <div class="row">
+                    {% if jobdata.view_data.tags_unsafe|length %}
+                        <div class="col-sm-6">
+                            <span class="show-job-title"><small>{% trans 'Unsafe' %}: </small></span>
+                            <ul>
+                                {% for t in jobdata.view_data.tags_unsafe %}
+                                    <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    {% if jobdata.view_data.tags_safe|length %}
+                        <div class="col-sm-6">
+                            <span class="show-job-title"><small>{% trans 'Safe' %}: </small></span>
+                            <ul>
+                                {% for t in jobdata.view_data.tags_safe %}
+                                    <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div id="resource_star_div">
+                <hr>
+                <small style="color: #868686">*{% trans "Resources (wall time, CPU time and maximum memory) are shown for each component and totally" %}</small>
+            </div>
         </div>
         {% if can_edit %}
             <div id="edit_job_div" class="col-sm-7"></div>

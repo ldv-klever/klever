@@ -4,7 +4,7 @@ from django.utils.translation import activate
 from reports.models import *
 import jobs.job_functions as job_f
 from django.utils.translation import ugettext as _
-
+from django.http import HttpResponse
 
 @login_required
 def report_root(request, report_id):
@@ -213,7 +213,7 @@ def report_unknowns(request, report_id):
     # Node which we intend to get all unknowns leaves for.
     report = ReportComponent.objects.get(pk=int(report_id))
 
-    # Get all leaves..
+    # Get all leaves.
     unknowns_id = ReportComponentLeaf.objects.filter(report=report)
 
     # List of unknowns.
@@ -250,3 +250,47 @@ def report_unknowns(request, report_id):
             'title': _('Unknowns')
         }
     )
+
+
+@login_required
+def report_unsafe(request, report_id):
+    activate(request.user.extended.language)
+    user_tz = request.user.extended.timezone
+
+    unsafe = ReportUnsafe.objects.get(pk=int(report_id))
+
+    parents = {}
+    parents_attr = []
+    cur_report = unsafe.parent
+    while cur_report:
+        attrs = cur_report.attr.all()
+        for attr in attrs:
+            parents_attr.append(attr.name)
+        cur_report = cur_report.parent
+    parents_attr = set(parents_attr)
+    cur_report = unsafe.parent
+    while cur_report:
+        attr_values = []
+        for attr in parents_attr:
+            attr_values.append(cur_report.attr.all().filter(name=attr))
+        parents[ReportComponent.objects.get(pk=cur_report.id)] = attr_values
+        cur_report = cur_report.parent
+
+    attrs = ReportAttr.objects.filter(report=unsafe)
+
+    return render(
+        request,
+        'reports/report_unsafe.html',
+        {
+            'user_tz': user_tz,
+            'attrs': attrs,
+            'unsafe': unsafe,
+            'parents': parents,
+            'parents_attr': parents_attr,
+        }
+    )
+
+
+@login_required
+def upload(request):
+    return HttpResponse('')

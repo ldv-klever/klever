@@ -314,11 +314,15 @@ $(document).ready(function () {
             method: 'post',
             url: job_ajax_url + 'check_view_name/',
             dataType: 'json',
-            data: {view_title: view_title},
+            data: {
+                view_title: view_title,
+                view_type: '1'
+            },
             success: function(data) {
                 if (data.status) {
                     var request_data = collect_filter_data();
                     request_data['title'] = view_title;
+                    request_data['view_type'] = '1';
                     $.ajax({
                         method: 'post',
                         url: job_ajax_url + 'save_view/',
@@ -349,6 +353,7 @@ $(document).ready(function () {
     $('#update_view_btn').click(function () {
         var request_data = collect_filter_data();
         request_data['view_id'] = $('#available_views').children('option:selected').val();
+        request_data['view_type'] = '1';
         $.ajax({
             method: 'post',
             url: job_ajax_url + 'save_view/',
@@ -369,7 +374,10 @@ $(document).ready(function () {
             method: 'post',
             url: job_ajax_url + 'remove_view/',
             dataType: 'json',
-            data: {view_id: $('#available_views').children('option:selected').val()},
+            data: {
+                view_id: $('#available_views').children('option:selected').val(),
+                view_type: '1'
+            },
             success: function(data) {
                 if (data.status === 0) {
                     $('#available_views').children('option:selected').remove();
@@ -387,7 +395,10 @@ $(document).ready(function () {
             method: 'post',
             url: job_ajax_url + 'preferable_view/',
             dataType: 'json',
-            data: {view_id: $('#available_views').children('option:selected').val()},
+            data: {
+                view_id: $('#available_views').children('option:selected').val(),
+                view_type: '1'
+            },
             success: function(data) {
                 data.status === 0 ? success_notify(data.message) : err_notify(data.message);
             }

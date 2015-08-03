@@ -109,7 +109,7 @@ LANGUAGES = (
     ('ru', 'Русский'),
 )
 LOCALE_PATHS = (
-   os.path.join(BASE_DIR,  'locale'),
+    os.path.join(BASE_DIR,  'locale'),
 )
 
 TIME_ZONE = 'UTC'
@@ -120,6 +120,7 @@ USE_L10N = True
 
 USE_TZ = True
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/

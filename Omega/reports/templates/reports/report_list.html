@@ -17,7 +17,13 @@
     </tr>
     {% for report, value in reports_values.items %}
         <tr class="TableRawOdd">
-            <td>{{ report.id }}</td>
+            <td>
+                {% if title == "Unsafes" %}
+                    <a href="{% url 'reports:report_unsafe' report.id %}">{{ report.id }}</a>
+                {% else %}
+                    {{ report.id }}
+                {% endif %}
+            </td>
             {% for v in value %}
             <td>{{ v.0.attr.value }}</td>
             {% endfor %}

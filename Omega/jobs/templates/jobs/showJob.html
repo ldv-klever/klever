@@ -8,5 +8,7 @@
         <dt class="show-job-title">{% trans 'Parent identifier' %}:</dt>
         <dd style="color: #15c46b">{{ job.parent.identifier }}</dd><br>
     {% endif %}
+    {% if filedata|length %}
         <dt class="show-job-title">{% trans 'Files' %}:</dt><dd>{% include 'jobs/viewFileTable.html' %}</dd>
+    {% endif %}
 </dl>

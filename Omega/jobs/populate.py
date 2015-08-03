@@ -1,10 +1,12 @@
 import random
+import hashlib
+import pytz
 from time import sleep
-from django.contrib.auth.models import User
 from jobs.job_functions import create_job, update_job
-from jobs.job_model import Job
 from marks.models import UnsafeTag, SafeTag
 from jobs.models import MarkSafeTag, MarkUnsafeTag
+from reports.models import *
+from datetime import datetime, timedelta
 
 
 def clear_table(table):
@@ -88,6 +90,132 @@ def populate_tags():
                 mark_tag.save()
 
 
+def populate_root_report(username):
+    ReportRoot.objects.all().delete()
+    Component.objects.all().delete()
+    Computer.objects.all().delete()
+
+    components = ["DSCV", "RCV", "Reporter", "DEG"]
+    for comp_name in components:
+        component = Component()
+        component.name = comp_name
+        component.save()
+    computer = Computer()
+    computer.description = 'Intel® Core™ i7-3770 CPU @ 3.40GHz × 8 1.1TB'
+    computer.save()
+
+    cnt = 1
+    for job in Job.objects.all():
+        cnt += 1
+        resource = Resource()
+        resource.cpu_time = random.randint(0, 600000)
+        resource.wall_time = random.randint(0, 600000)
+        resource.memory = random.randint(0, 150000000)
+        resource.save()
+
+        root_report = ReportRoot()
+        root_report.parent = None
+        root_report.identifier = hashlib.md5(
+            ('%s%s' % (cnt, datetime.now().isoformat())).encode('utf8')
+        ).hexdigest()
+        root_report.resource = resource
+        root_report.component = Component.objects.all()[
+            random.randint(0, len(components) - 1)
+        ]
+        root_report.computer = computer
+        start_date = pytz.timezone('UTC').localize(datetime(
+            2015, 7, 31, random.randint(10, 15), random.randint(5, 50), 17
+        ))
+        root_report.start_date = start_date
+        root_report.last_request_date = start_date
+        root_report.finish_date = start_date + timedelta(
+            minutes=random.randint(5, 120)
+        )
+        root_report.user = User.objects.get(username=username)
+        root_report.job = job
+        root_report.save()
+
+
+def populate_verdicts():
+    for report in ReportComponent.objects.all():
+        verdict = Verdict()
+        verdict.report = report
+        verdict.unsafe = random.randint(0, 10)
+        verdict.unsafe_bug = random.randint(0, 10)
+        verdict.unsafe_target_bug = random.randint(0, 10)
+        verdict.unsafe_false_positive = random.randint(0, 10)
+        verdict.unsafe_unknown = random.randint(0, 10)
+        verdict.unsafe_unassociated = random.randint(0, 10)
+        verdict.unsafe_inconclusive = random.randint(0, 10)
+        verdict.safe = random.randint(0, 10)
+        verdict.safe_missed_bug = random.randint(0, 10)
+        verdict.safe_incorrect_proof = random.randint(0, 10)
+        verdict.safe_unknown = random.randint(0, 10)
+        verdict.safe_unassociated = random.randint(0, 10)
+        verdict.safe_inconclusive = random.randint(0, 10)
+        verdict.unknown = random.randint(0, 10)
+        verdict.save()
+
+
+def populate_resources():
+    for report in ReportComponent.objects.all():
+        resource = Resource()
+        resource.cpu_time = random.randint(0, 60000)
+        resource.wall_time = random.randint(0, 60000)
+        resource.memory = random.randint(0, 15000000)
+        resource.save()
+        comp_res = ComponentResource()
+        comp_res.report = report
+        comp_res.component = None
+        comp_res.resource = resource
+        comp_res.save()
+        for component in Component.objects.all():
+            resource = Resource()
+            resource.cpu_time = random.randint(0, 6000)
+            resource.wall_time = random.randint(0, 6000)
+            resource.memory = random.randint(0, 1500000)
+            resource.save()
+            comp_res = ComponentResource()
+            comp_res.report = report
+            comp_res.component = component
+            comp_res.resource = resource
+            comp_res.save()
+
+
+def populate_unknowns():
+    UnknownProblem.objects.all().delete()
+
+    for i in range(0, 15):
+        marked_problem = UnknownProblem()
+        marked_problem.name = "Problem %s" % str(i + 1)
+        marked_problem.save()
+
+    for report in ReportComponent.objects.all():
+        for component in Component.objects.all():
+            if random.randint(0, 10) > 6:
+                total = ComponentUnknown()
+                total.component = component
+                total.number = random.randint(1, 15)
+                total.report = report
+                total.save()
+                if random.randint(0, 10) > 4:
+                    unmarked_unknown = ComponentMarkUnknownProblem()
+                    unmarked_unknown.number = random.randint(1, 15)
+                    unmarked_unknown.component = component
+                    unmarked_unknown.problem = None
+                    unmarked_unknown.report = report
+                    unmarked_unknown.save()
+
+                for problem in UnknownProblem.objects.all():
+                    if random.randint(0, 10) > 6:
+                        marked_unknown = ComponentMarkUnknownProblem()
+                        marked_unknown.number = random.randint(1, 15)
+                        marked_unknown.problem = problem
+                        marked_unknown.component = component
+                        marked_unknown.report = report
+                        marked_unknown.save()
+
+
 def main_population(username):
     """
     To populate test data you need to:
@@ -100,4 +228,8 @@ def main_population(username):
     jobs.
     """
     populate_jobs(username)
+    populate_root_report(username)
+    populate_verdicts()
+    populate_resources()
+    populate_unknowns()
     populate_tags()

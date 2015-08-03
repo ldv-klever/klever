@@ -48,3 +48,9 @@ class PreferableView(models.Model):
 
     class Meta:
         db_table = "user_preferable_view"
+
+
+class Notifications(models.Model):
+    user = models.OneToOneField(User)
+    settings = models.CharField(max_length=255)
+    self_ntf = models.BooleanField(default=True)
