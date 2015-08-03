@@ -4,7 +4,7 @@ from django.utils.translation import activate
 from reports.models import *
 import jobs.job_functions as job_f
 from django.utils.translation import ugettext as _
-
+from django.http import HttpResponse
 
 @login_required
 def report_root(request, report_id):
@@ -289,3 +289,8 @@ def report_unsafe(request, report_id):
             'parents_attr': parents_attr,
         }
     )
+
+
+@login_required
+def upload(request):
+    return HttpResponse('')
