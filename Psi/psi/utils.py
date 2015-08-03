@@ -89,6 +89,10 @@ class Session:
         self.logger.info('Finish session for user "{0}" on server "{1}"'.format(self.user, self.name))
         self.__request('users/psi_signout/')
 
+    def upload_report(self, report_file):
+        with open(report_file) as fp:
+            self.__request('reports/upload/', 'POST', {'report': fp.read()})
+
 
 def dump_report(logger, kind, report):
     """
