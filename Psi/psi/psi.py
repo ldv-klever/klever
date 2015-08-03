@@ -10,6 +10,35 @@ import timeit
 import psi.utils
 
 
+class Component:
+    def __init__(self, logger, rel_path):
+        self.logger = logger
+        self.exec = os.path.join(os.path.dirname(__file__), rel_path)
+        self.work_dir = os.path.splitext(os.path.basename(self.exec))[0]
+        self.name = self.work_dir.upper()
+        self.process = None
+
+    def create_work_dir(self):
+        self.logger.debug(
+            'Create working directory "{0}" for component "{1}"'.format(self.work_dir, self.name))
+        os.makedirs(self.work_dir)
+
+    def get_callbacks(self):
+        self.logger.debug('Gather callbacks for component "{0}"'.format(self.name))
+        # We don't need to measure consumed resources here and can disregard launching in parallel since components
+        # produce callbacks quite fast.
+        subprocess.call([self.exec, '--get-callbacks'], cwd=self.work_dir)
+        # TODO: get callbacks!
+        return []
+
+    def start(self):
+        self.logger.info('Launch component "{0}"'.format(self.name))
+        self.process = subprocess.Popen([self.exec], cwd=self.work_dir)
+
+    def wait(self):
+        self.process.wait()
+
+
 class Psi:
     default_conf_file = 'psi-conf.json'
     job = {'format': 1}
@@ -20,8 +49,14 @@ class Psi:
         self.is_solving_file_fp = None
         self.logger = None
         self.session = None
+        self.components = None
 
     def __del__(self):
+        # Stop components
+        if self.components:
+            # TODO: stop components!
+            pass
+
         # Sign out from Omega.
         if self.session:
             self.session.sign_out()
@@ -96,7 +131,29 @@ class Psi:
 
         self.get_job_class()
 
-        # TODO: launch components.
+        self.logger.info('Prepare to launch components')
+        components = []
+        if self.job['class'] == 'Verification of Linux kernel modules':
+            components.extend([Component(self.logger, 'lkbce/lkbce.py'), Component(self.logger, 'lkvog/lkvog.py')])
+        # These components are likely appropriate for all classes.
+        components.extend([Component(self.logger, 'avtg/avtg.py'), Component(self.logger, 'vtg/vtg.py')])
+        self.logger.debug(
+            'Components to be launched: "{0}"'.format(
+                ', '.join([component.name for component in components])))
+        for component in components:
+            component.create_work_dir()
+
+        self.logger.info('Gather component callbacks')
+        callbacks = []
+        for component in components:
+            callbacks.extend(component.get_callbacks())
+
+        for component in components:
+            component.start()
+
+        self.logger.info('Wait for components')
+        for component in components:
+            component.wait()
 
         # TODO: remove cgroups.
 
