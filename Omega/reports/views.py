@@ -16,8 +16,9 @@ def report_root(request, report_id):
         delta = report.finish_date - report.start_date
     resources = ComponentResource.objects.filter(report=report)
     current_resource = ComponentResource()
-    current_resource.resource = report.resource
-    current_resource.component = report.component
+    if report.resource:
+        current_resource.resource = report.resource
+        current_resource.component = report.component
     children = ReportComponent.objects.filter(parent=report)
 
     children_attr = []
@@ -370,5 +371,5 @@ def report_unknown(request, report_id):
 
 
 @login_required
-def upload(request):
+def upload_report(request):
     return HttpResponse('')
