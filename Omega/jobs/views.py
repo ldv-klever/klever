@@ -794,6 +794,13 @@ def decide_job(request):
     report.job = job
     report.last_request_date = report.start_date
 
+    try:
+        # Update.
+        old_id = ReportRoot.objects.get(identifier=report.identifier).id
+        report.id = old_id
+    except ObjectDoesNotExist:
+        pass
+
     report.save()
 
     for attr_value in attr_values:
