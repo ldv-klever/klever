@@ -137,22 +137,20 @@ def launch():
         else:
             raise
     finally:
-        # Stop components
         if 'components' in locals():
             for component in components:
                 component.terminate()
 
-        _logger.info('Send terminator to reports message queue')
-        reports_mq.put('__terminator__')
+        if 'reports_mq' in locals():
+            _logger.info('Send terminator to reports message queue')
+            reports_mq.put('__terminator__')
 
-        _logger.info('Wait for uploading all reports')
-        reports_p.join()
+            _logger.info('Wait for uploading all reports')
+            reports_p.join()
 
-        # Sign out from Omega.
         if 'session' in locals():
             session.sign_out()
 
-        # Release working directory if it was occupied.
         if 'is_solving_file_fp' in locals() and not is_solving_file_fp.closed:
             if _logger:
                 _logger.info('Release working directory')
