@@ -1,4 +1,11 @@
 #!/usr/bin/python3
 
-if __name__ == '__main__':
+logger = None
+
+
+def get_callbacks():
+    logger.debug('Have not any callbacks yet')
+
+
+def launch():
     pass

@@ -2,5 +2,4 @@
 
 import psi.psi
 
-Psi = psi.psi.Psi()
-Psi.run()
+psi.psi.launch()
