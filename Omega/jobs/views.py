@@ -21,8 +21,7 @@ from jobs.viewjob_functions import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
 from users.models import View, PreferableView
-from reports.models import *
-from datetime import datetime
+from reports.views import upload_report
 
 
 @login_required
@@ -747,65 +746,7 @@ def decide_job(request):
 
     job_tar.memory.seek(0)
 
-    x = request.POST
-    json_start = json.loads(x['start report'])
-
-    # Attributes
-    attr_values = []
-    for attr_dict in json_start['attrs']:
-        # Only 1 element in attributes
-        if len(attr_dict) != 1:
-            return JsonResponse({
-                'error': 'Wrong attribute format "{0}"'.format(attr_dict)
-            })
-        for attr, value in attr_dict.items():
-            attr_name, stub = AttrName.objects.get_or_create(name=attr)
-            # Check if value is list
-            attr_value, stub = Attr.objects.get_or_create(name=attr_name, value=value)
-            attr_values.append(attr_value)
-
-    # Computer
-    computer_description = json_start['comp']
-    try:
-        computer = Computer.objects.get(description=computer_description)
-    except ObjectDoesNotExist:
-        computer = Computer(description=computer_description)
-        computer.save()
-
-    # Component
-    report_id = json_start['id']
-    component, stub = Component.objects.get_or_create(name=report_id)
-
-    # Report
-    report = ReportRoot()
-    report.identifier = request.POST['job id'] + report_id
-    report.parent = None
-    report.description = None  # ?
-
-    report.component = component
-    report.computer = computer
-    report.resource = None
-    report.log = None  # ?
-    report.data = None  # ?
-    report.start_date = datetime.now()
-    report.finish_date = None
-
-    report.user = request.user
-    report.job = job
-    report.last_request_date = report.start_date
-
-    try:
-        # Update.
-        old_id = ReportRoot.objects.get(identifier=report.identifier).id
-        report.id = old_id
-    except ObjectDoesNotExist:
-        pass
-
-    report.save()
-
-    for attr_value in attr_values:
-        report.attr.add(attr_value)
-    report.save()
+    upload_report(request)
 
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = 'attachment; filename={0}'.format(

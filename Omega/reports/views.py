@@ -4,7 +4,11 @@ from django.utils.translation import activate
 from reports.models import *
 import jobs.job_functions as job_f
 from django.utils.translation import ugettext as _
-from django.http import HttpResponse
+from _datetime import datetime
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+import json
+
 
 @login_required
 def report_root(request, report_id):
@@ -372,4 +376,77 @@ def report_unknown(request, report_id):
 
 @login_required
 def upload_report(request):
+
+    # Common part.
+    json_start = json.loads(request.POST['start report'])
+    is_root = False
+    if json_start['id'] == '/':
+        is_root = True
+
+    # Attributes
+    attr_values = []
+    for attr_dict in json_start['attrs']:
+        # Only 1 element in attributes
+        if len(attr_dict) != 1:
+            return JsonResponse({
+                'error': 'Wrong attribute format "{0}"'.format(attr_dict)
+            })
+        for attr, value in attr_dict.items():
+            attr_name, stub = AttrName.objects.get_or_create(name=attr)
+            # Check if value is list
+            attr_value, stub = Attr.objects.get_or_create(name=attr_name, value=value)
+            attr_values.append(attr_value)
+
+    # Computer
+    computer_description = json_start['comp']
+    if type(computer_description) is list:
+        computer_description = ''
+        for descr_attr in json_start['comp']:
+            for attr, value in descr_attr.items():
+                computer_description += attr + "='" + value + "'\n"
+    computer, stub = Computer.objects.get_or_create(description=computer_description)
+
+    # Component
+    report_id = json_start['id']
+    component, stub = Component.objects.get_or_create(name=report_id)
+
+    # Job
+    try:
+        job = Job.objects.get(identifier=request.POST['job id'],
+                              format=int(request.POST['job format']))
+    except ObjectDoesNotExist:
+        pass
+
+    # Report
+    if is_root:
+        report = ReportRoot()
+        report.identifier = request.POST['job id'] + report_id
+        report.parent = None
+        report.description = None
+
+        report.component = component
+        report.computer = computer
+        report.resource = None
+        report.log = None
+        report.data = None
+        report.start_date = datetime.now()
+        report.finish_date = None
+
+        report.user = request.user
+        report.job = job
+        report.last_request_date = report.start_date
+
+        try:
+            # Update.
+            old_id = ReportRoot.objects.get(identifier=report.identifier).id
+            report.id = old_id
+        except ObjectDoesNotExist:
+            pass
+
+        report.save()
+
+    for attr_value in attr_values:
+        report.attr.add(attr_value)
+    report.save()
+
     return HttpResponse('')
