@@ -1,10 +1,12 @@
 import argparse
+import io
 import getpass
 import json
 import multiprocessing
 import os
 import shutil
 import time
+import traceback
 
 import psi.components
 import psi.job
@@ -63,7 +65,7 @@ def launch():
         comp = psi.utils.get_comp_desc(_logger)
 
         start_report_file = psi.utils.dump_report(_logger, 'Psi', 'start',
-                                                  {'type': 'start', 'id': 'psi',
+                                                  {'type': 'start', 'id': '/',
                                                    'attrs': [{'psi version': version}],
                                                    'comp': comp})
 
@@ -116,21 +118,25 @@ def launch():
 
             time.sleep(1)
 
+        # TODO: finish report should be likely always created.
         with open(conf_file) as conf_fp:
             with open('log') as log_fp:
                 finish_report_file = psi.utils.dump_report(_logger, 'Psi', 'finish',
-                                      {'type': 'finish', 'id': 'psi',
-                                       'resources': psi.utils.count_consumed_resources(_logger, 'Psi', start_time),
-                                       'desc': conf_fp.read(),
-                                       'log': log_fp.read()})
-
-        pass
-
-        reports_mq.put(finish_report_file)
-    except Exception:
-        # TODO: send problem description to Omega.
-        if 'session' in locals():
-            pass
+                                                           {'type': 'finish', 'id': '/',
+                                                            'resources': psi.utils.count_consumed_resources(_logger,
+                                                                                                            'Psi',
+                                                                                                            start_time),
+                                                            'desc': conf_fp.read(),
+                                                            'log': log_fp.read()})
+                reports_mq.put(finish_report_file)
+    except Exception as e:
+        if 'reports_mq' in locals():
+            with io.StringIO() as fp:
+                traceback.print_tb(e.__traceback__, file=fp)
+                unknown_report_file = psi.utils.dump_report(_logger, 'Psi', 'unknown',
+                                                            {'type': 'unknown', 'id': 'unknown', 'parent id': '/',
+                                                             'problem desc': fp.getvalue()})
+            reports_mq.put(unknown_report_file)
 
         if _logger:
             _logger.exception('Catch exception')
