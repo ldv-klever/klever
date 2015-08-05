@@ -19,6 +19,7 @@ job_class_component_modules = {'Verification of Linux kernel modules': [psi.lkbc
 
 class Component:
     logger = None
+    reports_mq = None
 
     def __init__(self, module):
         self.module = module
@@ -81,7 +82,6 @@ class Component:
     def launch(self):
         self.logger.info('Launch component "{0}"'.format(self.name))
         self.start_time = time.time()
-        # TODO: send start component report to Omega.
         self.process = multiprocessing.Process(target=self.__launch)
         self.process.start()
 
@@ -93,7 +93,14 @@ class Component:
 
             self.logger.info('Change directory to "{0}" for component "{1}"'.format(self.work_dir, self.name))
             os.chdir(self.work_dir)
+
+            start_report_file = psi.utils.dump_report(self.logger, self.name, 'start',
+                                                      {'type': 'start', 'id': self.name, 'parent id': '/',
+                                                       'name': self.name})
+            self.reports_mq.put(os.path.relpath(start_report_file, self.module.conf['root id']))
+
             self.module.logger = psi.utils.get_logger(self.name, self.logger_conf)
+
             self.module.launch()
         except Exception:
             # TODO: send problem description to Omega.
