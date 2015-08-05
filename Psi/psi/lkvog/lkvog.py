@@ -1,7 +1,5 @@
 #!/usr/bin/python3
 
-import time
-
 logger = None
 
 
@@ -10,4 +8,6 @@ def get_callbacks():
 
 
 def launch():
-    time.sleep(10)
+    import time
+    time.sleep(3)
+    # exit(1)

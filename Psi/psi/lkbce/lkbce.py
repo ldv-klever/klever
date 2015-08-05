@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import time
 
 logger = None
 
@@ -9,5 +8,6 @@ def get_callbacks():
 
 
 def launch():
+    import time
     time.sleep(5)
-    exit(1)
+    # raise Exception('Die')

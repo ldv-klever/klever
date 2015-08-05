@@ -8,4 +8,5 @@ def get_callbacks():
 
 
 def launch():
-    pass
+    import time
+    time.sleep(1)

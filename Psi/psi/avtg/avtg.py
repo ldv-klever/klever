@@ -8,4 +8,5 @@ def get_callbacks():
 
 
 def launch():
-    pass
+    import math
+    return math.factorial(100000)
