@@ -4,7 +4,11 @@ from django.utils.translation import activate
 from reports.models import *
 import jobs.job_functions as job_f
 from django.utils.translation import ugettext as _
-from django.http import HttpResponse
+from _datetime import datetime
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+import json
+
 
 @login_required
 def report_root(request, report_id):
@@ -16,8 +20,9 @@ def report_root(request, report_id):
         delta = report.finish_date - report.start_date
     resources = ComponentResource.objects.filter(report=report)
     current_resource = ComponentResource()
-    current_resource.resource = report.resource
-    current_resource.component = report.component
+    if report.resource:
+        current_resource.resource = report.resource
+        current_resource.component = report.component
     children = ReportComponent.objects.filter(parent=report)
 
     children_attr = []
@@ -292,5 +297,156 @@ def report_unsafe(request, report_id):
 
 
 @login_required
-def upload(request):
+def report_safe(request, report_id):
+    activate(request.user.extended.language)
+    user_tz = request.user.extended.timezone
+
+    safe = ReportSafe.objects.get(pk=int(report_id))
+
+    parents = {}
+    parents_attr = []
+    cur_report = safe.parent
+    while cur_report:
+        attrs = cur_report.attr.all()
+        for attr in attrs:
+            parents_attr.append(attr.name)
+        cur_report = cur_report.parent
+    parents_attr = set(parents_attr)
+    cur_report = safe.parent
+    while cur_report:
+        attr_values = []
+        for attr in parents_attr:
+            attr_values.append(cur_report.attr.all().filter(name=attr))
+        parents[ReportComponent.objects.get(pk=cur_report.id)] = attr_values
+        cur_report = cur_report.parent
+
+    attrs = ReportAttr.objects.filter(report=safe)
+
+    return render(
+        request,
+        'reports/report_safe.html',
+        {
+            'user_tz': user_tz,
+            'attrs': attrs,
+            'safe': safe,
+            'parents': parents,
+            'parents_attr': parents_attr,
+        }
+    )
+
+
+@login_required
+def report_unknown(request, report_id):
+    activate(request.user.extended.language)
+    user_tz = request.user.extended.timezone
+
+    unknown = ReportUnknown.objects.get(pk=int(report_id))
+
+    parents = {}
+    parents_attr = []
+    cur_report = unknown.parent
+    while cur_report:
+        attrs = cur_report.attr.all()
+        for attr in attrs:
+            parents_attr.append(attr.name)
+        cur_report = cur_report.parent
+    parents_attr = set(parents_attr)
+    cur_report = unknown.parent
+    while cur_report:
+        attr_values = []
+        for attr in parents_attr:
+            attr_values.append(cur_report.attr.all().filter(name=attr))
+        parents[ReportComponent.objects.get(pk=cur_report.id)] = attr_values
+        cur_report = cur_report.parent
+
+    attrs = ReportAttr.objects.filter(report=unknown)
+
+    return render(
+        request,
+        'reports/report_unknown.html',
+        {
+            'user_tz': user_tz,
+            'attrs': attrs,
+            'unknown': unknown,
+            'parents': parents,
+            'parents_attr': parents_attr,
+        }
+    )
+
+
+@login_required
+def upload_report(request):
+
+    # Common part.
+    json_start = json.loads(request.POST['start report'])
+    is_root = False
+    if json_start['id'] == '/':
+        is_root = True
+
+    # Attributes
+    attr_values = []
+    for attr_dict in json_start['attrs']:
+        # Only 1 element in attributes
+        if len(attr_dict) != 1:
+            return JsonResponse({
+                'error': 'Wrong attribute format "{0}"'.format(attr_dict)
+            })
+        for attr, value in attr_dict.items():
+            attr_name, stub = AttrName.objects.get_or_create(name=attr)
+            # Check if value is list
+            attr_value, stub = Attr.objects.get_or_create(name=attr_name, value=value)
+            attr_values.append(attr_value)
+
+    # Computer
+    computer_description = json_start['comp']
+    if type(computer_description) is list:
+        computer_description = ''
+        for descr_attr in json_start['comp']:
+            for attr, value in descr_attr.items():
+                computer_description += attr + "='" + value + "'\n"
+    computer, stub = Computer.objects.get_or_create(description=computer_description)
+
+    # Component
+    report_id = json_start['id']
+    component, stub = Component.objects.get_or_create(name=report_id)
+
+    # Job
+    try:
+        job = Job.objects.get(identifier=request.POST['job id'],
+                              format=int(request.POST['job format']))
+    except ObjectDoesNotExist:
+        pass
+
+    # Report
+    if is_root:
+        report = ReportRoot()
+        report.identifier = request.POST['job id'] + report_id
+        report.parent = None
+        report.description = None
+
+        report.component = component
+        report.computer = computer
+        report.resource = None
+        report.log = None
+        report.data = None
+        report.start_date = datetime.now()
+        report.finish_date = None
+
+        report.user = request.user
+        report.job = job
+        report.last_request_date = report.start_date
+
+        try:
+            # Update.
+            old_id = ReportRoot.objects.get(identifier=report.identifier).id
+            report.id = old_id
+        except ObjectDoesNotExist:
+            pass
+
+        report.save()
+
+    for attr_value in attr_values:
+        report.attr.add(attr_value)
+    report.save()
+
     return HttpResponse('')

@@ -21,6 +21,7 @@ from jobs.viewjob_functions import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
 from users.models import View, PreferableView
+from reports.views import upload_report
 
 
 @login_required
@@ -744,6 +745,8 @@ def decide_job(request):
         })
 
     job_tar.memory.seek(0)
+
+    upload_report(request)
 
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = 'attachment; filename={0}'.format(
