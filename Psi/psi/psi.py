@@ -127,13 +127,6 @@ def launch():
         pass
 
         reports_mq.put(finish_report_file)
-
-        # TODO: if something will go wrong, we will not send all reports to Omega.
-        _logger.info('Send terminator to reports message queue')
-        reports_mq.put('__terminator__')
-
-        _logger.info('Wait for uploading all reports')
-        reports_p.join()
     except Exception:
         # TODO: send problem description to Omega.
         if 'session' in locals():
@@ -148,6 +141,12 @@ def launch():
         if 'components' in locals():
             for component in components:
                 component.terminate()
+
+        _logger.info('Send terminator to reports message queue')
+        reports_mq.put('__terminator__')
+
+        _logger.info('Wait for uploading all reports')
+        reports_p.join()
 
         # Sign out from Omega.
         if 'session' in locals():
