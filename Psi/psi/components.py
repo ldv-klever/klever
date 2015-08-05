@@ -68,9 +68,11 @@ class Component:
             return 1
 
         if self.process.exitcode:
+            # TODO: send problem description to Omega.
             self.logger.error('Component "{0}" exited with "{1}"'.format(self.name, self.process.exitcode))
             raise ChildProcessError('Component "{0}" failed'.format(self.name))
         elif self.process.exitcode == 0:
+            # TODO: send finish component report to Omega.
             self.logger.debug('Component "{0}" exitted normally'.format(self.name))
 
         return 0
@@ -78,6 +80,7 @@ class Component:
     def launch(self):
         self.logger.info('Launch component "{0}"'.format(self.name))
         self.start_time = time.time()
+        # TODO: send start component report to Omega.
         self.process = multiprocessing.Process(target=self.__launch)
         self.process.start()
 
