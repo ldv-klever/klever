@@ -1,6 +1,7 @@
 import argparse
 import getpass
 import json
+import multiprocessing
 import os
 import resource
 import shutil
@@ -72,7 +73,9 @@ def launch():
 
         # TODO: create parallel process to send requests about successful operation to Omega.
 
-        # TODO: create parallel process (1) to send requests with reports from reports message queue to Omega.
+        reports_mq = multiprocessing.Queue()
+        reports_p = multiprocessing.Process(target=_send_reports, args=(session, reports_mq))
+        reports_p.start()
 
         job.extract_archive()
 
@@ -84,6 +87,7 @@ def launch():
 
         # Use Psi logger to report events that are common to all components.
         psi.components.Component.logger = _logger
+        psi.components.Component.reports_mq = reports_mq
 
         callbacks = []
         # Following activities aren't launched in parallel since they are quite fast.
@@ -115,18 +119,22 @@ def launch():
 
         with open(conf_file) as conf_fp:
             with open('log') as log_fp:
-                psi.utils.dump_report(_logger, 'finish',
+                finish_report_file = psi.utils.dump_report(_logger, 'finish',
                                       {'type': 'finish', 'id': 'psi',
-                                       'resources': _count_consumed_resources(start_time), 'desc': conf_fp.read(),
+                                       'resources': psi.utils.count_consumed_resources(_logger, 'Psi', start_time),
+                                       'desc': conf_fp.read(),
                                        'log': log_fp.read()})
 
         pass
 
-        # TODO: send request about successful decision of job to Omega.
+        reports_mq.put(finish_report_file)
 
-        # TODO: send terminator to reports message queue
+        # TODO: if something will go wrong, we will not send all reports to Omega.
+        _logger.info('Send terminator to reports message queue')
+        reports_mq.put('__terminator__')
 
-        # TODO: wait for completion of (1)
+        _logger.info('Wait for uploading all reports')
+        reports_p.join()
     except Exception:
         # TODO: send problem description to Omega.
         if 'session' in locals():
@@ -281,3 +289,13 @@ def _prepare_work_dir():
     # Occupy working directory until the end of operation.
     # Yes there may be race condition, but it won't be.
     return is_solving_file, open(is_solving_file, 'w')
+
+
+def _send_reports(session, reports_mq):
+    while True:
+        m = reports_mq.get()
+        if m == '__terminator__':
+            _logger.debug('Report messages queue was terminated')
+            break
+        _logger.debug('Upload report "{0}"'.format(m))
+        session.upload_report(m)
