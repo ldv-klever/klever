@@ -1,3 +1,4 @@
+import json
 import multiprocessing
 import os
 import re
@@ -86,6 +87,10 @@ class Component:
 
     def __launch(self):
         try:
+            self.logger.info('Read configuration for component "{0}"'.format(self.name))
+            with open('components conf.json') as fp:
+                self.module.conf = json.load(fp)
+
             self.logger.info('Change directory to "{0}" for component "{1}"'.format(self.work_dir, self.name))
             os.chdir(self.work_dir)
             self.module.logger = psi.utils.get_logger(self.name, self.logger_conf)
