@@ -10,7 +10,7 @@
         <label for="job_version_selector" class="show-job-title">{% trans 'You can choose one of the previous versions' %}</label>
         <select id="job_version_selector" class="form-control">
             {% for jv in job_versions %}
-                <option title="{{ jv.comment }}" value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
+                <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
             {% endfor %}
         </select>
         <label class="show-job-title">{% trans 'or change the job' %}:</label>
@@ -102,5 +102,7 @@
     </select>
     <button id="remove_user_role__" class="btn-close-x"><span class="glyphicon glyphicon-remove"></span></button>
 </div>
-<div id="comment_required_div" hidden>{% trans "Change's comment is required" %}</div>
-<div id="title_required_div" hidden>{% trans 'Title is required' %}</div>
+<div id="error__comment_required" hidden>{% trans "Change's comment is required" %}</div>
+<div id="error__title_required" hidden>{% trans 'Title is required' %}</div>
+<div id="error__cant_move_dir" hidden>{% trans "You can't move folder" %}</div>
+<div id="error__nofile_selected" hidden>{% trans "Please choose the file" %}</div>

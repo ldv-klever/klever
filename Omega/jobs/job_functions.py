@@ -425,7 +425,6 @@ class JobArchive(object):
 
     def __init__(self, job=None, hash_sum=None, user=None, full=True):
         self.lockfile = DOWNLOAD_LOCKFILE
-        self.workdir = 'TARcreation'
         self.full = full
         self.jobtar_name = ''
         self.job = job
@@ -556,10 +555,7 @@ class JobArchive(object):
         jobtar_obj.close()
 
     def __prepare_workdir(self):
-        self.workdir = os.path.join(settings.MEDIA_ROOT, self.workdir)
-        if not os.path.isdir(self.workdir):
-            os.mkdir(self.workdir)
-        self.lockfile = os.path.join(self.workdir, self.lockfile)
+        self.lockfile = os.path.join(settings.MEDIA_ROOT, self.lockfile)
         if not os.path.isfile(self.lockfile):
             f = open(self.lockfile, 'w')
             f.write('unlocked')

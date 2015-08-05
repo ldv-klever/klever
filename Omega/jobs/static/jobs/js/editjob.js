@@ -47,7 +47,7 @@ function check_filename(str) {
             return false;
         }
     }
-    err_notify("Name is required!");
+    err_notify($('#error__name_requred').text());
     return false;
 }
 
@@ -144,7 +144,7 @@ function set_actions_for_edit_form () {
             user_roles = [], job_id, job_id_input = $('#job_id_input');
 
         if (title.length === 0) {
-            err_notify($('#title_required_div').html());
+            err_notify($('#error__title_required').text());
             title_input.focus();
             return false;
         }
@@ -165,7 +165,7 @@ function set_actions_for_edit_form () {
         if (job_coment.length) {
             comment = job_coment.val();
             if (comment.length === 0) {
-                err_notify($('#comment_required_div').html());
+                err_notify($('#error__comment_required').text());
                 job_coment.focus();
                 return false;
             }
@@ -287,7 +287,7 @@ function load_new_files() {
             });
         });
     }
-    $('#results').html('');
+    $('#results').empty();
     return success;
 }
 
@@ -314,7 +314,7 @@ function collect_filetable_data() {
             if (type === '1') {
                 hash_sum = $('#file_hash_sum__' + type + '__' + row_id).html();
                 if (hash_sum.length === 0) {
-                    err_notify("One of the files was not uploaded!");
+                    err_notify($('#error__file_not_uploaded').text());
                     success = false;
                     return false;
                 }
@@ -399,7 +399,7 @@ function update_treegrid() {
         expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
     });
     $('input[id^="selected_filerow__"]').click(function () {
-        $('#edit_files_form').html('');
+        $('#edit_files_form').empty();
     });
 }
 
@@ -474,12 +474,12 @@ function set_actions_for_file_form() {
                     );
                 }
                 update_treegrid();
-                $('#edit_files_form').html('');
+                $('#edit_files_form').empty();
             }
         });
 
         $('#clear_file_form').click(function () {
-            $('#edit_files_form').html('');
+            $('#edit_files_form').empty();
         });
     });
 
@@ -502,12 +502,12 @@ function set_actions_for_file_form() {
                 var new_title = $('#object_name').val();
                 if (check_filename(new_title)) {
                     title_span.html(new_title);
-                    $('#edit_files_form').html('');
+                    $('#edit_files_form').empty();
                 }
             });
 
              $('#clear_file_form').click(function () {
-                $('#edit_files_form').html('');
+                $('#edit_files_form').empty();
             });
         }
     });
@@ -519,7 +519,7 @@ function set_actions_for_file_form() {
             var sel_type = selected[0],
                 sel_id = selected[1];
             if (sel_type != '1') {
-                err_notify("Can't move folder.");
+                err_notify($('#error__cant_move_dir').text());
                 return false;
             }
             add_new_editform('move_object_template');
@@ -555,11 +555,11 @@ function set_actions_for_file_form() {
                 }
                 update_treegrid();
                 set_action_on_file_click();
-                $('#edit_files_form').html('');
+                $('#edit_files_form').empty();
             });
 
             $('#clear_file_form').click(function () {
-                $('#edit_files_form').html('');
+                $('#edit_files_form').empty();
             });
         }
     });
@@ -604,11 +604,11 @@ function set_actions_for_file_form() {
                     $('#new_file_input__' + objects_for_delete[i]).remove();
                 }
                 update_treegrid();
-                $('#edit_files_form').html('');
+                $('#edit_files_form').empty();
             });
 
             $('#clear_file_form').click(function () {
-                $('#edit_files_form').html('');
+                $('#edit_files_form').empty();
             });
         }
     });
@@ -648,16 +648,16 @@ function set_actions_for_file_form() {
                     $('#files_for_upload').append(file_input);
 
                     update_treegrid();
-                    $('#edit_files_form').html('');
+                    $('#edit_files_form').empty();
                 }
             }
             else {
-                err_notify("Choose the file!");
+                err_notify($('#error__nofile_selected').text());
             }
         });
 
         $('#clear_file_form').click(function () {
-            $('#edit_files_form').html('');
+            $('#edit_files_form').empty();
         });
     });
 

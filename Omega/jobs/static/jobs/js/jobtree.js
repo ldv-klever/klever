@@ -450,7 +450,7 @@ $(document).ready(function () {
             }
         }
         else {
-            err_notify("Please select jobs you want to download.")
+            err_notify($('#error__no_jobs_to_download').text());
         }
     });
 
@@ -467,13 +467,13 @@ $(document).ready(function () {
         var file_input = $('#upload_job_file_input');
         file_input.replaceWith(file_input.clone( true ));
         $('#upload_job_parent_id').val('');
-        $('#upload_job_filename').html('');
+        $('#upload_job_filename').empty();
     });
 
     $('#upload_jobs_start').click(function () {
         var parent_id = $('#upload_job_parent_id').val();
         if (parent_id.length === 0) {
-            err_notify('Parent identifier is required!');
+            err_notify($('#error__parent_required').text());
             return false;
         }
         var files = $('#upload_job_file_input')[0].files,

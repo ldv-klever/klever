@@ -290,16 +290,10 @@ def edit_job(request):
                 j.change_author.extended.last_name,
                 j.change_author.extended.first_name,
             )
-            version_comment = j.comment
-            if len(version_comment) > 30:
-                version_comment = version_comment[:27]
-                version_comment += '...'
-            if len(version_comment):
-                title += ': ' + version_comment
+            title += ': ' + j.comment
         job_versions.append({
             'version': j.version,
-            'title': title,
-            'comment': j.comment,
+            'title': title
         })
 
     parent_identifier = None
