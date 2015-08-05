@@ -4,7 +4,7 @@ from django.utils.translation import activate
 from reports.models import *
 import jobs.job_functions as job_f
 from django.utils.translation import ugettext as _
-
+from django.http import HttpResponse
 
 @login_required
 def report_root(request, report_id):
@@ -289,3 +289,86 @@ def report_unsafe(request, report_id):
             'parents_attr': parents_attr,
         }
     )
+
+
+@login_required
+def report_safe(request, report_id):
+    activate(request.user.extended.language)
+    user_tz = request.user.extended.timezone
+
+    safe = ReportSafe.objects.get(pk=int(report_id))
+
+    parents = {}
+    parents_attr = []
+    cur_report = safe.parent
+    while cur_report:
+        attrs = cur_report.attr.all()
+        for attr in attrs:
+            parents_attr.append(attr.name)
+        cur_report = cur_report.parent
+    parents_attr = set(parents_attr)
+    cur_report = safe.parent
+    while cur_report:
+        attr_values = []
+        for attr in parents_attr:
+            attr_values.append(cur_report.attr.all().filter(name=attr))
+        parents[ReportComponent.objects.get(pk=cur_report.id)] = attr_values
+        cur_report = cur_report.parent
+
+    attrs = ReportAttr.objects.filter(report=safe)
+
+    return render(
+        request,
+        'reports/report_safe.html',
+        {
+            'user_tz': user_tz,
+            'attrs': attrs,
+            'safe': safe,
+            'parents': parents,
+            'parents_attr': parents_attr,
+        }
+    )
+
+
+@login_required
+def report_unknown(request, report_id):
+    activate(request.user.extended.language)
+    user_tz = request.user.extended.timezone
+
+    unknown = ReportUnknown.objects.get(pk=int(report_id))
+
+    parents = {}
+    parents_attr = []
+    cur_report = unknown.parent
+    while cur_report:
+        attrs = cur_report.attr.all()
+        for attr in attrs:
+            parents_attr.append(attr.name)
+        cur_report = cur_report.parent
+    parents_attr = set(parents_attr)
+    cur_report = unknown.parent
+    while cur_report:
+        attr_values = []
+        for attr in parents_attr:
+            attr_values.append(cur_report.attr.all().filter(name=attr))
+        parents[ReportComponent.objects.get(pk=cur_report.id)] = attr_values
+        cur_report = cur_report.parent
+
+    attrs = ReportAttr.objects.filter(report=unknown)
+
+    return render(
+        request,
+        'reports/report_unknown.html',
+        {
+            'user_tz': user_tz,
+            'attrs': attrs,
+            'unknown': unknown,
+            'parents': parents,
+            'parents_attr': parents_attr,
+        }
+    )
+
+
+@login_required
+def upload(request):
+    return HttpResponse('')

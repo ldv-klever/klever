@@ -20,6 +20,10 @@
             <td>
                 {% if title == "Unsafes" %}
                     <a href="{% url 'reports:report_unsafe' report.id %}">{{ report.id }}</a>
+                {% elif title == "Safes" %}
+                    <a href="{% url 'reports:report_safe' report.id %}">{{ report.id }}</a>
+                {% elif title == "Unknowns" %}
+                    <a href="{% url 'reports:report_unknown' report.id %}">{{ report.id }}</a>
                 {% else %}
                     {{ report.id }}
                 {% endif %}

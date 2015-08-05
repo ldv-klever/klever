@@ -7,7 +7,7 @@
 {% block body_block %}
 
 <div class="col-sm-10">
-    {{ unsafe.error_trace_processed |safe }}
+    {{ safe.proof }}
 </div>
 
 <div class="col-sm-10">
@@ -53,6 +53,6 @@
         {% endfor %}
     </table>
 
-    {{ unsafe.description }}
+    {{ safe.description }}
 </div>
 {% endblock %}
