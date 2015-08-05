@@ -92,7 +92,8 @@ class Component:
             self.module.launch()
         except Exception:
             # TODO: send problem description to Omega.
-            self.logger.exception('Component "{0}" raised exception'.format(self.name))
+            self.module.logger.exception('Catch exception')
+            self.logger.error('Component "{0}" raised exception'.format(self.name))
             exit(1)
 
     def set_logger_conf(self, conf):
