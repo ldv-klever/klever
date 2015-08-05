@@ -5,20 +5,20 @@ import subprocess
 import sys
 
 
-def dump_report(logger, kind, report):
+def dump_report(logger, name, kind, report):
     """
     Dump the specified report of the specified kind to a file.
     :param logger: a logger for printing debug messages.
     :param kind: a report kind (a file where a report will be dumped will be named "kind report.json").
     :param report: a report object (usually it should be a dictionary).
     """
-    logger.info('Dump {0} report'.format(kind))
+    logger.info('Dump {0} report for "{1}"'.format(kind, name))
 
     report_file = '{0} report.json'.format(kind)
     with open(report_file, 'w') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
 
-    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), report_file))
+    logger.debug('{0} report for "{1}" was dumped to file "{2}"'.format(kind.capitalize(), name, report_file))
 
     return report_file
 

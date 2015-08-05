@@ -63,7 +63,7 @@ def launch():
 
         comp = psi.utils.get_comp_desc(_logger)
 
-        start_report_file = psi.utils.dump_report(_logger, 'start',
+        start_report_file = psi.utils.dump_report(_logger, 'Psi', 'start',
                                                   {'type': 'start', 'id': 'psi',
                                                    'attrs': [{'psi version': version}],
                                                    'comp': comp})
@@ -119,7 +119,7 @@ def launch():
 
         with open(conf_file) as conf_fp:
             with open('log') as log_fp:
-                finish_report_file = psi.utils.dump_report(_logger, 'finish',
+                finish_report_file = psi.utils.dump_report(_logger, 'Psi', 'finish',
                                       {'type': 'finish', 'id': 'psi',
                                        'resources': psi.utils.count_consumed_resources(_logger, 'Psi', start_time),
                                        'desc': conf_fp.read(),
