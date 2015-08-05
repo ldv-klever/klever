@@ -86,12 +86,12 @@ def launch():
 
         # Use Psi logger to report events that are common to all components.
         psi.components.Component.logger = _logger
+        # Use the same reports MQ in all components.
         psi.components.Component.reports_mq = reports_mq
 
         callbacks = []
         # Following activities aren't launched in parallel since they are quite fast.
         for component in components:
-            component.set_logger_conf(_conf['logging'])
             component.create_work_dir()
             callbacks.extend(component.get_callbacks())
 

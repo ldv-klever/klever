@@ -25,7 +25,6 @@ class Component:
     def __init__(self, module):
         self.module = module
         self.name = re.search(r'^.*\.(.+)$', self.module.__name__).groups()[0].upper()
-        self.logger_conf = None
         self.work_dir = None
         self.start_time = None
         self.process = None
@@ -54,9 +53,15 @@ class Component:
     # We don't need to measure consumed resources here.
     def __get_callbacks(self):
         try:
+            self.logger.info('Read configuration for component "{0}"'.format(self.name))
+            with open('components conf.json') as fp:
+                self.module.conf = json.load(fp)
+
             self.logger.info('Change directory to "{0}" for component "{1}"'.format(self.work_dir, self.name))
             os.chdir(self.work_dir)
-            self.module.logger = psi.utils.get_logger(self.name, self.logger_conf)
+
+            self.module.logger = psi.utils.get_logger(self.name, self.module.conf['logging'])
+
             self.module.get_callbacks()
         except Exception:
             # TODO: send problem description to Omega.
@@ -99,7 +104,7 @@ class Component:
                                                        'name': self.name})
             self.reports_mq.put(os.path.relpath(start_report_file, self.module.conf['root id']))
 
-            self.module.logger = psi.utils.get_logger(self.name, self.logger_conf)
+            self.module.logger = psi.utils.get_logger(self.name, self.module.conf['logging'])
 
             self.module.launch()
 
@@ -112,15 +117,11 @@ class Component:
                                                                 'desc': desc_fp.read(),
                                                                 'log': log_fp.read()})
             self.reports_mq.put(os.path.relpath(finish_report_file, self.module.conf['root id']))
-
         except Exception:
             # TODO: send problem description to Omega.
             self.module.logger.exception('Catch exception')
             self.logger.error('Component "{0}" raised exception'.format(self.name))
             exit(1)
-
-    def set_logger_conf(self, conf):
-        self.logger_conf = conf
 
     def terminate(self):
         if not self.process:
