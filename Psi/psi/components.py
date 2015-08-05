@@ -75,7 +75,6 @@ class Component:
             self.logger.error('Component "{0}" exited with "{1}"'.format(self.name, self.process.exitcode))
             raise ChildProcessError('Component "{0}" failed'.format(self.name))
         elif self.process.exitcode == 0:
-            # TODO: send finish component report to Omega.
             self.logger.debug('Component "{0}" exitted normally'.format(self.name))
 
         return 0
