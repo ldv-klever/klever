@@ -156,30 +156,32 @@
                 </ul>
             {% endif %}
 
-            {% if jobdata.show_tags and jobdata.view_data.tags_unsafe|length and jobdata.view_data.tags_safe|length %}
-                <br><span class="show-job-title"><b>{% trans 'Tags' %}</b></span>
-                <div class="row">
-                    {% if jobdata.view_data.tags_unsafe|length %}
-                        <div class="col-sm-6">
-                            <span class="show-job-title"><small>{% trans 'Unsafe' %}: </small></span>
-                            <ul>
-                                {% for t in jobdata.view_data.tags_unsafe %}
-                                    <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                    {% if jobdata.view_data.tags_safe|length %}
-                        <div class="col-sm-6">
-                            <span class="show-job-title"><small>{% trans 'Safe' %}: </small></span>
-                            <ul>
-                                {% for t in jobdata.view_data.tags_safe %}
-                                    <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    {% endif %}
-                </div>
+            {% if jobdata.show_tags %}
+                {% if jobdata.view_data.tags_unsafe|length or jobdata.view_data.tags_safe|length %}
+                    <br><span class="show-job-title"><b>{% trans 'Tags' %}</b></span>
+                    <div class="row">
+                        {% if jobdata.view_data.tags_unsafe|length %}
+                            <div class="col-sm-6">
+                                <span class="show-job-title"><small>{% trans 'Unsafe' %}: </small></span>
+                                <ul>
+                                    {% for t in jobdata.view_data.tags_unsafe %}
+                                        <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        {% if jobdata.view_data.tags_safe|length %}
+                            <div class="col-sm-6">
+                                <span class="show-job-title"><small>{% trans 'Safe' %}: </small></span>
+                                <ul>
+                                    {% for t in jobdata.view_data.tags_safe %}
+                                        <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
             {% endif %}
 
             <div id="resource_star_div">

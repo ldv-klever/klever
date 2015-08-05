@@ -1,5 +1,5 @@
 from django import forms
-from jobs.models import Job, File
+from jobs.models import File
 
 
 class FileForm(forms.ModelForm):
