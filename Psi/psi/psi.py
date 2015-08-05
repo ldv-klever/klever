@@ -3,7 +3,6 @@ import getpass
 import json
 import multiprocessing
 import os
-import resource
 import shutil
 import time
 
@@ -169,23 +168,6 @@ def _check_another_psi(is_solving_file):
     """
     if os.path.isfile(is_solving_file):
         raise FileExistsError('Another Psi occupies working directory "{0}"'.format(_conf['work dir']))
-
-
-def _count_consumed_resources(start_time):
-    """
-    Count resources (wall time, CPU time and maximum memory size) consumed by Psi without its childred.
-    Note that launching under PyCharm gives its maximum memory size.
-    :return: resources.
-    """
-    _logger.info('Count consumed resources')
-    utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
-    resources = {'wall time': round(100 * (time.time() - start_time)),
-                 'CPU time': round(100 * (utime + stime)),
-                 'max mem size': 1000 * maxrss}
-    _logger.debug('Consumed resources are:')
-    for res in sorted(resources):
-        _logger.debug('    {0} - {1}'.format(res, resources[res]))
-    return resources
 
 
 def _create_components_conf_file(comp):

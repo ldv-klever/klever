@@ -1,3 +1,4 @@
+import io
 import json
 import multiprocessing
 import os
@@ -102,6 +103,17 @@ class Component:
             self.module.logger = psi.utils.get_logger(self.name, self.logger_conf)
 
             self.module.launch()
+
+            with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
+                with open('log') as log_fp:
+                    finish_report_file = psi.utils.dump_report(self.logger, self.name, 'finish',
+                                                               {'type': 'finish', 'id': 'psi',
+                                                                'resources': psi.utils.count_consumed_resources(
+                                                                    self.logger, self.name, self.start_time),
+                                                                'desc': desc_fp.read(),
+                                                                'log': log_fp.read()})
+            self.reports_mq.put(os.path.relpath(finish_report_file, self.module.conf['root id']))
+
         except Exception:
             # TODO: send problem description to Omega.
             self.module.logger.exception('Catch exception')

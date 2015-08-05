@@ -1,8 +1,27 @@
 import json
 import logging
 import os.path
+import resource
 import subprocess
 import sys
+import time
+
+
+def count_consumed_resources(logger, name, start_time):
+    """
+    Count resources (wall time, CPU time and maximum memory size) consumed by the process without its childred.
+    Note that launching under PyCharm gives its maximum memory size rather than the process one.
+    :return: resources.
+    """
+    logger.info('Count consumed resources for "{0}"'.format(name))
+    utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
+    resources = {'wall time': round(100 * (time.time() - start_time)),
+                 'CPU time': round(100 * (utime + stime)),
+                 'max mem size': 1000 * maxrss}
+    logger.debug('"{0}" consumed the following resources:'.format(name))
+    for res in sorted(resources):
+        logger.debug('    {0} - {1}'.format(res, resources[res]))
+    return resources
 
 
 def dump_report(logger, name, kind, report):
