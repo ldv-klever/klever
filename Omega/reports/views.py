@@ -395,6 +395,7 @@ def upload_report(request, is_root=False):
     json_start = json.loads(request.POST['report'])
 
     # Current report identifier suffix
+    # TODO: check presence of all necessary attributes: 'id' can be absent!
     report_id = json_start['id']
 
     # Job
@@ -473,9 +474,9 @@ def upload_report(request, is_root=False):
     description = None
     data = None
     if 'log' in json_start:
-        log = json_start['log']
-    if 'description' in json_start:
-        description = json_start['description']
+        log = json_start['log'].encode('utf8')
+    if 'desc' in json_start:
+        description = json_start['desc'].encode('utf8')
     if 'data' in json_start:
         data = json_start['data']
 
