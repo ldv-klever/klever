@@ -5,7 +5,7 @@ from marks.models import UnknownProblem
 
 
 class AttrName(models.Model):
-    name = models.CharField(max_length=31)
+    name = models.CharField(max_length=63)
 
     class Meta:
         db_table = 'attr_name'
@@ -54,12 +54,12 @@ class Resource(models.Model):
 
 class ReportComponent(Report):
     computer = models.ForeignKey(Computer, related_name='+')
-    resource = models.ForeignKey(Resource, related_name='+')
+    resource = models.ForeignKey(Resource, related_name='+', null=True)
     component = models.ForeignKey(Component, related_name='+')
     log = models.BinaryField(null=True)
     data = models.BinaryField(null=True)
     start_date = models.DateTimeField()
-    finish_date = models.DateTimeField()
+    finish_date = models.DateTimeField(null=True)
 
     class Meta:
         db_table = 'report_component'

@@ -11,5 +11,5 @@ urlpatterns = [
     url(r'^unsafe/(?P<report_id>[0-9]+)/$', views.report_unsafe, name='report_unsafe'),
     url(r'^safe/(?P<report_id>[0-9]+)/$', views.report_safe, name='report_safe'),
     url(r'^unknown/(?P<report_id>[0-9]+)/$', views.report_unknown, name='report_unknown'),
-    url(r'^upload/$', views.upload),
+    url(r'^upload/$', views.upload_report),
 ]
