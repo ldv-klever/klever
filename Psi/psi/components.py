@@ -115,14 +115,16 @@ class Component:
 
             self.module.launch()
         except Exception as e:
-            with io.StringIO() as fp:
-                traceback.print_tb(e.__traceback__, file=fp)
-                unknown_report_file = psi.utils.dump_report(self.logger, self.name, 'unknown',
-                                                            {'id': 'unknown', 'parent id': self.name,
-                                                             'problem desc': fp.getvalue()})
-                self.reports_mq.put(os.path.relpath(unknown_report_file, self.module.conf['root id']))
+            # Write traceback to file with problem description rather than create unknown report. Psi will create
+            # unknown report itself when it will see exit code 1.
+            with io.StringIO() as tb_fp:
+                traceback.print_tb(e.__traceback__, file=tb_fp)
+                with open('problem desc', 'w') as problem_desc_fp:
+                    problem_desc_fp.write(tb_fp.getvalue())
+
             self.module.logger.exception('Catch exception')
             self.logger.error('Component "{0}" raised exception'.format(self.name))
+
             exit(1)
         finally:
             with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
