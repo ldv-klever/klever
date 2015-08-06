@@ -115,17 +115,6 @@ def launch():
                 break
 
             time.sleep(1)
-
-        # TODO: finish report should be likely always created.
-        with open(conf_file) as conf_fp:
-            with open('log') as log_fp:
-                finish_report_file = psi.utils.dump_report(_logger, 'Psi', 'finish',
-                                                           {'id': '/',
-                                                            'resources': psi.utils.count_consumed_resources(
-                                                                _logger, 'Psi', start_time),
-                                                            'desc': conf_fp.read(),
-                                                            'log': log_fp.read()})
-                reports_mq.put(finish_report_file)
     except Exception as e:
         if 'reports_mq' in locals():
             with io.StringIO() as fp:
@@ -145,6 +134,16 @@ def launch():
                 component.terminate()
 
         if 'reports_mq' in locals():
+            with open(conf_file) as conf_fp:
+                with open('log') as log_fp:
+                    finish_report_file = psi.utils.dump_report(_logger, 'Psi', 'finish',
+                                                               {'id': '/',
+                                                                'resources': psi.utils.count_consumed_resources(
+                                                                    _logger, 'Psi', start_time),
+                                                                'desc': conf_fp.read(),
+                                                                'log': log_fp.read()})
+                    reports_mq.put(finish_report_file)
+
             _logger.info('Send terminator to reports message queue')
             reports_mq.put('__terminator__')
 
