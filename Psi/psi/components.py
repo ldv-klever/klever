@@ -3,6 +3,7 @@ import json
 import multiprocessing
 import os
 import re
+import signal
 import time
 import traceback
 
@@ -100,6 +101,11 @@ class Component:
 
     def __launch(self):
         try:
+            # Specially process SIGTERM since it can be sent by Psi when some other component(s) failed. Official
+            # documentation says that exit handlers and finally clauses, etc., will not be executed. But we still need
+            # to count consumed resources and create finish report - all this is done in self.__finalize().
+            signal.signal(signal.SIGTERM, self.__finalize)
+
             self.logger.info('Read configuration for component "{0}"'.format(self.name))
             with open('components conf.json') as fp:
                 self.module.conf = json.load(fp)
@@ -127,17 +133,25 @@ class Component:
 
             exit(1)
         finally:
-            with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
-                with open('log') as log_fp:
-                    finish_report_file = psi.utils.dump_report(self.logger, self.name, 'finish',
-                                                               {'id': self.name,
-                                                                'resources': psi.utils.count_consumed_resources(
-                                                                    self.logger,
-                                                                    self.name,
-                                                                    self.start_time),
-                                                                'desc': desc_fp.read(),
-                                                                'log': log_fp.read()})
-                    self.reports_mq.put(os.path.relpath(finish_report_file, self.module.conf['root id']))
+            self.__finalize()
+
+    def __finalize(self, signum=None, frame=None):
+        with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
+            with open('log') as log_fp:
+                finish_report_file = psi.utils.dump_report(self.logger, self.name, 'finish',
+                                                           {'id': self.name,
+                                                            'resources': psi.utils.count_consumed_resources(
+                                                                self.logger,
+                                                                self.name,
+                                                                self.start_time),
+                                                            'desc': desc_fp.read(),
+                                                            'log': log_fp.read()})
+            self.reports_mq.put(os.path.relpath(finish_report_file, self.module.conf['root id']))
+
+        # Don't forget to terminate itself if somebody tries to do such.
+        if signum:
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+            os.kill(self.process.pid, signal.SIGTERM)
 
     def terminate(self):
         if not self.process:
@@ -147,21 +161,8 @@ class Component:
         if self.process.is_alive():
             self.process.terminate()
             # Official documentation says that exit handlers and finally clauses, etc., will not be executed. So we need
-            # to create unknown and finish reports ourselves. It has especial sense since terminated components can
-            # operate properly and we should report that we are terminating them rather than report they were terminated
-            # unexpectedly.
-            # TODO: resources will be calculated improperly.
-            with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
-                with open(os.path.join(self.work_dir, 'log')) as log_fp:
-                    finish_report_file = psi.utils.dump_report(self.logger, self.name, 'finish',
-                                                               {'id': self.name,
-                                                                'resources': psi.utils.count_consumed_resources(
-                                                                    self.logger,
-                                                                    self.name,
-                                                                    self.start_time),
-                                                                'desc': desc_fp.read(),
-                                                                'log': log_fp.read()}, self.work_dir)
-                    self.reports_mq.put(finish_report_file)
+            # to create unknown report ourselves. It has especial sense since terminated components can operate properly
+            # and we should report that we are terminating them rather than report they were terminated unexpectedly.
             unknown_report_file = psi.utils.dump_report(self.logger, self.name, 'unknown',
                                                         {'id': 'unknown', 'parent id': self.name,
                                                          'problem desc': 'Terminated since some other component(s) failed'},
