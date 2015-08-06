@@ -77,7 +77,7 @@ class Session:
             resp = self.__request('jobs/decide_job/', 'POST', {
                 'job id': job['id'],
                 'job format': job['format'],
-                'start report': fp.read(),
+                'report': fp.read(),
                 'hash sum': resp.json()['hash_sum']
             }, stream=True)
 

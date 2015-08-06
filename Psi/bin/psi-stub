@@ -30,19 +30,19 @@ session.decide_job({'format': 1, 'id': '025f5f199d7e5ff31b65b476aed507f4', 'arch
 # Start components.
 session.upload_report(psi.utils.dump_report(logger, 'bce start',
                                             {'type': 'start', 'id': 'bce', 'name': 'bce', 'parent id': '/',
-                                             'comp': comp}))
+                                             }))
 session.upload_report(psi.utils.dump_report(logger, 'vog start',
                                             {'type': 'start', 'id': 'vog', 'name': 'vog', 'parent id': '/',
-                                             'comp': comp}))
+                                            }))
 session.upload_report(psi.utils.dump_report(logger, 'avtg start',
                                             {'type': 'start', 'id': 'avtg', 'name': 'avtg', 'parent id': '/',
-                                             'comp': comp}))
+                                             }))
 session.upload_report(psi.utils.dump_report(logger, 'vtg start',
                                             {'type': 'start', 'id': 'vtg', 'name': 'vtg', 'parent id': '/',
-                                             'comp': comp}))
+                                            }))
 session.upload_report(psi.utils.dump_report(logger, 'vtsc start',
                                             {'type': 'start', 'id': 'vtsc', 'name': 'vtsc', 'parent id': '/',
-                                             'comp': comp}))
+                                            }))
 
 # Upload components attributes.
 attrs = []
@@ -60,34 +60,34 @@ attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'mut
 session.upload_report(psi.utils.dump_report(logger, 'deg11 start',
                                             {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/mutex/deg',
                                              'attrs': attrs, 'name': 'deg',
-                                             'parent id': 'avtg', 'comp': comp}))
+                                             'parent id': 'avtg'}))
 session.upload_report(psi.utils.dump_report(logger, 'ri11 start',
                                             {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/mutex/ri',
                                              'attrs': attrs, 'name': 'ri',
-                                             'parent id': 'avtg', 'comp': comp}))
+                                             'parent id': 'avtg'}))
 attrs = [{'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'mutex'}]
 session.upload_report(psi.utils.dump_report(logger, 'deg21 start',
                                             {'type': 'start', 'id': 'drivers/usb/usb-common.ko/mutex/deg',
                                              'attrs': attrs, 'name': 'deg',
-                                             'parent id': 'avtg', 'comp': comp}))
+                                             'parent id': 'avtg'}))
 session.upload_report(psi.utils.dump_report(logger, 'ri21 start',
                                             {'type': 'start', 'id': 'drivers/usb/usb-common.ko/mutex/ri',
                                              'attrs': attrs, 'name': 'ri',
-                                             'parent id': 'avtg', 'comp': comp}))
+                                             'parent id': 'avtg'}))
 attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'spin lock'}]
 session.upload_report(psi.utils.dump_report(logger, 'deg12 start',
                                             {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/spin lock/deg',
                                              'attrs': attrs, 'name': 'deg',
-                                             'parent id': 'avtg', 'comp': comp}))
+                                             'parent id': 'avtg'}))
 session.upload_report(psi.utils.dump_report(logger, 'ri12 start',
                                             {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/spin lock/ri',
                                              'attrs': attrs, 'name': 'ri',
-                                             'parent id': 'avtg', 'comp': comp}))
+                                             'parent id': 'avtg'}))
 attrs = [{'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'spin lock'}]
 session.upload_report(psi.utils.dump_report(logger, 'deg22 start',
                                             {'type': 'start', 'id': 'drivers/usb/usb-commmon.ko/spin lock/deg',
                                              'attrs': attrs, 'name': 'deg',
-                                             'parent id': 'avtg', 'comp': comp}))
+                                             'parent id': 'avtg'}))
 # Surprise! RI22 isn't started since DEG22 is going to fail. Keep in touch!
 pass
 
@@ -117,11 +117,9 @@ session.upload_report(psi.utils.dump_report(logger, 'ri12 finish',
                                             {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/spin lock/ri',
                                              'resources': resources()}))
 session.upload_report(psi.utils.dump_report(logger, 'deg22 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/usb-common.ko/spin lock/deg',
+                                            {'type': 'finish', 'id': 'drivers/usb/usb-commmon.ko/spin lock/deg',
                                              'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'ri22 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/usb-common.ko/spin lock/ri',
-                                             'resources': resources()}))
+
 # As promised DEG22 fails.
 session.upload_report(psi.utils.dump_report(logger, 'deg22 problem',
                                             {'type': 'unknown', 'id': 'unknown',
@@ -133,17 +131,17 @@ attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'mut
 session.upload_report(psi.utils.dump_report(logger, 'wrapper11 start',
                                             {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/mutex',
                                              'attrs': attrs, 'name': '"wrapper"',
-                                             'parent id': 'vtg', 'comp': comp}))
+                                             'parent id': 'vtg'}))
 attrs = [{'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'mutex'}]
 session.upload_report(psi.utils.dump_report(logger, 'wrapper21 start',
                                             {'type': 'start', 'id': 'drivers/usb/usb-commmon.ko/mutex',
                                              'attrs': attrs, 'name': '"wrapper"',
-                                             'parent id': 'vtg', 'comp': comp}))
+                                             'parent id': 'vtg'}))
 attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'spin lock'}]
 session.upload_report(psi.utils.dump_report(logger, 'wrapper12 start',
                                             {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/spin lock',
                                              'attrs': attrs, 'name': '"wrapper"',
-                                             'parent id': 'vtg', 'comp': comp}))
+                                             'parent id': 'vtg'}))
 # As expected "WRAPPER22" isn't started at all since DEG22 has failed.
 pass
 
