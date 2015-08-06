@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+conf = None
 logger = None
 
 
