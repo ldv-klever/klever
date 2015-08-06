@@ -1,19 +1,19 @@
-var do_not_count = "resource|format|version|type|identifier|parent_id|name|author|date|status";
+var do_not_count = ['resource', 'format', 'version', 'type', 'identifier',
+    'parent_id', 'name', 'author', 'date', 'status'];
 
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (!cell_id_data[1].match(do_not_count)) {
+        if ($.inArray(cell_id_data[1], do_not_count) == -1) {
             cell_id_data[0] = 'value';
-            var value_start = "td[id^='" + cell_id_data.join('__') + "__']",
-                sum = 0, have_numbers = false;
-            $(value_start).each(function () {
-                var num = parseInt($(this).children('span').first().html());
+            var sum = 0, have_numbers = false;
+            $("td[id^='" + cell_id_data.join('__') + "__']").each(function () {
+                var num = parseInt($(this).children().first().text());
                 isNaN(num) ? num = 0 : have_numbers = true;
                 sum += num;
             });
-            if (have_numbers === true) {
-                $(this).html(sum);
+            if (have_numbers) {
+                $(this).text(sum);
             }
         }
     });
@@ -22,19 +22,18 @@ function fill_all_values() {
 function fill_checked_values() {
     $("td[id^='checked__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (!cell_id_data[1].match(do_not_count)) {
+        if ($.inArray(cell_id_data[1], do_not_count) == -1) {
             cell_id_data[0] = 'value';
-            var value_start = "td[id^='" + cell_id_data.join('__') + "__']",
-                sum = 0, have_numbers = false, is_checked = false;
-            $(value_start).each(function() {
+            var sum = 0, have_numbers = false, is_checked = false;
+            $("td[id^='" + cell_id_data.join('__') + "__']").each(function() {
                 if ($('#job_checkbox__' + $(this).attr('id').split('__').slice(-1)[0]).is(':checked')) {
                     is_checked = true;
-                    var num = parseInt($(this).children('span').first().html());
+                    var num = parseInt($(this).children().first().html());
                     isNaN(num) ? num = 0 : have_numbers = true;
                     sum += num;
                 }
             });
-            (have_numbers === true && is_checked === true) ? $(this).html(sum) : $(this).html('-');
+            (have_numbers === true && is_checked === true) ? $(this).text(sum) : $(this).text('-');
         }
     });
 }
