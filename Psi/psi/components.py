@@ -4,6 +4,7 @@ import multiprocessing
 import os
 import re
 import time
+import traceback
 
 import psi.utils
 
@@ -106,8 +107,13 @@ class Component:
             self.module.logger = psi.utils.get_logger(self.name, self.module.conf['logging'])
 
             self.module.launch()
-        except Exception:
-            # TODO: send problem description to Omega.
+        except Exception as e:
+            with io.StringIO() as fp:
+                traceback.print_tb(e.__traceback__, file=fp)
+                unknown_report_file = psi.utils.dump_report(self.logger, self.name, 'unknown',
+                                                            {'id': 'unknown', 'parent id': '/',
+                                                             'problem desc': fp.getvalue()})
+                self.reports_mq.put(os.path.relpath(unknown_report_file, self.module.conf['root id']))
             self.module.logger.exception('Catch exception')
             self.logger.error('Component "{0}" raised exception'.format(self.name))
             exit(1)
