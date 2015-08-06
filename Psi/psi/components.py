@@ -121,12 +121,10 @@ class Component:
 
             self.module.launch()
         except Exception as e:
-            # Write traceback to file with problem description rather than create unknown report. Psi will create
-            # unknown report itself when it will see exit code 1.
-            with io.StringIO() as tb_fp:
-                traceback.print_tb(e.__traceback__, file=tb_fp)
-                with open('problem desc', 'w') as problem_desc_fp:
-                    problem_desc_fp.write(tb_fp.getvalue())
+            # Write information on exception to file with problem description rather than create unknown report. Psi
+            # will create unknown report itself when it will see exit code 1.
+            with open('problem desc', 'w') as fp:
+                traceback.print_exc(file=fp)
 
             self.module.logger.exception('Catch exception')
             self.logger.error('Component "{0}" raised exception'.format(self.name))

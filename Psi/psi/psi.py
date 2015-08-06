@@ -1,5 +1,4 @@
 import argparse
-import io
 import getpass
 import json
 import multiprocessing
@@ -120,11 +119,13 @@ def launch():
         _exit_code = 1
 
         if 'reports_mq' in locals():
-            with io.StringIO() as fp:
-                traceback.print_tb(e.__traceback__, file=fp)
+            with open('problem desc', 'w') as fp:
+                traceback.print_exc(file=fp)
+
+            with open('problem desc') as fp:
                 unknown_report_file = psi.utils.dump_report(_logger, 'Psi', 'unknown',
                                                             {'id': 'unknown', 'parent id': '/',
-                                                             'problem desc': fp.getvalue()})
+                                                             'problem desc': fp.read()})
                 reports_mq.put(unknown_report_file)
 
         if _logger:
