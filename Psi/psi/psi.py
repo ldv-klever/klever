@@ -122,7 +122,7 @@ def launch():
                 unknown_report_file = psi.utils.dump_report(_logger, 'Psi', 'unknown',
                                                             {'id': 'unknown', 'parent id': '/',
                                                              'problem desc': fp.getvalue()})
-            reports_mq.put(unknown_report_file)
+                reports_mq.put(unknown_report_file)
 
         if _logger:
             _logger.exception('Catch exception')
