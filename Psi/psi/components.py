@@ -77,7 +77,8 @@ class Component:
             return 1
 
         if self.process.exitcode:
-            with open('problem desc') if os.path.isfile('problem desc') else io.StringIO('') as fp:
+            problem_desc_file = os.path.join(self.work_dir, 'problem desc')
+            with open(problem_desc_file) if os.path.isfile(problem_desc_file) else io.StringIO('') as fp:
                 unknown_report_file = psi.utils.dump_report(self.logger, self.name, 'unknown',
                                                             {'id': 'unknown', 'parent id': self.name,
                                                              'problem desc': fp.read()}, self.work_dir)
