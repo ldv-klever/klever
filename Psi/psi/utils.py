@@ -34,6 +34,8 @@ def dump_report(logger, name, kind, report, dir=''):
     logger.info('Dump {0} report for "{1}"'.format(kind, name))
 
     report_file = os.path.join(dir, '{0} report.json'.format(kind))
+    if os.path.isfile(report_file):
+        raise FileExistsError('Report file "{0}" already exists'.format(os.path.abspath(report_file)))
 
     # Specify report type.
     report.update({'type': kind})
