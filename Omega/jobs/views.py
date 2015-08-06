@@ -715,7 +715,7 @@ def decide_job(request):
         return JsonResponse({'error': 'Job identifier is not specified'})
     if 'job format' not in request.POST:
         return JsonResponse({'error': 'Job format is not specified'})
-    if 'start report' not in request.POST:
+    if 'report' not in request.POST:
         return JsonResponse({'error': 'Start report is not specified'})
     if 'hash sum' not in request.POST:
         return JsonResponse({'error': 'Hash sum is not specified'})
@@ -723,6 +723,7 @@ def decide_job(request):
     try:
         job = Job.objects.get(identifier=request.POST['job id'],
                               format=int(request.POST['job format']))
+        request.session['job_id'] = job.id
     except ObjectDoesNotExist:
         return JsonResponse({
             'error': 'Job with the specified identifier "{0}" was not found'
@@ -746,7 +747,7 @@ def decide_job(request):
 
     job_tar.memory.seek(0)
 
-    upload_report(request)
+    upload_report(request, is_root=True)
 
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = 'attachment; filename={0}'.format(
