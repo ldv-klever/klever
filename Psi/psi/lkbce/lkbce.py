@@ -8,6 +8,4 @@ def get_callbacks():
 
 
 def launch():
-    import time
-    time.sleep(5)
-    # raise Exception('Die')
+    pass
