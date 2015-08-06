@@ -24,7 +24,7 @@ def count_consumed_resources(logger, name, start_time):
     return resources
 
 
-def dump_report(logger, name, kind, report):
+def dump_report(logger, name, kind, report, dir=''):
     """
     Dump the specified report of the specified kind to a file.
     :param logger: a logger for printing debug messages.
@@ -32,8 +32,12 @@ def dump_report(logger, name, kind, report):
     :param report: a report object (usually it should be a dictionary).
     """
     logger.info('Dump {0} report for "{1}"'.format(kind, name))
-    report_file = '{0} report.json'.format(kind)
+
+    report_file = os.path.join(dir, '{0} report.json'.format(kind))
+
+    # Specify report type.
     report.update({'type': kind})
+
     with open(report_file, 'w') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
 
