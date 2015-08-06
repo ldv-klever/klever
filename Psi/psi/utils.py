@@ -14,13 +14,16 @@ def count_consumed_resources(logger, name, start_time):
     :return: resources.
     """
     logger.info('Count consumed resources for "{0}"'.format(name))
+
     utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
     resources = {'wall time': round(100 * (time.time() - start_time)),
                  'CPU time': round(100 * (utime + stime)),
                  'max mem size': 1000 * maxrss}
+
     logger.debug('"{0}" consumed the following resources:'.format(name))
     for res in sorted(resources):
         logger.debug('    {0} - {1}'.format(res, resources[res]))
+
     return resources
 
 
@@ -46,6 +49,18 @@ def dump_report(logger, name, kind, report, dir=''):
     logger.debug('{0} report for "{1}" was dumped to file "{2}"'.format(kind.capitalize(), name, report_file))
 
     return report_file
+
+
+def find_file(logger, root_id, file):
+    search_dirs = (os.path.join(root_id, 'job/root'), os.path.join(root_id, os.path.pardir))
+
+    for search_dir in search_dirs:
+        found_file = os.path.join(search_dir, file)
+        if os.path.isfile(found_file):
+            logger.debug('Find file "{0}" in directory "{0}"'.format(file, search_dir))
+            return found_file
+
+    raise FileExistsError('Could not find file "{0}" in directories "{1}"'.format(file, ', '.join(search_dirs)))
 
 
 def get_comp_desc(logger):
