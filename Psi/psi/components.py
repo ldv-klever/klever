@@ -106,7 +106,12 @@ class Component:
             self.module.logger = psi.utils.get_logger(self.name, self.module.conf['logging'])
 
             self.module.launch()
-
+        except Exception:
+            # TODO: send problem description to Omega.
+            self.module.logger.exception('Catch exception')
+            self.logger.error('Component "{0}" raised exception'.format(self.name))
+            exit(1)
+        finally:
             with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
                 with open('log') as log_fp:
                     finish_report_file = psi.utils.dump_report(self.logger, self.name, 'finish',
@@ -117,12 +122,7 @@ class Component:
                                                                     self.start_time),
                                                                 'desc': desc_fp.read(),
                                                                 'log': log_fp.read()})
-            self.reports_mq.put(os.path.relpath(finish_report_file, self.module.conf['root id']))
-        except Exception:
-            # TODO: send problem description to Omega.
-            self.module.logger.exception('Catch exception')
-            self.logger.error('Component "{0}" raised exception'.format(self.name))
-            exit(1)
+                    self.reports_mq.put(os.path.relpath(finish_report_file, self.module.conf['root id']))
 
     def terminate(self):
         if not self.process:
