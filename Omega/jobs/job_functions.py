@@ -831,7 +831,10 @@ def create_job(kwargs):
         if db_fdata.err_message is not None:
             newjob.delete()
             return db_fdata.err_message
-    Notify(newjob, 0)
+    if 'absolute_url' in kwargs:
+        Notify(kwargs['job'], 0, {'absurl': kwargs['absolute_url']})
+    else:
+        Notify(kwargs['job'], 0)
     return newjob
 
 
@@ -859,7 +862,10 @@ def update_job(kwargs):
             kwargs['job'].version -= 1
             kwargs['job'].save()
             return db_fdata.err_message
-    Notify(kwargs['job'], 1)
+    if 'absolute_url' in kwargs:
+        Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
+    else:
+        Notify(kwargs['job'], 1)
     return kwargs['job']
 
 
@@ -876,7 +882,30 @@ def remove_jobs_by_id(user, job_ids):
     for job in jobs:
         Notify(job, 2)
         job.delete()
+    clear_files()
     return 0
+
+
+def delete_versions(job, versions):
+    access_versions = []
+    for v in versions:
+        v = int(v)
+        if v != 1 and v != job.version:
+            access_versions.append(v)
+    checked_versions = job.jobhistory_set.filter(version__in=access_versions)
+    num_of_deleted = len(checked_versions)
+    checked_versions.delete()
+    clear_files()
+    return num_of_deleted
+
+
+def clear_files():
+    deleted = []
+    for file in File.objects.all():
+        if len(file.filesystem_set.all()) == 0:
+            deleted.append(file.file.name)
+            file.delete()
+    return deleted
 
 
 def check_new_parent(job, parent):

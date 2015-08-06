@@ -24,8 +24,14 @@ SUBJECTS = {
 }
 
 MESSAGES = {
-    0: _('Job with identifier %(id)s was created by %(user)s.'),
-    1: _('Job with identifier %(id)s was changed by %(user)s.'),
+    0: [
+        _('Job <a href="%(url)s">%(id)s</a> was created by %(user)s.'),
+        _('Job with identifier %(id)s was created by %(user)s.')
+    ],
+    1: [
+        _('Job <a href="%(url)s">%(id)s</a> was changed by %(user)s: %(comm)s'),
+        _('Job with identifier %(id)s was changed by %(user)s: %(comm)s')
+    ],
     2: _("Job with identifier %(id)s was deleted by %(user)s."),
     3: _("Job with identifier %(id)s has just started to decide."),
     4: _("Verification job with identifier %(id)s deciding has finished"),
@@ -39,20 +45,21 @@ MESSAGES = {
 
 
 class Notify(object):
-    def __init__(self, job, ntf_type):
+    def __init__(self, job, ntf_type, add_args=None):
         self.server = 'motor.intra.ispras.ru'
         self.omega_email = 'omega-noreply@ispras.ru'
         self.type = ntf_type
         self.job = job
         if isinstance(job, Job):
-            self.__notify()
+            self.__notify(add_args)
 
-    def __notify(self):
+    def __notify(self, add_args):
         s = smtplib.SMTP(self.server)
         for user in User.objects.filter(
                 ~Q(notifications__settings='[]') & ~Q(notifications=None)):
             if user.email is not None and len(user.email) > 0:
-                message = UserMessage(user, self.job, self.type).message
+                message = UserMessage(
+                    user, self.job, self.type, add_args).message
                 activate(user.extended.language)
                 if isinstance(message, MIMEText):
                     message['From'] = self.omega_email
@@ -65,8 +72,9 @@ class Notify(object):
 
 class UserMessage(object):
 
-    def __init__(self, user, job, ntf_type):
+    def __init__(self, user, job, ntf_type, add_args):
         self.user = user
+        self.args = add_args
         try:
             self.type = int(ntf_type)
         except ValueError:
@@ -118,7 +126,46 @@ class UserMessage(object):
         if self.change_user == self.user and not self_notify:
             return None
 
-        if self.type in [0, 1, 2]:
+        if self.type == 0:
+            if self.args is not None and 'absurl' in self.args:
+                msg = MESSAGES[0][0] % {
+                    'url': self.args['absurl'],
+                    'id': job.identifier,
+                    'user': ("%s %s" % (
+                        self.change_user.extended.last_name,
+                        self.change_user.extended.first_name
+                    ))
+                }
+            else:
+                msg = MESSAGES[0][1] % {
+                    'id': job.identifier,
+                    'user': ("%s %s" % (
+                        self.change_user.extended.last_name,
+                        self.change_user.extended.first_name
+                    ))
+                }
+        elif self.type == 1:
+            if self.args is not None and 'absurl' in self.args:
+                msg = MESSAGES[1][0] % {
+                    'url': self.args['absurl'],
+                    'id': job.identifier,
+                    'user': ("%s %s" % (
+                        self.change_user.extended.last_name,
+                        self.change_user.extended.first_name
+                    )),
+                    'comm': job.jobhistory_set.get(version=job.version).comment
+                }
+            else:
+                msg = MESSAGES[1][1] % {
+                    'id': job.identifier,
+                    'user': ("%s %s" % (
+                        self.change_user.extended.last_name,
+                        self.change_user.extended.first_name
+                    )),
+                    'comm': job.jobhistory_set.get(
+                        version=job.version).comment
+                }
+        elif self.type == 2:
             msg = MESSAGES[self.type] % {
                 'id': job.identifier,
                 'user': ("%s %s" % (
@@ -136,7 +183,7 @@ class UserMessage(object):
                 self.is_observer and ('%s_2' % self.type) in settings or \
                 self.is_expert and ('%s_3' % self.type) in settings or \
                 self.is_manager and ('%s_4' % self.type) in settings:
-            mime_msg = MIMEText(msg)
+            mime_msg = MIMEText(msg, 'html')
             mime_msg['To'] = self.user.email
             mime_msg['Subject'] = "%s" % SUBJECTS[self.type]
             return mime_msg
@@ -175,7 +222,7 @@ class NotifyData(object):
                        _('Manager')]
         table_data = {
             'colspan': len(row_headers),
-            'head_0': _('Me'),
+            'head_0': _('I am'),
             'head_1': row_headers,
             'rows': [],
             'footer': _('Notify about my changes')

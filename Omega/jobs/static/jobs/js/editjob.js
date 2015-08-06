@@ -65,7 +65,7 @@ function check_add_user_role() {
 function remove_user_role_form (id) {
     $('#job_available_users').append($('<option>', {
         value: id,
-        text: $("label[for='job_user_role_select__" + id + "']").html()
+        text: $("label[for='job_user_role_select__" + id + "']").text()
     }));
     $('#job_user_role__' + id).remove();
 }
@@ -81,7 +81,7 @@ function set_actions_for_edit_form () {
         if (selected_user.length === 0) {
             return false;
         }
-        var user_id = selected_user.val(), user_name = selected_user.html();
+        var user_id = selected_user.val(), user_name = selected_user.text();
         var user_role_templ = $('#template__user_role').html();
         var new_user_role = $('<tr>', {
             id: ('job_user_role__' + user_id)
@@ -92,7 +92,7 @@ function set_actions_for_edit_form () {
         tmp_tr.find("[for=job_user_role_select__]").each(function () {
             var old_id = $(this).attr('for');
             $(this).attr('for', old_id + user_id);
-            $(this).html(user_name);
+            $(this).text(user_name);
         });
 
         // new_user_role.append(user_role_templ);
@@ -208,9 +208,7 @@ function set_actions_for_edit_form () {
                 data.status === 0 ? window.location.replace('/jobs/' + data.job_id + '/'):err_notify(data.message);
             },
             "json"
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
+        );
     });
 
     $('#job_version_selector').change(function () {
@@ -239,7 +237,7 @@ function get_folders() {
         var folder_id = $(this).attr('id').replace('selected_filerow__0__', '');
         var new_option = $('<option>', {
             value: folder_id,
-            text: $('#file_title__0__' + folder_id).html()
+            text: $('#file_title__0__' + folder_id).text()
         });
         options.push(new_option);
     });
@@ -269,7 +267,7 @@ function load_new_files() {
                     if (data.status === 0) {
                         var file_hashsum = $('#file_hash_sum__1__' + curr_id);
                         if (file_hashsum.length) {
-                            file_hashsum.html(data.hash_sum);
+                            file_hashsum.text(data.hash_sum);
                             current_input.remove();
                         }
                         else {
@@ -306,13 +304,13 @@ function collect_filetable_data() {
                 title,
                 object_title_span = $('#file_title__' + type + '__' + row_id);
             if (object_title_span.children('a').length > 0) {
-                title = object_title_span.children('a').first().html();
+                title = object_title_span.children('a').first().text();
             }
             else {
-                title = object_title_span.html();
+                title = object_title_span.text();
             }
             if (type === '1') {
-                hash_sum = $('#file_hash_sum__' + type + '__' + row_id).html();
+                hash_sum = $('#file_hash_sum__' + type + '__' + row_id).text();
                 if (hash_sum.length === 0) {
                     err_notify($('#error__file_not_uploaded').text());
                     success = false;
@@ -491,17 +489,17 @@ function set_actions_for_file_form() {
             var title_span = $('#file_title__' + selected[0] + '__' + selected[1]);
             var old_title;
             if (title_span.children('a').length > 0) {
-                old_title = title_span.children('a').first().html();
+                old_title = title_span.children('a').first().text();
             }
             else {
-                old_title = title_span.html();
+                old_title = title_span.text();
             }
             $('#object_name').val(old_title);
 
             $('#change_name_btn').click(function () {
                 var new_title = $('#object_name').val();
                 if (check_filename(new_title)) {
-                    title_span.html(new_title);
+                    title_span.text(new_title);
                     $('#edit_files_form').empty();
                 }
             });
@@ -520,20 +518,20 @@ function set_actions_for_file_form() {
                 sel_id = selected[1];
             if (sel_type != '1') {
                 err_notify($('#error__cant_move_dir').text());
-                return false;
+                return;
             }
             add_new_editform('move_object_template');
             var file_title_span = $('#file_title__1__' + sel_id);
             var object_title, href = null;
             if (file_title_span.children('a').length > 0) {
-                object_title = file_title_span.children('a').first().html();
+                object_title = file_title_span.children('a').first().text();
                 href = file_title_span.children('a').first().attr('href');
             }
             else {
-                object_title = file_title_span.html();
+                object_title = file_title_span.text();
             }
-            var hash_sum = $('#file_hash_sum__1__' + sel_id).html();
-            $('#moving_object_title').html(object_title);
+            var hash_sum = $('#file_hash_sum__1__' + sel_id).text();
+            $('#moving_object_title').text(object_title);
             var new_opts = get_folders();
             for (var i = 0; i < new_opts.length; i++) {
                 $('#move_object_parent').append(new_opts[i]);
@@ -571,8 +569,8 @@ function set_actions_for_file_form() {
             var sel_type = selected[0],
                 sel_id = selected[1];
             add_new_editform('remove_object_template');
-            var object_title = $('#file_title__' + sel_type + '__' + sel_id).html();
-            $('#remove_object_title').html(object_title);
+            var object_title = $('#file_title__' + sel_type + '__' + sel_id).text();
+            $('#remove_object_title').text(object_title);
 
             $('#remove_object_btn').click(function () {
                 var objects_for_delete = [];
@@ -659,6 +657,65 @@ function set_actions_for_file_form() {
         $('#clear_file_form').click(function () {
             $('#edit_files_form').empty();
         });
+    });
+
+    $('#replace_file_btn').click(function () {
+        var selected = selected_row();
+        if (selected) {
+            var sel_type = selected[0],
+                sel_id = selected[1],
+                files_table = $('#file_tree_table');
+            if (sel_type != 1) {
+                err_notify($('#error__cant_replace_folder').text());
+                return;
+            }
+            add_new_editform('replace_file_template');
+            var new_opts = get_folders();
+            for (var i = 0; i < new_opts.length; i++) {
+                $('#new_file_parent').append(new_opts[i]);
+            }
+
+            $('.btn-file :file').on('fileselect', function (event, numFiles, label) {
+                $('#new_file_name').val(label);
+            });
+
+            $('#save_new_file_btn').click(function () {
+                var filename = $('#new_file_name').val(),
+                    file_input = $('#new_file_input');
+
+                if (file_input.val().length > 0) {
+                    if (check_filename(filename)) {
+                        cnt++;
+                        file_input.attr('id', 'new_file_input__newfile_' + cnt);
+                        $('#files_for_upload').append(file_input);
+
+                        $('#file_title__1__' + sel_id).text(filename);
+                        $('#file_hash_sum__1__' + sel_id).empty();
+                        $('#new_file_input__' + sel_id).remove();
+
+                        files_table.find("[id$='__1__" + sel_id + "']").each(function () {
+                            var id_start = $(this).attr('id').replace('__1__' + sel_id, '');
+                            $(this).attr('id', id_start + '__1__' + 'newfile_' + cnt);
+                        });
+                        files_table.find("tr[class='treegrid-" + sel_id + "']").each(function () {
+                            $(this).attr('class', 'treegrid-newfile_' + cnt);
+                        });
+                        update_treegrid();
+                        $('#edit_files_form').empty();
+                    }
+                }
+                else {
+                    err_notify($('#error__nofile_selected').text());
+                }
+            });
+
+            $('#clear_file_form').click(function () {
+                $('#edit_files_form').empty();
+            });
+        }
+        else {
+            err_notify($('#error__noselected_replace').text());
+        }
     });
 
     return false;
@@ -805,6 +862,32 @@ function set_actions_for_view_filters() {
     });
 }
 
+function set_actions_for_versions_delete() {
+    $('#cancel_edit_job_btn').click(function () {
+        window.location.replace('');
+    });
+
+    $('#delete_versions_btn').click(function () {
+        var checked_versions = [];
+        $('input[id^="checkbox_version__"]').each(function () {
+            if ($(this).is(':checked')) {
+                checked_versions.push($(this).attr('id').replace('checkbox_version__', ''));
+            }
+        });
+        $.post(
+            job_ajax_url + 'remove_versions/',
+            {job_id: $('#job_pk').text(), versions: JSON.stringify(checked_versions)},
+            function (data) {
+                $.each(checked_versions, function (i, val) {
+                     $("#checkbox_version__" + val).parent().parent().parent().remove();
+                });
+                data.status === 0 ? success_notify(data.message) : err_notify(data.message);
+            },
+            'json'
+        );
+    });
+}
+
 
 $(document).ready(function () {
 
@@ -813,10 +896,29 @@ $(document).ready(function () {
     }
     set_actions_for_view_filters();
 
-    if ($('#edit_job_div').length) {
+    $.ajax({
+        url: job_ajax_url + 'showjobdata/',
+        data: {job_id: $('#job_pk').text()},
+        type: 'POST',
+        success: function (data) {
+            $('#edit_job_div').html(data);
+            $('.tree').treegrid({
+                treeColumn: 0,
+                expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
+                expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
+            });
+            set_action_on_file_click();
+        }
+    });
+
+    if($('#create_job_global_div').length) {
+        set_actions_for_edit_form();
+    }
+
+    $('#edit_job_btn').click(function () {
         $.post(
             job_ajax_url + 'editjob/',
-            {job_id: $('#job_pk').html()},
+            {job_id: $('#job_pk').text()},
             function (data) {
                 $('#edit_job_div').html(data);
                 set_actions_for_edit_form();
@@ -825,40 +927,16 @@ $(document).ready(function () {
                 });
             }
         );
-    }
-    else if($('#show_job_div').length) {
-        $.ajax({
-            url: job_ajax_url + 'showjobdata/',
-            data: {job_id: $('#job_pk').html()},
-            type: 'POST',
-            success: function (data) {
-                $('#show_job_div').html(data);
-                $('.tree').treegrid({
-                    treeColumn: 0,
-                    expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
-                    expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
-                });
-                set_action_on_file_click();
-            }
-        });
-    }
-    else if($('#create_job_global_div').length) {
-        set_actions_for_edit_form();
-    }
-
-
-
-    $("button[id^='copy_job__']").click(function () {
-        $.redirectPost(job_ajax_url + 'create/', {
-            parent_id: $(this).attr('id').replace('copy_job__', '')
-        });
     });
 
-    $('button[id^="remove_job__"]').click(function () {
-        var job_id = $(this).attr('id').replace('remove_job__', '');
+    $("#copy_job_btn").click(function () {
+        $.redirectPost(job_ajax_url + 'create/', {parent_id: $('#job_pk').text()});
+    });
+
+    $('#remove_job_btn').click(function () {
         $.post(
             job_ajax_url + 'removejob/',
-            {job_id: job_id},
+            {job_id: $('#job_pk').text()},
             function (data) {
                 data.status === 0 ? window.location.replace('/jobs/') : err_notify(data.message);
             },
@@ -866,7 +944,23 @@ $(document).ready(function () {
         );
     });
 
-    $('button[id^="load_job__"]').click(function () {
-        download_job($(this).attr('id').replace('load_job__', ''));
+    $('#load_job_btn').click(function () {
+        download_job($('#job_pk').text());
+    });
+
+    $('#edit_versions').click(function () {
+        $.post(
+            job_ajax_url + 'getversions/',
+            {job_id: $('#job_pk').text()},
+            function (data) {
+                try {
+                    JSON.stringify(data);
+                    err_notify(data.message);
+                } catch (e) {
+                    $('#edit_job_div').html(data);
+                    set_actions_for_versions_delete();
+                }
+            }
+        );
     });
 });

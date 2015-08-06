@@ -14,8 +14,12 @@
         <div class="col-sm-5">
             <div class="form-inline">
                 <div class="btn-group" role="group">
-                    {% if can_create %}<button id="copy_job__{{ jobdata.job.pk }}" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
-                    <button id="load_job__{{ jobdata.job.pk }}" class="btn btn-success">{% trans 'Download' %}</button>
+                    {% if can_create %}<button id="copy_job_btn" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
+                    <button id="load_job_btn" class="btn btn-success">{% trans 'Download' %}</button>
+                    {% if can_edit %}
+                        <button id="edit_job_btn" class="btn btn-primary">{% trans 'Edit' %}</button>
+                        <button id="edit_versions" class="btn btn-warning">{% trans 'Clear versions' %}</button>
+                    {% endif %}
                     {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">{% trans 'Delete' %}</button>{% endif %}
                 </div>
                 <span id="job_pk" hidden>{{ jobdata.job.pk }}</span>
@@ -64,13 +68,9 @@
             <span class="job-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' jobdata.job.change_author.pk %}">{{ jobdata.job.change_author.extended.last_name }} {{ jobdata.job.change_author.extended.first_name }}</a>
             <br>
             <span class="job-subtitle">{% trans 'Date' %}: </span>
-            {% if user_tz %}
-                {% timezone user_tz %}
-                    {{ jobdata.job.change_date|date:'d.m.y H:i:s' }}
-                {% endtimezone %}
-            {% else %}
+            {% timezone user.extended.timezone %}
                 {{ jobdata.job.change_date|date:'d.m.y H:i:s' }}
-            {% endif %}
+            {% endtimezone %}
             {% if comment|length %}
                 <br>
                 <span class="job-subtitle">{% trans 'Comment' %}:</span> <small>"{{ comment }}"</small><br>
@@ -182,11 +182,7 @@
                 <small style="color: #868686">*{% trans "Resources (wall time, CPU time and maximum memory) are shown for each component and totally" %}</small>
             </div>
         </div>
-        {% if can_edit %}
-            <div id="edit_job_div" class="col-sm-7"></div>
-        {% else %}
-            <div id="show_job_div" class="col-sm-7"></div>
-        {% endif %}
+        <div id="edit_job_div" class="col-sm-7"></div>
     </div>
         {% if can_delete %}
             <div id="remove_job_popup" class="modal fade" role="dialog">
@@ -200,7 +196,7 @@
                             <p>{% trans 'All versions and all data of this job will be deleted' %}</p>
                         </div>
                         <div class="modal-footer">
-                            <button id="remove_job__{{ jobdata.job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
+                            <button id="remove_job_btn" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
                             <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
                         </div>
                     </div>
