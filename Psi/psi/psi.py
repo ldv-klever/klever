@@ -16,6 +16,7 @@ import psi.utils
 _default_conf_file = 'psi-conf.json'
 _conf = None
 _logger = None
+_exit_code = 0
 
 
 def launch():
@@ -116,6 +117,8 @@ def launch():
 
             time.sleep(1)
     except Exception as e:
+        _exit_code = 1
+
         if 'reports_mq' in locals():
             with io.StringIO() as fp:
                 traceback.print_tb(e.__traceback__, file=fp)
@@ -126,6 +129,7 @@ def launch():
 
         if _logger:
             _logger.exception('Catch exception')
+        # Raise exception if we can't even log it.
         else:
             raise
     finally:
@@ -149,6 +153,7 @@ def launch():
 
             _logger.info('Wait for uploading all reports')
             reports_p.join()
+            _exit_code = max(_exit_code, reports_p.exitcode)
 
         if 'session' in locals():
             session.sign_out()
@@ -157,6 +162,8 @@ def launch():
             if _logger:
                 _logger.info('Release working directory')
             os.remove(is_solving_file)
+
+        exit(_exit_code)
 
 
 def _check_another_psi(is_solving_file):
@@ -272,10 +279,15 @@ def _prepare_work_dir():
 
 
 def _send_reports(session, reports_mq):
-    while True:
-        m = reports_mq.get()
-        if m == '__terminator__':
-            _logger.debug('Report messages queue was terminated')
-            break
-        _logger.debug('Upload report "{0}"'.format(m))
-        session.upload_report(m)
+    try:
+        while True:
+            m = reports_mq.get()
+            if m == '__terminator__':
+                _logger.debug('Report messages queue was terminated')
+                break
+            _logger.debug('Upload report "{0}"'.format(m))
+            session.upload_report(m)
+    except Exception as e:
+        # If we can't send reports to Omega by some reason we can just silently die.
+        _logger.exception('Catch exception when sending reports to Omega')
+        exit(1)
