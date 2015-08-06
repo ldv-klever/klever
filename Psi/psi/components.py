@@ -86,8 +86,10 @@ class Component:
         return 0
 
     def launch(self):
-        self.logger.info('Launch component "{0}"'.format(self.name))
+        # Remember approximate time of start to count wall time.
         self.start_time = time.time()
+
+        self.logger.info('Launch component "{0}"'.format(self.name))
         self.process = multiprocessing.Process(target=self.__launch)
         self.process.start()
 
@@ -111,7 +113,7 @@ class Component:
             with io.StringIO() as fp:
                 traceback.print_tb(e.__traceback__, file=fp)
                 unknown_report_file = psi.utils.dump_report(self.logger, self.name, 'unknown',
-                                                            {'id': 'unknown', 'parent id': '/',
+                                                            {'id': 'unknown', 'parent id': self.name,
                                                              'problem desc': fp.getvalue()})
                 self.reports_mq.put(os.path.relpath(unknown_report_file, self.module.conf['root id']))
             self.module.logger.exception('Catch exception')
@@ -121,7 +123,7 @@ class Component:
             with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
                 with open('log') as log_fp:
                     finish_report_file = psi.utils.dump_report(self.logger, self.name, 'finish',
-                                                               {'id': 'psi',
+                                                               {'id': self.name,
                                                                 'resources': psi.utils.count_consumed_resources(
                                                                     self.logger,
                                                                     self.name,
