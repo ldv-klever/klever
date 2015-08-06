@@ -732,68 +732,6 @@ def unknowns_info(job):
     return unknowns_sorted
 
 
-def resource_info(job, user):
-    try:
-        report = job.reportroot
-    except ObjectDoesNotExist:
-        return []
-
-    accuracy = user.extended.accuracy
-    data_format = user.extended.data_format
-    res_data = {}
-    for cr in report.componentresource_set.filter(~Q(component=None)):
-        if cr.component.name not in res_data:
-            res_data[cr.component.name] = {}
-        wall = cr.resource.wall_time
-        cpu = cr.resource.cpu_time
-        mem = cr.resource.memory
-        if data_format == 'hum':
-            wall = convert_time(wall, accuracy)
-            cpu = convert_time(cpu, accuracy)
-            mem = convert_memory(mem, accuracy)
-        res_data[cr.component.name] = "%s %s %s" % (wall, cpu, mem)
-    resource_data = [
-        {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
-
-    res_total = report.componentresource_set.filter(component=None)
-    if len(res_total):
-        wall = res_total[0].resource.wall_time
-        cpu = res_total[0].resource.cpu_time
-        mem = res_total[0].resource.memory
-        if data_format == 'hum':
-            wall = convert_time(wall, accuracy)
-            cpu = convert_time(cpu, accuracy)
-            mem = convert_memory(mem, accuracy)
-        total_value = "%s %s %s" % (wall, cpu, mem)
-        resource_data.append({
-            'component': _('Total'),
-            'val': total_value,
-        })
-    return resource_data
-
-
-def tags_info(job):
-    tags_data = {
-        'safe': [],
-        'unsafe': []
-    }
-
-    for st in job.safe_tags.all():
-        tags_data['safe'].append({
-            'number': st.number,
-            'href': '#',
-            'name': st.tag.tag,
-        })
-
-    for ut in job.unsafe_tags.all():
-        tags_data['unsafe'].append({
-            'number': ut.number,
-            'href': '#',
-            'name': ut.tag.tag,
-        })
-    return tags_data
-
-
 def role_info(job, user):
     roles_data = {'global': job.global_role}
 

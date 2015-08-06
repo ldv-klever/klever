@@ -244,7 +244,6 @@ def show_job(request, job_id=None):
         request,
         'jobs/viewJob.html',
         {
-            'job': job,
             'comment': job.jobhistory_set.get(version=job.version).comment,
             'parents': parents,
             'children': children,

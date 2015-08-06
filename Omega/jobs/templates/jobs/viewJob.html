@@ -4,35 +4,28 @@
 
 {% load tz %}
 
-{% block head_block %}
-    <script src="/static/jobs/js/notify.min.js"></script>
-    <script src="/static/jobs/js/jquery.treegrid.js"></script>
-    <script src="/static/jobs/js/common.js"></script>
-    <script src="/static/jobs/js/editjob.js"></script>
-    <link href="/static/jobs/css/style.css" rel="stylesheet">
-    <link href="/static/jobs/css/jquery.treegrid.css" rel="stylesheet">
-{% endblock %}
+{% block jobs_head_block %}<script src="/static/jobs/js/editjob.js"></script>{% endblock %}
 
 {% block title %}{% trans 'Job' %}{% endblock %}
 
 {% block body_block %}
-    {% if job %}
+    {% if jobdata.job %}
     <div class="row">
         <div class="col-sm-5">
             <div class="form-inline">
                 <div class="btn-group" role="group">
-                    {% if can_create %}<button id="copy_job__{{ job.pk }}" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
-                    <button id="load_job__{{ job.pk }}" class="btn btn-success">{% trans 'Download' %}</button>
+                    {% if can_create %}<button id="copy_job__{{ jobdata.job.pk }}" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
+                    <button id="load_job__{{ jobdata.job.pk }}" class="btn btn-success">{% trans 'Download' %}</button>
                     {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">{% trans 'Delete' %}</button>{% endif %}
                 </div>
-                <span id="job_pk" hidden>{{ job.pk }}</span>
+                <span id="job_pk" hidden>{{ jobdata.job.pk }}</span>
             </div>
 
-            <h4><span class="show-job-name show-job-title"><ins>{{ job.name }}</ins></span></h4>
+            <h4><span class="show-job-name show-job-title"><ins>{{ jobdata.job.name }}</ins></span></h4>
 
-            <span class="show-job-title">{% trans 'Class' %}:</span> {{ job.get_type_display }}
+            <span class="show-job-title">{% trans 'Class' %}:</span> {{ jobdata.job.get_type_display }}
             <br>
-            <span class="show-job-title">{% trans 'Identifier' %}:</span> <span style="color: #15c46b">{{ job.identifier }}</span>
+            <span class="show-job-title">{% trans 'Identifier' %}:</span> <span style="color: #15c46b">{{ jobdata.job.identifier }}</span>
             <br><span class="show-job-title">{% trans 'Created by' %}: </span>
             <a href="{% url 'users:show_profile' created_by.pk %}">{{ created_by.extended.last_name }} {{ created_by.extended.first_name }}</a>
             <br>
@@ -68,15 +61,15 @@
 
             <span class="show-job-title">{% trans 'Last change' %}: </span>
             <br>
-            <span class="job-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' job.change_author.pk %}">{{ job.change_author.extended.last_name }} {{ job.change_author.extended.first_name }}</a>
+            <span class="job-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' jobdata.job.change_author.pk %}">{{ jobdata.job.change_author.extended.last_name }} {{ jobdata.job.change_author.extended.first_name }}</a>
             <br>
             <span class="job-subtitle">{% trans 'Date' %}: </span>
             {% if user_tz %}
                 {% timezone user_tz %}
-                    {{ job.change_date|date:'d.m.y H:i:s' }}
+                    {{ jobdata.job.change_date|date:'d.m.y H:i:s' }}
                 {% endtimezone %}
             {% else %}
-                {{ job.change_date|date:'d.m.y H:i:s' }}
+                {{ jobdata.job.change_date|date:'d.m.y H:i:s' }}
             {% endif %}
             {% if comment|length %}
                 <br>
@@ -84,7 +77,7 @@
             {% endif %}
             <br>
             <span class="show-job-title">{% trans 'Decision status' %}: </span>
-            {% if job.jobstatus %}
+            {% if jobdata.job.jobstatus %}
                 <span style="color:
                         {% if job.jobstatus.status == '0' %}
                             #887AB8
@@ -98,10 +91,10 @@
                             #CC0000
                         {% endif %}
                 ">
-                    {% if job.reportroot %}
-                        <a href="{% url 'reports:report_root' job.reportroot.id %}">{{ job.jobstatus.get_status_display }}</a>
+                    {% if jobdata.job.reportroot %}
+                        <a href="{% url 'reports:report_root' jobdata.job.reportroot.id %}">{{ jobdata.job.jobstatus.get_status_display }}</a>
                     {% else %}
-                        <ins>{{ job.jobstatus.get_status_display }}</ins>
+                        <ins>{{ jobdata.job.jobstatus.get_status_display }}</ins>
                     {% endif %}
                 </span>
             {% else %}
@@ -207,7 +200,7 @@
                             <p>{% trans 'All versions and all data of this job will be deleted' %}</p>
                         </div>
                         <div class="modal-footer">
-                            <button id="remove_job__{{ job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
+                            <button id="remove_job__{{ jobdata.job.pk }}" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
                             <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
                         </div>
                     </div>
