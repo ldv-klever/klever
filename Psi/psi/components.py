@@ -77,7 +77,11 @@ class Component:
             return 1
 
         if self.process.exitcode:
-            # TODO: send problem description to Omega.
+            with open('problem desc') if os.path.isfile('problem desc') else io.StringIO('') as fp:
+                unknown_report_file = psi.utils.dump_report(self.logger, self.name, 'unknown',
+                                                            {'id': 'unknown', 'parent id': self.name,
+                                                             'problem desc': fp.read()}, self.work_dir)
+                self.reports_mq.put(unknown_report_file)
             self.logger.error('Component "{0}" exited with "{1}"'.format(self.name, self.process.exitcode))
             raise ChildProcessError('Component "{0}" failed'.format(self.name))
         elif self.process.exitcode == 0:
