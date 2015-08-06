@@ -100,8 +100,7 @@ class Component:
             os.chdir(self.work_dir)
 
             start_report_file = psi.utils.dump_report(self.logger, self.name, 'start',
-                                                      {'type': 'start', 'id': self.name, 'parent id': '/',
-                                                       'name': self.name})
+                                                      {'id': self.name, 'parent id': '/', 'name': self.name})
             self.reports_mq.put(os.path.relpath(start_report_file, self.module.conf['root id']))
 
             self.module.logger = psi.utils.get_logger(self.name, self.module.conf['logging'])
@@ -111,9 +110,11 @@ class Component:
             with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
                 with open('log') as log_fp:
                     finish_report_file = psi.utils.dump_report(self.logger, self.name, 'finish',
-                                                               {'type': 'finish', 'id': 'psi',
+                                                               {'id': 'psi',
                                                                 'resources': psi.utils.count_consumed_resources(
-                                                                    self.logger, self.name, self.start_time),
+                                                                    self.logger,
+                                                                    self.name,
+                                                                    self.start_time),
                                                                 'desc': desc_fp.read(),
                                                                 'log': log_fp.read()})
             self.reports_mq.put(os.path.relpath(finish_report_file, self.module.conf['root id']))

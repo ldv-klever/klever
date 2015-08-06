@@ -65,9 +65,7 @@ def launch():
         comp = psi.utils.get_comp_desc(_logger)
 
         start_report_file = psi.utils.dump_report(_logger, 'Psi', 'start',
-                                                  {'type': 'start', 'id': '/',
-                                                   'attrs': [{'psi version': version}],
-                                                   'comp': comp})
+                                                  {'id': '/', 'attrs': [{'psi version': version}], 'comp': comp})
 
         session = psi.session.Session(_logger, omega['user'], omega['passwd'], _conf['Omega']['name'])
         session.decide_job(job, start_report_file)
@@ -122,10 +120,9 @@ def launch():
         with open(conf_file) as conf_fp:
             with open('log') as log_fp:
                 finish_report_file = psi.utils.dump_report(_logger, 'Psi', 'finish',
-                                                           {'type': 'finish', 'id': '/',
-                                                            'resources': psi.utils.count_consumed_resources(_logger,
-                                                                                                            'Psi',
-                                                                                                            start_time),
+                                                           {'id': '/',
+                                                            'resources': psi.utils.count_consumed_resources(
+                                                                _logger, 'Psi', start_time),
                                                             'desc': conf_fp.read(),
                                                             'log': log_fp.read()})
                 reports_mq.put(finish_report_file)
@@ -134,7 +131,7 @@ def launch():
             with io.StringIO() as fp:
                 traceback.print_tb(e.__traceback__, file=fp)
                 unknown_report_file = psi.utils.dump_report(_logger, 'Psi', 'unknown',
-                                                            {'type': 'unknown', 'id': 'unknown', 'parent id': '/',
+                                                            {'id': 'unknown', 'parent id': '/',
                                                              'problem desc': fp.getvalue()})
             reports_mq.put(unknown_report_file)
 

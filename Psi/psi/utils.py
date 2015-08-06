@@ -32,8 +32,8 @@ def dump_report(logger, name, kind, report):
     :param report: a report object (usually it should be a dictionary).
     """
     logger.info('Dump {0} report for "{1}"'.format(kind, name))
-
     report_file = '{0} report.json'.format(kind)
+    report.update({'type': kind})
     with open(report_file, 'w') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
 
