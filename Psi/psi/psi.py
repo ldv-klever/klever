@@ -194,7 +194,6 @@ def _create_components_conf_file(comp):
         json.dump(components_conf, fp, sort_keys=True, indent=4)
 
 
-# TODO: may be this function can be reused by other components.
 def _get_conf_file():
     """
     Try to get configuration file from command-line options. If it is not specified, then use the default one.
