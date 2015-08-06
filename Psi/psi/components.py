@@ -146,4 +146,25 @@ class Component:
         # Do not terminate components that already exitted.
         if self.process.is_alive():
             self.process.terminate()
+            # Official documentation says that exit handlers and finally clauses, etc., will not be executed. So we need
+            # to create unknown and finish reports ourselves. It has especial sense since terminated components can
+            # operate properly and we should report that we are terminating them rather than report they were terminated
+            # unexpectedly.
+            # TODO: resources will be calculated improperly.
+            with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
+                with open(os.path.join(self.work_dir, 'log')) as log_fp:
+                    finish_report_file = psi.utils.dump_report(self.logger, self.name, 'finish',
+                                                               {'id': self.name,
+                                                                'resources': psi.utils.count_consumed_resources(
+                                                                    self.logger,
+                                                                    self.name,
+                                                                    self.start_time),
+                                                                'desc': desc_fp.read(),
+                                                                'log': log_fp.read()}, self.work_dir)
+                    self.reports_mq.put(finish_report_file)
+            unknown_report_file = psi.utils.dump_report(self.logger, self.name, 'unknown',
+                                                        {'id': 'unknown', 'parent id': self.name,
+                                                         'problem desc': 'Terminated since some other component(s) failed'},
+                                                        self.work_dir)
+            self.reports_mq.put(unknown_report_file)
             self.logger.debug('Component "{0}" was terminated'.format(self.name))
