@@ -1,12 +1,7 @@
 #!/usr/bin/python3
 
-conf = None
-logger = None
+import psi.component
 
 
-def get_callbacks():
-    logger.debug('Have not any callbacks yet')
-
-
-def launch():
+class Component(psi.component.ComponentBase):
     pass

@@ -3,17 +3,13 @@
 import os
 import tarfile
 
+import psi.component
 import psi.utils
 
-conf = None
-logger = None
 
-
-def get_callbacks():
-    logger.debug('Have not any callbacks yet')
-
-
-def launch():
-    logger.info('Prepare Linux kernel working source tree "linux"')
-    with tarfile.open(psi.utils.find_file(logger, conf['root id'], conf['Linux kernel']['src'])) as TarFile:
-        TarFile.extractall(os.path.join(conf['root id'], 'linux'))
+class Component(psi.component.ComponentBase):
+    def launch(self):
+        self.logger.info('Prepare Linux kernel working source tree "linux"')
+        with tarfile.open(
+                psi.utils.find_file(self.logger, self.conf['root id'], self.conf['Linux kernel']['src'])) as TarFile:
+            TarFile.extractall(os.path.join(self.conf['root id'], 'linux'))

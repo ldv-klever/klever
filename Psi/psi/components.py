@@ -21,8 +21,9 @@ _job_class_component_modules = {'Verification of Linux kernel modules': [psi.lkb
 
 
 class Component:
-    def __init__(self, module, logger, reports_mq):
+    def __init__(self, module, conf, logger, reports_mq):
         self.module = module
+        self.conf = conf
         self.logger = logger
         self.reports_mq = reports_mq
         self.name = re.search(r'^.*\.(.+)$', self.module.__name__).groups()[0].upper()
@@ -54,16 +55,12 @@ class Component:
     # We don't need to measure consumed resources here.
     def __get_callbacks(self):
         try:
-            self.logger.info('Read configuration for component "{0}"'.format(self.name))
-            with open('components conf.json') as fp:
-                self.module.conf = json.load(fp)
-
             self.logger.info('Change directory to "{0}" for component "{1}"'.format(self.work_dir, self.name))
             os.chdir(self.work_dir)
 
-            self.module.logger = psi.utils.get_logger(self.name, self.module.conf['logging'])
+            logger = psi.utils.get_logger(self.name, self.conf['logging'])
 
-            self.module.get_callbacks()
+            self.module.Component(self.conf, logger).get_callbacks()
         except Exception:
             # TODO: send problem description to Omega.
             self.logger.exception('Component "{0}" raised exception'.format(self.name))
@@ -105,27 +102,23 @@ class Component:
             # to count consumed resources and create finish report - all this is done in self.__finalize().
             signal.signal(signal.SIGTERM, self.__finalize)
 
-            self.logger.info('Read configuration for component "{0}"'.format(self.name))
-            with open('components conf.json') as fp:
-                self.module.conf = json.load(fp)
-
             self.logger.info('Change directory to "{0}" for component "{1}"'.format(self.work_dir, self.name))
             os.chdir(self.work_dir)
 
             start_report_file = psi.utils.dump_report(self.logger, self.name, 'start',
                                                       {'id': self.name, 'parent id': '/', 'name': self.name})
-            self.reports_mq.put(os.path.relpath(start_report_file, self.module.conf['root id']))
+            self.reports_mq.put(os.path.relpath(start_report_file, self.conf['root id']))
 
-            self.module.logger = psi.utils.get_logger(self.name, self.module.conf['logging'])
+            logger = psi.utils.get_logger(self.name, self.conf['logging'])
 
-            self.module.launch()
+            self.module.Component(self.conf, logger).launch()
         except Exception as e:
             # Write information on exception to file with problem description rather than create unknown report. Psi
             # will create unknown report itself when it will see exit code 1.
             with open('problem desc', 'w') as fp:
                 traceback.print_exc(file=fp)
 
-            self.module.logger.exception('Catch exception')
+            logger.exception('Catch exception')
             self.logger.error('Component "{0}" raised exception'.format(self.name))
 
             exit(1)
@@ -143,7 +136,7 @@ class Component:
                                                                 self.start_time),
                                                             'desc': desc_fp.read(),
                                                             'log': log_fp.read()})
-            self.reports_mq.put(os.path.relpath(finish_report_file, self.module.conf['root id']))
+            self.reports_mq.put(os.path.relpath(finish_report_file, self.conf['root id']))
 
         # Don't forget to terminate itself if somebody tries to do such.
         if signum:
@@ -152,7 +145,8 @@ class Component:
 
     def terminate(self):
         if not self.process:
-            raise ValueError('Component "{0}" was not started yet'.format(self.name))
+            self.logger.warning('Component "{0}" was not started yet'.format(self.name))
+            return
 
         # Do not terminate components that already exitted.
         if self.process.is_alive():
@@ -168,7 +162,7 @@ class Component:
             self.logger.debug('Component "{0}" was terminated'.format(self.name))
 
 
-def get_components(logger, kind, reports_mq):
+def get_components(conf, logger, kind, reports_mq):
     logger.info('Get components necessary to solve job')
 
     if kind not in _job_class_component_modules:
@@ -181,7 +175,7 @@ def get_components(logger, kind, reports_mq):
     component_modules.extend(_job_class_component_modules['Common'])
 
     # Get components.
-    components = [Component(component_module, logger, reports_mq) for component_module in component_modules]
+    components = [Component(component_module, conf, logger, reports_mq) for component_module in component_modules]
 
     logger.debug('Components to be launched: "{0}"'.format(', '.join([component.name for component in components])))
 

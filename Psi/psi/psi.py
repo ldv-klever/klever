@@ -15,7 +15,6 @@ import psi.utils
 _default_conf_file = 'psi-conf.json'
 _conf = None
 _logger = None
-_exit_code = 0
 
 
 def launch():
@@ -78,14 +77,14 @@ def launch():
 
         job.extract_archive()
 
-        _create_components_conf_file(comp)
+        components_conf = _create_components_conf(comp)
 
         job.get_class()
 
         # Use Psi logger to report events that are common to all components.
         # Use the same reports MQ in all components.
         # TODO: fix passing of MQ after all.
-        components = psi.components.get_components(_logger, job.type, reports_mq)
+        components = psi.components.get_components(components_conf, _logger, job.type, reports_mq)
 
         callbacks = []
         # Following activities aren't launched in parallel since they are quite fast.
@@ -151,7 +150,7 @@ def launch():
 
             _logger.info('Wait for uploading all reports')
             reports_p.join()
-            _exit_code = max(_exit_code, reports_p.exitcode)
+            exit_code = exit_code if 'exit_code' in locals() else reports_p.exitcode
 
         if 'session' in locals():
             session.sign_out()
@@ -161,7 +160,8 @@ def launch():
                 _logger.info('Release working directory')
             os.remove(is_solving_file)
 
-        exit(_exit_code)
+        if 'exit_code' in locals():
+            exit(exit_code)
 
 
 def _check_another_psi(is_solving_file):
@@ -174,29 +174,36 @@ def _check_another_psi(is_solving_file):
         raise FileExistsError('Another Psi occupies working directory "{0}"'.format(_conf['work dir']))
 
 
-def _create_components_conf_file(comp):
+def _create_components_conf(comp):
     """
-    Create configuration file to be used by all Psi components.
+    Create configuration to be used by all Psi components.
     :param comp: a computer description returned by psi.utils.get_comp_desc().
     """
-    _logger.info('Create components configuration file "components conf.json"')
+    _logger.info('Create components configuration')
+
     components_conf = {}
     # Read job configuration from file.
     with open('job/root/conf.json') as fp:
         components_conf = json.load(fp)
+
     for comp_param in comp:
         if 'CPUs num' in comp_param:
             cpus_num = comp_param['CPUs num']
         elif 'mem size' in comp_param:
             mem_size = comp_param['mem size']
+
     components_conf.update(
         {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size},
          'job priority': _conf['job']['priority'],
          'abstract verification tasks gen priority': _conf['abstract verification tasks gen priority'],
          'parallelism': _conf['parallelism'],
          'logging': _conf['logging']})
+
+    _logger.debug('Create components configuration file "components conf.json"')
     with open('components conf.json', 'w') as fp:
         json.dump(components_conf, fp, sort_keys=True, indent=4)
+
+    return components_conf
 
 
 def _get_conf_file():
