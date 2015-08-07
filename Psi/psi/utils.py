@@ -57,7 +57,7 @@ def find_file(logger, root_id, file):
     for search_dir in search_dirs:
         found_file = os.path.join(search_dir, file)
         if os.path.isfile(found_file):
-            logger.debug('Find file "{0}" in directory "{0}"'.format(file, search_dir))
+            logger.debug('Find file "{0}" in directory "{1}"'.format(file, search_dir))
             return found_file
 
     raise FileExistsError('Could not find file "{0}" in directories "{1}"'.format(file, ', '.join(search_dirs)))
