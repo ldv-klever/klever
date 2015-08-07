@@ -336,7 +336,7 @@ class ReadZipJob(object):
             elif file_name == 'type':
                 job_type = file_obj.read().decode('utf-8')
                 if job_type != self.parent.type:
-                    return _("The job type is not equals to parent's type")
+                    return _("The job class does not equal to the parent's class")
             elif file_name == 'filedata':
                 files_map = json.loads(file_obj.read().decode('utf-8'))
             elif file_name.startswith(JOBFILE_DIR):
@@ -362,7 +362,7 @@ class ReadZipJob(object):
             if files_map[f_id] in files_in_db:
                 files_map[f_id] = files_in_db[files_map[f_id]]
             else:
-                return _("Job archive is corrupted!")
+                return _("Job archive is corrupted")
         if job_format is None:
             return _("Can't detect job's format")
         if job_type is None:
@@ -384,7 +384,7 @@ class ReadZipJob(object):
                         fdata_elem['type'] = '1'
                         fdata_elem['hash_sum'] = files_map[str(file['file'])]
                     else:
-                        return _("Job archive is corrupted!")
+                        return _("Job archive is corrupted")
                 filedata.append(fdata_elem)
             version_list[i]['filedata'] = filedata
         job = create_job({

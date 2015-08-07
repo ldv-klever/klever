@@ -460,7 +460,7 @@ def save_job(request):
         elif job.parent:
             return JsonResponse({
                 'status': 1,
-                'message': _("A parent identifier is required for this job")
+                'message': _("The parent identifier is required for this job")
             })
         if job.version != int(request.POST.get('last_version', 0)):
             return JsonResponse({
@@ -816,7 +816,7 @@ def getfilecontent(request):
     try:
         source = FileSystem.objects.get(pk=int(file_id))
     except ObjectDoesNotExist:
-        return JsonResponse({'message': _("File was not found")})
+        return JsonResponse({'message': _("The file was not found")})
     return HttpResponse(source.file.file.read())
 
 

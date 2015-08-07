@@ -47,7 +47,7 @@ function check_filename(str) {
             return false;
         }
     }
-    err_notify($('#error__name_requred').text());
+    err_notify($('#error__name_required').text());
     return false;
 }
 
