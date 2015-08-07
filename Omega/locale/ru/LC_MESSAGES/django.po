@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-08-07 13:25+0000\n"
+"POT-Creation-Date: 2015-08-07 13:59+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -23,7 +23,7 @@ msgid "The file type is not supported"
 msgstr "Тип файла не поддерживается"
 
 #: Omega/formatChecker.py:42
-#, fuzzy, python-brace-format
+#, python-brace-format
 msgid "Please keep the file size under {0} (the current file size is {1})"
 msgstr ""
 "Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - "
@@ -1145,118 +1145,156 @@ msgid "Human-readable"
 msgstr "Удобочитаемый"
 
 #: users/notifications.py:13
-msgid "New verification job was created"
-msgstr ""
+msgid "New job was created"
+msgstr "Создано новое задание"
 
 #: users/notifications.py:14
-#, fuzzy
-#| msgid "Verification of C programs"
-msgid "Verification job was changed"
-msgstr "Верификационное задание было изменено"
+msgid "Job was changed"
+msgstr "Задание было изменено"
 
 #: users/notifications.py:15
-#, fuzzy
-#| msgid "Verification of C programs"
-msgid "Verification job was deleted"
-msgstr "Верификация Си-программ"
+msgid "Job was deleted"
+msgstr "Задание было удалено"
 
 #: users/notifications.py:16
-msgid "Verification job has started to decide"
-msgstr ""
+msgid "Job decision has started"
+msgstr "Началось решение задания"
 
 #: users/notifications.py:17
-msgid "Verification job deciding has finished"
-msgstr ""
+msgid "Job decision has finished"
+msgstr "Решение задания завершилось"
 
 #: users/notifications.py:18
-#, fuzzy
-#| msgid "The view was not found"
 msgid "New unsafe was found"
-msgstr "Представление не было найдено"
+msgstr "Обнаружено новое предупреждение об ошибке"
 
 #: users/notifications.py:19
-#, fuzzy
-#| msgid "The job parent was not found"
-msgid "New problem in component was found"
-msgstr "Найдена новая ошибка"
+msgid "New unknown was found"
+msgstr "Обнаружена новая проблема в компоненте"
 
 #: users/notifications.py:20 users/notifications.py:40
 msgid "Mark is connected with another verification report already"
 msgstr ""
 
 #: users/notifications.py:21 users/notifications.py:41
-msgid "New Mark was created"
-msgstr ""
+msgid "New mark was created"
+msgstr "Создана новая оценка"
 
 #: users/notifications.py:22 users/notifications.py:42
-#, fuzzy
-#| msgid "Last change"
 msgid "Mark was changed"
-msgstr "Последнее изменение"
+msgstr "Оценка была изменена"
 
 #: users/notifications.py:23 users/notifications.py:43
 msgid "Mark was deleted"
-msgstr ""
+msgstr "Оценка была удалена"
 
 #: users/notifications.py:28
-#, fuzzy, python-format
-#| msgid "Job with identifier %(id)s was changed by %(user)s."
-msgid "Job <a href=\"%(url)s\">%(id)s</a> was created by %(user)s."
-msgstr "%(user)s изменил верификационное задание с идентификатором %(id)s."
+#, python-format
+msgid "The job <a href=\"%(url)s\">%(id)s</a> was created by %(user)s."
+msgstr "Пользователь %(user)s создал задание <a href=\"%(url)s\">%(id)s</a>"
 
 #: users/notifications.py:29
 #, python-format
-msgid "Job with identifier %(id)s was created by %(user)s."
-msgstr ""
+msgid "The job with identifier %(id)s was created by %(user)s."
+msgstr "Пользователь %(user)s создал задание с идентификатором %(id)s"
 
 #: users/notifications.py:32
-#, fuzzy, python-format
-#| msgid "Job with identifier %(id)s was changed by %(user)s."
-msgid "Job <a href=\"%(url)s\">%(id)s</a> was changed by %(user)s: %(comm)s"
-msgstr "%(user)s изменил верификационное задание с идентификатором %(id)s."
+#, python-format
+msgid ""
+"The job <a href=\"%(url)s\">%(id)s</a> was changed by %(user)s: %(comm)s"
+msgstr ""
+"Пользователь %(user)s изменил задание <a href=\"%(url)s\">%(id)s</a>: "
+"%(comm)s"
 
 #: users/notifications.py:33
-#, fuzzy, python-format
-#| msgid "Job with identifier %(id)s was changed by %(user)s."
-msgid "Job with identifier %(id)s was changed by %(user)s: %(comm)s"
-msgstr "%(user)s изменил верификационное задание с идентификатором %(id)s."
+#, python-format
+msgid "The job with identifier %(id)s was changed by %(user)s: %(comm)s"
+msgstr ""
+"Пользователь %(user)s изменил задание с идентификатором %(id)s: %(comm)s"
 
 #: users/notifications.py:35
 #, python-format
-msgid "Job with identifier %(id)s was deleted by %(user)s."
-msgstr ""
+msgid "The job with identifier %(id)s was deleted by %(user)s"
+msgstr "Пользователь %(user)s удалил задание с идентификатором %(id)s"
 
 #: users/notifications.py:36
 #, python-format
-msgid "Job with identifier %(id)s has just started to decide."
-msgstr ""
+msgid "Started decision of the job with identifier %(id)s"
+msgstr "Началось решение заданиея с идентификатором %(id)s"
 
 #: users/notifications.py:37
 #, python-format
-msgid "Verification job with identifier %(id)s deciding has finished"
-msgstr ""
+msgid "Finished decision of the job with identifier %(id)s"
+msgstr "Завершилось решение заданиея с идентификатором %(id)s"
 
 #: users/notifications.py:38
 #, python-format
-msgid "New unsafe for job with identifier %(id)s was found"
+msgid "Found the new unsafe for the job with identifier %(id)s"
 msgstr ""
+"Обнаружено новое предупреждение об ошибке для задания с идентификатором "
+"%(id)s"
 
 #: users/notifications.py:39
 #, python-format
-msgid "New problem in component was found for job with identifier %(id)s"
+msgid "Found the new unknown for the job with identifier %(id)s"
 msgstr ""
+"Обнаружена новая проблема в компоненте для задания с идентификатором %(id)s"
+
+#: users/notifications.py:209
+msgid "Jobs creation"
+msgstr "Создание заданий"
+
+#: users/notifications.py:210
+msgid "Changes of jobs"
+msgstr "Изменения заданий"
+
+#: users/notifications.py:211
+msgid "Jobs deletion"
+msgstr "Удаление заданий"
+
+#: users/notifications.py:212
+msgid "Start of job decisions"
+msgstr "Начало решения заданий"
+
+#: users/notifications.py:213
+msgid "Finish of job decisions"
+msgstr "Завершение решения заданий"
+
+#: users/notifications.py:214
+msgid "New unsafes"
+msgstr "Новые предупрждения об ошибках"
+
+#: users/notifications.py:215
+msgid "New unknowns"
+msgstr "Новые проблемы в компонентах"
+
+#: users/notifications.py:216
+msgid "Changes in correlation between marks and leaf reports"
+msgstr "Изменения в привязке оценок к листовым отчетам"
+
+#: users/notifications.py:217
+msgid "Marks creation"
+msgstr "Создание оценок"
+
+#: users/notifications.py:218
+msgid "Changes of marks"
+msgstr "Изменения оценок"
+
+#: users/notifications.py:219
+msgid "Marks deletion"
+msgstr "Удаление оценок"
 
 #: users/notifications.py:221
 msgid "Operator"
-msgstr ""
+msgstr "Оператор"
 
 #: users/notifications.py:225
 msgid "I am"
-msgstr ""
+msgstr "Я"
 
 #: users/notifications.py:228
 msgid "Notify about my changes"
-msgstr ""
+msgstr "Уведомлять о моих изменениях"
 
 #: users/templates/users/edit-profile.html:36
 #: users/templates/users/register.html:33
@@ -1273,10 +1311,8 @@ msgid "Sign in"
 msgstr "Войти"
 
 #: users/templates/users/notifications.html:3
-#, fuzzy
-#| msgid "Modification"
 msgid "Notifications"
-msgstr "Изменение"
+msgstr "Уведомления"
 
 #: users/templates/users/register.html:9
 msgid "Registration"
@@ -1331,23 +1367,3 @@ msgstr "Неправильное имя пользователя или паро
 #| msgid "Save"
 msgid "Saved"
 msgstr "Сохранить"
-
-#, fuzzy
-#~| msgid "Move"
-#~ msgid "Me"
-#~ msgstr "Переместить"
-
-#~ msgid "One of the jobs was not saved"
-#~ msgstr "Одно из заданий не было сохранено"
-
-#~ msgid "Change's author and comment are required"
-#~ msgstr "Требуется указать автора и написать комментарий к изменению"
-
-#~ msgid "Configuration"
-#~ msgstr "Конфигурация"
-
-#~ msgid "Upload job"
-#~ msgstr "Загрузить задание на сервер"
-
-#~ msgid "Job was not saved"
-#~ msgstr "Задание не было сохранено"

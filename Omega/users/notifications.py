@@ -10,35 +10,35 @@ from django.db.models import Q
 
 
 SUBJECTS = {
-    0: _("New verification job was created"),
-    1: _("Verification job was changed"),
-    2: _("Verification job was deleted"),
-    3: _("Verification job has started to decide"),
-    4: _("Verification job deciding has finished"),
+    0: _("New job was created"),
+    1: _("Job was changed"),
+    2: _("Job was deleted"),
+    3: _("Job decision has started"),
+    4: _("Job decision has finished"),
     5: _("New unsafe was found"),
-    6: _("New problem in component was found"),
+    6: _("New unknown was found"),
     7: _("Mark is connected with another verification report already"),
-    8: _("New Mark was created"),
+    8: _("New mark was created"),
     9: _("Mark was changed"),
     10: _("Mark was deleted"),
 }
 
 MESSAGES = {
     0: [
-        _('Job <a href="%(url)s">%(id)s</a> was created by %(user)s.'),
-        _('Job with identifier %(id)s was created by %(user)s.')
+        _('The job <a href="%(url)s">%(id)s</a> was created by %(user)s.'),
+        _('The job with identifier %(id)s was created by %(user)s.')
     ],
     1: [
-        _('Job <a href="%(url)s">%(id)s</a> was changed by %(user)s: %(comm)s'),
-        _('Job with identifier %(id)s was changed by %(user)s: %(comm)s')
+        _('The job <a href="%(url)s">%(id)s</a> was changed by %(user)s: %(comm)s'),
+        _('The job with identifier %(id)s was changed by %(user)s: %(comm)s')
     ],
-    2: _("Job with identifier %(id)s was deleted by %(user)s."),
-    3: _("Job with identifier %(id)s has just started to decide."),
-    4: _("Verification job with identifier %(id)s deciding has finished"),
-    5: _("New unsafe for job with identifier %(id)s was found"),
-    6: _("New problem in component was found for job with identifier %(id)s"),
+    2: _("The job with identifier %(id)s was deleted by %(user)s"),
+    3: _("Started decision of the job with identifier %(id)s"),
+    4: _("Finished decision of the job with identifier %(id)s"),
+    5: _("Found the new unsafe for the job with identifier %(id)s"),
+    6: _("Found the new unknown for the job with identifier %(id)s"),
     7: _("Mark is connected with another verification report already"),
-    8: _("New Mark was created"),
+    8: _("New mark was created"),
     9: _("Mark was changed"),
     10: _("Mark was deleted"),
 }
@@ -206,17 +206,17 @@ class NotifyData(object):
     def __get_table(self):
         self.ccc = 1
         col_headers = [
-            'Job creation',
-            'Job changes',
-            'Job deletion',
-            'Start of job deciding',
-            'End of job deciding',
-            'New unsafes',
-            'New unknowns',
-            'Changes in links between marks and leaf reports',
-            'Marks creation',
-            'Marks changes',
-            'Marks deletion'
+            _('Jobs creation'),
+            _('Changes of jobs'),
+            _('Jobs deletion'),
+            _('Start of job decisions'),
+            _('Finish of job decisions'),
+            _('New unsafes'),
+            _('New unknowns'),
+            _('Changes in correlation between marks and leaf reports'),
+            _('Marks creation'),
+            _('Changes of marks'),
+            _('Marks deletion')
         ]
         row_headers = [_('Producer'), _('Operator'), _('Observer'), _('Expert'),
                        _('Manager')]
