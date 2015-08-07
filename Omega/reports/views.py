@@ -388,6 +388,46 @@ def get_attr(attr, value, attr_values):
         attr_values.append(attr_value)
 
 
+def get_parents(report):
+    parents = []
+    cur_report = report
+    while cur_report:
+        parents.append(ReportComponent.objects.get(pk=cur_report.pk))
+        cur_report = cur_report.parent
+    return parents
+
+
+def fill_cache_component(report):
+    parents = get_parents(report)
+    component = report.component
+    new_resource = report.resource
+    old_resource = None
+    try:
+        # Cache was not empty.
+        old_resource = ComponentResource.objects.get(component=component, report=report).resource
+    except ObjectDoesNotExist:
+        # Cache was empty.
+        pass
+    for parent in parents:
+        wall_time = new_resource.wall_time
+        cpu_time = new_resource.cpu_time
+        memory = new_resource.memory
+        try:
+            cur_resource = ComponentResource.objects.get(component=component, report=parent).resource
+            wall_time += cur_resource.wall_time
+            cpu_time += cur_resource.cpu_time
+            memory += cur_resource.memory
+            if old_resource:
+                wall_time -= old_resource.wall_time
+                cpu_time -= old_resource.cpu_time
+                memory -= old_resource.memory
+        except ObjectDoesNotExist:
+            pass
+        resource, stub = Resource.objects.get_or_create(wall_time=wall_time, cpu_time=cpu_time, memory=memory)
+        ComponentResource.objects.update_or_create(component=component, report=parent,
+                                                   defaults={'resource': resource})
+
+
 @login_required
 def upload_report(request, is_root=False):
 
@@ -567,6 +607,9 @@ def upload_report(request, is_root=False):
         for attr_value in attr_values:
             report.attr.add(attr_value)
         report.save()
+
+        if resource:
+            fill_cache_component(report)
     elif report_type == 'finish' or report_type == 'attrs':
         # Update component report
         update_report.description = description
@@ -581,9 +624,7 @@ def upload_report(request, is_root=False):
         update_report.save()
 
         if resource:
-            ComponentResource.objects.update_or_create(component=update_report.component,
-                                                       report=update_report,
-                                                       defaults={'resource': resource})
+            fill_cache_component(update_report)
     elif report_type == 'unsafe':
         report = ReportUnsafe()
         report.identifier = identifier
