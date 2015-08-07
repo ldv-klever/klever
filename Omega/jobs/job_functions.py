@@ -9,6 +9,7 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat,\
@@ -832,7 +833,10 @@ def create_job(kwargs):
             newjob.delete()
             return db_fdata.err_message
     if 'absolute_url' in kwargs:
-        Notify(newjob, 0, {'absurl': kwargs['absolute_url']})
+        newjob_url = reverse('jobs:job', args=[newjob.pk])
+        Notify(newjob, 0, {
+            'absurl': kwargs['absolute_url'] + newjob_url
+        })
     else:
         Notify(newjob, 0)
     return newjob

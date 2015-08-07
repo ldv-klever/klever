@@ -490,8 +490,7 @@ def save_job(request):
                 'message': _("You don't have an access to create a new job")
             })
         job_kwargs['parent'] = parent
-        job_kwargs['absolute_url'] = 'http://' + request.get_host() + \
-                                     reverse('jobs:job', args=[job_id])
+        job_kwargs['absolute_url'] = 'http://' + request.get_host()
         newjob = job_f.create_job(job_kwargs)
         if isinstance(newjob, Job):
             return JsonResponse({'status': 0, 'job_id': newjob.pk})
