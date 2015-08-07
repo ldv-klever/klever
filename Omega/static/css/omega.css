@@ -9,3 +9,9 @@ body {
         display: table-cell;
     }
 }
+
+.purple-title {
+    color: #6416ad;
+    font-weight: bold;
+    font-size: 1.2em;
+}

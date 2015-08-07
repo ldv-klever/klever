@@ -19,7 +19,18 @@ class Attr(models.Model):
         db_table = 'attr'
 
 
+class ReportRoot(models.Model):
+    user = models.ForeignKey(User, blank=True, null=True,
+                             on_delete=models.SET_NULL, related_name='+')
+    job = models.OneToOneField(Job)
+    last_request_date = models.DateTimeField()
+
+    class Meta:
+        db_table = 'report_root'
+
+
 class Report(models.Model):
+    root = models.ForeignKey(ReportRoot)
     parent = models.ForeignKey('self', blank=True, null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
     description = models.BinaryField(null=True)
@@ -27,6 +38,14 @@ class Report(models.Model):
 
     class Meta:
         db_table = 'report'
+
+
+class ReportAttr(models.Model):
+    report = models.ForeignKey(Report)
+    attr = models.ForeignKey(Attr)
+
+    class Meta:
+        db_table = 'cache_report_attr'
 
 
 class Computer(models.Model):
@@ -65,16 +84,6 @@ class ReportComponent(Report):
         db_table = 'report_component'
 
 
-class ReportRoot(ReportComponent):
-    user = models.ForeignKey(User, blank=True, null=True,
-                             on_delete=models.SET_NULL, related_name='+')
-    job = models.OneToOneField(Job)
-    last_request_date = models.DateTimeField()
-
-    class Meta:
-        db_table = 'report_root'
-
-
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
     error_trace_processed = models.BinaryField()
@@ -97,25 +106,18 @@ class ReportUnknown(Report):
         db_table = 'report_unknown'
 
 
-class ReportAttr(models.Model):
-    report = models.ForeignKey(Report)
-    attr = models.ForeignKey(Attr)
-
-    class Meta:
-        db_table = 'cache_report_attr'
-
-
 class ReportComponentLeaf(models.Model):
     report = models.ForeignKey(ReportComponent)
-    # Should only be leafs (safe, unsafe, unknown) ids.
-    leaf_id = models.IntegerField()
+    safe = models.ForeignKey(ReportSafe, null=True, related_name='+')
+    unsafe = models.ForeignKey(ReportUnsafe, null=True, related_name='+')
+    unknown = models.ForeignKey(ReportUnknown, null=True, related_name='+')
 
     class Meta:
         db_table = 'cache_report_component_report_leaf'
 
 
 class Verdict(models.Model):
-    report = models.OneToOneField(ReportComponent)
+    report = models.OneToOneField(ReportRoot)
     unsafe = models.IntegerField(default=0)
     unsafe_bug = models.IntegerField(default=0)
     unsafe_target_bug = models.IntegerField(default=0)
@@ -136,7 +138,7 @@ class Verdict(models.Model):
 
 
 class ComponentUnknown(models.Model):
-    report = models.ForeignKey(ReportComponent)
+    report = models.ForeignKey(ReportRoot)
     component = models.ForeignKey(Component, related_name='+')
     number = models.IntegerField(default=0)
 
@@ -145,7 +147,7 @@ class ComponentUnknown(models.Model):
 
 
 class ComponentMarkUnknownProblem(models.Model):
-    report = models.ForeignKey(ReportComponent)
+    report = models.ForeignKey(ReportRoot)
     component = models.ForeignKey(Component)
     problem = models.ForeignKey(UnknownProblem, null=True, blank=True,
                                 on_delete=models.SET_NULL)
@@ -156,7 +158,7 @@ class ComponentMarkUnknownProblem(models.Model):
 
 
 class ComponentResource(models.Model):
-    report = models.ForeignKey(ReportComponent)
+    report = models.ForeignKey(ReportRoot)
     component = models.ForeignKey(Component, null=True, blank=True,
                                   on_delete=models.SET_NULL)
     resource = models.ForeignKey(Resource)

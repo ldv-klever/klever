@@ -7,7 +7,7 @@
 {% block body_block %}
 
 <div class="row">
-    <div class="col-sm-5">
+    <div class="col-sm-7">
         <span class="Title">{% trans 'General information' %}</span>
         <table class="RootReportTable" border="1">
             <tr class="TableRawEven">
@@ -35,7 +35,7 @@
                 </td>
             </tr>
             {% endif %}
-            {% timezone user_tz %}
+            {% timezone user.extended.timezone %}
             {% if report.user %}
             <tr class="TableRawEven">
                 <td><span class="TableTitle">{% trans 'Last request date' %}</span></td>
@@ -71,7 +71,7 @@
             </tr>
         </table>
 
-        </br><span class="Title">{% trans 'Attributes' %}</span>
+        <br><span class="Title">{% trans 'Attributes' %}</span>
         <table class="RootReportTable" border="1">
             <tr class="TableRawEven">
                 <td><span class="TableTitle">{% trans 'Name' %}</span></td>
@@ -85,7 +85,7 @@
             {% endfor %}
         </table>
 
-        </br><span class="Title">{% trans 'Resources' %}</span>
+        <br><span class="Title">{% trans 'Resources' %}</span>
         <table class="RootReportTable" border="1">
             <tr class="TableRawEven">
                 <td><span class="TableTitle">{% trans 'Component' %}</span></td>
@@ -100,15 +100,15 @@
                 {% else %}
                     <td>Total</td>
                 {% endif %}
-                <td>{{resource.resource.cpu_time}}</td>
-                <td>{{resource.resource.wall_time}}</td>
-                <td>{{resource.resource.memory}}</td>
+                <td>{{ resource.resource.cpu_time }}</td>
+                <td>{{ resource.resource.wall_time }}</td>
+                <td>{{ resource.resource.memory }}</td>
             </tr>
             {% endfor %}
         </table>
 
         {% if parents %}
-        </br><span class="Title">{% trans 'Parents' %}</span>
+        <br><span class="Title">{% trans 'Parents' %}</span>
         <table class="RootReportTable" border="1">
             <tr class="TableRawEven">
                 <td><span class="TableTitle">{% trans 'Component' %}</span></td>
@@ -138,7 +138,7 @@
         {% endif %}
 
         {% if children_values %}
-        </br><span class="Title">{% trans 'Children' %}</span>
+        <br><span class="Title">{% trans 'Children' %}</span>
         <table class="RootReportTable" border="1">
             <tr class="TableRawEven">
                 <td><span class="TableTitle">{% trans 'Component' %}</span></td>
@@ -164,61 +164,15 @@
         {% endif %}
 
         <span class="Title">{% trans 'Log' %}</span>
-        </br>{{report.log}}
+        {% if report.description %}
+            <br><p class="purple-title">{% trans 'Description' %}</p>
+            {{ report.description }}
+        {% endif %}
+        <br>{{report.log}}
+
     </div>
     <div class="col-sm-5">
-        <span class="Title">{% trans 'Results' %}</span>
-        {% if report.verdict %}
-                <div class="row">
-                    <div class="col-sm-6">
-                        <span class="Title"><b>{% trans 'Unsafes' %}: </b></span>
-                        <ul>
-                            {% for v in verdict.unsafes %}
-                                <li><span style="color:{{ v.color }};">{{ v.title }}:
-                                {% if v.title = 'Total' %}
-                                    </span><a href="{% url 'reports:report_unsafes' report.id %}">{{ v.value }}</a></li>
-                                {% else %}
-                                    </span><a href="#">{{ v.value }}</a></li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    <div class="col-sm-6">
-                        <span class="Title"><b>{% trans 'Safes' %}: </b></span>
-                        <ul>
-                            {% for v in verdict.safes %}
-                                <li><span style="color:{{ v.color }};">{{ v.title }}:
-                                {% if v.title = 'Total' %}
-                                    </span><a href="{% url 'reports:report_safes' report.id %}">{{ v.value }}</a></li>
-                                {% else %}
-                                    </span><a href="#">{{ v.value }}</a></li>
-                                {% endif %}
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-
-            {% endif %}
-
-            {% if unknowns %}
-                <span class="Title"><b>{% trans 'Problems' %}</b></span>
-                {% if verdict %}(<a href="{% url 'reports:report_unknowns' report.id %}">{{ verdict.unknowns }}</a>)
-                {% endif %}
-                <ul>
-                    {% for comp in unknowns %}
-                        <li>{{ comp.component }}</li>
-                        <ul>
-                        {% for probl in comp.problems %}
-                            <li>{{ probl.problem }}: <a href="#">{{ probl.num }}</a></li>
-                        {% endfor %}
-                        </ul>
-                    {% endfor %}
-
-                </ul>
-            {% endif %}
-        </br><span class="Title">{% trans 'Description' %}</span></br>
-        {{ report.description }}
+        {% include 'jobs/jobData.html' %}
     </div>
 </div>
-
 {% endblock %}

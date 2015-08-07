@@ -17,7 +17,7 @@ from Omega.vars import JOB_ROLES, JOB_STATUS, VIEW_TYPES
 from jobs.job_model import Job
 from jobs.models import File, FileSystem
 from jobs.forms import FileForm
-from jobs.viewjob_functions import ViewJobData
+from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
 from users.models import View, PreferableView
@@ -731,8 +731,7 @@ def job_error(request, err_code=0):
                     'please try again later')
     elif err_code == 451:
         message = _('Wrong parameters, please reload page and try again.')
-    return render(request, 'jobs/error.html',
-                  {'message': message, 'back': back})
+    return render(request, 'error.html', {'message': message, 'back': back})
 
 
 def psi_set_status(request):

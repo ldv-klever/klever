@@ -15,14 +15,14 @@ handler = logging.StreamHandler()
 logger.addHandler(handler)
 
 # Specify your user name, password and Omega name or create appropriate ones.
-session = psi.utils.Session(logger, '__user', '__passwd', 'localhost:8998')
+session = psi.utils.Session(logger, 'vladimir', 'bestvampire', 'localhost:8000')
 
 comp = [{'node name': 'hellwig.intra.ispras.ru'}, {'CPU model': 'Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz'},
         {'CPUs num': '8'}, {'mem size': '16808734720'}, {'Linux kernel version': '3.16.7-21-default'},
         {'arch': 'x86_64'}]
 
 # Specify your job id.
-session.decide_job({'format': 1, 'id': '025f5f199d7e5ff31b65b476aed507f4', 'archive': 'job.tar.gz'},
+session.decide_job({'format': 1, 'id': 'b79a1a880d72a645ce9e575778e8b5ac', 'archive': 'job.tar.gz'},
                    psi.utils.dump_report(logger, 'start',
                                          {'type': 'start', 'id': '/', 'attrs': [{'psi version': '2634add-dirty'}],
                                           'comp': comp}))

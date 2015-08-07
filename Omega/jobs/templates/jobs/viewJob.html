@@ -25,16 +25,16 @@
                 <span id="job_pk" hidden>{{ jobdata.job.pk }}</span>
             </div>
 
-            <h4><span class="show-job-name show-job-title"><ins>{{ jobdata.job.name }}</ins></span></h4>
+            <h4><span class="show-job-name purple-title"><ins>{{ jobdata.job.name }}</ins></span></h4>
 
-            <span class="show-job-title">{% trans 'Class' %}:</span> {{ jobdata.job.get_type_display }}
+            <span class="purple-title">{% trans 'Class' %}:</span> {{ jobdata.job.get_type_display }}
             <br>
-            <span class="show-job-title">{% trans 'Identifier' %}:</span> <span style="color: #15c46b">{{ jobdata.job.identifier }}</span>
-            <br><span class="show-job-title">{% trans 'Created by' %}: </span>
+            <span class="purple-title">{% trans 'Identifier' %}:</span> <span style="color: #15c46b">{{ jobdata.job.identifier }}</span>
+            <br><span class="purple-title">{% trans 'Created by' %}: </span>
             <a href="{% url 'users:show_profile' created_by.pk %}">{{ created_by.extended.last_name }} {{ created_by.extended.first_name }}</a>
             <br>
             {% if parents %}
-                <span class="show-job-title">{% trans 'Parents' %}:</span>
+                <span class="purple-title">{% trans 'Parents' %}:</span>
                 {% for parent in parents %}
                     <ul><li>
                     {% if parent.pk %}
@@ -49,7 +49,7 @@
             {% endif %}
 
             {% if children %}
-                <span class="show-job-title">{% trans 'Children' %}:</span>
+                <span class="purple-title">{% trans 'Children' %}:</span>
                 <ul>
                 {% for child in children %}
                     <li>
@@ -63,7 +63,7 @@
                 </ul>
             {% endif %}
 
-            <span class="show-job-title">{% trans 'Last change' %}: </span>
+            <span class="purple-title">{% trans 'Last change' %}: </span>
             <br>
             <span class="job-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' jobdata.job.change_author.pk %}">{{ jobdata.job.change_author.extended.last_name }} {{ jobdata.job.change_author.extended.first_name }}</a>
             <br>
@@ -76,7 +76,7 @@
                 <span class="job-subtitle">{% trans 'Comment' %}:</span> <small>"{{ comment }}"</small><br>
             {% endif %}
             <br>
-            <span class="show-job-title">{% trans 'Decision status' %}: </span>
+            <span class="purple-title">{% trans 'Decision status' %}: </span>
             {% if jobdata.job.jobstatus %}
                 <span style="color:
                         {% if job.jobstatus.status == '0' %}
@@ -100,87 +100,7 @@
             {% else %}
                 -
             {% endif %}
-            {% include 'jobs/viewJobFilters.html' %}
-            <div class="row">
-                {% if jobdata.view_data.unsafes|length %}
-                    <div class="col-sm-6">
-                        <span class="show-job-title"><b>{% trans 'Unsafes' %}: </b></span>
-                        <ul>
-                            {% for v in jobdata.view_data.unsafes %}
-                                <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-                {% if jobdata.view_data.safes|length %}
-                    <div class="col-sm-6">
-                        <span class="show-job-title"><b>{% trans 'Safes' %}: </b></span>
-                        <ul>
-                            {% for v in jobdata.view_data.safes %}
-                                <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-            </div>
-
-            {% if jobdata.view_data.unknowns|length %}
-                <span class="show-job-title"><b>{% trans 'Unknowns' %}</b></span>
-                {% if jobdata.unknowns_total %}(<a href="#">{{ jobdata.unknowns_total }}</a>){% endif %}
-                <ul>
-                    {% for comp in jobdata.view_data.unknowns %}
-                        <li>{{ comp.component }}</li>
-                        <ul>
-                        {% for probl in comp.problems %}
-                            <li>{{ probl.problem }}: <a href="#">{{ probl.num }}</a></li>
-                        {% endfor %}
-                        </ul>
-                    {% endfor %}
-
-                </ul>
-            {% endif %}
-
-            {% if jobdata.view_data.resources|length %}
-                <span id="resource_title_span" class="show-job-title"><b>{% trans 'Resources' %}*</b></span>
-                <ul>
-                    {% for res_data in jobdata.view_data.resources %}
-                        <li>{{ res_data.component }}: <span style="color: darkblue">{{ res_data.val }}</span></li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-
-            {% if jobdata.show_tags %}
-                {% if jobdata.view_data.tags_unsafe|length or jobdata.view_data.tags_safe|length %}
-                    <br><span class="show-job-title"><b>{% trans 'Tags' %}</b></span>
-                    <div class="row">
-                        {% if jobdata.view_data.tags_unsafe|length %}
-                            <div class="col-sm-6">
-                                <span class="show-job-title"><small>{% trans 'Unsafe' %}: </small></span>
-                                <ul>
-                                    {% for t in jobdata.view_data.tags_unsafe %}
-                                        <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        {% endif %}
-                        {% if jobdata.view_data.tags_safe|length %}
-                            <div class="col-sm-6">
-                                <span class="show-job-title"><small>{% trans 'Safe' %}: </small></span>
-                                <ul>
-                                    {% for t in jobdata.view_data.tags_safe %}
-                                        <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        {% endif %}
-                    </div>
-                {% endif %}
-            {% endif %}
-
-            <div id="resource_star_div">
-                <hr>
-                <small style="color: #868686">*{% trans "Resources (wall time, CPU time and maximum memory) are shown for each component and totally" %}</small>
-            </div>
+            {% include 'jobs/jobData.html' %}
         </div>
         <div id="edit_job_div" class="col-sm-7"></div>
     </div>

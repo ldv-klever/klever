@@ -1,22 +1,21 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.utils.translation import activate
-from reports.models import *
-from jobs.job_model import *
-import jobs.job_functions as job_f
-from django.utils.translation import ugettext as _
-from _datetime import datetime
-from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponse, JsonResponse
 import json
+from datetime import datetime
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, get_object_or_404
+from django.utils.translation import activate, ugettext as _
+from reports.models import *
+from jobs.job_model import JobStatus
+from jobs.ViewJobData import ViewJobData
 
 
 @login_required
 def report_root(request, report_id):
     activate(request.user.extended.language)
-    report = ReportRoot.objects.get(pk=int(report_id))
-    user_tz = request.user.extended.timezone
+
+    report = get_object_or_404(ReportComponent, root_id=int(report_id))
     delta = None
     if report.finish_date and report.start_date:
         delta = report.finish_date - report.start_date
@@ -40,16 +39,19 @@ def report_root(request, report_id):
             attr_values.append(child.attr.all().filter(name=attr))
         children_values[child] = attr_values
 
+    view_args = [request.user, report.job]
+    if request.method == 'POST':
+        view_args.append(request.POST.get('view', None))
+        view_args.append(request.POST.get('view_id', None))
+
     return render(
         request,
         'reports/report_root.html',
         {
             'report': report,
-            'user_tz': user_tz,
             'delta': delta,
             'resources': resources,
-            'verdict': job_f.verdict_info(report),
-            'unknowns': job_f.unknowns_info(report),
+            'jobdata': ViewJobData(*view_args),
             'children_attr': children_attr,
             'children_values': children_values,
         }
@@ -59,8 +61,9 @@ def report_root(request, report_id):
 @login_required
 def report_component(request, report_id):
     activate(request.user.extended.language)
+
     report = ReportComponent.objects.get(pk=int(report_id))
-    user_tz = request.user.extended.timezone
+
     delta = None
     if report.finish_date and report.start_date:
         delta = report.finish_date - report.start_date
@@ -101,16 +104,19 @@ def report_component(request, report_id):
         parents[ReportComponent.objects.get(pk=cur_report.id)] = attr_values
         cur_report = cur_report.parent
 
+    view_args = [request.user, report.root.job]
+    if request.method == 'POST':
+        view_args.append(request.POST.get('view', None))
+        view_args.append(request.POST.get('view_id', None))
+
     return render(
         request,
         'reports/report_root.html',
         {
             'report': report,
-            'user_tz': user_tz,
             'delta': delta,
             'resources': resources,
-            'verdict': job_f.verdict_info(report),
-            'unknowns': job_f.unknowns_info(report),
+            'jobdata': ViewJobData(*view_args),
             'parents': parents,
             'parents_attr': parents_attr,
             'children_attr': children_attr,
@@ -134,9 +140,8 @@ def report_unsafes(request, report_id):
     unsafes = []
     for unsafe_id in unsafes_id:
         try:
-            report_unsafe = ReportUnsafe.objects.get(pk=int(unsafe_id.leaf_id))
-            unsafes.append(report_unsafe)
-        except Exception:
+            unsafes.append(ReportUnsafe.objects.get(pk=int(unsafe_id.leaf_id)))
+        except ObjectDoesNotExist:
             pass
 
     attrs = []

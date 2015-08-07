@@ -1,18 +1,11 @@
-import random
-import hashlib
 import pytz
+import random
 from time import sleep
+from datetime import datetime
 from jobs.job_functions import create_job, update_job
-from marks.models import UnsafeTag, SafeTag
 from jobs.models import MarkSafeTag, MarkUnsafeTag
 from reports.models import *
-from datetime import datetime, timedelta
-
-
-def clear_table(table):
-    rows = table.objects.all()
-    for row in rows:
-        row.delete()
+from marks.models import UnsafeTag, SafeTag
 
 
 def populate_jobs(username):
@@ -62,10 +55,10 @@ def populate_jobs(username):
 
 
 def populate_tags():
-    clear_table(SafeTag)
-    clear_table(UnsafeTag)
-    clear_table(MarkSafeTag)
-    clear_table(MarkUnsafeTag)
+    SafeTag.objects.all().delete()
+    UnsafeTag.objects.all().delete()
+    MarkSafeTag.objects.all().delete()
+    MarkUnsafeTag.objects.all().delete()
     for i in range(5):
         newtag = SafeTag()
         newtag.tag = 'my:safe:tag:%s' % str(i + 1)
@@ -93,51 +86,25 @@ def populate_tags():
 def populate_root_report(username):
     ReportRoot.objects.all().delete()
     Component.objects.all().delete()
-    Computer.objects.all().delete()
 
     components = ["DSCV", "RCV", "Reporter", "DEG"]
     for comp_name in components:
         component = Component()
         component.name = comp_name
         component.save()
-    computer = Computer()
-    computer.description = 'Intel® Core™ i7-3770 CPU @ 3.40GHz × 8 1.1TB'
-    computer.save()
 
-    cnt = 1
     for job in Job.objects.all():
-        cnt += 1
-        resource = Resource()
-        resource.cpu_time = random.randint(0, 600000)
-        resource.wall_time = random.randint(0, 600000)
-        resource.memory = random.randint(0, 150000000)
-        resource.save()
-
         root_report = ReportRoot()
-        root_report.parent = None
-        root_report.identifier = hashlib.md5(
-            ('%s%s' % (cnt, datetime.now().isoformat())).encode('utf8')
-        ).hexdigest()
-        root_report.resource = resource
-        root_report.component = Component.objects.all()[
-            random.randint(0, len(components) - 1)
-        ]
-        root_report.computer = computer
-        start_date = pytz.timezone('UTC').localize(datetime(
+        root_report.job = job
+        root_report.user = User.objects.get(username=username)
+        root_report.last_request_date = pytz.timezone('UTC').localize(datetime(
             2015, 7, 31, random.randint(10, 15), random.randint(5, 50), 17
         ))
-        root_report.start_date = start_date
-        root_report.last_request_date = start_date
-        root_report.finish_date = start_date + timedelta(
-            minutes=random.randint(5, 120)
-        )
-        root_report.user = User.objects.get(username=username)
-        root_report.job = job
         root_report.save()
 
 
 def populate_verdicts():
-    for report in ReportComponent.objects.all():
+    for report in ReportRoot.objects.all():
         verdict = Verdict()
         verdict.report = report
         verdict.unsafe = random.randint(0, 10)
@@ -158,7 +125,7 @@ def populate_verdicts():
 
 
 def populate_resources():
-    for report in ReportComponent.objects.all():
+    for report in ReportRoot.objects.all():
         resource = Resource()
         resource.cpu_time = random.randint(0, 60000)
         resource.wall_time = random.randint(0, 60000)
@@ -190,7 +157,7 @@ def populate_unknowns():
         marked_problem.name = "Problem %s" % str(i + 1)
         marked_problem.save()
 
-    for report in ReportComponent.objects.all():
+    for report in ReportRoot.objects.all():
         for component in Component.objects.all():
             if random.randint(0, 10) > 6:
                 total = ComponentUnknown()

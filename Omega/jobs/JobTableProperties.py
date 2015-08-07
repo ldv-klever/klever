@@ -647,10 +647,9 @@ class TableTree(object):
                         status.get_status_display()
 
         def collect_verdicts():
-            for verdict in Verdict.objects.filter(
-                    report__reportroot__job_id__in=job_pks):
-                if verdict.report.reportroot.job_id in values_data:
-                    values_data[verdict.report.reportroot.job_id].update({
+            for verdict in Verdict.objects.filter(report__job_id__in=job_pks):
+                if verdict.report.job_id in values_data:
+                    values_data[verdict.report.job_id].update({
                         'unsafe:total': verdict.unsafe,
                         'unsafe:bug': verdict.unsafe_bug,
                         'unsafe:target_bug': verdict.unsafe_target_bug,
@@ -706,8 +705,8 @@ class TableTree(object):
 
         def collect_resourses():
             for cr in ComponentResource.objects.filter(
-                    report__reportroot__job_id__in=job_pks):
-                job_pk = cr.report.reportroot.job_id
+                    report__job_id__in=job_pks):
+                job_pk = cr.report.job_id
                 if job_pk in values_data:
                     accuracy = self.user.extended.accuracy
                     data_format = self.user.extended.data_format
@@ -728,8 +727,8 @@ class TableTree(object):
 
         def collect_unknowns():
             for cmup in ComponentMarkUnknownProblem.objects.filter(
-                    report__reportroot__job_id__in=job_pks):
-                job_pk = cmup.report.reportroot.job_id
+                    report__job_id__in=job_pks):
+                job_pk = cmup.report.job_id
                 if job_pk in values_data:
                     if cmup.problem is None:
                         values_data[job_pk][
@@ -742,8 +741,8 @@ class TableTree(object):
                             ':problem_' + str(cmup.problem_id)
                         ] = cmup.number
             for cu in ComponentUnknown.objects.filter(
-                    report__reportroot__job_id__in=job_pks):
-                job_pk = cu.report.reportroot.job_id
+                    report__job_id__in=job_pks):
+                job_pk = cu.report.job_id
                 if job_pk in values_data:
                     values_data[job_pk][
                         'problem:pr_component_' + str(cu.component_id) +

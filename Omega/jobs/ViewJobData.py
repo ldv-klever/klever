@@ -14,34 +14,33 @@ COLORS = {
 }
 
 
-def get_view_view(user, view_id=None, view=None):
-    if view is not None:
-        return json.loads(view), None
-    if view_id is None:
-        pref_view = user.preferableview_set.filter(view__type='2')
-        if len(pref_view):
-            return json.loads(pref_view[0].view.view), pref_view[0].view_id
-    elif view_id == 'default':
-        return VIEWJOB_DEF_VIEW, 'default'
-    else:
-        user_view = user.view_set.filter(pk=int(view_id), type='2')
-        if len(user_view):
-            return json.loads(user_view[0].view), user_view[0].pk
-    return VIEWJOB_DEF_VIEW, 'default'
-
-
 class ViewJobData(object):
 
     def __init__(self, user, job, view=None, view_id=None):
         self.job = job
         self.user = user
-        (self.view, self.view_id) = get_view_view(user, view_id, view)
+        (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.all_views()
         self.unknowns_total = None
         self.show_verdicts = False
         self.show_tags = False
         self.view_data = {}
         self.get_view_data()
+
+    def __get_view(self, view, view_id):
+        if view is not None:
+            return json.loads(view), None
+        if view_id is None:
+            pref_view = self.user.preferableview_set.filter(view__type='2')
+            if len(pref_view):
+                return json.loads(pref_view[0].view.view), pref_view[0].view_id
+        elif view_id == 'default':
+            return VIEWJOB_DEF_VIEW, 'default'
+        else:
+            user_view = self.user.view_set.filter(pk=int(view_id), type='2')
+            if len(user_view):
+                return json.loads(user_view[0].view), user_view[0].pk
+        return VIEWJOB_DEF_VIEW, 'default'
 
     def all_views(self):
         views = []

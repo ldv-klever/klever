@@ -44,12 +44,6 @@ th {
     padding-top: 0;
 }
 
-.show-job-title {
-    color: #6416ad;
-    font-weight: bold;
-    font-size: 1.2em;
-}
-
 .show-job-name {
     font-style: italic;
 }
@@ -184,8 +178,4 @@ body.loading .modal-loading {
 body.file-view {
     overflow: hidden;
     display: block;
-}
-
-.view-job-column {
-    margin-left: 10px;
 }
