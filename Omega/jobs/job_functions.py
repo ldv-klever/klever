@@ -832,9 +832,9 @@ def create_job(kwargs):
             newjob.delete()
             return db_fdata.err_message
     if 'absolute_url' in kwargs:
-        Notify(kwargs['job'], 0, {'absurl': kwargs['absolute_url']})
+        Notify(newjob, 0, {'absurl': kwargs['absolute_url']})
     else:
-        Notify(kwargs['job'], 0)
+        Notify(newjob, 0)
     return newjob
 
 
