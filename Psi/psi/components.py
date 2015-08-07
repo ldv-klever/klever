@@ -40,7 +40,7 @@ class Component:
     def get_callbacks(self):
         self.logger.info('Gather callbacks for component "{0}"'.format(self.name))
 
-        p = multiprocessing.Process(target=self.__get_callbacks)
+        p = multiprocessing.Process(target=self.__get_callbacks, name=self.name)
         p.start()
         p.join()
         if p.exitcode:
@@ -92,7 +92,7 @@ class Component:
         self.start_time = time.time()
 
         self.logger.info('Launch component "{0}"'.format(self.name))
-        self.process = multiprocessing.Process(target=self.__launch)
+        self.process = multiprocessing.Process(target=self.__launch, name=self.name)
         self.process.start()
 
     def __launch(self):
