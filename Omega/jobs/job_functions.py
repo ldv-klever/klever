@@ -632,7 +632,7 @@ def convert_memory(val, acc):
 
 def verdict_info(job):
     try:
-        verdicts = job.reportroot.verdict
+        verdicts = job.verdict
     except ObjectDoesNotExist:
         return None
 
@@ -701,7 +701,7 @@ def verdict_info(job):
 
 def unknowns_info(job):
     try:
-        report = job.reportroot
+        report = job
     except ObjectDoesNotExist:
         return None
 

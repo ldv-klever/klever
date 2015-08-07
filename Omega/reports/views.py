@@ -428,6 +428,58 @@ def fill_cache_component(report):
                                                    defaults={'resource': resource})
 
 
+def fill_cache_unsafe(report):
+    parents = get_parents(report.parent)
+    for parent in parents:
+        try:
+            ReportComponentLeaf.objects.get(report=parent, leaf_id=report.pk)
+        except ObjectDoesNotExist:
+            ReportComponentLeaf.objects.create(report=parent, leaf_id=report.pk)
+            try:
+                verdict = Verdict.objects.get(report=parent)
+                verdict.unsafe += 1
+                verdict.save()
+            except ObjectDoesNotExist:
+                Verdict.objects.create(report=parent, unsafe=1)
+
+
+def fill_cache_safe(report):
+    parents = get_parents(report.parent)
+    for parent in parents:
+        try:
+            ReportComponentLeaf.objects.get(report=parent, leaf_id=report.pk)
+        except ObjectDoesNotExist:
+            ReportComponentLeaf.objects.create(report=parent, leaf_id=report.pk)
+            try:
+                verdict = Verdict.objects.get(report=parent)
+                verdict.safe += 1
+                verdict.save()
+            except ObjectDoesNotExist:
+                Verdict.objects.create(report=parent, safe=1)
+
+
+def fill_cache_unknown(report):
+    parents = get_parents(report.parent)
+    component = ReportComponent.objects.get(pk=report.parent.pk).component
+    for parent in parents:
+        try:
+            ReportComponentLeaf.objects.get(report=parent, leaf_id=report.pk)
+        except ObjectDoesNotExist:
+            ReportComponentLeaf.objects.create(report=parent, leaf_id=report.pk)
+            try:
+                verdict = Verdict.objects.get(report=parent)
+                verdict.unknown += 1
+                verdict.save()
+            except ObjectDoesNotExist:
+                Verdict.objects.create(report=parent, unknown=1)
+            try:
+                unknown = ComponentUnknown.objects.get(report=parent, component=component)
+                unknown.number += 1
+                unknown.save()
+            except ObjectDoesNotExist:
+                ComponentUnknown.objects.create(report=parent, component=component, number=1)
+
+
 @login_required
 def upload_report(request, is_root=False):
 
@@ -648,6 +700,8 @@ def upload_report(request, is_root=False):
             report.attr.add(attr_value)
             ReportAttr.objects.update_or_create(report=report, attr=attr_value)
         report.save()
+
+        fill_cache_unsafe(report)
     elif report_type == 'safe':
         report = ReportSafe()
         report.identifier = identifier
@@ -670,6 +724,8 @@ def upload_report(request, is_root=False):
             report.attr.add(attr_value)
             ReportAttr.objects.update_or_create(report=report, attr=attr_value)
         report.save()
+
+        fill_cache_safe(report)
     elif report_type == 'unknown':
         report = ReportUnknown()
         report.identifier = identifier
@@ -692,5 +748,7 @@ def upload_report(request, is_root=False):
             report.attr.add(attr_value)
             ReportAttr.objects.update_or_create(report=report, attr=attr_value)
         report.save()
+
+        fill_cache_unknown(report)
 
     return HttpResponse('')
