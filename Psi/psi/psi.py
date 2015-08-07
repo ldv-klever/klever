@@ -112,6 +112,8 @@ def launch():
                 break
 
             time.sleep(1)
+
+        raise Exception('TODO: remove me after all!')
     except Exception as e:
         _exit_code = 1
 
