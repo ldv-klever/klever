@@ -63,7 +63,9 @@ class EditUserForm(forms.ModelForm):
         new_pass = cleaned_data.get("new_password")
         retyped = cleaned_data.get("retype_password")
         if new_pass != retyped:
-            raise forms.ValidationError({'retype_password': _("Passwords don't match")})
+            raise forms.ValidationError({
+                'retype_password': _("Passwords don't match")
+            })
 
     class Meta:
         model = User
@@ -89,12 +91,11 @@ class UserExtendedForm(forms.ModelForm):
 
     class Meta:
         model = Extended
-        # TODO: remove 'role' after testing
-        fields = ('accuracy', 'data_format', 'language', 'role', 'first_name', 'last_name')
+        fields = ('accuracy', 'data_format', 'language',
+                  'first_name', 'last_name')
         widgets = {
             'data_format': forms.Select(attrs={'class': 'form-control'}),
             'language': forms.Select(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'role': forms.Select(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'})
         }
