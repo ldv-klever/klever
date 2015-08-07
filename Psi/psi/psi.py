@@ -128,9 +128,8 @@ def launch():
 
         if _logger:
             _logger.exception('Catch exception')
-        # Raise exception if we can't even log it.
         else:
-            raise
+            traceback.print_exc()
     finally:
         if 'components' in locals():
             for component in components:
