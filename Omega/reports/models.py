@@ -5,7 +5,7 @@ from marks.models import UnknownProblem
 
 
 class AttrName(models.Model):
-    name = models.CharField(max_length=31)
+    name = models.CharField(max_length=63)
 
     class Meta:
         db_table = 'attr_name'
