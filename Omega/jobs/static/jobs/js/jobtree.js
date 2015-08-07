@@ -1,19 +1,19 @@
-var do_not_count = "resource|format|version|type|identifier|parent_id|name|author|date|status";
+var do_not_count = ['resource', 'format', 'version', 'type', 'identifier',
+    'parent_id', 'name', 'author', 'date', 'status'];
 
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (!cell_id_data[1].match(do_not_count)) {
+        if ($.inArray(cell_id_data[1], do_not_count) == -1) {
             cell_id_data[0] = 'value';
-            var value_start = "td[id^='" + cell_id_data.join('__') + "__']",
-                sum = 0, have_numbers = false;
-            $(value_start).each(function () {
-                var num = parseInt($(this).children('span').first().html());
+            var sum = 0, have_numbers = false;
+            $("td[id^='" + cell_id_data.join('__') + "__']").each(function () {
+                var num = parseInt($(this).children().first().text());
                 isNaN(num) ? num = 0 : have_numbers = true;
                 sum += num;
             });
-            if (have_numbers === true) {
-                $(this).html(sum);
+            if (have_numbers) {
+                $(this).text(sum);
             }
         }
     });
@@ -22,19 +22,18 @@ function fill_all_values() {
 function fill_checked_values() {
     $("td[id^='checked__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (!cell_id_data[1].match(do_not_count)) {
+        if ($.inArray(cell_id_data[1], do_not_count) == -1) {
             cell_id_data[0] = 'value';
-            var value_start = "td[id^='" + cell_id_data.join('__') + "__']",
-                sum = 0, have_numbers = false, is_checked = false;
-            $(value_start).each(function() {
+            var sum = 0, have_numbers = false, is_checked = false;
+            $("td[id^='" + cell_id_data.join('__') + "__']").each(function() {
                 if ($('#job_checkbox__' + $(this).attr('id').split('__').slice(-1)[0]).is(':checked')) {
                     is_checked = true;
-                    var num = parseInt($(this).children('span').first().html());
+                    var num = parseInt($(this).children().first().text());
                     isNaN(num) ? num = 0 : have_numbers = true;
                     sum += num;
                 }
             });
-            (have_numbers === true && is_checked === true) ? $(this).html(sum) : $(this).html('-');
+            (have_numbers === true && is_checked === true) ? $(this).text(sum) : $(this).text('-');
         }
     });
 }
@@ -53,7 +52,7 @@ function add_new_order() {
         selected_order = available_orders.children('option:selected');
 
     if (selected_order.length === 1) {
-        var sel_title = selected_order.html(),
+        var sel_title = selected_order.text(),
             sel_value = selected_order.val(),
             selected_orders_div = $('#all_selected_orders');
         if (selected_orders_div.find('div[id=order__' + sel_value + ']').length > 0) {
@@ -66,7 +65,7 @@ function add_new_order() {
 
         var span_obj = new_item.find('span[id=selected_order_title__]');
         span_obj.attr('id', 'selected_order_title__' + sel_value);
-        span_obj.html(sel_title);
+        span_obj.text(sel_title);
 
         var new_button = new_item.find('button[id=remove__order__]');
         new_button.attr('id', 'remove__order__' + sel_value);
@@ -94,7 +93,7 @@ function check_filters_form() {
 
 function delete_selected_order() {
     var order_value = $(this).attr('id').split('__').slice(-1)[0];
-    add_order_to_available(order_value, $('#selected_order_title__' + order_value).html());
+    add_order_to_available(order_value, $('#selected_order_title__' + order_value).text());
     $('#order__' + order_value).remove();
 }
 
@@ -102,7 +101,7 @@ function remove_filter_form() {
     var filter_name = $(this).attr('id').split('__').slice(-1)[0];
     $('#available_filters').append($('<option>', {
         value: filter_name,
-        text: $('#filter_title__' + filter_name).html()
+        text: $('#filter_title__' + filter_name).text()
     }));
     $('#filter_form__' + filter_name).remove();
     check_filters_form();
@@ -254,8 +253,8 @@ $(document).ready(function () {
         var selected_column = $('#available_columns').children('option:selected');
         $('<option>', {
             value: selected_column.val(),
-            text: selected_column.html(),
-            title: selected_column.html()
+            text: selected_column.text(),
+            title: selected_column.text()
         }).appendTo('#selected_columns');
         return false;
     });
@@ -451,7 +450,7 @@ $(document).ready(function () {
             }
         }
         else {
-            err_notify("Please select jobs you want to download.")
+            err_notify($('#error__no_jobs_to_download').text());
         }
     });
 
@@ -468,13 +467,13 @@ $(document).ready(function () {
         var file_input = $('#upload_job_file_input');
         file_input.replaceWith(file_input.clone( true ));
         $('#upload_job_parent_id').val('');
-        $('#upload_job_filename').html('');
+        $('#upload_job_filename').empty();
     });
 
     $('#upload_jobs_start').click(function () {
         var parent_id = $('#upload_job_parent_id').val();
         if (parent_id.length === 0) {
-            err_notify('Parent identifier is required!');
+            err_notify($('#error__parent_required').text());
             return false;
         }
         var files = $('#upload_job_file_input')[0].files,

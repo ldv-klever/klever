@@ -65,7 +65,7 @@ ROOT_URLCONF = 'Omega.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': ['templates', 'Omega/templates'],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,9 +79,7 @@ TEMPLATES = [
     },
 ]
 
-TEMPLATE_DIRS = (
-    os.path.join(BASE_DIR,  'Omega/templates'),
-)
+# TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'Omega/templates'),)
 
 WSGI_APPLICATION = 'Omega.wsgi.application'
 
@@ -119,8 +117,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/

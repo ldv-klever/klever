@@ -18,6 +18,7 @@
     <button id="new_file_btn" type="button" class="btn btn-info">{% trans 'New file' %}</button>
     <button id="rename_file_btn" type="button" class="btn btn-primary">{% trans 'Rename' %}</button>
     <button id="move_file_btn" type="button" class="btn btn-primary">{% trans 'Move file' %}</button>
+    <button id="replace_file_btn" type="button" class="btn btn-warning">{% trans 'Replace file' %}</button>
     <button id="remove_file_btn" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
 </div>
 <div id="files_for_upload" hidden></div>
@@ -75,9 +76,23 @@
     <button id="tmp___save_new_file_btn" class="btn btn-success" type="button">{% trans 'Add' %}</button>
     <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">{% trans 'Cancel' %}</button>
 </div>
+<div id="replace_file_template" hidden>
+    <hr>
+    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="tmp___new_file_input" type="file"></span>
+    <br><br>
+    <label for="tmp___new_file_name">{% trans 'Name' %}:</label>
+    <input id="tmp___new_file_name" type="text" class="form-control">
+    <br>
+    <button id="tmp___save_new_file_btn" class="btn btn-success" type="button">{% trans 'Replace' %}</button>
+    <button id="tmp___clear_file_form" style="float: right" type="button" class="btn btn-primary">{% trans 'Cancel' %}</button>
+</div>
 
 <div id="file_content_div" class="file-view-div">
     <button id="close_file_view" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span></button>
     <button id="download_file_form_view" class="btn btn-success"><span class="glyphicon glyphicon-download"></span></button>
     <div class="file-view-content"></div>
 </div>
+<span id="error__name_required" hidden>{% trans 'Name is required' %}</span>
+<span id="error__file_not_uploaded" hidden>{% trans 'One of the files was not uploaded' %}</span>
+<span id="error__cant_replace_folder" hidden>{% trans "Can't replace folder with file" %}</span>
+<span id="error__noselected_replace" hidden>{% trans "Choose the file you want to replace" %}</span>

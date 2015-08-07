@@ -4,14 +4,7 @@
 
 {% block title %}{% trans 'Jobs Tree' %}{% endblock %}
 
-{% block head_block %}
-    <script src="/static/jobs/js/jquery.treegrid.js"></script>
-    <script src="/static/jobs/js/notify.min.js"></script>
-    <script src="/static/jobs/js/common.js"></script>
-    <script src="/static/jobs/js/jobtree.js"></script>
-    <link href="/static/jobs/css/style.css" rel="stylesheet">
-    <link href="/static/jobs/css/jquery.treegrid.css" rel="stylesheet">
-{% endblock %}
+{% block jobs_head_block %}<script src="/static/jobs/js/jobtree.js"></script>{% endblock %}
 
 {% block body_block %}
     <div class="row" id="jobstree-first-big-part"><form autocomplete="off" onsubmit="return false">
@@ -52,7 +45,7 @@
                                 <div class="col-sm-4">
                                     <div class="form-inline">
                                         <label for="available_columns">{% trans 'Available columns' %}</label><br>
-                                        <select id="available_columns" class="form-control">
+                                        <select id="available_columns" class="form-control" style="max-width: 200px">
                                             {% for col in FF.available_columns %}
                                                 <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
                                             {% endfor %}
@@ -355,4 +348,6 @@
         </div>
     </div>
     {% include 'jobs/treeTmp.html' %}
+    <span id="error__no_jobs_to_download" hidden>{% trans 'Please select jobs you want to download' %}</span>
+    <span id="error__parent_required" hidden>{% trans 'The parent identifier is required' %}</span>
 {% endblock %}
