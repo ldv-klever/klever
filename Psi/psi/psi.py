@@ -82,12 +82,10 @@ def launch():
 
         job.get_class()
 
-        components = job.get_components()
-
         # Use Psi logger to report events that are common to all components.
-        psi.components.Component.logger = _logger
         # Use the same reports MQ in all components.
-        psi.components.Component.reports_mq = reports_mq
+        # TODO: fix passing of MQ after all.
+        components = psi.components.get_components(_logger, job.type, reports_mq)
 
         callbacks = []
         # Following activities aren't launched in parallel since they are quite fast.

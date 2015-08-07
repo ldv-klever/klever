@@ -15,17 +15,16 @@ import psi.lkvog.lkvog
 import psi.avtg.avtg
 import psi.vtg.vtg
 
-job_class_component_modules = {'Verification of Linux kernel modules': [psi.lkbce.lkbce, psi.lkvog.lkvog],
-                               # These components are likely appropriate for all job classes.
-                               'Common': [psi.avtg.avtg, psi.vtg.vtg]}
+_job_class_component_modules = {'Verification of Linux kernel modules': [psi.lkbce.lkbce, psi.lkvog.lkvog],
+                                # These components are likely appropriate for all job classes.
+                                'Common': [psi.avtg.avtg, psi.vtg.vtg]}
 
 
 class Component:
-    logger = None
-    reports_mq = None
-
-    def __init__(self, module):
+    def __init__(self, module, logger, reports_mq):
         self.module = module
+        self.logger = logger
+        self.reports_mq = reports_mq
         self.name = re.search(r'^.*\.(.+)$', self.module.__name__).groups()[0].upper()
         self.work_dir = None
         self.start_time = None
@@ -167,3 +166,23 @@ class Component:
                                                         self.work_dir)
             self.reports_mq.put(unknown_report_file)
             self.logger.debug('Component "{0}" was terminated'.format(self.name))
+
+
+def get_components(logger, kind, reports_mq):
+    logger.info('Get components necessary to solve job')
+
+    if kind not in _job_class_component_modules:
+        raise KeyError('Job class "{0}" is not supported'.format(kind))
+
+    # Get modules of components specific for job class.
+    component_modules = _job_class_component_modules[kind]
+
+    # Get modules of common components.
+    component_modules.extend(_job_class_component_modules['Common'])
+
+    # Get components.
+    components = [Component(component_module, logger, reports_mq) for component_module in component_modules]
+
+    logger.debug('Components to be launched: "{0}"'.format(', '.join([component.name for component in components])))
+
+    return components
