@@ -533,12 +533,10 @@ def upload_report(request, is_root=False):
                                                        defaults={'resource': resource})
 
             status = JobStatus.objects.get(job=job)
-            is_failed = False
-            for child in Report.objects.filter(parent=update_report):
-                if isinstance(child, ReportUnknown):
-                    is_failed = True
-                    status.status = '4'
-            if not is_failed:
+            if ReportUnknown.objects.filter(parent=update_report).__len__() > 0:
+                is_failed = True
+                status.status = '4'
+            else:
                 status.status = '3'
             status.save()
     elif report_type == 'start' or report_type == 'verification':
