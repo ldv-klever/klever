@@ -5,7 +5,7 @@ from marks.models import UnknownProblem
 
 
 class AttrName(models.Model):
-    name = models.CharField(max_length=63)
+    name = models.CharField(max_length=63, unique=True)
 
     class Meta:
         db_table = 'attr_name'
@@ -31,15 +31,16 @@ class ReportRoot(models.Model):
 
 class Report(models.Model):
     root = models.ForeignKey(ReportRoot)
-    parent = models.ForeignKey('self', blank=True, null=True, related_name='+')
+    parent = models.ForeignKey('self', null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
-    description = models.BinaryField(null=True)
     attr = models.ManyToManyField(Attr)
+    description = models.BinaryField(null=True)
 
     class Meta:
         db_table = 'report'
 
 
+# Do we need it?
 class ReportAttr(models.Model):
     report = models.ForeignKey(Report)
     attr = models.ForeignKey(Attr)
@@ -56,7 +57,7 @@ class Computer(models.Model):
 
 
 class Component(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
 
     class Meta:
         db_table = 'component'
@@ -72,9 +73,10 @@ class Resource(models.Model):
 
 
 class ReportComponent(Report):
-    computer = models.ForeignKey(Computer, related_name='+')
-    resource = models.ForeignKey(Resource, related_name='+', null=True)
-    component = models.ForeignKey(Component, related_name='+')
+    computer = models.ForeignKey(Computer, related_name='computer_reports')
+    component = models.ForeignKey(Component, related_name='component_reports')
+    resource = models.ForeignKey(Resource,
+                                 related_name='resource_report_set', null=True)
     log = models.BinaryField(null=True)
     data = models.BinaryField(null=True)
     start_date = models.DateTimeField()
@@ -139,7 +141,8 @@ class Verdict(models.Model):
 
 class ComponentUnknown(models.Model):
     report = models.ForeignKey(ReportRoot)
-    component = models.ForeignKey(Component, related_name='+')
+    component = models.ForeignKey(Component,
+                                  related_name='component_cache1_set')
     number = models.IntegerField(default=0)
 
     class Meta:
@@ -148,9 +151,10 @@ class ComponentUnknown(models.Model):
 
 class ComponentMarkUnknownProblem(models.Model):
     report = models.ForeignKey(ReportRoot)
-    component = models.ForeignKey(Component)
+    component = models.ForeignKey(Component,
+                                  related_name='component_cache2_set')
     problem = models.ForeignKey(UnknownProblem, null=True, blank=True,
-                                on_delete=models.SET_NULL)
+                                on_delete=models.SET_NULL, related_name='+')
     number = models.IntegerField(default=0)
 
     class Meta:
@@ -160,8 +164,9 @@ class ComponentMarkUnknownProblem(models.Model):
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportRoot)
     component = models.ForeignKey(Component, null=True, blank=True,
-                                  on_delete=models.SET_NULL)
-    resource = models.ForeignKey(Resource)
+                                  on_delete=models.SET_NULL,
+                                  related_name='component_cache3_set')
+    resource = models.ForeignKey(Resource, related_name='resource_cache_set')
 
     class Meta:
         db_table = 'cache_job_component_resource'

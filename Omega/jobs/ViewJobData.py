@@ -5,6 +5,7 @@ from jobs.job_functions import convert_memory, convert_time, SAFES, UNSAFES,\
     TITLES
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Q
+from reports.models import ReportComponentLeaf, ReportComponent
 
 
 COLORS = {
@@ -224,6 +225,7 @@ class ViewJobData(object):
                 'component': comp,
                 'problems': unknowns_sorted[comp]
             })
+        print(unknowns_sorted_by_comp)
         return unknowns_sorted_by_comp
 
     def __safes_info(self):
@@ -253,11 +255,12 @@ class ViewJobData(object):
                 val = verdicts.safe_unassociated
             elif s == 'total':
                 val = verdicts.safe
-            safes_data.append({
-                'title': TITLES[safe_name],
-                'value': val,
-                'color': color,
-            })
+            if val > 0:
+                safes_data.append({
+                    'title': TITLES[safe_name],
+                    'value': val,
+                    'color': color,
+                })
         return safes_data
 
     def __unsafes_info(self):
@@ -290,9 +293,152 @@ class ViewJobData(object):
                 val = verdicts.unsafe_unassociated
             elif s == 'total':
                 val = verdicts.unsafe
-            unsafes_data.append({
-                'title': TITLES[unsafe_name],
-                'value': val,
-                'color': color,
-            })
+            if val > 0:
+                unsafes_data.append({
+                    'title': TITLES[unsafe_name],
+                    'value': val,
+                    'color': color,
+                })
         return unsafes_data
+
+
+class ViewReportData(object):
+    def __init__(self, user, report, view=None, view_id=None):
+        self.job = report.root.job
+        self.report = report
+        self.user = user
+        (self.view, self.view_id) = self.__get_view(view, view_id)
+        self.views = self.all_views()
+        self.unknowns_total = None
+        self.show_verdicts = False
+        self.show_tags = False
+        self.view_data = {}
+        self.get_view_data()
+
+    def __get_view(self, view, view_id):
+        if view is not None:
+            return json.loads(view), None
+        if view_id is None:
+            pref_view = self.user.preferableview_set.filter(view__type='2')
+            if len(pref_view):
+                return json.loads(pref_view[0].view.view), pref_view[0].view_id
+        elif view_id == 'default':
+            return VIEWJOB_DEF_VIEW, 'default'
+        else:
+            user_view = self.user.view_set.filter(pk=int(view_id), type='2')
+            if len(user_view):
+                return json.loads(user_view[0].view), user_view[0].pk
+        return VIEWJOB_DEF_VIEW, 'default'
+
+    def all_views(self):
+        views = []
+        for view in self.user.view_set.filter(type='2'):
+            views.append({
+                'id': view.pk,
+                'name': view.name,
+                'selected': lambda: (view.pk == self.view_id)
+            })
+        return views
+
+    def get_view_data(self):
+        actions = {
+            'safes': self.__safes_info,
+            'unsafes': self.__unsafes_info,
+            'unknowns': self.__unknowns_info,
+            'resources': self.__resource_info,
+        }
+        for d in self.view['data']:
+            if d in actions:
+                self.view_data[d] = actions[d]()
+            if d in ['safes', 'unsafes']:
+                self.show_verdicts = True
+
+    def __resource_info(self):
+        children = ReportComponent.objects.filter(parent=self.report)
+
+        accuracy = self.user.extended.accuracy
+        data_format = self.user.extended.data_format
+
+        res_data = {}
+        for child in children:
+            component = child.component.name
+            if 'resource_component' in self.view['filters']:
+                ft = self.view['filters']['resource_component']['type']
+                fv = self.view['filters']['resource_component']['value']
+                if ft == 'iexact':
+                    if component != fv:
+                        continue
+                elif ft == 'startswith':
+                    if not component.startswith(fv):
+                        continue
+                elif ft == 'endswith':
+                    if not component.endswith(fv):
+                        continue
+            wall = child.resource.wall_time
+            cpu = child.resource.cpu_time
+            mem = child.resource.memory
+            if data_format == 'hum':
+                wall = convert_time(wall, accuracy)
+                cpu = convert_time(cpu, accuracy)
+                mem = convert_memory(mem, accuracy)
+            res_data[child.component.name] = "%s %s %s" % (wall, cpu, mem)
+
+        return [
+            {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
+
+    def __unknowns_info(self):
+        unknowns = ReportComponentLeaf.objects.filter(
+            Q(report=self.report) & ~Q(unknown=None))
+
+        components_data = {}
+        for unknown in unknowns:
+            comp_name = unknown.report.component.name
+            if comp_name in components_data:
+                components_data[comp_name] += 1
+            else:
+                components_data[comp_name] = 1
+        if 'unknown_component' in self.view['filters']:
+            ft = self.view['filters']['unknown_component']['type']
+            fv = self.view['filters']['unknown_component']['value']
+            for comp in components_data:
+                if ft == 'iexact':
+                    if comp != fv:
+                        del components_data[comp]
+                elif ft == 'startswith':
+                    if not comp.startswith(fv):
+                        del components_data[comp]
+                elif ft == 'endswith':
+                    if not comp.endswith(fv):
+                        del components_data[comp]
+
+        unknowns_data = []
+        for comp in sorted(components_data):
+            if components_data[comp] > 0:
+                unknowns_data.append({
+                    'component': comp,
+                    'problems': [{
+                        'num': components_data[comp], 'problem': _('Total')
+                    }]
+                })
+
+        if 'unknowns_total' not in self.view['filters'] or \
+                self.view['filters']['unknowns_total']['type'] == 'show':
+            if len(unknowns) > 0:
+                self.unknowns_total = len(unknowns)
+            else:
+                self.unknowns_total = None
+        return unknowns_data
+
+    def __safes_info(self):
+        val = len(ReportComponentLeaf.objects.filter(
+            Q(report=self.report) & ~Q(safe=None)))
+        if val > 0:
+            return [{'title': _("Total"), 'value': val}]
+        return []
+
+    def __unsafes_info(self):
+        val = len(ReportComponentLeaf.objects.filter(
+            Q(report=self.report) & ~Q(unsafe=None)))
+        if val > 0:
+            return [{'title': _("Total"), 'value': val}]
+        return []

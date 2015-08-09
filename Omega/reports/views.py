@@ -1,45 +1,40 @@
-import json
-from datetime import datetime
+from io import BytesIO
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.shortcuts import render
 from django.utils.translation import activate, ugettext as _
 from reports.models import *
-from jobs.job_model import JobStatus
-from jobs.ViewJobData import ViewJobData
+from reports.UploadReport import UploadReport
+from reports.utils import *
+from jobs.ViewJobData import ViewJobData, ViewReportData
 
 
 @login_required
-def report_root(request, report_id):
+def report_root(request, job_id):
     activate(request.user.extended.language)
 
-    report = get_object_or_404(ReportComponent, root_id=int(report_id))
-    delta = None
-    if report.finish_date and report.start_date:
-        delta = report.finish_date - report.start_date
-    resources = ComponentResource.objects.filter(report=report)
-    current_resource = ComponentResource()
-    if report.resource:
-        current_resource.resource = report.resource
-        current_resource.component = report.component
-    children = ReportComponent.objects.filter(parent=report)
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('jobs:error', args=[404]))
 
-    children_attr = []
-    for child in children:
-        attrs = child.attr.all()
-        for attr in attrs:
-            if not children_attr.__contains__(attr.name):
-                children_attr.append(attr.name)
-    children_values = {}
-    for child in children:
-        attr_values = []
-        for attr in children_attr:
-            attr_values.append(child.attr.all().filter(name=attr))
-        children_values[child] = attr_values
+    if not job_f.JobAccess(request.user, job).can_view():
+        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+    try:
+        report = ReportComponent.objects.get(root=job.reportroot, parent=None)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
 
-    view_args = [request.user, report.job]
+    duration = None
+    if report.finish_date is not None:
+        duration = report.finish_date - report.start_date
+
+    report_attrs = []
+    for attr in report.attr.all().order_by('name__name'):
+        report_attrs.append([attr.name.name, attr_value(attr.value)])
+
+    view_args = [request.user, job]
     if request.method == 'POST':
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
@@ -49,62 +44,42 @@ def report_root(request, report_id):
         'reports/report_root.html',
         {
             'report': report,
-            'delta': delta,
-            'resources': resources,
+            'resources': report_resources(report, request.user),
+            'duration': duration,
+            'computer': computer_description(report.computer.description),
             'jobdata': ViewJobData(*view_args),
-            'children_attr': children_attr,
-            'children_values': children_values,
+            'children': get_children_data(report),
+            'parents': get_parents(report),
+            'report_attrs': report_attrs
         }
     )
 
 
 @login_required
-def report_component(request, report_id):
+def report_component(request, job_id, report_id):
     activate(request.user.extended.language)
 
-    report = ReportComponent.objects.get(pk=int(report_id))
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('jobs:error', args=[404]))
 
-    delta = None
-    if report.finish_date and report.start_date:
-        delta = report.finish_date - report.start_date
-    resources = ComponentResource.objects.filter(report=report)
-    current_resource = ComponentResource()
-    if report.resource:
-        current_resource.resource = report.resource
-        current_resource.component = report.component
-    children = ReportComponent.objects.filter(parent=report)
+    if not job_f.JobAccess(request.user, job).can_view():
+        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+    try:
+        report = ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
 
-    children_attr = []
-    for child in children:
-        attrs = child.attr.all()
-        for attr in attrs:
-            children_attr.append(attr.name)
-    children_attr = set(children_attr)
-    children_values = {}
-    for child in children:
-        attr_values = []
-        for attr in children_attr:
-            attr_values.append(child.attr.all().filter(name=attr))
-        children_values[child] = attr_values
+    duration = None
+    if report.finish_date is not None:
+        duration = report.finish_date - report.start_date
 
-    parents = {}
-    parents_attr = []
-    cur_report = report.parent
-    while cur_report:
-        attrs = cur_report.attr.all()
-        for attr in attrs:
-            parents_attr.append(attr.name)
-        cur_report = cur_report.parent
-    parents_attr = set(parents_attr)
-    cur_report = report.parent
-    while cur_report:
-        attr_values = []
-        for attr in parents_attr:
-            attr_values.append(cur_report.attr.all().filter(name=attr))
-        parents[ReportComponent.objects.get(pk=cur_report.id)] = attr_values
-        cur_report = cur_report.parent
+    report_attrs = []
+    for attr in report.attr.all().order_by('name__name'):
+        report_attrs.append([attr.name.name, attr_value(attr.value)])
 
-    view_args = [request.user, report.root.job]
+    view_args = [request.user, report]
     if request.method == 'POST':
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
@@ -114,13 +89,13 @@ def report_component(request, report_id):
         'reports/report_root.html',
         {
             'report': report,
-            'delta': delta,
-            'resources': resources,
-            'jobdata': ViewJobData(*view_args),
-            'parents': parents,
-            'parents_attr': parents_attr,
-            'children_attr': children_attr,
-            'children_values': children_values,
+            'duration': duration,
+            'resources': report_resources(report, request.user),
+            'computer': computer_description(report.computer.description),
+            'jobdata': ViewReportData(*view_args),
+            'children': get_children_data(report),
+            'parents': get_parents(report),
+            'report_attrs': report_attrs
         }
     )
 
@@ -134,7 +109,8 @@ def report_unsafes(request, report_id):
     report = ReportComponent.objects.get(pk=int(report_id))
 
     # Get all leaves..
-    unsafes_id = ReportComponentLeaf.objects.filter(report=report)
+    unsafes_id = ReportComponentLeaf.objects.filter(
+        Q(report=report) & ~Q(unsafe=None))
 
     # List of Unsafes.
     unsafes = []
@@ -382,378 +358,78 @@ def report_unknown(request, report_id):
     )
 
 
-def get_attr(attr, value, attr_values):
-    if type(value) is list:
-        for elem in value:
-            for elem_attr, elem_value in elem.items():
-                get_attr(attr+'::'+elem_attr, elem_value, attr_values)
-    else:
-        attr_name, stub = AttrName.objects.get_or_create(name=attr)
-        attr_value, stub = Attr.objects.get_or_create(name=attr_name, value=value)
-        attr_values.append(attr_value)
-
-
-def get_parents(report):
-    parents = []
-    cur_report = report
-    while cur_report:
-        parents.append(ReportComponent.objects.get(pk=cur_report.pk))
-        cur_report = cur_report.parent
-    return parents
-
-
-def fill_cache_component(report):
-    parents = get_parents(report)
-    component = report.component
-    new_resource = report.resource
-    old_resource = None
+@login_required
+def upload_report(request):
+    # TODO: check that session has job_id
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Get request is not supported'})
     try:
-        # Cache was not empty.
-        old_resource = ComponentResource.objects.get(component=component, report=report).resource
+        job = Job.objects.get(pk=int(request.session['job_id']))
     except ObjectDoesNotExist:
-        # Cache was empty.
-        pass
-    for parent in parents:
-        wall_time = new_resource.wall_time
-        cpu_time = new_resource.cpu_time
-        memory = new_resource.memory
-        try:
-            cur_resource = ComponentResource.objects.get(component=component, report=parent).resource
-            wall_time += cur_resource.wall_time
-            cpu_time += cur_resource.cpu_time
-            memory += cur_resource.memory
-            if old_resource:
-                wall_time -= old_resource.wall_time
-                cpu_time -= old_resource.cpu_time
-                memory -= old_resource.memory
-        except ObjectDoesNotExist:
-            pass
-        resource, stub = Resource.objects.get_or_create(wall_time=wall_time, cpu_time=cpu_time, memory=memory)
-        ComponentResource.objects.update_or_create(component=component, report=parent,
-                                                   defaults={'resource': resource})
+        return JsonResponse({'error': 'The job was not found'})
 
-
-def fill_cache_unsafe(report):
-    parents = get_parents(report.parent)
-    for parent in parents:
-        try:
-            ReportComponentLeaf.objects.get(report=parent, leaf_id=report.pk)
-        except ObjectDoesNotExist:
-            ReportComponentLeaf.objects.create(report=parent, leaf_id=report.pk)
-            try:
-                verdict = Verdict.objects.get(report=parent)
-                verdict.unsafe += 1
-                verdict.save()
-            except ObjectDoesNotExist:
-                Verdict.objects.create(report=parent, unsafe=1)
-
-
-def fill_cache_safe(report):
-    parents = get_parents(report.parent)
-    for parent in parents:
-        try:
-            ReportComponentLeaf.objects.get(report=parent, leaf_id=report.pk)
-        except ObjectDoesNotExist:
-            ReportComponentLeaf.objects.create(report=parent, leaf_id=report.pk)
-            try:
-                verdict = Verdict.objects.get(report=parent)
-                verdict.safe += 1
-                verdict.save()
-            except ObjectDoesNotExist:
-                Verdict.objects.create(report=parent, safe=1)
-
-
-def fill_cache_unknown(report):
-    parents = get_parents(report.parent)
-    component = ReportComponent.objects.get(pk=report.parent.pk).component
-    for parent in parents:
-        try:
-            ReportComponentLeaf.objects.get(report=parent, leaf_id=report.pk)
-        except ObjectDoesNotExist:
-            ReportComponentLeaf.objects.create(report=parent, leaf_id=report.pk)
-            try:
-                verdict = Verdict.objects.get(report=parent)
-                verdict.unknown += 1
-                verdict.save()
-            except ObjectDoesNotExist:
-                Verdict.objects.create(report=parent, unknown=1)
-            try:
-                unknown = ComponentUnknown.objects.get(report=parent, component=component)
-                unknown.number += 1
-                unknown.save()
-            except ObjectDoesNotExist:
-                ComponentUnknown.objects.create(report=parent, component=component, number=1)
+    error = UploadReport(request.user, job,
+                         json.loads(request.POST.get('report', '{}'))).error
+    if error is not None:
+        print(error)
+        return JsonResponse({'error': error})
+    return JsonResponse({})
 
 
 @login_required
-def upload_report(request, is_root=False):
+def clear_tables(request):
+    cnt1 = 0
+    for res in Resource.objects.all():
+        if len(res.resource_report_set.all()) == \
+                len(res.resource_cache_set.all()) == 0:
+            cnt1 += 1
+            res.delete()
+    deleted1 = []
+    for component in Component.objects.all():
+        if len(component.component_reports.all()) == \
+                len(component.component_cache1_set.all()) == \
+                len(component.component_cache2_set.all()) == \
+                len(component.component_cache3_set.all()) == 0:
+            deleted1.append(component.name)
+            component.delete()
 
-    # Common part.
-    json_start = json.loads(request.POST['report'])
+    deleted2 = []
+    for computer in Computer.objects.all():
+        if len(computer.computer_reports.all()) == 0:
+            deleted2.append(computer.description)
+            computer.delete()
+    response = ''
+    if cnt1 > 0:
+        response += '<h3>Number of deleted resources: %s </h1>' % str(cnt1)
+    if len(deleted1) > 0:
+        response += '<h3>Deleted components:</h3><ul>'
+        for d in deleted1:
+            response += "<li>%s</li>" % str(d)
+        response += '</ul>'
+    if len(deleted2) > 0:
+        response += '<h3>Deleted computers:</h3><ul>'
+        for d in deleted2:
+            response += "<li>%s</li>" % str(d)
+        response += '</ul>'
+    if len(response) == 0:
+        response = '<h3>Tables are already cleared.</h3>'
+    return HttpResponse(response)
 
-    # Current report identifier suffix
-    # TODO: check presence of all necessary attributes: 'id' can be absent!
-    report_id = json_start['id']
 
-    # Job
-    job = Job.objects.get(pk=request.session['job_id'])
+@login_required
+def get_component_log(request, report_id):
+    report_id = int(report_id)
+    try:
+        report = ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
 
-    # Attributes
-    attr_values = []
-    if 'attrs' in json_start:
-        for attr_dict in json_start['attrs']:
-            # Only 1 element in attributes
-            if len(attr_dict) != 1:
-                return JsonResponse({
-                    'error': 'Wrong attribute format "{0}"'.format(attr_dict)
-                })
+    if not job_f.JobAccess(request.user, report.root.job).can_view():
+        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
 
-            for attr, value in attr_dict.items():
-                get_attr(attr, value, attr_values)
-
-    # Parent
-    parent = None
-    update_report = None
-    if not is_root:
-        parent_id = None
-        if 'parent id' in json_start:
-            parent_id = json_start['parent id']
-            parent = ReportComponent.objects.get(Q(identifier__startswith=job.identifier) &
-                                                 Q(identifier__endswith='/'+parent_id))
-        else:
-            update_report = ReportComponent.objects.get(Q(identifier__startswith=job.identifier) &
-                                                        Q(identifier__endswith='/'+report_id))
-            if job.reportroot.id == update_report.id:
-                is_root = True
-
-    # Resource
-    resource = None
-    if 'resources' in json_start:
-        wall_time = json_start['resources']['wall time']
-        cpu_time = json_start['resources']['CPU time']
-        memory = json_start['resources']['max mem size']
-        resource, stub = Resource.objects.get_or_create(wall_time=wall_time, cpu_time=cpu_time, memory=memory)
-
-    # Identifier
-    identifier = None
-    if not is_root:
-        if not update_report:
-            identifier = parent.identifier + '/' + report_id
-        else:
-            pass  # update
-    else:
-        identifier = job.identifier + '/' + report_id
-
-    # Computer
-    computer = None
-    if 'comp' in json_start:
-        computer_description = json_start['comp']
-        if type(computer_description) is list:
-            computer_description = ''
-            for descr_attr in json_start['comp']:
-                for attr, value in descr_attr.items():
-                    computer_description += attr + "='" + value + "'\n"
-            computer, stub = Computer.objects.get_or_create(description=computer_description)
-    elif not is_root:
-        if not update_report:
-            computer = parent.computer
-
-    # Component
-    component = None
-    if not is_root:
-        if 'name' in json_start:
-            component, stub = Component.objects.get_or_create(name=json_start['name'])
-    else:
-        component, stub = Component.objects.get_or_create(name=report_id)
-
-    # Logs
-    log = None
-    description = None
-    data = None
-    if 'log' in json_start:
-        log = json_start['log'].encode('utf8')
-    if 'desc' in json_start:
-        description = json_start['desc'].encode('utf8')
-    if 'data' in json_start:
-        data = json_start['data']
-
-    report_type = json_start['type']
-
-    # Report
-    if is_root:
-        if not update_report:
-            # Create root report
-            report = ReportRoot()
-            report.identifier = identifier
-            report.parent = None
-            report.description = description
-
-            report.component = component
-            report.computer = computer
-            report.resource = resource
-            report.log = log
-            report.data = data
-            report.start_date = datetime.now()
-            report.finish_date = None
-
-            report.user = request.user
-            report.job = job
-            report.last_request_date = report.start_date
-
-            try:
-                # Update.
-                old_id = ReportRoot.objects.get(identifier=report.identifier).id
-                report.id = old_id
-            except ObjectDoesNotExist:
-                pass
-
-            report.save()
-
-            for attr_value in attr_values:
-                report.attr.add(attr_value)
-            report.save()
-
-            status = JobStatus.objects.get(job=job)
-            status.status = '1'
-            status.save()
-        else:
-            # Update root report
-            update_report.description = description
-            update_report.resource = resource
-            update_report.data = data
-            update_report.log = log
-            update_report.finish_date = datetime.now()
-            update_report.save()
-
-            ComponentResource.objects.update_or_create(component=update_report.component,
-                                                       report=update_report,
-                                                       defaults={'resource': resource})
-
-            status = JobStatus.objects.get(job=job)
-            if ReportUnknown.objects.filter(parent=update_report).__len__() > 0:
-                is_failed = True
-                status.status = '4'
-            else:
-                status.status = '3'
-            status.save()
-    elif report_type == 'start' or report_type == 'verification':
-        # Create component report
-        report = ReportComponent()
-        report.identifier = identifier
-        report.parent = parent
-        report.description = description
-
-        report.component = component
-        report.computer = computer
-        report.resource = resource
-        report.log = log
-        report.data = data
-        report.start_date = datetime.now()
-        report.finish_date = None
-
-        try:
-            # Update.
-            old_id = ReportComponent.objects.get(identifier=report.identifier).id
-            report.id = old_id
-        except ObjectDoesNotExist:
-            pass
-
-        report.save()
-
-        report.attr.clear()
-        for attr_value in attr_values:
-            report.attr.add(attr_value)
-        report.save()
-
-        if resource:
-            fill_cache_component(report)
-    elif report_type == 'finish' or report_type == 'attrs':
-        # Update component report
-        update_report.description = description
-        update_report.resource = resource
-        update_report.log = log
-        update_report.data = data
-        update_report.finish_date = datetime.now()
-        update_report.save()
-
-        for attr_value in attr_values:
-            update_report.attr.add(attr_value)
-        update_report.save()
-
-        if resource:
-            fill_cache_component(update_report)
-    elif report_type == 'unsafe':
-        report = ReportUnsafe()
-        report.identifier = identifier
-        report.parent = parent
-        report.description = description
-
-        report.error_trace = json_start['error trace'].encode()
-        report.error_trace_processed = json_start['error trace'].encode()  # TODO
-
-        try:
-            # Update.
-            old_id = ReportUnsafe.objects.get(identifier=report.identifier).id
-            report.id = old_id
-        except ObjectDoesNotExist:
-            pass
-
-        report.save()
-
-        report.attr.clear()
-        for attr_value in attr_values:
-            report.attr.add(attr_value)
-            ReportAttr.objects.update_or_create(report=report, attr=attr_value)
-        report.save()
-
-        fill_cache_unsafe(report)
-    elif report_type == 'safe':
-        report = ReportSafe()
-        report.identifier = identifier
-        report.parent = parent
-        report.description = description
-
-        report.proof = json_start['proof'].encode()
-
-        try:
-            # Update.
-            old_id = ReportSafe.objects.get(identifier=report.identifier).id
-            report.id = old_id
-        except ObjectDoesNotExist:
-            pass
-
-        report.save()
-
-        report.attr.clear()
-        for attr_value in attr_values:
-            report.attr.add(attr_value)
-            ReportAttr.objects.update_or_create(report=report, attr=attr_value)
-        report.save()
-
-        fill_cache_safe(report)
-    elif report_type == 'unknown':
-        report = ReportUnknown()
-        report.identifier = identifier
-        report.parent = parent
-        report.description = description
-
-        report.problem_description = json_start['problem desc'].encode()
-
-        try:
-            # Update.
-            old_id = ReportUnknown.objects.get(identifier=report.identifier).id
-            report.id = old_id
-        except ObjectDoesNotExist:
-            pass
-
-        report.save()
-
-        report.attr.clear()
-        for attr_value in attr_values:
-            report.attr.add(attr_value)
-            ReportAttr.objects.update_or_create(report=report, attr=attr_value)
-        report.save()
-
-        fill_cache_unknown(report)
-
-    return HttpResponse('')
+    if report.log is None or len(report.log) == 0:
+        return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+    new_file = BytesIO(report.log)
+    response = HttpResponse(new_file.read(), content_type='text/plain')
+    response['Content-Disposition'] = 'attachment; filename="log"'
+    return response

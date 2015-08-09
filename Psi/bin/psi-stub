@@ -22,26 +22,26 @@ comp = [{'node name': 'hellwig.intra.ispras.ru'}, {'CPU model': 'Intel(R) Core(T
         {'arch': 'x86_64'}]
 
 # Specify your job id.
-session.decide_job({'format': 1, 'id': 'b79a1a880d72a645ce9e575778e8b5ac', 'archive': 'job.tar.gz'},
+session.decide_job({'format': 1, 'id': 'd22c8f22853308a359ddd59492bce6d9', 'archive': 'job.tar.gz'},
                    psi.utils.dump_report(logger, 'start',
                                          {'type': 'start', 'id': '/', 'attrs': [{'psi version': '2634add-dirty'}],
                                           'comp': comp}))
 
 # Start components.
 session.upload_report(psi.utils.dump_report(logger, 'bce start',
-                                            {'type': 'start', 'id': 'bce', 'name': 'bce', 'parent id': '/',
+                                            {'type': 'start', 'id': 'bce', 'name': 'bce', 'parent id': '/'
                                              }))
 session.upload_report(psi.utils.dump_report(logger, 'vog start',
-                                            {'type': 'start', 'id': 'vog', 'name': 'vog', 'parent id': '/',
+                                            {'type': 'start', 'id': 'vog', 'name': 'vog', 'parent id': '/'
                                             }))
 session.upload_report(psi.utils.dump_report(logger, 'avtg start',
-                                            {'type': 'start', 'id': 'avtg', 'name': 'avtg', 'parent id': '/',
+                                            {'type': 'start', 'id': 'avtg', 'name': 'avtg', 'parent id': '/'
                                              }))
 session.upload_report(psi.utils.dump_report(logger, 'vtg start',
-                                            {'type': 'start', 'id': 'vtg', 'name': 'vtg', 'parent id': '/',
+                                            {'type': 'start', 'id': 'vtg', 'name': 'vtg', 'parent id': '/'
                                             }))
 session.upload_report(psi.utils.dump_report(logger, 'vtsc start',
-                                            {'type': 'start', 'id': 'vtsc', 'name': 'vtsc', 'parent id': '/',
+                                            {'type': 'start', 'id': 'vtsc', 'name': 'vtsc', 'parent id': '/'
                                             }))
 
 # Upload components attributes.

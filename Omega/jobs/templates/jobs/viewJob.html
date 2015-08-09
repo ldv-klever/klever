@@ -78,25 +78,11 @@
             <br>
             <span class="purple-title">{% trans 'Decision status' %}: </span>
             {% if jobdata.job.jobstatus %}
-                <span style="color:
-                        {% if job.jobstatus.status == '0' %}
-                            #887AB8
-                        {% elif job.jobstatus.status == '1' %}
-                            #FF8533
-                        {% elif job.jobstatus.status == '2' %}
-                            #335CD6
-                        {% elif job.jobstatus.status == '3' %}
-                            #00E600
-                        {% elif job.jobstatus.status == '4' %}
-                            #CC0000
-                        {% endif %}
-                ">
-                    {% if jobdata.job.reportroot %}
-                        <a href="{% url 'reports:report_root' jobdata.job.reportroot.id %}">{{ jobdata.job.jobstatus.get_status_display }}</a>
-                    {% else %}
-                        <ins>{{ jobdata.job.jobstatus.get_status_display }}</ins>
-                    {% endif %}
-                </span>
+                {% if jobdata.job.reportroot %}
+                    <a href="{% url 'reports:report_root' jobdata.job.pk %}">{{ jobdata.job.jobstatus.get_status_display }}</a>
+                {% else %}
+                    <ins>{{ jobdata.job.jobstatus.get_status_display }}</ins>
+                {% endif %}
             {% else %}
                 -
             {% endif %}
