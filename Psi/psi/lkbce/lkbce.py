@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import subprocess
 import tarfile
 import urllib.parse
 
@@ -24,6 +25,22 @@ class Component(psi.component.ComponentBase):
     def launch(self):
         self.__fetch_linux_kernel_work_src_tree()
         self.__make_canonical_linux_kernel_work_src_tree()
+        self.__clean_linux_kernel_work_src_tree()
+
+    def __clean_linux_kernel_work_src_tree(self):
+        self.logger.info('Clean Linux kernel working source tree')
+
+        cmd = ('make', '-C', self.linux_kernel_work_src_tree, 'mrproper')
+        self.logger.debug('"{0}" outputs:'.format(cmd))
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        while not p.poll():
+            import time
+            time.sleep(1)
+            self.logger.debug('One more second...')
+            for line in p.stdout:
+                self.logger.debug(line.decode('utf8').rstrip())
+            for line in p.stderr:
+                self.logger.debug(line.decode('utf8').rstrip())
 
     def __fetch_linux_kernel_work_src_tree(self):
         self.logger.info('Fetch Linux kernel working source tree to "linux"')
@@ -63,6 +80,7 @@ class Component(psi.component.ComponentBase):
         if not linux_kernel_work_src_tree_root:
             raise ValueError('Could not find Makefile in Linux kernel source code')
 
+        # TODO: specification requires to remove everything in self.linux_kernel_work_src_tree:remove except moved linux_kernel_work_src_tree_root.
         if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel_work_src_tree):
             self.logger.debug(
                 'Move "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root, self.linux_kernel_work_src_tree))
