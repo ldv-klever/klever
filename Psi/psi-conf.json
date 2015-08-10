@@ -1,19 +1,14 @@
 {
   "work dir": "psi-work-dir",
   "job": {
-    "id": "025f5f199d7e5ff31b65b476aed507f4",
+    "id": null,
     "priority": "low"
   },
   "abstract verification tasks gen priority": "balance",
   "Omega": {
     "name": "localhost:8998",
-    "user": "__user",
-    "passwd": "__passwd"
-  },
-  "Verification Task Scheduler": {
-    "name": "localhost:8000",
-    "user": "__user",
-    "passwd": "__passwd"
+    "user": null,
+    "passwd": null
   },
   "logging": {
     "formatters": [

@@ -47,15 +47,7 @@ def launch():
         _logger = psi.utils.get_logger(os.path.basename(__file__), _conf['logging'])
 
         # Configuration for Omega.
-        omega = {}
-        # Configuration for Verification Task Scheduler.
-        verification_task_scheduler = {}
-
-        omega['user'] = _get_user('Omega')
-        verification_task_scheduler['user'] = _get_user('Verification Task Scheduler')
-
-        omega['passwd'] = _get_passwd('Omega')
-        verification_task_scheduler['passwd'] = _get_passwd('Verification Task Scheduler')
+        omega = {'user': _get_user('Omega'), 'passwd': _get_passwd('Omega')}
 
         version = _get_version()
 
