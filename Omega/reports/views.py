@@ -39,6 +39,12 @@ def report_root(request, job_id):
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
 
+    unknown = None
+    try:
+        unknown = ReportUnknown.objects.get(parent=report).problem_description
+    except ObjectDoesNotExist:
+        pass
+
     return render(
         request,
         'reports/report_root.html',
@@ -50,7 +56,8 @@ def report_root(request, job_id):
             'jobdata': ViewJobData(*view_args),
             'children': get_children_data(report),
             'parents': get_parents(report),
-            'report_attrs': report_attrs
+            'report_attrs': report_attrs,
+            'unknown': unknown,
         }
     )
 
@@ -84,6 +91,12 @@ def report_component(request, job_id, report_id):
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
 
+    unknown = None
+    try:
+        unknown = ReportUnknown.objects.get(parent=report).problem_description
+    except ObjectDoesNotExist:
+        pass
+
     return render(
         request,
         'reports/report_root.html',
@@ -95,7 +108,8 @@ def report_component(request, job_id, report_id):
             'jobdata': ViewReportData(*view_args),
             'children': get_children_data(report),
             'parents': get_parents(report),
-            'report_attrs': report_attrs
+            'report_attrs': report_attrs,
+            'unknown': unknown,
         }
     )
 

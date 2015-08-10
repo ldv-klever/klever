@@ -93,8 +93,13 @@
     </div>
     <div class="col-sm-7">
         {% if report.description %}
-            <br><p class="purple-title">{% trans 'Description' %}</p>
+            <p class="purple-title">{% trans 'Description' %}</p>
             <p class="omega-text">{{ report.description }}</p>
+        {% endif %}
+
+        {% if unknown %}
+            <p class="purple-title">{% trans 'Unknown' %}</p>
+            <p class="omega-text">{{ unknown }}</p>
         {% endif %}
 
         {% if children.values|length %}
