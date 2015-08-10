@@ -2,6 +2,7 @@
 
 {% load tz %}
 
+{% timezone user.extended.timezone %}
 <table class="table table-bordered tree table-fixed" style="margin-bottom: 0;">
     <thead>
         {% for column_row in TableData.header %}
@@ -21,21 +22,11 @@
             </td>
             {% for v in row_data.values %}
                 <td id="value__{{ v.id }}__{{ row_data.id }}" class="text-nowrap">
-                {% if user.extended.timezone %}
-                    {% timezone user.extended.timezone %}
-                        {% if v.href %}
-                            <a href="{{ v.href }}">{{ v.value }}</a>
-                        {% else %}
-                            <span>{{ v.value }}</span>
-                        {% endif %}
-                    {% endtimezone %}
-                {% else %}
                     {% if v.href %}
                         <a href="{{ v.href }}">{{ v.value }}</a>
                     {% else %}
                         <span>{{ v.value }}</span>
                     {% endif %}
-                {% endif %}
                 </td>
             {% endfor %}
             <span hidden>{{ TableData.counter.increment }}</span>
@@ -58,3 +49,4 @@
     </tr>
 {% endif %}
 </table>
+{% endtimezone %}

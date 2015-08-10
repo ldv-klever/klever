@@ -17,11 +17,11 @@ from Omega.vars import JOB_ROLES, JOB_STATUS, VIEW_TYPES
 from jobs.job_model import Job
 from jobs.models import File, FileSystem
 from jobs.forms import FileForm
-from jobs.viewjob_functions import ViewJobData
+from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
 from users.models import View, PreferableView
-from reports.views import upload_report
+from reports.UploadReport import UploadReport
 
 
 @login_required
@@ -199,14 +199,12 @@ def show_job(request, job_id=None):
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(
-            reverse('jobs:error', args=[404]) + "?back=%s" % quote(
-                reverse('jobs:tree')))
+            reverse('jobs:error', args=[404]))
 
     job_access = job_f.JobAccess(request.user, job)
     if not job_access.can_view():
         return HttpResponseRedirect(
-            reverse('jobs:error', args=[400]) + "?back=%s" % quote(
-                reverse('jobs:tree')))
+            reverse('jobs:error', args=[400]))
 
     parent_set = []
     next_parent = job.parent
@@ -615,15 +613,10 @@ def download_job(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        back_url = quote(reverse('jobs:tree'))
-        return HttpResponseRedirect(
-            reverse('jobs:error', args=[404]) + "?back=%s" % back_url
-        )
+        return HttpResponseRedirect(reverse('jobs:error', args=[404]))
     if not job_f.JobAccess(request.user, job).can_view():
-        back_url = quote(reverse('jobs:tree'))
-        return HttpResponseRedirect(
-            reverse('jobs:error', args=[400]) + "?back=%s" % back_url
-        )
+        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+
     back_url = quote(reverse('jobs:job', args=[job_id]))
     hash_sum = request.GET.get('hashsum', None)
     if hash_sum is None:
@@ -731,8 +724,9 @@ def job_error(request, err_code=0):
                     'please try again later')
     elif err_code == 451:
         message = _('Wrong parameters, please reload page and try again.')
-    return render(request, 'jobs/error.html',
-                  {'message': message, 'back': back})
+    elif err_code == 504:
+        message = _('The report was not found')
+    return render(request, 'error.html', {'message': message, 'back': back})
 
 
 def psi_set_status(request):
@@ -799,7 +793,11 @@ def decide_job(request):
 
     job_tar.memory.seek(0)
 
-    upload_report(request, is_root=True)
+    error = UploadReport(request.user, job,
+                         json.loads(request.POST.get('report', '{}'))).error
+    if error is not None:
+        print(error)
+        return JsonResponse({'error': error})
 
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = 'attachment; filename={0}'.format(

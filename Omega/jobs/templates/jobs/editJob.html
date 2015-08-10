@@ -7,13 +7,13 @@
     {% endif %}
 
     {% if job_versions|length %}
-        <label for="job_version_selector" class="show-job-title">{% trans 'You can choose one of the previous versions' %}</label>
+        <label for="job_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
         <select id="job_version_selector" class="form-control">
             {% for jv in job_versions %}
                 <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
             {% endfor %}
         </select>
-        <label class="show-job-title">{% trans 'or change the job' %}:</label>
+        <label class="purple-title">{% trans 'or change the job' %}:</label>
         <br>
     {% endif %} 
 

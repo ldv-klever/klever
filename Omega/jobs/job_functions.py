@@ -20,12 +20,6 @@ from jobs.job_model import Job, JobHistory, JobStatus
 from users.notifications import Notify
 
 
-COLORS = {
-    'red': '#C70646',
-    'orange': '#D05A00',
-    'purple': '#930BBD',
-}
-
 # List of available types of 'safe' column class.
 SAFES = [
     'missed_bug',
@@ -336,7 +330,8 @@ class ReadZipJob(object):
             elif file_name == 'type':
                 job_type = file_obj.read().decode('utf-8')
                 if job_type != self.parent.type:
-                    return _("The job class does not equal to the parent's class")
+                    return _("The job class does not equal to the parent's"
+                             " class")
             elif file_name == 'filedata':
                 files_map = json.loads(file_obj.read().decode('utf-8'))
             elif file_name.startswith(JOBFILE_DIR):
@@ -625,112 +620,6 @@ def convert_memory(val, acc):
     if try_div < 1:
         return mem_format % (new_mem, _('MiB'))
     return mem_format % (try_div, _('GiB'))
-
-
-def verdict_info(job):
-    try:
-        verdicts = job.reportroot.verdict
-    except ObjectDoesNotExist:
-        return None
-
-    safes_data = []
-    for s in SAFES:
-        safe_name = 'safe:' + s
-        color = None
-        val = '-'
-        if s == 'missed_bug':
-            val = verdicts.safe_missed_bug
-            color = COLORS['red']
-        elif s == 'incorrect':
-            val = verdicts.safe_incorrect_proof
-            color = COLORS['orange']
-        elif s == 'unknown':
-            val = verdicts.safe_unknown
-            color = COLORS['purple']
-        elif s == 'inconclusive':
-            val = verdicts.safe_inconclusive
-            color = COLORS['red']
-        elif s == 'unassociated':
-            val = verdicts.safe_unassociated
-        elif s == 'total':
-            val = verdicts.safe
-        safes_data.append({
-            'title': TITLES[safe_name],
-            'value': val,
-            'color': color,
-        })
-
-    unsafes_data = []
-    for s in UNSAFES:
-        unsafe_name = 'unsafe:' + s
-        color = None
-        val = '-'
-        if s == 'bug':
-            val = verdicts.unsafe_bug
-            color = COLORS['red']
-        elif s == 'target_bug':
-            val = verdicts.unsafe_target_bug
-            color = COLORS['red']
-        elif s == 'false_positive':
-            val = verdicts.unsafe_false_positive
-            color = COLORS['orange']
-        elif s == 'unknown':
-            val = verdicts.unsafe_unknown
-            color = COLORS['purple']
-        elif s == 'inconclusive':
-            val = verdicts.unsafe_inconclusive
-            color = COLORS['red']
-        elif s == 'unassociated':
-            val = verdicts.unsafe_unassociated
-        elif s == 'total':
-            val = verdicts.unsafe
-        unsafes_data.append({
-            'title': TITLES[unsafe_name],
-            'value': val,
-            'color': color,
-        })
-    return {
-        'unsafes': unsafes_data,
-        'safes': safes_data,
-        'unknowns': verdicts.unknown
-    }
-
-
-def unknowns_info(job):
-    try:
-        report = job.reportroot
-    except ObjectDoesNotExist:
-        return None
-
-    unknowns_data = {}
-    unkn_set = report.componentmarkunknownproblem_set.filter(~Q(problem=None))
-    for cmup in unkn_set:
-        if cmup.component.name not in unknowns_data:
-            unknowns_data[cmup.component.name] = {}
-        unknowns_data[cmup.component.name][cmup.problem.name] = cmup.number
-    unkn_set = report.componentmarkunknownproblem_set.filter(problem=None)
-    for cmup in unkn_set:
-        if cmup.component.name not in unknowns_data:
-            unknowns_data[cmup.component.name] = {}
-        unknowns_data[cmup.component.name][_('Without marks')] = cmup.number
-    unkn_set = report.componentunknown_set.all()
-    for cmup in unkn_set:
-        if cmup.component.name not in unknowns_data:
-            unknowns_data[cmup.component.name] = {}
-        unknowns_data[cmup.component.name][_('Total')] = cmup.number
-    unknowns_sorted = []
-    for comp in sorted(unknowns_data):
-        problems_sorted = []
-        for probl in sorted(unknowns_data[comp]):
-            problems_sorted.append({
-                'num': unknowns_data[comp][probl],
-                'problem': probl,
-            })
-        unknowns_sorted.append({
-            'component': comp,
-            'problems': problems_sorted,
-        })
-    return unknowns_sorted
 
 
 def role_info(job, user):
