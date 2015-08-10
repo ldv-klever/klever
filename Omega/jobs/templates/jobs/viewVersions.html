@@ -1,0 +1,39 @@
+{% load i18n %}
+
+{% if versions|length %}
+    <div style="max-height: 600px; overflow-y: auto">
+    <table class="table">
+        <tbody>
+        {% for version in versions %}
+            <tr>
+                <td><label><input id="checkbox_version__{{ version.version }}" type="checkbox"></label></td>
+                <td>{{ version.title }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <button data-toggle="modal" data-target="#remove_versions_popup" class="btn btn-danger" style="float: left">{% trans 'Delete' %}</button>
+    <button id="cancel_edit_job_btn" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</button>
+
+    <div id="remove_versions_popup" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{% trans 'Are you sure' %}?</h4>
+                </div>
+                <div class="modal-body">
+                    <p>{% trans "You can't restore versions after this action" %}</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="delete_versions_btn" type="button" class="btn btn-warning" style="float: left;" data-dismiss="modal">{% trans 'Delete' %}</button>
+                    <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <h4>{% trans "No versions to delete (you can't remove first and last versions)." %}</h4>
+    <button id="cancel_edit_job_btn" class="btn btn-primary">{% trans 'Ok' %}</button>
+{% endif %}

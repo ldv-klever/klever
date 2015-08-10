@@ -1,8 +1,9 @@
 {% load i18n %}
 
+<h3>{% trans 'Notifications' %}</h3>
 <table class="table table-bordered tree table-fixed" style="margin-bottom: 10px;; text-align: center;">
     <thead>
-        <tr class="info"><th></th><th style="text-align: center;" colspan="{{ tdata.table.colspan }}">{{ tdata.table.head_0 }}</th></tr>
+        <tr class="info"><th></th><th style="text-align: center;" colspan="{{ tdata.table.colspan }}">{{ tdata.table.head_0 }}:</th></tr>
         <tr class="info">
             <th></th>
             {% for h1 in tdata.table.head_1 %}

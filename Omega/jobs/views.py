@@ -245,11 +245,9 @@ def show_job(request, job_id=None):
         request,
         'jobs/viewJob.html',
         {
-            'job': job,
             'comment': job.jobhistory_set.get(version=job.version).comment,
             'parents': parents,
             'children': children,
-            'user_tz': request.user.extended.timezone,
             'jobdata': ViewJobData(*view_args),
             'created_by': job.jobhistory_set.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
@@ -291,16 +289,10 @@ def edit_job(request):
                 j.change_author.extended.last_name,
                 j.change_author.extended.first_name,
             )
-            version_comment = j.comment
-            if len(version_comment) > 30:
-                version_comment = version_comment[:27]
-                version_comment += '...'
-            if len(version_comment):
-                title += ': ' + version_comment
+            title += ': ' + j.comment
         job_versions.append({
             'version': j.version,
-            'title': title,
-            'comment': j.comment,
+            'title': title
         })
 
     parent_identifier = None
@@ -317,6 +309,63 @@ def edit_job(request):
         'version': version,
         'filedata': job_f.FileData(job_version).filedata
     })
+
+
+@login_required
+def remove_versions(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+    job_id = int(request.POST.get('job_id', 0))
+    try:
+        job = Job.objects.get(pk=job_id)
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'status': 1, 'message': _('The job was not found')
+        })
+    if not job_f.JobAccess(request.user, job).can_edit():
+        return JsonResponse({
+            'status': 1,
+            'message': _("You don't have access to delete versions")
+        })
+
+    versions = json.loads(request.POST.get('versions', '[]'))
+
+    deleted_versions = job_f.delete_versions(job, versions)
+    if deleted_versions > 0:
+        return JsonResponse({
+            'status': 0,
+            'message': _('Selected versions were successfully deleted')
+        })
+    return JsonResponse({'status': 1, 'message': _('Nothing to delete')})
+
+
+@login_required
+def get_job_versions(request):
+    if request.method != 'POST':
+        return JsonResponse({'message': _('Unknown error')})
+    job_id = int(request.POST.get('job_id', 0))
+    try:
+        job = Job.objects.get(pk=job_id)
+    except ObjectDoesNotExist:
+        return JsonResponse({'message': _('The job was not found')})
+    job_versions = []
+    for j in job.jobhistory_set.filter(
+            ~Q(version__in=[job.version, 1])).order_by('-version'):
+        job_time = j.change_date.astimezone(
+            pytz.timezone(request.user.extended.timezone)
+        )
+        title = job_time.strftime("%d.%m.%Y %H:%M:%S")
+        title += " (%s %s)" % (
+            j.change_author.extended.last_name,
+            j.change_author.extended.first_name,
+        )
+        title += ': ' + j.comment
+        job_versions.append({
+            'version': j.version,
+            'title': title
+        })
+    return render(request, 'jobs/viewVersions.html',
+                  {'versions': job_versions})
 
 
 @login_required
@@ -412,7 +461,7 @@ def save_job(request):
         elif job.parent:
             return JsonResponse({
                 'status': 1,
-                'message': _("A parent identifier is required for this job")
+                'message': _("The parent identifier is required for this job")
             })
         if job.version != int(request.POST.get('last_version', 0)):
             return JsonResponse({
@@ -421,6 +470,8 @@ def save_job(request):
             })
         job_kwargs['job'] = job
         job_kwargs['comment'] = request.POST.get('comment', '')
+        job_kwargs['absolute_url'] = 'http://' + request.get_host() + \
+                                     reverse('jobs:job', args=[job_id])
         updated_job = job_f.update_job(job_kwargs)
         if isinstance(updated_job, Job):
             return JsonResponse({'status': 0, 'job_id': job.pk})
@@ -440,6 +491,7 @@ def save_job(request):
                 'message': _("You don't have an access to create a new job")
             })
         job_kwargs['parent'] = parent
+        job_kwargs['absolute_url'] = 'http://' + request.get_host()
         newjob = job_f.create_job(job_kwargs)
         if isinstance(newjob, Job):
             return JsonResponse({'status': 0, 'job_id': newjob.pk})
@@ -768,20 +820,18 @@ def getfilecontent(request):
     try:
         source = FileSystem.objects.get(pk=int(file_id))
     except ObjectDoesNotExist:
-        return JsonResponse({'message': _("File was not found")})
+        return JsonResponse({'message': _("The file was not found")})
     return HttpResponse(source.file.file.read())
 
 
 @login_required
-def clear_files(request):
+def clear_all_files(request):
     if request.user.is_staff:
-        deleted = []
-        for file in File.objects.all():
-            if len(file.filesystem_set.all()) == 0:
-                file.delete()
-                deleted.append("<li>%s</li>" % file.file.name)
+        deleted = job_f.clear_files()
+        for i in range(0, len(deleted)):
+            deleted[i] = "<li>%s</li>" % deleted[i]
         if len(deleted) > 0:
-            return HttpResponse("<h1>Deleted files:</h1><ul>%s</ul>" %
+            return HttpResponse("<h1>Deleted files</h1><ul>%s</ul>" %
                                 ''.join(deleted))
         return HttpResponse("<h1>Nothing to delete</h1>")
     return HttpResponse("<h1>You are not the staff</h1>")

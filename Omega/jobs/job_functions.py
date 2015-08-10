@@ -9,6 +9,7 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat,\
@@ -335,7 +336,7 @@ class ReadZipJob(object):
             elif file_name == 'type':
                 job_type = file_obj.read().decode('utf-8')
                 if job_type != self.parent.type:
-                    return _("The job type is not equals to parent's type")
+                    return _("The job class does not equal to the parent's class")
             elif file_name == 'filedata':
                 files_map = json.loads(file_obj.read().decode('utf-8'))
             elif file_name.startswith(JOBFILE_DIR):
@@ -361,7 +362,7 @@ class ReadZipJob(object):
             if files_map[f_id] in files_in_db:
                 files_map[f_id] = files_in_db[files_map[f_id]]
             else:
-                return _("Job archive is corrupted!")
+                return _("Job archive is corrupted")
         if job_format is None:
             return _("Can't detect job's format")
         if job_type is None:
@@ -383,7 +384,7 @@ class ReadZipJob(object):
                         fdata_elem['type'] = '1'
                         fdata_elem['hash_sum'] = files_map[str(file['file'])]
                     else:
-                        return _("Job archive is corrupted!")
+                        return _("Job archive is corrupted")
                 filedata.append(fdata_elem)
             version_list[i]['filedata'] = filedata
         job = create_job({
@@ -425,7 +426,6 @@ class JobArchive(object):
 
     def __init__(self, job=None, hash_sum=None, user=None, full=True):
         self.lockfile = DOWNLOAD_LOCKFILE
-        self.workdir = 'TARcreation'
         self.full = full
         self.jobtar_name = ''
         self.job = job
@@ -556,10 +556,7 @@ class JobArchive(object):
         jobtar_obj.close()
 
     def __prepare_workdir(self):
-        self.workdir = os.path.join(settings.MEDIA_ROOT, self.workdir)
-        if not os.path.isdir(self.workdir):
-            os.mkdir(self.workdir)
-        self.lockfile = os.path.join(self.workdir, self.lockfile)
+        self.lockfile = os.path.join(settings.MEDIA_ROOT, self.lockfile)
         if not os.path.isfile(self.lockfile):
             f = open(self.lockfile, 'w')
             f.write('unlocked')
@@ -736,68 +733,6 @@ def unknowns_info(job):
     return unknowns_sorted
 
 
-def resource_info(job, user):
-    try:
-        report = job.reportroot
-    except ObjectDoesNotExist:
-        return []
-
-    accuracy = user.extended.accuracy
-    data_format = user.extended.data_format
-    res_data = {}
-    for cr in report.componentresource_set.filter(~Q(component=None)):
-        if cr.component.name not in res_data:
-            res_data[cr.component.name] = {}
-        wall = cr.resource.wall_time
-        cpu = cr.resource.cpu_time
-        mem = cr.resource.memory
-        if data_format == 'hum':
-            wall = convert_time(wall, accuracy)
-            cpu = convert_time(cpu, accuracy)
-            mem = convert_memory(mem, accuracy)
-        res_data[cr.component.name] = "%s %s %s" % (wall, cpu, mem)
-    resource_data = [
-        {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
-
-    res_total = report.componentresource_set.filter(component=None)
-    if len(res_total):
-        wall = res_total[0].resource.wall_time
-        cpu = res_total[0].resource.cpu_time
-        mem = res_total[0].resource.memory
-        if data_format == 'hum':
-            wall = convert_time(wall, accuracy)
-            cpu = convert_time(cpu, accuracy)
-            mem = convert_memory(mem, accuracy)
-        total_value = "%s %s %s" % (wall, cpu, mem)
-        resource_data.append({
-            'component': _('Total'),
-            'val': total_value,
-        })
-    return resource_data
-
-
-def tags_info(job):
-    tags_data = {
-        'safe': [],
-        'unsafe': []
-    }
-
-    for st in job.safe_tags.all():
-        tags_data['safe'].append({
-            'number': st.number,
-            'href': '#',
-            'name': st.tag.tag,
-        })
-
-    for ut in job.unsafe_tags.all():
-        tags_data['unsafe'].append({
-            'number': ut.number,
-            'href': '#',
-            'name': ut.tag.tag,
-        })
-    return tags_data
-
-
 def role_info(job, user):
     roles_data = {'global': job.global_role}
 
@@ -897,7 +832,13 @@ def create_job(kwargs):
         if db_fdata.err_message is not None:
             newjob.delete()
             return db_fdata.err_message
-    Notify(newjob, 0)
+    if 'absolute_url' in kwargs:
+        newjob_url = reverse('jobs:job', args=[newjob.pk])
+        Notify(newjob, 0, {
+            'absurl': kwargs['absolute_url'] + newjob_url
+        })
+    else:
+        Notify(newjob, 0)
     return newjob
 
 
@@ -925,7 +866,10 @@ def update_job(kwargs):
             kwargs['job'].version -= 1
             kwargs['job'].save()
             return db_fdata.err_message
-    Notify(kwargs['job'], 1)
+    if 'absolute_url' in kwargs:
+        Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
+    else:
+        Notify(kwargs['job'], 1)
     return kwargs['job']
 
 
@@ -942,7 +886,30 @@ def remove_jobs_by_id(user, job_ids):
     for job in jobs:
         Notify(job, 2)
         job.delete()
+    clear_files()
     return 0
+
+
+def delete_versions(job, versions):
+    access_versions = []
+    for v in versions:
+        v = int(v)
+        if v != 1 and v != job.version:
+            access_versions.append(v)
+    checked_versions = job.jobhistory_set.filter(version__in=access_versions)
+    num_of_deleted = len(checked_versions)
+    checked_versions.delete()
+    clear_files()
+    return num_of_deleted
+
+
+def clear_files():
+    deleted = []
+    for file in File.objects.all():
+        if len(file.filesystem_set.all()) == 0:
+            deleted.append(file.file.name)
+            file.delete()
+    return deleted
 
 
 def check_new_parent(job, parent):
