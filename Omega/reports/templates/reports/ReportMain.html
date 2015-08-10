@@ -12,10 +12,10 @@
         <td>
             <div class="omega-tooltip">
                 <a href="{{ parent.href }}">{{ parent.name }}</a>
-                <span>
+                <span class="tooltip-content">
                     <strong>{{ parent.title }}</strong><br>
                     {% for attr in parent.attrs %}
-                        {{ attr.0 }}:<br>{{ attr.1|safe }}<br>
+                        <span class="purple-subtitle">{{ attr.0 }}:</span><br>{{ attr.1|safe }}<br><br>
                     {% endfor %}
                 </span>
             </div>
@@ -37,7 +37,7 @@
         <br>
         {% if not report.parent %}
             <span class="purple-title">{% trans 'Status' %}:</span>
-            <a href="{% url 'reports:report_root' report.root.job.pk %}">
+            <a href="{% url 'reports:report_component' report.root.job.pk report.pk %}">
                 {{ report.root.job.jobstatus.get_status_display }}
             </a>
             <br>
@@ -70,10 +70,10 @@
             <td style="padding-left: 10px; padding-top: 5px;">
                 <div class="omega-tooltip">
                     <p>{{ computer.name }}</p>
-                    <span>
-                        <strong>{{ computer.name }}</strong>
+                    <span class="tooltip-content">
+                        <strong>{{ computer.name }}</strong><br>
                         {% for c_data in computer.data %}
-                            <p>{{ c_data }}</p>
+                            <span class="purple-subtitle">{{ c_data.0 }}: </span>{{ c_data.1 }}<br><br>
                         {% endfor %}
                     </span>
                 </div>
@@ -81,15 +81,25 @@
         </tr></table>
         <table class="table table-bordered">
             <thead>
-            <tr class="info"><th>{% trans 'Attribute' %}</th><th>{% trans 'Value' %}</th></tr>
+                {% for column_row in SalfAttrsData.header %}
+                    <tr class="info">
+                    {% for coldata in column_row %}
+                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
+                    {% endfor %}
+                    </tr>
+                {% endfor %}
             </thead>
             <tbody>
-            {% for attr in report_attrs %}
-                <tr><td>{{ attr.0 }}</td><td>{{ attr.1|safe }}</td></tr>
-            {% endfor %}
+            <tr>
+                {% for v in SalfAttrsData.values %}
+                    <td><span>{{ v }}</span></td>
+                {%  endfor %}
+            </tr>
             </tbody>
         </table>
-        {% include 'jobs/jobData.html' %}
+        {% if reportdata %}
+            {% include 'jobs/jobData.html' %}
+        {% endif %}
     </div>
     <div class="col-sm-7">
         {% if report.description %}
@@ -101,24 +111,31 @@
             <p class="purple-title">{% trans 'Unknown' %}</p>
             <p class="omega-text">{{ unknown }}</p>
         {% endif %}
-
-        {% if children.values|length %}
+        {% if ChildrenAttrsData.values|length %}
+            {% include 'reports/AttrsFilters.html' %}
+            <div class="attrs-table">
             <table class="table table-bordered">
-                <tr class="info">
-                    <th>{% trans 'Component' %}</th>
-                    {% for attr in children.attrs %}
-                        <th>{{ attr.name }}</th>
-                    {% endfor %}
-                </tr>
-                {% for child in children.values %}
-                    <tr>
-                        <td><a href="{% url 'reports:report_component' report.root.job.pk child.id %}">{{ child.component }}</a></td>
-                        {% for attr in child.attrs %}
-                            <td>{{ attr|safe }}</td>
+                <thead>
+                    {% for column_row in ChildrenAttrsData.header %}
+                        <tr class="info">
+                        {% for coldata in column_row %}
+                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
                         {% endfor %}
-                    </tr>
-                {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </thead>
+                <tbody>
+                    {% for v in ChildrenAttrsData.values %}
+                        <tr>
+                            <td><a href="{% url 'reports:report_component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
+                            {% for attr in v.attrs %}
+                                <td><span>{{ attr }}</span></td>
+                            {% endfor %}
+                        </tr>
+                    {%  endfor %}
+                </tbody>
             </table>
+            </div>
         {% endif %}
 
         {% if report.log %}

@@ -7,59 +7,7 @@ from django.utils.translation import activate, ugettext as _
 from reports.models import *
 from reports.UploadReport import UploadReport
 from reports.utils import *
-from jobs.ViewJobData import ViewJobData, ViewReportData
-
-
-@login_required
-def report_root(request, job_id):
-    activate(request.user.extended.language)
-
-    try:
-        job = Job.objects.get(pk=int(job_id))
-    except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[404]))
-
-    if not job_f.JobAccess(request.user, job).can_view():
-        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
-    try:
-        report = ReportComponent.objects.get(root=job.reportroot, parent=None)
-    except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
-
-    duration = None
-    if report.finish_date is not None:
-        duration = report.finish_date - report.start_date
-
-    report_attrs = []
-    for attr in report.attr.all().order_by('name__name'):
-        report_attrs.append([attr.name.name, attr_value(attr.value)])
-
-    view_args = [request.user, job]
-    if request.method == 'POST':
-        view_args.append(request.POST.get('view', None))
-        view_args.append(request.POST.get('view_id', None))
-
-    unknown = None
-    try:
-        unknown = ReportUnknown.objects.get(parent=report).problem_description
-    except ObjectDoesNotExist:
-        pass
-
-    return render(
-        request,
-        'reports/report_root.html',
-        {
-            'report': report,
-            'resources': report_resources(report, request.user),
-            'duration': duration,
-            'computer': computer_description(report.computer.description),
-            'jobdata': ViewJobData(*view_args),
-            'children': get_children_data(report),
-            'parents': get_parents(report),
-            'report_attrs': report_attrs,
-            'unknown': unknown,
-        }
-    )
+from jobs.ViewJobData import ViewJobData
 
 
 @login_required
@@ -82,14 +30,17 @@ def report_component(request, job_id, report_id):
     if report.finish_date is not None:
         duration = report.finish_date - report.start_date
 
-    report_attrs = []
-    for attr in report.attr.all().order_by('name__name'):
-        report_attrs.append([attr.name.name, attr_value(attr.value)])
-
     view_args = [request.user, report]
+    report_attrs_data = [request.user, report]
     if request.method == 'POST':
-        view_args.append(request.POST.get('view', None))
-        view_args.append(request.POST.get('view_id', None))
+        view_type = request.POST.get('view_type', None)
+        if view_type == '2':
+            view_args.append(request.POST.get('view', None))
+            view_args.append(request.POST.get('view_id', None))
+        elif view_type == '3':
+            print(request.POST.get('view', None))
+            report_attrs_data.append(request.POST.get('view', None))
+            report_attrs_data.append(request.POST.get('view_id', None))
 
     unknown = None
     try:
@@ -97,18 +48,20 @@ def report_component(request, job_id, report_id):
     except ObjectDoesNotExist:
         pass
 
+    children_data = ReportAttrs(*report_attrs_data)
     return render(
         request,
-        'reports/report_root.html',
+        'reports/ReportMain.html',
         {
             'report': report,
             'duration': duration,
             'resources': report_resources(report, request.user),
             'computer': computer_description(report.computer.description),
-            'jobdata': ViewReportData(*view_args),
-            'children': get_children_data(report),
+            'reportdata': ViewJobData(*view_args),
             'parents': get_parents(report),
-            'report_attrs': report_attrs,
+            'SalfAttrsData': ReportAttrs(request.user, report).get_table_data(),
+            'ChildrenAttrsData': children_data.get_table_data(True),
+            'attr_filters': children_data,
             'unknown': unknown,
         }
     )

@@ -10,63 +10,63 @@
         <div id="collapse" class="panel-collapse collapse" style="margin-left: 10px;">
             <div class="row">
                 <div class="col-sm-5">
-                    <label><input type="checkbox" id="checkbox__unsafes"{% if 'unsafes' in jobdata.view.data %} checked{% endif %}>{% trans 'Unsafes' %}</label><br>
-                    <label><input type="checkbox" id="checkbox__safes"{% if 'safes' in jobdata.view.data %} checked{% endif %}>{% trans 'Safes' %}</label><br>
-                    <label><input type="checkbox" id="checkbox__unknowns"{% if 'unknowns' in jobdata.view.data %} checked{% endif %}>{% trans 'Unknowns' %}</label><br>
+                    <label><input type="checkbox" id="checkbox__unsafes"{% if 'unsafes' in reportdata.view.data %} checked{% endif %}>{% trans 'Unsafes' %}</label><br>
+                    <label><input type="checkbox" id="checkbox__safes"{% if 'safes' in reportdata.view.data %} checked{% endif %}>{% trans 'Safes' %}</label><br>
+                    <label><input type="checkbox" id="checkbox__unknowns"{% if 'unknowns' in reportdata.view.data %} checked{% endif %}>{% trans 'Unknowns' %}</label><br>
                 </div>
                 <div class="col-sm-5">
-                    <label><input type="checkbox" id="checkbox__resources"{% if 'resources' in jobdata.view.data %} checked{% endif %}>{% trans 'Resources' %}</label><br>
-                    <label><input type="checkbox" id="checkbox__tags_safe"{% if 'tags_safe' in jobdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Safe' %}</label><br>
-                    <label><input type="checkbox" id="checkbox__tags_unsafe"{% if 'tags_unsafe' in jobdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Unsafe' %}</label><br>
+                    <label><input type="checkbox" id="checkbox__resources"{% if 'resources' in reportdata.view.data %} checked{% endif %}>{% trans 'Resources' %}</label><br>
+                    <label><input type="checkbox" id="checkbox__tags_safe"{% if 'tags_safe' in reportdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Safe' %}</label><br>
+                    <label><input type="checkbox" id="checkbox__tags_unsafe"{% if 'tags_unsafe' in reportdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Unsafe' %}</label><br>
                 </div>
             </div>
             <hr>
             <h4>{% trans 'Unknowns' %}</h4>
             <div class="row">
                 <div class="col-sm-7">
-                    <label><input type="checkbox" id="checkbox__unknowns_nomark"{% if jobdata.view.filters.unknowns_nomark.type == 'hide' %} checked{% endif %}>{% trans 'Hide problems without marks' %}</label><br>
+                    <label><input type="checkbox" id="checkbox__unknowns_nomark"{% if reportdata.view.filters.unknowns_nomark.type == 'hide' %} checked{% endif %}>{% trans 'Hide problems without marks' %}</label><br>
                 </div>
                 <div class="col-sm-4">
-                    <label><input type="checkbox" id="checkbox__unknowns_total"{% if jobdata.view.filters.unknowns_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
+                    <label><input type="checkbox" id="checkbox__unknowns_total"{% if reportdata.view.filters.unknowns_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
                 </div>
             </div>
             <div class="form-inline">
                 <label for="filter__type__unknown_component"><span>{% trans 'Component name' %}</span></label>
                 <br>
                 <select id="filter__type__unknown_component" class="form-control">
-                    <option value="iexact"{% if jobdata.view.filters.unknown_component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if jobdata.view.filters.unknown_component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                    <option value="icontains"{% if jobdata.view.filters.unknown_component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                    <option value="iexact"{% if reportdata.view.filters.unknown_component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if reportdata.view.filters.unknown_component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if reportdata.view.filters.unknown_component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
                 <label>
-                    <input id="filter__value__unknown_component" class="form-control" type="text" value="{{ jobdata.view.filters.unknown_component.value }}">
+                    <input id="filter__value__unknown_component" class="form-control" type="text" value="{{ reportdata.view.filters.unknown_component.value }}">
                 </label>
             </div>
             <div class="form-inline">
                 <label for="filter__type__unknown_problem"><span>{% trans 'Problem name' %}</span></label>
                 <br>
                 <select id="filter__type__unknown_problem" class="form-control">
-                    <option value="iexact"{% if jobdata.view.filters.unknown_problem.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if jobdata.view.filters.unknown_problem.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                    <option value="icontains"{% if jobdata.view.filters.unknown_problem.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                    <option value="iexact"{% if reportdata.view.filters.unknown_problem.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if reportdata.view.filters.unknown_problem.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if reportdata.view.filters.unknown_problem.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
                 <label>
-                    <input id="filter__value__unknown_problem" class="form-control" type="text" value="{{ jobdata.view.filters.unknown_problem.value }}">
+                    <input id="filter__value__unknown_problem" class="form-control" type="text" value="{{ reportdata.view.filters.unknown_problem.value }}">
                 </label>
             </div>
             <hr>
             <h4>{% trans 'Resources' %}</h4>
-            <label><input type="checkbox" id="checkbox__resource_total"{% if jobdata.view.filters.resource_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
+            <label><input type="checkbox" id="checkbox__resource_total"{% if reportdata.view.filters.resource_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
             <div class="form-inline">
                 <label for="filter__type__resource_component"><span>{% trans 'Component name' %}</span></label>
                 <br>
                 <select id="filter__type__resource_component" class="form-control">
-                    <option value="iexact"{% if jobdata.view.filters.resource_component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if jobdata.view.filters.resource_component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                    <option value="icontains"{% if jobdata.view.filters.resource_component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                    <option value="iexact"{% if reportdata.view.filters.resource_component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if reportdata.view.filters.resource_component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if reportdata.view.filters.resource_component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
                 <label>
-                    <input id="filter__value__resource_component" class="form-control" type="text" value="{{ jobdata.view.filters.resource_component.value }}">
+                    <input id="filter__value__resource_component" class="form-control" type="text" value="{{ reportdata.view.filters.resource_component.value }}">
                 </label>
             </div>
             <hr>
@@ -75,24 +75,24 @@
                 <label for="filter__type__safe_tag"><span>{% trans 'Safe tag' %}</span></label>
                 <br>
                 <select id="filter__type__safe_tag" class="form-control">
-                    <option value="iexact"{% if jobdata.view.filters.safe_tag.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if jobdata.view.filters.safe_tag.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                    <option value="icontains"{% if jobdata.view.filters.safe_tag.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                    <option value="iexact"{% if reportdata.view.filters.safe_tag.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if reportdata.view.filters.safe_tag.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if reportdata.view.filters.safe_tag.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
                 <label>
-                    <input id="filter__value__safe_tag" class="form-control" type="text" value="{{ jobdata.view.filters.safe_tag.value }}">
+                    <input id="filter__value__safe_tag" class="form-control" type="text" value="{{ reportdata.view.filters.safe_tag.value }}">
                 </label>
             </div>
             <div class="form-inline">
                 <label for="filter__type__unsafe_tag"><span>{% trans 'Unsafe tag' %}</span></label>
                 <br>
                 <select id="filter__type__unsafe_tag" class="form-control">
-                    <option value="iexact"{% if jobdata.view.filters.unsafe_tag.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if jobdata.view.filters.unsafe_tag.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                    <option value="icontains"{% if jobdata.view.filters.unsafe_tag.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                    <option value="iexact"{% if reportdata.view.filters.unsafe_tag.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if reportdata.view.filters.unsafe_tag.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if reportdata.view.filters.unsafe_tag.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
                 <label>
-                    <input id="filter__value__unsafe_tag" class="form-control" type="text" value="{{ jobdata.view.filters.unsafe_tag.value }}">
+                    <input id="filter__value__unsafe_tag" class="form-control" type="text" value="{{ reportdata.view.filters.unsafe_tag.value }}">
                 </label>
             </div>
             <hr>
@@ -103,10 +103,10 @@
             </div>
             <hr>
             <label for="jobview_available_views"></label>
-            <select id="jobview_available_views" class="form-control">
+            <select id="jobview_available_views" class="form-control" style="max-width: 200px;">
                 <option value="default">{% trans 'Default' %}</option>
-                {% for v in jobdata.views %}
-                    <option title="{{ v.name }}" value="{{ v.id }}"{% if jobdata.view_id == v.id %} selected{% endif %}>{{ v.name }}</option>
+                {% for v in reportdata.views %}
+                    <option title="{{ v.name }}" value="{{ v.id }}"{% if reportdata.view_id == v.id %} selected{% endif %}>{{ v.name }}</option>
                 {% endfor %}
             </select>
             <br>
