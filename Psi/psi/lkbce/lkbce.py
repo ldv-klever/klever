@@ -11,7 +11,10 @@ import psi.utils
 
 class Component(psi.component.ComponentBase):
     def launch(self):
-        self.logger.info('Prepare Linux kernel working source tree "linux"')
+        self.__fetch_linux_kernel_work_src_tree()
+
+    def __fetch_linux_kernel_work_src_tree(self):
+        self.logger.info('Fetch Linux kernel working source tree "linux"')
 
         linux_kernel_src = self.conf['Linux kernel']['src']
         linux_kernel_work_src_tree = os.path.join(self.conf['root id'], 'linux')
