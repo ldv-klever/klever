@@ -767,6 +767,9 @@ $(document).ready(function () {
                 expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
             });
             set_action_on_file_click();
+        },
+        error: function (x) {
+            console.log(x.responseText);
         }
     });
 
@@ -822,4 +825,6 @@ $(document).ready(function () {
             }
         );
     });
+
+    set_actions_for_view_filters();
 });

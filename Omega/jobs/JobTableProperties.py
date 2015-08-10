@@ -10,8 +10,7 @@ import jobs.job_functions as job_f
 from reports.models import Verdict, ComponentResource, ComponentUnknown,\
     ComponentMarkUnknownProblem
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
-from jobs.job_functions import SAFES, UNSAFES, convert_memory, convert_time,\
-    TITLES
+from jobs.job_functions import SAFES, UNSAFES, TITLES, get_resource_data
 
 
 ORDERS = [
@@ -522,10 +521,8 @@ class TableTree(object):
     def __resource_columns(self):
         components = {}
         for job in self.jobdata:
-            try:
-                cr_set = job['job'].reportroot.componentresource_set
-            except ObjectDoesNotExist:
-                continue
+            cr_set = ComponentResource.objects.filter(
+                report__root__job=job['job'])
             if 'resource_component' in self.head_filters:
                 compres_set = cr_set.filter(
                     **self.head_filters['resource_component']
@@ -551,10 +548,8 @@ class TableTree(object):
             cmup_filter.update(self.head_filters['problem_problem'])
 
         for job in self.jobdata:
-            try:
-                cmup_set = job['job'].reportroot.componentmarkunknownproblem_set
-            except ObjectDoesNotExist:
-                continue
+            cmup_set = ComponentMarkUnknownProblem.objects.filter(
+                report__root__job=job['job'])
             for cmup in cmup_set.filter(**cmup_filter):
                 problem = cmup.problem
                 comp_id = 'pr_component_%s' % str(cmup.component.pk)
@@ -647,9 +642,10 @@ class TableTree(object):
                         status.get_status_display()
 
         def collect_verdicts():
-            for verdict in Verdict.objects.filter(report__job_id__in=job_pks):
-                if verdict.report.job_id in values_data:
-                    values_data[verdict.report.job_id].update({
+            for verdict in Verdict.objects.filter(
+                    report__root__job_id__in=job_pks):
+                if verdict.report.root.job_id in values_data:
+                    values_data[verdict.report.root.job_id].update({
                         'unsafe:total': verdict.unsafe,
                         'unsafe:bug': verdict.unsafe_bug,
                         'unsafe:target_bug': verdict.unsafe_target_bug,
@@ -705,19 +701,11 @@ class TableTree(object):
 
         def collect_resourses():
             for cr in ComponentResource.objects.filter(
-                    report__job_id__in=job_pks):
-                job_pk = cr.report.job_id
+                    report__root__job_id__in=job_pks):
+                job_pk = cr.report.root.job_id
                 if job_pk in values_data:
-                    accuracy = self.user.extended.accuracy
-                    data_format = self.user.extended.data_format
-                    wt = cr.resource.wall_time
-                    ct = cr.resource.cpu_time
-                    mem = cr.resource.memory
-                    if data_format == 'hum':
-                        wt = convert_time(wt, accuracy)
-                        ct = convert_time(ct, accuracy)
-                        mem = convert_memory(mem, accuracy)
-                    resourses_value = "%s %s %s" % (wt, ct, mem)
+                    rd = get_resource_data(self.user, cr.resource)
+                    resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
                     if cr.component_id is None:
                         values_data[job_pk]['resource:total'] = resourses_value
                     else:
@@ -727,8 +715,8 @@ class TableTree(object):
 
         def collect_unknowns():
             for cmup in ComponentMarkUnknownProblem.objects.filter(
-                    report__job_id__in=job_pks):
-                job_pk = cmup.report.job_id
+                    report__root__job_id__in=job_pks):
+                job_pk = cmup.report.root.job_id
                 if job_pk in values_data:
                     if cmup.problem is None:
                         values_data[job_pk][
@@ -741,8 +729,8 @@ class TableTree(object):
                             ':problem_' + str(cmup.problem_id)
                         ] = cmup.number
             for cu in ComponentUnknown.objects.filter(
-                    report__job_id__in=job_pks):
-                job_pk = cu.report.job_id
+                    report__root__job_id__in=job_pks):
+                job_pk = cu.report.root.job_id
                 if job_pk in values_data:
                     values_data[job_pk][
                         'problem:pr_component_' + str(cu.component_id) +

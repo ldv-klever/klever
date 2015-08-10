@@ -9,7 +9,7 @@
 {% block title %}{% trans 'Job' %}{% endblock %}
 
 {% block body_block %}
-    {% if jobdata.job %}
+    {% if job %}
     <div class="row">
         <div class="col-sm-5">
             <div class="form-inline">
@@ -22,14 +22,14 @@
                     {% endif %}
                     {% if can_delete %}<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_job_popup">{% trans 'Delete' %}</button>{% endif %}
                 </div>
-                <span id="job_pk" hidden>{{ jobdata.job.pk }}</span>
+                <span id="job_pk" hidden>{{ job.pk }}</span>
             </div>
 
-            <h4><span class="show-job-name purple-title"><ins>{{ jobdata.job.name }}</ins></span></h4>
+            <h4><span class="show-job-name purple-title"><ins>{{ job.name }}</ins></span></h4>
 
-            <span class="purple-title">{% trans 'Class' %}:</span> {{ jobdata.job.get_type_display }}
+            <span class="purple-title">{% trans 'Class' %}:</span> {{ job.get_type_display }}
             <br>
-            <span class="purple-title">{% trans 'Identifier' %}:</span> <span style="color: #15c46b">{{ jobdata.job.identifier }}</span>
+            <span class="purple-title">{% trans 'Identifier' %}:</span> <span style="color: #15c46b">{{ job.identifier }}</span>
             <br><span class="purple-title">{% trans 'Created by' %}: </span>
             <a href="{% url 'users:show_profile' created_by.pk %}">{{ created_by.extended.last_name }} {{ created_by.extended.first_name }}</a>
             <br>
@@ -65,11 +65,11 @@
 
             <span class="purple-title">{% trans 'Last change' %}: </span>
             <br>
-            <span class="job-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' jobdata.job.change_author.pk %}">{{ jobdata.job.change_author.extended.last_name }} {{ jobdata.job.change_author.extended.first_name }}</a>
+            <span class="job-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' job.change_author.pk %}">{{ job.change_author.extended.last_name }} {{ job.change_author.extended.first_name }}</a>
             <br>
             <span class="job-subtitle">{% trans 'Date' %}: </span>
             {% timezone user.extended.timezone %}
-                {{ jobdata.job.change_date|date:'d.m.y H:i:s' }}
+                {{ job.change_date|date:'d.m.y H:i:s' }}
             {% endtimezone %}
             {% if comment|length %}
                 <br>
@@ -77,16 +77,18 @@
             {% endif %}
             <br>
             <span class="purple-title">{% trans 'Decision status' %}: </span>
-            {% if jobdata.job.jobstatus %}
-                {% if jobdata.job.reportroot %}
-                    <a href="{% url 'reports:report_root' jobdata.job.pk %}">{{ jobdata.job.jobstatus.get_status_display }}</a>
+            {% if job.jobstatus %}
+                {% if reportdata %}
+                    <a href="{% url 'reports:report_component' job.pk reportdata.report.pk %}">{{ job.jobstatus.get_status_display }}</a>
                 {% else %}
-                    <ins>{{ jobdata.job.jobstatus.get_status_display }}</ins>
+                    <ins>{{ job.jobstatus.get_status_display }}</ins>
                 {% endif %}
             {% else %}
                 -
             {% endif %}
-            {% include 'jobs/jobData.html' %}
+            {% if reportdata %}
+                {% include 'jobs/jobData.html' %}
+            {% endif %}
         </div>
         <div id="edit_job_div" class="col-sm-7"></div>
     </div>

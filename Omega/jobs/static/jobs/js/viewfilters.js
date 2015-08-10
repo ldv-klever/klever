@@ -28,14 +28,17 @@ function collect_view_data() {
         }
     });
 
-    return {view: JSON.stringify({
-        data: data_values,
-        filters: filter_values
-    })};
+    return {
+        view: JSON.stringify({
+            data: data_values,
+            filters: filter_values
+        }),
+        view_type: '2'
+    };
 }
 
 
-$(document).ready(function () {
+window.set_actions_for_view_filters = function () {
 
     $('#jobview_show_unsaved_view_btn').click(function () {
         $.redirectPost('', collect_view_data());
@@ -99,7 +102,10 @@ $(document).ready(function () {
     });
 
     $('#jobview_show_view_btn').click(function () {
-        $.redirectPost('', {view_id: $('#jobview_available_views').children('option:selected').val()});
+        $.redirectPost('', {
+            view_id: $('#jobview_available_views').children('option:selected').val(),
+            view_type: '2'
+        });
     });
 
     $('#jobview_remove_view_btn').click(function () {
@@ -137,4 +143,6 @@ $(document).ready(function () {
             }
         });
     });
-});
+
+    return false;
+};

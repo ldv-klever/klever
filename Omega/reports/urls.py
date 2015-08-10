@@ -3,7 +3,6 @@ from reports import views
 
 
 urlpatterns = [
-    url(r'^(?P<job_id>[0-9]+)/$', views.report_root, name='report_root'),
     url(r'^component/(?P<job_id>[0-9]+)/(?P<report_id>[0-9]+)/$',
         views.report_component, name='report_component'),
     url('^log/(?P<report_id>[0-9]+)/$', views.get_component_log,

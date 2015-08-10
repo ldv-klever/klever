@@ -119,7 +119,7 @@ class ReportComponentLeaf(models.Model):
 
 
 class Verdict(models.Model):
-    report = models.OneToOneField(ReportRoot)
+    report = models.OneToOneField(ReportComponent)
     unsafe = models.IntegerField(default=0)
     unsafe_bug = models.IntegerField(default=0)
     unsafe_target_bug = models.IntegerField(default=0)
@@ -140,7 +140,7 @@ class Verdict(models.Model):
 
 
 class ComponentUnknown(models.Model):
-    report = models.ForeignKey(ReportRoot)
+    report = models.ForeignKey(ReportComponent)
     component = models.ForeignKey(Component,
                                   related_name='component_cache1_set')
     number = models.IntegerField(default=0)
@@ -150,7 +150,7 @@ class ComponentUnknown(models.Model):
 
 
 class ComponentMarkUnknownProblem(models.Model):
-    report = models.ForeignKey(ReportRoot)
+    report = models.ForeignKey(ReportComponent)
     component = models.ForeignKey(Component,
                                   related_name='component_cache2_set')
     problem = models.ForeignKey(UnknownProblem, null=True, blank=True,
@@ -162,7 +162,7 @@ class ComponentMarkUnknownProblem(models.Model):
 
 
 class ComponentResource(models.Model):
-    report = models.ForeignKey(ReportRoot)
+    report = models.ForeignKey(ReportComponent)
     component = models.ForeignKey(Component, null=True, blank=True,
                                   on_delete=models.SET_NULL,
                                   related_name='component_cache3_set')

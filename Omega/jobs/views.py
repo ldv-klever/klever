@@ -22,6 +22,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 import jobs.job_functions as job_f
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
+from reports.models import ReportComponent
 
 
 @login_required
@@ -198,13 +199,11 @@ def show_job(request, job_id=None):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(
-            reverse('jobs:error', args=[404]))
+        return HttpResponseRedirect(reverse('jobs:error', args=[404]))
 
     job_access = job_f.JobAccess(request.user, job)
     if not job_access.can_view():
-        return HttpResponseRedirect(
-            reverse('jobs:error', args=[400]))
+        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
 
     parent_set = []
     next_parent = job.parent
@@ -234,10 +233,16 @@ def show_job(request, job_id=None):
             'name': child.name,
         })
 
-    view_args = [request.user, job]
-    if request.method == 'POST':
-        view_args.append(request.POST.get('view', None))
-        view_args.append(request.POST.get('view_id', None))
+    reportdata = None
+    try:
+        report = ReportComponent.objects.get(root__job=job, parent=None)
+        view_args = [request.user, report]
+        if request.method == 'POST':
+            view_args.append(request.POST.get('view', None))
+            view_args.append(request.POST.get('view_id', None))
+        reportdata = ViewJobData(*view_args)
+    except ObjectDoesNotExist:
+        pass
 
     return render(
         request,
@@ -246,7 +251,8 @@ def show_job(request, job_id=None):
             'comment': job.jobhistory_set.get(version=job.version).comment,
             'parents': parents,
             'children': children,
-            'jobdata': ViewJobData(*view_args),
+            'job': job,
+            'reportdata': reportdata,
             'created_by': job.jobhistory_set.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),

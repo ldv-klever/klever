@@ -20,9 +20,12 @@ session = psi.utils.Session(logger, 'vladimir', 'bestvampire', 'localhost:8000')
 comp = [{'node name': 'hellwig.intra.ispras.ru'}, {'CPU model': 'Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz'},
         {'CPUs num': '8'}, {'mem size': '16808734720'}, {'Linux kernel version': '3.16.7-21-default'},
         {'arch': 'x86_64'}]
+log = "Log\nNext line\nNew line\nLast line."
+data = "DATA:\nNext line\nNew line\nLast line."
+description = "Description:\nNext line\nNew line\nLast line."
 
 # Specify your job id.
-session.decide_job({'format': 1, 'id': 'd22c8f22853308a359ddd59492bce6d9', 'archive': 'job.tar.gz'},
+session.decide_job({'format': 1, 'id': 'db0bf1f6d7f1af7761816fc13c9e08d5', 'archive': 'job.tar.gz'},
                    psi.utils.dump_report(logger, 'start',
                                          {'type': 'start', 'id': '/', 'attrs': [{'psi version': '2634add-dirty'}],
                                           'comp': comp}))
@@ -100,25 +103,25 @@ def resources():
 # Finish AVTG plugins.
 session.upload_report(psi.utils.dump_report(logger, 'deg11 finish',
                                             {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/mutex/deg',
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'ri11 finish',
                                             {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/mutex/ri',
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'deg21 finish',
                                             {'type': 'finish', 'id': 'drivers/usb/usb-common.ko/mutex/deg',
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'ri21 finish',
                                             {'type': 'finish', 'id': 'drivers/usb/usb-common.ko/mutex/ri',
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'deg12 finish',
                                             {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/spin lock/deg',
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'ri12 finish',
                                             {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/spin lock/ri',
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'deg22 finish',
                                             {'type': 'finish', 'id': 'drivers/usb/usb-commmon.ko/spin lock/deg',
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 
 # As promised DEG22 fails.
 session.upload_report(psi.utils.dump_report(logger, 'deg22 problem',
@@ -157,7 +160,7 @@ session.upload_report(psi.utils.dump_report(logger, 'verification111',
                                              'id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:double acquisition',
                                              'attrs': attrs, 'name': 'BLAST 2.7.2',
                                              'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'verification1111',
                                             {'type': 'safe',
                                              'id': 'safe',
@@ -169,7 +172,7 @@ session.upload_report(psi.utils.dump_report(logger, 'verification112',
                                              'id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:unreleased at exit',
                                              'attrs': attrs, 'name': 'BLAST 2.7.2',
                                              'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'verification1121',
                                             {'type': 'unsafe',
                                              'id': 'unsafe',
@@ -185,7 +188,7 @@ session.upload_report(psi.utils.dump_report(logger, 'verification211',
                                              'id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:double acquisition',
                                              'attrs': attrs, 'name': 'CPAchecker r12345',
                                              'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'verification2111',
                                             {'type': 'safe',
                                              'id': 'safe',
@@ -197,7 +200,7 @@ session.upload_report(psi.utils.dump_report(logger, 'verification212',
                                              'id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:unreleased at exit',
                                              'attrs': attrs, 'name': 'CPAchecker r12345',
                                              'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'verification2121',
                                             {'type': 'unsafe',
                                              'id': 'unsafe1',
@@ -225,7 +228,7 @@ session.upload_report(psi.utils.dump_report(logger, 'verification121',
                                              'attrs': attrs + [{'entry point': 'ldv_entry_point1'}],
                                              'name': 'BLAST 2.7.2',
                                              'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'verification1211',
                                             {'type': 'safe',
                                              'id': 'safe',
@@ -238,7 +241,7 @@ session.upload_report(psi.utils.dump_report(logger, 'verification122',
                                              'attrs': attrs + [{'entry point': 'ldv_entry_point2'}],
                                              'name': 'BLAST 2.7.2',
                                              'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data}))
 session.upload_report(psi.utils.dump_report(logger, 'verification1221',
                                             {'type': 'unknown',
                                              'id': 'unknown',
@@ -249,4 +252,4 @@ session.upload_report(psi.utils.dump_report(logger, 'verification1221',
 # Finish Psi successfully.
 session.upload_report(psi.utils.dump_report(logger, 'finish',
                                             {'type': 'finish', 'id': '/',
-                                             'resources': resources()}))
+                                             'resources': resources(), 'log': log, 'data': data, 'desc': description}))
