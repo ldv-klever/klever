@@ -51,16 +51,19 @@ def dump_report(logger, name, kind, report, dir=''):
     return report_file
 
 
-def find_file(logger, root_id, file):
+def find_file_or_dir(logger, root_id, file_or_dir):
     search_dirs = (os.path.join(root_id, 'job/root'), os.path.join(root_id, os.path.pardir))
 
     for search_dir in search_dirs:
-        found_file = os.path.join(search_dir, file)
-        if os.path.isfile(found_file):
-            logger.debug('Find file "{0}" in directory "{1}"'.format(file, search_dir))
-            return found_file
+        found_file_or_dir = os.path.join(search_dir, file_or_dir)
+        if os.path.isfile(found_file_or_dir):
+            logger.debug('Find file "{0}" in directory "{1}"'.format(file_or_dir, search_dir))
+            return found_file_or_dir
+        elif os.path.isdir(found_file_or_dir):
+            logger.debug('Find directory "{0}" in directory "{1}"'.format(file_or_dir, search_dir))
+            return found_file_or_dir
 
-    raise FileExistsError('Could not find file "{0}" in directories "{1}"'.format(file, ', '.join(search_dirs)))
+    raise FileExistsError('Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
 
 
 def get_comp_desc(logger):
