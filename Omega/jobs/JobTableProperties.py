@@ -3,6 +3,7 @@ import pytz
 from datetime import datetime, timedelta
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from jobs.job_model import Job, JobStatus
 from jobs.models import MarkSafeTag, MarkUnsafeTag
@@ -541,19 +542,21 @@ class TableTree(object):
 
     def __unknowns_columns(self):
         problems = {}
-        cmup_filter = {}
+        cmup_filter = {'report__parent': None}
         if 'problem_component' in self.head_filters:
             cmup_filter.update(self.head_filters['problem_component'])
         if 'problem_problem' in self.head_filters:
             cmup_filter.update(self.head_filters['problem_problem'])
 
         for job in self.jobdata:
-            cmup_set = ComponentMarkUnknownProblem.objects.filter(
-                report__root__job=job['job'])
-            for cmup in cmup_set.filter(**cmup_filter):
+            cmup_filter['report__root__job'] = job['job']
+            found_comp_ids = []
+            for cmup in ComponentMarkUnknownProblem.objects.filter(
+                    **cmup_filter):
                 problem = cmup.problem
                 comp_id = 'pr_component_%s' % str(cmup.component.pk)
                 comp_name = cmup.component.name
+                found_comp_ids.append(cmup.component_id)
                 if problem is None:
                     if comp_id in problems:
                         if 'z_no_mark' not in problems[comp_id]['problems']:
@@ -581,6 +584,14 @@ class TableTree(object):
                                 'z_total': _('Total')
                             }
                         }
+            for cmup in ComponentUnknown.objects.filter(
+                    Q(**cmup_filter) & ~Q(component_id__in=found_comp_ids)):
+                problems['pr_component_%s' % cmup.component_id] = {
+                    'title': cmup.component.name,
+                    'problems': {
+                        'z_total': _('Total')
+                    }
+                }
 
         ordered_ids = list(x[0] for x in list(
             sorted(problems.items(), key=lambda x_y: x_y[1]['title'])
@@ -589,13 +600,29 @@ class TableTree(object):
         new_columns = []
         for comp_id in ordered_ids:
             self.titles['problem:%s' % comp_id] = problems[comp_id]['title']
+            has_total = False
+            has_nomark = False
             # With sorting time is increased 4-6 times
             # for probl_id in problems[comp_id]['problems']:
             for probl_id in sorted(problems[comp_id]['problems'],
                                    key=problems[comp_id]['problems'].get):
-                column = 'problem:%s:%s' % (comp_id, probl_id)
+                if probl_id == 'z_total':
+                    has_total = True
+                elif probl_id == 'z_no_mark':
+                    has_nomark = True
+                else:
+                    column = 'problem:%s:%s' % (comp_id, probl_id)
+                    new_columns.append(column)
+                    self.titles[column] = problems[comp_id]['problems'][probl_id]
+            if has_nomark:
+                column = 'problem:%s:z_no_mark' % comp_id
                 new_columns.append(column)
-                self.titles[column] = problems[comp_id]['problems'][probl_id]
+                self.titles[column] = problems[comp_id]['problems']['z_no_mark']
+            if has_total:
+                column = 'problem:%s:z_total' % comp_id
+                new_columns.append(column)
+                self.titles[column] = problems[comp_id]['problems']['z_total']
+
         new_columns.append('problem:total')
         return new_columns
 
@@ -643,7 +670,7 @@ class TableTree(object):
 
         def collect_verdicts():
             for verdict in Verdict.objects.filter(
-                    report__root__job_id__in=job_pks):
+                    report__root__job_id__in=job_pks, report__parent=None):
                 if verdict.report.root.job_id in values_data:
                     values_data[verdict.report.root.job_id].update({
                         'unsafe:total': verdict.unsafe,
@@ -701,7 +728,7 @@ class TableTree(object):
 
         def collect_resourses():
             for cr in ComponentResource.objects.filter(
-                    report__root__job_id__in=job_pks):
+                    report__root__job_id__in=job_pks, report__parent=None):
                 job_pk = cr.report.root.job_id
                 if job_pk in values_data:
                     rd = get_resource_data(self.user, cr.resource)
@@ -715,7 +742,7 @@ class TableTree(object):
 
         def collect_unknowns():
             for cmup in ComponentMarkUnknownProblem.objects.filter(
-                    report__root__job_id__in=job_pks):
+                    report__root__job_id__in=job_pks, report__parent=None):
                 job_pk = cmup.report.root.job_id
                 if job_pk in values_data:
                     if cmup.problem is None:
@@ -729,7 +756,7 @@ class TableTree(object):
                             ':problem_' + str(cmup.problem_id)
                         ] = cmup.number
             for cu in ComponentUnknown.objects.filter(
-                    report__root__job_id__in=job_pks):
+                    report__root__job_id__in=job_pks, report__parent=None):
                 job_pk = cu.report.root.job_id
                 if job_pk in values_data:
                     values_data[job_pk][

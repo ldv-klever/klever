@@ -79,6 +79,7 @@
                 </div>
             </td>
         </tr></table>
+        <div style="overflow-x: auto">
         <table class="table table-bordered">
             <thead>
                 {% for column_row in SalfAttrsData.header %}
@@ -97,6 +98,7 @@
             </tr>
             </tbody>
         </table>
+        </div>
         {% if reportdata %}
             {% include 'jobs/jobData.html' %}
         {% endif %}

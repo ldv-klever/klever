@@ -143,19 +143,20 @@ class UploadReport(object):
                 try:
                     self.parent = ReportComponent.objects.get(
                         root=self.job.reportroot,
-                        identifier=self.job.identifier)
+                        identifier=self.job.identifier
+                    )
                 except ObjectDoesNotExist:
                     return 'Parent was not found'
-                return None
-            try:
-                self.parent = ReportComponent.objects.get(
-                    root=self.job.reportroot,
-                    identifier__endswith=('##' + self.data['parent id'])
-                )
-            except ObjectDoesNotExist:
-                return 'Parent was not found'
-            except MultipleObjectsReturned:
-                return 'Identifiers are not unique'
+            else:
+                try:
+                    self.parent = ReportComponent.objects.get(
+                        root=self.job.reportroot,
+                        identifier__endswith=('##' + self.data['parent id'])
+                    )
+                except ObjectDoesNotExist:
+                    return 'Parent was not found'
+                except MultipleObjectsReturned:
+                    return 'Identifiers are not unique'
         return None
 
     def __upload(self):
@@ -165,7 +166,7 @@ class UploadReport(object):
 
         actions = {
             'start': self.__create_report_component,
-            'finish': self.__update_report_component,
+            'finish': self.__finish_report_component,
             'attrs': self.__update_attrs,
             'verification': self.__create_report_component,
             'unsafe': self.__create_report_unsafe,
@@ -253,7 +254,7 @@ class UploadReport(object):
         self.__add_attrs(report)
         return report
 
-    def __update_report_component(self, identifier):
+    def __finish_report_component(self, identifier):
         try:
             report = ReportComponent.objects.get(
                 identifier__startswith=self.job.identifier,
@@ -280,8 +281,7 @@ class UploadReport(object):
         self.__add_attrs(report)
 
         if 'resources' in self.data:
-            self.__update_parent_resources(report,
-                                           total=(self.data['id'] == '/'))
+            self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
             status = self.job.jobstatus
@@ -402,33 +402,8 @@ class UploadReport(object):
             ReportAttr.objects.get_or_create(report=report, attr=attr)
         report.save()
 
-    def __update_parent_resources(self, report, total=False):
-
-        if total:
-            compres_set = report.componentresource_set.filter(
-                ~Q(component=None))
-            new_resource = Resource()
-            new_resource.wall_time = 0
-            new_resource.cpu_time = 0
-            new_resource.memory = 0
-            if len(compres_set) == 1:
-                new_resource.wall_time = compres_set[0].resource.wall_time
-
-            for compres in compres_set:
-                new_resource.cpu_time += compres.resource.cpu_time
-                new_resource.memory = max(compres.resource.wall_time,
-                                          new_resource.memory)
-            new_resource.save()
-            try:
-                total_compres = report.componentresource_set.get(component=None)
-                total_compres.resource.delete()
-            except ObjectDoesNotExist:
-                total_compres = ComponentResource()
-                total_compres.report = report
-            total_compres.resource = new_resource
-            total_compres.save()
-            return
-
+    def __update_parent_resources(self, report):
+        self.__update_total_resources(report)
         component = report.component
         parent = self.parent
         while parent is not None:
@@ -451,7 +426,32 @@ class UploadReport(object):
             new_resource.save()
             compres.resource = new_resource
             compres.save()
+            self.__update_total_resources(parent)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
+
+    def __update_total_resources(self, report):
+        res_set = report.componentresource_set.filter(~Q(component=None))
+        if len(res_set) > 0:
+            new_resource = Resource()
+            new_resource.wall_time = 0
+            new_resource.cpu_time = 0
+            new_resource.memory = 0
+            if len(res_set) == 1:
+                new_resource.wall_time = res_set[0].resource.wall_time
+
+            for compres in res_set:
+                new_resource.cpu_time += compres.resource.cpu_time
+                new_resource.memory = max(compres.resource.memory,
+                                          new_resource.memory)
+            new_resource.save()
+            try:
+                total_compres = report.componentresource_set.get(component=None)
+                total_compres.resource.delete()
+            except ObjectDoesNotExist:
+                total_compres = ComponentResource()
+                total_compres.report = report
+            total_compres.resource = new_resource
+            total_compres.save()

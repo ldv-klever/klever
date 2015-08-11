@@ -38,7 +38,6 @@ def report_component(request, job_id, report_id):
             view_args.append(request.POST.get('view', None))
             view_args.append(request.POST.get('view_id', None))
         elif view_type == '3':
-            print(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view_id', None))
 
@@ -83,7 +82,7 @@ def report_unsafes(request, report_id):
     unsafes = []
     for unsafe_id in unsafes_id:
         try:
-            unsafes.append(ReportUnsafe.objects.get(pk=int(unsafe_id.leaf_id)))
+            unsafes.append(ReportUnsafe.objects.get(pk=int(unsafe_id.unsafe.pk)))
         except ObjectDoesNotExist:
             pass
 

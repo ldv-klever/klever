@@ -1,8 +1,8 @@
 import json
 from Omega.vars import VIEWJOB_DEF_VIEW
 from django.core.exceptions import ObjectDoesNotExist
-from jobs.job_functions import SAFES, UNSAFES,\
-TITLES, get_resource_data
+from django.core.urlresolvers import reverse
+from jobs.job_functions import SAFES, UNSAFES, TITLES, get_resource_data
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Q
 
@@ -102,8 +102,6 @@ class ViewJobData(object):
         return unsafe_tags_data
 
     def __resource_info(self):
-        accuracy = self.user.extended.accuracy
-        data_format = self.user.extended.data_format
         res_data = {}
 
         resource_filters = {}
@@ -125,7 +123,8 @@ class ViewJobData(object):
 
         if 'resource_total' not in self.view['filters'] or \
                 self.view['filters']['resource_total']['type'] == 'show':
-            res_total = self.report.componentresource_set.filter(component=None)
+            res_total = self.report.componentresource_set.filter(
+                component=None)
             if len(res_total):
                 rd = get_resource_data(self.user, res_total[0].resource)
                 resource_data.append({
@@ -201,7 +200,6 @@ class ViewJobData(object):
                 'component': comp,
                 'problems': unknowns_sorted[comp]
             })
-        print(unknowns_sorted_by_comp)
         return unknowns_sorted_by_comp
 
     def __safes_info(self):
@@ -250,6 +248,7 @@ class ViewJobData(object):
             unsafe_name = 'unsafe:' + s
             color = None
             val = '-'
+            href = None
             if s == 'bug':
                 val = verdicts.unsafe_bug
                 color = COLORS['red']
@@ -269,10 +268,12 @@ class ViewJobData(object):
                 val = verdicts.unsafe_unassociated
             elif s == 'total':
                 val = verdicts.unsafe
+                href = reverse('reports:report_unsafes', args=[self.report.pk])
             if val > 0:
                 unsafes_data.append({
                     'title': TITLES[unsafe_name],
                     'value': val,
                     'color': color,
+                    'href': href
                 })
         return unsafes_data

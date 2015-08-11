@@ -3,6 +3,7 @@ import json
 import random
 from time import sleep
 from datetime import datetime
+from django.db.models import Q
 from jobs.job_functions import create_job, update_job
 from jobs.models import MarkSafeTag, MarkUnsafeTag
 from reports.models import *
@@ -166,7 +167,7 @@ def populate_unknowns():
         marked_problem.save()
 
     for report in ReportComponent.objects.all():
-        for component in Component.objects.all():
+        for component in Component.objects.filter(~Q(name='Psi')):
             if random.randint(0, 10) > 6:
                 total = ComponentUnknown()
                 total.component = component

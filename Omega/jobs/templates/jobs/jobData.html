@@ -7,7 +7,13 @@
             <span class="purple-title"><b>{% trans 'Unsafes' %}: </b></span>
             <ul>
                 {% for v in reportdata.view_data.unsafes %}
-                    <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
+                    <li><span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
+                        {% if v.href %}
+                            <a href="{{ v.href }}">{{ v.value }}</a>
+                        {% else %}
+                            <a href="#">{{ v.value }}</a>
+                        {% endif %}
+                    </li>
                 {% endfor %}
             </ul>
         </div>
@@ -17,7 +23,14 @@
             <span class="purple-title"><b>{% trans 'Safes' %}:</b></span>
             <ul>
                 {% for v in reportdata.view_data.safes %}
-                    <li><span style="color:{{ v.color }};">{{ v.title }}: </span><a href="#">{{ v.value }}</a></li>
+                    <li><span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
+                        {% if v.href %}
+                            <a href="{{ v.href }}">{{ v.value }}</a>
+                        {% else %}
+                            <a href="#">{{ v.value }}</a>
+                        {% endif %}
+
+                    </li>
                 {% endfor %}
             </ul>
         </div>
