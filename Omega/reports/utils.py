@@ -1,11 +1,12 @@
 import json
+from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from Omega.vars import VIEW_REPORT_ATTRS_DEF_VIEW
 from reports.models import ReportComponent
 import jobs.job_functions as job_f
-from reports.models import Attr, AttrName
+from reports.models import Attr, AttrName, ReportComponentLeaf
 
 
 def computer_description(computer):
@@ -100,14 +101,11 @@ def get_parents(report):
         parent_attrs = []
         for attr in parent.attr.all().order_by('name__name'):
             parent_attrs.append([attr.name.name, attr.value])
-        title = pid.split('##')[-1]
-        name = title
-        if len(name) > 20:
-            name = name[:20] + '...'
+
+        title = parent.component.name
         href = reverse('reports:report_component',
                        args=[report.root.job.pk, parent.pk])
         parents_data.append({
-            'name': name,
             'title': title,
             'href': href,
             'attrs': parent_attrs
@@ -129,35 +127,39 @@ def report_resources(report, user):
 
 class ReportAttrs(object):
 
-    def __init__(self, user, report, view=None, view_id=None):
+    def __init__(self, user, report, view=None, view_id=None, table_type='0',
+                 component_id=None):
+        self.component_id = component_id
         self.report = report
         self.user = user
+        self.type = table_type
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
+        self.table_data = self.__get_table_data()
 
     class Header(object):
 
         def __init__(self, columns):
             self.columns = columns
 
-        def head_struct(self, children=False):
+        def head_struct(self, table_type):
             col_data = []
             depth = self.__max_depth()
             for d in range(1, depth + 1):
                 col_data.append(self.__cellspan_level(d, depth))
-            if children:
+
+            if table_type != '0':
+                title = '№'
+                if table_type in ['3', '6']:
+                    title = _('Component')
                 if len(col_data) > 0:
                     col_data[0].insert(0, {
-                        'column': _('Component'),
-                        'rows': depth,
-                        'columns': 1,
+                        'column': title, 'rows': depth, 'columns': 1
                     })
                 else:
-                    col_data = [{
-                        'column': _('Component'),
-                        'rows': depth,
-                        'columns': 1,
-                    }]
+                    col_data.append([{
+                        'column': title, 'rows': depth, 'columns': 1
+                    }])
             return col_data
 
         def __max_depth(self):
@@ -209,23 +211,37 @@ class ReportAttrs(object):
             return columns_data
 
     def __get_view(self, view, view_id):
+        if self.type not in ['3', '4', '5', '6']:
+            return None, None
+
+        def_views = {
+            '3': VIEW_REPORT_ATTRS_DEF_VIEW,
+
+            # TODO: add views for safe, unsafe and unknown
+            '4': VIEW_REPORT_ATTRS_DEF_VIEW,
+            '5': VIEW_REPORT_ATTRS_DEF_VIEW,
+            '6': VIEW_REPORT_ATTRS_DEF_VIEW,
+        }
+
         if view is not None:
             return json.loads(view), None
         if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type='3')
+            pref_view = self.user.preferableview_set.filter(
+                view__type=self.type)
             if len(pref_view):
                 return json.loads(pref_view[0].view.view), pref_view[0].view_id
         elif view_id == 'default':
-            return VIEW_REPORT_ATTRS_DEF_VIEW, 'default'
+            return def_views[self.type], 'default'
         else:
-            user_view = self.user.view_set.filter(pk=int(view_id), type='3')
+            user_view = self.user.view_set.filter(
+                pk=int(view_id), type=self.type)
             if len(user_view):
                 return json.loads(user_view[0].view), user_view[0].pk
-        return VIEW_REPORT_ATTRS_DEF_VIEW, 'default'
+        return def_views[self.type], 'default'
 
     def __views(self):
         views = []
-        for view in self.user.view_set.filter(type='3'):
+        for view in self.user.view_set.filter(type=self.type):
             views.append({
                 'id': view.pk,
                 'name': view.name,
@@ -233,12 +249,19 @@ class ReportAttrs(object):
             })
         return views
 
-    def get_table_data(self, children=False):
-        if children:
-            columns, values = self.__children_attrs()
+    def __get_table_data(self):
+        actions = {
+            '0': self.__self_attrs,
+            '3': self.__component_attrs,
+            '4': self.__verdict_attrs,
+            '5': self.__verdict_attrs,
+            '6': self.__unknowns_attrs,
+        }
+        if self.type in actions:
+            columns, values = actions[self.type]()
         else:
-            columns, values = self.__self_attrs()
-        header = self.Header(columns).head_struct(children)
+            return {}
+        header = self.Header(columns).head_struct(self.type)
         return {'header': header, 'values': values}
 
     def __self_attrs(self):
@@ -249,7 +272,7 @@ class ReportAttrs(object):
             values.append(attr.value)
         return columns, values
 
-    def __children_attrs(self):
+    def __component_attrs(self):
         data = {}
         components = {}
         component_filters = {
@@ -308,6 +331,147 @@ class ReportAttrs(object):
                     'pk': comp_data['pk'],
                     'component': comp_data['component'],
                     'attrs': values_row
+                })
+        return columns, values_data
+
+    def __verdict_attrs(self):
+        list_types = {
+            '4': 'unsafe',
+            '5': 'safe',
+        }
+        if self.type not in list_types:
+            return None, None
+
+        data = {}
+        report_ids = []
+        for leaf in ReportComponentLeaf.objects.filter(
+                Q(report=self.report) & ~Q(
+                    **{list_types[self.type]: None})):
+            report = getattr(leaf, list_types[self.type])
+            for attr in report.attr.all():
+                if attr.name.name not in data:
+                    data[attr.name.name] = {}
+                data[attr.name.name][report.pk] = attr.value
+            report_ids.append(report.pk)
+
+        columns = []
+        for name in sorted(data):
+            columns.append(name)
+
+        cnt = 0
+        values_data = []
+        ftype = None
+        fvalue = None
+        fattr = None
+        if 'attr' in self.view['filters']:
+            fattr = self.view['filters']['attr']['attr']
+            fvalue = self.view['filters']['attr']['value']
+            ftype = self.view['filters']['attr']['type']
+        for rep_id in report_ids:
+            values_row = []
+            passed = True
+            for col in columns:
+                cell_val = '-'
+                if rep_id in data[col]:
+                    cell_val = data[col][rep_id]
+                values_row.append(cell_val)
+                if fattr is not None and fattr.lower() == col.lower():
+                    if ftype == 'iexact' and fvalue.lower() != cell_val.lower():
+                        passed = False
+                    elif ftype == 'istartswith' and \
+                            not cell_val.lower().startswith(fvalue.lower()):
+                        passed = False
+            if passed:
+                cnt += 1
+                values_data.append({
+                    'href': reverse('reports:report_%s' % list_types[self.type],
+                                    args=[rep_id]),
+                    'value': cnt,
+                    'attrs': values_row
+                })
+        return columns, values_data
+
+    def __unknowns_attrs(self):
+
+        def filter_component(component_name):
+            if 'component' in self.view['filters']:
+                filter_type = self.view['filters']['component']['type'],
+                filter_value = self.view['filters']['component']['value']
+                if filter_type == 'iexact':
+                    if component_name.lower() == filter_value.lower():
+                        return True
+                elif filter_type == 'istartswith':
+                    if component_name.lower().startswith(filter_value.lower()):
+                        return True
+                elif filter_type == 'icontains':
+                    if filter_value.lower() in component_name.lower():
+                        return True
+                return False
+            return True
+
+        def filter_attr(attribute, value):
+            if 'attr' in self.view['filters']:
+                fattr = self.view['filters']['attr']['attr']
+                fvalue = self.view['filters']['attr']['value']
+                ftype = self.view['filters']['attr']['type']
+                if fattr is not None and fattr.lower() == attribute.lower():
+                    if ftype == 'iexact' and fvalue.lower() != value.lower():
+                        return False
+                    elif ftype == 'istartswith' and \
+                            not value.lower().startswith(fvalue.lower()):
+                        return False
+            return True
+
+        data = {}
+        components = {}
+        for leaf in ReportComponentLeaf.objects.filter(
+                Q(report=self.report) & ~Q(unknown=None)):
+            report = leaf.unknown
+            try:
+                parent = ReportComponent.objects.get(pk=report.parent_id)
+            except ObjectDoesNotExist:
+                continue
+            if self.component_id is not None and \
+                    parent.component_id != int(self.component_id):
+                continue
+            if not filter_component(parent.component.name):
+                continue
+            for attr in report.attr.all():
+                if attr.name.name not in data:
+                    data[attr.name.name] = {}
+                data[attr.name.name][report.pk] = attr.value
+            components[report.pk] = parent.component
+
+        columns = []
+        for name in sorted(data):
+            columns.append(name)
+
+        comp_data = []
+        for pk in components:
+            comp_data.append((components[pk].name, {
+                'pk': pk,
+                'component': components[pk]
+            }))
+        sorted_components = []
+        for name, dt in sorted(comp_data, key=lambda x: x[0]):
+            sorted_components.append(dt)
+
+        values_data = []
+        for comp_data in sorted_components:
+            values_row = []
+            passed = True
+            for col in columns:
+                cell_val = '-'
+                if comp_data['pk'] in data[col]:
+                    cell_val = data[col][comp_data['pk']]
+                values_row.append(cell_val)
+                passed = filter_attr(col, cell_val)
+            if passed:
+                values_data.append({
+                    'attrs': values_row,
+                    'value': comp_data['component'].name,
+                    'href': reverse('reports:report_unknown',
+                                    args=[comp_data['pk']])
                 })
         return columns, values_data
 

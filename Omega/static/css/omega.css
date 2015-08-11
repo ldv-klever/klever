@@ -51,6 +51,9 @@ p.omega-text {
     max-height: 300px;
     overflow-y: auto;
     border: 1px solid #669ad1;
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
 }
 
 .purple-subtitle {
@@ -66,4 +69,34 @@ p.omega-text {
 
 .panel-collapse {
     padding: 10px;
+}
+
+.error-trace-content {
+    white-space: pre-wrap;
+    max-height: 700px;
+    overflow-y: auto;
+    border: 1px solid #feae08;
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.safe-proof-content {
+    white-space: pre-wrap;
+    max-height: 700px;
+    overflow-y: auto;
+    border: 1px solid #7efe7f;
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.problem-description-content {
+    white-space: pre-wrap;
+    max-height: 700px;
+    overflow-y: auto;
+    border: 1px solid #fe0018;
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
 }

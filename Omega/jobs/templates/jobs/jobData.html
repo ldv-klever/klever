@@ -39,13 +39,13 @@
 
 {% if reportdata.view_data.unknowns|length %}
     <span class="purple-title"><b>{% trans 'Unknowns' %}</b></span>
-    {% if reportdata.unknowns_total %}(<a href="#">{{ reportdata.unknowns_total }}</a>){% endif %}
+    {% if reportdata.unknowns_total %}(<a href="{{ reportdata.unknowns_total.href }}">{{ reportdata.unknowns_total.num }}</a>){% endif %}
     <ul>
         {% for comp in reportdata.view_data.unknowns %}
             <li>{{ comp.component }}</li>
             <ul>
             {% for probl in comp.problems %}
-                <li>{{ probl.problem }}: <a href="#">{{ probl.num }}</a></li>
+                <li>{{ probl.problem }}: <a href="{{ probl.href }}">{{ probl.num }}</a></li>
             {% endfor %}
             </ul>
         {% endfor %}

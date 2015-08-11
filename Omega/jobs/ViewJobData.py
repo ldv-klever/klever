@@ -186,11 +186,17 @@ class ViewJobData(object):
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({
                     'problem': _('Total'),
-                    'num': cmup.number
+                    'num': cmup.number,
+                    'href': reverse('reports:report_unknowns',
+                                    args=[self.report.pk, cmup.component.pk])
                 })
             try:
                 verdicts = self.report.verdict
-                self.unknowns_total = verdicts.unknown
+                self.unknowns_total = {
+                    'num': verdicts.unknown,
+                    'href': reverse('reports:report_list',
+                                    args=[self.report.pk, 'unknowns'])
+                }
             except ObjectDoesNotExist:
                 self.unknowns_total = None
 
@@ -213,6 +219,7 @@ class ViewJobData(object):
             safe_name = 'safe:' + s
             color = None
             val = '-'
+            href = None
             if s == 'missed_bug':
                 val = verdicts.safe_missed_bug
                 color = COLORS['red']
@@ -229,11 +236,14 @@ class ViewJobData(object):
                 val = verdicts.safe_unassociated
             elif s == 'total':
                 val = verdicts.safe
+                href = reverse('reports:report_list',
+                               args=[self.report.pk, 'safes'])
             if val > 0:
                 safes_data.append({
                     'title': TITLES[safe_name],
                     'value': val,
                     'color': color,
+                    'href': href
                 })
         return safes_data
 
@@ -268,7 +278,8 @@ class ViewJobData(object):
                 val = verdicts.unsafe_unassociated
             elif s == 'total':
                 val = verdicts.unsafe
-                href = reverse('reports:report_unsafes', args=[self.report.pk])
+                href = reverse('reports:report_list',
+                               args=[self.report.pk, 'unsafes'])
             if val > 0:
                 unsafes_data.append({
                     'title': TITLES[unsafe_name],

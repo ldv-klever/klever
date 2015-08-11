@@ -819,10 +819,7 @@ def get_resource_data(user, resource):
     wall = resource.wall_time
     mem = resource.memory
     if user.extended.data_format == 'hum':
-        if wall > 0:
-            wall = convert_time(wall, accuracy)
+        wall = convert_time(wall, accuracy)
         cpu = convert_time(cpu, accuracy)
         mem = convert_memory(mem, accuracy)
-    if wall == 0:
-        wall = '-'
     return [wall, cpu, mem]

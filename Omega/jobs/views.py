@@ -732,6 +732,8 @@ def job_error(request, err_code=0):
         message = _('Wrong parameters, please reload page and try again.')
     elif err_code == 504:
         message = _('The report was not found')
+    elif err_code == 444:
+        message = _("The page was not found")
     return render(request, 'error.html', {'message': message, 'back': back})
 
 

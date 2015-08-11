@@ -74,8 +74,11 @@ USER_ROLES = (
 VIEW_TYPES = {
     ('1', 'job tree'),
     ('2', 'job view'),
-    ('3', 'children attributes'),
-    ('4', 'others'),
+    ('3', 'component attributes'),
+    ('4', 'unsafe attributes'),
+    ('5', 'safe attributes'),
+    ('6', 'unknown attributes'),
+    ('7', 'others'),
 }
 
 JOB_STATUS = (

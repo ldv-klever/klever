@@ -403,7 +403,32 @@ class UploadReport(object):
         report.save()
 
     def __update_parent_resources(self, report):
-        self.__update_total_resources(report)
+
+        def update_total_resources(rep):
+            res_set = rep.componentresource_set.filter(~Q(component=None))
+            if len(res_set) > 0:
+                new_res = Resource()
+                new_res.wall_time = 0
+                new_res.cpu_time = 0
+                new_res.memory = 0
+
+                for comp_res in res_set:
+                    new_res.wall_time += comp_res.resource.wall_time
+                    new_res.cpu_time += comp_res.resource.cpu_time
+                    new_res.memory = max(comp_res.resource.memory,
+                                         new_resource.memory)
+                new_res.save()
+                try:
+                    total_compres = rep.componentresource_set.get(
+                        component=None)
+                    total_compres.resource.delete()
+                except ObjectDoesNotExist:
+                    total_compres = ComponentResource()
+                    total_compres.report = rep
+                total_compres.resource = new_res
+                total_compres.save()
+
+        update_total_resources(report)
         component = report.component
         parent = self.parent
         while parent is not None:
@@ -414,7 +439,7 @@ class UploadReport(object):
             try:
                 compres = parent.componentresource_set.get(
                     component=component)
-                new_resource.wall_time = 0
+                new_resource.wall_time += compres.resource.wall_time
                 new_resource.cpu_time += compres.resource.cpu_time
                 new_resource.memory = max(compres.resource.memory,
                                           new_resource.memory)
@@ -426,32 +451,8 @@ class UploadReport(object):
             new_resource.save()
             compres.resource = new_resource
             compres.save()
-            self.__update_total_resources(parent)
+            update_total_resources(parent)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
-
-    def __update_total_resources(self, report):
-        res_set = report.componentresource_set.filter(~Q(component=None))
-        if len(res_set) > 0:
-            new_resource = Resource()
-            new_resource.wall_time = 0
-            new_resource.cpu_time = 0
-            new_resource.memory = 0
-            if len(res_set) == 1:
-                new_resource.wall_time = res_set[0].resource.wall_time
-
-            for compres in res_set:
-                new_resource.cpu_time += compres.resource.cpu_time
-                new_resource.memory = max(compres.resource.memory,
-                                          new_resource.memory)
-            new_resource.save()
-            try:
-                total_compres = report.componentresource_set.get(component=None)
-                total_compres.resource.delete()
-            except ObjectDoesNotExist:
-                total_compres = ComponentResource()
-                total_compres.report = report
-            total_compres.resource = new_resource
-            total_compres.save()

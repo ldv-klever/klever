@@ -9,7 +9,7 @@ from jobs.job_model import Job, JobStatus
 from jobs.models import MarkSafeTag, MarkUnsafeTag
 import jobs.job_functions as job_f
 from reports.models import Verdict, ComponentResource, ComponentUnknown,\
-    ComponentMarkUnknownProblem
+    ComponentMarkUnknownProblem, ReportComponent
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.job_functions import SAFES, UNSAFES, TITLES, get_resource_data
 
@@ -645,10 +645,11 @@ class TableTree(object):
                 if j['pk'] in values_data:
                     author = j['job'].change_author
                     if author is not None:
-                        values_data[j['pk']]['author'] = \
-                            author.extended.last_name \
-                            + ' ' + author.extended.first_name
-                        values_data[j['pk']]['author_pk'] = author.pk
+                        name = author.extended.last_name + ' ' + \
+                               author.extended.first_name
+                        author_href = reverse('users:show_profile',
+                                              args=[author.pk])
+                        values_data[j['pk']]['author'] = (name, author_href)
 
         def collect_jobs_data():
             for j in self.jobdata:
@@ -665,22 +666,37 @@ class TableTree(object):
         def collect_statuses():
             for status in JobStatus.objects.filter(job_id__in=job_pks):
                 if status.job_id in values_data:
-                    values_data[status.job_id]['status'] = \
-                        status.get_status_display()
+                    try:
+                        report = ReportComponent.objects.get(
+                            root__job=status.job, parent=None)
+                        values_data[status.job_id]['status'] = (
+                            status.get_status_display(),
+                            reverse('reports:report_component',
+                                    args=[status.job_id, report.pk])
+                        )
+                    except ObjectDoesNotExist:
+                        values_data[status.job_id]['status'] = \
+                            status.get_status_display()
 
         def collect_verdicts():
             for verdict in Verdict.objects.filter(
                     report__root__job_id__in=job_pks, report__parent=None):
                 if verdict.report.root.job_id in values_data:
                     values_data[verdict.report.root.job_id].update({
-                        'unsafe:total': verdict.unsafe,
+                        'unsafe:total': (
+                            verdict.unsafe,
+                            reverse('reports:report_list',
+                                    args=[verdict.report.pk, 'unsafes'])),
                         'unsafe:bug': verdict.unsafe_bug,
                         'unsafe:target_bug': verdict.unsafe_target_bug,
                         'unsafe:false_positive': verdict.unsafe_false_positive,
                         'unsafe:unknown': verdict.unsafe_unknown,
                         'unsafe:unassociated': verdict.unsafe_unassociated,
                         'unsafe:inconclusive': verdict.unsafe_inconclusive,
-                        'safe:total': verdict.safe,
+                        'safe:total': (
+                            verdict.safe,
+                            reverse('reports:report_list',
+                                    args=[verdict.report.pk, 'safes'])),
                         'safe:missed_bug': verdict.safe_missed_bug,
                         'safe:unknown': verdict.safe_unknown,
                         'safe:inconclusive': verdict.safe_inconclusive,
@@ -762,15 +778,16 @@ class TableTree(object):
                     values_data[job_pk][
                         'problem:pr_component_' + str(cu.component_id) +
                         ':z_total'
-                    ] = cu.number
+                    ] = (
+                        cu.number,
+                        reverse('reports:report_unknowns',
+                                args=[cu.report_id, cu.component_id])
+                    )
 
         def get_href(job_pk, column, black):
             if job_pk in values_data and not black:
                 if column == 'name':
                     return reverse('jobs:job', args=[job_pk])
-                elif column == 'author' and 'author_pk' in values_data[job_pk]:
-                    return reverse('users:show_profile',
-                                   args=[values_data[job_pk]['author_pk']])
             return None
 
         if 'author' in self.columns:
@@ -805,15 +822,22 @@ class TableTree(object):
                     cell_value = ''
                 else:
                     cell_value = '-'
+                href = None
                 if col == 'name' and job['pk'] in names_data:
                     cell_value = names_data[job['pk']]
+                    href = get_href(job['pk'], 'name', job['black'])
                 elif job['pk'] in values_data:
                     if col in values_data[job['pk']]:
-                        cell_value = values_data[job['pk']][col]
+                        if isinstance(values_data[job['pk']][col], tuple):
+                            cell_value = values_data[job['pk']][col][0]
+                            href = values_data[job['pk']][col][1]
+                        else:
+                            cell_value = values_data[job['pk']][col]
                 row_values.append({
                     'value': cell_value,
                     'id': '__'.join(col.split(':')) + ('__%d' % col_id),
-                    'href': get_href(job['pk'], col, job['black']),
+                    'href': href,
+                    # get_href(job['pk'], col, job['black']),
                 })
             table_rows.append({
                 'id': job['pk'],
