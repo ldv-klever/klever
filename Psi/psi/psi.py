@@ -133,8 +133,10 @@ def launch():
     finally:
         if 'component_processes' in locals():
             for p in component_processes:
-                p.terminate()
-                p.join()
+                # Do not terminate components that already exitted.
+                if p.is_alive():
+                    p.terminate()
+                    p.join()
 
         if 'reports_mq' in locals():
             with open(conf_file) as conf_fp:
