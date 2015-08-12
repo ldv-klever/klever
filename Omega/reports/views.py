@@ -45,7 +45,8 @@ def report_component(request, job_id, report_id):
     unknown_href = None
     try:
         unknown = ReportUnknown.objects.get(parent=report)
-        unknown_href = reverse('reports:report_unknown', args=[unknown.pk])
+        unknown_href = reverse('reports:leaf',
+                               args=['unknown', unknown.pk])
         status = 3
     except ObjectDoesNotExist:
         pass
@@ -117,22 +118,7 @@ def report_unknowns(request, report_id, component_id):
 
 
 @login_required
-def report_unsafe(request, report_id):
-    return report_leaf(request, report_id, 'unsafe')
-
-
-@login_required
-def report_safe(request, report_id):
-    return report_leaf(request, report_id, 'safe')
-
-
-@login_required
-def report_unknown(request, report_id):
-    return report_leaf(request, report_id, 'unknown')
-
-
-@login_required
-def report_leaf(request, report_id, leaf_type):
+def report_leaf(request, leaf_type, report_id):
     activate(request.user.extended.language)
 
     tables = {
@@ -166,7 +152,7 @@ def report_leaf(request, report_id, leaf_type):
             'report': report,
             'parents': get_parents(report),
             'SelfAttrsData': ReportAttrs(request.user, report).table_data,
-            'list_href': reverse('reports:report_list', args=[
+            'list_href': reverse('reports:list', args=[
                 ReportComponent.objects.get(pk=report.parent_id).pk,
                 leaf_type + 's',
             ]),
@@ -187,7 +173,6 @@ def upload_report(request):
     error = UploadReport(request.user, job,
                          json.loads(request.POST.get('report', '{}'))).error
     if error is not None:
-        print(error)
         return JsonResponse({'error': error})
     return JsonResponse({})
 

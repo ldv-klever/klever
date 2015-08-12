@@ -103,7 +103,7 @@ def get_parents(report):
             parent_attrs.append([attr.name.name, attr.value])
 
         title = parent.component.name
-        href = reverse('reports:report_component',
+        href = reverse('reports:component',
                        args=[report.root.job.pk, parent.pk])
         parents_data.append({
             'title': title,
@@ -384,8 +384,8 @@ class ReportAttrs(object):
             if passed:
                 cnt += 1
                 values_data.append({
-                    'href': reverse('reports:report_%s' % list_types[self.type],
-                                    args=[rep_id]),
+                    'href': reverse('reports:leaf',
+                                    args=[list_types[self.type], rep_id]),
                     'value': cnt,
                     'attrs': values_row
                 })
@@ -470,8 +470,8 @@ class ReportAttrs(object):
                 values_data.append({
                     'attrs': values_row,
                     'value': comp_data['component'].name,
-                    'href': reverse('reports:report_unknown',
-                                    args=[comp_data['pk']])
+                    'href': reverse('reports:leaf',
+                                    args=['unknown', comp_data['pk']])
                 })
         return columns, values_data
 

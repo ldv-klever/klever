@@ -613,7 +613,8 @@ class TableTree(object):
                 else:
                     column = 'problem:%s:%s' % (comp_id, probl_id)
                     new_columns.append(column)
-                    self.titles[column] = problems[comp_id]['problems'][probl_id]
+                    self.titles[column] = \
+                        problems[comp_id]['problems'][probl_id]
             if has_nomark:
                 column = 'problem:%s:z_no_mark' % comp_id
                 new_columns.append(column)
@@ -646,7 +647,7 @@ class TableTree(object):
                     author = j['job'].change_author
                     if author is not None:
                         name = author.extended.last_name + ' ' + \
-                               author.extended.first_name
+                            author.extended.first_name
                         author_href = reverse('users:show_profile',
                                               args=[author.pk])
                         values_data[j['pk']]['author'] = (name, author_href)
@@ -671,7 +672,7 @@ class TableTree(object):
                             root__job=status.job, parent=None)
                         values_data[status.job_id]['status'] = (
                             status.get_status_display(),
-                            reverse('reports:report_component',
+                            reverse('reports:component',
                                     args=[status.job_id, report.pk])
                         )
                     except ObjectDoesNotExist:
@@ -685,7 +686,7 @@ class TableTree(object):
                     values_data[verdict.report.root.job_id].update({
                         'unsafe:total': (
                             verdict.unsafe,
-                            reverse('reports:report_list',
+                            reverse('reports:list',
                                     args=[verdict.report.pk, 'unsafes'])),
                         'unsafe:bug': verdict.unsafe_bug,
                         'unsafe:target_bug': verdict.unsafe_target_bug,
@@ -695,7 +696,7 @@ class TableTree(object):
                         'unsafe:inconclusive': verdict.unsafe_inconclusive,
                         'safe:total': (
                             verdict.safe,
-                            reverse('reports:report_list',
+                            reverse('reports:list',
                                     args=[verdict.report.pk, 'safes'])),
                         'safe:missed_bug': verdict.safe_missed_bug,
                         'safe:unknown': verdict.safe_unknown,
@@ -780,7 +781,7 @@ class TableTree(object):
                         ':z_total'
                     ] = (
                         cu.number,
-                        reverse('reports:report_unknowns',
+                        reverse('reports:unknowns',
                                 args=[cu.report_id, cu.component_id])
                     )
 
