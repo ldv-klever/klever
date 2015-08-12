@@ -804,7 +804,6 @@ def decide_job(request):
     error = UploadReport(request.user, job,
                          json.loads(request.POST.get('report', '{}'))).error
     if error is not None:
-        print(error)
         return JsonResponse({'error': error})
 
     response = HttpResponse(content_type="application/x-tar-gz")

@@ -308,6 +308,7 @@ class UploadReport(object):
         report.save()
 
         self.__add_attrs(report)
+        self.__collect_attrs(report)
 
         component = self.parent.component
         parent = self.parent
@@ -344,6 +345,7 @@ class UploadReport(object):
         report.save()
 
         self.__add_attrs(report)
+        self.__collect_attrs(report)
 
         parent = self.parent
         while parent is not None:
@@ -377,6 +379,7 @@ class UploadReport(object):
         report.save()
 
         self.__add_attrs(report)
+        self.__collect_attrs(report)
 
         parent = self.parent
         while parent is not None:
@@ -402,6 +405,18 @@ class UploadReport(object):
             ReportAttr.objects.get_or_create(report=report, attr=attr)
         report.save()
 
+    def __collect_attrs(self, report):
+        parent = self.parent
+        while parent is not None:
+            for p_attr in parent.attr.all():
+                if not report.attr.filter(pk=p_attr.pk).exists():
+                    report.attr.add(p_attr)
+            try:
+                parent = ReportComponent.objects.get(pk=parent.parent_id)
+            except ObjectDoesNotExist:
+                parent = None
+        report.save()
+
     def __update_parent_resources(self, report):
 
         def update_total_resources(rep):
@@ -416,7 +431,7 @@ class UploadReport(object):
                     new_res.wall_time += comp_res.resource.wall_time
                     new_res.cpu_time += comp_res.resource.cpu_time
                     new_res.memory = max(comp_res.resource.memory,
-                                         new_resource.memory)
+                                         new_res.memory)
                 new_res.save()
                 try:
                     total_compres = rep.componentresource_set.get(

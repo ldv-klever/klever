@@ -135,7 +135,7 @@
                 <tbody>
                     {% for v in ChildrenAttrsData.values %}
                         <tr>
-                            <td><a href="{% url 'reports:report_component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
+                            <td><a href="{% url 'reports:component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
                             {% for attr in v.attrs %}
                                 <td><span>{{ attr }}</span></td>
                             {% endfor %}
@@ -147,7 +147,7 @@
         {% endif %}
 
         {% if report.log %}
-            <a class="btn btn-success" href="{% url 'reports:report_log' report.pk %}">{% trans 'Download log' %}</a>
+            <a class="btn btn-success" href="{% url 'reports:log' report.pk %}">{% trans 'Download log' %}</a>
         {% endif %}
     </div>
 </div>

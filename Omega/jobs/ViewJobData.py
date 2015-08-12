@@ -187,14 +187,14 @@ class ViewJobData(object):
                 unknowns_sorted[cmup.component.name].append({
                     'problem': _('Total'),
                     'num': cmup.number,
-                    'href': reverse('reports:report_unknowns',
+                    'href': reverse('reports:unknowns',
                                     args=[self.report.pk, cmup.component.pk])
                 })
             try:
                 verdicts = self.report.verdict
                 self.unknowns_total = {
                     'num': verdicts.unknown,
-                    'href': reverse('reports:report_list',
+                    'href': reverse('reports:list',
                                     args=[self.report.pk, 'unknowns'])
                 }
             except ObjectDoesNotExist:
@@ -236,7 +236,7 @@ class ViewJobData(object):
                 val = verdicts.safe_unassociated
             elif s == 'total':
                 val = verdicts.safe
-                href = reverse('reports:report_list',
+                href = reverse('reports:list',
                                args=[self.report.pk, 'safes'])
             if val > 0:
                 safes_data.append({
@@ -278,7 +278,7 @@ class ViewJobData(object):
                 val = verdicts.unsafe_unassociated
             elif s == 'total':
                 val = verdicts.unsafe
-                href = reverse('reports:report_list',
+                href = reverse('reports:list',
                                args=[self.report.pk, 'unsafes'])
             if val > 0:
                 unsafes_data.append({
