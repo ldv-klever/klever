@@ -494,43 +494,32 @@ def save_job(request):
 
 
 @login_required
-def remove_job(request):
-    if request.method != 'POST':
-        return JsonResponse({'status': 1, 'message': _('Unknown error')})
-
-    job_id = request.POST.get('job_id', None)
-    status = remove_jobs_by_id(request.user, [job_id])
-    if status == 404:
-        return JsonResponse({
-            'status': 1, 'message': _('The job was not found')
-        })
-    elif status == 400:
-        return JsonResponse({
-            'status': 1,
-            'message': _("You don't have an access to remove this job")
-        })
-    return JsonResponse({'status': 0})
-
-
-@login_required
 def remove_jobs(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
-    status = remove_jobs_by_id(request.user,
-                               json.loads(request.POST.get('jobs', '[]')))
+    jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
+    status = remove_jobs_by_id(request.user, jobs_for_del)
     if status == 404:
+        if len(jobs_for_del) == 1:
+            return JsonResponse({
+                'status': 1, 'message': _('The job was not found')
+            })
         return JsonResponse({
             'status': 1,
-            'message': _('The job was not found')
+            'message': _('One of the selected jobs was not found')
         })
     elif status == 400:
+        if len(jobs_for_del) == 1:
+            return JsonResponse({
+                'status': 1,
+                'message': _("You don't have an access to remove this job")
+            })
         return JsonResponse({
             'status': 1,
-            'message':
-                _("You don't have an access to "
-                  "remove one of the selected jobs")
+            'message': _("You don't have an access to remove "
+                         "one of the selected jobs")
         })
     return JsonResponse({'status': 0})
 

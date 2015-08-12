@@ -129,12 +129,6 @@ def report_leaf(request, leaf_type, report_id):
     if leaf_type not in tables:
         return HttpResponseRedirect(reverse('jobs:error', args=[500]))
 
-    titles = {
-        'unknown': None,
-        'safe': _('Safes'),
-        'unsafe': _('Unsafes'),
-    }
-
     try:
         report = tables[leaf_type].objects.get(pk=int(report_id))
     except ObjectDoesNotExist:

@@ -413,7 +413,7 @@ $(document).ready(function () {
         });
         if (jobs_for_delete.length) {
             $.post(
-                job_ajax_url + 'remove_jobs/',
+                job_ajax_url + 'removejobs/',
                 {jobs: JSON.stringify(jobs_for_delete)},
                 function (data) {
                     data.status === 0 ? window.location.replace('') : err_notify(data.message);

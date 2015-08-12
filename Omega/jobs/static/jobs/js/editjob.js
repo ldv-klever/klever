@@ -797,8 +797,8 @@ $(document).ready(function () {
 
     $('#remove_job_btn').click(function () {
         $.post(
-            job_ajax_url + 'removejob/',
-            {job_id: $('#job_pk').text()},
+            job_ajax_url + 'removejobs/',
+            {jobs: JSON.stringify([$('#job_pk').text()])},
             function (data) {
                 data.status === 0 ? window.location.replace('/jobs/') : err_notify(data.message);
             },
