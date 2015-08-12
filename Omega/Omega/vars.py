@@ -73,8 +73,12 @@ USER_ROLES = (
 
 VIEW_TYPES = {
     ('1', 'job tree'),
-    ('2', 'job_view'),
-    ('3', 'others'),
+    ('2', 'job view'),
+    ('3', 'component attributes'),
+    ('4', 'unsafe attributes'),
+    ('5', 'safe attributes'),
+    ('6', 'unknown attributes'),
+    ('7', 'others'),
 }
 
 JOB_STATUS = (
@@ -139,5 +143,23 @@ VIEWJOB_DEF_VIEW = {
         # 'resource_total': {
         #     'type': 'hide'
         # },
+    }
+}
+
+VIEW_REPORT_ATTRS_DEF_VIEW = {
+    # Available filters (id [types], (example attr), (example value)):
+    # component [iexact, istartswith, icontains] (<any text>)
+    # attr [iexact, istartswith]
+    #     (<attribute name separated by ':'>) (<any text>)
+    'filters': {
+        # 'component': {
+        #     'type': 'istartswith',
+        #     'value': 'v',
+        # },
+        # 'attr': {
+        #     'attr': 'Linux kernel verification objs gen strategy:name',
+        #     'type': 'istartswith',
+        #     'value': 'Separate'
+        # }
     }
 }

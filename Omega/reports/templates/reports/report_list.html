@@ -5,35 +5,64 @@
 {% load tz %}
 
 {% block body_block %}
-
-<span class="TableTitle">{{ title }}</span>
-<table class="RootReportTable" border="1">
-    <tr class="TableRawEven">
-        <td><span class="TableTitle">{% trans 'ID' %}</span></td>
-        {% for attr in attrs %}
-        <td><span class="TableTitle">{{ attr.name.name }}</span></td>
-        {% endfor %}
-        <td><span class="TableTitle">{% trans 'Marks' %}</span></td>
-    </tr>
-    {% for report, value in reports_values.items %}
-        <tr class="TableRawOdd">
+    <table>
+        <tr>
+            {% for parent in parents %}
             <td>
-                {% if title == "Unsafes" %}
-                    <a href="{% url 'reports:report_unsafe' report.id %}">{{ report.id }}</a>
-                {% elif title == "Safes" %}
-                    <a href="{% url 'reports:report_safe' report.id %}">{{ report.id }}</a>
-                {% elif title == "Unknowns" %}
-                    <a href="{% url 'reports:report_unknown' report.id %}">{{ report.id }}</a>
-                {% else %}
-                    {{ report.id }}
-                {% endif %}
-            </td>
-            {% for v in value %}
-            <td>{{ v.0.attr.value }}</td>
+                <div class="omega-tooltip">
+                    <a href="{{ parent.href }}">{{ parent.title }}</a>
+                    <span class="tooltip-content">
+                        <strong>{{ parent.title }}</strong><br>
+                        {% for attr in parent.attrs %}
+                            <span class="purple-subtitle">{{ attr.0 }}:</span><br>{{ attr.1|safe }}<br><br>
+                        {% endfor %}
+                    </span>
+                </div>
+            </td><td><strong>/</strong></td>
             {% endfor %}
-            <td>Marks for {{ report.id }}</td>
         </tr>
-    {% endfor %}
-</table>
+    </table>
+    <hr>
+    <div class="row">
+        <div class="col-sm-5">
+            <span class="purple-title">{% trans 'Report author' %}: </span>
+            <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
+            <br>
+            <span class="purple-title">{% trans 'Verification Job' %}: </span>
+            <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+        </div>
+        <div class="col-sm-7">{% include 'reports/AttrsFilters.html' %}</div>
+    </div>
 
+    {% if ChildrenAttrsData.values|length %}
+        <div style="overflow-x: auto">
+        <table class="table table-bordered">
+            <thead>
+                {% for column_row in ChildrenAttrsData.header %}
+                    <tr class="info">
+                    {% for coldata in column_row %}
+                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
+                    {% endfor %}
+                    </tr>
+                {% endfor %}
+            </thead>
+            <tbody>
+                {% for v in ChildrenAttrsData.values %}
+                    <tr>
+                        <td>
+                            {% if v.href %}
+                                <a href="{{ v.href }}">{{ v.value }}</a>
+                            {% else %}
+                                <span>{{ v.value }}</span>
+                            {% endif %}
+                        </td>
+                        {% for attr in v.attrs %}
+                            <td><span>{{ attr }}</span></td>
+                        {% endfor %}
+                    </tr>
+                {%  endfor %}
+            </tbody>
+        </table>
+        </div>
+    {% endif %}
 {% endblock %}

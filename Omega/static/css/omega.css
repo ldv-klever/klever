@@ -28,7 +28,7 @@ body {
     text-decoration: none;
     cursor: pointer;
 }
-.omega-tooltip span {
+.omega-tooltip .tooltip-content {
     z-index: 10;
     display: none;
     padding: 14px 20px;
@@ -38,7 +38,7 @@ body {
     box-shadow: 5px 5px 8px #CCC;
 }
 
-.omega-tooltip:hover span {
+.omega-tooltip:hover .tooltip-content {
     display: inline;
     position: absolute;
     color: #111;
@@ -49,7 +49,54 @@ body {
 p.omega-text {
     white-space: pre-wrap;
     max-height: 300px;
-    margin-left: 30px;
     overflow-y: auto;
     border: 1px solid #669ad1;
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.purple-subtitle {
+    color: #6416ad;
+    font-style: italic;
+}
+
+.attrs-table {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 500px;
+}
+
+.panel-collapse {
+    padding: 10px;
+}
+
+.error-trace-content {
+    white-space: pre-wrap;
+    max-height: 700px;
+    overflow-y: auto;
+    border: 1px solid #feae08;
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.safe-proof-content {
+    white-space: pre-wrap;
+    max-height: 700px;
+    overflow-y: auto;
+    border: 1px solid #7efe7f;
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.problem-description-content {
+    white-space: pre-wrap;
+    max-height: 700px;
+    overflow-y: auto;
+    border: 1px solid #fe0018;
+    margin: 10px;
+    padding: 5px;
+    border-radius: 5px;
 }

@@ -1,7 +1,9 @@
 import pytz
+import json
 import random
 from time import sleep
 from datetime import datetime
+from django.db.models import Q
 from jobs.job_functions import create_job, update_job
 from jobs.models import MarkSafeTag, MarkUnsafeTag
 from reports.models import *
@@ -83,15 +85,25 @@ def populate_tags():
                 mark_tag.save()
 
 
-def populate_root_report(username):
+def populate_reports(username):
     ReportRoot.objects.all().delete()
     Component.objects.all().delete()
+    Resource.objects.all().delete()
+    Computer.objects.all().delete()
 
     components = ["DSCV", "RCV", "Reporter", "DEG"]
     for comp_name in components:
         component = Component()
         component.name = comp_name
         component.save()
+
+    root_component = Component()
+    root_component.name = 'Psi'
+    root_component.save()
+
+    computer = Computer()
+    computer.description = json.dumps([{'node name': "Intel core i7"}])
+    computer.save()
 
     for job in Job.objects.all():
         root_report = ReportRoot()
@@ -102,9 +114,31 @@ def populate_root_report(username):
         ))
         root_report.save()
 
+    for job in Job.objects.all():
+        report = ReportComponent()
+        report.identifier = job.identifier
+        report.component = root_component
+        report.computer = computer
+        report.data = "Data...".encode('utf8')
+        report.log = "Log...".encode('utf8')
+        report.root = job.reportroot
+        report.start_date = pytz.timezone('UTC').localize(datetime(
+            2015, 7, 31, random.randint(10, 15), random.randint(5, 50), 17
+        ))
+        report.finish_date = pytz.timezone('UTC').localize(datetime(
+            2015, 7, 31, 16, random.randint(5, 50), 17
+        ))
+        report.description = ''.encode('utf8')
+        report.resource = Resource.objects.create(
+            cpu_time=random.randint(1, 100000),
+            wall_time=random.randint(1, 100000),
+            memory=random.randint(1, 10000000),
+        )
+        report.save()
+
 
 def populate_verdicts():
-    for report in ReportRoot.objects.all():
+    for report in ReportComponent.objects.all():
         verdict = Verdict()
         verdict.report = report
         verdict.unsafe = random.randint(0, 10)
@@ -124,31 +158,6 @@ def populate_verdicts():
         verdict.save()
 
 
-def populate_resources():
-    for report in ReportRoot.objects.all():
-        resource = Resource()
-        resource.cpu_time = random.randint(0, 60000)
-        resource.wall_time = random.randint(0, 60000)
-        resource.memory = random.randint(0, 15000000)
-        resource.save()
-        comp_res = ComponentResource()
-        comp_res.report = report
-        comp_res.component = None
-        comp_res.resource = resource
-        comp_res.save()
-        for component in Component.objects.all():
-            resource = Resource()
-            resource.cpu_time = random.randint(0, 6000)
-            resource.wall_time = random.randint(0, 6000)
-            resource.memory = random.randint(0, 1500000)
-            resource.save()
-            comp_res = ComponentResource()
-            comp_res.report = report
-            comp_res.component = component
-            comp_res.resource = resource
-            comp_res.save()
-
-
 def populate_unknowns():
     UnknownProblem.objects.all().delete()
 
@@ -157,8 +166,8 @@ def populate_unknowns():
         marked_problem.name = "Problem %s" % str(i + 1)
         marked_problem.save()
 
-    for report in ReportRoot.objects.all():
-        for component in Component.objects.all():
+    for report in ReportComponent.objects.all():
+        for component in Component.objects.filter(~Q(name='Psi')):
             if random.randint(0, 10) > 6:
                 total = ComponentUnknown()
                 total.component = component
@@ -195,8 +204,7 @@ def main_population(username):
     jobs.
     """
     populate_jobs(username)
-    populate_root_report(username)
+    populate_reports(username)
     populate_verdicts()
-    populate_resources()
     populate_unknowns()
     populate_tags()

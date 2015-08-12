@@ -4,6 +4,7 @@ from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from reports.models import *
+from reports.utils import save_attrs
 
 
 class UploadReport(object):
@@ -38,79 +39,82 @@ class UploadReport(object):
             self.data['description'] = data['desc']
 
         if data['type'] == 'start':
-            if 'attrs' in data:
-                self.data['attrs'] = data['attrs']
-            if 'comp' in data:
-                self.data['comp'] = data['comp']
-            elif data['id'] == '/':
-                return "Not enough properties"
-            if data['id'] != '/':
+            if data['id'] == '/':
+                try:
+                    self.data.update({
+                        'attrs': data['attrs'],
+                        'comp': data['comp'],
+                    })
+                except KeyError as e:
+                    return "Property '%s' is required." % e
+            else:
                 try:
                     self.data.update({
                         'parent id': data['parent id'],
                         'name': data['name']
                     })
-                except KeyError:
-                    return "Not enough properties"
+                except KeyError as e:
+                    return "Property '%s' is required." % e
+                if 'attrs' in data:
+                    self.data['attrs'] = data['attrs']
+                if 'comp' in data:
+                    self.data['comp'] = data['comp']
         elif data['type'] == 'finish':
             try:
-                self.data['resources'] = data['resources']
-            except KeyError:
-                return "Not enough properties"
-            if 'log' in data:
-                self.data['log'] = data['log']
-            if data['id'] != '/' and 'data' in data:
-                self.data['data'] = data['data']
+                self.data.update({
+                    'log': data['log'],
+                    'data': data['data'],
+                    'resources': data['resources'],
+                })
+            except KeyError as e:
+                return "Property '%s' is required." % e
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
-            except KeyError:
-                return "Not enough properties"
+            except KeyError as e:
+                return "Property '%s' is required." % e
         elif data['type'] == 'verification':
             try:
                 self.data.update({
                     'parent id': data['parent id'],
                     'attrs': data['attrs'],
                     'name': data['name'],
-                    'comp': data['comp'],
                     'resources': data['resources'],
+                    'log': data['log'],
+                    'data': data['data'],
                 })
-            except KeyError:
-                return "Not enough properties"
-            if 'log' in data:
-                self.data['log'] = data['log']
-            if 'data' in data:
-                self.data['data'] = data['data']
+            except KeyError as e:
+                return "Property '%s' is required." % e
+            if 'comp' in data:
+                self.data['comp'] = data['comp']
         elif data['type'] == 'safe':
             try:
                 self.data.update({
                     'parent id': data['parent id'],
                     'proof': data['proof'],
+                    'attrs': data['attrs'],
                 })
-            except KeyError:
-                return "Not enough properties"
-            if 'attrs' in data:
-                self.data['attrs'] = data['attrs']
+            except KeyError as e:
+                return "Property '%s' is required." % e
         elif data['type'] == 'unknown':
             try:
                 self.data.update({
                     'parent id': data['parent id'],
                     'problem desc': data['problem desc']
                 })
-            except KeyError:
-                return "Not enough properties"
+            except KeyError as e:
+                return "Property '%s' is required." % e
             if 'attrs' in data:
                 self.data['attrs'] = data['attrs']
         elif data['type'] == 'unsafe':
             try:
                 self.data.update({
                     'parent id': data['parent id'],
-                    'error trace': data['error trace']
+                    'error trace': data['error trace'],
+                    'attrs': data['attrs'],
                 })
-            except KeyError:
-                return "Not enough properties"
-            if 'attrs' in data:
-                self.data['attrs'] = data['attrs']
+            except KeyError as e:
+                return "Property '%s' is required." % e
         else:
             return "Report type is not supported"
 
@@ -139,26 +143,31 @@ class UploadReport(object):
                 try:
                     self.parent = ReportComponent.objects.get(
                         root=self.job.reportroot,
-                        identifier=self.job.identifier)
+                        identifier=self.job.identifier
+                    )
                 except ObjectDoesNotExist:
                     return 'Parent was not found'
-                return None
-            try:
-                self.parent = ReportComponent.objects.get(
-                    root=self.job.reportroot,
-                    identifier__endswith=('##' + self.data['parent id'])
-                )
-            except ObjectDoesNotExist:
-                return 'Parent was not found'
-            except MultipleObjectsReturned:
-                return 'Identifiers are not unique'
+            else:
+                try:
+                    self.parent = ReportComponent.objects.get(
+                        root=self.job.reportroot,
+                        identifier__endswith=('##' + self.data['parent id'])
+                    )
+                except ObjectDoesNotExist:
+                    return 'Parent was not found'
+                except MultipleObjectsReturned:
+                    return 'Identifiers are not unique'
         return None
 
     def __upload(self):
+        self.root.last_request_date = pytz.timezone('UTC').localize(
+            datetime.now())
+        self.root.save()
+
         actions = {
             'start': self.__create_report_component,
-            'finish': self.__update_report_component,
-            'attrs': self.__update_report_component,
+            'finish': self.__finish_report_component,
+            'attrs': self.__update_attrs,
             'verification': self.__create_report_component,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
@@ -185,7 +194,6 @@ class UploadReport(object):
         report.parent = self.parent
         report.root = self.root
 
-        # TODO: add required name for root report.
         component_name = 'Psi'
         if 'name' in self.data:
             component_name = self.data['name']
@@ -212,26 +220,21 @@ class UploadReport(object):
             resources.save()
             report.resource = resources
         if 'log' in self.data:
-            report.log = self.data['log']
+            report.log = self.data['log'].encode('utf8')
         if 'data' in self.data:
-            report.data = self.data['data']
+            report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
-            report.description = self.data['description']
+            report.description = self.data['description'].encode('utf8')
         report.start_date = pytz.timezone('UTC').localize(datetime.now())
+
         if self.data['type'] == 'verification':
             report.finish_date = report.start_date
         report.save()
 
-        for attr in self.__attributes():
-            report.attr.add(attr)
-            attr_cache = ReportAttr()
-            attr_cache.report = report
-            attr_cache.attr = attr
-            attr_cache.save()
-        report.save()
+        self.__add_attrs(report)
 
         if 'resources' in self.data:
-            self.__update_resources(report)
+            self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
             status = self.job.jobstatus
@@ -239,7 +242,19 @@ class UploadReport(object):
             status.save()
         return report
 
-    def __update_report_component(self, identifier):
+    def __update_attrs(self, identifier):
+        try:
+            report = ReportComponent.objects.get(
+                identifier__startswith=self.job.identifier,
+                identifier__endswith=identifier)
+        except ObjectDoesNotExist:
+            return None
+        report.save()
+
+        self.__add_attrs(report)
+        return report
+
+    def __finish_report_component(self, identifier):
         try:
             report = ReportComponent.objects.get(
                 identifier__startswith=self.job.identifier,
@@ -255,24 +270,18 @@ class UploadReport(object):
             resources.save()
             report.resource = resources
         if 'log' in self.data:
-            report.log = self.data['log']
+            report.log = self.data['log'].encode('utf8')
         if 'data' in self.data:
-            report.data = self.data['data']
+            report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
-            report.description = self.data['description']
+            report.description = self.data['description'].encode('utf8')
         report.finish_date = pytz.timezone('UTC').localize(datetime.now())
         report.save()
 
-        for attr in self.__attributes():
-            report.attr.add(attr)
-            attr_cache = ReportAttr()
-            attr_cache.report = report
-            attr_cache.attr = attr
-            attr_cache.save()
-        report.save()
+        self.__add_attrs(report)
 
         if 'resources' in self.data:
-            self.__update_resources(report, total=(self.data['id'] == '/'))
+            self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
             status = self.job.jobstatus
@@ -294,41 +303,24 @@ class UploadReport(object):
         report.parent = self.parent
         report.root = self.root
         if 'description' in self.data:
-            report.description = self.data['description']
+            report.description = self.data['description'].encode('utf8')
         report.problem_description = self.data['problem desc'].encode('utf8')
         report.save()
 
-        for attr in self.__attributes():
-            report.attr.add(attr)
-            attr_cache = ReportAttr()
-            attr_cache.report = report
-            attr_cache.attr = attr
-            attr_cache.save()
-        report.save()
-
-        try:
-            verdict = self.root.verdict
-            verdict.unknown += 1
-        except ObjectDoesNotExist:
-            verdict = Verdict()
-            verdict.report = self.root
-            verdict.unknown = 1
-        verdict.save()
+        self.__add_attrs(report)
 
         component = self.parent.component
-        try:
-            comp_unknown = self.root.componentunknown_set.get(
-                component=component)
-            comp_unknown.number += 1
-        except ObjectDoesNotExist:
-            comp_unknown = ComponentUnknown()
-            comp_unknown.report = self.root
-            comp_unknown.component = component
-            comp_unknown.number = 1
-        comp_unknown.save()
-
         parent = self.parent
         while parent is not None:
+            verdict, created = Verdict.objects.get_or_create(report=parent)
+            verdict.unknown += 1
+            verdict.save()
+
+            comp_unknown, created = ComponentUnknown.objects.get_or_create(
+                report=parent, component=component)
+            comp_unknown.number += 1
+            comp_unknown.save()
+
             ReportComponentLeaf.objects.get_or_create(
                 report=parent, unknown=report)
             try:
@@ -347,29 +339,18 @@ class UploadReport(object):
         report.parent = self.parent
         report.root = self.root
         if 'description' in self.data:
-            report.description = self.data['description']
+            report.description = self.data['description'].encode('utf8')
         report.proof = self.data['proof'].encode('utf8')
         report.save()
 
-        for attr in self.__attributes():
-            report.attr.add(attr)
-            attr_cache = ReportAttr()
-            attr_cache.report = report
-            attr_cache.attr = attr
-            attr_cache.save()
-        report.save()
-
-        try:
-            verdict = self.root.verdict
-            verdict.safe += 1
-        except ObjectDoesNotExist:
-            verdict = Verdict()
-            verdict.report = self.root
-            verdict.safe = 1
-        verdict.save()
+        self.__add_attrs(report)
 
         parent = self.parent
         while parent is not None:
+            verdict, created = Verdict.objects.get_or_create(report=parent)
+            verdict.safe += 1
+            verdict.save()
+
             ReportComponentLeaf.objects.get_or_create(
                 report=parent, safe=report)
             try:
@@ -388,32 +369,21 @@ class UploadReport(object):
         report.parent = self.parent
         report.root = self.root
         if 'description' in self.data:
-            report.description = self.data['description']
+            report.description = self.data['description'].encode('utf8')
         report.error_trace = self.data['error trace'].encode('utf8')
 
         # TODO: get processed trace
         report.error_trace_processed = self.data['error trace'].encode('utf8')
         report.save()
 
-        for attr in self.__attributes():
-            report.attr.add(attr)
-            attr_cache = ReportAttr()
-            attr_cache.report = report
-            attr_cache.attr = attr
-            attr_cache.save()
-        report.save()
-
-        try:
-            verdict = self.root.verdict
-            verdict.unsafe += 1
-        except ObjectDoesNotExist:
-            verdict = Verdict()
-            verdict.report = self.root
-            verdict.unsafe = 1
-        verdict.save()
+        self.__add_attrs(report)
 
         parent = self.parent
         while parent is not None:
+            verdict, created = Verdict.objects.get_or_create(report=parent)
+            verdict.unsafe += 1
+            verdict.save()
+
             ReportComponentLeaf.objects.get_or_create(
                 report=parent, unsafe=report)
             try:
@@ -423,64 +393,66 @@ class UploadReport(object):
 
         return report
 
-    def __attributes(self):
-        attributes = []
+    def __add_attrs(self, report):
         if 'attrs' not in self.data or not isinstance(self.data['attrs'], list):
-            return attributes
-        for attr in self.data['attrs']:
-            if not isinstance(attr, dict):
-                continue
-            curr_name = next(iter(attr))
-            new_attr = Attr()
-            new_attr.name, tmp = AttrName.objects.get_or_create(name=curr_name)
-            new_attr.value = json.dumps(attr[curr_name])
-            new_attr.save()
-            attributes.append(new_attr)
-        return attributes
+            return
+        for attr in save_attrs(self.data['attrs']):
+            if not report.attr.filter(pk=attr.pk).exists():
+                report.attr.add(attr)
+            ReportAttr.objects.get_or_create(report=report, attr=attr)
+        report.save()
 
-    def __update_resources(self, report, total=False):
+    def __update_parent_resources(self, report):
 
-        if total:
-            compres_set = self.root.componentresource_set.filter(
-                ~Q(component=None))
+        def update_total_resources(rep):
+            res_set = rep.componentresource_set.filter(~Q(component=None))
+            if len(res_set) > 0:
+                new_res = Resource()
+                new_res.wall_time = 0
+                new_res.cpu_time = 0
+                new_res.memory = 0
+
+                for comp_res in res_set:
+                    new_res.wall_time += comp_res.resource.wall_time
+                    new_res.cpu_time += comp_res.resource.cpu_time
+                    new_res.memory = max(comp_res.resource.memory,
+                                         new_resource.memory)
+                new_res.save()
+                try:
+                    total_compres = rep.componentresource_set.get(
+                        component=None)
+                    total_compres.resource.delete()
+                except ObjectDoesNotExist:
+                    total_compres = ComponentResource()
+                    total_compres.report = rep
+                total_compres.resource = new_res
+                total_compres.save()
+
+        update_total_resources(report)
+        component = report.component
+        parent = self.parent
+        while parent is not None:
             new_resource = Resource()
-            new_resource.wall_time = 0
-            new_resource.cpu_time = 0
-            new_resource.memory = 0
-            for compres in compres_set:
-                # TODO: do we need to add resources or find maximim?
+            new_resource.wall_time = report.resource.wall_time
+            new_resource.cpu_time = report.resource.cpu_time
+            new_resource.memory = report.resource.memory
+            try:
+                compres = parent.componentresource_set.get(
+                    component=component)
                 new_resource.wall_time += compres.resource.wall_time
                 new_resource.cpu_time += compres.resource.cpu_time
-                new_resource.memory = max(compres.resource.wall_time,
+                new_resource.memory = max(compres.resource.memory,
                                           new_resource.memory)
-            new_resource.save()
-            try:
-                total_compres = self.root.componentresource_set.get(
-                    component=None)
-                total_compres.resource.delete()
+                compres.resource.delete()
             except ObjectDoesNotExist:
-                total_compres = ComponentResource()
-                total_compres.report = self.root
-            total_compres.resource = new_resource
-            total_compres.save()
-            return
-
-        component = report.component
-        # TODO: when do we need to add resources and when to replace?
-        new_resource = Resource()
-        new_resource.wall_time = report.resource.wall_time
-        new_resource.cpu_time = report.resource.cpu_time
-        new_resource.memory = report.resource.memory
-        try:
-            compres = self.root.componentresource_set.get(component=component)
-            new_resource.wall_time += compres.resource.wall_time
-            new_resource.cpu_time += compres.resource.cpu_time
-            new_resource.memory += compres.resource.memory
-            compres.resource.delete()
-        except ObjectDoesNotExist:
-            compres = ComponentResource()
-            compres.component = component
-            compres.report = self.root
-        new_resource.save()
-        compres.resource = new_resource
-        compres.save()
+                compres = ComponentResource()
+                compres.component = component
+                compres.report = parent
+            new_resource.save()
+            compres.resource = new_resource
+            compres.save()
+            update_total_resources(parent)
+            try:
+                parent = ReportComponent.objects.get(pk=parent.parent_id)
+            except ObjectDoesNotExist:
+                parent = None

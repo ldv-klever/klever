@@ -2,10 +2,14 @@
 
 import logging
 import os
+import psi.session
 import psi.utils
 import random
+import psi.job
 
-# "psi-work-dir" is added to .gitignore, so all created report files will be ignored.
+
+# "psi-work-dir" is added to .gitignore,
+# so all created report files will be ignored.
 os.makedirs('psi-work-dir', exist_ok=True)
 os.chdir('psi-work-dir')
 
@@ -14,239 +18,366 @@ logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
 logger.addHandler(handler)
 
+comp = [
+    {'node name': 'hellwig.intra.ispras.ru'},
+    {'CPU model': 'Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz'},
+    {'CPUs num': '8'}, {'mem size': '16808734720'},
+    {'Linux kernel version': '3.16.7-21-default'},
+    {'arch': 'x86_64'}
+]
+log = "Log\nNext line\nNew line\nLast line."
+data = "DATA:\nNext line\nNew line\nLast line."
+description = "Description:\nNext line\nNew line\nLast line."
+
 # Specify your user name, password and Omega name or create appropriate ones.
-session = psi.utils.Session(logger, 'vladimir', 'bestvampire', 'localhost:8000')
+session = psi.session.Session(
+    logger, 'vladimir', 'bestvampire', 'localhost:8000'
+)
 
-comp = [{'node name': 'hellwig.intra.ispras.ru'}, {'CPU model': 'Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz'},
-        {'CPUs num': '8'}, {'mem size': '16808734720'}, {'Linux kernel version': '3.16.7-21-default'},
-        {'arch': 'x86_64'}]
 
-# Specify your job id.
-session.decide_job({'format': 1, 'id': 'd22c8f22853308a359ddd59492bce6d9', 'archive': 'job.tar.gz'},
-                   psi.utils.dump_report(logger, 'start',
-                                         {'type': 'start', 'id': '/', 'attrs': [{'psi version': '2634add-dirty'}],
-                                          'comp': comp}))
+def start_reports(parent, names):
+    for name in names:
+        session.upload_report(
+            psi.utils.dump_report(
+                logger, name, "start", {
+                    'id': name,
+                    'name': name,
+                    'parent id': parent
+                }))
+
+
+def finish_reports(ids):
+    for rep_id in ids:
+        session.upload_report(
+            psi.utils.dump_report(logger, ids[rep_id], 'finish', {
+                'id': rep_id, 'resources': resources(), 'log': log, 'data': data
+            })
+        )
+
+
+def update_attrs(report_attrs, ids):
+    for report_id in ids:
+        session.upload_report(
+            psi.utils.dump_report(
+                logger, report_id, 'attrs',
+                {'id': report_id, 'attrs': report_attrs}))
+
+
+session.decide_job(
+    psi.job.Job(logger, 'db0bf1f6d7f1af7761816fc13c9e08d5'),
+    psi.utils.dump_report(logger, 'Psi', 'start', {
+        'id': '/', 'attrs': [{'psi version': '2634add-dirty'}], 'comp': comp
+    })
+)
 
 # Start components.
-session.upload_report(psi.utils.dump_report(logger, 'bce start',
-                                            {'type': 'start', 'id': 'bce', 'name': 'bce', 'parent id': '/'
-                                             }))
-session.upload_report(psi.utils.dump_report(logger, 'vog start',
-                                            {'type': 'start', 'id': 'vog', 'name': 'vog', 'parent id': '/'
-                                            }))
-session.upload_report(psi.utils.dump_report(logger, 'avtg start',
-                                            {'type': 'start', 'id': 'avtg', 'name': 'avtg', 'parent id': '/'
-                                             }))
-session.upload_report(psi.utils.dump_report(logger, 'vtg start',
-                                            {'type': 'start', 'id': 'vtg', 'name': 'vtg', 'parent id': '/'
-                                            }))
-session.upload_report(psi.utils.dump_report(logger, 'vtsc start',
-                                            {'type': 'start', 'id': 'vtsc', 'name': 'vtsc', 'parent id': '/'
-                                            }))
+start_reports('/', ['bce', 'vog', 'avtg', 'vtg', 'vtsc'])
 
 # Upload components attributes.
-attrs = []
-attrs.append({'Linux kernel': [{'version': '3.5.0'}, {'arch': 'x86_64'}, {'conf shortcut': 'allmodconfig'}]})
-session.upload_report(psi.utils.dump_report(logger, 'bce attrs', {'type': 'attrs', 'id': 'bce', 'attrs': attrs}))
-attrs.append({'Linux kernel verification objs gen strategy': [{'name': 'separate module'},
-                                                              {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}]})
-session.upload_report(psi.utils.dump_report(logger, 'vog attrs', {'type': 'attrs', 'id': 'vog', 'attrs': attrs}))
-session.upload_report(psi.utils.dump_report(logger, 'avtg attrs', {'type': 'attrs', 'id': 'avtg', 'attrs': attrs}))
-session.upload_report(psi.utils.dump_report(logger, 'vtg attrs', {'type': 'attrs', 'id': 'vtg', 'attrs': attrs}))
-session.upload_report(psi.utils.dump_report(logger, 'vtsc attrs', {'type': 'attrs', 'id': 'vtsc', 'attrs': attrs}))
+attrs = [{
+    'Linux kernel': [
+        {'version': '3.5.0'},
+        {'arch': 'x86_64'},
+        {'conf shortcut': 'allmodconfig'}
+    ]
+}]
+
+update_attrs(attrs, ['bce'])
+
+attrs.append({
+    'Linux kernel verification objs gen strategy': [
+        {'name': 'separate module'},
+        {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
+    ]
+})
+update_attrs(attrs, ['vog', 'avtg', 'vtg', 'vtsc'])
+
 
 # Start AVTG plugins.
-attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'mutex'}]
-session.upload_report(psi.utils.dump_report(logger, 'deg11 start',
-                                            {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/mutex/deg',
-                                             'attrs': attrs, 'name': 'deg',
-                                             'parent id': 'avtg'}))
-session.upload_report(psi.utils.dump_report(logger, 'ri11 start',
-                                            {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/mutex/ri',
-                                             'attrs': attrs, 'name': 'ri',
-                                             'parent id': 'avtg'}))
-attrs = [{'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'mutex'}]
-session.upload_report(psi.utils.dump_report(logger, 'deg21 start',
-                                            {'type': 'start', 'id': 'drivers/usb/usb-common.ko/mutex/deg',
-                                             'attrs': attrs, 'name': 'deg',
-                                             'parent id': 'avtg'}))
-session.upload_report(psi.utils.dump_report(logger, 'ri21 start',
-                                            {'type': 'start', 'id': 'drivers/usb/usb-common.ko/mutex/ri',
-                                             'attrs': attrs, 'name': 'ri',
-                                             'parent id': 'avtg'}))
-attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'spin lock'}]
-session.upload_report(psi.utils.dump_report(logger, 'deg12 start',
-                                            {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/spin lock/deg',
-                                             'attrs': attrs, 'name': 'deg',
-                                             'parent id': 'avtg'}))
-session.upload_report(psi.utils.dump_report(logger, 'ri12 start',
-                                            {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/spin lock/ri',
-                                             'attrs': attrs, 'name': 'ri',
-                                             'parent id': 'avtg'}))
-attrs = [{'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'spin lock'}]
-session.upload_report(psi.utils.dump_report(logger, 'deg22 start',
-                                            {'type': 'start', 'id': 'drivers/usb/usb-commmon.ko/spin lock/deg',
-                                             'attrs': attrs, 'name': 'deg',
-                                             'parent id': 'avtg'}))
+attrs = [
+    {'verification obj': 'drivers/usb/core/usbcore.ko'},
+    {'rule spec': 'mutex'}
+]
+session.upload_report(psi.utils.dump_report(logger, 'deg11', 'start', {
+    'id': 'drivers/usb/core/usbcore.ko/mutex/deg', 'attrs': attrs,
+    'name': 'deg', 'parent id': 'avtg'
+}))
+session.upload_report(psi.utils.dump_report(logger, 'ri11', 'start', {
+    'id': 'drivers/usb/core/usbcore.ko/mutex/ri', 'attrs': attrs,
+    'name': 'ri', 'parent id': 'avtg'
+}))
+
+
+attrs = [
+    {'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'mutex'}
+]
+session.upload_report(psi.utils.dump_report(logger, 'deg21', 'start', {
+    'id': 'drivers/usb/usb-common.ko/mutex/deg', 'attrs': attrs,
+    'name': 'deg', 'parent id': 'avtg'
+}))
+session.upload_report(psi.utils.dump_report(logger, 'ri21', 'start', {
+    'id': 'drivers/usb/usb-common.ko/mutex/ri', 'attrs': attrs,
+    'name': 'ri', 'parent id': 'avtg'
+}))
+
+attrs = [
+    {'verification obj': 'drivers/usb/core/usbcore.ko'},
+    {'rule spec': 'spin lock'}
+]
+session.upload_report(psi.utils.dump_report(logger, 'deg12', 'start', {
+    'id': 'drivers/usb/core/usbcore.ko/spin lock/deg', 'attrs': attrs,
+    'name': 'deg', 'parent id': 'avtg'
+}))
+session.upload_report(psi.utils.dump_report(logger, 'ri12', 'start', {
+    'id': 'drivers/usb/core/usbcore.ko/spin lock/ri', 'attrs': attrs,
+    'name': 'ri', 'parent id': 'avtg'
+}))
+
+attrs = [
+    {'verification obj': 'drivers/usb/usb-commmon.ko'},
+    {'rule spec': 'spin lock'}
+]
+session.upload_report(psi.utils.dump_report(logger, 'deg22', 'start', {
+    'id': 'drivers/usb/usb-commmon.ko/spin lock/deg', 'attrs': attrs,
+    'name': 'deg', 'parent id': 'avtg'
+}))
 # Surprise! RI22 isn't started since DEG22 is going to fail. Keep in touch!
 pass
 
 
 def resources():
-    return {'wall time': random.randint(0, 10000), 'CPU time': random.randint(0, 10000),
-            'max mem size': random.randint(0, 1000000000)}
+    return {
+        'wall time': random.randint(0, 10000),
+        'CPU time': random.randint(0, 10000),
+        'max mem size': random.randint(0, 1000000000)
+    }
 
 
 # Finish AVTG plugins.
-session.upload_report(psi.utils.dump_report(logger, 'deg11 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/mutex/deg',
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'ri11 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/mutex/ri',
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'deg21 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/usb-common.ko/mutex/deg',
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'ri21 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/usb-common.ko/mutex/ri',
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'deg12 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/spin lock/deg',
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'ri12 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/core/usbcore.ko/spin lock/ri',
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'deg22 finish',
-                                            {'type': 'finish', 'id': 'drivers/usb/usb-commmon.ko/spin lock/deg',
-                                             'resources': resources()}))
+session.upload_report(psi.utils.dump_report(logger, 'deg11', 'finish', {
+    'id': 'drivers/usb/core/usbcore.ko/mutex/deg', 'resources': resources(),
+    'log': log, 'data': data
+}))
+session.upload_report(psi.utils.dump_report(logger, 'ri11', 'finish', {
+    'id': 'drivers/usb/core/usbcore.ko/mutex/ri', 'resources': resources(),
+    'log': log, 'data': data
+}))
+session.upload_report(psi.utils.dump_report(logger, 'deg21', 'finish', {
+    'id': 'drivers/usb/usb-common.ko/mutex/deg', 'resources': resources(),
+    'log': log, 'data': data
+}))
+session.upload_report(psi.utils.dump_report(logger, 'ri21', 'finish', {
+    'id': 'drivers/usb/usb-common.ko/mutex/ri', 'resources': resources(),
+    'log': log, 'data': data
+}))
+session.upload_report(psi.utils.dump_report(logger, 'deg12', 'finish', {
+    'id': 'drivers/usb/core/usbcore.ko/spin lock/deg', 'resources': resources(),
+    'log': log, 'data': data
+}))
+session.upload_report(psi.utils.dump_report(logger, 'ri12', 'finish', {
+    'id': 'drivers/usb/core/usbcore.ko/spin lock/ri', 'resources': resources(),
+    'log': log, 'data': data
+}))
+session.upload_report(psi.utils.dump_report(logger, 'deg22', 'finish', {
+    'id': 'drivers/usb/usb-commmon.ko/spin lock/deg', 'resources': resources(),
+    'log': log, 'data': data
+}))
 
 # As promised DEG22 fails.
-session.upload_report(psi.utils.dump_report(logger, 'deg22 problem',
-                                            {'type': 'unknown', 'id': 'unknown',
-                                             'parent id': 'drivers/usb/usb-commmon.ko/spin lock/deg',
-                                             'problem desc': 'Fatal error!'}))
+session.upload_report(psi.utils.dump_report(logger, 'deg22', 'unknown', {
+    'id': 'unknown', 'parent id': 'drivers/usb/usb-commmon.ko/spin lock/deg',
+    'problem desc': 'Fatal error!'
+}))
 
 # Start "wrappers".
-attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'mutex'}]
-session.upload_report(psi.utils.dump_report(logger, 'wrapper11 start',
-                                            {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/mutex',
-                                             'attrs': attrs, 'name': '"wrapper"',
-                                             'parent id': 'vtg'}))
-attrs = [{'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'mutex'}]
-session.upload_report(psi.utils.dump_report(logger, 'wrapper21 start',
-                                            {'type': 'start', 'id': 'drivers/usb/usb-commmon.ko/mutex',
-                                             'attrs': attrs, 'name': '"wrapper"',
-                                             'parent id': 'vtg'}))
-attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'spin lock'}]
-session.upload_report(psi.utils.dump_report(logger, 'wrapper12 start',
-                                            {'type': 'start', 'id': 'drivers/usb/core/usbcore.ko/spin lock',
-                                             'attrs': attrs, 'name': '"wrapper"',
-                                             'parent id': 'vtg'}))
+attrs = [
+    {'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'mutex'}
+]
+session.upload_report(psi.utils.dump_report(logger, 'wrapper11', 'start', {
+    'id': 'drivers/usb/core/usbcore.ko/mutex', 'attrs': attrs,
+    'name': '"wrapper"', 'parent id': 'vtg'
+}))
+
+attrs = [
+    {'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'mutex'}
+]
+session.upload_report(psi.utils.dump_report(logger, 'wrapper21', 'start', {
+    'id': 'drivers/usb/usb-commmon.ko/mutex', 'attrs': attrs,
+    'name': '"wrapper"', 'parent id': 'vtg'}))
+
+attrs = [
+    {'verification obj': 'drivers/usb/core/usbcore.ko'},
+    {'rule spec': 'spin lock'}
+]
+session.upload_report(psi.utils.dump_report(logger, 'wrapper12', 'start', {
+    'id': 'drivers/usb/core/usbcore.ko/spin lock', 'attrs': attrs,
+    'name': '"wrapper"', 'parent id': 'vtg'
+}))
 # As expected "WRAPPER22" isn't started at all since DEG22 has failed.
 pass
 
 # Verification tasks are solved in VCloud.
-verification_comp = [{'node name': 'unknown'}, {'CPU model': 'Intel(R) Core(TM) i5-2500 CPU @ 3.30GHz'},
-                     {'CPUs num': '4'}, {'mem size': '8404367360'}, {'Linux kernel version': '3.8.0-44-generic'},
-                     {'arch': 'x86_64'}]
+verification_comp = [
+    {'node name': 'unknown'},
+    {'CPU model': 'Intel(R) Core(TM) i5-2500 CPU @ 3.30GHz'}, {'CPUs num': '4'},
+    {'mem size': '8404367360'}, {'Linux kernel version': '3.8.0-44-generic'},
+    {'arch': 'x86_64'}
+]
 
-# "WRAPPER11" produces two verification tasks per each bug kind: SAFE and UNSAFE.
-attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'mutex'}]
-session.upload_report(psi.utils.dump_report(logger, 'verification111',
-                                            {'type': 'verification',
-                                             'id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:double acquisition',
-                                             'attrs': attrs, 'name': 'BLAST 2.7.2',
-                                             'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'verification1111',
-                                            {'type': 'safe',
-                                             'id': 'safe',
-                                             'attrs': attrs + [{'bug kind': 'linux:one thread:double acquisition'}],
-                                             'parent id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:double acquisition',
-                                             'proof': 'It does not matter...'}))
-session.upload_report(psi.utils.dump_report(logger, 'verification112',
-                                            {'type': 'verification',
-                                             'id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:unreleased at exit',
-                                             'attrs': attrs, 'name': 'BLAST 2.7.2',
-                                             'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'verification1121',
-                                            {'type': 'unsafe',
-                                             'id': 'unsafe',
-                                             'attrs': attrs + [{'bug kind': 'linux:one thread:unreleased at exit'}],
-                                             'parent id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:unreleased at exit',
-                                             'error trace': 'It does not matter...'}))
+# "WRAPPER11" produces two verification tasks per each bug kind:
+# SAFE and UNSAFE.
+attrs = [
+    {'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'mutex'}
+]
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification111', 'verification', {
+        'id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:double '
+              'acquisition', 'attrs': attrs, 'name': 'BLAST 2.7.2',
+        'parent id': 'vtsc', 'comp': verification_comp,
+        'resources': resources(), 'log': log, 'data': data
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification1111', 'safe', {
+        'id': 'safe',
+        'attrs': attrs + [{'bug kind': 'linux:one thread:double acquisition'}],
+        'parent id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:'
+                     'double acquisition',
+        'proof': 'It does not matter...'
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification112', 'verification', {
+        'id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:'
+              'unreleased at exit', 'attrs': attrs, 'name': 'BLAST 2.7.2',
+        'parent id': 'vtsc', 'comp': verification_comp,
+        'resources': resources(), 'log': log, 'data': data
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification1121', 'unsafe', {
+        'id': 'unsafe',
+        'attrs': attrs + [{'bug kind': 'linux:one thread:unreleased at exit'}],
+        'parent id': 'drivers/usb/core/usbcore.ko/mutex/linux:one thread:'
+                     'unreleased at exit',
+        'error trace': 'It does not matter...'
+    })
+)
 
-# "WRAPPER21" produces two verification tasks per each bug kind: SAFE and UKNONWN. Then for UNKNOWN it produces one more
+# "WRAPPER21" produces two verification tasks per each bug kind:
+# SAFE and UKNONWN. Then for UNKNOWN it produces one more
 # verification task: UNSAFE + UNSAFE + UNKNOWN.
-attrs = [{'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'mutex'}]
-session.upload_report(psi.utils.dump_report(logger, 'verification211',
-                                            {'type': 'verification',
-                                             'id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:double acquisition',
-                                             'attrs': attrs, 'name': 'CPAchecker r12345',
-                                             'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'verification2111',
-                                            {'type': 'safe',
-                                             'id': 'safe',
-                                             'attrs': attrs + [{'bug kind': 'linux:one thread:double acquisition'}],
-                                             'parent id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:double acquisition',
-                                             'proof': 'It does not matter...'}))
-session.upload_report(psi.utils.dump_report(logger, 'verification212',
-                                            {'type': 'verification',
-                                             'id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:unreleased at exit',
-                                             'attrs': attrs, 'name': 'CPAchecker r12345',
-                                             'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'verification2121',
-                                            {'type': 'unsafe',
-                                             'id': 'unsafe1',
-                                             'attrs': attrs + [{'bug kind': 'linux:one thread:unreleased at exit'}],
-                                             'parent id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:unreleased at exit',
-                                             'error trace': 'It does not matter...'}))
-session.upload_report(psi.utils.dump_report(logger, 'verification2122',
-                                            {'type': 'unsafe',
-                                             'id': 'unsafe2',
-                                             'attrs': attrs + [{'bug kind': 'linux:one thread:unreleased at exit'}],
-                                             'parent id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:unreleased at exit',
-                                             'error trace': 'It does not matter...'}))
-session.upload_report(psi.utils.dump_report(logger, 'verification2123',
-                                            {'type': 'unknown',
-                                             'id': 'unknown',
-                                             'attrs': attrs + [{'bug kind': 'linux:one thread:unreleased at exit'}],
-                                             'parent id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:unreleased at exit',
-                                             'problem desc': 'Fatal error!'}))
+attrs = [
+    {'verification obj': 'drivers/usb/usb-commmon.ko'}, {'rule spec': 'mutex'}
+]
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification211', 'verification', {
+        'id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:'
+              'double acquisition',
+        'attrs': attrs, 'name': 'CPAchecker r12345', 'parent id': 'vtsc',
+        'comp': verification_comp, 'resources': resources(), 'log': log,
+        'data': data
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification2111', 'safe', {
+        'id': 'safe',
+        'attrs': attrs + [{'bug kind': 'linux:one thread:double acquisition'}],
+        'parent id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:'
+                     'double acquisition',
+        'proof': 'It does not matter...'
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification212', 'verification', {
+        'id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:'
+              'unreleased at exit',
+        'attrs': attrs, 'name': 'CPAchecker r12345', 'parent id': 'vtsc',
+        'comp': verification_comp, 'resources': resources(), 'log': log,
+        'data': data
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification2121', 'unsafe', {
+        'id': 'unsafe1',
+        'attrs': attrs + [{'bug kind': 'linux:one thread:unreleased at exit'}],
+        'parent id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:'
+                     'unreleased at exit',
+        'error trace': 'It does not matter...'
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification2122', 'unsafe', {
+        'id': 'unsafe2',
+        'attrs': attrs + [{'bug kind': 'linux:one thread:unreleased at exit'}],
+        'parent id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:'
+                     'unreleased at exit',
+        'error trace': 'It does not matter...'
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification2123', 'unknown', {
+        'id': 'unknown',
+        'attrs': attrs + [{'bug kind': 'linux:one thread:unreleased at exit'}],
+        'parent id': 'drivers/usb/usb-commmon.ko/mutex/linux:one thread:'
+                     'unreleased at exit',
+        'problem desc': 'Fatal error!'
+    })
+)
 
-# "WRAPPER12" produces two verification tasks per each entry point: SAFE and UNKNOWN.
-attrs = [{'verification obj': 'drivers/usb/core/usbcore.ko'}, {'rule spec': 'spin lock'}]
-session.upload_report(psi.utils.dump_report(logger, 'verification121',
-                                            {'type': 'verification',
-                                             'id': 'drivers/usb/core/usbcore.ko/spin lock/linux:one thread:double acquisition/ldv_entry_point1',
-                                             'attrs': attrs + [{'entry point': 'ldv_entry_point1'}],
-                                             'name': 'BLAST 2.7.2',
-                                             'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'verification1211',
-                                            {'type': 'safe',
-                                             'id': 'safe',
-                                             'attrs': attrs + [{'bug kind': 'linux:one thread:double acquisition'}],
-                                             'parent id': 'drivers/usb/core/usbcore.ko/spin lock/linux:one thread:double acquisition/ldv_entry_point1',
-                                             'proof': 'It does not matter...'}))
-session.upload_report(psi.utils.dump_report(logger, 'verification122',
-                                            {'type': 'verification',
-                                             'id': 'drivers/usb/core/usbcore.ko/spin lock/linux:one thread:double acquisition/ldv_entry_point2',
-                                             'attrs': attrs + [{'entry point': 'ldv_entry_point2'}],
-                                             'name': 'BLAST 2.7.2',
-                                             'parent id': 'vtsc', 'comp': verification_comp,
-                                             'resources': resources()}))
-session.upload_report(psi.utils.dump_report(logger, 'verification1221',
-                                            {'type': 'unknown',
-                                             'id': 'unknown',
-                                             'attrs': attrs + [{'bug kind': 'linux:one thread:double acquisition'}],
-                                             'parent id': 'drivers/usb/core/usbcore.ko/spin lock/linux:one thread:double acquisition/ldv_entry_point2',
-                                             'problem desc': 'It does not matter...'}))
+# "WRAPPER12" produces two verification tasks per each entry point:
+# SAFE and UNKNOWN.
+attrs = [
+    {'verification obj': 'drivers/usb/core/usbcore.ko'},
+    {'rule spec': 'spin lock'}
+]
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification121', 'verification', {
+        'id': 'drivers/usb/core/usbcore.ko/spin lock/linux:one thread:'
+              'double acquisition/ldv_entry_point1',
+        'attrs': attrs + [{'entry point': 'ldv_entry_point1'}],
+        'name': 'BLAST 2.7.2', 'parent id': 'vtsc', 'comp': verification_comp,
+        'resources': resources(), 'log': log, 'data': data
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification1211', 'safe', {
+        'id': 'safe',
+        'attrs': attrs + [{'bug kind': 'linux:one thread:double acquisition'}],
+        'parent id': 'drivers/usb/core/usbcore.ko/spin lock/linux:one thread:'
+                     'double acquisition/ldv_entry_point1',
+        'proof': 'It does not matter...'
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification122', 'verification', {
+        'id': 'drivers/usb/core/usbcore.ko/spin lock/linux:one thread:'
+              'double acquisition/ldv_entry_point2',
+        'attrs': attrs + [{'entry point': 'ldv_entry_point2'}],
+        'name': 'BLAST 2.7.2', 'parent id': 'vtsc', 'comp': verification_comp,
+        'resources': resources(), 'log': log, 'data': data
+    })
+)
+session.upload_report(
+    psi.utils.dump_report(logger, 'verification1221', 'unknown', {
+        'id': 'unknown',
+        'attrs': attrs + [{'bug kind': 'linux:one thread:double acquisition'}],
+        'parent id': 'drivers/usb/core/usbcore.ko/spin lock/linux:'
+                     'one thread:double acquisition/ldv_entry_point2',
+        'problem desc': 'It does not matter...'
+    })
+)
+
+finish_reports({
+    'bce': 'bce',
+    'vog': 'vog',
+    'avtg': 'avtg',
+    'vtg': 'vtg',
+    'vtsc': 'vtsc',
+})
 
 # Finish Psi successfully.
-session.upload_report(psi.utils.dump_report(logger, 'finish',
-                                            {'type': 'finish', 'id': '/',
-                                             'resources': resources()}))
+session.upload_report(psi.utils.dump_report(logger, 'Psi', 'finish', {
+    'id': '/', 'resources': resources(), 'log': log, 'data': data,
+    'desc': description
+}))

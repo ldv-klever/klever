@@ -1,0 +1,155 @@
+{% extends 'reports/base.html' %}
+
+{% load i18n %}
+
+{% load tz %}
+
+{% block body_block %}{% timezone user.extended.timezone %}
+
+<div class="row">
+    <div class="col-sm-5">
+        <div class="omega-tooltip">
+            <h2><ins>{{ report.component.name }}</ins></h2>
+            <span class="tooltip-content">
+                <strong>{{ report.component.name }}</strong><br>
+                <span class="purple-subtitle">{% trans 'Last request date' %}: </span> {{ report.root.last_request_date|date:"d.m.y H:i:s" }}
+                <br>
+                {% if duration != None %}
+                    {% if duration %}
+                        <span class="purple-subtitle">{% trans 'Start date' %}: </span> {{ report.start_date|date:"d.m.y H:i:s" }}
+                        <br>
+                        <span class="purple-subtitle">{% trans 'Finish date' %}: </span> {{ report.finish_date|date:"d.m.y H:i:s" }}
+                        <br>
+                        <span class="purple-subtitle">{% trans 'Duration' %}: </span> {{ duration }}
+                        <br>
+                    {% else %}
+                        <span class="purple-subtitle">{% trans 'Creation date' %}: </span> {{ report.start_date|date:"d.m.y H:i:s" }}<br>
+                    {% endif %}
+                {% else %}
+                    <span class="purple-subtitle">{% trans 'Start date' %}: </span> {{ report.start_date|date:"d.m.y H:i:s" }}
+                    <br>
+                {% endif %}
+                {% if resources %}
+                    <span class="purple-subtitle">{% trans 'Wall time' %}: </span> {{ resources.wall_time }}<br>
+                    <span class="purple-subtitle">{% trans 'CPU time' %}: </span> {{ resources.cpu_time }}<br>
+                    <span class="purple-subtitle">{% trans 'Max memory size' %}: </span> {{ resources.memory }}<br>
+                {% endif %}
+            </span>
+        </div>
+        {% if report.root.user %}
+            <span class="purple-title">{% trans 'Report author' %}: </span>
+            <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
+            <br>
+        {% endif %}
+
+        <span class="purple-title">{% trans 'Verification Job' %}: </span>
+        <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+        <br>
+
+        <span class="purple-title">{% trans 'Status' %}:</span>
+        {% if unknown %}
+            <a href="{{ unknown }}">{% trans 'Failed' %}</a>
+        {% elif status == 1 %}
+            <span style="color: #d56f1c">{% trans 'In progress' %}</span>
+        {% elif status == 2 %}
+            <span style="color: #00A000">{% trans 'Finished' %}</span>
+        {% endif %}
+
+        <br>
+
+        <table><tr>
+            <td><span class="purple-title">{% trans 'Computer' %}:</span></td>
+            <td style="padding-left: 10px; padding-top: 5px;">
+                <div class="omega-tooltip">
+                    <p>{{ computer.name }}</p>
+                    <span class="tooltip-content">
+                        <strong>{{ computer.name }}</strong><br>
+                        {% for c_data in computer.data %}
+                            <span class="purple-subtitle">{{ c_data.0 }}: </span>{{ c_data.1 }}<br><br>
+                        {% endfor %}
+                    </span>
+                </div>
+            </td>
+        </tr></table>
+        <br>
+        <div style="overflow-x: auto">
+        <table class="table table-bordered">
+            <thead>
+                {% for column_row in SelfAttrsData.header %}
+                    <tr class="info">
+                    {% for coldata in column_row %}
+                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
+                    {% endfor %}
+                    </tr>
+                {% endfor %}
+            </thead>
+            <tbody>
+            <tr>
+                {% for v in SelfAttrsData.values %}
+                    <td><span>{{ v }}</span></td>
+                {%  endfor %}
+            </tr>
+            </tbody>
+        </table>
+        </div>
+        {% if reportdata %}
+            {% include 'jobs/jobData.html' %}
+        {% endif %}
+    </div>
+    <div class="col-sm-7">
+        <table>
+            <tr>
+                {% for parent in parents %}
+                <td>
+                    <div class="omega-tooltip">
+                        <a href="{{ parent.href }}">{{ parent.title }}</a>
+                        <span class="tooltip-content">
+                            <strong>{{ parent.title }}</strong><br>
+                            {% for attr in parent.attrs %}
+                                <span class="purple-subtitle">{{ attr.0 }}:</span><br>{{ attr.1|safe }}<br><br>
+                            {% endfor %}
+                        </span>
+                    </div>
+                </td><td><strong>/</strong></td>
+                {% endfor %}
+            </tr>
+        </table><hr>
+
+        {% if report.description %}
+            <p class="omega-text">{{ report.description }}</p>
+        {% endif %}
+
+        {% include 'reports/AttrsFilters.html' %}
+        {% if ChildrenAttrsData.values|length %}
+            <div class="attrs-table">
+            <table class="table table-bordered">
+                <thead>
+                    {% for column_row in ChildrenAttrsData.header %}
+                        <tr class="info">
+                        {% for coldata in column_row %}
+                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
+                        {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </thead>
+                <tbody>
+                    {% for v in ChildrenAttrsData.values %}
+                        <tr>
+                            <td><a href="{% url 'reports:report_component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
+                            {% for attr in v.attrs %}
+                                <td><span>{{ attr }}</span></td>
+                            {% endfor %}
+                        </tr>
+                    {%  endfor %}
+                </tbody>
+            </table>
+            </div>
+        {% endif %}
+
+        {% if report.log %}
+            <a class="btn btn-success" href="{% url 'reports:report_log' report.pk %}">{% trans 'Download log' %}</a>
+        {% endif %}
+    </div>
+</div>
+
+{% endtimezone %}{% endblock %}

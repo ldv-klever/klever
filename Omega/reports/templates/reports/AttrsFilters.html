@@ -1,0 +1,62 @@
+{% load i18n %}
+
+<div class="panel-group" id="accordion-attrs">
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion-attrs" href="#collapse-attrs"><span class="glyphicon glyphicon-filter"></span> {% trans 'Filters' %}</a>
+            </h4>
+        </div>
+        <div id="collapse-attrs" class="panel-collapse collapse" style="margin-left: 10px;">
+            <h4>{% trans 'Component name' %}</h4>
+            <div class="form-inline">
+                <label><select id="filter__type__attr_component" class="form-control">
+                    <option value="iexact"{% if attr_filters.view.filters.component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if attr_filters.view.filters.component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if attr_filters.view.filters.component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                </select></label>
+                <label>
+                    <input id="filter__value__attr_component" class="form-control" type="text" value="{{ attr_filters.view.filters.component.value }}">
+                </label>
+            </div>
+            <hr>
+            <h4>{% trans 'Value of attribute*:' %}</h4>
+            <label for="filter__attr__attr_name"></label>
+            <input id="filter__attr__attr_name" class="form-control" type="text" value="{{ attr_filters.view.filters.attr.attr }}">
+            <div class="form-inline">
+
+                <br>
+                <label><select id="filter__type__attr_attr" class="form-control">
+                    <option value="iexact"{% if attr_filters.view.filters.attr.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if attr_filters.view.filters.attr.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                </select></label>
+                <label>
+                    <input id="filter__attr__attr_value" class="form-control" type="text" value="{{ attr_filters.view.filters.attr.value }}">
+                </label>
+            </div>
+            <hr>
+            <div class="form-inline">
+                <label><input id="attrview_view_name_input" type="text" class="form-control" placeholder="{% trans 'New view name' %}"></label>
+                <button id="attrview_save_view_btn" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                <button id="attrview_show_unsaved_view_btn" type="button" style="float: right;margin-right: 10px;" class="btn btn-primary">{% trans 'Show' %}</button>
+            </div>
+            <hr>
+            <label for="attrview_available_views"></label>
+            <select id="attrview_available_views" class="form-control" style="max-width: 200px;">
+                <option value="default">{% trans 'Default' %}</option>
+                {% for v in attr_filters.views %}
+                    <option title="{{ v.name }}" value="{{ v.id }}"{% if attr_filters.view_id == v.id %} selected{% endif %}>{{ v.name }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <div class="btn-group">
+                <button id="attrview_show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
+                <button id="attrview_update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
+                <button id="attrview_make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Make preferred' %}</button>
+                <button id="attrview_remove_view_btn" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
+            </div>
+            <br><br>
+            <small style="color: #656565">{% trans "Enter full name of attribute separated by ':'. For example: 'Linux kernel:version'." %}</small>
+        </div>
+    </div>
+</div>
