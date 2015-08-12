@@ -74,10 +74,10 @@ USER_ROLES = (
 VIEW_TYPES = {
     ('1', 'job tree'),
     ('2', 'job view'),
-    ('3', 'component attributes'),
-    ('4', 'unsafe attributes'),
-    ('5', 'safe attributes'),
-    ('6', 'unknown attributes'),
+    ('3', 'component children list'),
+    ('4', 'unsafes list'),
+    ('5', 'safes list'),
+    ('6', 'unknowns list'),
     ('7', 'others'),
 }
 
@@ -146,11 +146,48 @@ VIEWJOB_DEF_VIEW = {
     }
 }
 
-VIEW_REPORT_ATTRS_DEF_VIEW = {
+REPORT_ATTRS_DEF_VIEW = {
     # Available filters (id [types], (example attr), (example value)):
     # component [iexact, istartswith, icontains] (<any text>)
     # attr [iexact, istartswith]
     #     (<attribute name separated by ':'>) (<any text>)
+    'filters': {
+        # 'component': {
+        #     'type': 'istartswith',
+        #     'value': 'v',
+        # },
+        # 'attr': {
+        #     'attr': 'Linux kernel verification objs gen strategy:name',
+        #     'type': 'istartswith',
+        #     'value': 'Separate'
+        # }
+    }
+}
+
+UNSAFE_LIST_DEF_VIEW = {
+    # 'order': 'verification obj',
+    'filters': {
+        # 'attr': {
+        #     'attr': 'Linux kernel verification objs gen strategy:name',
+        #     'type': 'istartswith',
+        #     'value': 'Separate'
+        # }
+    }
+}
+
+SAFE_LIST_DEF_VIEW = {
+    # 'order': 'verification obj',
+    'filters': {
+        # 'attr': {
+        #     'attr': 'Linux kernel verification objs gen strategy:name',
+        #     'type': 'istartswith',
+        #     'value': 'Separate'
+        # }
+    }
+}
+
+UNKNOWN_LIST_DEF_VIEW = {
+    # 'order': 'verification obj',
     'filters': {
         # 'component': {
         #     'type': 'istartswith',

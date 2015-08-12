@@ -31,7 +31,12 @@
             <span class="purple-title">{% trans 'Verification Job' %}: </span>
             <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
         </div>
-        <div class="col-sm-7">{% include 'reports/AttrsFilters.html' %}</div>
+        {% if view_type == '6' %}
+            <div class="col-sm-7">{% include 'reports/UnknownsFilters.html' %}</div>
+        {% else %}
+            <div class="col-sm-7">{% include 'reports/ListFilters.html' %}</div>
+        {% endif %}
+
     </div>
 
     {% if ChildrenAttrsData.values|length %}

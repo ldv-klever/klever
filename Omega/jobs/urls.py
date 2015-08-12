@@ -17,7 +17,7 @@ urlpatterns = [
     url(r'^ajax/check_view_name/$', views.check_view_name),
     url(r'^ajax/remove_jobs/$', views.remove_jobs),
     url(r'^ajax/editjob/$', views.edit_job),
-    url(r'^ajax/create/$', views.create_job),
+    url(r'^ajax/create/$', views.copy_new_job),
     url(r'^ajax/savejob/$', views.save_job),
     url(r'^ajax/removejob/$', views.remove_job),
     url(r'^ajax/showjobdata/$', views.showjobdata),

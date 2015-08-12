@@ -825,6 +825,4 @@ $(document).ready(function () {
             }
         );
     });
-
-    set_actions_for_view_filters();
 });

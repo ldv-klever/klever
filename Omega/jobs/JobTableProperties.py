@@ -7,11 +7,10 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from jobs.job_model import Job, JobStatus
 from jobs.models import MarkSafeTag, MarkUnsafeTag
-import jobs.job_functions as job_f
 from reports.models import Verdict, ComponentResource, ComponentUnknown,\
     ComponentMarkUnknownProblem, ReportComponent
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
-from jobs.job_functions import SAFES, UNSAFES, TITLES, get_resource_data
+from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess
 
 
 ORDERS = [
@@ -336,7 +335,7 @@ class TableTree(object):
         for job in Job.objects.filter(
                 **self.__view_filters()
         ).order_by(*orders):
-            job_access = job_f.JobAccess(self.user, job)
+            job_access = JobAccess(self.user, job)
             if job_access.can_view():
                 rowdata.append(job)
 

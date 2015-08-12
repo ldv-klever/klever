@@ -1,12 +1,12 @@
 import json
-from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
-from Omega.vars import VIEW_REPORT_ATTRS_DEF_VIEW
-from reports.models import ReportComponent
-import jobs.job_functions as job_f
-from reports.models import Attr, AttrName, ReportComponentLeaf
+from Omega.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW,\
+    SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW
+from jobs.utils import get_resource_data
+from reports.models import ReportComponent, Attr, AttrName, ReportComponentLeaf
 
 
 def computer_description(computer):
@@ -23,63 +23,6 @@ def computer_description(computer):
     return {
         'name': comp_name,
         'data': data
-    }
-
-
-def attr_value(value):
-    value = json.loads(value)
-    if isinstance(value, str):
-        return value
-
-    new_value = '-'
-    if not isinstance(value, list):
-        return new_value
-    data = {}
-    for v in value:
-        if isinstance(v, dict):
-            data_name = str(next(iter(v)))
-            v_values = []
-            if isinstance(v[data_name], list):
-                for vv in v[data_name]:
-                    if isinstance(vv, dict):
-                        vv_name = next(iter(vv))
-                        v_values.append('%s:%s' % (vv_name, str(vv[vv_name])))
-            else:
-                v_values.append(v[data_name])
-            data[data_name] = str('; '.join(v_values))
-    if len(data):
-        new_value = ''
-        for d in sorted(data):
-            new_value += '%s: %s<br>' % (d, data[d])
-
-    return new_value
-
-
-def get_children_data(report):
-    children = ReportComponent.objects.filter(parent=report)
-    attr_names = []
-    for child in children:
-        for attr in child.attr.all().order_by('name__name'):
-            if attr.name not in attr_names:
-                attr_names.append(attr.name)
-
-    children_values = []
-    for child in children:
-        attr_row = {
-            'id': child.id,
-            'component': child.component.name,
-            'attrs': []
-        }
-        for attr in attr_names:
-            child_attr = child.attr.all().filter(name=attr)
-            if len(child_attr) == 1:
-                attr_row['attrs'].append(attr_value(child_attr[0].value))
-            else:
-                attr_row['attrs'].append('-')
-        children_values.append(attr_row)
-    return {
-        'attrs': attr_names,
-        'values': children_values
     }
 
 
@@ -116,7 +59,7 @@ def get_parents(report):
 def report_resources(report, user):
     resources = None
     if report.resource is not None:
-        rd = job_f.get_resource_data(user, report.resource)
+        rd = get_resource_data(user, report.resource)
         resources = {
             'wall_time': rd[0],
             'cpu_time': rd[1],
@@ -125,7 +68,7 @@ def report_resources(report, user):
     return resources
 
 
-class ReportAttrs(object):
+class ReportTable(object):
 
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
                  component_id=None):
@@ -215,12 +158,10 @@ class ReportAttrs(object):
             return None, None
 
         def_views = {
-            '3': VIEW_REPORT_ATTRS_DEF_VIEW,
-
-            # TODO: add views for safe, unsafe and unknown
-            '4': VIEW_REPORT_ATTRS_DEF_VIEW,
-            '5': VIEW_REPORT_ATTRS_DEF_VIEW,
-            '6': VIEW_REPORT_ATTRS_DEF_VIEW,
+            '3': REPORT_ATTRS_DEF_VIEW,
+            '4': UNSAFE_LIST_DEF_VIEW,
+            '5': SAFE_LIST_DEF_VIEW,
+            '6': UNKNOWN_LIST_DEF_VIEW,
         }
 
         if view is not None:
@@ -305,28 +246,16 @@ class ReportAttrs(object):
         for name, dt in sorted(comp_data, key=lambda x: x[0]):
             sorted_components.append(dt)
 
-        ftype = None
-        fvalue = None
-        fattr = None
-        if 'attr' in self.view['filters']:
-            fattr = self.view['filters']['attr']['attr']
-            fvalue = self.view['filters']['attr']['value']
-            ftype = self.view['filters']['attr']['type']
         for comp_data in sorted_components:
             values_row = []
-            passed = True
             for col in columns:
                 cell_val = '-'
                 if comp_data['pk'] in data[col]:
                     cell_val = data[col][comp_data['pk']]
                 values_row.append(cell_val)
-                if fattr is not None and fattr.lower() == col.lower():
-                    if ftype == 'iexact' and fvalue.lower() != cell_val.lower():
-                        passed = False
-                    elif ftype == 'istartswith' and \
-                            not cell_val.lower().startswith(fvalue.lower()):
-                        passed = False
-            if passed:
+                if not self.__filter_attr(col, cell_val):
+                    break
+            else:
                 values_data.append({
                     'pk': comp_data['pk'],
                     'component': comp_data['component'],
@@ -358,30 +287,24 @@ class ReportAttrs(object):
         for name in sorted(data):
             columns.append(name)
 
+        ids_ordered = []
+        if 'order' in self.view and self.view['order'] in data:
+            for rep_id in data[self.view['order']]:
+                ids_ordered.append((data[self.view['order']][rep_id], rep_id))
+            report_ids = [x[1] for x in sorted(ids_ordered, key=lambda x: x[0])]
+
         cnt = 0
         values_data = []
-        ftype = None
-        fvalue = None
-        fattr = None
-        if 'attr' in self.view['filters']:
-            fattr = self.view['filters']['attr']['attr']
-            fvalue = self.view['filters']['attr']['value']
-            ftype = self.view['filters']['attr']['type']
         for rep_id in report_ids:
             values_row = []
-            passed = True
             for col in columns:
                 cell_val = '-'
                 if rep_id in data[col]:
                     cell_val = data[col][rep_id]
                 values_row.append(cell_val)
-                if fattr is not None and fattr.lower() == col.lower():
-                    if ftype == 'iexact' and fvalue.lower() != cell_val.lower():
-                        passed = False
-                    elif ftype == 'istartswith' and \
-                            not cell_val.lower().startswith(fvalue.lower()):
-                        passed = False
-            if passed:
+                if not self.__filter_attr(col, cell_val):
+                    break
+            else:
                 cnt += 1
                 values_data.append({
                     'href': reverse('reports:leaf',
@@ -395,7 +318,7 @@ class ReportAttrs(object):
 
         def filter_component(component_name):
             if 'component' in self.view['filters']:
-                filter_type = self.view['filters']['component']['type'],
+                filter_type = self.view['filters']['component']['type']
                 filter_value = self.view['filters']['component']['value']
                 if filter_type == 'iexact':
                     if component_name.lower() == filter_value.lower():
@@ -407,19 +330,6 @@ class ReportAttrs(object):
                     if filter_value.lower() in component_name.lower():
                         return True
                 return False
-            return True
-
-        def filter_attr(attribute, value):
-            if 'attr' in self.view['filters']:
-                fattr = self.view['filters']['attr']['attr']
-                fvalue = self.view['filters']['attr']['value']
-                ftype = self.view['filters']['attr']['type']
-                if fattr is not None and fattr.lower() == attribute.lower():
-                    if ftype == 'iexact' and fvalue.lower() != value.lower():
-                        return False
-                    elif ftype == 'istartswith' and \
-                            not value.lower().startswith(fvalue.lower()):
-                        return False
             return True
 
         data = {}
@@ -446,27 +356,38 @@ class ReportAttrs(object):
         for name in sorted(data):
             columns.append(name)
 
-        comp_data = []
-        for pk in components:
-            comp_data.append((components[pk].name, {
-                'pk': pk,
-                'component': components[pk]
-            }))
         sorted_components = []
-        for name, dt in sorted(comp_data, key=lambda x: x[0]):
-            sorted_components.append(dt)
+        if 'order' in self.view and self.view['order'] in data:
+            ids_ordered = []
+            for rep_id in data[self.view['order']]:
+                ids_ordered.append((data[self.view['order']][rep_id], rep_id))
+            report_ids = [x[1] for x in sorted(ids_ordered, key=lambda x: x[0])]
+            for rep_id in report_ids:
+                sorted_components.append({
+                    'pk': rep_id,
+                    'component': components[rep_id]
+                })
+        else:
+            comp_data = []
+            for pk in components:
+                comp_data.append((components[pk].name, {
+                    'pk': pk,
+                    'component': components[pk]
+                }))
+            for name, dt in sorted(comp_data, key=lambda x: x[0]):
+                sorted_components.append(dt)
 
         values_data = []
         for comp_data in sorted_components:
             values_row = []
-            passed = True
             for col in columns:
                 cell_val = '-'
                 if comp_data['pk'] in data[col]:
                     cell_val = data[col][comp_data['pk']]
                 values_row.append(cell_val)
-                passed = filter_attr(col, cell_val)
-            if passed:
+                if not self.__filter_attr(col, cell_val):
+                    break
+            else:
                 values_data.append({
                     'attrs': values_row,
                     'value': comp_data['component'].name,
@@ -474,6 +395,20 @@ class ReportAttrs(object):
                                     args=['unknown', comp_data['pk']])
                 })
         return columns, values_data
+
+    def __filter_attr(self, attribute, value):
+        if 'attr' in self.view['filters']:
+
+            fattr = self.view['filters']['attr']['attr']
+            fvalue = self.view['filters']['attr']['value']
+            ftype = self.view['filters']['attr']['type']
+            if fattr is not None and fattr.lower() == attribute.lower():
+                if ftype == 'iexact' and fvalue.lower() != value.lower():
+                    return False
+                elif ftype == 'istartswith' and \
+                        not value.lower().startswith(fvalue.lower()):
+                    return False
+        return True
 
 
 def save_attrs(attrs):

@@ -3,10 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.translation import activate, ugettext as _
-from reports.models import *
-from reports.UploadReport import UploadReport
-from reports.utils import *
 from jobs.ViewJobData import ViewJobData
+from jobs.utils import JobAccess
+from reports.UploadReport import UploadReport
+from reports.models import *
+from reports.utils import *
 
 
 @login_required
@@ -18,7 +19,7 @@ def report_component(request, job_id, report_id):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('jobs:error', args=[404]))
 
-    if not job_f.JobAccess(request.user, job).can_view():
+    if not JobAccess(request.user, job).can_view():
         return HttpResponseRedirect(reverse('jobs:error', args=[400]))
     try:
         report = ReportComponent.objects.get(pk=int(report_id))
@@ -51,7 +52,7 @@ def report_component(request, job_id, report_id):
     except ObjectDoesNotExist:
         pass
 
-    children_data = ReportAttrs(*report_attrs_data, table_type='3')
+    children_data = ReportTable(*report_attrs_data, table_type='3')
     return render(
         request,
         'reports/ReportMain.html',
@@ -62,7 +63,7 @@ def report_component(request, job_id, report_id):
             'computer': computer_description(report.computer.description),
             'reportdata': ViewJobData(*view_args),
             'parents': get_parents(report),
-            'SelfAttrsData': ReportAttrs(*report_attrs_data).table_data,
+            'SelfAttrsData': ReportTable(*report_attrs_data).table_data,
             'ChildrenAttrsData': children_data.table_data,
             'attr_filters': children_data,
             'status': status,
@@ -80,7 +81,7 @@ def report_list(request, report_id, ltype, component_id=None):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('jobs:error', args=[504]))
 
-    if not job_f.JobAccess(request.user, report.root.job).can_view():
+    if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('jobs:error', args=[400]))
 
     list_types = {
@@ -94,19 +95,18 @@ def report_list(request, report_id, ltype, component_id=None):
             report_attrs_data.append(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view_id', None))
 
-    list_data = ReportAttrs(*report_attrs_data, table_type=list_types[ltype],
+    list_data = ReportTable(*report_attrs_data, table_type=list_types[ltype],
                             component_id=component_id)
     return render(
         request,
         'reports/report_list.html',
         {
             'report': report,
-            'resources': report_resources(report, request.user),
-            'computer': computer_description(report.computer.description),
             'parents': get_parents(report),
-            'SelfAttrsData': ReportAttrs(*report_attrs_data).table_data,
+            'SelfAttrsData': ReportTable(*report_attrs_data).table_data,
             'ChildrenAttrsData': list_data.table_data,
             'attr_filters': list_data,
+            'view_type': list_types[ltype],
         }
     )
 
@@ -140,7 +140,7 @@ def report_leaf(request, leaf_type, report_id):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('jobs:error', args=[504]))
 
-    if not job_f.JobAccess(request.user, report.root.job).can_view():
+    if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('jobs:error', args=[400]))
 
     return render(
@@ -151,12 +151,7 @@ def report_leaf(request, leaf_type, report_id):
             'title': report.identifier.split('##')[-1],
             'report': report,
             'parents': get_parents(report),
-            'SelfAttrsData': ReportAttrs(request.user, report).table_data,
-            'list_href': reverse('reports:list', args=[
-                ReportComponent.objects.get(pk=report.parent_id).pk,
-                leaf_type + 's',
-            ]),
-            'list_title': titles[leaf_type],
+            'SelfAttrsData': ReportTable(request.user, report).table_data,
         }
     )
 
@@ -225,7 +220,7 @@ def get_component_log(request, report_id):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('jobs:error', args=[504]))
 
-    if not job_f.JobAccess(request.user, report.root.job).can_view():
+    if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('jobs:error', args=[400]))
 
     if report.log is None or len(report.log) == 0:

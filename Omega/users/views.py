@@ -14,7 +14,7 @@ from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications
 from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
-from jobs.job_functions import JobAccess
+from jobs.utils import JobAccess
 from django.middleware.csrf import get_token
 from users.notifications import NotifyData
 
