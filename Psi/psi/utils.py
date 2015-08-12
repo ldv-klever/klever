@@ -7,36 +7,34 @@ import sys
 import time
 
 
-def count_consumed_resources(logger, name, start_time):
+def count_consumed_resources(logger, start_time):
     """
     Count resources (wall time, CPU time and maximum memory size) consumed by the process without its childred.
     Note that launching under PyCharm gives its maximum memory size rather than the process one.
     :return: resources.
     """
-    logger.info('Count consumed resources for "{0}"'.format(name))
+    logger.info('Count consumed resources')
 
     utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
     resources = {'wall time': round(100 * (time.time() - start_time)),
                  'CPU time': round(100 * (utime + stime)),
                  'max mem size': 1000 * maxrss}
 
-    logger.debug('"{0}" consumed the following resources:'.format(name))
-    for res in sorted(resources):
-        logger.debug('    {0} - {1}'.format(res, resources[res]))
+    logger.debug('Consumed the following resources:\n%s', '\n'.join(['    {0} - {1}'.format(res, resources[res]) for res in sorted(resources)]))
 
     return resources
 
 
-def dump_report(logger, name, kind, report, dir=''):
+def dump_report(logger, kind, report):
     """
     Dump the specified report of the specified kind to a file.
     :param logger: a logger for printing debug messages.
     :param kind: a report kind (a file where a report will be dumped will be named "kind report.json").
     :param report: a report object (usually it should be a dictionary).
     """
-    logger.info('Dump {0} report for "{1}"'.format(kind, name))
+    logger.info('Dump {0} report'.format(kind))
 
-    report_file = os.path.join(dir, '{0} {1} report.json'.format(kind, name))
+    report_file = '{0} report.json'.format(kind)
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(os.path.abspath(report_file)))
 
@@ -46,7 +44,7 @@ def dump_report(logger, name, kind, report, dir=''):
     with open(report_file, 'w') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
 
-    logger.debug('{0} report for "{1}" was dumped to file "{2}"'.format(kind.capitalize(), name, report_file))
+    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), report_file))
 
     return report_file
 
