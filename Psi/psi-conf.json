@@ -39,5 +39,7 @@
       }
     ]
   },
-  "parallelism": null
+  "parallelism": {
+    "Linux kernel build": 1.0
+  }
 }

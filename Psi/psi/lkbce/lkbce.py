@@ -23,6 +23,25 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.clean_linux_kernel_work_src_tree()
         self.extract_linux_kernel_attrs()
         self.configure_linux_kernel()
+        self.build_linux_kernel()
+
+    def build_linux_kernel(self):
+        self.logger.info('Build Linux kernel')
+        if 'whole build' in self.conf['Linux kernel']:
+            pass
+        elif 'modules' in self.conf['Linux kernel']:
+            # TODO: check that module sets aren't intersect explicitly.
+            for modules in self.conf['Linux kernel']['modules']:
+                psi.components.Component(self.logger,
+                                         ('make', '-j',
+                                          # TODO: implement obtaining of the number of parallel threads more properly.
+                                          str(int(float(self.conf['sys']['CPUs num']) * self.conf['parallelism']['Linux kernel build'])),
+                                          '-C', self.linux_kernel['work src tree'],
+                                          'ARCH={0}'.format(self.linux_kernel['arch']),
+                                          modules)).start()
+        else:
+            raise KeyError(
+                'Neither "whole build" nor "modules" attribute of Linux kernel is specified in configuration')
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
@@ -30,7 +49,7 @@ class PsiComponent(psi.components.PsiComponentBase):
 
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
-        if self.conf['Linux kernel'].get('conf'):
+        if 'conf' in self.conf['Linux kernel']:
             psi.components.Component(self.logger,
                                      ('make', '-C', self.linux_kernel['work src tree'],
                                       'ARCH={0}'.format(self.linux_kernel['arch']),
