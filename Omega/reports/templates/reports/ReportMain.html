@@ -8,6 +8,7 @@
 
 <div class="row">
     <div class="col-sm-5">
+        <input id="report_pk" type="hidden" value="{{ report.pk }}">
         <div class="omega-tooltip">
             <h2><ins>{{ report.component.name }}</ins></h2>
             <span class="tooltip-content">
@@ -36,6 +37,9 @@
                 {% endif %}
             </span>
         </div>
+
+        {% if report.log %}<button id="show_component_log" class="btn btn-success" style="float: right">{% trans 'Log' %}</button>{% endif %}
+
         {% if report.root.user %}
             <span class="purple-title">{% trans 'Report author' %}: </span>
             <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
@@ -92,8 +96,9 @@
             </tbody>
         </table>
         </div>
-        {% if reportdata %}
-            {% include 'jobs/jobData.html' %}
+
+        {% if report.description %}
+            <p class="omega-text">{{ report.description }}</p>
         {% endif %}
     </div>
     <div class="col-sm-7">
@@ -114,10 +119,6 @@
                 {% endfor %}
             </tr>
         </table><hr>
-
-        {% if report.description %}
-            <p class="omega-text">{{ report.description }}</p>
-        {% endif %}
 
         {% include 'reports/AttrsFilters.html' with view_type='3' %}
         {% if ChildrenAttrsData.values|length %}
@@ -145,11 +146,17 @@
             </table>
             </div>
         {% endif %}
-
-        {% if report.log %}
-            <a class="btn btn-success" href="{% url 'reports:log' report.pk %}">{% trans 'Download log' %}</a>
+        <hr>
+        {% if reportdata %}
+            {% include 'jobs/jobData.html' %}
         {% endif %}
     </div>
+</div>
+
+<div id="file_content_div" class="file-view-div">
+    <button id="close_file_view" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span></button>
+    <a id="download_file_form_view" class="btn btn-success" href="{% url 'reports:log' report.pk %}"><span class="glyphicon glyphicon-download"></span></a>
+    <div class="file-view-content"></div>
 </div>
 
 {% endtimezone %}{% endblock %}

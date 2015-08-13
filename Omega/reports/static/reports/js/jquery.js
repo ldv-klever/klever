@@ -73,6 +73,10 @@ function unknown_filters_data() {
     return JSON.stringify(view_values);
 }
 
+function set_action_on_log_click() {
+
+}
+
 $(document).ready(function () {
     var data_collection;
     $('input[class=buttons-view-type]').each(function () {
@@ -94,6 +98,26 @@ $(document).ready(function () {
         }
         if (data_collection) {
             set_actions_for_views($(this).val(), data_collection);
+        }
+    });
+
+    $('#show_component_log').click(function () {
+        var file_div = $('#file_content_div');
+        if (file_div.length) {
+            $.ajax({
+                url: '/reports/logcontent/' + $('#report_pk').val() + '/',
+                type: 'GET',
+                success: function (data) {
+                    $('#file_content_div').find('div').text(data);
+                    file_div.show();
+                    $('body').addClass("file-view");
+                    $('#close_file_view').click(function () {
+                        $('body').removeClass("file-view");
+                        $('#file_content_div').find('div').empty();
+                        file_div.hide();
+                    });
+                }
+            });
         }
     });
 });

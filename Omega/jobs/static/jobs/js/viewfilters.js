@@ -34,4 +34,7 @@ $(document).ready(function () {
         });
     }
     set_actions_for_views('2', collect_view_data);
+    if (!$('#resource_title_span').length) {
+        $('#resource_star_div').hide();
+    }
 });
