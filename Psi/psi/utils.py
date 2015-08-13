@@ -20,7 +20,8 @@ def count_consumed_resources(logger, start_time):
                  'CPU time': round(100 * (utime + stime)),
                  'max mem size': 1000 * maxrss}
 
-    logger.debug('Consumed the following resources:\n%s', '\n'.join(['    {0} - {1}'.format(res, resources[res]) for res in sorted(resources)]))
+    logger.debug('Consumed the following resources:\n%s',
+                 '\n'.join(['    {0} - {1}'.format(res, resources[res]) for res in sorted(resources)]))
 
     return resources
 
@@ -61,7 +62,15 @@ def find_file_or_dir(logger, root_id, file_or_dir):
             logger.debug('Find directory "{0}" in directory "{1}"'.format(file_or_dir, search_dir))
             return found_file_or_dir
 
-    raise FileExistsError('Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
+    raise FileExistsError(
+        'Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
+
+
+def is_src_tree_root(filenames):
+    for filename in filenames:
+        if filename == 'Makefile':
+            return True
+    return False
 
 
 def get_comp_desc(logger):
