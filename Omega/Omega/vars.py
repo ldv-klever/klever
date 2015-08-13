@@ -96,11 +96,6 @@ MARK_STATUS = (
     ('3', _('Rejected')),
 )
 
-MARK_FUNCTION_TYPE = (
-    ('0', _('Convertion')),
-    ('1', _('Comparison')),
-)
-
 MARK_UNSAFE = (
     ('0', _('Unknown')),
     ('1', _('Bug')),

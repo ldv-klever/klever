@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from Omega.vars import FORMAT, JOB_CLASSES, MARK_STATUS, MARK_FUNCTION_TYPE,\
-    MARK_UNSAFE, MARK_SAFE
+from Omega.vars import FORMAT, JOB_CLASSES, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
 from reports.models import Attr, ReportUnsafe, ReportSafe
 from jobs.models import Job
 
