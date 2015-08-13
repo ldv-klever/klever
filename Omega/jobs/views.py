@@ -729,8 +729,8 @@ def psi_set_status(request):
                 return JsonResponse({'error': 304})
             if JobAccess(request.user, job).can_download_for_deciding():
                 if status in [x[0] for x in JOB_STATUS]:
-                    job.jobstatus.status = status
-                    job.jobstatus.save()
+                    job.status = status
+                    job.save()
                     return JsonResponse({'error': 0})
                 else:
                     JsonResponse({'error': 302})

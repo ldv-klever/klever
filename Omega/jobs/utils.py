@@ -15,8 +15,8 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat,\
     ugettext_noop
 from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
-from jobs.models import FileSystem, File, UserRole, JOBFILE_DIR
-from jobs.job_model import Job, JobHistory, JobStatus
+from jobs.models import Job, JobHistory, FileSystem, File, UserRole,\
+    JOBFILE_DIR
 from users.notifications import Notify
 
 
@@ -113,11 +113,7 @@ class JobAccess(object):
     def can_edit(self):
         if self.job is None:
             return False
-        try:
-            status = self.job.jobstatus.status
-        except ObjectDoesNotExist:
-            return False
-        if status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and \
+        if self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and \
                 (self.__is_author or self.__is_manager):
             return True
         return False
@@ -129,11 +125,7 @@ class JobAccess(object):
             return False
         if self.__is_manager:
             return True
-        try:
-            status = self.job.jobstatus.status
-        except ObjectDoesNotExist:
-            return False
-        if status in [js[0] for js in JOB_STATUS[1:3]]:
+        if self.job.status in [js[0] for js in JOB_STATUS[1:3]]:
             return False
         if self.__is_author:
             return True
@@ -710,10 +702,6 @@ def create_job(kwargs):
     ).encode('utf-8')
     newjob.identifier = hashlib.md5(time_encoded).hexdigest()
     newjob.save()
-
-    jobstatus = JobStatus()
-    jobstatus.job = newjob
-    jobstatus.save()
 
     new_version = create_version(newjob, kwargs)
 

@@ -77,14 +77,10 @@
             {% endif %}
             <br>
             <span class="purple-title">{% trans 'Decision status' %}: </span>
-            {% if job.jobstatus %}
-                {% if reportdata %}
-                    <a href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.jobstatus.get_status_display }}</a>
-                {% else %}
-                    <ins>{{ job.jobstatus.get_status_display }}</ins>
-                {% endif %}
+            {% if reportdata %}
+                <a href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
             {% else %}
-                -
+                <ins>{{ job.get_status_display }}</ins>
             {% endif %}
             {% if reportdata %}
                 {% include 'jobs/jobData.html' %}

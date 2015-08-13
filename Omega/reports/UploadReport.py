@@ -237,9 +237,8 @@ class UploadReport(object):
             self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            status = self.job.jobstatus
-            status.status = '1'
-            status.save()
+            self.job.status = '1'
+            self.job.save()
         return report
 
     def __update_attrs(self, identifier):
@@ -284,13 +283,11 @@ class UploadReport(object):
             self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            status = self.job.jobstatus
             if len(ReportUnknown.objects.filter(parent=report)) > 0:
-                # Failed
-                status.status = '4'
+                self.job.status = '4'
             else:
-                status.status = '3'
-            status.save()
+                self.job.status = '3'
+            self.job.save()
 
         return report
 

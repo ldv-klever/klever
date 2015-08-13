@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.utils.translation import activate
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
+from jobs.models import Job
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *

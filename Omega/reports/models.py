@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from jobs.job_model import Job
-from marks.models import UnknownProblem
+from jobs.models import ReportRoot
 
 
 class AttrName(models.Model):
@@ -17,16 +16,6 @@ class Attr(models.Model):
 
     class Meta:
         db_table = 'attr'
-
-
-class ReportRoot(models.Model):
-    user = models.ForeignKey(User, blank=True, null=True,
-                             on_delete=models.SET_NULL, related_name='+')
-    job = models.OneToOneField(Job)
-    last_request_date = models.DateTimeField()
-
-    class Meta:
-        db_table = 'report_root'
 
 
 class Report(models.Model):
@@ -147,6 +136,13 @@ class ComponentUnknown(models.Model):
 
     class Meta:
         db_table = 'cache_job_component_unknown'
+
+
+class UnknownProblem(models.Model):
+    name = models.CharField(max_length=1023)
+
+    class Meta:
+        db_table = 'cache_mark_unknown_problem'
 
 
 class ComponentMarkUnknownProblem(models.Model):

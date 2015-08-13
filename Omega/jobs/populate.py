@@ -5,9 +5,9 @@ from time import sleep
 from datetime import datetime
 from django.db.models import Q
 from jobs.utils import create_job, update_job
-from jobs.models import MarkSafeTag, MarkUnsafeTag
+from jobs.models import Job
+from marks.models import UnsafeTag, SafeTag, MarkSafeTag, MarkUnsafeTag
 from reports.models import *
-from marks.models import UnsafeTag, SafeTag
 
 
 def populate_jobs(username):

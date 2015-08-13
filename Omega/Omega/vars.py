@@ -96,6 +96,25 @@ MARK_STATUS = (
     ('3', _('Rejected')),
 )
 
+MARK_FUNCTION_TYPE = (
+    ('0', _('Convertion')),
+    ('1', _('Comparison')),
+)
+
+MARK_UNSAFE = (
+    ('0', _('Unknown')),
+    ('1', _('Bug')),
+    ('2', _('Target bug')),
+    ('3', _('False Positive')),
+)
+
+MARK_SAFE = (
+    ('0', _('Unknown')),
+    ('1', _('Bug')),
+    ('2', _('Target bug')),
+    ('3', _('False Positive')),
+)
+
 VIEWJOB_DEF_VIEW = {
     'data': [
         'unsafes',

@@ -1,12 +1,12 @@
 import json
 import smtplib
 from email.mime.text import MIMEText
-from django.utils.translation import ugettext_lazy as _, activate
 from django.core.exceptions import ObjectDoesNotExist
-from Omega.vars import JOB_ROLES, USER_ROLES
-from jobs.job_model import Job
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.utils.translation import ugettext_lazy as _, activate
+from Omega.vars import JOB_ROLES, USER_ROLES
+from jobs.models import Job
 
 
 SUBJECTS = {
