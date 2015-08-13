@@ -119,7 +119,7 @@
             <p class="omega-text">{{ report.description }}</p>
         {% endif %}
 
-        {% include 'reports/AttrsFilters.html' %}
+        {% include 'reports/AttrsFilters.html' with view_type='3' %}
         {% if ChildrenAttrsData.values|length %}
             <div class="attrs-table">
             <table class="table table-bordered">

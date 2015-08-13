@@ -4,7 +4,7 @@ import random
 from time import sleep
 from datetime import datetime
 from django.db.models import Q
-from jobs.job_functions import create_job, update_job
+from jobs.utils import create_job, update_job
 from jobs.models import MarkSafeTag, MarkUnsafeTag
 from reports.models import *
 from marks.models import UnsafeTag, SafeTag

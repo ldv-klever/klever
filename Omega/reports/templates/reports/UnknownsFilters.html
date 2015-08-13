@@ -8,6 +8,11 @@
             </h4>
         </div>
         <div id="collapse-attrs" class="panel-collapse collapse" style="margin-left: 10px;">
+            <h4>{% trans 'Order by attribute*:' %}</h4>
+            <label for="filter__attr__order"></label>
+            <input id="filter__attr__order" class="form-control" type="text" value="{{ attr_filters.view.order }}">
+            <hr>
+
             <h4>{% trans 'Component name' %}</h4>
             <div class="form-inline">
                 <label><select id="filter__type__attr_component" class="form-control">

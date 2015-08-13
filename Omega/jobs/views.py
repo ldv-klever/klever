@@ -1,28 +1,18 @@
-import os
 import pytz
-import json
-import hashlib
 import mimetypes
-from io import BytesIO
 from urllib.parse import quote, unquote
-from django.db.models import Q
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
-from Omega.vars import JOB_ROLES, JOB_STATUS, VIEW_TYPES
-from jobs.job_model import Job
-from jobs.models import File, FileSystem
+from Omega.vars import VIEW_TYPES
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
-import jobs.job_functions as job_f
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
+from jobs.utils import *
 
 
 @login_required
@@ -38,7 +28,7 @@ def tree_view(request):
         'FF': FilterForm(*tree_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
-        'can_create': job_f.JobAccess(request.user).can_create(),
+        'can_create': JobAccess(request.user).can_create(),
         'TableData': TableTree(*tree_args)
     })
 
@@ -201,7 +191,7 @@ def show_job(request, job_id=None):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('jobs:error', args=[404]))
 
-    job_access = job_f.JobAccess(request.user, job)
+    job_access = JobAccess(request.user, job)
     if not job_access.can_view():
         return HttpResponseRedirect(reverse('jobs:error', args=[400]))
 
@@ -213,7 +203,7 @@ def show_job(request, job_id=None):
     parent_set.reverse()
     parents = []
     for parent in parent_set:
-        if job_f.JobAccess(request.user, parent).can_view():
+        if JobAccess(request.user, parent).can_view():
             job_id = parent.pk
         else:
             job_id = None
@@ -224,7 +214,7 @@ def show_job(request, job_id=None):
 
     children = []
     for child in job.children_set.all():
-        if job_f.JobAccess(request.user, child).can_view():
+        if JobAccess(request.user, child).can_view():
             job_id = child.pk
         else:
             job_id = None
@@ -271,7 +261,7 @@ def edit_job(request):
     job_id = request.POST.get('job_id', 0)
 
     job = get_object_or_404(Job, pk=int(job_id))
-    if not job_f.JobAccess(request.user, job).can_edit():
+    if not JobAccess(request.user, job).can_edit():
         return HttpResponse('')
 
     version = int(request.POST.get('version', 0))
@@ -307,11 +297,11 @@ def edit_job(request):
         'parent_id': parent_identifier,
         'job': job_version,
         'job_id': job_id,
-        'roles': job_f.role_info(job_version, request.user),
+        'roles': role_info(job_version, request.user),
         'job_roles': JOB_ROLES,
         'job_versions': job_versions,
         'version': version,
-        'filedata': job_f.FileData(job_version).filedata
+        'filedata': FileData(job_version).filedata
     })
 
 
@@ -326,7 +316,7 @@ def remove_versions(request):
         return JsonResponse({
             'status': 1, 'message': _('The job was not found')
         })
-    if not job_f.JobAccess(request.user, job).can_edit():
+    if not JobAccess(request.user, job).can_edit():
         return JsonResponse({
             'status': 1,
             'message': _("You don't have access to delete versions")
@@ -334,7 +324,7 @@ def remove_versions(request):
 
     versions = json.loads(request.POST.get('versions', '[]'))
 
-    deleted_versions = job_f.delete_versions(job, versions)
+    deleted_versions = delete_versions(job, versions)
     if deleted_versions > 0:
         return JsonResponse({
             'status': 0,
@@ -373,12 +363,12 @@ def get_job_versions(request):
 
 
 @login_required
-def create_job(request):
+def copy_new_job(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
         return HttpResponse('')
-    if not job_f.JobAccess(request.user).can_create():
+    if not JobAccess(request.user).can_create():
         return HttpResponse('')
 
     roles = {
@@ -400,7 +390,7 @@ def create_job(request):
         'job': job_version,
         'roles': roles,
         'job_roles': JOB_ROLES,
-        'filedata': job_f.FileData(job_version).filedata
+        'filedata': FileData(job_version).filedata
     })
 
 
@@ -428,7 +418,7 @@ def save_job(request):
                 'status': 1,
                 'message': _('The job was not found')
             })
-        if not job_f.JobAccess(request.user, job).can_edit():
+        if not JobAccess(request.user, job).can_edit():
             return JsonResponse({
                 'status': 1,
                 'message': _("You don't have an access to edit this job")
@@ -455,7 +445,7 @@ def save_job(request):
                     'status': 1,
                     'message': _("Parent can't be specified for root jobs")
                 })
-            if not job_f.check_new_parent(job, parent):
+            if not check_new_parent(job, parent):
                 return JsonResponse({
                     'status': 1,
                     'message': _("The specified parent can't "
@@ -476,7 +466,7 @@ def save_job(request):
         job_kwargs['comment'] = request.POST.get('comment', '')
         job_kwargs['absolute_url'] = 'http://' + request.get_host() + \
                                      reverse('jobs:job', args=[job_id])
-        updated_job = job_f.update_job(job_kwargs)
+        updated_job = update_job(job_kwargs)
         if isinstance(updated_job, Job):
             return JsonResponse({'status': 0, 'job_id': job.pk})
         else:
@@ -489,37 +479,18 @@ def save_job(request):
                 'status': 1,
                 'message': _('The job parent was not found')
             })
-        if not job_f.JobAccess(request.user).can_create():
+        if not JobAccess(request.user).can_create():
             return JsonResponse({
                 'status': 1,
                 'message': _("You don't have an access to create a new job")
             })
         job_kwargs['parent'] = parent
         job_kwargs['absolute_url'] = 'http://' + request.get_host()
-        newjob = job_f.create_job(job_kwargs)
+        newjob = create_job(job_kwargs)
         if isinstance(newjob, Job):
             return JsonResponse({'status': 0, 'job_id': newjob.pk})
         return JsonResponse({'status': 1, 'message': newjob + ''})
     return JsonResponse({'status': 1, 'message': _('Unknown error')})
-
-
-@login_required
-def remove_job(request):
-    if request.method != 'POST':
-        return JsonResponse({'status': 1, 'message': _('Unknown error')})
-
-    job_id = request.POST.get('job_id', None)
-    status = job_f.remove_jobs_by_id(request.user, [job_id])
-    if status == 404:
-        return JsonResponse({
-            'status': 1, 'message': _('The job was not found')
-        })
-    elif status == 400:
-        return JsonResponse({
-            'status': 1,
-            'message': _("You don't have an access to remove this job")
-        })
-    return JsonResponse({'status': 0})
 
 
 @login_required
@@ -528,19 +499,27 @@ def remove_jobs(request):
 
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
-    status = job_f.remove_jobs_by_id(request.user,
-                                     json.loads(request.POST.get('jobs', '[]')))
+    jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
+    status = remove_jobs_by_id(request.user, jobs_for_del)
     if status == 404:
+        if len(jobs_for_del) == 1:
+            return JsonResponse({
+                'status': 1, 'message': _('The job was not found')
+            })
         return JsonResponse({
             'status': 1,
-            'message': _('The job was not found')
+            'message': _('One of the selected jobs was not found')
         })
     elif status == 400:
+        if len(jobs_for_del) == 1:
+            return JsonResponse({
+                'status': 1,
+                'message': _("You don't have an access to remove this job")
+            })
         return JsonResponse({
             'status': 1,
-            'message':
-                _("You don't have an access to "
-                  "remove one of the selected jobs")
+            'message': _("You don't have an access to remove "
+                         "one of the selected jobs")
         })
     return JsonResponse({'status': 0})
 
@@ -559,7 +538,7 @@ def showjobdata(request):
     return render(request, 'jobs/showJob.html', {
         'job': job,
         'description': job.jobhistory_set.get(version=job.version).description,
-        'filedata': job_f.FileData(
+        'filedata': FileData(
             job.jobhistory_set.get(version=job.version)
         ).filedata
     })
@@ -620,7 +599,7 @@ def download_job(request, job_id):
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('jobs:error', args=[404]))
-    if not job_f.JobAccess(request.user, job).can_view():
+    if not JobAccess(request.user, job).can_view():
         return HttpResponseRedirect(reverse('jobs:error', args=[400]))
 
     back_url = quote(reverse('jobs:job', args=[job_id]))
@@ -629,7 +608,7 @@ def download_job(request, job_id):
         return HttpResponseRedirect(
             reverse('jobs:error', args=[451]) + "?back=%s" % back_url
         )
-    job_tar = job_f.JobArchive(job=job, hash_sum=hash_sum, full=True)
+    job_tar = JobArchive(job=job, hash_sum=hash_sum, full=True)
 
     if not job_tar.create_tar():
         return HttpResponseRedirect(
@@ -645,7 +624,7 @@ def download_job(request, job_id):
 
 @login_required
 def download_lock(request):
-    ziplock = job_f.JobArchive(user=request.user)
+    ziplock = JobArchive(user=request.user)
     status = ziplock.first_lock()
     response_data = {'status': status}
     if status:
@@ -665,7 +644,7 @@ def check_access(request):
                     'status': False,
                     'message': _('The job was not found')
                 })
-            if not job_f.JobAccess(request.user, job).can_view():
+            if not JobAccess(request.user, job).can_view():
                 return JsonResponse({
                     'status': False,
                     'message': _("You don't have an access to this job")
@@ -695,7 +674,7 @@ def upload_job(request, parent_id=None):
         parent = parents[0]
         failed_jobs = []
         for f in request.FILES.getlist('file'):
-            zipdata = job_f.ReadZipJob(parent, request.user, f)
+            zipdata = ReadZipJob(parent, request.user, f)
             if zipdata.err_message is not None:
                 failed_jobs.append([zipdata.err_message + '', f.name])
         if len(failed_jobs) > 0:
@@ -748,7 +727,7 @@ def psi_set_status(request):
                 job = Job.objects.get(identifier=identifier)
             except ObjectDoesNotExist:
                 return JsonResponse({'error': 304})
-            if job_f.JobAccess(request.user, job).can_download_for_deciding():
+            if JobAccess(request.user, job).can_download_for_deciding():
                 if status in [x[0] for x in JOB_STATUS]:
                     job.jobstatus.status = status
                     job.jobstatus.save()
@@ -783,15 +762,15 @@ def decide_job(request):
             'error': 'Job with the specified identifier "{0}" was not found'
             .format(request.POST['job id'])})
 
-    if not job_f.JobAccess(request.user, job).can_download_for_deciding():
+    if not JobAccess(request.user, job).can_download_for_deciding():
         return JsonResponse({
             'error': 'User "{0}" has not access to job "{1}"'.format(
                 request.user, job.identifier
             )
         })
 
-    job_tar = job_f.JobArchive(job=job, hash_sum=request.POST['hash sum'],
-                               user=request.user, full=False)
+    job_tar = JobArchive(job=job, hash_sum=request.POST['hash sum'],
+                         user=request.user, full=False)
     if not job_tar.create_tar():
         return JsonResponse({
             'error': 'Couldn not prepare archive for job "{0}"'.format(
@@ -832,7 +811,7 @@ def getfilecontent(request):
 @login_required
 def clear_all_files(request):
     if request.user.is_staff:
-        deleted = job_f.clear_files()
+        deleted = clear_files()
         for i in range(0, len(deleted)):
             deleted[i] = "<li>%s</li>" % deleted[i]
         if len(deleted) > 0:

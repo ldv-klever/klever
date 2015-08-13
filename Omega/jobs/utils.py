@@ -87,12 +87,13 @@ class JobAccess(object):
         self.__is_author = False
         self.__job_role = None
         self.__user_role = user.extended.role
+        self.__is_manager = (self.__user_role == USER_ROLES[2][0])
         self.__get_prop(user)
 
     def can_download_for_deciding(self):
         if self.job is None:
             return False
-        if self.__user_role == USER_ROLES[2][0] or self.__is_author:
+        if self.__is_manager or self.__is_author:
             return True
         if self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
             return True
@@ -101,7 +102,7 @@ class JobAccess(object):
     def can_view(self):
         if self.job is None:
             return False
-        if self.__user_role == USER_ROLES[2][0] or self.__is_author or \
+        if self.__is_manager or self.__is_author or \
            self.__job_role != JOB_ROLES[0][0]:
             return True
         return False
@@ -116,9 +117,9 @@ class JobAccess(object):
             status = self.job.jobstatus.status
         except ObjectDoesNotExist:
             return False
-        if status == JOB_STATUS[0][0] and \
-                (self.__is_author or self.__user_role == USER_ROLES[2][0]):
-                return True
+        if status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and \
+                (self.__is_author or self.__is_manager):
+            return True
         return False
 
     def can_delete(self):
@@ -126,13 +127,13 @@ class JobAccess(object):
             return False
         if len(self.job.children_set.all()) > 0:
             return False
-        if self.__user_role == USER_ROLES[2][0]:
+        if self.__is_manager:
             return True
         try:
             status = self.job.jobstatus.status
         except ObjectDoesNotExist:
             return False
-        if status in [js[0] for js in JOB_STATUS[1:4]]:
+        if status in [js[0] for js in JOB_STATUS[1:3]]:
             return False
         if self.__is_author:
             return True

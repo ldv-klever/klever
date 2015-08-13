@@ -10,24 +10,24 @@
         <div id="collapse" class="panel-collapse collapse" style="margin-left: 10px;">
             <div class="row">
                 <div class="col-sm-5">
-                    <label><input type="checkbox" id="checkbox__unsafes"{% if 'unsafes' in reportdata.view.data %} checked{% endif %}>{% trans 'Unsafes' %}</label><br>
-                    <label><input type="checkbox" id="checkbox__safes"{% if 'safes' in reportdata.view.data %} checked{% endif %}>{% trans 'Safes' %}</label><br>
-                    <label><input type="checkbox" id="checkbox__unknowns"{% if 'unknowns' in reportdata.view.data %} checked{% endif %}>{% trans 'Unknowns' %}</label><br>
+                    <label><input type="checkbox" id="job_filter_checkbox__unsafes"{% if 'unsafes' in reportdata.view.data %} checked{% endif %}>{% trans 'Unsafes' %}</label><br>
+                    <label><input type="checkbox" id="job_filter_checkbox__safes"{% if 'safes' in reportdata.view.data %} checked{% endif %}>{% trans 'Safes' %}</label><br>
+                    <label><input type="checkbox" id="job_filter_checkbox__unknowns"{% if 'unknowns' in reportdata.view.data %} checked{% endif %}>{% trans 'Unknowns' %}</label><br>
                 </div>
                 <div class="col-sm-5">
-                    <label><input type="checkbox" id="checkbox__resources"{% if 'resources' in reportdata.view.data %} checked{% endif %}>{% trans 'Resources' %}</label><br>
-                    <label><input type="checkbox" id="checkbox__tags_safe"{% if 'tags_safe' in reportdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Safe' %}</label><br>
-                    <label><input type="checkbox" id="checkbox__tags_unsafe"{% if 'tags_unsafe' in reportdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Unsafe' %}</label><br>
+                    <label><input type="checkbox" id="job_filter_checkbox__resources"{% if 'resources' in reportdata.view.data %} checked{% endif %}>{% trans 'Resources' %}</label><br>
+                    <label><input type="checkbox" id="job_filter_checkbox__tags_safe"{% if 'tags_safe' in reportdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Safe' %}</label><br>
+                    <label><input type="checkbox" id="job_filter_checkbox__tags_unsafe"{% if 'tags_unsafe' in reportdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Unsafe' %}</label><br>
                 </div>
             </div>
             <hr>
             <h4>{% trans 'Unknowns' %}</h4>
             <div class="row">
                 <div class="col-sm-7">
-                    <label><input type="checkbox" id="checkbox__unknowns_nomark"{% if reportdata.view.filters.unknowns_nomark.type == 'hide' %} checked{% endif %}>{% trans 'Hide problems without marks' %}</label><br>
+                    <label><input type="checkbox" id="job_filter_checkbox__unknowns_nomark"{% if reportdata.view.filters.unknowns_nomark.type == 'hide' %} checked{% endif %}>{% trans 'Hide problems without marks' %}</label><br>
                 </div>
                 <div class="col-sm-4">
-                    <label><input type="checkbox" id="checkbox__unknowns_total"{% if reportdata.view.filters.unknowns_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
+                    <label><input type="checkbox" id="job_filter_checkbox__unknowns_total"{% if reportdata.view.filters.unknowns_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
                 </div>
             </div>
             <div class="form-inline">
@@ -56,7 +56,7 @@
             </div>
             <hr>
             <h4>{% trans 'Resources' %}</h4>
-            <label><input type="checkbox" id="checkbox__resource_total"{% if reportdata.view.filters.resource_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
+            <label><input type="checkbox" id="job_filter_checkbox__resource_total"{% if reportdata.view.filters.resource_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
             <div class="form-inline">
                 <label for="filter__type__resource_component"><span>{% trans 'Component name' %}</span></label>
                 <br>
@@ -96,26 +96,7 @@
                 </label>
             </div>
             <hr>
-            <div class="form-inline">
-                <label><input id="jobview_view_name_input" type="text" class="form-control" placeholder="{% trans 'New view name' %}"></label>
-                <button id="jobview_save_view_btn" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
-                <button id="jobview_show_unsaved_view_btn" type="button" style="float: right;margin-right: 10px;" class="btn btn-primary">{% trans 'Show' %}</button>
-            </div>
-            <hr>
-            <label for="jobview_available_views"></label>
-            <select id="jobview_available_views" class="form-control" style="max-width: 200px;">
-                <option value="default">{% trans 'Default' %}</option>
-                {% for v in reportdata.views %}
-                    <option title="{{ v.name }}" value="{{ v.id }}"{% if reportdata.view_id == v.id %} selected{% endif %}>{{ v.name }}</option>
-                {% endfor %}
-            </select>
-            <br>
-            <div class="btn-group">
-                <button id="jobview_show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
-                <button id="jobview_update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
-                <button id="jobview_make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Make preferred' %}</button>
-                <button id="jobview_remove_view_btn" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
-            </div>
+            {% include 'viewButtons.html' with view_type='2' view_id=reportdata.view_id views=reportdata.views %}
             <br><br>
         </div>
     </div>
