@@ -7,7 +7,6 @@ import shutil
 import time
 import traceback
 
-import psi.components
 import psi.job
 import psi.session
 import psi.utils
