@@ -195,9 +195,11 @@ def _create_components_conf(comp):
             cpus_num = comp_param['CPUs num']
         elif 'mem size' in comp_param:
             mem_size = comp_param['mem size']
+        elif 'arch' in comp_param:
+            arch = comp_param['arch']
 
     components_conf.update(
-        {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size},
+        {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size, 'arch': arch},
          'job priority': _conf['job']['priority'],
          'abstract verification tasks gen priority': _conf['abstract verification tasks gen priority'],
          'parallelism': _conf['parallelism'],
