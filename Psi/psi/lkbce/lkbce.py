@@ -31,7 +31,8 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.logger.info('Extract Linux kernel atributes')
 
         self.logger.debug('Get Linux kernel version')
-        p = psi.components.Component(self.logger, ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'))
+        p = psi.components.Component(self.logger,
+                                     ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'))
         p.start()
         self.linux_kernel['version'] = p.stdout[0]
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))
@@ -44,6 +45,8 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.linux_kernel['conf shortcut'] = self.conf['Linux kernel']['conf']
         self.logger.debug('Linux kernel configuration shortcut is "{0}"'.format(self.linux_kernel['conf shortcut']))
 
+        self.linux_kernel['attrs'] = [
+            {'Linux kernel': [{'version': self.linux_kernel[attr]} for attr in ('version', 'arch', 'conf shortcut')]}]
 
     def fetch_linux_kernel_work_src_tree(self):
         self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
@@ -62,7 +65,8 @@ class PsiComponent(psi.components.PsiComponentBase):
         elif o[0]:
             raise ValueError('Linux kernel source code is provided in unsupported form "{0}"'.format(o[0]))
 
-        self.linux_kernel['src'] = psi.utils.find_file_or_dir(self.logger, self.conf['root id'], self.linux_kernel['src'])
+        self.linux_kernel['src'] = psi.utils.find_file_or_dir(self.logger, self.conf['root id'],
+                                                              self.linux_kernel['src'])
 
         if os.path.isdir(self.linux_kernel['src']):
             self.logger.debug('Linux kernel source code is provided in form of source tree')
