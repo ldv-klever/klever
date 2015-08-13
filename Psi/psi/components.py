@@ -180,6 +180,8 @@ class Component:
         self.logger = logger
         self.cmd = cmd
         self.timeout = timeout
+        self.stdout = []
+        self.stderr = []
 
     def start(self):
         self.logger.debug('Execute "{0}"'.format(self.cmd))
@@ -188,8 +190,9 @@ class Component:
 
         # Print to logs everything that is printed to STDOUT and STDERR each self.timeout seconds.
         while p.poll() is None:
-            for stream in (('STDOUT', p.stdout), ('STDERR', p.stderr)):
-                output = '\n'.join([line.decode('utf8').rstrip() for line in stream[1]])
+            for stream in (('STDOUT', p.stdout, self.stdout), ('STDERR', p.stderr, self.stderr)):
+                output = [line.decode('utf8').rstrip() for line in stream[1]]
+                stream[2].extend(output)
                 if output:
-                    self.logger.debug('"{0}" outputted to {1}:\n{2}'.format(self.cmd[0], stream[0], output))
+                    self.logger.debug('"{0}" outputted to {1}:\n{2}'.format(self.cmd[0], stream[0], '\n'.join(output)))
             time.sleep(self.timeout)

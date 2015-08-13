@@ -18,13 +18,26 @@ class PsiComponentCallbacks(psi.components.PsiComponentCallbacksBase):
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
         self.linux_kernel_work_src_tree = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
+        self.linux_kernel_version = None
+
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
         self.clean_linux_kernel_work_src_tree()
+        self.extract_linux_kernel_attrs()
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
         psi.components.Component(self.logger, ('make', '-C', self.linux_kernel_work_src_tree, 'mrproper')).start()
+
+    def extract_linux_kernel_attrs(self):
+        self.logger.info('Extract Linux kernel atributes')
+
+        self.logger.debug('Get Linux kernel version')
+        p = psi.components.Component(self.logger, ('make', '-s', '-C', self.linux_kernel_work_src_tree, 'kernelversion'))
+        p.start()
+        self.linux_kernel_version = p.stdout[0]
+        self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel_version))
+
 
     def fetch_linux_kernel_work_src_tree(self):
         self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel_work_src_tree))
