@@ -39,6 +39,10 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.linux_kernel_arch = self.conf['Linux kernel'].get('arch') or self.conf['sys']['arch']
         self.logger.debug('Linux kernel architecture is "{0}"'.format(self.linux_kernel_arch))
 
+        self.logger.debug('Get Linux kernel configuration shortcut')
+        self.linux_kernel_conf_shortcut = self.conf['Linux kernel']['conf']
+        self.logger.debug('Linux kernel configuration shortcut is "{0}"'.format(self.linux_kernel_conf_shortcut))
+
 
     def fetch_linux_kernel_work_src_tree(self):
         self.linux_kernel_work_src_tree = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
