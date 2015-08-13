@@ -22,10 +22,21 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.make_canonical_linux_kernel_work_src_tree()
         self.clean_linux_kernel_work_src_tree()
         self.extract_linux_kernel_attrs()
+        self.configure_linux_kernel()
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
         psi.components.Component(self.logger, ('make', '-C', self.linux_kernel['work src tree'], 'mrproper')).start()
+
+    def configure_linux_kernel(self):
+        self.logger.info('Configure Linux kernel')
+        if self.conf['Linux kernel'].get('conf'):
+            psi.components.Component(self.logger,
+                                     ('make', '-C', self.linux_kernel['work src tree'],
+                                      'ARCH={0}'.format(self.linux_kernel['arch']),
+                                      self.conf['Linux kernel']['conf'])).start()
+        else:
+            raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
     def extract_linux_kernel_attrs(self):
         self.logger.info('Extract Linux kernel atributes')
