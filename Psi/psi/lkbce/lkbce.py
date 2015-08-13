@@ -18,7 +18,7 @@ class PsiComponentCallbacks(psi.components.PsiComponentCallbacksBase):
 
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
-        self.linux_kernel_work_src_tree = os.path.join(self.conf['root id'], 'linux')
+        self.linux_kernel_work_src_tree = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
         self.clean_linux_kernel_work_src_tree()
@@ -39,7 +39,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         #         self.logger.debug(line.decode('utf8').rstrip())
 
     def fetch_linux_kernel_work_src_tree(self):
-        self.logger.info('Fetch Linux kernel working source tree to "linux"')
+        self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel_work_src_tree))
 
         linux_kernel_src = self.conf['Linux kernel']['src']
 
