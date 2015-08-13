@@ -2,7 +2,6 @@
 
 import os
 import shutil
-import subprocess
 import tarfile
 import urllib.parse
 
@@ -25,18 +24,7 @@ class PsiComponent(psi.components.PsiComponentBase):
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
-
-        # cmd = ('make', '-C', self.linux_kernel_work_src_tree, 'mrproper')
-        # self.logger.debug('"{0}" outputs:'.format(cmd))
-        # p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # while not p.poll():
-        #     import time
-        #     time.sleep(1)
-        #     self.logger.debug('One more second...')
-        #     for line in p.stdout:
-        #         self.logger.debug(line.decode('utf8').rstrip())
-        #     for line in p.stderr:
-        #         self.logger.debug(line.decode('utf8').rstrip())
+        psi.components.Component(self.logger, ('make', '-C', self.linux_kernel_work_src_tree, 'mrproper')).start()
 
     def fetch_linux_kernel_work_src_tree(self):
         self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel_work_src_tree))

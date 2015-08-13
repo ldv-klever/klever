@@ -2,6 +2,7 @@ import io
 import multiprocessing
 import os
 import signal
+import subprocess
 import sys
 import time
 import traceback
@@ -170,3 +171,25 @@ class PsiComponentBase(_PsiComponentBase):
         if signum:
             signal.signal(signal.SIGTERM, signal.SIG_DFL)
             os.kill(self.pid, signal.SIGTERM)
+
+
+# TODO: it is necessary to disable simultaneous execution of several components since their outputs and consumed resources will be intermixed.
+# TODO: count resources consumed by the component and either create a component start and finish report with these resoruces or "add" them to parent resources.
+class Component:
+    def __init__(self, logger, cmd, timeout=0.5):
+        self.logger = logger
+        self.cmd = cmd
+        self.timeout = timeout
+
+    def start(self):
+        self.logger.debug('Execute "{0}"'.format(self.cmd))
+
+        p = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        # Print to logs everything that is printed to STDOUT and STDERR each self.timeout seconds.
+        while p.poll() is None:
+            for stream in (('STDOUT', p.stdout), ('STDERR', p.stderr)):
+                output = '\n'.join([line.decode('utf8').rstrip() for line in stream[1]])
+                if output:
+                    self.logger.debug('"{0}" outputted to {1}:\n{2}'.format(self.cmd[0], stream[0], output))
+            time.sleep(self.timeout)
