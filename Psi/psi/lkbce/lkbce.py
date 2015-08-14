@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import re
 import shutil
 import tarfile
 import urllib.parse
@@ -27,21 +28,34 @@ class PsiComponent(psi.components.PsiComponentBase):
 
     def build_linux_kernel(self):
         self.logger.info('Build Linux kernel')
+
+        # First of all collect all build commands to be executed.
+        cmds = []
         if 'whole build' in self.conf['Linux kernel']:
-            pass
+            cmds.append(('modules',))
         elif 'modules' in self.conf['Linux kernel']:
             # TODO: check that module sets aren't intersect explicitly.
             for modules in self.conf['Linux kernel']['modules']:
-                psi.components.Component(self.logger,
-                                         ('make', '-j',
-                                          psi.utils.get_parallel_threads_num(self.logger, self.conf,
-                                                                             'Linux kernel build'),
-                                          '-C', self.linux_kernel['work src tree'],
-                                          'ARCH={0}'.format(self.linux_kernel['arch']),
-                                          modules)).start()
+                if re.search(r'\.ko$', modules):
+                    cmds.append((modules,))
+                else:
+                    # Add "modules_prepare" target once.
+                    if cmds:
+                        if cmds[0] != 'modules_prepare':
+                            cmds.insert(0, 'modules_prepare')
+                    cmds.append(('M={0}'.format(modules), 'modules'))
         else:
             raise KeyError(
                 'Neither "whole build" nor "modules" attribute of Linux kernel is specified in configuration')
+
+        for cmd in cmds:
+            psi.components.Component(self.logger,
+                                     tuple(['make', '-j',
+                                            psi.utils.get_parallel_threads_num(self.logger,
+                                                                               self.conf,
+                                                                               'Linux kernel build'),
+                                            '-C', self.linux_kernel['work src tree'],
+                                            'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd))).start()
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')

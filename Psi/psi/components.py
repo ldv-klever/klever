@@ -184,13 +184,14 @@ class Component:
         self.stderr = []
 
     def start(self):
-        self.logger.debug('Execute "{0}"'.format(self.cmd))
+        self.logger.info('Execute "{0}"'.format(self.cmd))
 
         p = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # Print to logs everything that is printed to STDOUT and STDERR each self.timeout seconds.
         while p.poll() is None:
             for stream in (('STDOUT', p.stdout, self.stdout), ('STDERR', p.stderr, self.stderr)):
+                # TODO: this blocks untill the end of command!
                 output = [line.decode('utf8').rstrip() for line in stream[1]]
                 stream[2].extend(output)
                 if output:
