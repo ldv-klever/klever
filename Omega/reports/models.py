@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from jobs.models import ReportRoot
+from Omega.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
 
 
 class AttrName(models.Model):
@@ -78,6 +79,8 @@ class ReportComponent(Report):
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
     error_trace_processed = models.BinaryField()
+    verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS,
+                               default='5')
 
     class Meta:
         db_table = 'report_unsafe'
@@ -85,6 +88,8 @@ class ReportUnsafe(Report):
 
 class ReportSafe(Report):
     proof = models.BinaryField()
+    verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS,
+                               default='4')
 
     class Meta:
         db_table = 'report_safe'

@@ -1,0 +1,79 @@
+{% extends 'marks/base.html' %}
+
+{% load i18n %}
+
+{% block body_block %}
+    <form autocomplete="off" onsubmit="return false">
+        <input id="report_pk" type="hidden" value="{{ report_pk }}">
+        <input id="report_type" type="hidden" value="{{ type }}">
+        <div style="overflow-x: auto">
+            <table class="table table-bordered">
+                <thead>
+                    {% for column_row in AttrTable.table_data.header %}
+                        <tr class="info">
+                        {% for coldata in column_row %}
+                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">
+                                {{ coldata.column }}</th>
+                        {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </thead>
+                <tbody>
+                <tr>
+                    {% for v in AttrTable.table_data.values %}
+                        <td>
+                            <label class="text-nowrap"><input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}> {{ v.1 }}</label>
+                        </td>
+                    {%  endfor %}
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-sm-4">
+                <label for="convert_function">{% trans 'Convert function' %}</label>
+                <select id="convert_function" class="form-control">
+                    {% for f in markdata.convertion %}
+                        <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <p class="omega-text" style="margin: 0">{{ markdata.convert_desc }}</p>
+            </div>
+            <div class="col-sm-4">
+                <label for="compare_function">{% trans 'Compare trace function' %}</label>
+                <select id="compare_function" class="form-control">
+                    {% for f in markdata.comparison %}
+                        <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <p class="omega-text" style="margin: 0">{{ markdata.compare_desc }}</p>
+            </div>
+            <div class="col-sm-4">
+                <h4>{% trans 'Verdict' %}:</h4>
+                <div style="margin-left: 25px">
+                    {% for v in markdata.verdicts %}
+                        <input id="selected_verdict__{{ v.value }}" type="radio" name="selected_verdict" value="{{ v.value }}"{% if v.checked %} checked{% endif %}>
+                        <label for="selected_verdict__{{ v.value }}" style="color: {{ v.color }}">{{ v.title }}</label>
+                        <br>
+                    {% endfor %}
+                </div>
+                <hr>
+                <h4>{% trans 'Status' %}:</h4>
+                <div style="margin-left: 25px">
+                    {% for s in markdata.statuses %}
+                        <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
+                        <label for="selected_status__{{ s.value }}" style="color: {{ s.color }}">{{ s.title }}</label>
+                        <br>
+                    {% endfor %}
+                </div>
+                <hr>
+                <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Modifiable' %}</label><br>
+                <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
+                <a href="{% url 'reports:leaf' type report_pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
+            </div>
+        </div>
+    </form>
+{% endblock %}

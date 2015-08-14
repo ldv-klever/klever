@@ -76,6 +76,7 @@ class ReportTable(object):
         self.report = report
         self.user = user
         self.type = table_type
+        self.columns = []
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
         self.table_data = self.__get_table_data()
@@ -199,11 +200,13 @@ class ReportTable(object):
             '6': self.__unknowns_attrs,
         }
         if self.type in actions:
-            columns, values = actions[self.type]()
+            self.columns, values = actions[self.type]()
         else:
             return {}
-        header = self.Header(columns).head_struct(self.type)
-        return {'header': header, 'values': values}
+        return {
+            'header': self.Header(self.columns).head_struct(self.type),
+            'values': values
+        }
 
     def __self_attrs(self):
         columns = []
