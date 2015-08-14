@@ -173,6 +173,10 @@ class PsiComponentBase(_PsiComponentBase):
             os.kill(self.pid, signal.SIGTERM)
 
 
+
+class ComponentError(ChildProcessError):
+    pass
+
 # TODO: it is necessary to disable simultaneous execution of several components since their outputs and consumed resources will be intermixed.
 # TODO: count resources consumed by the component and either create a component start and finish report with these resoruces or "add" them to parent resources.
 class Component:
@@ -197,3 +201,7 @@ class Component:
                 if output:
                     self.logger.debug('"{0}" outputted to {1}:\n{2}'.format(self.cmd[0], stream[0], '\n'.join(output)))
             time.sleep(self.timeout)
+
+        if p.poll():
+            self.logger.error('"{0}" exitted with "{1}"'.format(self.cmd[0], p.poll()))
+            raise ComponentError('"{0}" failed'.format(self.cmd[0]))
