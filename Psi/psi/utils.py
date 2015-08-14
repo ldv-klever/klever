@@ -51,7 +51,8 @@ def dump_report(logger, kind, report):
 
 
 def find_file_or_dir(logger, root_id, file_or_dir):
-    search_dirs = (os.path.relpath(os.path.join(root_id, search_dir)) for search_dir in ('job/root', os.path.pardir))
+    search_dirs = tuple(
+        os.path.relpath(os.path.join(root_id, search_dir)) for search_dir in ('job/root', os.path.pardir))
 
     for search_dir in search_dirs:
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
