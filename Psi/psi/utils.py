@@ -102,11 +102,22 @@ def get_entity_val(logger, name, cmd):
     :param cmd: a command to be executed to get an entity value.
     """
     logger.info('Get {0}'.format(name))
+
     val = subprocess.getoutput(cmd)
+
     if not val:
         raise ValueError('Could not get {0}'.format(name))
+
+    # Convert obtained value to integer if it is represented so.
+    try:
+        int(val)
+        val = int(val)
+    except ValueError:
+        pass
+
     # TODO: str.capitalize() capilalizes a first symbol and makes all other symbols lower.
     logger.debug('{0} is "{1}"'.format(name.capitalize(), val))
+
     return val
 
 
