@@ -34,8 +34,8 @@ class PsiComponent(psi.components.PsiComponentBase):
             for modules in self.conf['Linux kernel']['modules']:
                 psi.components.Component(self.logger,
                                          ('make', '-j',
-                                          # TODO: implement obtaining of the number of parallel threads more properly.
-                                          str(int(float(self.conf['sys']['CPUs num']) * self.conf['parallelism']['Linux kernel build'])),
+                                          psi.utils.get_parallel_threads_num(self.logger, self.conf,
+                                                                             'Linux kernel build'),
                                           '-C', self.linux_kernel['work src tree'],
                                           'ARCH={0}'.format(self.linux_kernel['arch']),
                                           modules)).start()

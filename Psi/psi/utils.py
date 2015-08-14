@@ -187,3 +187,34 @@ def get_logger(name, conf):
     logger.debug("Logger was set up")
 
     return logger
+
+
+def get_parallel_threads_num(logger, conf, action):
+    logger.info('Get the number of parallel threads for "{0}"'.format(action))
+
+    raw_parallel_threads_num = conf['parallelism'][action]
+
+    # In case of integer number it is already the number of parallel threads.
+    if isinstance(raw_parallel_threads_num, int):
+        parallel_threads_num = raw_parallel_threads_num
+    # In case of decimal number it is fraction of the number of CPUs.
+    elif isinstance(raw_parallel_threads_num, float):
+        parallel_threads_num = conf['sys']['CPUs num'] * raw_parallel_threads_num
+    else:
+        raise ValueError(
+            'The number of parallel threads ("{0}") for "{1}" is neither integer nor decimal number'.format(
+                raw_parallel_threads_num, action))
+
+    parallel_threads_num = int(parallel_threads_num)
+
+    if parallel_threads_num < 1:
+        raise ValueError('The computed number of parallel threads ("{0}") for "{1}" is less than 1'.format(
+            parallel_threads_num, action))
+    elif parallel_threads_num > 2 * conf['sys']['CPUs num']:
+        raise ValueError(
+            'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'.format(
+                parallel_threads_num, action))
+
+    logger.debug('The number of parallel threads for "{0}" is "{1}"'.format(action, parallel_threads_num))
+
+    return str(parallel_threads_num)
