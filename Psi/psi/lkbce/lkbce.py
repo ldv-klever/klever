@@ -114,7 +114,10 @@ class PsiComponent(psi.components.PsiComponentBase):
 
         if os.path.isdir(self.linux_kernel['src']):
             self.logger.debug('Linux kernel source code is provided in form of source tree')
-            shutil.copytree(self.linux_kernel['src'], self.linux_kernel['work src tree'])
+            if self.conf['allow local source directories use']:
+                os.symlink(os.path.abspath(self.linux_kernel['src']), self.linux_kernel['work src tree'])
+            else:
+                shutil.copytree(self.linux_kernel['src'], self.linux_kernel['work src tree'])
         elif os.path.isfile(self.linux_kernel['src']):
             self.logger.debug('Linux kernel source code is provided in form of archive')
             with tarfile.open(self.linux_kernel['src']) as TarFile:
