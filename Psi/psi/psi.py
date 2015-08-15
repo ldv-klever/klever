@@ -150,7 +150,7 @@ def launch():
                     reports_mq.put(finish_report_file)
 
             _logger.info('Send terminator to reports message queue')
-            reports_mq.put('__terminator__')
+            reports_mq.put(None)
 
             _logger.info('Wait for uploading all reports')
             reports_p.join()
@@ -313,7 +313,7 @@ def _send_reports(session, reports_mq):
     try:
         while True:
             m = reports_mq.get()
-            if m == '__terminator__':
+            if m is None:
                 _logger.debug('Report messages queue was terminated')
                 break
             _logger.debug('Upload report "{0}"'.format(m))
