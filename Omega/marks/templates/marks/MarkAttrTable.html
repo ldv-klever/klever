@@ -1,0 +1,21 @@
+<table class="table table-bordered">
+    <thead>
+        {% for column_row in data.header %}
+            <tr class="info">
+            {% for coldata in column_row %}
+                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">
+                    {{ coldata.column }}</th>
+            {% endfor %}
+            </tr>
+        {% endfor %}
+    </thead>
+    <tbody>
+    <tr>
+        {% for v in data.values %}
+            <td>
+                <label class="text-nowrap"><input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}> {{ v.1 }}</label>
+            </td>
+        {%  endfor %}
+    </tr>
+    </tbody>
+</table>

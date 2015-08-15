@@ -64,7 +64,7 @@ def update_attrs(report_attrs, ids):
 
 
 session.decide_job(
-    psi.job.Job(logger, '83fa7212cdf1e35109be10eb4c57fe58'),
+    psi.job.Job(logger, '299cbb45fe89735c374ec5045337e44c'),
     psi.utils.dump_report(logger, 'Psi', 'start', {
         'id': '/', 'attrs': [{'psi version': '2634add-dirty'}], 'comp': comp
     })

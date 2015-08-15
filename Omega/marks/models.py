@@ -11,6 +11,9 @@ class MarkUnsafeConvert(models.Model):
     description = models.CharField(max_length=255)
     body = models.TextField()
 
+    def __str__(self):
+        return self.name
+
 
 class MarkUnsafeCompare(models.Model):
     name = models.CharField(max_length=31)
@@ -18,10 +21,16 @@ class MarkUnsafeCompare(models.Model):
     body = models.TextField()
     hash_sum = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.name
+
 
 class MarkDefaultFunctions(models.Model):
     convert = models.OneToOneField(MarkUnsafeConvert)
     compare = models.OneToOneField(MarkUnsafeCompare)
+
+    def __str__(self):
+        return "Default functions"
 
 
 # Abstract tables
@@ -60,7 +69,7 @@ class MarkSafe(Mark):
     verdict = models.CharField(max_length=1, choices=MARK_SAFE, default='0')
 
 
-class MarkSafeHistory(models.Model):
+class MarkSafeHistory(MarkHistory):
     mark = models.ForeignKey(MarkSafe)
     verdict = models.CharField(max_length=1, choices=MARK_SAFE)
 
@@ -86,7 +95,7 @@ class MarkUnsafe(Mark):
     error_trace = models.BinaryField(null=True)
 
 
-class MarkUnsafeHistory(models.Model):
+class MarkUnsafeHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnsafe)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
     function = models.ForeignKey(MarkUnsafeCompare)

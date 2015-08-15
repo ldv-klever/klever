@@ -71,11 +71,12 @@ def report_resources(report, user):
 class ReportTable(object):
 
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
-                 component_id=None):
+                 component_id=None, verdict=None):
         self.component_id = component_id
         self.report = report
         self.user = user
         self.type = table_type
+        self.verdict = verdict
         self.columns = []
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
@@ -276,9 +277,11 @@ class ReportTable(object):
 
         data = {}
         report_ids = []
+        leaf_filter = {'report': self.report}
+        if self.verdict is not None:
+            leaf_filter[list_types[self.type] + '__verdict'] = self.verdict
         for leaf in ReportComponentLeaf.objects.filter(
-                Q(report=self.report) & ~Q(
-                    **{list_types[self.type]: None})):
+                Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
             report = getattr(leaf, list_types[self.type])
             for attr in report.attr.all():
                 if attr.name.name not in data:

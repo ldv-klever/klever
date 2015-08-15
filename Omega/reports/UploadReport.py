@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from reports.models import *
 from reports.utils import save_attrs
+from marks.utils import ConnectMarks
 
 
 class UploadReport(object):
@@ -390,7 +391,7 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
-
+        ConnectMarks(report)
         return report
 
     def __add_attrs(self, report):

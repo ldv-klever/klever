@@ -114,10 +114,6 @@ input[type=checkbox] {
     color: silver;
 }
 
-.job-subtitle {
-    color: #73b284;
-}
-
 .modal-loading {
     display: none;
     position: fixed;

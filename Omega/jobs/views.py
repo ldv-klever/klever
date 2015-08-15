@@ -692,7 +692,7 @@ def upload_job(request, parent_id=None):
     })
 
 
-def job_error(request, err_code=0):
+def job_error(request, err_code=0, user_message=None):
     err_code = int(err_code)
     message = _('Unknown error')
     back = None
@@ -713,6 +713,10 @@ def job_error(request, err_code=0):
         message = _('The report was not found')
     elif err_code == 444:
         message = _("The page was not found")
+    elif err_code == 604:
+        message = _("The mark was not found")
+    if isinstance(user_message, str):
+        message = user_message
     return render(request, 'error.html', {'message': message, 'back': back})
 
 

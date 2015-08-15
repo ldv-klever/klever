@@ -50,8 +50,8 @@ p.omega-text {
     white-space: pre-wrap;
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #669ad1;
-    margin: 10px;
     padding: 5px;
     border-radius: 5px;
 }
@@ -73,8 +73,9 @@ p.omega-text {
 
 .error-trace-content {
     white-space: pre-wrap;
-    max-height: 700px;
+    max-height: 800px;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #feae08;
     margin: 10px;
     padding: 5px;
@@ -85,6 +86,7 @@ p.omega-text {
     white-space: pre-wrap;
     max-height: 700px;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #7efe7f;
     margin: 10px;
     padding: 5px;
@@ -95,6 +97,7 @@ p.omega-text {
     white-space: pre-wrap;
     max-height: 700px;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #fe0018;
     margin: 10px;
     padding: 5px;
@@ -139,4 +142,8 @@ body.file-view {
     position: absolute;
     right: 20%;
     top: 6%;
+}
+
+.green-subtitle {
+    color: #73b284;
 }

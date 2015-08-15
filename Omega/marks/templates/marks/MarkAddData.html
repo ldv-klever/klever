@@ -1,0 +1,31 @@
+{% load i18n %}
+
+<div class="col-sm-6">
+    <label for="compare_function">{% trans 'Compare trace function' %}</label>
+    <select id="compare_function" class="form-control">
+        {% for f in markdata.comparison %}
+            <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    <p id="compare_function_description" class="omega-text">{{ markdata.compare_desc }}</p>
+</div>
+<div class="col-sm-6">
+    <h4>{% trans 'Verdict' %}:</h4>
+    <div style="margin-left: 25px">
+        {% for v in markdata.verdicts %}
+            <input id="selected_verdict__{{ v.value }}" type="radio" name="selected_verdict" value="{{ v.value }}"{% if v.checked %} checked{% endif %}>
+            <label for="selected_verdict__{{ v.value }}" style="color: {{ v.color }}">{{ v.title }}</label>
+            <br>
+        {% endfor %}
+    </div>
+    <hr>
+    <h4>{% trans 'Status' %}:</h4>
+    <div style="margin-left: 25px">
+        {% for s in markdata.statuses %}
+            <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
+            <label for="selected_status__{{ s.value }}" style="color: {{ s.color }}">{{ s.title }}</label>
+            <br>
+        {% endfor %}
+    </div>
+</div>

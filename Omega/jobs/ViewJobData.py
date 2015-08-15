@@ -224,17 +224,27 @@ class ViewJobData(object):
             if s == 'missed_bug':
                 val = verdicts.safe_missed_bug
                 color = COLORS['red']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'safes', '2'])
             elif s == 'incorrect':
                 val = verdicts.safe_incorrect_proof
                 color = COLORS['orange']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'safes', '1'])
             elif s == 'unknown':
                 val = verdicts.safe_unknown
                 color = COLORS['purple']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'safes', '0'])
             elif s == 'inconclusive':
                 val = verdicts.safe_inconclusive
                 color = COLORS['red']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'safes', '3'])
             elif s == 'unassociated':
                 val = verdicts.safe_unassociated
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'safes', '4'])
             elif s == 'total':
                 val = verdicts.safe
                 href = reverse('reports:list',
@@ -263,20 +273,32 @@ class ViewJobData(object):
             if s == 'bug':
                 val = verdicts.unsafe_bug
                 color = COLORS['red']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'unsafes', '1'])
             elif s == 'target_bug':
                 val = verdicts.unsafe_target_bug
                 color = COLORS['red']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'unsafes', '2'])
             elif s == 'false_positive':
                 val = verdicts.unsafe_false_positive
                 color = COLORS['orange']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'unsafes', '3'])
             elif s == 'unknown':
                 val = verdicts.unsafe_unknown
                 color = COLORS['purple']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'unsafes', '0'])
             elif s == 'inconclusive':
                 val = verdicts.unsafe_inconclusive
                 color = COLORS['red']
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'unsafes', '4'])
             elif s == 'unassociated':
                 val = verdicts.unsafe_unassociated
+                href = reverse('reports:list_verdict',
+                               args=[self.report.pk, 'unsafes', '5'])
             elif s == 'total':
                 val = verdicts.unsafe
                 href = reverse('reports:list',

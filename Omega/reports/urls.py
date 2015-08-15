@@ -9,6 +9,10 @@ urlpatterns = [
     url('^logcontent/(?P<report_id>[0-9]+)/$', views.get_log_content),
     url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes|unknowns)/$',
         views.report_list, name='list'),
+
+    url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes)/'
+        r'(?P<verdict>[0-9])/$', views.report_list, name='list_verdict'),
+
     url(r'^(?P<leaf_type>unsafe|safe|unknown)/(?P<report_id>[0-9]+)/$',
         views.report_leaf, name='leaf'),
     url(r'^component/(?P<report_id>[0-9]+)/unknowns/(?P<component_id>[0-9]+)/$',

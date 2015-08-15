@@ -42,9 +42,18 @@
                     <ul class="nav navbar-nav">
                         {% if user.is_authenticated %}
                             <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
+                            <li class="dropdown">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                    {% trans 'Marks' %} <span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="{% url 'marks:mark_list' 'unsafe' %}">{% trans 'Unsafes' %}</a></li>
+                                    <li><a href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a></li>
+                                    <li><a href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a></li>
+                                </ul>
+                            </li>
+                            {% if user.is_staff %}<li><a href="/admin/">{% trans 'Admin Tools' %}</a></li>{% endif %}
                         {% endif %}
-                        {% if user.is_staff %}<li><a href="/admin/">{% trans 'Admin Tools' %}</a></li>{% endif %}
-                        {% block navbar_block %}{% endblock %}
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
                         {% if user.is_authenticated %}

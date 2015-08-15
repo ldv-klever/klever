@@ -7,27 +7,7 @@
         <input id="report_pk" type="hidden" value="{{ report_pk }}">
         <input id="report_type" type="hidden" value="{{ type }}">
         <div style="overflow-x: auto">
-            <table class="table table-bordered">
-                <thead>
-                    {% for column_row in AttrTable.table_data.header %}
-                        <tr class="info">
-                        {% for coldata in column_row %}
-                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">
-                                {{ coldata.column }}</th>
-                        {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </thead>
-                <tbody>
-                <tr>
-                    {% for v in AttrTable.table_data.values %}
-                        <td>
-                            <label class="text-nowrap"><input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}> {{ v.1 }}</label>
-                        </td>
-                    {%  endfor %}
-                </tr>
-                </tbody>
-            </table>
+            {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
         </div>
         <hr>
         <div class="row">
@@ -39,7 +19,7 @@
                     {% endfor %}
                 </select>
                 <br>
-                <p class="omega-text" style="margin: 0">{{ markdata.convert_desc }}</p>
+                <p id="convert_function_description" class="omega-text" style="margin: 0">{{ markdata.convert_desc }}</p>
             </div>
             <div class="col-sm-4">
                 <label for="compare_function">{% trans 'Compare trace function' %}</label>
@@ -49,7 +29,7 @@
                     {% endfor %}
                 </select>
                 <br>
-                <p class="omega-text" style="margin: 0">{{ markdata.compare_desc }}</p>
+                <p id="compare_function_description" class="omega-text" style="margin: 0">{{ markdata.compare_desc }}</p>
             </div>
             <div class="col-sm-4">
                 <h4>{% trans 'Verdict' %}:</h4>

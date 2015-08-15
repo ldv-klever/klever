@@ -6,6 +6,7 @@ from django.utils.translation import activate
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from jobs.models import Job
+from marks.utils import ReportMarkTable
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
@@ -74,7 +75,7 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-def report_list(request, report_id, ltype, component_id=None):
+def report_list(request, report_id, ltype, component_id=None, verdict=None):
     activate(request.user.extended.language)
 
     try:
@@ -97,7 +98,7 @@ def report_list(request, report_id, ltype, component_id=None):
             report_attrs_data.append(request.POST.get('view_id', None))
 
     list_data = ReportTable(*report_attrs_data, table_type=list_types[ltype],
-                            component_id=component_id)
+                            component_id=component_id, verdict=verdict)
     return render(
         request,
         'reports/report_list.html',
@@ -110,6 +111,11 @@ def report_list(request, report_id, ltype, component_id=None):
             'view_type': list_types[ltype],
         }
     )
+
+
+@login_required
+def report_list_by_verdict(request, report_id, ltype, verdict):
+    return report_list(request, report_id, ltype, verdict)
 
 
 @login_required
@@ -147,6 +153,7 @@ def report_leaf(request, leaf_type, report_id):
             'report': report,
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
+            'MarkTable': ReportMarkTable(report)
         }
     )
 
