@@ -76,7 +76,7 @@ class PsiComponent(psi.components.PsiComponentBase):
 
         self.logger.debug('Get Linux kernel version')
         p = psi.components.Component(self.logger,
-                                     ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'))
+                                     ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'), collect_all_stdout=True)
         p.start()
         self.linux_kernel['version'] = p.stdout[0]
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))

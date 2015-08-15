@@ -5,7 +5,9 @@ import signal
 import subprocess
 import sys
 import time
+import threading
 import traceback
+import queue
 
 import psi.utils
 
@@ -173,17 +175,18 @@ class PsiComponentBase(_PsiComponentBase):
             os.kill(self.pid, signal.SIGTERM)
 
 
-
 class ComponentError(ChildProcessError):
     pass
+
 
 # TODO: it is necessary to disable simultaneous execution of several components since their outputs and consumed resources will be intermixed.
 # TODO: count resources consumed by the component and either create a component start and finish report with these resoruces or "add" them to parent resources.
 class Component:
-    def __init__(self, logger, cmd, timeout=0.5):
+    def __init__(self, logger, cmd, timeout=0.5, collect_all_stdout=False):
         self.logger = logger
         self.cmd = cmd
         self.timeout = timeout
+        self.collect_all_stdout = collect_all_stdout
         self.stdout = []
         self.stderr = []
 
@@ -192,16 +195,69 @@ class Component:
 
         p = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+        out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', self.collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
+
+        for stream_q in (out_q, err_q):
+            stream_q.start()
+
         # Print to logs everything that is printed to STDOUT and STDERR each self.timeout seconds.
-        while p.poll() is None:
-            for stream in (('STDOUT', p.stdout, self.stdout), ('STDERR', p.stderr, self.stderr)):
-                # TODO: this blocks untill the end of command!
-                output = [line.decode('utf8').rstrip() for line in stream[1]]
-                stream[2].extend(output)
-                if output:
-                    self.logger.debug('"{0}" outputted to {1}:\n{2}'.format(self.cmd[0], stream[0], '\n'.join(output)))
+        while not out_q.finished or not err_q.finished:
             time.sleep(self.timeout)
+
+            for stream_q in (out_q, err_q):
+                output = []
+                while True:
+                    line = stream_q.get()
+                    if line is None:
+                        break
+                    output.append(line)
+                if output:
+                    self.logger.debug(
+                        '"{0}" outputted to {1}:\n{2}'.format(self.cmd[0], stream_q.stream_name, '\n'.join(output)))
+
+        if self.collect_all_stdout:
+            self.stdout = out_q.output
+
+        self.stderr = err_q.output
+
+        for stream_q in (out_q, err_q):
+            stream_q.join()
 
         if p.poll():
             self.logger.error('"{0}" exitted with "{1}"'.format(self.cmd[0], p.poll()))
             raise ComponentError('"{0}" failed'.format(self.cmd[0]))
+
+
+class StreamQueue:
+    def __init__(self, stream, stream_name, collect_all_output=False):
+        self.stream = stream
+        self.stream_name = stream_name
+        self.collect_all_output = collect_all_output
+        self.queue = queue.Queue()
+        self.finished = False
+        self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
+        self.output = []
+
+    def get(self):
+        try:
+            return self.queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def join(self):
+        self.thread.join()
+
+    def start(self):
+        self.thread.start()
+
+    def __put_lines_from_stream_to_queue(self):
+        # This will put lines from stream to queue until stream will be closed. For instance it will happen when
+        # execution of command will be completed.
+        for line in self.stream:
+            line = line.decode('utf8').rstrip()
+            self.queue.put(line)
+            if self.collect_all_output:
+                self.output.append(line)
+
+        # Nothing will be put to queue from now.
+        self.finished = True
