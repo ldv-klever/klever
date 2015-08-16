@@ -24,6 +24,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.clean_linux_kernel_work_src_tree()
         self.extract_linux_kernel_attrs()
         self.configure_linux_kernel()
+        self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
         self.build_linux_kernel()
 
     def build_linux_kernel(self):
@@ -58,7 +59,9 @@ class PsiComponent(psi.components.PsiComponentBase):
                                             'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd)),
                                      env=dict(os.environ,
                                               PATH='{0}:{1}'.format(os.path.join(os.path.dirname(__file__), 'cmds'),
-                                                                    os.environ['PATH']))).start()
+                                                                    os.environ['PATH']),
+                                              LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
+                                                  self.linux_kernel['raw build cmds file']))).start()
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
