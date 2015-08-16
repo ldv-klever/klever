@@ -182,9 +182,10 @@ class ComponentError(ChildProcessError):
 # TODO: it is necessary to disable simultaneous execution of several components since their outputs and consumed resources will be intermixed.
 # TODO: count resources consumed by the component and either create a component start and finish report with these resoruces or "add" them to parent resources.
 class Component:
-    def __init__(self, logger, cmd, timeout=0.5, collect_all_stdout=False):
+    def __init__(self, logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
         self.logger = logger
         self.cmd = cmd
+        self.env = env
         self.timeout = timeout
         self.collect_all_stdout = collect_all_stdout
         self.stdout = []
@@ -193,7 +194,7 @@ class Component:
     def start(self):
         self.logger.info('Execute "{0}"'.format(self.cmd))
 
-        p = subprocess.Popen(self.cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(self.cmd, env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', self.collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
 
