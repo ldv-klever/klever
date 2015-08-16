@@ -86,7 +86,7 @@
                 {% for column_row in SelfAttrsData.header %}
                     <tr class="info">
                     {% for coldata in column_row %}
-                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
+                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                     {% endfor %}
                     </tr>
                 {% endfor %}
@@ -128,7 +128,7 @@
                     {% for column_row in ChildrenAttrsData.header %}
                         <tr class="info">
                         {% for coldata in column_row %}
-                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
+                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                         {% endfor %}
                         </tr>
                     {% endfor %}

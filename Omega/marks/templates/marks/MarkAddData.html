@@ -1,5 +1,6 @@
 {% load i18n %}
 
+{% if markdata.type == 'unsafe' %}
 <div class="col-sm-6">
     <label for="compare_function">{% trans 'Compare trace function' %}</label>
     <select id="compare_function" class="form-control">
@@ -10,6 +11,7 @@
     <br>
     <p id="compare_function_description" class="omega-text">{{ markdata.compare_desc }}</p>
 </div>
+{% endif %}
 <div class="col-sm-6">
     <h4>{% trans 'Verdict' %}:</h4>
     <div style="margin-left: 25px">
@@ -19,7 +21,13 @@
             <br>
         {% endfor %}
     </div>
+{% if markdata.type == 'safe' %}
+    </div>
+    <div class="col-sm-6">
+{% else %}
     <hr>
+{% endif %}
+
     <h4>{% trans 'Status' %}:</h4>
     <div style="margin-left: 25px">
         {% for s in markdata.statuses %}

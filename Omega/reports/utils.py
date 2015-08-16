@@ -6,7 +6,19 @@ from django.utils.translation import ugettext_lazy as _
 from Omega.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW,\
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW
 from jobs.utils import get_resource_data
-from reports.models import ReportComponent, Attr, AttrName, ReportComponentLeaf
+from reports.models import ReportComponent, Attr, AttrName,\
+    ReportComponentLeaf, ReportUnsafe
+from marks.utils import result_color, SAFE_COLOR, UNSAFE_COLOR, STATUS_COLOR
+from Omega.tableHead import Header
+
+REP_MARK_TITLES = {
+    'mark_num': _('Mark'),
+    'mark_verdict': _("Verdict"),
+    'mark_result': _('Similarity'),
+    'mark_status': _('Status'),
+    'number': '№',
+    'component': _('Component')
+}
 
 
 def computer_description(computer):
@@ -205,7 +217,8 @@ class ReportTable(object):
         else:
             return {}
         return {
-            'header': self.Header(self.columns).head_struct(self.type),
+            # 'header': self.Header(self.columns).head_struct(self.type),
+            'header': Header(self.columns, REP_MARK_TITLES).head_struct(),
             'values': values
         }
 
@@ -238,8 +251,6 @@ class ReportTable(object):
         for name in sorted(data):
             columns.append(name)
 
-        values_data = []
-
         comp_data = []
         for pk in components:
             comp_data.append((components[pk].name, {
@@ -250,6 +261,7 @@ class ReportTable(object):
         for name, dt in sorted(comp_data, key=lambda x: x[0]):
             sorted_components.append(dt)
 
+        values_data = []
         for comp_data in sorted_components:
             values_row = []
             for col in columns:
@@ -265,6 +277,7 @@ class ReportTable(object):
                     'component': comp_data['component'],
                     'attrs': values_row
                 })
+        columns.insert(0, 'component')
         return columns, values_data
 
     def __verdict_attrs(self):
@@ -276,6 +289,7 @@ class ReportTable(object):
             return None, None
 
         data = {}
+        mark_data = {}
         report_ids = []
         leaf_filter = {'report': self.report}
         if self.verdict is not None:
@@ -288,6 +302,11 @@ class ReportTable(object):
                     data[attr.name.name] = {}
                 data[attr.name.name][report.pk] = attr.value
             report_ids.append(report.pk)
+            if self.type == '4':
+                mark_data[report.pk] = report.markunsafereport_set\
+                    .order_by('-result')
+            else:
+                mark_data[report.pk] = report.marksafereport_set.all()
 
         columns = []
         for name in sorted(data):
@@ -316,9 +335,62 @@ class ReportTable(object):
                     'href': reverse('reports:leaf',
                                     args=[list_types[self.type], rep_id]),
                     'value': cnt,
-                    'attrs': values_row
+                    'attrs': values_row,
+                    'pk': rep_id
                 })
-        return columns, values_data
+        if self.type == '4':
+            add_columns = ['mark_num', 'mark_verdict',
+                           'mark_result', 'mark_status']
+        else:
+            add_columns = ['mark_num', 'mark_verdict', 'mark_status']
+        columns.extend(add_columns)
+        new_val_data = []
+        for row in values_data:
+            row_data = row
+            mark_rows = []
+            if len(mark_data[row['pk']]) == 0:
+                mark_row = []
+                for col in add_columns:
+                    mark_row.append({'value': '-'})
+                mark_rows.append(mark_row)
+
+            cnt = 0
+            for mark_rep in mark_data[row['pk']]:
+                mark_row = []
+                cnt += 1
+                for col in add_columns:
+                    val = '-'
+                    href = None
+                    color = None
+                    if col == 'mark_num':
+                        val = cnt
+                        href = reverse('marks:edit_mark',
+                                       args=[list_types[self.type],
+                                             mark_rep.mark.pk])
+                    elif col == 'mark_verdict':
+                        val = mark_rep.mark.get_verdict_display()
+                        if self.type == '4':
+                            color = UNSAFE_COLOR[mark_rep.mark.verdict]
+                        else:
+                            color = SAFE_COLOR[mark_rep.mark.verdict]
+                    elif col == 'mark_result':
+                        val = "{:.0%}".format(mark_rep.result)
+                        color = result_color(mark_rep.result)
+                    elif col == 'mark_status':
+                        val = mark_rep.mark.get_status_display()
+                        color = STATUS_COLOR[mark_rep.mark.status]
+                    mark_row.append({
+                        'value': val,
+                        'color': color,
+                        'href': href
+                    })
+                mark_rows.append(mark_row)
+            row_data['colspan'] = len(mark_rows)
+            row_data['first_mark_row'] = mark_rows[0]
+            row_data['mark_rows'] = mark_rows[1:]
+            new_val_data.append(row_data)
+        columns.insert(0, 'number')
+        return columns, new_val_data
 
     def __unknowns_attrs(self):
 
@@ -400,6 +472,7 @@ class ReportTable(object):
                     'href': reverse('reports:leaf',
                                     args=['unknown', comp_data['pk']])
                 })
+        columns.insert(0, 'component')
         return columns, values_data
 
     def __filter_attr(self, attribute, value):

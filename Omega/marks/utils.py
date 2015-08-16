@@ -17,24 +17,34 @@ MARK_TITLES = {
     'author': _('Author'),
     'report': _('Report'),
     'job': _('Job'),
-    'format': _('Psi format')
+    'format': _('Psi format'),
+    'number': '№',
+    'num_of_links': _('Number of links'),
 }
 
 STATUS_COLOR = {
     '0': '#D11919',
     '1': '#FF8533',
     '2': '#FF8533',
-    '3': '#00CC00',
+    '3': '#00B800',
 }
 
 UNSAFE_COLOR = {
-    '0': '#D147FF',
+    '0': '#A739CC',
     '1': '#D11919',
     '2': '#D11919',
     '3': '#FF8533',
+    '4': '#D11919',
+    '5': '#000000',
 }
 
-SAFE_COLOR = {}
+SAFE_COLOR = {
+    '0': '#A739CC',
+    '1': '#FF8533',
+    '2': '#D11919',
+    '3': '#D11919',
+    '4': '#000000',
+}
 
 
 def result_color(result):
@@ -95,6 +105,8 @@ class NewMark(object):
         self.user = user
         self.type = mark_type
         self.do_recalk = False
+        self.changes = {}
+        self.cnt = 0
         if self.type != 'safe' and self.type != 'unsafe':
             self.error = "Wrong mark type"
         elif not isinstance(args, dict) or not isinstance(user, User):
@@ -109,7 +121,10 @@ class NewMark(object):
             self.error = "Wrong parameters"
 
     def __create_mark(self, report, args):
-        mark = MarkUnsafe()
+        if self.type == 'unsafe':
+            mark = MarkUnsafe()
+        else:
+            mark = MarkSafe()
         mark.author = self.user
 
         if self.type == 'unsafe':
@@ -165,11 +180,11 @@ class NewMark(object):
                 mark.delete()
                 return res
         self.mark = mark
-        self.do_recalk = True
+        self.__update_links()
         return None
 
     def __change_mark(self, mark, args):
-
+        recalc_verdicts = False
         if not mark.is_modifiable:
             return "Mark is not modifiable"
         if 'comment' not in args or len(args['comment']) == 0:
@@ -191,10 +206,11 @@ class NewMark(object):
                 return "Comparison function was not found"
 
         if 'verdict' in args:
-            if self.type == 'unsafe' and \
-                    args['verdict'] in list(x[0] for x in MARK_UNSAFE):
-                mark.verdict = args['verdict']
-            elif args['verdict'] in list(x[0] for x in MARK_SAFE):
+            if (self.type == 'unsafe' and
+                    args['verdict'] in list(x[0] for x in MARK_UNSAFE)) or \
+                    (args['verdict'] in list(x[0] for x in MARK_SAFE)):
+                if mark.verdict != args['verdict']:
+                    recalc_verdicts = True
                 mark.verdict = args['verdict']
 
         if 'status' in args and \
@@ -212,6 +228,11 @@ class NewMark(object):
                 self.mark_version.delete()
                 return res
         self.mark = mark
+        if self.do_recalk:
+            self.__update_links()
+        elif recalc_verdicts:
+            print("Updating verdicts...")
+            self.changes = UpdateVerdict(mark, {}, '=').changes
         return None
 
     def __update_mark(self, mark, comment=''):
@@ -239,7 +260,11 @@ class NewMark(object):
             if not isinstance(a, dict) or \
                     any(x not in a for x in ['attr', 'is_compare']):
                 return 'Wrong args'
-        for a in old_mark.markunsafeattr_set.all():
+        if self.type == 'unsafe':
+            old_set = old_mark.markunsafeattr_set.all()
+        else:
+            old_set = old_mark.marksafeattr_set.all()
+        for a in old_set:
             create_args = {
                 'mark': self.mark_version,
                 'attr': a.attr,
@@ -280,8 +305,13 @@ class NewMark(object):
                 MarkSafeAttr.objects.get_or_create(**create_args)
         return None
 
+    def __update_links(self):
+        cm_res = ConnectMarks(self.mark)
+        self.changes = cm_res.changes
+        self.cnt = cm_res.cnt
 
-class AttrTable(object):
+
+class MarkAttrTable(object):
 
     def __init__(self, report=None, mark_version=None):
         self.report = report
@@ -342,7 +372,8 @@ class MarkData(object):
                 verdict_data = {
                     'title': verdict[1],
                     'value': verdict[0],
-                    'checked': False
+                    'checked': False,
+                    'color': SAFE_COLOR[verdict[0]]
                 }
                 if (isinstance(self.mark_version, MarkSafeHistory) and
                         verdict_data['value'] == self.mark_version.verdict) or \
@@ -361,16 +392,18 @@ class MarkData(object):
                 'checked': False,
                 'color': STATUS_COLOR[verdict[0]]
             }
-            if (isinstance(self.mark_version, MarkUnsafeHistory) and
+            if ((isinstance(self.mark_version, MarkUnsafeHistory) or
+                isinstance(self.mark_version, MarkSafeHistory)) and
                     status_data['value'] == self.mark_version.status) or \
-                    (not isinstance(self.mark_version, MarkUnsafeHistory)
-                     and status_data['value'] == '0'):
+                    (self.mark_version is None and status_data['value'] == '0'):
                 status_data['checked'] = True
             statuses.append(status_data)
         return statuses
 
     def __functions(self, func_type='compare'):
-        __functions = []
+        if self.type != 'unsafe':
+            return [], None
+        functions = []
         def_func = None
         if func_type == 'compare':
             selected_description = None
@@ -393,7 +426,7 @@ class MarkData(object):
                         def_func == f):
                     func_data['selected'] = True
                     selected_description = f.description
-                __functions.append(func_data)
+                functions.append(func_data)
         elif func_type == 'convert':
             if self.mark_version is not None:
                 return [], None
@@ -413,17 +446,17 @@ class MarkData(object):
                 if def_func == f:
                     func_data['selected'] = True
                     selected_description = f.description
-                __functions.append(func_data)
+                functions.append(func_data)
         else:
             return [], None
-        return __functions, selected_description
+        return functions, selected_description
 
 
 class ConnectMarks(object):
+
     def __init__(self, inst):
-        # Number of new connections
-        self.cnt = 0
-        self.old_connections = {}
+        self.cnt = 0  # Number of new connections
+        self.changes = {}  # Changes with reports' marks after connections
         if isinstance(inst, ReportUnsafe):
             self.__connect_unsafe(inst)
         elif isinstance(inst, ReportSafe):
@@ -451,7 +484,7 @@ class ConnectMarks(object):
                 if new_result > 0:
                     MarkUnsafeReport.objects.create(
                         mark=mark, report=unsafe, result=new_result)
-                    self.__update_verdicts(mark)
+                    UpdateVerdict(mark, self.changes)
                     self.cnt += 1
 
     def __connect_safe(self, safe):
@@ -467,18 +500,21 @@ class ConnectMarks(object):
                         break
             else:
                 MarkSafeReport.objects.create(mark=mark, report=safe)
+                UpdateVerdict(mark, self.changes)
                 self.cnt += 1
 
     def __connect_unsafe_mark(self, mark):
         self.cnt = 0
+        last_version = mark.markunsafehistory_set.get(version=mark.version)
+
         for mark_unsafe in mark.markunsafereport_set.all():
-            self.old_connections[mark_unsafe.report] = {
-                'result': mark_unsafe.result,
-                'verdict': mark_unsafe.report.verdict,
+            self.changes[mark_unsafe.report] = {
+                'kind': '=',
+                'result1': mark_unsafe.result,
+                'verdict1': mark_unsafe.report.verdict,
             }
         mark.markunsafereport_set.all().delete()
         for unsafe in ReportUnsafe.objects.all():
-            last_version = mark.markunsafehistory_set.get(version=mark.version)
             for attr in last_version.markunsafeattr_set.all():
                 if attr.is_compare:
                     try:
@@ -494,14 +530,15 @@ class ConnectMarks(object):
                         mark=mark, report=unsafe, result=new_result)
                     self.cnt += 1
         if self.cnt > 0:
-            self.__update_verdicts(mark)
+            self.changes.update(UpdateVerdict(mark, self.changes).changes)
 
     def __connect_safe_mark(self, mark):
         self.cnt = 0
         for mark_safe in mark.marksafereport_set.all():
-            self.old_connections[mark_safe.report] = {
-                'result': mark_safe.result,
-                'verdict': mark_safe.report.verdict,
+            self.changes[mark_safe.report] = {
+                'kind': '=',
+                'result1': mark_safe.result,
+                'verdict1': mark_safe.report.verdict,
             }
         mark.marksafereport_set.all().delete()
         for safe in ReportSafe.objects.all():
@@ -514,108 +551,711 @@ class ConnectMarks(object):
                     except ObjectDoesNotExist:
                         break
             else:
-                MarkUnsafeReport.objects.get_or_create(mark=mark, report=safe)
+                MarkSafeReport.objects.create(mark=mark, report=safe)
                 self.cnt += 1
+        if self.cnt > 0:
+            self.changes.update(UpdateVerdict(mark, self.changes).changes)
 
-    def __update_verdicts(self, mark):
+
+class MarkChangesTable(object):
+
+    def __init__(self, mark, changes):
+        self.columns = ['report', 'change_kind', 'verdict']
         if isinstance(mark, MarkUnsafe):
-            updated_unsafes = []
-            for mark_report in mark.markunsafereport_set.all():
-                unsafe = mark_report.report
-                updated_unsafes.append(unsafe)
+            self.columns.append('result')
+        elif not isinstance(mark, MarkSafe):
+            return
+        self.columns.extend(['status', 'author', 'job', 'format'])
+        self.mark = mark
+        self.changes = changes
+        self.attr_values_data = self.__add_attrs()
+        self.header = Header(self.columns, MARK_TITLES).struct
+        if isinstance(mark, MarkUnsafe):
+            self.values = self.__get_unsafe_values()
+        else:
+            self.values = self.__get_safe_values()
 
-                new_verdict = None
-                for uns_m_r in unsafe.markunsafereport_set.all():
-                    if new_verdict is not None and \
-                            new_verdict != uns_m_r.mark.verdict:
-                        new_verdict = '4'
-                        break
-                    else:
-                        new_verdict = uns_m_r.mark.verdict
-                if new_verdict is None:
-                    new_verdict = '5'
-                if new_verdict != unsafe.verdict:
-                    if unsafe in self.old_connections:
-                        self.old_connections[unsafe]['verdict'] = unsafe.verdict
-                    else:
-                        self.old_connections[unsafe] = {
-                            'verdict': unsafe.verdict,
-                            'result': mark_report.result
-                        }
-                    self.__new_unsafe_verdict(unsafe, new_verdict)
+    def __add_attrs(self):
+        data = {}
+        for report in self.changes:
+            for attr in report.attr.all():
+                if attr.name.name not in data:
+                    data[attr.name.name] = {}
+                data[attr.name.name][report] = attr.value
+        columns = []
+        for name in sorted(data):
+            columns.append(name)
+        values_data = {}
+        for report in self.changes:
+            values_data[report] = {}
+            for col in columns:
+                cell_val = '-'
+                if report in data[col]:
+                    cell_val = data[col][report]
+                values_data[report][col] = cell_val
+        self.columns.extend(columns)
+        return values_data
 
-            # Updating unsafes that have lost changed mark
-            for unsafe in self.old_connections:
-                if unsafe in updated_unsafes:
+    def __get_unsafe_values(self):
+
+        def colored_change(v1, v2, col1=None, col2=None):
+            if col1 is not None and col2 is not None:
+                return '<span style="color:%s">%s</span> ' \
+                       '-> <span style="color:%s">%s</span>' % \
+                       (col1, v1, col2, v2)
+            return '<span>%s</span> -> <span>%s</span>' % (v1, v2)
+
+        def get_verdict_change(rep):
+
+            if all(x in self.changes[rep] for x in ['verdict1', 'verdict2']):
+                tmp_unsafe = ReportUnsafe()
+                tmp_unsafe.verdict = self.changes[rep]['verdict1']
+                val1 = tmp_unsafe.get_verdict_display()
+                if self.changes[rep]['verdict1'] == \
+                        self.changes[rep]['verdict2']:
+                    return '<span style="color:%s">%s</span>' % (
+                        UNSAFE_COLOR[self.changes[rep]['verdict1']], val1)
+                tmp_unsafe.verdict = self.changes[rep]['verdict2']
+                val2 = tmp_unsafe.get_verdict_display()
+                return colored_change(
+                    val1, val2, UNSAFE_COLOR[self.changes[rep]['verdict1']],
+                    UNSAFE_COLOR[self.changes[rep]['verdict2']])
+            return '<span style="color:%s">%s</span>' % (
+                UNSAFE_COLOR[rep.verdict],
+                rep.get_verdict_display()
+            )
+
+        def get_status_change():
+            v_set = self.mark.markunsafehistory_set.all().order_by('-version')
+            last_version = v_set[0]
+            try:
+                prev_version = v_set[1]
+            except IndexError:
+                return '<span style="color:%s">%s</span>' % (
+                    STATUS_COLOR[last_version.status],
+                    last_version.get_status_display()
+                )
+            if prev_version.status == last_version.status:
+                return '<span style="color:%s">%s</span>' % (
+                    STATUS_COLOR[last_version.status],
+                    last_version.get_status_display()
+                )
+            return colored_change(
+                prev_version.get_status_display(),
+                last_version.get_status_display(),
+                STATUS_COLOR[prev_version.status],
+                STATUS_COLOR[last_version.status]
+            )
+
+        def get_result_change(rep):
+            if all(x in self.changes[rep] for x in ['result1', 'result2']):
+                return colored_change(
+                    "{:.0%}".format(self.changes[rep]['result1']),
+                    "{:.0%}".format(self.changes[rep]['result2']),
+                    result_color(self.changes[rep]['result1']),
+                    result_color(self.changes[rep]['result2'])
+                )
+            elif 'result1' in self.changes[rep]:
+                return '<span style="color:%s">%s</span>' % (
+                    result_color(self.changes[rep]['result1']),
+                    "{:.0%}".format(self.changes[rep]['result1']))
+            elif 'result2' in self.changes[rep]:
+                return '<span style="color:%s">%s</span>' % (
+                    result_color(self.changes[rep]['result2']),
+                    "{:.0%}".format(self.changes[rep]['result2']))
+            else:
+                print("ERROR!!! No results! Changes are corrupted!")
+                return '-'
+
+        values = []
+
+        cnt = 0
+        for report in self.changes:
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                val = '-'
+                color = None
+                href = None
+                try:
+                    report_mark = self.mark.markunsafereport_set.get(
+                        report=report)
+                except ObjectDoesNotExist:
+                    report_mark = None
+                if col in self.attr_values_data[report]:
+                    val = self.attr_values_data[report][col]
+                elif col == 'report':
+                    val = cnt
+                    href = reverse('reports:leaf', args=['unsafe', report.pk])
+                elif col == 'verdict':
+                    val = get_verdict_change(report)
+                elif col == 'status':
+                    val = get_status_change()
+                elif col == 'change_kind':
+                    if self.changes[report]['kind'] == '=':
+                        val = _("Changed")
+                        color = '#CC7A29'
+                    elif self.changes[report]['kind'] == '+':
+                        val = _("New")
+                        color = '#008F00'
+                    elif self.changes[report]['kind'] == '-':
+                        val = _("Deleted")
+                        color = '#B80000'
+                elif col == 'result':
+                    val = get_result_change(report)
+                elif col == 'author':
+                    if report_mark is not None:
+                        val = "%s %s" % (
+                            report_mark.mark.author.extended.last_name,
+                            report_mark.mark.author.extended.first_name
+                        )
+                        href = reverse('users:show_profile',
+                                       args=[report_mark.mark.author.pk])
+                elif col == 'job':
+                    val = report.root.job.name
+                    href = reverse('jobs:job', args=[report.root.job.pk])
+                elif col == 'format':
+                    val = report.root.job.format
+                values_str.append({
+                    'value': val,
+                    'color': color,
+                    'href': href
+                })
+            values.append(values_str)
+        return values
+
+    def __get_safe_values(self):
+
+        def colored_change(v1, v2, col1=None, col2=None):
+            if col1 is not None and col2 is not None:
+                return '<span style="color:%s">%s</span> ' \
+                       '-> <span style="color:%s">%s</span>' % \
+                       (col1, v1, col2, v2)
+            return '<span>%s</span> -> <span>%s</span>' % (v1, v2)
+
+        def get_verdict_change(rep):
+            if all(x in self.changes[rep] for x in ['verdict1', 'verdict2']):
+                tmp_safe = ReportSafe()
+                tmp_safe.verdict = self.changes[rep]['verdict1']
+                val1 = tmp_safe.get_verdict_display()
+                if self.changes[rep]['verdict1'] == \
+                        self.changes[rep]['verdict2']:
+                    return '<span style="color:%s">%s</span>' % (
+                        SAFE_COLOR[self.changes[rep]['verdict1']], val1)
+                tmp_safe.verdict = self.changes[rep]['verdict2']
+                val2 = tmp_safe.get_verdict_display()
+                return colored_change(
+                    val1, val2, SAFE_COLOR[self.changes[rep]['verdict1']],
+                    SAFE_COLOR[self.changes[rep]['verdict2']])
+            return '<span style="color:%s">%s</span>' % (
+                SAFE_COLOR[rep.verdict],
+                rep.get_verdict_display()
+            )
+
+        def get_status_change():
+            v_set = self.mark.marksafehistory_set.all().order_by('-version')
+            last_version = v_set[0]
+            try:
+                prev_version = v_set[1]
+            except IndexError:
+                return '<span style="color:%s">%s</span>' % (
+                    STATUS_COLOR[last_version.status],
+                    last_version.get_status_display()
+                )
+            if prev_version.status == last_version.status:
+                return '<span style="color:%s">%s</span>' % (
+                    STATUS_COLOR[last_version.status],
+                    last_version.get_status_display()
+                )
+            return colored_change(
+                prev_version.get_status_display(),
+                last_version.get_status_display(),
+                STATUS_COLOR[prev_version.status],
+                STATUS_COLOR[last_version.status]
+            )
+
+        values = []
+
+        cnt = 0
+        for report in self.changes:
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                val = '-'
+                color = None
+                href = None
+                try:
+                    report_mark = self.mark.marksafereport_set.get(
+                        report=report)
+                except ObjectDoesNotExist:
                     continue
+                if col in self.attr_values_data[report]:
+                    val = self.attr_values_data[report][col]
+                elif col == 'report':
+                    val = cnt
+                    href = reverse('reports:leaf', args=['safe', report.pk])
+                elif col == 'verdict':
+                    val = get_verdict_change(report)
+                elif col == 'status':
+                    val = get_status_change()
+                elif col == 'change_kind':
+                    if self.changes[report]['kind'] == '=':
+                        val = _("Updated")
+                        color = '#CC7A29'
+                    elif self.changes[report]['kind'] == '+':
+                        val = _("Created")
+                        color = '#008F00'
+                    elif self.changes[report]['kind'] == '-':
+                        val = _("Deleted")
+                        color = '#B80000'
+                elif col == 'author':
+                    val = "%s %s" % (
+                        report_mark.mark.author.extended.last_name,
+                        report_mark.mark.author.extended.first_name
+                    )
+                    href = reverse('users:show_profile',
+                                   args=[report_mark.mark.author.pk])
+                elif col == 'job':
+                    val = report.root.job.name
+                    href = reverse('jobs:job', args=[report.root.job.pk])
+                elif col == 'format':
+                    val = report.root.job.format
+                values_str.append({
+                    'value': val,
+                    'color': color,
+                    'href': href
+                })
+            values.append(values_str)
+        return values
 
-                curr_verdict = '5'
-                if unsafe.verdict == '4':
-                    new_verdict = None
-                    for uns_m_r in unsafe.markunsafereport_set.all():
-                        if new_verdict is not None and \
-                                new_verdict != uns_m_r.mark.verdict:
-                            new_verdict = '4'
-                            break
-                        else:
-                            new_verdict = uns_m_r.mark.verdict
-                    if new_verdict == '4':
-                        continue
-                    elif new_verdict is not None:
-                        curr_verdict = new_verdict
-                elif len(unsafe.markunsafereport_set.all()) > 0:
-                    continue
-                if curr_verdict != unsafe.verdict:
-                    self.old_connections[unsafe]['verdict'] = unsafe.verdict
-                    self.__new_unsafe_verdict(unsafe, curr_verdict)
-        elif isinstance(mark, MarkSafe):
-            updated_safes = []
-            for mark_report in mark.marksafereport_set.all():
-                safe = mark_report.report
-                updated_safes.append(safe)
 
-                new_verdict = None
-                for s_m_r in safe.marksafereport_set.all():
-                    if new_verdict is not None and \
-                            new_verdict != s_m_r.mark.verdict:
-                        new_verdict = '3'
-                        break
+# Table data for showing links between the specified mark and reports
+class MarkReportsTable(object):
+    def __init__(self, mark):
+        self.columns = ['report', 'verdict']
+        self.type = 'safe'
+        if isinstance(mark, MarkUnsafe):
+            self.columns.append('result')
+            self.type = 'unsafe'
+        elif not isinstance(mark, MarkSafe):
+            return
+        self.columns.extend(['status', 'author', 'job', 'format'])
+        self.mark = mark
+        self.attr_values_data, self.reports = self.__add_attrs()
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_unsafe_values()
+
+    def __add_attrs(self):
+        data = {}
+        if self.type == 'unsafe':
+            m_r_set = self.mark.markunsafereport_set.all().order_by('-result')
+        else:
+            m_r_set = self.mark.marksafereport_set.all()
+        reports = []
+        for mark_report in m_r_set:
+            report = mark_report.report
+            for attr in report.attr.all():
+                if attr.name.name not in data:
+                    data[attr.name.name] = {}
+                data[attr.name.name][report] = attr.value
+            reports.append(report)
+
+        columns = []
+        for name in sorted(data):
+            columns.append(name)
+
+        values_data = {}
+        for report in reports:
+            values_data[report] = {}
+            for col in columns:
+                cell_val = '-'
+                if report in data[col]:
+                    cell_val = data[col][report]
+                values_data[report][col] = cell_val
+        self.columns.extend(columns)
+        return values_data, reports
+
+    def __get_unsafe_values(self):
+        values = []
+        cnt = 0
+        for report in self.reports:
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                try:
+                    if self.type == 'unsafe':
+                        report_mark = self.mark.markunsafereport_set.get(
+                            report=report)
                     else:
-                        new_verdict = s_m_r.mark.verdict
-                if new_verdict is None:
-                    new_verdict = '4'
-                if new_verdict != safe.verdict:
-                    if safe in self.old_connections:
-                        self.old_connections[safe]['verdict'] = safe.verdict
+                        report_mark = self.mark.marksafereport_set.get(
+                            report=report)
+                except ObjectDoesNotExist:
+                    continue
+                val = '-'
+                color = None
+                href = None
+                if col in self.attr_values_data[report]:
+                    val = self.attr_values_data[report][col]
+                elif col == 'report':
+                    val = cnt
+                    href = reverse('reports:leaf', args=[self.type, report.pk])
+                elif col == 'verdict':
+                    val = report.get_verdict_display()
+                    color = UNSAFE_COLOR[report.verdict]
+                elif col == 'status':
+                    if self.type == 'unsafe':
+                        l_v = self.mark.markunsafehistory_set.get(
+                            version=self.mark.version)
                     else:
-                        self.old_connections[safe] = {
-                            'verdict': safe.verdict,
-                            'result': mark_report.result
-                        }
-                    self.__new_safe_verdict(safe, new_verdict)
-            for safe in self.old_connections:
-                if safe in updated_safes:
-                    continue
+                        l_v = self.mark.marksafehistory_set.get(
+                            version=self.mark.version)
+                    val = l_v.get_status_display()
+                    color = STATUS_COLOR[l_v.status]
+                elif col == 'result':
+                    val = "{:.0%}".format(report_mark.result)
+                    color = result_color(report_mark.result)
+                elif col == 'author':
+                    val = "%s %s" % (
+                        report_mark.mark.author.extended.last_name,
+                        report_mark.mark.author.extended.first_name
+                    )
+                    href = reverse('users:show_profile',
+                                   args=[report_mark.mark.author.pk])
+                elif col == 'job':
+                    val = report.root.job.name
+                    href = reverse('jobs:job', args=[report.root.job.pk])
+                elif col == 'format':
+                    val = report.root.job.format
+                values_str.append({'value': val, 'href': href, 'color': color})
+            values.append(values_str)
+        return values
 
-                curr_verdict = '4'
-                if safe.verdict == '3':
-                    new_verdict = None
-                    for uns_m_r in safe.marksafereport_set.all():
-                        if new_verdict is not None and \
-                                new_verdict != uns_m_r.mark.verdict:
-                            new_verdict = '3'
-                            break
-                        else:
-                            new_verdict = uns_m_r.mark.verdict
-                    if new_verdict == '3':
-                        continue
-                    elif new_verdict is not None:
-                        curr_verdict = new_verdict
-                elif len(safe.marksafereport_set.all()) > 0:
-                    continue
-                if curr_verdict != safe.verdict:
-                    self.old_connections[safe]['verdict'] = safe.verdict
-                    self.__new_safe_verdict(safe, curr_verdict)
+
+# Table data for showing links between the specified report and marks
+class ReportMarkTable(object):
+    def __init__(self, report):
+        self.report = report
+        self.type = 'safe'
+        self.columns = ['number', 'verdict']
+        if isinstance(report, ReportUnsafe):
+            self.columns.append('result')
+            self.type = 'unsafe'
+        elif not isinstance(report, ReportSafe):
+            return
+        self.columns.extend(['status', 'author'])
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_values()
+
+    def __get_values(self):
+        value_data = []
+        if isinstance(self.report, ReportUnsafe):
+            mr_set = self.report.markunsafereport_set.all().order_by('-result')
+        else:
+            mr_set = self.report.marksafereport_set.all()
+        cnt = 0
+        for mark_rep in mr_set:
+            cnt += 1
+            values_row = []
+            for col in self.columns:
+                value = '-'
+                href = None
+                color = None
+                if col == 'number':
+                    value = cnt
+                    href = reverse('marks:edit_mark',
+                                   args=[self.type, mark_rep.mark.pk])
+                elif col == 'verdict':
+                    value = mark_rep.mark.get_verdict_display()
+                    if self.type == 'unsafe':
+                        color = UNSAFE_COLOR[mark_rep.mark.verdict]
+                    else:
+                        color = SAFE_COLOR[mark_rep.mark.verdict]
+                elif col == 'result':
+                    value = "{:.0%}".format(mark_rep.result)
+                    color = result_color(mark_rep.result)
+                elif col == 'status':
+                    value = mark_rep.mark.get_status_display()
+                    color = STATUS_COLOR[mark_rep.mark.status]
+                elif col == 'author':
+                    if mark_rep.mark.author is not None:
+                        value = "%s %s" % (
+                            mark_rep.mark.author.extended.last_name,
+                            mark_rep.mark.author.extended.first_name
+                        )
+                        href = reverse(
+                            'users:show_profile',
+                            args=[mark_rep.mark.author.pk]
+                        )
+                values_row.append({
+                    'value': value, 'href': href, 'color': color
+                })
+            value_data.append(values_row)
+        return value_data
+
+
+class MarkListTable(object):
+    def __init__(self, marks_type):
+        self.columns = ['mark_num', 'verdict']
+        if marks_type == 'unsafe':
+            self.columns.append('result')
+        elif marks_type != 'safe':
+            return
+        self.type = marks_type
+        self.columns.extend(['status', 'author', 'report', 'job', 'format'])
+        self.attr_values_data, self.reports = self.__add_attrs()
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_values()
+
+    def __add_attrs(self):
+        data = {}
+        if self.type == 'unsafe':
+            markreport_set = MarkUnsafeReport.objects.all().order_by('-result')
+        else:
+            markreport_set = MarkSafeReport.objects.all()
+        reports = []
+        for mark_report in markreport_set:
+            for attr in mark_report.report.attr.all():
+                if attr.name.name not in data:
+                    data[attr.name.name] = {}
+                data[attr.name.name][mark_report] = attr.value
+            reports.append(mark_report)
+
+        columns = []
+        for name in sorted(data):
+            columns.append(name)
+
+        values_data = {}
+        for mark_report in reports:
+            values_data[mark_report] = {}
+            for col in columns:
+                cell_val = '-'
+                if mark_report in data[col]:
+                    cell_val = data[col][mark_report]
+                values_data[mark_report][col] = cell_val
+        self.columns.extend(columns)
+        return values_data, reports
+
+    def __get_values(self):
+        values = []
+
+        cnt_data = {}
+        cnt_marks = 0
+        cnt_reports = 0
+        for m_rep in self.reports:
+            if m_rep.mark not in cnt_data:
+                cnt_marks += 1
+                cnt_data[m_rep.mark] = cnt_marks
+            if m_rep.report not in cnt_data:
+                cnt_reports += 1
+                cnt_data[m_rep.report] = cnt_reports
+        for m_rep in self.reports:
+            values_str = []
+            for col in self.columns:
+                val = '-'
+                color = None
+                href = None
+                if col in self.attr_values_data[m_rep]:
+                    val = self.attr_values_data[m_rep][col]
+                elif col == 'mark_num':
+                    val = cnt_data[m_rep.mark]
+                    href = reverse(
+                        'marks:edit_mark',
+                        args=[self.type, m_rep.mark.pk]
+                    )
+                elif col == 'report':
+                    val = cnt_data[m_rep.report]
+                    href = reverse('reports:leaf',
+                                   args=[self.type, m_rep.report.pk])
+                elif col == 'verdict':
+                    val = m_rep.mark.get_verdict_display()
+                    if self.type == 'safe':
+                        color = SAFE_COLOR[m_rep.mark.verdict]
+                    else:
+                        color = UNSAFE_COLOR[m_rep.mark.verdict]
+                elif col == 'status':
+                    val = m_rep.mark.get_status_display()
+                    color = STATUS_COLOR[m_rep.mark.status]
+                elif col == 'result':
+                    val = "{:.0%}".format(float(m_rep.result))
+                elif col == 'author':
+                    val = "%s %s" % (
+                        m_rep.mark.author.extended.last_name,
+                        m_rep.mark.author.extended.first_name
+                    )
+                    href = reverse('users:show_profile',
+                                   args=[m_rep.mark.author.pk])
+                elif col == 'job':
+                    val = m_rep.report.root.job.name
+                    href = reverse('jobs:job', args=[m_rep.report.root.job.pk])
+                elif col == 'format':
+                    val = m_rep.report.root.job.format
+                values_str.append({'color': color, 'value': val, 'href': href})
+            values.append(values_str)
+        return values
+
+
+class AllMarksList(object):
+
+    def __init__(self, marks_type):
+        self.columns = ['mark_num', 'num_of_links', 'verdict']
+        if marks_type != 'unsafe' and marks_type != 'safe':
+            return
+        self.type = marks_type
+        self.columns.extend(['status', 'author', 'format'])
+        self.attr_values_data, self.marks = self.__add_attrs()
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_values()
+
+    def __add_attrs(self):
+        data = {}
+        marks = []
+        if self.type == 'unsafe':
+            for mark in MarkUnsafe.objects.all():
+                last_v = mark.markunsafehistory_set.get(version=mark.version)
+                for attr in last_v.markunsafeattr_set.all():
+                    if attr.is_compare:
+                        if attr.attr.name.name not in data:
+                            data[attr.attr.name.name] = {}
+                        data[attr.attr.name.name][mark] = attr.attr.value
+                marks.append(mark)
+        else:
+            for mark in MarkSafe.objects.all():
+                last_v = mark.marksafehistory_set.get(version=mark.version)
+                for attr in last_v.marksafeattr_set.all():
+                    if attr.is_compare:
+                        if attr.attr.name.name not in data:
+                            data[attr.attr.name.name] = {}
+                        data[attr.attr.name.name][mark] = attr.attr.value
+                marks.append(mark)
+
+        columns = []
+        for name in sorted(data):
+            columns.append(name)
+
+        values_data = {}
+        for mark in marks:
+            values_data[mark] = {}
+            for col in columns:
+                cell_val = '-'
+                if mark in data[col]:
+                    cell_val = data[col][mark]
+                values_data[mark][col] = cell_val
+        self.columns.extend(columns)
+        return values_data, marks
+
+    def __get_values(self):
+        values = []
+
+        cnt = 0
+        for mark in self.marks:
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                val = '-'
+                color = None
+                href = None
+                if col in self.attr_values_data[mark]:
+                    val = self.attr_values_data[mark][col]
+                elif col == 'mark_num':
+                    val = cnt
+                    href = reverse('marks:edit_mark', args=[self.type, mark.pk])
+                elif col == 'num_of_links':
+                    if self.type == 'unsafe':
+                        val = len(mark.markunsafereport_set.all())
+                    else:
+                        val = len(mark.marksafereport_set.all())
+                elif col == 'verdict':
+                    val = mark.get_verdict_display()
+                    if self.type == 'safe':
+                        color = SAFE_COLOR[mark.verdict]
+                    else:
+                        color = UNSAFE_COLOR[mark.verdict]
+                elif col == 'status':
+                    val = mark.get_status_display()
+                    color = STATUS_COLOR[mark.status]
+                elif col == 'author':
+                    val = "%s %s" % (
+                        mark.author.extended.last_name,
+                        mark.author.extended.first_name
+                    )
+                    href = reverse('users:show_profile', args=[mark.author.pk])
+                elif col == 'format':
+                    val = mark.format
+                values_str.append({'color': color, 'value': val, 'href': href})
+            values.append(values_str)
+        return values
+
+
+class UpdateVerdict(object):
+
+    def __init__(self, inst, changes, def_kind='+'):
+        self.changes = changes
+        self.def_kind = def_kind
+        if isinstance(inst, MarkUnsafe):
+            self.__update_unsafe(inst)
+        elif isinstance(inst, MarkSafe):
+            self.__update_safe(inst)
+
+    def __update_unsafe(self, mark):
+        updated_unsafes = []
+        for mark_report in mark.markunsafereport_set.all():
+            unsafe = mark_report.report
+            updated_unsafes.append(unsafe)
+
+            if unsafe not in self.changes:
+                self.changes[unsafe] = {
+                    'kind': self.def_kind,
+                    'verdict1': unsafe.verdict,
+                }
+            self.changes[unsafe]['result2'] = mark_report.result
+            new_verdict = self.__calc_verdict(unsafe)
+            if new_verdict != unsafe.verdict:
+                self.changes[unsafe]['verdict2'] = new_verdict
+                self.__new_unsafe_verdict(unsafe, new_verdict)
+
+        # Updating unsafes that have lost changed mark
+        for unsafe in self.changes:
+            if unsafe in updated_unsafes:
+                continue
+            self.changes[unsafe]['kind'] = '-'
+            new_verdict = '5'
+            if unsafe.verdict == '4':
+                new_verdict = self.__calc_verdict(unsafe)
+            elif len(unsafe.markunsafereport_set.all()) > 0:
+                continue
+            if new_verdict != unsafe.verdict:
+                self.changes[unsafe]['verdict2'] = new_verdict
+                self.__new_unsafe_verdict(unsafe, new_verdict)
+
+    def __update_safe(self, mark):
+        updated_safes = []
+        for mark_report in mark.marksafereport_set.all():
+            safe = mark_report.report
+            updated_safes.append(safe)
+
+            if safe not in self.changes:
+                self.changes[safe] = {
+                    'kind': self.def_kind,
+                    'verdict1': safe.verdict
+                }
+            new_verdict = self.__calc_verdict(safe)
+            if new_verdict != safe.verdict:
+                self.changes[safe]['verdict2'] = new_verdict
+                self.__new_safe_verdict(safe, new_verdict)
+
+        # Updating safes that have lost changed mark
+        for safe in self.changes:
+            if safe in updated_safes:
+                continue
+            self.changes[safe]['kind'] = '-'
+            new_verdict = '4'
+            if safe.verdict == '3':
+                new_verdict = self.__calc_verdict(safe)
+            elif len(safe.marksafereport_set.all()) > 0:
+                continue
+            if new_verdict != safe.verdict:
+                self.changes[safe]['verdict2'] = new_verdict
+                self.__new_safe_verdict(safe, new_verdict)
 
     def __new_unsafe_verdict(self, unsafe, new):
         self.ccc = 0
@@ -627,7 +1267,8 @@ class ConnectMarks(object):
             try:
                 verdict = parent.verdict
             except ObjectDoesNotExist:
-                # Case when report havn't saved the verdicts (total=0)
+                # Case when upload report havn't saved the verdicts (total=0)
+                # (Error in upload report)
                 return
             if unsafe.verdict == '0' and verdict.unsafe_unknown > 0:
                 verdict.unsafe_unknown -= 1
@@ -672,7 +1313,6 @@ class ConnectMarks(object):
             try:
                 verdict = parent.verdict
             except ObjectDoesNotExist:
-                # Case when report havn't saved the verdicts (total=0)
                 return
             if safe.verdict == '0' and verdict.safe_unknown > 0:
                 verdict.safe_unknown -= 1
@@ -703,328 +1343,28 @@ class ConnectMarks(object):
         safe.verdict = new
         safe.save()
 
-
-class MarkChangesTable(object):
-    def __init__(self, mark, old_data=None):
-        # If old_data is None, all mark connections will be shown.
-        if old_data is None:
-            self.columns = ['verdict']
-        else:
-            self.columns = ['mark_num', 'change_kind', 'verdict']
-        if isinstance(mark, MarkUnsafe):
-            self.columns.append('result')
-        elif not isinstance(mark, MarkSafe):
-            return
-        self.columns.extend(['status', 'author', 'report', 'job', 'format'])
-        self.mark = mark
-        self.old_data = old_data
-        self.attr_values_data, self.reports = self.__add_attrs()
-        self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_unsafe_values()
-
-    def __add_attrs(self):
-        data = {}
-        if isinstance(self.mark, MarkUnsafe):
-            markreport_set = self.mark.markunsafereport_set.all().order_by('-result')
-        else:
-            markreport_set = self.mark.marksafereport_set.all()
-        reports = []
-        for mark_report in markreport_set:
-            report = mark_report.report
-            for attr in report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][report] = attr.value
-            reports.append(report)
-        if self.old_data is not None:
-            for report in self.old_data:
-                if report not in reports:
-                    for attr in report.attr.all():
-                        if attr.name.name not in data:
-                            data[attr.name.name] = {}
-                        data[attr.name.name][report] = attr.value
-
-        columns = []
-        for name in sorted(data):
-            columns.append(name)
-
-        cnt = 0
-        values_data = {}
-        for report in reports:
-            values_data[report] = {}
-            for col in columns:
-                cell_val = '-'
-                if report in data[col]:
-                    cell_val = data[col][report]
-                cnt += 1
-                values_data[report][col] = cell_val
-        self.columns.extend(columns)
-        return values_data, reports
-
-    def __get_unsafe_values(self):
-
-        def get_status_change():
-            v_set = self.mark.markunsafehistory_set.all().order_by('-version')
-            last_version = v_set[0]
-            try:
-                prev_version = v_set[1]
-            except IndexError:
-                return last_version.get_status_display()
-            if prev_version.status == last_version.status:
-                return last_version.get_status_display()
-            return "%s->%s" % (prev_version.get_status_display(),
-                               last_version.get_status_display())
-
-        def get_verdict_change(rep):
-            if self.old_data is not None:
-                if rep in self.old_data:
-                    if self.old_data[rep]['verdict'] == rep.verdict:
-                        return rep.get_verdict_display()
-                    tmp_unsafe = ReportUnsafe()
-                    tmp_unsafe.verdict = self.old_data[rep]['verdict']
-                    return "%s->%s" % (tmp_unsafe.get_verdict_display(),
-                                       rep.get_verdict_display())
-            return rep.get_verdict_display()
-
-        def get_result_change(rep):
-            if self.old_data is not None:
-                if rep in self.old_data:
-                    if self.old_data[rep]['result'] == report_mark.result:
-                        return "{:.0%}".format(report_mark.result)
-                    return "%s -> %s" % (
-                        "{:.0%}".format(float(self.old_data[rep]['result'])),
-                        "{:.0%}".format(float(report_mark.result))
-                    )
-            return "{:.0%}".format(report_mark.result)
-
-        values = []
-
-        cnt = 0
-        for report in self.reports:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                values_data = {}
-                try:
-                    report_mark = self.mark.markunsafereport_set.get(
-                        report=report)
-                except ObjectDoesNotExist:
-                    values_data['value'] = '-'
-                    continue
-                if col in self.attr_values_data[report]:
-                    values_data['value'] = self.attr_values_data[report][col]
-                elif col == 'mark_num':
-                    values_data['value'] = cnt
-                    values_data['href'] = reverse('marks:edit_mark',
-                                                  args=['unsafe', self.mark.pk])
-                elif col == 'report':
-                    values_data['value'] = cnt
-                    values_data['href'] = reverse('reports:leaf',
-                                                  args=['unsafe', report.pk])
-                elif col == 'verdict':
-                    values_data['value'] = get_verdict_change(report)
-                elif col == 'status':
-                    values_data['value'] = get_status_change()
-                elif col == 'change_kind':
-                    if self.old_data is None:
-                        values_data['value'] = '-'
-                    elif report in self.old_data:
-                        try:
-                            self.mark.markunsafereport_set.get(report=report)
-                            values_data['value'] = _("Changed")
-                            values_data['color'] = '#CC7A29'
-                        except ObjectDoesNotExist:
-                            values_data['value'] = _("Deleted")
-                            values_data['color'] = '#B80000'
-                    else:
-                        values_data['value'] = _("New")
-                        values_data['color'] = '#008F00'
-                elif col == 'result':
-                    values_data['value'] = get_result_change(report)
-                elif col == 'author':
-                    values_data['value'] = "%s %s" % (
-                        report_mark.mark.author.extended.last_name,
-                        report_mark.mark.author.extended.first_name
-                    )
-                    values_data['href'] = reverse(
-                        'users:show_profile',
-                        args=[report_mark.mark.author.pk]
-                    )
-                elif col == 'job':
-                    values_data['value'] = report.root.job.name
-                    values_data['href'] = reverse('jobs:job',
-                                                  args=[report.root.job.pk])
-                elif col == 'format':
-                    values_data['value'] = report.root.job.format
-                else:
-                    values_data['value'] = '-'
-                values_str.append(values_data)
-            values.append(values_str)
-        return values
-
-
-class ReportMarkTable(object):
-    def __init__(self, report):
-        self.report = report
-        self.type = 'safe'
-        self.columns = ['number', 'verdict']
+    def __calc_verdict(self, report):
+        self.ccc = 0
+        new_verdict = None
         if isinstance(report, ReportUnsafe):
-            self.columns.append('result')
-            self.type = 'unsafe'
-        elif not isinstance(report, ReportSafe):
-            return
-        self.columns.extend(['status', 'author'])
-        self.titles = MARK_TITLES
-        self.titles['number'] = '№'
-        self.header = Header(self.columns, self.titles).struct
-        self.values = self.__get_values()
-
-    def __get_values(self):
-        cnt = 0
-        value_data = []
-        if isinstance(self.report, ReportUnsafe):
-            m_set = self.report.markunsafereport_set.all().order_by('-result')
-        elif isinstance(self.report, ReportSafe):
-            m_set = self.report.marksafereport_set.all().order_by('-result')
-        else:
-            return value_data
-        for mark_rep in m_set:
-            cnt += 1
-            values_row = []
-            for col in self.columns:
-                href = None
-                value = '-'
-                color = None
-                if col == 'number':
-                    value = cnt
-                    href = reverse('marks:edit_mark',
-                                   args=[self.type, mark_rep.mark.pk])
-                elif col == 'verdict':
-                    value = mark_rep.mark.get_verdict_display()
-                    color = UNSAFE_COLOR[mark_rep.mark.verdict]
-                elif col == 'result':
-                    value = "{:.0%}".format(mark_rep.result)
-                    color = result_color(mark_rep.result)
-                elif col == 'status':
-                    value = mark_rep.mark.get_status_display()
-                    color = STATUS_COLOR[mark_rep.mark.status]
-                elif col == 'author':
-                    if mark_rep.mark.author is not None:
-                        value = "%s %s" % (
-                            mark_rep.mark.author.extended.last_name,
-                            mark_rep.mark.author.extended.first_name
-                        )
-                        href = reverse(
-                            'users:show_profile',
-                            args=[mark_rep.mark.author.pk]
-                        )
-                values_row.append({
-                    'value': value, 'href': href, 'color': color
-                })
-            value_data.append(values_row)
-        return value_data
-
-
-class MarkListTable(object):
-    def __init__(self, marks_type):
-        self.columns = ['mark_num', 'verdict']
-        if marks_type == 'unsafe':
-            self.columns.append('result')
-        elif marks_type != 'safe':
-            return
-        self.type = marks_type
-        self.columns.extend(['status', 'author', 'report', 'job', 'format'])
-        self.attr_values_data, self.reports = self.__add_attrs()
-        self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_unsafe_values()
-
-    def __add_attrs(self):
-        data = {}
-        if self.type == 'unsafe':
-            markreport_set = MarkUnsafeReport.objects.all().order_by('-result')
-        else:
-            markreport_set = MarkSafeReport.objects.all()
-        reports = []
-        for mark_report in markreport_set:
-            for attr in mark_report.report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][mark_report] = attr.value
-            reports.append(mark_report)
-
-        columns = []
-        for name in sorted(data):
-            columns.append(name)
-
-        cnt = 0
-        values_data = {}
-        for mark_report in reports:
-            values_data[mark_report] = {}
-            for col in columns:
-                cell_val = '-'
-                if mark_report in data[col]:
-                    cell_val = data[col][mark_report]
-                cnt += 1
-                values_data[mark_report][col] = cell_val
-        self.columns.extend(columns)
-        return values_data, reports
-
-    def __get_unsafe_values(self):
-        values = []
-
-        cnt_data = {}
-        cnt_marks = 0
-        cnt_reports = 0
-        for m_rep in self.reports:
-            if m_rep.mark not in cnt_data:
-                cnt_marks += 1
-                cnt_data[m_rep.mark] = cnt_marks
-            if m_rep.report not in cnt_data:
-                cnt_reports += 1
-                cnt_data[m_rep.report] = cnt_reports
-        for m_rep in self.reports:
-            values_str = []
-            for col in self.columns:
-                values_data = {}
-                if col in self.attr_values_data[m_rep]:
-                    values_data['value'] = self.attr_values_data[m_rep][col]
-                elif col == 'mark_num':
-                    values_data['value'] = cnt_data[m_rep.mark]
-                    values_data['href'] = reverse(
-                        'marks:edit_mark',
-                        args=['unsafe', m_rep.mark.pk]
-                    )
-                elif col == 'report':
-                    values_data['value'] = cnt_data[m_rep.report]
-                    values_data['href'] = reverse(
-                        'reports:leaf',
-                        args=['unsafe', m_rep.report.pk]
-                    )
-                elif col == 'verdict':
-                    values_data['value'] = m_rep.mark.get_verdict_display()
-                    values_data['color'] = UNSAFE_COLOR[m_rep.mark.verdict]
-                elif col == 'status':
-                    values_data['value'] = m_rep.mark.get_status_display()
-                    values_data['color'] = STATUS_COLOR[m_rep.mark.status]
-                elif col == 'result':
-                    values_data['value'] = "{:.0%}".format(float(m_rep.result))
-                elif col == 'author':
-                    values_data['value'] = "%s %s" % (
-                        m_rep.mark.author.extended.last_name,
-                        m_rep.mark.author.extended.first_name
-                    )
-                    values_data['href'] = reverse(
-                        'users:show_profile',
-                        args=[m_rep.mark.author.pk]
-                    )
-                elif col == 'job':
-                    values_data['value'] = m_rep.report.root.job.name
-                    values_data['href'] = reverse(
-                        'jobs:job', args=[m_rep.report.root.job.pk])
-                elif col == 'format':
-                    values_data['value'] = m_rep.report.root.job.format
+            for uns_m_r in report.markunsafereport_set.all():
+                if new_verdict is not None and \
+                        new_verdict != uns_m_r.mark.verdict:
+                    new_verdict = '4'
+                    break
                 else:
-                    values_data['value'] = '-'
-                values_str.append(values_data)
-            values.append(values_str)
-        return values
+                    new_verdict = uns_m_r.mark.verdict
+            if new_verdict is None:
+                new_verdict = '5'
+        elif isinstance(report, ReportSafe):
+            new_verdict = None
+            for s_m_r in report.marksafereport_set.all():
+                if new_verdict is not None and \
+                        new_verdict != s_m_r.mark.verdict:
+                    new_verdict = '3'
+                    break
+                else:
+                    new_verdict = s_m_r.mark.verdict
+            if new_verdict is None:
+                new_verdict = '4'
+        return new_verdict

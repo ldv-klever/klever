@@ -9,6 +9,7 @@ urlpatterns = [
         views.edit_mark, name='edit_mark'),
     url(r'^(?P<marks_type>unsafe|safe|unknown)/$',
         views.mark_list, name='mark_list'),
+    url(r'^unklinked/$', views.marks_all, name='marks_all'),
 
     url(r'^ajax/save_mark/$', views.save_mark),
     url(r'^ajax/get_func_description/$', views.get_func_description),

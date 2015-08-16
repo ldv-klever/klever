@@ -56,11 +56,11 @@ class Header(object):
                 'column': col[0].split(':')[-1],
                 'rows': nrows,
                 'columns': col[1],
-                'title': self.__title(col[0]),
+                'title': self.__title(col[0], col[0].split(':')[-1]),
             })
         return columns_data
 
-    def __title(self, column):
+    def __title(self, column, last_part):
         if column in self.titles:
             return self.titles[column]
-        return column
+        return last_part

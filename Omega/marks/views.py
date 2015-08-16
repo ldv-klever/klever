@@ -2,14 +2,14 @@ import json
 import pytz
 from django.template.loader import get_template
 from django.shortcuts import render
-from marks.utils import NewMark, AttrTable, MarkData, ConnectMarks,\
-    MarkChangesTable, MarkListTable
+from marks.utils import NewMark, MarkAttrTable, MarkData, \
+    MarkChangesTable, MarkListTable, MarkReportsTable, AllMarksList
 from reports.models import ReportUnsafe, ReportSafe
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert, MarkUnsafe,\
-    MarkSafe, MarkUnsafeHistory
+    MarkSafe, MarkUnsafeHistory, MarkSafeHistory
 from django.contrib.auth.decorators import login_required
 from django.utils.translation import ugettext as _
 
@@ -29,7 +29,7 @@ def create_mark(request, mark_type, report_id):
     return render(request, 'marks/CreateMark.html', {
         'report_pk': report.pk,
         'type': mark_type,
-        'AttrTable': AttrTable(report),
+        'AttrTable': MarkAttrTable(report),
         'markdata': MarkData(mark_type),
     })
 
@@ -73,9 +73,9 @@ def edit_mark(request, mark_type, mark_id):
         'version': last_version,
         'first_version': history_set.order_by('version')[0],
         'type': mark_type,
-        'AttrTable': AttrTable(mark_version=last_version),
+        'AttrTable': MarkAttrTable(mark_version=last_version),
         'markdata': MarkData(mark_type, last_version),
-        'reports': MarkChangesTable(mark),
+        'reports': MarkReportsTable(mark),
         'versions': mark_versions,
     })
 
@@ -85,51 +85,50 @@ def save_mark(request):
     if request.method != 'POST':
         return HttpResponseRedirect(reverse('jobs:error', args=[500]))
     savedata = json.loads(request.POST.get('savedata', '{}'))
+    print(savedata)
     if any(x not in savedata for x in
-           ['verdict', 'status', 'attrs', 'compare_id', 'data_type']):
-        return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+           ['verdict', 'status', 'attrs', 'data_type']):
+        print(1)
+        return render(request, 'error.html', {'message': _('Unknown error')})
     if 'report_id' in savedata:
         try:
-            report = ReportUnsafe.objects.get(pk=int(savedata['report_id']))
+            if savedata['data_type'] == 'unsafe':
+                inst = ReportUnsafe.objects.get(pk=int(savedata['report_id']))
+                if any(x not in savedata for x in ['convert_id', 'compare_id']):
+                    return render(request, 'error.html',
+                                  {'message': _('Unknown error')})
+            elif savedata['data_type'] == 'safe':
+                inst = ReportSafe.objects.get(pk=int(savedata['report_id']))
+            else:
+                return render(request, 'error.html',
+                              {'message': _('Unknown error')})
         except ObjectDoesNotExist:
             return HttpResponseRedirect(reverse('jobs:error', args=[504]))
-
-        if 'convert_id' not in savedata:
-            return JsonResponse({'error': 'Unknown error'})
-        new_mark = NewMark(
-            report, request.user, savedata['data_type'], savedata)
-        if new_mark.error is not None:
-            return render(request, 'error.html', {'message': new_mark.error})
-
-        if new_mark.do_recalk:
-            mark_connect = ConnectMarks(new_mark.mark)
-            changes = MarkChangesTable(new_mark.mark,
-                                       mark_connect.old_connections)
-        else:
-            changes = MarkChangesTable(new_mark.mark)
-        return render(request, 'marks/SaveMarkResult.html', {
-            'MarkTable': changes
-        })
     elif 'mark_id' in savedata:
         try:
-            mark = MarkUnsafe.objects.get(pk=int(savedata['mark_id']))
+            if savedata['data_type'] == 'unsafe':
+                if 'compare_id' not in savedata:
+                    return render(request, 'error.html',
+                                  {'message': _('Unknown error')})
+                inst = MarkUnsafe.objects.get(pk=int(savedata['mark_id']))
+            elif savedata['data_type'] == 'safe':
+                inst = MarkSafe.objects.get(pk=int(savedata['mark_id']))
+            else:
+                return render(request, 'error.html',
+                              {'message': _('Unknown error')})
         except ObjectDoesNotExist:
             return HttpResponseRedirect(reverse('jobs:error', args=[604]))
-        new_mark = NewMark(
-            mark, request.user, savedata['data_type'], savedata)
-        if new_mark.error is not None:
-            return render(request, 'error.html', {'message': new_mark.error})
+    else:
+        return render(request, 'error.html', {'message': _('Unknown error')})
 
-        if new_mark.do_recalk:
-            mark_connect = ConnectMarks(new_mark.mark)
-            changes = MarkChangesTable(new_mark.mark,
-                                       mark_connect.old_connections)
-        else:
-            changes = MarkChangesTable(new_mark.mark)
-        return render(request, 'marks/SaveMarkResult.html', {
-            'MarkTable': changes
-        })
-    return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+    mark = NewMark(inst, request.user, savedata['data_type'], savedata)
+    if mark.error is not None:
+        return render(request, 'error.html', {'message': mark.error})
+    return render(request, 'marks/SaveMarkResult.html', {
+        'mark_type': mark.type,
+        'mark': mark.mark,
+        'MarkTable': MarkChangesTable(mark.mark, mark.changes)
+    })
 
 
 @login_required
@@ -162,16 +161,28 @@ def get_mark_version_data(request):
     if mark_type is None:
         return JsonResponse({'error': _('Unknown error')})
     try:
-        mark_version = MarkUnsafeHistory.objects.get(
-            version=int(request.POST.get('version', '0')),
-            mark_id=int(request.POST.get('mark_id', '0'))
-        )
+        if mark_type == 'unsafe':
+            mark_version = MarkUnsafeHistory.objects.get(
+                version=int(request.POST.get('version', '0')),
+                mark_id=int(request.POST.get('mark_id', '0'))
+            )
+        elif mark_type == 'safe':
+            mark_version = MarkSafeHistory.objects.get(
+                version=int(request.POST.get('version', '0')),
+                mark_id=int(request.POST.get('mark_id', '0'))
+            )
+        else:
+            return JsonResponse({
+                'error': _('Unknown error')
+            })
     except ObjectDoesNotExist:
         return JsonResponse({
             'error': _('Version was not found, please reload page')
         })
     table_templ = get_template('marks/MarkAttrTable.html')
-    table = table_templ.render({'data': AttrTable(mark_version=mark_version)})
+    table = table_templ.render({
+        'data': MarkAttrTable(mark_version=mark_version)
+    })
     data_templ = get_template('marks/MarkAddData.html')
     data = data_templ.render({'markdata': MarkData(mark_type, mark_version)})
     return JsonResponse({'table': table, 'adddata': data})
@@ -181,4 +192,12 @@ def get_mark_version_data(request):
 def mark_list(request, marks_type):
     return render(request, 'marks/MarkList.html', {
         'tabledata': MarkListTable(marks_type)
+    })
+
+
+@login_required
+def marks_all(request):
+    return render(request, 'marks/MarksAll.html', {
+        'safes': AllMarksList('safe'),
+        'unsafes': AllMarksList('unsafe')
     })
