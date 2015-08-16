@@ -55,7 +55,10 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                                                self.conf,
                                                                                'Linux kernel build'),
                                             '-C', self.linux_kernel['work src tree'],
-                                            'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd))).start()
+                                            'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd)),
+                                     env=dict(os.environ,
+                                              PATH='{0}:{1}'.format(os.path.join(os.path.dirname(__file__), 'cmds'),
+                                                                    os.environ['PATH']))).start()
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
@@ -76,7 +79,8 @@ class PsiComponent(psi.components.PsiComponentBase):
 
         self.logger.debug('Get Linux kernel version')
         p = psi.components.Component(self.logger,
-                                     ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'), collect_all_stdout=True)
+                                     ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'),
+                                     collect_all_stdout=True)
         p.start()
         self.linux_kernel['version'] = p.stdout[0]
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))
