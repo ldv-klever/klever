@@ -1,12 +1,16 @@
 #!/usr/bin/python3
 
+import fcntl
+import multiprocessing
 import os
 import re
 import shutil
 import tarfile
+import time
 import urllib.parse
 
 import psi.components
+import psi.lkbce.cmds.cmds
 import psi.utils
 
 name = 'LKBCE'
@@ -25,7 +29,13 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.extract_linux_kernel_attrs()
         self.configure_linux_kernel()
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
-        self.build_linux_kernel()
+        build_linux_kernel_p = multiprocessing.Process(target=self.build_linux_kernel)
+        process_all_linux_kernel_raw_build_cmds_p = multiprocessing.Process(
+            target=self.process_all_linux_kernel_raw_build_cmds)
+        build_linux_kernel_p.start()
+        process_all_linux_kernel_raw_build_cmds_p.start()
+        build_linux_kernel_p.join()
+        process_all_linux_kernel_raw_build_cmds_p.join()
 
     def build_linux_kernel(self):
         self.logger.info('Build Linux kernel')
@@ -62,6 +72,14 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                                     os.environ['PATH']),
                                               LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
                                                   self.linux_kernel['raw build cmds file']))).start()
+
+        # Terminate Linux kernel raw build commands "message queue".
+        with open(self.linux_kernel['raw build cmds file'], 'a') as fp:
+            try:
+                fcntl.flock(fp, fcntl.LOCK_EX)
+                fp.write(psi.lkbce.cmds.cmds.Command.cmds_separator)
+            finally:
+                fcntl.flock(fp, fcntl.LOCK_UN)
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
@@ -148,3 +166,42 @@ class PsiComponent(psi.components.PsiComponentBase):
             self.logger.debug(
                 'Move "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']))
             os.rename(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree'])
+
+    def process_all_linux_kernel_raw_build_cmds(self):
+        self.logger.info('Process all Linux kernel raw build commands')
+
+        # It looks quite reasonable to scan Linux kernel raw build commands file once a second since build isn't
+        # performed neither too fast nor too slow.
+        # Offset is used to scan just new lines from Linux kernel raw build commands file.
+        offset = 0
+        while True:
+            time.sleep(1)
+
+            with open(self.linux_kernel['raw build cmds file']) as fp:
+                try:
+                    fcntl.flock(fp, fcntl.LOCK_EX)
+
+                    # Move to previous end of file.
+                    fp.seek(offset)
+
+                    # Read new lines from file.
+                    cmd = []
+                    prev_line = None
+                    for line in fp:
+                        if line == psi.lkbce.cmds.cmds.Command.cmds_separator:
+                            if prev_line == psi.lkbce.cmds.cmds.Command.cmds_separator:
+                                self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
+                                exit(0)
+                            else:
+                                # TODO: actually process command.
+                                self.logger.info(cmd)
+                                cmd = []
+                        else:
+                            cmd.append(line.rstrip())
+
+                        prev_line = line
+
+                    # Move offset to current end of file.
+                    offset = fp.tell()
+                finally:
+                    fcntl.flock(fp, fcntl.LOCK_UN)
