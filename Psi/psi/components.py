@@ -213,8 +213,11 @@ class Component:
                         break
                     output.append(line)
                 if output:
-                    self.logger.debug(
-                        '"{0}" outputted to {1}:\n{2}'.format(self.cmd[0], stream_q.stream_name, '\n'.join(output)))
+                    m = '"{0}" outputted to {1}:\n{2}'.format(self.cmd[0], stream_q.stream_name, '\n'.join(output))
+                    if stream_q is out_q:
+                        self.logger.debug(m)
+                    else:
+                        self.logger.warning(m)
 
         if self.collect_all_stdout:
             self.stdout = out_q.output
