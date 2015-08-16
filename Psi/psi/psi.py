@@ -314,7 +314,7 @@ def _send_reports(session, reports_mq):
         while True:
             m = reports_mq.get()
             if m is None:
-                _logger.debug('Report messages queue was terminated')
+                _logger.debug('Report message queue was terminated')
                 break
             _logger.debug('Upload report "{0}"'.format(m))
             session.upload_report(m)
