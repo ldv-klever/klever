@@ -7,7 +7,7 @@ import subprocess
 class Command:
     # All command line argument will be printed at separate line and they aren't empty strings. So one empty string
     # can safely separate different build commands from each other.
-    cmds_separator = '\n\n'
+    cmds_separator = '\n'
 
     def __init__(self, argv):
         self.cmd = os.path.basename(argv[0])
@@ -17,7 +17,7 @@ class Command:
         with open(os.environ['LINUX_KERNEL_RAW_BUILD_CMS_FILE'], 'a') as fp:
             try:
                 fcntl.flock(fp, fcntl.LOCK_EX)
-                fp.write('{0}{1}'.format('\n'.join([self.cmd if self.cmd != 'gcc' else 'cc'] + self.opts),
+                fp.write('{0}\n{1}'.format('\n'.join([self.cmd if self.cmd != 'gcc' else 'cc'] + self.opts),
                                          self.cmds_separator))
             finally:
                 fcntl.flock(fp, fcntl.LOCK_UN)
