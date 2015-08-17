@@ -214,9 +214,9 @@ class PsiComponent(psi.components.PsiComponentBase):
                                         # Options with values.
                                         match = None
                                         for opt_with_val in opts_with_vals:
-                                            match = re.search(r'^-({0})=?(.*)'.format(opt_with_val), opt)
+                                            match = re.search(r'^-({0})(=?)(.*)'.format(opt_with_val), opt)
                                             if match:
-                                                opt, val = match.groups()
+                                                opt, eq, val = match.groups()
 
                                                 # Option value is specified by means of the following option.
                                                 if not val:
@@ -228,7 +228,12 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                 else:
                                                     if opt == 'print-file-name':
                                                         cmd_requires_files = False
-                                                    cmd_opts.extend(['-{0}'.format(opt), val])
+
+                                                    # Use original formatting of options.
+                                                    if skip_next_opt:
+                                                        cmd_opts.extend(['-{0}'.format(opt), val])
+                                                    else:
+                                                        cmd_opts.append('-{0}{1}{2}'.format(opt, eq, val))
 
                                                 break
 
@@ -279,13 +284,20 @@ class PsiComponent(psi.components.PsiComponentBase):
                                             'Could not get Linux kernel raw build command output file from options "{0}"'.format(
                                                 opts))
 
-                                # TODO: check that all options were parsed.
-                                # if set(opts) != set(cmd_in_files + [cmd_out_file] + cmd_opts):
-                                #     raise RuntimeError(
-                                #         'Some options were not parsed properly: "{0} != {1} + {2} + {3}"'.format(opts,
-                                #                                                                                  cmd_in_files,
-                                #                                                                                  cmd_out_file,
-                                #                                                                                  cmd_opts))
+                                # Check thar all original options becomes either input files or output file or options.
+                                # Option -o isn't included in the resulting set.
+                                original_opts = opts
+                                if '-o' in original_opts:
+                                    original_opts.remove('-o')
+                                resulting_opts = cmd_in_files + cmd_opts
+                                if cmd_out_file:
+                                    resulting_opts.append(cmd_out_file)
+                                if set(original_opts) != set(resulting_opts):
+                                    raise RuntimeError(
+                                        'Some options were not parsed: "{0} != {1} + {2} + {3}"'.format(original_opts,
+                                                                                                        cmd_in_files,
+                                                                                                        cmd_out_file,
+                                                                                                        cmd_opts))
 
                                 self.logger.debug(
                                     'Linux kernel raw build command input files are "{0}"'.format(cmd_in_files))
@@ -293,6 +305,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                     'Linux kernel raw build command output file is "{0}"'.format(cmd_out_file))
                                 self.logger.debug('Linux kernel raw build command options are "{0}"'.format(cmd_opts))
 
+                                # Go to the next command or finish operation.
                                 cmd = None
                                 opts = []
                         else:
