@@ -42,6 +42,10 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.extract_linux_kernel_attrs()
         self.configure_linux_kernel()
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
+        # Always create Linux kernel raw build commands file prior to its reading in
+        # self.process_all_linux_kernel_raw_build_cmds().
+        with open(self.linux_kernel['raw build cmds file'], 'w'):
+            pass
         psi.components.launch_in_parrallel(self.logger,
                                            (self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
 
