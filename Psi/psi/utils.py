@@ -1,3 +1,4 @@
+import fcntl
 import json
 import logging
 import os.path
@@ -5,6 +6,41 @@ import resource
 import subprocess
 import sys
 import time
+
+
+# Based on http://blog.gocept.com/2013/07/15/reliable-file-updates-with-python/.
+class LockedOpen(object):
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+
+        self.fp = None
+
+    def __enter__(self):
+        fp = open(self.name, *self.args, **self.kwargs)
+
+        while True:
+            fcntl.flock(fp, fcntl.LOCK_EX)
+
+            fp_new = open(self.name, *self.args, **self.kwargs)
+
+            # Other process didn't modify file between we open and lock it. So we can safely use created file stream.
+            if os.path.sameopenfile(fp.fileno(), fp_new.fileno()):
+                fp_new.close()
+                break
+            # Otherwise we need to reopen file.
+            else:
+                fp.close()
+                fp = fp_new
+
+        self.fp = fp
+
+        return fp
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.fp.flush()
+        self.fp.close()
 
 
 def count_consumed_resources(logger, start_time):

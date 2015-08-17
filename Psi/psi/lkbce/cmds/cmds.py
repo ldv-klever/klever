@@ -3,6 +3,8 @@ import os
 import re
 import subprocess
 
+import psi.utils
+
 
 class Command:
     # All command line argument will be printed at separate line and they aren't empty strings. So one empty string
@@ -14,13 +16,9 @@ class Command:
         self.opts = argv[1:]
 
     def launch(self):
-        with open(os.environ['LINUX_KERNEL_RAW_BUILD_CMS_FILE'], 'a') as fp:
-            try:
-                fcntl.flock(fp, fcntl.LOCK_EX)
-                fp.write('{0}\n{1}'.format('\n'.join([self.cmd.upper() if self.cmd != 'gcc' else 'CC'] + self.opts),
-                                           self.cmds_separator))
-            finally:
-                fcntl.flock(fp, fcntl.LOCK_UN)
+        with psi.utils.LockedOpen(os.environ['LINUX_KERNEL_RAW_BUILD_CMS_FILE'], 'a') as fp:
+            fp.write('{0}\n{1}'.format('\n'.join([self.cmd.upper() if self.cmd != 'gcc' else 'CC'] + self.opts),
+                                       self.cmds_separator))
 
         # Eclude path where wrapper build command is located.
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
