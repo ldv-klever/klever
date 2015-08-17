@@ -149,7 +149,7 @@ def launch():
                                                                 'data': ''})
                     reports_mq.put(finish_report_file)
 
-            _logger.info('Send terminator to reports message queue')
+            _logger.info('Terminate reports message queue')
             reports_mq.put(None)
 
             _logger.info('Wait for uploading all reports')
