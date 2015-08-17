@@ -63,9 +63,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                     cmds.append((modules,))
                 else:
                     # Add "modules_prepare" target once.
-                    if cmds:
-                        if cmds[0] != 'modules_prepare':
-                            cmds.insert(0, 'modules_prepare')
+                    if not cmds or cmds[0] != ('modules_prepare',):
+                        cmds.insert(0, ('modules_prepare',))
                     cmds.append(('M={0}'.format(modules), 'modules'))
         else:
             raise KeyError(
