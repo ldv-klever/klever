@@ -22,8 +22,8 @@ name = 'LKBCE'
 # The rest options are CC/LD input files.
 _cmd_opts = {
     'CC': {'opts requiring vals': ('D', 'I', 'O', 'include', 'isystem', 'mcmodel', 'o', 'print-file-name', 'x'),
-           'opts discarding in files': ('print-file-name',),
-           'opts discarding out file': ('E', 'print-file-name')},
+           'opts discarding in files': ('print-file-name', 'v'),
+           'opts discarding out file': ('E', 'print-file-name', 'v')},
     'LD': {'opts requiring vals': ('T', 'm', 'o',),
            'opts discarding in files': (),
            'opts discarding out file': ()}}
