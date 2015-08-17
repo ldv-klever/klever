@@ -17,7 +17,7 @@ class Extended(models.Model):
                                    default='raw')
     language = models.CharField(max_length=2, choices=LANGUAGES, default='en')
     role = models.CharField(max_length=1, choices=USER_ROLES, default='0')
-    timezone = models.CharField(max_length=255)
+    timezone = models.CharField(max_length=255, default='UTC')
 
     def __str__(self):
         return self.user.username

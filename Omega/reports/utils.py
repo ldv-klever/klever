@@ -7,7 +7,7 @@ from Omega.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW,\
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW
 from jobs.utils import get_resource_data
 from reports.models import ReportComponent, Attr, AttrName, ReportComponentLeaf
-from marks.utils import result_color, SAFE_COLOR, UNSAFE_COLOR, STATUS_COLOR
+from marks.tables import result_color, SAFE_COLOR, UNSAFE_COLOR, STATUS_COLOR
 from Omega.tableHead import Header
 
 

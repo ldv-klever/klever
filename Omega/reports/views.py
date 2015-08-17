@@ -6,7 +6,7 @@ from django.utils.translation import activate
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from jobs.models import Job
-from marks.utils import ReportMarkTable
+from marks.tables import ReportMarkTable
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *

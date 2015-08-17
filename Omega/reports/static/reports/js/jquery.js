@@ -80,8 +80,8 @@ function unknown_filters_data() {
 }
 
 $(document).ready(function () {
-    var data_collection;
     $('input[class=buttons-view-type]').each(function () {
+        var data_collection;
         switch ($(this).val()) {
             case '3':
                 data_collection = component_filters_data;

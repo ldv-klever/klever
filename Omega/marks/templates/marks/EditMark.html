@@ -78,6 +78,9 @@
                     {% include 'marks/MarkAddData.html' with markdata=markdata %}
                 </div>
                 <hr>
+                {% if can_freeze %}
+                    <label><input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>  {% trans 'Modifiable' %}</label><br>
+                {% endif %}
                 <label for="edit_mark_comment"><input id="edit_mark_comment" style="width: 150%" class="form-control" type="text" placeholder="{% trans 'Comment' %}"></label>
                 <button id="save_mark_btn" style="float: right" class="btn btn-success">{% trans 'Save' %}</button>
             </div>

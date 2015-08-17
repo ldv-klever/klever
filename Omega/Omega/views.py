@@ -1,6 +1,10 @@
 from django.utils.translation import ugettext as _, activate
 from urllib.parse import unquote
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from Omega.populate import Population
+from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 
 
 def omega_error(request, err_code=0, user_message=None):
@@ -31,6 +35,21 @@ def omega_error(request, err_code=0, user_message=None):
         message = _('The report was not found')
     elif err_code == 604:
         message = _("The mark was not found")
+    elif err_code == 600:
+        message = _("You don't have access to this mark")
+    elif err_code == 601:
+        message = _("You don't have access to create new marks")
+    elif err_code == 602:
+        message = _("You don't have access to delete this mark")
     if isinstance(user_message, str):
         message = user_message
     return render(request, 'error.html', {'message': message, 'back': back})
+
+
+@login_required
+def population(request):
+    if request.method == 'POST':
+        username, password = Population(request.user).full_population()
+        return render(request, 'Population.html',
+                      {'password': password, 'username': username})
+    return render(request, 'Population.html', {})

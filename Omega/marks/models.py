@@ -7,19 +7,18 @@ from jobs.models import Job
 
 # Tables with functions
 class MarkUnsafeConvert(models.Model):
-    name = models.CharField(max_length=31)
-    description = models.CharField(max_length=255)
-    body = models.TextField()
+    name = models.CharField(max_length=30)
+    description = models.CharField(max_length=1000)
 
     def __str__(self):
         return self.name
 
 
 class MarkUnsafeCompare(models.Model):
-    name = models.CharField(max_length=31)
-    description = models.CharField(max_length=255)
+    hash_sum = models.CharField(max_length=100)
+    name = models.CharField(max_length=30)
     body = models.TextField()
-    hash_sum = models.CharField(max_length=255)
+    description = models.CharField(max_length=1000)
 
     def __str__(self):
         return self.name
@@ -36,6 +35,8 @@ class MarkDefaultFunctions(models.Model):
 # Abstract tables
 class Mark(models.Model):
     identifier = models.CharField(max_length=255, unique=True)
+    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL,
+                            related_name="%(class)s")
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
     type = models.CharField(max_length=1, choices=JOB_CLASSES, default='0')
@@ -111,6 +112,7 @@ class MarkUnsafeReport(models.Model):
     mark = models.ForeignKey(MarkUnsafe)
     report = models.ForeignKey(ReportUnsafe)
     result = models.FloatField()
+    broken = models.BooleanField(default=False)
 
     class Meta:
         db_table = "cache_mark_unsafe_report"
