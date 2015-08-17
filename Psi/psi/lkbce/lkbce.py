@@ -183,6 +183,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         # performed neither too fast nor too slow.
         # Offset is used to scan just new lines from Linux kernel raw build commands file.
         offset = 0
+        prev_line = None
         while True:
             time.sleep(1)
 
@@ -193,7 +194,6 @@ class PsiComponent(psi.components.PsiComponentBase):
                 # Read new lines from file.
                 cmd = None
                 opts = []
-                prev_line = None
                 for line in fp:
                     if line == psi.lkbce.cmds.cmds.Command.cmds_separator:
                         if prev_line == psi.lkbce.cmds.cmds.Command.cmds_separator:
