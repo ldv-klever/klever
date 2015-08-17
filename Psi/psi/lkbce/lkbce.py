@@ -81,7 +81,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
                                                   self.linux_kernel['raw build cmds file']))).start()
 
-        # Terminate Linux kernel raw build commands "message queue".
+        self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with open(self.linux_kernel['raw build cmds file'], 'a') as fp:
             try:
                 fcntl.flock(fp, fcntl.LOCK_EX)
