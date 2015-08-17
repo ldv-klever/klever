@@ -70,6 +70,9 @@ class PsiComponent(psi.components.PsiComponentBase):
             raise KeyError(
                 'Neither "whole build" nor "modules" attribute of Linux kernel is specified in configuration')
 
+        self.logger.debug(
+            'Following build commands will be executed:\n{0}'.format('\n'.join([' '.join(cmd) for cmd in cmds])))
+
         for cmd in cmds:
             psi.components.Component(self.logger,
                                      tuple(['make', '-j',
