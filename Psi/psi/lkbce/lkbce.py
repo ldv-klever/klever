@@ -194,6 +194,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                                 cmd_in_files = []
                                 cmd_out_file = None
                                 cmd_opts = []
+                                # Input files and output files should be presented almost always.
+                                cmd_requires_files = True
 
                                 if cmd == 'CC':
                                     # We assume that CC options always start with "-" and following CC options always
@@ -201,7 +203,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                                     # separated with "=") or by means of the following option.
                                     # Value of -o is CC output file.
                                     # The rest options are CC input files.
-                                    opts_with_vals = ('D', 'O', 'mcmodel', 'o', 'x')
+                                    # -print-file-name allows to omit both CC input and output files.
+                                    opts_with_vals = ('D', 'O', 'mcmodel', 'o', 'print-file-name', 'x')
                                     skip_next_opt = False
                                     for idx, opt in enumerate(opts):
                                         if skip_next_opt:
@@ -223,6 +226,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                 if opt == 'o':
                                                     cmd_out_file = val
                                                 else:
+                                                    if opt == 'print-file-name':
+                                                        cmd_requires_files = False
                                                     cmd_opts.extend(['-{0}'.format(opt), val])
 
                                                 break
@@ -264,15 +269,15 @@ class PsiComponent(psi.components.PsiComponentBase):
                                     raise NotImplementedError(
                                         'Linux kernel raw build command "{0}" is not supported yet'.format(cmd))
 
-                                # Input files and output files should be presented always.
-                                if not cmd_in_files:
-                                    raise ValueError(
-                                        'Could not get Linux kernel raw build command input files from options "{0}"'.format(
-                                            opts))
-                                if not cmd_out_file:
-                                    raise ValueError(
-                                        'Could not get Linux kernel raw build command output file from options "{0}"'.format(
-                                            opts))
+                                if cmd_requires_files:
+                                    if not cmd_in_files:
+                                        raise ValueError(
+                                            'Could not get Linux kernel raw build command input files from options "{0}"'.format(
+                                                opts))
+                                    if not cmd_out_file:
+                                        raise ValueError(
+                                            'Could not get Linux kernel raw build command output file from options "{0}"'.format(
+                                                opts))
 
                                 # TODO: check that all options were parsed.
                                 # if set(opts) != set(cmd_in_files + [cmd_out_file] + cmd_opts):
