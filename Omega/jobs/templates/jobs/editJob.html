@@ -84,7 +84,7 @@
     {% include 'jobs/filesTree.html' %}
     <hr>
     {% if job_versions|length %}
-        <label style="width: 100%;">{% trans "Change's comment" %}:<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
+        <label style="width: 100%;">{% trans "Change comment" %}:<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
     {% endif %}
     <button id="save_job_btn" type="submit" class="btn btn-success">{% trans 'Save' %}</button>
     {% if job_versions|length %}
@@ -102,7 +102,7 @@
     </select>
     <button id="remove_user_role__" class="btn-close-x"><span class="glyphicon glyphicon-remove"></span></button>
 </div>
-<div id="error__comment_required" hidden>{% trans "Change's comment is required" %}</div>
+<div id="error__comment_required" hidden>{% trans "Change comment is required" %}</div>
 <div id="error__title_required" hidden>{% trans 'Title is required' %}</div>
 <div id="error__cant_move_dir" hidden>{% trans "You can't move folder" %}</div>
 <div id="error__nofile_selected" hidden>{% trans "Please choose the file" %}</div>

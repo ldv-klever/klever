@@ -100,7 +100,7 @@ MARK_UNSAFE = (
     ('0', _('Unknown')),
     ('1', _('Bug')),
     ('2', _('Target bug')),
-    ('3', _('False Positive')),
+    ('3', _('False positive')),
 )
 
 MARK_SAFE = (
