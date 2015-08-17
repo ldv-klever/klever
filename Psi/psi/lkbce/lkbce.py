@@ -180,7 +180,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                     fp.seek(offset)
 
                     # Read new lines from file.
-                    cmd = []
+                    cmd = None
+                    opts = []
                     prev_line = None
                     for line in fp:
                         if line == psi.lkbce.cmds.cmds.Command.cmds_separator:
@@ -188,11 +189,112 @@ class PsiComponent(psi.components.PsiComponentBase):
                                 self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
                                 exit(0)
                             else:
-                                # TODO: actually process command.
-                                self.logger.info(cmd)
-                                cmd = []
+                                self.logger.info('Process Linux kernel raw build command "{0}"'.format(cmd))
+
+                                cmd_in_files = []
+                                cmd_out_file = None
+                                cmd_opts = []
+
+                                if cmd == 'CC':
+                                    # We assume that CC options always start with "-" and following CC options always
+                                    # require values that can be specified either together with option itself (maybe
+                                    # separated with "=") or by means of the following option.
+                                    # Value of -o is CC output file.
+                                    # The rest options are CC input files.
+                                    opts_with_vals = ('D', 'O', 'mcmodel', 'o', 'x')
+                                    skip_next_opt = False
+                                    for idx, opt in enumerate(opts):
+                                        if skip_next_opt:
+                                            skip_next_opt = False
+                                            continue
+
+                                        # Options with values.
+                                        match = None
+                                        for opt_with_val in opts_with_vals:
+                                            match = re.search(r'^-({0})=?(.*)'.format(opt_with_val), opt)
+                                            if match:
+                                                opt, val = match.groups()
+
+                                                # Option value is specified by means of the following option.
+                                                if not val:
+                                                    val = opts[idx + 1]
+                                                    skip_next_opt = True
+
+                                                if opt == 'o':
+                                                    cmd_out_file = val
+                                                else:
+                                                    cmd_opts.extend(['-{0}'.format(opt), val])
+
+                                                break
+
+                                        if not match:
+                                            # Options without values.
+                                            if re.search(r'^-.+$', opt):
+                                                cmd_opts.append(opt)
+                                            # Input files.
+                                            else:
+                                                cmd_in_files.append(opt)
+                                elif cmd == 'LD':
+                                    # We assume that LD options always have such the form:
+                                    #     [-opt]... -o out_file in_file...
+                                    for idx, opt in enumerate(opts):
+                                        if opt == '-o':
+                                            idx += 1
+                                            cmd_out_file = opts[idx]
+                                            while True:
+                                                idx += 1
+                                                try:
+                                                    cmd_in_files.append(opts[idx])
+                                                except IndexError:
+                                                    break
+                                            break
+                                        else:
+                                            cmd_opts.append(opt)
+                                elif cmd == 'MV':
+                                    # We assume that MV options always have such the form:
+                                    #     [-opt]... in_file out_file
+                                    for opt in opts:
+                                        if re.search(r'^-', opt):
+                                            cmd_opts.append(opt)
+                                        elif not cmd_in_files:
+                                            cmd_in_files.append(opt)
+                                        else:
+                                            cmd_out_file = opt
+                                else:
+                                    raise NotImplementedError(
+                                        'Linux kernel raw build command "{0}" is not supported yet'.format(cmd))
+
+                                # Input files and output files should be presented always.
+                                if not cmd_in_files:
+                                    raise ValueError(
+                                        'Could not get Linux kernel raw build command input files from options "{0}"'.format(
+                                            opts))
+                                if not cmd_out_file:
+                                    raise ValueError(
+                                        'Could not get Linux kernel raw build command output file from options "{0}"'.format(
+                                            opts))
+
+                                # TODO: check that all options were parsed.
+                                # if set(opts) != set(cmd_in_files + [cmd_out_file] + cmd_opts):
+                                #     raise RuntimeError(
+                                #         'Some options were not parsed properly: "{0} != {1} + {2} + {3}"'.format(opts,
+                                #                                                                                  cmd_in_files,
+                                #                                                                                  cmd_out_file,
+                                #                                                                                  cmd_opts))
+
+                                self.logger.debug(
+                                    'Linux kernel raw build command input files are "{0}"'.format(cmd_in_files))
+                                self.logger.debug(
+                                    'Linux kernel raw build command output file is "{0}"'.format(cmd_out_file))
+                                self.logger.debug('Linux kernel raw build command options are "{0}"'.format(cmd_opts))
+
+                                cmd = None
+                                opts = []
                         else:
-                            cmd.append(line.rstrip())
+                            if not cmd:
+                                cmd = line.rstrip()
+                            else:
+                                opts.append(line.rstrip())
 
                         prev_line = line
 
