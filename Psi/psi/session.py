@@ -26,6 +26,7 @@ class Session:
         self.name = name
         self.session = requests.Session()
 
+        # TODO: try to autentificate like with httplib2.Http().add_credentials().
         # Get CSRF token via GET request.
         self.__request('users/psi_signin/')
 
