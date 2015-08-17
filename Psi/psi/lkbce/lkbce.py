@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import fcntl
-import multiprocessing
 import os
 import re
 import shutil
@@ -14,6 +13,20 @@ import psi.lkbce.cmds.cmds
 import psi.utils
 
 name = 'LKBCE'
+
+# We assume that CC/LD options always start with "-".
+# Some CC/LD options always require values that can be specified either together with option itself (maybe separated
+# with "=") or by means of the following option.
+# Some CC options allow to omit both CC input and output files.
+# Value of -o is CC/LD output file.
+# The rest options are CC/LD input files.
+_cmd_opts = {
+    'CC': {'opts requiring vals': ('D', 'I', 'O', 'include', 'isystem', 'mcmodel', 'o', 'print-file-name', 'x'),
+           'opts discarding in files': ('print-file-name',),
+           'opts discarding out file': ('E', 'print-file-name')},
+    'LD': {'opts requiring vals': ('o',),
+           'opts discarding in files': (),
+           'opts discarding out file': ()}}
 
 
 class PsiComponentCallbacks(psi.components.PsiComponentCallbacksBase):
@@ -187,7 +200,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                         if line == psi.lkbce.cmds.cmds.Command.cmds_separator:
                             if prev_line == psi.lkbce.cmds.cmds.Command.cmds_separator:
                                 self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
-                                exit(0)
+                                return
                             else:
                                 self.logger.info('Process Linux kernel raw build command "{0}"'.format(cmd))
 
@@ -195,26 +208,30 @@ class PsiComponent(psi.components.PsiComponentBase):
                                 cmd_out_file = None
                                 cmd_opts = []
                                 # Input files and output files should be presented almost always.
-                                cmd_requires_files = True
+                                cmd_requires_in_files = True
+                                cmd_requires_out_file = True
 
-                                if cmd == 'CC':
-                                    # We assume that CC options always start with "-" and following CC options always
-                                    # require values that can be specified either together with option itself (maybe
-                                    # separated with "=") or by means of the following option.
-                                    # Value of -o is CC output file.
-                                    # The rest options are CC input files.
-                                    # -print-file-name allows to omit both CC input and output files.
-                                    opts_with_vals = ('D', 'O', 'mcmodel', 'o', 'print-file-name', 'x')
+                                if cmd == 'CC' or cmd == 'LD':
+                                    opts_requiring_vals = _cmd_opts[cmd]['opts requiring vals']
                                     skip_next_opt = False
                                     for idx, opt in enumerate(opts):
+                                        # Option represents already processed value of the previous option.
                                         if skip_next_opt:
                                             skip_next_opt = False
                                             continue
 
+                                        for opt_discarding_in_files in _cmd_opts[cmd]['opts discarding in files']:
+                                            if re.search(r'^-{0}'.format(opt_discarding_in_files), opt):
+                                                cmd_requires_in_files = False
+
+                                        for opt_discarding_out_file in _cmd_opts[cmd]['opts discarding out file']:
+                                            if re.search(r'^-{0}'.format(opt_discarding_out_file), opt):
+                                                cmd_requires_out_file = False
+
                                         # Options with values.
                                         match = None
-                                        for opt_with_val in opts_with_vals:
-                                            match = re.search(r'^-({0})(=?)(.*)'.format(opt_with_val), opt)
+                                        for opt_requiring_val in opts_requiring_vals:
+                                            match = re.search(r'^-({0})(=?)(.*)'.format(opt_requiring_val), opt)
                                             if match:
                                                 opt, eq, val = match.groups()
 
@@ -223,12 +240,10 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                     val = opts[idx + 1]
                                                     skip_next_opt = True
 
+                                                # Output file.
                                                 if opt == 'o':
                                                     cmd_out_file = val
                                                 else:
-                                                    if opt == 'print-file-name':
-                                                        cmd_requires_files = False
-
                                                     # Use original formatting of options.
                                                     if skip_next_opt:
                                                         cmd_opts.extend(['-{0}'.format(opt), val])
@@ -244,22 +259,6 @@ class PsiComponent(psi.components.PsiComponentBase):
                                             # Input files.
                                             else:
                                                 cmd_in_files.append(opt)
-                                elif cmd == 'LD':
-                                    # We assume that LD options always have such the form:
-                                    #     [-opt]... -o out_file in_file...
-                                    for idx, opt in enumerate(opts):
-                                        if opt == '-o':
-                                            idx += 1
-                                            cmd_out_file = opts[idx]
-                                            while True:
-                                                idx += 1
-                                                try:
-                                                    cmd_in_files.append(opts[idx])
-                                                except IndexError:
-                                                    break
-                                            break
-                                        else:
-                                            cmd_opts.append(opt)
                                 elif cmd == 'MV':
                                     # We assume that MV options always have such the form:
                                     #     [-opt]... in_file out_file
@@ -274,15 +273,14 @@ class PsiComponent(psi.components.PsiComponentBase):
                                     raise NotImplementedError(
                                         'Linux kernel raw build command "{0}" is not supported yet'.format(cmd))
 
-                                if cmd_requires_files:
-                                    if not cmd_in_files:
-                                        raise ValueError(
-                                            'Could not get Linux kernel raw build command input files from options "{0}"'.format(
-                                                opts))
-                                    if not cmd_out_file:
-                                        raise ValueError(
-                                            'Could not get Linux kernel raw build command output file from options "{0}"'.format(
-                                                opts))
+                                if cmd_requires_in_files and not cmd_in_files:
+                                    raise ValueError(
+                                        'Could not get Linux kernel raw build command input files from options "{0}"'.format(
+                                            opts))
+                                if cmd_requires_out_file and not cmd_out_file:
+                                    raise ValueError(
+                                        'Could not get Linux kernel raw build command output file from options "{0}"'.format(
+                                            opts))
 
                                 # Check thar all original options becomes either input files or output file or options.
                                 # Option -o isn't included in the resulting set.
