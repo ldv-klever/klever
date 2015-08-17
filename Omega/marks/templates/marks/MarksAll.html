@@ -12,14 +12,14 @@
     {% endif %}
     <br>
     {% if safes.values|length %}
-        <h2>{% trans 'Unsafe' %}</h2>
+        <h2>{% trans 'Safe' %}</h2>
         {% include 'table.html' with data=safes %}
     {% else %}
         <h4>{% trans 'There are no safe marks' %}</h4>
     {% endif %}
     <br>
     {% if unknowns.values|length %}
-        <h2>{% trans 'Unsafe' %}</h2>
+        <h2>{% trans 'Unknown' %}</h2>
         {% include 'table.html' with data=unknowns %}
     {% else %}
         <h4>{% trans 'There are no unknown marks' %}</h4>

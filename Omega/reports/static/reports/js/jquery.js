@@ -39,6 +39,12 @@ function unsafe_filters_data() {
     }
 
     view_values['filters'] = filter_values;
+    view_values['columns'] = [];
+    $("input[type=checkbox][id^='show_mark_'][value^='mark_']").each(function () {
+        if ($(this).is(':checked')) {
+            view_values['columns'].push($(this).val());
+        }
+    });
     return JSON.stringify(view_values);
 }
 

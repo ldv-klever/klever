@@ -6,10 +6,10 @@ from django.utils.translation import ugettext_lazy as _
 from Omega.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW,\
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW
 from jobs.utils import get_resource_data
-from reports.models import ReportComponent, Attr, AttrName,\
-    ReportComponentLeaf, ReportUnsafe
+from reports.models import ReportComponent, Attr, AttrName, ReportComponentLeaf
 from marks.utils import result_color, SAFE_COLOR, UNSAFE_COLOR, STATUS_COLOR
 from Omega.tableHead import Header
+
 
 REP_MARK_TITLES = {
     'mark_num': _('Mark'),
@@ -19,6 +19,8 @@ REP_MARK_TITLES = {
     'number': '№',
     'component': _('Component')
 }
+
+MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
 
 
 def computer_description(computer):
@@ -338,11 +340,13 @@ class ReportTable(object):
                     'attrs': values_row,
                     'pk': rep_id
                 })
-        if self.type == '4':
-            add_columns = ['mark_num', 'mark_verdict',
-                           'mark_result', 'mark_status']
-        else:
-            add_columns = ['mark_num', 'mark_verdict', 'mark_status']
+
+        add_columns = ['mark_num']
+        for col in MARK_COLUMNS:
+            if 'columns' in self.view and col in self.view['columns']:
+                if self.type != '4' and col == 'mark_result':
+                    continue
+                add_columns.append(col)
         columns.extend(add_columns)
         new_val_data = []
         for row in values_data:

@@ -195,6 +195,7 @@ REPORT_ATTRS_DEF_VIEW = {
 }
 
 UNSAFE_LIST_DEF_VIEW = {
+    'columns': ['mark_verdict', 'mark_result', 'mark_status'],
     # 'order': 'verification obj',
     'filters': {
         # 'attr': {
@@ -206,6 +207,7 @@ UNSAFE_LIST_DEF_VIEW = {
 }
 
 SAFE_LIST_DEF_VIEW = {
+    'columns': ['mark_verdict', 'mark_status'],
     # 'order': 'verification obj',
     'filters': {
         # 'attr': {

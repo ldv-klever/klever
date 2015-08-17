@@ -8,6 +8,13 @@
             </h4>
         </div>
         <div id="collapse" class="panel-collapse collapse" style="margin-left: 10px;">
+            <div class="row">
+                <div class="col-sm-4"><label><input id="show_mark_verdict" type="checkbox" value="mark_verdict"{% if 'mark_verdict' in attr_filters.view.columns %} checked{% endif %}> {% trans "Show mark's verdict" %}</label></div>
+                <div class="col-sm-4"><label><input id="show_mark_status" type="checkbox" value="mark_status"{% if 'mark_status' in attr_filters.view.columns %} checked{% endif %}> {% trans "Show mark's status" %}</label></div>
+                {% if view_type == '4' %}
+                    <div class="col-sm-4"><label><input id="show_mark_result" type="checkbox" value="mark_result"{% if 'mark_result' in attr_filters.view.columns %} checked{% endif %}> {% trans "Show mark's similarity" %}</label></div>
+                {% endif %}
+            </div>
             <h4>{% trans 'Order by attribute*:' %}</h4>
             <label for="filter__attr__order"></label>
             <input id="filter__attr__order" class="form-control" type="text" value="{{ attr_filters.view.order }}">
