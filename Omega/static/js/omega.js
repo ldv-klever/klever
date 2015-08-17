@@ -1,5 +1,6 @@
 
 window.job_ajax_url = '/jobs/ajax/';
+window.marks_ajax_url = '/marks/ajax/';
 
 function getCookie(name) {
     var cookieValue = null;

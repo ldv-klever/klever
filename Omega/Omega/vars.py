@@ -96,6 +96,36 @@ MARK_STATUS = (
     ('3', _('Rejected')),
 )
 
+MARK_UNSAFE = (
+    ('0', _('Unknown')),
+    ('1', _('Bug')),
+    ('2', _('Target bug')),
+    ('3', _('False positive')),
+)
+
+MARK_SAFE = (
+    ('0', _('Unknown')),
+    ('1', _('Incorrect proof')),
+    ('2', _('Missed target bug')),
+)
+
+UNSAFE_VERDICTS = (
+    ('0', _('Unknown')),
+    ('1', _('Bug')),
+    ('2', _('Target bug')),
+    ('3', _('False positive')),
+    ('4', _('Incompatible marks')),
+    ('5', _('Without marks')),
+)
+
+SAFE_VERDICTS = (
+    ('0', _('Unknown')),
+    ('1', _('Incorrect proof')),
+    ('2', _('Missed target bug')),
+    ('3', _('Incompatible marks')),
+    ('4', _('Without marks')),
+)
+
 VIEWJOB_DEF_VIEW = {
     'data': [
         'unsafes',

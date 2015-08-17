@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from reports.models import *
 from reports.utils import save_attrs
+from marks.utils import ConnectMarks
 
 
 class UploadReport(object):
@@ -237,9 +238,8 @@ class UploadReport(object):
             self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            status = self.job.jobstatus
-            status.status = '1'
-            status.save()
+            self.job.status = '1'
+            self.job.save()
         return report
 
     def __update_attrs(self, identifier):
@@ -284,13 +284,11 @@ class UploadReport(object):
             self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            status = self.job.jobstatus
             if len(ReportUnknown.objects.filter(parent=report)) > 0:
-                # Failed
-                status.status = '4'
+                self.job.status = '4'
             else:
-                status.status = '3'
-            status.save()
+                self.job.status = '3'
+            self.job.save()
 
         return report
 
@@ -393,7 +391,7 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
-
+        ConnectMarks(report)
         return report
 
     def __add_attrs(self, report):

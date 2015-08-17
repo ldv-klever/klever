@@ -15,8 +15,8 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat,\
     ugettext_noop
 from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
-from jobs.models import FileSystem, File, UserRole, JOBFILE_DIR
-from jobs.job_model import Job, JobHistory, JobStatus
+from jobs.models import Job, JobHistory, FileSystem, File, UserRole,\
+    JOBFILE_DIR
 from users.notifications import Notify
 
 
@@ -113,11 +113,7 @@ class JobAccess(object):
     def can_edit(self):
         if self.job is None:
             return False
-        try:
-            status = self.job.jobstatus.status
-        except ObjectDoesNotExist:
-            return False
-        if status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and \
+        if self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and \
                 (self.__is_author or self.__is_manager):
             return True
         return False
@@ -129,11 +125,7 @@ class JobAccess(object):
             return False
         if self.__is_manager:
             return True
-        try:
-            status = self.job.jobstatus.status
-        except ObjectDoesNotExist:
-            return False
-        if status in [js[0] for js in JOB_STATUS[1:3]]:
+        if self.job.status in [js[0] for js in JOB_STATUS[1:3]]:
             return False
         if self.__is_author:
             return True
@@ -711,10 +703,6 @@ def create_job(kwargs):
     newjob.identifier = hashlib.md5(time_encoded).hexdigest()
     newjob.save()
 
-    jobstatus = JobStatus()
-    jobstatus.job = newjob
-    jobstatus.save()
-
     new_version = create_version(newjob, kwargs)
 
     if 'filedata' in kwargs:
@@ -736,9 +724,9 @@ def update_job(kwargs):
     if 'job' not in kwargs or not isinstance(kwargs['job'], Job):
         return _("Unknown error")
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        return _("Change's author is required")
+        return _("Change author is required")
     if 'comment' not in kwargs or len(kwargs['comment']) == 0:
-        return _("Change's comment is required")
+        return _("Change comment is required")
     if 'parent' in kwargs:
         kwargs['job'].parent = kwargs['parent']
     if 'name' in kwargs and len(kwargs['name']) > 0:

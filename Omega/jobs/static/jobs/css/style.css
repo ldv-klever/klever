@@ -114,10 +114,6 @@ input[type=checkbox] {
     color: silver;
 }
 
-.job-subtitle {
-    color: #73b284;
-}
-
 .modal-loading {
     display: none;
     position: fixed;
@@ -137,45 +133,5 @@ body.loading {
 }
 
 body.loading .modal-loading {
-    display: block;
-}
-
-.file-view-div {
-    display: none;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    position: fixed;
-    z-index: 1000;
-    background: rgba(177, 238, 253, 0.8);
-}
-
-.file-view-div div {
-    white-space: pre-wrap;
-    position: fixed;
-    top: 10%;
-    left: 20%;
-    height: 85%;
-    width: 60%;
-    overflow-y: auto;
-    padding: 10px;
-    background: rgba(255, 255, 255, 1);
-}
-
-#close_file_view {
-    position: absolute;
-    right: 20%;
-    top: 6%;
-}
-
-#download_file_form_view {
-    position: absolute;
-    left: 20%;
-    top: 6%;
-}
-
-body.file-view {
-    overflow: hidden;
     display: block;
 }

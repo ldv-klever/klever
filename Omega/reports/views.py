@@ -2,9 +2,11 @@ from io import BytesIO
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
-from django.utils.translation import activate, ugettext as _
+from django.utils.translation import activate
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
+from jobs.models import Job
+from marks.utils import ReportMarkTable
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
@@ -73,7 +75,7 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-def report_list(request, report_id, ltype, component_id=None):
+def report_list(request, report_id, ltype, component_id=None, verdict=None):
     activate(request.user.extended.language)
 
     try:
@@ -96,7 +98,7 @@ def report_list(request, report_id, ltype, component_id=None):
             report_attrs_data.append(request.POST.get('view_id', None))
 
     list_data = ReportTable(*report_attrs_data, table_type=list_types[ltype],
-                            component_id=component_id)
+                            component_id=component_id, verdict=verdict)
     return render(
         request,
         'reports/report_list.html',
@@ -109,6 +111,11 @@ def report_list(request, report_id, ltype, component_id=None):
             'view_type': list_types[ltype],
         }
     )
+
+
+@login_required
+def report_list_by_verdict(request, report_id, ltype, verdict):
+    return report_list(request, report_id, ltype, verdict)
 
 
 @login_required
@@ -146,6 +153,7 @@ def report_leaf(request, leaf_type, report_id):
             'report': report,
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
+            'MarkTable': ReportMarkTable(report)
         }
     )
 
@@ -223,3 +231,19 @@ def get_component_log(request, report_id):
     response = HttpResponse(new_file.read(), content_type='text/plain')
     response['Content-Disposition'] = 'attachment; filename="log"'
     return response
+
+
+@login_required
+def get_log_content(request, report_id):
+    report_id = int(report_id)
+    try:
+        report = ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+
+    if not JobAccess(request.user, report.root.job).can_view():
+        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+
+    if report.log is None or len(report.log) == 0:
+        return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+    return HttpResponse(report.log)

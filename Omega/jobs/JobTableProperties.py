@@ -5,11 +5,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
-from jobs.job_model import Job, JobStatus
-from jobs.models import MarkSafeTag, MarkUnsafeTag
+from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
+from jobs.models import Job
+from marks.models import MarkSafeTag, MarkUnsafeTag
 from reports.models import Verdict, ComponentResource, ComponentUnknown,\
     ComponentMarkUnknownProblem, ReportComponent
-from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess
 
 
@@ -17,7 +17,7 @@ ORDERS = [
     ('name', 'name'),
     ('change_author__extended__last_name', 'author'),
     ('change_date', 'date'),
-    ('jobstatus__status', 'status')
+    ('status', 'status')
 ]
 
 ORDER_TITLES = {
@@ -451,10 +451,10 @@ class TableTree(object):
 
         def status_filter(fdata):
             if fdata['type'] == 'is':
-                return {'jobstatus__status': fdata['value']}
+                return {'status': fdata['value']}
             elif fdata['type'] == 'isnot':
                 return {
-                    'jobstatus__status__in': [
+                    'status__in': [
                         s[0] for s in JOB_STATUS if s[0] != fdata['value']
                         ]
                 }
@@ -659,24 +659,20 @@ class TableTree(object):
                         'format': j['job'].format,
                         'version': j['job'].version,
                         'type': j['job'].get_type_display(),
-                        'date': j['job'].change_date,
+                        'date': j['job'].change_date
                     })
-                names_data[j['pk']] = j['job'].name
-
-        def collect_statuses():
-            for status in JobStatus.objects.filter(job_id__in=job_pks):
-                if status.job_id in values_data:
                     try:
                         report = ReportComponent.objects.get(
-                            root__job=status.job, parent=None)
-                        values_data[status.job_id]['status'] = (
-                            status.get_status_display(),
+                            root__job=j['job'], parent=None)
+                        values_data[j['pk']]['status'] = (
+                            j['job'].get_status_display(),
                             reverse('reports:component',
-                                    args=[status.job_id, report.pk])
+                                    args=[j['pk'], report.pk])
                         )
                     except ObjectDoesNotExist:
-                        values_data[status.job_id]['status'] = \
-                            status.get_status_display()
+                        values_data[j['pk']]['status'] = \
+                            j['job'].get_status_display()
+                names_data[j['pk']] = j['job'].name
 
         def collect_verdicts():
             for verdict in Verdict.objects.filter(
@@ -796,8 +792,6 @@ class TableTree(object):
             'name', 'identifier', 'format', 'version', 'type', 'date'
         ] for x in self.columns):
             collect_jobs_data()
-        if 'status' in self.columns:
-            collect_statuses()
         if any(x.startswith('safe:') or x.startswith('unsafe:') or
                 x == 'problem:total' for x in self.columns):
             collect_verdicts()

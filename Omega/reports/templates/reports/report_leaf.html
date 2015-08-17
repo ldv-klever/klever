@@ -37,11 +37,39 @@
                 </tbody>
             </table>
         </div>
-
-        {% if report.description %}
-            <p class="purple-title">{% trans 'Description' %}</p>
-            <p class="omega-text">{{ report.description }}</p>
+    <br>
+        {% if MarkTable.values|length %}
+            <h4>{% trans 'Linked marks' %}:</h4>
+            <div style="overflow-x: auto">
+                <table class="table table-bordered">
+                    <thead>
+                        {% for column_row in MarkTable.header %}
+                            <tr class="info">
+                            {% for coldata in column_row %}
+                                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                            {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </thead>
+                    <tbody>
+                    {% for v_row in MarkTable.values %}
+                        <tr>
+                            {% for v in v_row %}
+                                <td>
+                                    {% if v.href %}
+                                        <a href="{{ v.href }}">{{ v.value }}</a>
+                                    {% else %}
+                                        <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                    {% endif %}
+                                </td>
+                            {%  endfor %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         {% endif %}
+        <a class="btn btn-success" href="{% url 'marks:create_mark' type report.pk %}">{% trans 'Create mark' %}</a>
     </div>
     <div class="col-sm-7">
         <table>
@@ -69,15 +97,11 @@
         {% elif type == 'unknown' %}
             <p class="problem-description-content">{{ report.problem_description }}</p>
         {% endif %}
+        {% if report.description %}
+            <p class="purple-title">{% trans 'Description' %}</p>
+            <p class="omega-text">{{ report.description }}</p>
+        {% endif %}
     </div>
 </div>
-    <hr>
-    <table class="table table-bordered">
-        <thead>
-        <tr class="info"><th>Table with marks</th></tr>
-        </thead>
-        <tbody>
-            <tr><td>Table</td></tr>
-        </tbody>
-    </table>
+
 {% endblock %}

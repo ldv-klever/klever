@@ -50,8 +50,8 @@ p.omega-text {
     white-space: pre-wrap;
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #669ad1;
-    margin: 10px;
     padding: 5px;
     border-radius: 5px;
 }
@@ -73,8 +73,9 @@ p.omega-text {
 
 .error-trace-content {
     white-space: pre-wrap;
-    max-height: 700px;
+    max-height: 800px;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #feae08;
     margin: 10px;
     padding: 5px;
@@ -85,6 +86,7 @@ p.omega-text {
     white-space: pre-wrap;
     max-height: 700px;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #7efe7f;
     margin: 10px;
     padding: 5px;
@@ -95,8 +97,53 @@ p.omega-text {
     white-space: pre-wrap;
     max-height: 700px;
     overflow-y: auto;
+    overflow-x: auto;
     border: 1px solid #fe0018;
     margin: 10px;
     padding: 5px;
     border-radius: 5px;
+}
+
+.file-view-div {
+    display: none;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    z-index: 1000;
+    background: rgba(177, 238, 253, 0.8);
+}
+
+.file-view-div div {
+    white-space: pre-wrap;
+    position: fixed;
+    top: 10%;
+    left: 20%;
+    height: 85%;
+    width: 60%;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(255, 255, 255, 1);
+}
+
+body.file-view {
+    overflow: hidden;
+    display: block;
+}
+
+.file-view-div #download_file_form_view {
+    position: absolute;
+    left: 20%;
+    top: 6%;
+}
+
+.file-view-div #close_file_view {
+    position: absolute;
+    right: 20%;
+    top: 6%;
+}
+
+.green-subtitle {
+    color: #73b284;
 }

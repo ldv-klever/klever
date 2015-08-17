@@ -751,10 +751,6 @@ function set_actions_for_versions_delete() {
 
 $(document).ready(function () {
 
-    if (!$('#resource_title_span').length) {
-        $('#resource_star_div').hide();
-    }
-
     $.ajax({
         url: job_ajax_url + 'showjobdata/',
         data: {job_id: $('#job_pk').text()},
