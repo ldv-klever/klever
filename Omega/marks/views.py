@@ -85,10 +85,8 @@ def save_mark(request):
     if request.method != 'POST':
         return HttpResponseRedirect(reverse('jobs:error', args=[500]))
     savedata = json.loads(request.POST.get('savedata', '{}'))
-    print(savedata)
     if any(x not in savedata for x in
            ['verdict', 'status', 'attrs', 'data_type']):
-        print(1)
         return render(request, 'error.html', {'message': _('Unknown error')})
     if 'report_id' in savedata:
         try:

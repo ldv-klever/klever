@@ -231,7 +231,6 @@ class NewMark(object):
         if self.do_recalk:
             self.__update_links()
         elif recalc_verdicts:
-            print("Updating verdicts...")
             self.changes = UpdateVerdict(mark, {}, '=').changes
         return None
 
@@ -664,7 +663,6 @@ class MarkChangesTable(object):
                     result_color(self.changes[rep]['result2']),
                     "{:.0%}".format(self.changes[rep]['result2']))
             else:
-                print("ERROR!!! No results! Changes are corrupted!")
                 return '-'
 
         values = []

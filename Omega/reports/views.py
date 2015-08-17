@@ -95,7 +95,6 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None):
     if request.method == 'POST':
         if request.POST.get('view_type', None) == list_types[ltype]:
             report_attrs_data.append(request.POST.get('view', None))
-            print(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view_id', None))
 
     list_data = ReportTable(*report_attrs_data, table_type=list_types[ltype],
