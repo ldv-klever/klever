@@ -5,7 +5,6 @@ from jobs import views
 urlpatterns = [
     url(r'^$', views.tree_view, name='tree'),
     url(r'^(?P<job_id>[0-9]+)/$', views.show_job, name='job'),
-    url(r'^joberror/(?P<err_code>[0-9]+)/$', views.job_error, name='error'),
     url(r'^downloadfile/(?P<file_id>[0-9]+)/$', views.download_file,
         name='download_file'),
     url(r'^clear_all_files/$', views.clear_all_files),

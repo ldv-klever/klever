@@ -13,7 +13,7 @@
                 <button type="button" data-toggle="modal" data-target="#upload_job_popup" class="btn btn-primary btn-block">{% trans 'Upload jobs' %}</button>
             {% endif %}
             <button id="download_selected_jobs" type="button" class="btn btn-primary btn-block">{% trans 'Download jobs' %}</button>
-            <button type="button" class="btn btn-primary btn-block">{% trans 'Upload marks' %}</button>
+            <button data-toggle="modal" data-target="#upload_marks_popup" type="button" class="btn btn-primary btn-block">{% trans 'Upload marks' %}</button>
             <button id="compare_btn_job" class="btn btn-success btn-block">{% trans 'Compare reports' %}</button>
             <button type="button" data-toggle="modal" data-target="#remove_jobs_popup" class="btn btn-danger btn-block">{% trans 'Delete' %}</button>
         </div>
@@ -343,6 +343,25 @@
                 <div class="modal-footer">
                     <button id="upload_jobs_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
                     <button id="upload_job_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="upload_marks_popup" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{% trans 'Upload marks' %}</h4>
+                </div>
+                <div class="modal-body">
+                    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_marks_file_input" type="file" multiple></span>
+                    <br>
+                    <span id="upload_marks_filename"></span>
+                </div>
+                <div class="modal-footer">
+                    <button id="upload_marks_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
+                    <button id="upload_marks_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
                 </div>
             </div>
         </div>

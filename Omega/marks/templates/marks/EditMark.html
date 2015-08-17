@@ -12,6 +12,10 @@
         <hr>
         <div class="row">
             <div class="col-sm-6">
+                <div class="btn-group" style="float: right;">
+                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="btn btn-success">{% trans 'Download' %}</a>
+                    <a href="{% url 'marks:delete_mark' type mark.pk %}" class="btn btn-danger">{% trans 'Delete' %}</a>
+                </div>
                 <span class="purple-title">{% trans 'Identifier' %}: </span> {{ mark.identifier }}<br>
                 <span class="purple-title">{% trans 'Format' %}: </span> {{ mark.format }}<br>
                 {% if first_version.author %}<span class="purple-title">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.extended.last_name }} {{ first_version.author.extended.first_name }}</a><br>{% endif %}

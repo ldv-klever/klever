@@ -6,6 +6,10 @@ from marks.models import *
 from reports.models import ReportComponent
 from django.utils.translation import ugettext_lazy as _
 from Omega.tableHead import Header
+import tarfile
+from io import BytesIO
+import json
+from reports.models import Attr, AttrName
 
 
 MARK_TITLES = {
@@ -74,7 +78,7 @@ def run_function(func, *args):
 
 class NewMark(object):
 
-    def __init__(self, inst, user, mark_type, args):
+    def __init__(self, inst, user, mark_type, args, calculate=True):
         """
         After initialization has params: mark, mark_version and error:
         mark - Instance of created/changed MarkUnsafe/MarkSafe
@@ -101,6 +105,7 @@ class NewMark(object):
         :return: Nothing
         """
         self.mark = None
+        self.calculate = calculate
         self.mark_version = None
         self.user = user
         self.type = mark_type
@@ -180,7 +185,8 @@ class NewMark(object):
                 mark.delete()
                 return res
         self.mark = mark
-        self.__update_links()
+        if self.calculate:
+            self.__update_links()
         return None
 
     def __change_mark(self, mark, args):
@@ -228,10 +234,11 @@ class NewMark(object):
                 self.mark_version.delete()
                 return res
         self.mark = mark
-        if self.do_recalk:
-            self.__update_links()
-        elif recalc_verdicts:
-            self.changes = UpdateVerdict(mark, {}, '=').changes
+        if self.calculate:
+            if self.do_recalk:
+                self.__update_links()
+            elif recalc_verdicts:
+                self.changes = UpdateVerdict(mark, {}, '=').changes
         return None
 
     def __update_mark(self, mark, comment=''):
@@ -1366,3 +1373,290 @@ class UpdateVerdict(object):
             if new_verdict is None:
                 new_verdict = '4'
         return new_verdict
+
+
+class CreateMarkTar(object):
+
+    def __init__(self, mark, mark_type):
+        self.mark = mark
+        self.mark_type = mark_type
+        self.marktar_name = ''
+        self.memory = BytesIO()
+        self.__full_tar()
+
+    def __full_tar(self):
+
+        def write_file_str(jobtar, file_name, file_content):
+            file_content = file_content.encode('utf-8')
+            t = tarfile.TarInfo(file_name)
+            t.size = len(file_content)
+            jobtar.addfile(t, BytesIO(file_content))
+
+        self.marktar_name = 'EM__' + self.mark.identifier + '.tar.gz'
+        marktar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
+        if self.mark_type == 'unsafe' and isinstance(self.mark, MarkUnsafe):
+            mark_history_set = self.mark.markunsafehistory_set.all()
+        elif self.mark_type == 'safe' and isinstance(self.mark, MarkSafe):
+            mark_history_set = self.mark.marksafehistory_set.all()
+        else:
+            return None
+        for markversion in mark_history_set:
+            version_data = {
+                'status': markversion.status,
+                'verdict': markversion.verdict,
+                'comment': markversion.comment,
+                'attrs': [],
+            }
+            if self.mark_type == 'unsafe':
+                attr_set = markversion.markunsafeattr_set.all()
+                version_data['function'] = {
+                    'name': markversion.function.name,
+                    'body': markversion.function.body,
+                    'description': markversion.function.description,
+                }
+            elif self.mark_type == 'safe':
+                attr_set = markversion.marksafeattr_set.all()
+            else:
+                return None
+            for attr in attr_set:
+                version_data['attrs'].append({
+                    'attr': attr.attr.name.name,
+                    'value': attr.attr.value,
+                    'is_compare': attr.is_compare
+                })
+            write_file_str(marktar_obj, 'version-%s' % markversion.version,
+                           json.dumps(version_data))
+        common_data = {
+            'is_modifiable': self.mark.is_modifiable,
+            'mark_type': self.mark_type,
+            'type': self.mark.type,
+            'format': self.mark.format
+        }
+        write_file_str(marktar_obj, 'markdata', json.dumps(common_data))
+        if self.mark_type == 'unsafe':
+            write_file_str(marktar_obj, 'error-trace',
+                           self.mark.error_trace.decode('utf8'))
+        marktar_obj.close()
+
+
+class ReadTarMark(object):
+
+    def __init__(self, user, tar_archive):
+        self.mark = None
+        self.type = None
+        self.user = user
+        self.tar_arch = tar_archive
+        self.error = self.__create_mark_from_tar()
+
+    def __create_mark_from_tar(self):
+        inmemory = BytesIO(self.tar_arch.read())
+        marktar_file = tarfile.open(fileobj=inmemory, mode='r')
+        mark_data = None
+        err_trace = None
+
+        versions_data = {}
+        for f in marktar_file.getmembers():
+            file_name = f.name
+            file_obj = marktar_file.extractfile(f)
+            if file_name == 'markdata':
+                mark_data = json.loads(file_obj.read().decode('utf-8'))
+            elif file_name == 'error-trace':
+                err_trace = file_obj.read().decode('utf-8')
+            elif file_name.startswith('version-'):
+                version_id = int(file_name.replace('version-', ''))
+                versions_data[version_id] = json.loads(
+                    file_obj.read().decode('utf-8'))
+
+        if not isinstance(mark_data, dict) or \
+                any(x not in mark_data for x in [
+                    'mark_type', 'is_modifiable', 'type', 'format']):
+            return _("Mark archive was corrupted")
+        self.type = mark_data['mark_type']
+        if self.type == 'unsafe':
+            if err_trace is None:
+                return _("Mark archive was corrupted: error trace not found")
+
+        version_list = list(versions_data[v] for v in sorted(versions_data))
+        for i in range(0, len(version_list)):
+            if any(x not in version_list[i] for x in [
+                    'verdict', 'status', 'comment', 'attrs']):
+                return _("Mark archive was corrupted")
+            if self.type == 'unsafe' and \
+                    'function' not in version_list[i]:
+                return _("Mark archive was corrupted")
+
+        create_mark_data = {
+            'format': mark_data['format'],
+            'type': mark_data['type'],
+            'is_modifiable': mark_data['is_modifiable'],
+            'verdict': version_list[0]['verdict'],
+            'status': version_list[0]['status'],
+            'attrs': version_list[0]['attrs'],
+        }
+        if self.type == 'unsafe':
+            create_mark_data['function'] = version_list[0]['function']
+            create_mark_data['error_trace'] = err_trace
+
+        umark = UploadMark(self.user, self.type, create_mark_data)
+        if umark.error is not None:
+            return umark.error
+        mark = umark.mark
+        if not (self.type == 'unsafe' and isinstance(mark, MarkUnsafe) or
+                isinstance(mark, MarkSafe)):
+            return _("Unknown error")
+        for version_data in version_list[1:]:
+            if len(version_data['comment']) == 0:
+                version_data['comment'] = '1'
+
+            updated_mark = NewMark(mark, self.user, self.type, {
+                'attrs': version_data['attrs'],
+                'verdict': version_data['verdict'],
+                'status': version_data['status'],
+                'comment': version_data['comment'],
+                'compare_id': self.__get_func_id(version_data['function']),
+            }, False)
+
+            if updated_mark.error is not None:
+                mark.delete()
+                return updated_mark.error
+
+        ConnectMarks(mark)
+        self.mark = mark
+        return None
+
+    def __get_func_id(self, func_data):
+        self.ccc = 0
+        if isinstance(func_data, dict) and \
+                all(x in func_data for x in ['name', 'body', 'description']):
+            hash_sum = func_data['name'] + func_data['body']
+            hash_sum = hashlib.md5(hash_sum.encode('utf8')).hexdigest()
+            try:
+                function = MarkUnsafeCompare.objects.get(hash_sum=hash_sum)
+            except ObjectDoesNotExist:
+                function = MarkUnsafeCompare()
+                function.description = func_data['description']
+                function.name = func_data['name']
+                function.body = func_data['body']
+                function.hash_sum = hash_sum
+                function.save()
+        else:
+            function = MarkDefaultFunctions.objects.all()[0].compare
+        return function.pk
+
+
+class UploadMark(object):
+
+    def __init__(self, user, mark_type, args):
+        self.mark = None
+        self.mark_version = None
+        self.user = user
+        self.type = mark_type
+        if self.type != 'safe' and self.type != 'unsafe':
+            self.error = "Wrong mark type"
+        elif not isinstance(args, dict) or not isinstance(user, User):
+            self.error = "Wrong parameters"
+        self.error = self.__create_mark(args)
+
+    def __create_mark(self, args):
+        if self.type == 'unsafe':
+            mark = MarkUnsafe()
+        else:
+            mark = MarkSafe()
+        if any(x not in args for x in ['format', 'type', 'is_modifiable',
+                                       'verdict', 'status', 'attrs']):
+            return _("Not enough arguments for creating mark")
+        mark.author = self.user
+
+        if self.type == 'unsafe':
+            mark.error_trace = args['error_trace'].encode('utf8')
+            if 'function' in args:
+                if not isinstance(args['function'], dict) or \
+                        'name' not in args['function'] or \
+                        'body' not in args['function'] or \
+                        'description' not in args['function']:
+                    return "Function data is incomplete"
+                hash_sum = args['function']['name'] + args['function']['body']
+                hash_sum = hashlib.md5(hash_sum.encode('utf8')).hexdigest()
+                try:
+                    function = MarkUnsafeCompare.objects.get(hash_sum=hash_sum)
+                except ObjectDoesNotExist:
+                    function = MarkUnsafeCompare()
+                    function.description = args['function']['description']
+                    function.name = args['function']['name']
+                    function.body = args['function']['body']
+                    function.hash_sum = hash_sum
+                    function.save()
+                mark.function = function
+            else:
+                function = MarkDefaultFunctions.objects.all()[0].compare
+            mark.function = function
+        mark.format = int(args['format'])
+        mark.type = args['type']
+
+        time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z").\
+            encode('utf8')
+        mark.identifier = hashlib.md5(time_encoded).hexdigest()
+
+        if isinstance(args['is_modifiable'], bool):
+            mark.is_modifiable = args['is_modifiable']
+
+        if self.type == 'unsafe' and \
+                args['verdict'] in list(x[0] for x in MARK_UNSAFE):
+            mark.verdict = args['verdict']
+        elif args['verdict'] in list(x[0] for x in MARK_SAFE):
+            mark.verdict = args['verdict']
+
+        if args['status'] in list(x[0] for x in MARK_STATUS):
+            mark.status = args['status']
+
+        try:
+            mark.save()
+        except Exception as e:
+            return e
+
+        self.__update_mark(mark)
+        res = self.__create_attributes(args['attrs'])
+        if res is not None:
+            mark.delete()
+            return res
+        self.mark = mark
+        return None
+
+    def __update_mark(self, mark, comment=''):
+        if self.type == 'unsafe':
+            new_version = MarkUnsafeHistory()
+        else:
+            new_version = MarkSafeHistory()
+
+        new_version.mark = mark
+        if self.type == 'unsafe':
+            new_version.function = mark.function
+        new_version.verdict = mark.verdict
+        new_version.version = mark.version
+        new_version.status = mark.status
+        new_version.change_date = mark.change_date
+        new_version.comment = comment
+        new_version.author = mark.author
+        new_version.save()
+        self.mark_version = new_version
+
+    def __create_attributes(self, attrs):
+        if not isinstance(attrs, list):
+            return 'Wrong attributes'
+        for a in attrs:
+            if any(x not in a for x in ['attr', 'value', 'is_compare']):
+                return 'Wrong attribute struct'
+        for a in attrs:
+            attr_name = AttrName.objects.get_or_create(name=a['attr'])[0]
+            attr = Attr.objects.get_or_create(
+                name=attr_name, value=a['value'])[0]
+            create_args = {
+                'mark': self.mark_version,
+                'attr': attr,
+                'is_compare': a['is_compare']
+            }
+            if self.type == 'unsafe':
+                MarkUnsafeAttr.objects.get_or_create(**create_args)
+            else:
+                MarkSafeAttr.objects.get_or_create(**create_args)
+        return None

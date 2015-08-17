@@ -3,7 +3,8 @@ import pytz
 from django.template.loader import get_template
 from django.shortcuts import render
 from marks.utils import NewMark, MarkAttrTable, MarkData, \
-    MarkChangesTable, MarkListTable, MarkReportsTable, AllMarksList
+    MarkChangesTable, MarkListTable, MarkReportsTable, AllMarksList,\
+    CreateMarkTar, ReadTarMark, UpdateVerdict
 from reports.models import ReportUnsafe, ReportSafe
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
@@ -12,6 +13,7 @@ from marks.models import MarkUnsafeCompare, MarkUnsafeConvert, MarkUnsafe,\
     MarkSafe, MarkUnsafeHistory, MarkSafeHistory
 from django.contrib.auth.decorators import login_required
 from django.utils.translation import ugettext as _
+from datetime import datetime
 
 
 @login_required
@@ -22,9 +24,9 @@ def create_mark(request, mark_type, report_id):
         elif mark_type == 'safe':
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
-            return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+            return HttpResponseRedirect(reverse('error', args=[500]))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+        return HttpResponseRedirect(reverse('error', args=[504]))
 
     return render(request, 'marks/CreateMark.html', {
         'report_pk': report.pk,
@@ -44,9 +46,9 @@ def edit_mark(request, mark_type, mark_id):
             mark = MarkSafe.objects.get(pk=int(mark_id))
             history_set = mark.marksafehistory_set.all().order_by('-version')
         else:
-            return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+            return HttpResponseRedirect(reverse('error', args=[500]))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+        return HttpResponseRedirect(reverse('error', args=[504]))
 
     mark_versions = []
     for m in history_set:
@@ -83,41 +85,38 @@ def edit_mark(request, mark_type, mark_id):
 @login_required
 def save_mark(request):
     if request.method != 'POST':
-        return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+        return HttpResponseRedirect(reverse('error', args=[500]))
     savedata = json.loads(request.POST.get('savedata', '{}'))
     if any(x not in savedata for x in
            ['verdict', 'status', 'attrs', 'data_type']):
-        return render(request, 'error.html', {'message': _('Unknown error')})
+        return HttpResponseRedirect(reverse('error', args=[500]))
     if 'report_id' in savedata:
         try:
             if savedata['data_type'] == 'unsafe':
                 inst = ReportUnsafe.objects.get(pk=int(savedata['report_id']))
                 if any(x not in savedata for x in ['convert_id', 'compare_id']):
-                    return render(request, 'error.html',
-                                  {'message': _('Unknown error')})
+                    return HttpResponseRedirect(reverse('error', args=[500]))
             elif savedata['data_type'] == 'safe':
                 inst = ReportSafe.objects.get(pk=int(savedata['report_id']))
             else:
                 return render(request, 'error.html',
                               {'message': _('Unknown error')})
         except ObjectDoesNotExist:
-            return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+            return HttpResponseRedirect(reverse('error', args=[504]))
     elif 'mark_id' in savedata:
         try:
             if savedata['data_type'] == 'unsafe':
                 if 'compare_id' not in savedata:
-                    return render(request, 'error.html',
-                                  {'message': _('Unknown error')})
+                    return HttpResponseRedirect(reverse('error', args=[500]))
                 inst = MarkUnsafe.objects.get(pk=int(savedata['mark_id']))
             elif savedata['data_type'] == 'safe':
                 inst = MarkSafe.objects.get(pk=int(savedata['mark_id']))
             else:
-                return render(request, 'error.html',
-                              {'message': _('Unknown error')})
+                return HttpResponseRedirect(reverse('error', args=[500]))
         except ObjectDoesNotExist:
-            return HttpResponseRedirect(reverse('jobs:error', args=[604]))
+            return HttpResponseRedirect(reverse('error', args=[604]))
     else:
-        return render(request, 'error.html', {'message': _('Unknown error')})
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
     mark = NewMark(inst, request.user, savedata['data_type'], savedata)
     if mark.error is not None:
@@ -199,3 +198,73 @@ def marks_all(request):
         'safes': AllMarksList('safe'),
         'unsafes': AllMarksList('unsafe')
     })
+
+
+@login_required
+def download_mark(request, mark_type, mark_id):
+    if request.method == 'POST':
+        return HttpResponse('')
+    try:
+        if mark_type == 'safe':
+            mark = MarkSafe.objects.get(pk=int(mark_id))
+        elif mark_type == 'unsafe':
+            mark = MarkUnsafe.objects.get(pk=int(mark_id))
+        else:
+            # mark = MarkUnknown.objects.get(pk=int(mark_id))
+            return HttpResponseRedirect(reverse('error', args=[500]))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[604]))
+
+    mark_tar = CreateMarkTar(mark, mark_type)
+
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = "attachment; filename=%s" % \
+                                      mark_tar.marktar_name
+    mark_tar.memory.seek(0)
+    response.write(mark_tar.memory.read())
+    return response
+
+
+@login_required
+def upload_marks(request):
+    failed_marks = []
+    mark_id = None
+    mark_type = None
+    num_of_new_marks = 0
+    for f in request.FILES.getlist('file'):
+        now = datetime.now()
+        tardata = ReadTarMark(request.user, f)
+        print("Total reading tar:", (datetime.now() - now).microseconds)
+        if tardata.error is not None:
+            failed_marks.append([tardata.error + '', f.name])
+        num_of_new_marks += 1
+        mark_id = tardata.mark.pk
+        mark_type = tardata.type
+    if len(failed_marks) > 0:
+        return JsonResponse({'status': False, 'messages': failed_marks})
+    if num_of_new_marks == 1:
+        return JsonResponse({
+            'status': True, 'mark_id': mark_id, 'mark_type': mark_type
+        })
+    return JsonResponse({'status': True})
+
+
+@login_required
+def delete_mark(request, mark_type, mark_id):
+    try:
+        if mark_type == 'unsafe':
+            mark = MarkUnsafe.objects.get(pk=int(mark_id))
+        elif mark_type == 'safe':
+            mark = MarkSafe.objects.get(pk=int(mark_id))
+        else:
+            return HttpResponseRedirect(reverse('error', args=[500]))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[604]))
+    mark.delete()
+    if mark_type == 'safe':
+        for report in ReportSafe.objects.all():
+            UpdateVerdict(report, {}, '=')
+    else:
+        for report in ReportUnsafe.objects.all():
+            UpdateVerdict(report, {}, '=')
+    return HttpResponseRedirect(reverse('marks:marks_all'))

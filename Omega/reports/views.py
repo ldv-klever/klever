@@ -19,14 +19,14 @@ def report_component(request, job_id, report_id):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[404]))
+        return HttpResponseRedirect(reverse('error', args=[404]))
 
     if not JobAccess(request.user, job).can_view():
-        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+        return HttpResponseRedirect(reverse('error', args=[400]))
     try:
         report = ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+        return HttpResponseRedirect(reverse('error', args=[504]))
 
     duration = None
     status = 1
@@ -81,10 +81,10 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None):
     try:
         report = ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+        return HttpResponseRedirect(reverse('error', args=[504]))
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+        return HttpResponseRedirect(reverse('error', args=[400]))
 
     list_types = {
         'unsafes': '4',
@@ -134,15 +134,15 @@ def report_leaf(request, leaf_type, report_id):
         'unsafe': ReportUnsafe
     }
     if leaf_type not in tables:
-        return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
     try:
         report = tables[leaf_type].objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+        return HttpResponseRedirect(reverse('error', args=[504]))
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+        return HttpResponseRedirect(reverse('error', args=[400]))
 
     return render(
         request,
@@ -220,13 +220,13 @@ def get_component_log(request, report_id):
     try:
         report = ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+        return HttpResponseRedirect(reverse('error', args=[504]))
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+        return HttpResponseRedirect(reverse('error', args=[400]))
 
     if report.log is None or len(report.log) == 0:
-        return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+        return HttpResponseRedirect(reverse('error', args=[500]))
     new_file = BytesIO(report.log)
     response = HttpResponse(new_file.read(), content_type='text/plain')
     response['Content-Disposition'] = 'attachment; filename="log"'
@@ -239,11 +239,11 @@ def get_log_content(request, report_id):
     try:
         report = ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[504]))
+        return HttpResponseRedirect(reverse('error', args=[504]))
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+        return HttpResponseRedirect(reverse('error', args=[400]))
 
     if report.log is None or len(report.log) == 0:
-        return HttpResponseRedirect(reverse('jobs:error', args=[500]))
+        return HttpResponseRedirect(reverse('error', args=[500]))
     return HttpResponse(report.log)

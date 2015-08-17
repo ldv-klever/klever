@@ -79,10 +79,6 @@ function unknown_filters_data() {
     return JSON.stringify(view_values);
 }
 
-function set_action_on_log_click() {
-
-}
-
 $(document).ready(function () {
     var data_collection;
     $('input[class=buttons-view-type]').each(function () {

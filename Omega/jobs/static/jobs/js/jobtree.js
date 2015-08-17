@@ -511,4 +511,43 @@ $(document).ready(function () {
             }
         });
     });
+
+    $('#upload_marks_start').click(function () {
+        $('body').addClass("loading");
+        $('#upload_marks_popup').toggle();
+        var files = $('#upload_marks_file_input')[0].files,
+            data = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            data.append('file', files[i]);
+        }
+        $.ajax({
+            url: marks_ajax_url + 'upload_marks/',
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            contentType: false,
+            processData: false,
+            mimeType: 'multipart/form-data',
+            // async: false,
+            xhr: function() {
+                return $.ajaxSettings.xhr();
+            },
+            success: function (data) {
+                if (data.status) {
+                    if (data.mark_id.length && data.mark_type.length) {
+                        window.location.replace("/marks/" + data.mark_type + "/edit/" + data.mark_id + "/")
+                    }
+                    window.location.replace('/marks/all/')
+                }
+                else {
+                    if (data.messages.length) {
+                        for (var i = 0; i < data.messages.length; i++) {
+                            var err_message = data.messages[i][0] + ' (' + data.messages[i][1] + ')';
+                            err_notify(err_message, 10000);
+                        }
+                    }
+                }
+            }
+        });
+    });
 });

@@ -3,7 +3,7 @@
 {% load i18n %}
 
 {% block body_block %}
-    <h1>{% trans 'Unlinked marks' %}</h1>
+    <h1>{% trans 'All marks' %}</h1>
     {% if unsafes.values|length %}
         <h2>{% trans 'Unsafe' %}</h2>
         {% include 'table.html' with data=unsafes %}
