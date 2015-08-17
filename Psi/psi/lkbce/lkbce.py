@@ -29,13 +29,8 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.extract_linux_kernel_attrs()
         self.configure_linux_kernel()
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
-        build_linux_kernel_p = multiprocessing.Process(target=self.build_linux_kernel)
-        process_all_linux_kernel_raw_build_cmds_p = multiprocessing.Process(
-            target=self.process_all_linux_kernel_raw_build_cmds)
-        build_linux_kernel_p.start()
-        process_all_linux_kernel_raw_build_cmds_p.start()
-        build_linux_kernel_p.join()
-        process_all_linux_kernel_raw_build_cmds_p.join()
+        psi.components.launch_in_parrallel(self.logger,
+                                           (self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
 
     def build_linux_kernel(self):
         self.logger.info('Build Linux kernel')

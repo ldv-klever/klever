@@ -175,6 +175,100 @@ class PsiComponentBase(_PsiComponentBase):
             os.kill(self.pid, signal.SIGTERM)
 
 
+class AuxPsiComponentError(ChildProcessError):
+    pass
+
+
+# TODO: very close to _PsiComponentBase. Maybe join them together.
+class AuxPsiComponent(multiprocessing.Process):
+    def __init__(self, func, logger):
+        multiprocessing.Process.__init__(self, target=func)
+
+        self.func = func
+        self.logger = logger
+
+        self.name = func.__name__
+        self.exception_info = None
+        self.terminated = None
+
+    def join(self, timeout=None):
+        multiprocessing.Process.join(self, timeout)
+
+        if self.terminated:
+            self.logger.debug('Do not panic since "{0}" was terminated by us'.format(self.name))
+            return 0
+
+        if self.exitcode:
+            self.logger.error('"{0}" exitted with "{1}"'.format(self.name, self.exitcode))
+            raise AuxPsiComponentError('"{0}" failed'.format(self.name))
+
+    def run(self):
+        signal.signal(signal.SIGTERM, self.__finalize)
+
+        try:
+            self.func()
+        except Exception:
+            self.exception_info = traceback.format_exc().rstrip()
+            exit(1)
+        finally:
+            self.__finalize()
+
+    def __finalize(self, signum=None, frame=None):
+        if not self.exception_info and sys.exc_info()[0]:
+            self.exception_info = traceback.format_exc().rstrip()
+
+        if self.exception_info:
+            self.logger.error('"{0}" raised exception:\n{1}'.format(self.name, self.exception_info))
+        elif signum == signal.SIGTERM:
+            self.logger.error(
+                '"{0}" was terminated since some other auxiliary component(s) likely failed'.format(self.name))
+
+        if not os.path.isfile('problem desc') and self.exception_info or signum == signal.SIGTERM:
+            with open('problem desc', 'a') as fp:
+                if self.exception_info:
+                    fp.write(self.exception_info)
+                elif signum == signal.SIGTERM:
+                    fp.write(
+                        '"{0}" was terminated since some other auxiliary component(s) likely failed'.format(self.name))
+
+        if signum:
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+            os.kill(self.pid, signal.SIGTERM)
+
+    def terminate(self):
+        self.terminated = True
+
+        self.logger.info('Terminate "{0}"'.format(self.name))
+
+        multiprocessing.Process.terminate(self)
+
+
+# TODO: very close to code in Psi. Maybe join them.
+def launch_in_parrallel(logger, funcs):
+    processes = []
+    try:
+        for func in funcs:
+            p = AuxPsiComponent(func, logger)
+            p.start()
+            processes.append(p)
+
+        logger.info('Wait for auxiliary components')
+        while True:
+            operating_components_num = 0
+
+            for p in processes:
+                p.join(1.0 / len(processes))
+                operating_components_num += p.is_alive()
+
+            if not operating_components_num:
+                break
+    finally:
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
+                p.join()
+
+
 class ComponentError(ChildProcessError):
     pass
 
