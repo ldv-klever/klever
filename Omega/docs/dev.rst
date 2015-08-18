@@ -51,16 +51,18 @@ Installation
 
 Setting project
 ^^^^^^^^^^^^^^^
+At the "Welcome to PyCharm" window:
+#. :menuselection:`Open`.
+#. Specify the path to :file:`Omega`.
+#. :menuselection:`OK`.
 
-#. At the "Welcome to PyCharm" window:
-    #. :menuselection:`Open`.
-    #. Specify the path to :file:`Omega`.
-    #. :menuselection:`OK`.
-#. Configure the Python interpreter:
-    #. :menuselection:`File --> Settings --> Project: Omega --> Project Interpreter --> Settings --> More..`.
-    #. Select Python 3.4.x in the list and press :kbd:`Enter`.
-    #. Input in field :guilabel:`name` *Python 3.4*.
-    #. :menuselection:`OK`.
+Configuring the Python interpreter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. :menuselection:`File --> Settings --> Project: Omega --> Project Interpreter --> Settings --> More..`.
+#. Select Python 3.4.x from the list and press :kbd:`Enter`.
+#. Input *Python 3.4* in field :guilabel:`name`.
+#. :menuselection:`OK`.
 
 Run development server
 ^^^^^^^^^^^^^^^^^^^^^^
