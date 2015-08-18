@@ -7,14 +7,22 @@ import shutil
 import time
 import traceback
 
-import psi.components
 import psi.job
 import psi.session
 import psi.utils
 
+# Psi components.
+import psi.lkbce.lkbce
+import psi.lkvog.lkvog
+import psi.avtg.avtg
+import psi.vtg.vtg
+
 _default_conf_file = 'psi-conf.json'
 _conf = None
 _logger = None
+_job_class_components = {'Verification of Linux kernel modules': [psi.lkbce.lkbce, psi.lkvog.lkvog],
+                         # These components are likely appropriate for all job classes.
+                         'Common': [psi.avtg.avtg, psi.vtg.vtg]}
 
 
 def launch():
@@ -55,7 +63,7 @@ def launch():
 
         comp = psi.utils.get_comp_desc(_logger)
 
-        start_report_file = psi.utils.dump_report(_logger, 'Psi', 'start',
+        start_report_file = psi.utils.dump_report(_logger, 'start',
                                                   {'id': '/', 'attrs': [{'psi version': version}], 'comp': comp})
 
         session = psi.session.Session(_logger, omega['user'], omega['passwd'], _conf['Omega']['name'])
@@ -74,36 +82,34 @@ def launch():
         job.get_class()
 
         # Use Psi logger to report events that are common to all components.
-        # Use the same reports MQ in all components.
-        # TODO: fix passing of MQ after all.
-        components = psi.components.get_components(components_conf, _logger, job.type, reports_mq)
-
-        callbacks = []
-        # Following activities aren't launched in parallel since they are quite fast.
+        components = _get_components(job.type)
+        # Component callbacks aren't obtained in parallel since it is quite fast.
         for component in components:
-            component.create_work_dir()
-            callbacks.extend(component.get_callbacks())
+            p = component.PsiComponentCallbacks(component, components_conf, _logger)
+            p.start()
+            p.join()
 
+        component_processes = []
         for component in components:
-            component.launch()
+            # Use the same reports MQ in all components.
+            # TODO: fix passing of MQs after all.
+            p = component.PsiComponent(component, components_conf, _logger, reports_mq)
+            p.start()
+            component_processes.append(p)
 
         _logger.info('Wait for components')
-        # Every second check whether some component died. Otherwise even if some non-first component will die we will
-        # wait for all components that preceed that failed component prior to notice that something went wrong.
+        # Every second check whether some component died. Otherwise even if some non-first component will die we
+        # will wait for all components that preceed that failed component prior to notice that something went wrong.
         while True:
             # The number of components that are still operating.
             operating_components_num = 0
 
-            for component in components:
-                if component.is_operating():
-                    operating_components_num += 1
-                else:
-                    components.remove(component)
+            for p in component_processes:
+                p.join(1.0 / len(component_processes))
+                operating_components_num += p.is_alive()
 
             if not operating_components_num:
                 break
-
-            time.sleep(1)
 
         raise Exception('TODO: remove me after all!')
     except Exception as e:
@@ -114,7 +120,7 @@ def launch():
                 traceback.print_exc(file=fp)
 
             with open('problem desc') as fp:
-                unknown_report_file = psi.utils.dump_report(_logger, 'Psi', 'unknown',
+                unknown_report_file = psi.utils.dump_report(_logger, 'unknown',
                                                             {'id': 'unknown', 'parent id': '/',
                                                              'problem desc': fp.read()})
                 reports_mq.put(unknown_report_file)
@@ -124,23 +130,27 @@ def launch():
         else:
             traceback.print_exc()
     finally:
-        if 'components' in locals():
-            for component in components:
-                component.terminate()
+        if 'component_processes' in locals():
+            for p in component_processes:
+                # Do not terminate components that already exitted.
+                if p.is_alive():
+                    p.terminate()
+                    p.join()
 
         if 'reports_mq' in locals():
             with open(conf_file) as conf_fp:
                 with open('log') as log_fp:
-                    finish_report_file = psi.utils.dump_report(_logger, 'Psi', 'finish',
+                    finish_report_file = psi.utils.dump_report(_logger, 'finish',
                                                                {'id': '/',
                                                                 'resources': psi.utils.count_consumed_resources(
-                                                                    _logger, 'Psi', start_time),
+                                                                    _logger, start_time),
                                                                 'desc': conf_fp.read(),
-                                                                'log': log_fp.read()})
+                                                                'log': log_fp.read(),
+                                                                'data': ''})
                     reports_mq.put(finish_report_file)
 
-            _logger.info('Send terminator to reports message queue')
-            reports_mq.put('__terminator__')
+            _logger.info('Terminate reports message queue')
+            reports_mq.put(None)
 
             _logger.info('Wait for uploading all reports')
             reports_p.join()
@@ -185,11 +195,14 @@ def _create_components_conf(comp):
             cpus_num = comp_param['CPUs num']
         elif 'mem size' in comp_param:
             mem_size = comp_param['mem size']
+        elif 'arch' in comp_param:
+            arch = comp_param['arch']
 
     components_conf.update(
-        {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size},
+        {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size, 'arch': arch},
          'job priority': _conf['job']['priority'],
          'abstract verification tasks gen priority': _conf['abstract verification tasks gen priority'],
+         'allow local source directories use': _conf['allow local source directories use'],
          'parallelism': _conf['parallelism'],
          'logging': _conf['logging']})
 
@@ -198,6 +211,25 @@ def _create_components_conf(comp):
         json.dump(components_conf, fp, sort_keys=True, indent=4)
 
     return components_conf
+
+
+def _get_components(kind):
+    _logger.info('Get components necessary to solve job')
+
+    if kind not in _job_class_components:
+        raise KeyError('Job class "{0}" is not supported'.format(kind))
+
+    # Get modules of components specific for job class.
+    components = _job_class_components[kind]
+
+    # Get modules of common components.
+    if 'Common' in _job_class_components:
+        components.extend(_job_class_components['Common'])
+
+    _logger.debug(
+        'Components to be launched: "{0}"'.format(', '.join([component.__package__ for component in components])))
+
+    return components
 
 
 def _get_conf_file():
@@ -281,8 +313,8 @@ def _send_reports(session, reports_mq):
     try:
         while True:
             m = reports_mq.get()
-            if m == '__terminator__':
-                _logger.debug('Report messages queue was terminated')
+            if m is None:
+                _logger.debug('Report message queue was terminated')
                 break
             _logger.debug('Upload report "{0}"'.format(m))
             session.upload_report(m)

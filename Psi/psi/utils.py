@@ -1,3 +1,4 @@
+import fcntl
 import json
 import logging
 import os.path
@@ -7,36 +8,70 @@ import sys
 import time
 
 
-def count_consumed_resources(logger, name, start_time):
+# Based on http://blog.gocept.com/2013/07/15/reliable-file-updates-with-python/.
+class LockedOpen(object):
+    def __init__(self, name, *args, **kwargs):
+        self.name = name
+        self.args = args
+        self.kwargs = kwargs
+
+        self.fp = None
+
+    def __enter__(self):
+        fp = open(self.name, *self.args, **self.kwargs)
+
+        while True:
+            fcntl.flock(fp, fcntl.LOCK_EX)
+
+            fp_new = open(self.name, *self.args, **self.kwargs)
+
+            # Other process didn't modify file between we open and lock it. So we can safely use created file stream.
+            if os.path.sameopenfile(fp.fileno(), fp_new.fileno()):
+                fp_new.close()
+                break
+            # Otherwise we need to reopen file.
+            else:
+                fp.close()
+                fp = fp_new
+
+        self.fp = fp
+
+        return fp
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.fp.flush()
+        self.fp.close()
+
+
+def count_consumed_resources(logger, start_time):
     """
     Count resources (wall time, CPU time and maximum memory size) consumed by the process without its childred.
     Note that launching under PyCharm gives its maximum memory size rather than the process one.
     :return: resources.
     """
-    logger.info('Count consumed resources for "{0}"'.format(name))
+    logger.info('Count consumed resources')
 
     utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
     resources = {'wall time': round(100 * (time.time() - start_time)),
                  'CPU time': round(100 * (utime + stime)),
                  'max mem size': 1000 * maxrss}
 
-    logger.debug('"{0}" consumed the following resources:'.format(name))
-    for res in sorted(resources):
-        logger.debug('    {0} - {1}'.format(res, resources[res]))
+    logger.debug('Consumed the following resources:\n%s',
+                 '\n'.join(['    {0} - {1}'.format(res, resources[res]) for res in sorted(resources)]))
 
     return resources
 
 
-def dump_report(logger, name, kind, report, dir=''):
+def dump_report(logger, kind, report):
     """
     Dump the specified report of the specified kind to a file.
     :param logger: a logger for printing debug messages.
     :param kind: a report kind (a file where a report will be dumped will be named "kind report.json").
     :param report: a report object (usually it should be a dictionary).
     """
-    logger.info('Dump {0} report for "{1}"'.format(kind, name))
+    logger.info('Dump {0} report'.format(kind))
 
-    report_file = os.path.join(dir, '{0} {1} report.json'.format(kind, name))
+    report_file = '{0} report.json'.format(kind)
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(os.path.abspath(report_file)))
 
@@ -46,13 +81,14 @@ def dump_report(logger, name, kind, report, dir=''):
     with open(report_file, 'w') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
 
-    logger.debug('{0} report for "{1}" was dumped to file "{2}"'.format(kind.capitalize(), name, report_file))
+    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), report_file))
 
     return report_file
 
 
 def find_file_or_dir(logger, root_id, file_or_dir):
-    search_dirs = (os.path.join(root_id, 'job/root'), os.path.join(root_id, os.path.pardir))
+    search_dirs = tuple(
+        os.path.relpath(os.path.join(root_id, search_dir)) for search_dir in ('job/root', os.path.pardir))
 
     for search_dir in search_dirs:
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
@@ -63,7 +99,15 @@ def find_file_or_dir(logger, root_id, file_or_dir):
             logger.debug('Find directory "{0}" in directory "{1}"'.format(file_or_dir, search_dir))
             return found_file_or_dir
 
-    raise FileExistsError('Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
+    raise FileExistsError(
+        'Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
+
+
+def is_src_tree_root(filenames):
+    for filename in filenames:
+        if filename == 'Makefile':
+            return True
+    return False
 
 
 def get_comp_desc(logger):
@@ -95,11 +139,22 @@ def get_entity_val(logger, name, cmd):
     :param cmd: a command to be executed to get an entity value.
     """
     logger.info('Get {0}'.format(name))
+
     val = subprocess.getoutput(cmd)
+
     if not val:
         raise ValueError('Could not get {0}'.format(name))
+
+    # Convert obtained value to integer if it is represented so.
+    try:
+        int(val)
+        val = int(val)
+    except ValueError:
+        pass
+
     # TODO: str.capitalize() capilalizes a first symbol and makes all other symbols lower.
     logger.debug('{0} is "{1}"'.format(name.capitalize(), val))
+
     return val
 
 
@@ -169,3 +224,34 @@ def get_logger(name, conf):
     logger.debug("Logger was set up")
 
     return logger
+
+
+def get_parallel_threads_num(logger, conf, action):
+    logger.info('Get the number of parallel threads for "{0}"'.format(action))
+
+    raw_parallel_threads_num = conf['parallelism'][action]
+
+    # In case of integer number it is already the number of parallel threads.
+    if isinstance(raw_parallel_threads_num, int):
+        parallel_threads_num = raw_parallel_threads_num
+    # In case of decimal number it is fraction of the number of CPUs.
+    elif isinstance(raw_parallel_threads_num, float):
+        parallel_threads_num = conf['sys']['CPUs num'] * raw_parallel_threads_num
+    else:
+        raise ValueError(
+            'The number of parallel threads ("{0}") for "{1}" is neither integer nor decimal number'.format(
+                raw_parallel_threads_num, action))
+
+    parallel_threads_num = int(parallel_threads_num)
+
+    if parallel_threads_num < 1:
+        raise ValueError('The computed number of parallel threads ("{0}") for "{1}" is less than 1'.format(
+            parallel_threads_num, action))
+    elif parallel_threads_num > 2 * conf['sys']['CPUs num']:
+        raise ValueError(
+            'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'.format(
+                parallel_threads_num, action))
+
+    logger.debug('The number of parallel threads for "{0}" is "{1}"'.format(action, parallel_threads_num))
+
+    return str(parallel_threads_num)

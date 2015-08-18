@@ -10,6 +10,7 @@
     "user": null,
     "passwd": null
   },
+  "allow local source directories use": false,
   "logging": {
     "formatters": [
       {
@@ -19,10 +20,6 @@
       {
         "name": "detailed",
         "value": "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
-      },
-      {
-        "name": "debug",
-        "value": "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s (%(process)d) %(levelname)5s> %(message)s"
       }
     ],
     "loggers": [
@@ -37,11 +34,13 @@
           {
             "name": "file",
             "level": "DEBUG",
-            "formatter": "debug"
+            "formatter": "detailed"
           }
         ]
       }
     ]
   },
-  "parallelism": null
+  "parallelism": {
+    "Linux kernel build": 1.0
+  }
 }

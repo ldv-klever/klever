@@ -1,3 +1,4 @@
+# TODO: try to use standard library instead since we don't need something very special.
 import requests
 import time
 
@@ -25,6 +26,7 @@ class Session:
         self.name = name
         self.session = requests.Session()
 
+        # TODO: try to autentificate like with httplib2.Http().add_credentials().
         # Get CSRF token via GET request.
         self.__request('users/psi_signin/')
 
@@ -48,7 +50,7 @@ class Session:
                 resp = self.session.get(url, **kwargs) if method == 'GET' else self.session.post(url, data, **kwargs)
 
                 if resp.status_code != 200:
-                    with open('response-error.html', 'w') as fp:
+                    with open('response error.html', 'w') as fp:
                         fp.write(resp.text)
                     raise IOError(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
@@ -68,6 +70,7 @@ class Session:
         if 'status' not in resp.json() or 'hash_sum' not in resp.json():
             raise IOError('Could not get download lock at "{0}"'.format(resp.request.url))
 
+        # TODO: report is likely should be compressed.
         with open(start_report_file) as fp:
             resp = self.__request('jobs/decide_job/', 'POST', {
                 'job id': job.id,
@@ -86,5 +89,6 @@ class Session:
         self.__request('users/psi_signout/')
 
     def upload_report(self, report_file):
+        # TODO: report is likely should be compressed.
         with open(report_file) as fp:
             self.__request('reports/upload/', 'POST', {'report': fp.read()})
