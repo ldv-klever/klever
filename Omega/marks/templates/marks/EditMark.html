@@ -14,7 +14,7 @@
             <div class="col-sm-6">
                 <div class="btn-group" style="float: right;">
                     <a href="{% url 'marks:download_mark' type mark.pk %}" class="btn btn-success">{% trans 'Download' %}</a>
-                    <a href="{% url 'marks:delete_mark' type mark.pk %}" class="btn btn-danger">{% trans 'Delete' %}</a>
+                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_mark_popup" style="float:right;">{% trans 'Delete' %}</button>
                 </div>
                 <span class="purple-title">{% trans 'Identifier' %}: </span> {{ mark.identifier }}<br>
                 <span class="purple-title">{% trans 'Format' %}: </span> {{ mark.format }}<br>
@@ -87,4 +87,21 @@
         </div>
     </form>
     <span id="error__comment_required" hidden>{% trans 'Change comment is required' %}</span>
+    <div id="remove_mark_popup" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{% trans 'Are you sure' %}?</h4>
+                </div>
+                <div class="modal-body">
+                    <p>{% trans 'All versions and all data of this job will be deleted' %}</p>
+                </div>
+                <div class="modal-footer">
+                    <a style="float: left" href="{% url 'marks:delete_mark' type mark.pk %}" class="btn btn-danger">{% trans 'Delete' %}</a>
+                    <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

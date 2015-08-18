@@ -2,6 +2,21 @@ from django.utils.translation import ugettext_lazy as _
 
 FORMAT = 1
 
+ERRORS = {
+    444: _("The page was not found"),
+    404: _('The job was not found'),
+    400: _("You don't have an access to this job"),
+    450: _('Some job is downloaded right now, please try again later'),
+    451: _('Wrong parameters, please reload page and try again.'),
+    504: _('The report was not found'),
+    604: _("The mark was not found"),
+    600: _("You don't have access to this mark"),
+    601: _("You don't have access to create new marks"),
+    602: _("You don't have access to delete this mark"),
+    605: _("You don't have access to download this mark"),
+    650: _("Saving mark failed"),
+}
+
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
     ('1', _('Verification of commits in Linux kernel Git repositories')),
@@ -196,7 +211,6 @@ REPORT_ATTRS_DEF_VIEW = {
 }
 
 UNSAFE_LIST_DEF_VIEW = {
-    'columns': ['mark_verdict', 'mark_result', 'mark_status'],
     # 'order': 'verification obj',
     'filters': {
         # 'attr': {
@@ -208,7 +222,6 @@ UNSAFE_LIST_DEF_VIEW = {
 }
 
 SAFE_LIST_DEF_VIEW = {
-    'columns': ['mark_verdict', 'mark_status'],
     # 'order': 'verification obj',
     'filters': {
         # 'attr': {
@@ -231,5 +244,42 @@ UNKNOWN_LIST_DEF_VIEW = {
         #     'type': 'istartswith',
         #     'value': 'Separate'
         # }
+    }
+}
+
+MARKS_SAFE = {
+    'columns': ['mark_num', 'verdict', 'status', 'author', 'report', 'job',
+                'format'],
+    'order': 'verdict',
+    'filters': {
+        'verdict': {
+            'type': 'iexact',
+            'value': 'Unknown',
+        }
+    }
+}
+
+MARKS_UNSAFE = {
+    'columns': ['mark_num', 'verdict', 'status', 'author', 'report', 'result',
+                'job', 'format'],
+    'order': 'verdict',
+    'filters': {
+        'verdict': {
+            'type': 'iexact',
+            'value': '0',
+        },
+        'result': {
+            'type': 'gt',
+            'value': '40',
+        },
+        'status': {
+            'type': 'iexact',
+            'value': '0',
+        },
+        'author': {
+            'type': 'iexact',
+            'value': '1',
+        },
+
     }
 }

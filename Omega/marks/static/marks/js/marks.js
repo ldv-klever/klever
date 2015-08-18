@@ -15,7 +15,11 @@ function collect_attrs_data() {
 
 
 function collect_new_markdata() {
-    var is_modifiable = $('#is_modifiable').is(':checked') ? true:false;
+    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true;
+    if (is_modifiable_checkbox.length) {
+        is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
+    }
+
     return JSON.stringify({
         attrs: collect_attrs_data(),
         report_id: $('#report_pk').val(),

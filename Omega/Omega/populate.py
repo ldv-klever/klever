@@ -1,41 +1,20 @@
 from time import sleep
-from jobs.utils import create_job, update_job
+from jobs.utils import create_job
 from jobs.models import Job
 from reports.models import *
 import hashlib
 from marks.models import MarkDefaultFunctions, MarkUnsafeCompare,\
     MarkUnsafeConvert
-from marks.ConvertTrace import DESCRIPTIONS
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext_lazy as _
 from datetime import datetime
 from users.models import Extended
 from Omega.vars import JOB_CLASSES
+from marks.ConvertTrace import ConvertTrace
+from marks.CompareTrace import CompareTrace
+from types import FunctionType
 
 
-COMPARE_FUNCTIONS = [
-    [
-        'default_compare',
-        """
-return 1
-        """,
-        """
-Default comparing function.
-Always returns 1.
-        """,
-    ],
-    [
-        'random_compare',
-        """
-import random
-return random.random()
-        """,
-        """
-Random comparing function.
-Returns random number between 0 and 1.
-        """,
-    ],
-]
+DEFAULT_FUNCTIONS = ['default_compare', 'default_convert']
 
 
 def populate_jobs(user):
@@ -78,44 +57,32 @@ class Population(object):
 
     def populate_functions(self):
         self.user = self.user
-        if len(COMPARE_FUNCTIONS) == 0:
-            return _("Error: compare functions not found!")
-
-        for func_name in DESCRIPTIONS:
-            try:
-                func = MarkUnsafeConvert.objects.get(name=func_name)
-                if func.description != DESCRIPTIONS[func_name]:
-                    func.description = DESCRIPTIONS[func_name]
-                    func.save()
-            except ObjectDoesNotExist:
-                MarkUnsafeConvert.objects.create(
-                    name=func_name, description=DESCRIPTIONS[func_name])
-
-        default_compare = None
-        for func_data in COMPARE_FUNCTIONS:
-            hash_sum = hashlib.md5(
-                (func_data[0] + func_data[1]).encode('utf8')).hexdigest()
-            try:
-                func = MarkUnsafeCompare.objects.get(
-                    name=func_data[0], hash_sum=hash_sum)
-                if func.description != func_data[2]:
-                    func.description = func_data[2]
-                    func.save()
-            except ObjectDoesNotExist:
-                func = MarkUnsafeCompare.objects.create(
-                    name=func_data[0], body=func_data[1],
-                    description=func_data[2]
-                )
-            if default_compare is None:
-                default_compare = func
+        MarkUnsafeConvert.objects.all().delete()
         def_funcs = MarkDefaultFunctions()
-        def_funcs.compare = default_compare
+        for func_name in [x for x, y in ConvertTrace.__dict__.items()
+                          if type(y) == FunctionType and not x.startswith('_')]:
+            description = getattr(ConvertTrace, func_name).__doc__
+            func = MarkUnsafeConvert.objects.get_or_create(name=func_name)[0]
+            if isinstance(description, str):
+                func.description = description
+                func.save()
+            if func_name in DEFAULT_FUNCTIONS:
+                def_funcs.convert = func
+
+        for func_name in [x for x, y in CompareTrace.__dict__.items()
+                          if type(y) == FunctionType and not x.startswith('_')]:
+            description = getattr(CompareTrace, func_name).__doc__
+            func = MarkUnsafeCompare.objects.get_or_create(name=func_name)[0]
+            if isinstance(description, str):
+                func.description = description
+                func.save()
+            if func_name in DEFAULT_FUNCTIONS:
+                def_funcs.compare = func
+
         try:
-            def_funcs.convert = MarkUnsafeConvert.objects.get(
-                name='default_convert')
-        except ObjectDoesNotExist:
-            return _("Error: there are no convert functions")
-        def_funcs.save()
+            def_funcs.save()
+        except ValueError:
+            pass
         return None
 
     def __extend_user(self, user, role='1'):
@@ -128,6 +95,7 @@ class Population(object):
         extended.save()
 
     def __create_manager(self):
+        User.objects.filter(username='manager').delete()
         manager = User()
         manager.username = 'manager'
         manager.save()

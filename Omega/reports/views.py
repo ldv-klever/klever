@@ -2,7 +2,6 @@ from io import BytesIO
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
-from django.utils.translation import activate
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from jobs.models import Job
@@ -10,6 +9,8 @@ from marks.tables import ReportMarkTable
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
+from Omega.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
+from django.utils.translation import ugettext as _, activate, string_concat
 
 
 @login_required
@@ -54,7 +55,6 @@ def report_component(request, job_id, report_id):
     except ObjectDoesNotExist:
         pass
 
-    children_data = ReportTable(*report_attrs_data, table_type='3')
     return render(
         request,
         'reports/ReportMain.html',
@@ -66,8 +66,7 @@ def report_component(request, job_id, report_id):
             'reportdata': ViewJobData(*view_args),
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(*report_attrs_data).table_data,
-            'ChildrenAttrsData': children_data.table_data,
-            'attr_filters': children_data,
+            'TableData': ReportTable(*report_attrs_data, table_type='3'),
             'status': status,
             'unknown': unknown_href,
         }
@@ -91,24 +90,39 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None):
         'safes': '5',
         'unknowns': '6'
     }
+
+    if ltype == 'safes':
+        title = _("Total safes")
+        for s in SAFE_VERDICTS:
+            if s[0] == verdict:
+                title = string_concat(_("Safes"), ': ', s[1])
+                break
+    elif ltype == 'unsafes':
+        title = _("Total unsafes")
+        for s in UNSAFE_VERDICTS:
+            if s[0] == verdict:
+                title = string_concat(_("Unsafes"), ': ', s[1])
+                break
+    else:
+        title = _("Unknowns")
+
     report_attrs_data = [request.user, report]
     if request.method == 'POST':
         if request.POST.get('view_type', None) == list_types[ltype]:
             report_attrs_data.append(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view_id', None))
 
-    list_data = ReportTable(*report_attrs_data, table_type=list_types[ltype],
-                            component_id=component_id, verdict=verdict)
     return render(
         request,
         'reports/report_list.html',
         {
             'report': report,
             'parents': get_parents(report),
-            'SelfAttrsData': ReportTable(*report_attrs_data).table_data,
-            'ChildrenAttrsData': list_data.table_data,
-            'attr_filters': list_data,
+            'TableData': ReportTable(
+                *report_attrs_data, table_type=list_types[ltype],
+                component_id=component_id, verdict=verdict),
             'view_type': list_types[ltype],
+            'title': title
         }
     )
 

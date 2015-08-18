@@ -9,7 +9,6 @@ urlpatterns = [
         views.edit_mark, name='edit_mark'),
     url(r'^(?P<marks_type>unsafe|safe|unknown)/$',
         views.mark_list, name='mark_list'),
-    url(r'^all/$', views.marks_all, name='marks_all'),
     url(r'^download/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
         views.download_mark, name='download_mark'),
 

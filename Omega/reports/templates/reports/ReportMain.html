@@ -120,12 +120,12 @@
             </tr>
         </table><hr>
 
-        {% include 'reports/AttrsFilters.html' with view_type='3' %}
-        {% if ChildrenAttrsData.values|length %}
+        {% include 'reports/AttrsFilters.html' with view_type='3' view=TableData.view view_id=TableData.view_id views=TableData.views %}
+        {% if TableData.table_data.values|length %}
             <div class="attrs-table">
             <table class="table table-bordered">
                 <thead>
-                    {% for column_row in ChildrenAttrsData.header %}
+                    {% for column_row in TableData.table_data.header %}
                         <tr class="info">
                         {% for coldata in column_row %}
                             <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
@@ -134,7 +134,7 @@
                     {% endfor %}
                 </thead>
                 <tbody>
-                    {% for v in ChildrenAttrsData.values %}
+                    {% for v in TableData.table_data.values %}
                         <tr>
                             <td><a href="{% url 'reports:component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
                             {% for attr in v.attrs %}
@@ -148,7 +148,7 @@
         {% endif %}
         <hr>
         {% if reportdata %}
-            {% include 'jobs/jobData.html' %}
+            {% include 'jobs/jobData.html' with reportdata=reportdata %}
         {% endif %}
     </div>
 </div>

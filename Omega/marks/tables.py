@@ -43,9 +43,15 @@ SAFE_COLOR = {
     '4': '#000000',
 }
 
+CHANGE_DATA = {
+    '=': [_("Changed"), '#FF8533'],
+    '+': [_("New"), '#00B800'],
+    '-': [_("Deleted"), '#D11919']
+}
+
 
 def result_color(result):
-    if 0 < result <= 0.33:
+    if 0 <= result <= 0.33:
         return '#E60000'
     elif 0.33 < result <= 0.66:
         return '#CC7A29'
@@ -152,10 +158,6 @@ class MarkChangesTable(object):
                     result_color(self.changes[rep]['result1']),
                     result_color(self.changes[rep]['result2'])
                 )
-            elif 'result1' in self.changes[rep]:
-                return '<span style="color:%s">%s</span>' % (
-                    result_color(self.changes[rep]['result1']),
-                    "{:.0%}".format(self.changes[rep]['result1']))
             elif 'result2' in self.changes[rep]:
                 return '<span style="color:%s">%s</span>' % (
                     result_color(self.changes[rep]['result2']),
@@ -188,17 +190,15 @@ class MarkChangesTable(object):
                 elif col == 'status':
                     val = get_status_change()
                 elif col == 'change_kind':
-                    if self.changes[report]['kind'] == '=':
-                        val = _("Changed")
-                        color = '#CC7A29'
-                    elif self.changes[report]['kind'] == '+':
-                        val = _("New")
-                        color = '#008F00'
-                    elif self.changes[report]['kind'] == '-':
-                        val = _("Deleted")
-                        color = '#B80000'
+                    if self.changes[report]['kind'] in CHANGE_DATA:
+                        val = CHANGE_DATA[self.changes[report]['kind']][0]
+                        color = CHANGE_DATA[self.changes[report]['kind']][1]
                 elif col == 'result':
-                    val = get_result_change(report)
+                    if report_mark is not None and report_mark.broken:
+                        val = '<span style="color:%s">%s</span>' % (
+                            result_color(0), _("Compare failed"))
+                    else:
+                        val = get_result_change(report)
                 elif col == 'author':
                     if report_mark is not None:
                         val = "%s %s" % (
@@ -295,15 +295,9 @@ class MarkChangesTable(object):
                 elif col == 'status':
                     val = get_status_change()
                 elif col == 'change_kind':
-                    if self.changes[report]['kind'] == '=':
-                        val = _("Updated")
-                        color = '#CC7A29'
-                    elif self.changes[report]['kind'] == '+':
-                        val = _("Created")
-                        color = '#008F00'
-                    elif self.changes[report]['kind'] == '-':
-                        val = _("Deleted")
-                        color = '#B80000'
+                    if self.changes[report]['kind'] in CHANGE_DATA:
+                        val = CHANGE_DATA[self.changes[report]['kind']][0]
+                        color = CHANGE_DATA[self.changes[report]['kind']][1]
                 elif col == 'author':
                     val = "%s %s" % (
                         report_mark.mark.author.extended.last_name,
@@ -408,8 +402,12 @@ class MarkReportsTable(object):
                     val = l_v.get_status_display()
                     color = STATUS_COLOR[l_v.status]
                 elif col == 'result':
-                    val = "{:.0%}".format(report_mark.result)
-                    color = result_color(report_mark.result)
+                    if report_mark.broken:
+                        val = _("Compare failed")
+                        color = result_color(0)
+                    else:
+                        val = "{:.0%}".format(report_mark.result)
+                        color = result_color(report_mark.result)
                 elif col == 'author':
                     val = "%s %s" % (
                         report_mark.mark.author.extended.last_name,
@@ -467,8 +465,12 @@ class ReportMarkTable(object):
                     else:
                         color = SAFE_COLOR[mark_rep.mark.verdict]
                 elif col == 'result':
-                    value = "{:.0%}".format(mark_rep.result)
-                    color = result_color(mark_rep.result)
+                    if mark_rep.broken:
+                        value = _("Compare failed")
+                        color = result_color(0)
+                    else:
+                        value = "{:.0%}".format(mark_rep.result)
+                        color = result_color(mark_rep.result)
                 elif col == 'status':
                     value = mark_rep.mark.get_status_display()
                     color = STATUS_COLOR[mark_rep.mark.status]
@@ -489,108 +491,7 @@ class ReportMarkTable(object):
         return value_data
 
 
-class MarkListTable(object):
-    def __init__(self, marks_type):
-        self.columns = ['mark_num', 'verdict']
-        if marks_type == 'unsafe':
-            self.columns.append('result')
-        elif marks_type != 'safe':
-            return
-        self.type = marks_type
-        self.columns.extend(['status', 'author', 'report', 'job', 'format'])
-        self.attr_values_data, self.reports = self.__add_attrs()
-        self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_values()
-
-    def __add_attrs(self):
-        data = {}
-        if self.type == 'unsafe':
-            markreport_set = MarkUnsafeReport.objects.all().order_by('-result')
-        else:
-            markreport_set = MarkSafeReport.objects.all()
-        reports = []
-        for mark_report in markreport_set:
-            for attr in mark_report.report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][mark_report] = attr.value
-            reports.append(mark_report)
-
-        columns = []
-        for name in sorted(data):
-            columns.append(name)
-
-        values_data = {}
-        for mark_report in reports:
-            values_data[mark_report] = {}
-            for col in columns:
-                cell_val = '-'
-                if mark_report in data[col]:
-                    cell_val = data[col][mark_report]
-                values_data[mark_report][col] = cell_val
-        self.columns.extend(columns)
-        return values_data, reports
-
-    def __get_values(self):
-        values = []
-
-        cnt_data = {}
-        cnt_marks = 0
-        cnt_reports = 0
-        for m_rep in self.reports:
-            if m_rep.mark not in cnt_data:
-                cnt_marks += 1
-                cnt_data[m_rep.mark] = cnt_marks
-            if m_rep.report not in cnt_data:
-                cnt_reports += 1
-                cnt_data[m_rep.report] = cnt_reports
-        for m_rep in self.reports:
-            values_str = []
-            for col in self.columns:
-                val = '-'
-                color = None
-                href = None
-                if col in self.attr_values_data[m_rep]:
-                    val = self.attr_values_data[m_rep][col]
-                elif col == 'mark_num':
-                    val = cnt_data[m_rep.mark]
-                    href = reverse(
-                        'marks:edit_mark',
-                        args=[self.type, m_rep.mark.pk]
-                    )
-                elif col == 'report':
-                    val = cnt_data[m_rep.report]
-                    href = reverse('reports:leaf',
-                                   args=[self.type, m_rep.report.pk])
-                elif col == 'verdict':
-                    val = m_rep.mark.get_verdict_display()
-                    if self.type == 'safe':
-                        color = SAFE_COLOR[m_rep.mark.verdict]
-                    else:
-                        color = UNSAFE_COLOR[m_rep.mark.verdict]
-                elif col == 'status':
-                    val = m_rep.mark.get_status_display()
-                    color = STATUS_COLOR[m_rep.mark.status]
-                elif col == 'result':
-                    val = "{:.0%}".format(float(m_rep.result))
-                elif col == 'author':
-                    val = "%s %s" % (
-                        m_rep.mark.author.extended.last_name,
-                        m_rep.mark.author.extended.first_name
-                    )
-                    href = reverse('users:show_profile',
-                                   args=[m_rep.mark.author.pk])
-                elif col == 'job':
-                    val = m_rep.report.root.job.name
-                    href = reverse('jobs:job', args=[m_rep.report.root.job.pk])
-                elif col == 'format':
-                    val = m_rep.report.root.job.format
-                values_str.append({'color': color, 'value': val, 'href': href})
-            values.append(values_str)
-        return values
-
-
-class AllMarksList(object):
+class MarksList(object):
 
     def __init__(self, marks_type):
         self.columns = ['mark_num', 'num_of_links', 'verdict']
@@ -657,7 +558,15 @@ class AllMarksList(object):
                     href = reverse('marks:edit_mark', args=[self.type, mark.pk])
                 elif col == 'num_of_links':
                     if self.type == 'unsafe':
-                        val = len(mark.markunsafereport_set.all())
+                        broken = len(
+                            mark.markunsafereport_set.filter(broken=True))
+                        if broken > 0:
+                            val = _('%(all)s (%(broken)s are broken)') % {
+                                'all': len(mark.markunsafereport_set.all()),
+                                'broken': broken
+                            }
+                        else:
+                            val = len(mark.markunsafereport_set.all())
                     else:
                         val = len(mark.marksafereport_set.all())
                 elif col == 'verdict':

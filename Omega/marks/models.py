@@ -8,17 +8,15 @@ from jobs.models import Job
 # Tables with functions
 class MarkUnsafeConvert(models.Model):
     name = models.CharField(max_length=30)
-    description = models.CharField(max_length=1000)
+    description = models.CharField(max_length=1000, default='')
 
     def __str__(self):
         return self.name
 
 
 class MarkUnsafeCompare(models.Model):
-    hash_sum = models.CharField(max_length=100)
     name = models.CharField(max_length=30)
-    body = models.TextField()
-    description = models.CharField(max_length=1000)
+    description = models.CharField(max_length=1000, default='')
 
     def __str__(self):
         return self.name
