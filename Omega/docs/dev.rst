@@ -64,11 +64,27 @@ Configuring the Python interpreter
 #. Input *Python 3.4* in field :guilabel:`name`.
 #. :menuselection:`OK`.
 
+Setting run/debug configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. :menuselection:`Run --> Edit Configurations... --> Add New Configuration`.
+#. Select *Django server* from the list.
+#. Input *Omega* in field :guilabel:`Name`.
+#. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Omega in the local network.
+#. Specify *8998* in field :guilabel:`Port`.
+#. :menuselection:`OK`.
+
+.. note:: To make your Omega accessible from the local network you might need to set up your firewall accordingly.
+
 Run development server
 ^^^^^^^^^^^^^^^^^^^^^^
 
-To run the development server press :kbd:`Shift+F10`. To run the debug version of development server press
-:kbd:`Shift+F9`.
+To run the development server press :kbd:`Shift+F10`.
+
+Debug development server
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+To debug the development server press :kbd:`Shift+F9`.
 
 Run manage.py tasks
 ^^^^^^^^^^^^^^^^^^^
