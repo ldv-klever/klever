@@ -15,7 +15,11 @@ function collect_attrs_data() {
 
 
 function collect_new_markdata() {
-    var is_modifiable = $('#is_modifiable').is(':checked') ? true:false;
+    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true;
+    if (is_modifiable_checkbox.length) {
+        is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
+    }
+
     return JSON.stringify({
         attrs: collect_attrs_data(),
         report_id: $('#report_pk').val(),
@@ -40,6 +44,25 @@ function collect_markdata() {
     });
 }
 
+function set_action_on_func_change() {
+    $.ajax({
+        url: marks_ajax_url + 'get_func_description/',
+        data: {func_id: $(this).children('option:selected').val(), func_type: 'compare'},
+        type: 'POST',
+        success: function (data) {
+            if (data.error) {
+                err_notify(data.error);
+            }
+            else if (data.description) {
+                $('#compare_function_description').text(data.description);
+            }
+
+        },
+        error: function (x) {
+            console.log(x.responseText);
+        }
+    });
+}
 
 $(document).ready(function () {
     $('#save_new_mark_btn').click(function () {
@@ -66,25 +89,7 @@ $(document).ready(function () {
         });
     });
 
-    $('#compare_function').change(function () {
-        $.ajax({
-            url: marks_ajax_url + 'get_func_description/',
-            data: {func_id: $(this).children('option:selected').val(), func_type: 'compare'},
-            type: 'POST',
-            success: function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                }
-                else if (data.description) {
-                    $('#compare_function_description').text(data.description);
-                }
-
-            },
-            error: function (x) {
-                console.log(x.responseText);
-            }
-        });
-    });
+    $('#compare_function').change(set_action_on_func_change);
 
     $('#mark_version_selector').change(function () {
         $.ajax({
@@ -102,10 +107,8 @@ $(document).ready(function () {
                 else if (data.table && data.adddata) {
                     $('#mark_attributes_table').html(data.table);
                     $('#mark_add_data_div').html(data.adddata);
+                    $('#compare_function').change(set_action_on_func_change);
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });

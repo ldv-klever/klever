@@ -349,6 +349,7 @@ class UploadReport(object):
         while parent is not None:
             verdict, created = Verdict.objects.get_or_create(report=parent)
             verdict.safe += 1
+            verdict.safe_unassociated += 1
             verdict.save()
 
             ReportComponentLeaf.objects.get_or_create(
@@ -383,6 +384,7 @@ class UploadReport(object):
         while parent is not None:
             verdict, created = Verdict.objects.get_or_create(report=parent)
             verdict.unsafe += 1
+            verdict.unsafe_unassociated += 1
             verdict.save()
 
             ReportComponentLeaf.objects.get_or_create(

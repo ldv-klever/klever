@@ -8,6 +8,7 @@ from jobs.utils import create_job, update_job
 from jobs.models import Job
 from marks.models import UnsafeTag, SafeTag, MarkSafeTag, MarkUnsafeTag
 from reports.models import *
+from marks.populate import populate_functions
 
 
 def populate_jobs(username):
@@ -208,3 +209,4 @@ def main_population(username):
     populate_verdicts()
     populate_unknowns()
     populate_tags()
+    populate_functions()

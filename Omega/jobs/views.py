@@ -1,6 +1,6 @@
 import pytz
 import mimetypes
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
@@ -189,11 +189,11 @@ def show_job(request, job_id=None):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[404]))
+        return HttpResponseRedirect(reverse('error', args=[404]))
 
     job_access = JobAccess(request.user, job)
     if not job_access.can_view():
-        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+        return HttpResponseRedirect(reverse('error', args=[400]))
 
     parent_set = []
     next_parent = job.parent
@@ -358,8 +358,7 @@ def get_job_versions(request):
             'version': j.version,
             'title': title
         })
-    return render(request, 'jobs/viewVersions.html',
-                  {'versions': job_versions})
+    return render(request, 'jobs/viewVersions.html', {'versions': job_versions})
 
 
 @login_required
@@ -598,21 +597,21 @@ def download_job(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('jobs:error', args=[404]))
+        return HttpResponseRedirect(reverse('error', args=[404]))
     if not JobAccess(request.user, job).can_view():
-        return HttpResponseRedirect(reverse('jobs:error', args=[400]))
+        return HttpResponseRedirect(reverse('error', args=[400]))
 
     back_url = quote(reverse('jobs:job', args=[job_id]))
     hash_sum = request.GET.get('hashsum', None)
     if hash_sum is None:
         return HttpResponseRedirect(
-            reverse('jobs:error', args=[451]) + "?back=%s" % back_url
+            reverse('error', args=[451]) + "?back=%s" % back_url
         )
     job_tar = JobArchive(job=job, hash_sum=hash_sum, full=True)
 
     if not job_tar.create_tar():
         return HttpResponseRedirect(
-            reverse('jobs:error', args=[500]) + "?back=%s" % back_url
+            reverse('error', args=[500]) + "?back=%s" % back_url
         )
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = "attachment; filename=%s" % \
@@ -690,34 +689,6 @@ def upload_job(request, parent_id=None):
         'status': False,
         'message': _("Parent identifier was not got")
     })
-
-
-def job_error(request, err_code=0, user_message=None):
-    err_code = int(err_code)
-    message = _('Unknown error')
-    back = None
-    if request.method == 'GET':
-        back = request.GET.get('back', None)
-        if back is not None:
-            back = unquote(back)
-    if err_code == 404:
-        message = _('The job was not found')
-    elif err_code == 400:
-        message = _("You don't have an access to this job")
-    elif err_code == 450:
-        message = _('Some job is downloaded right now, '
-                    'please try again later')
-    elif err_code == 451:
-        message = _('Wrong parameters, please reload page and try again.')
-    elif err_code == 504:
-        message = _('The report was not found')
-    elif err_code == 444:
-        message = _("The page was not found")
-    elif err_code == 604:
-        message = _("The mark was not found")
-    if isinstance(user_message, str):
-        message = user_message
-    return render(request, 'error.html', {'message': message, 'back': back})
 
 
 def psi_set_status(request):

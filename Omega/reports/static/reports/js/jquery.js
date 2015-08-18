@@ -39,6 +39,12 @@ function unsafe_filters_data() {
     }
 
     view_values['filters'] = filter_values;
+    view_values['columns'] = [];
+    $("input[type=checkbox][id^='show_mark_'][value^='mark_']").each(function () {
+        if ($(this).is(':checked')) {
+            view_values['columns'].push($(this).val());
+        }
+    });
     return JSON.stringify(view_values);
 }
 
@@ -73,13 +79,9 @@ function unknown_filters_data() {
     return JSON.stringify(view_values);
 }
 
-function set_action_on_log_click() {
-
-}
-
 $(document).ready(function () {
-    var data_collection;
     $('input[class=buttons-view-type]').each(function () {
+        var data_collection;
         switch ($(this).val()) {
             case '3':
                 data_collection = component_filters_data;

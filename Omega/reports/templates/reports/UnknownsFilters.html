@@ -10,37 +10,37 @@
         <div id="collapse-attrs" class="panel-collapse collapse" style="margin-left: 10px;">
             <h4>{% trans 'Order by attribute*:' %}</h4>
             <label for="filter__attr__order"></label>
-            <input id="filter__attr__order" class="form-control" type="text" value="{{ attr_filters.view.order }}">
+            <input id="filter__attr__order" class="form-control" type="text" value="{{ view.order }}">
             <hr>
 
             <h4>{% trans 'Component name' %}</h4>
             <div class="form-inline">
                 <label><select id="filter__type__attr_component" class="form-control">
-                    <option value="iexact"{% if attr_filters.view.filters.component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if attr_filters.view.filters.component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                    <option value="icontains"{% if attr_filters.view.filters.component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                    <option value="iexact"{% if view.filters.component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if view.filters.component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if view.filters.component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select></label>
                 <label>
-                    <input id="filter__value__attr_component" class="form-control" type="text" value="{{ attr_filters.view.filters.component.value }}">
+                    <input id="filter__value__attr_component" class="form-control" type="text" value="{{ view.filters.component.value }}">
                 </label>
             </div>
             <hr>
             <h4>{% trans 'Value of attribute*:' %}</h4>
             <label for="filter__attr__attr_name"></label>
-            <input id="filter__attr__attr_name" class="form-control" type="text" value="{{ attr_filters.view.filters.attr.attr }}">
+            <input id="filter__attr__attr_name" class="form-control" type="text" value="{{ view.filters.attr.attr }}">
             <div class="form-inline">
 
                 <br>
                 <label><select id="filter__type__attr_attr" class="form-control">
-                    <option value="iexact"{% if attr_filters.view.filters.attr.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if attr_filters.view.filters.attr.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="iexact"{% if view.filters.attr.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if view.filters.attr.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                 </select></label>
                 <label>
-                    <input id="filter__attr__attr_value" class="form-control" type="text" value="{{ attr_filters.view.filters.attr.value }}">
+                    <input id="filter__attr__attr_value" class="form-control" type="text" value="{{ view.filters.attr.value }}">
                 </label>
             </div>
             <hr>
-            {% include 'viewButtons.html' with view_type=view_type view_id=attr_filters.view_id views=attr_filters.views %}
+            {% include 'viewButtons.html' with view_type=view_type view_id=view_id views=views %}
 
             <br><br>
             <small style="color: #656565">{% trans "Enter full name of attribute separated by ':'. For example: 'Linux kernel:version'." %}</small>
