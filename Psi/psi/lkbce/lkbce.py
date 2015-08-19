@@ -173,7 +173,8 @@ class PsiComponent(psi.components.PsiComponentBase):
         if not linux_kernel_work_src_tree_root:
             raise ValueError('Could not find Makefile in Linux kernel source code')
 
-        # TODO: specification requires to remove everything in self.linux_kernel['work src tree'] except moved linux_kernel_work_src_tree_root.
+        # TODO: specification requires to remove everything in self.linux_kernel['work src tree'] except moved
+        # linux_kernel_work_src_tree_root.
         if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']):
             self.logger.debug(
                 'Move "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']))
@@ -276,11 +277,13 @@ class PsiComponent(psi.components.PsiComponentBase):
 
                             if cmd_requires_in_files and not cmd_in_files:
                                 raise ValueError(
-                                    'Could not get Linux kernel raw build command input files from options "{0}"'.format(
+                                    'Could not get Linux kernel raw build command input files'
+                                    + ' from options "{0}"'.format(
                                         opts))
                             if cmd_requires_out_file and not cmd_out_file:
                                 raise ValueError(
-                                    'Could not get Linux kernel raw build command output file from options "{0}"'.format(
+                                    'Could not get Linux kernel raw build command output file'
+                                    + ' from options "{0}"'.format(
                                         opts))
 
                             # Check thar all original options becomes either input files or output file or options.
@@ -299,10 +302,10 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                                                                     cmd_opts))
 
                             self.logger.debug(
-                                'Linux kernel raw build command input files are "{0}"'.format(cmd_in_files))
+                                'Input files are "{0}"'.format(cmd_in_files))
                             self.logger.debug(
-                                'Linux kernel raw build command output file is "{0}"'.format(cmd_out_file))
-                            self.logger.debug('Linux kernel raw build command options are "{0}"'.format(cmd_opts))
+                                'Output file is "{0}"'.format(cmd_out_file))
+                            self.logger.debug('Options are "{0}"'.format(cmd_opts))
 
                             # Go to the next command or finish operation.
                             cmd = None
@@ -323,4 +326,3 @@ class PsiComponent(psi.components.PsiComponentBase):
                     # Clean up all already scanned content of file to save disk space.
                     fp.seek(0)
                     fp.truncate()
-
