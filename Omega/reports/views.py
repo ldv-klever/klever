@@ -239,11 +239,11 @@ def get_component_log(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    if report.log is None or len(report.log) == 0:
+    if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    new_file = BytesIO(report.log)
-    response = HttpResponse(new_file.read(), content_type='text/plain')
-    response['Content-Disposition'] = 'attachment; filename="log"'
+    logname = report.component.name + '.log'
+    response = HttpResponse(report.log.file.read(), content_type='text/plain')
+    response['Content-Disposition'] = 'attachment; filename="%s"' % logname
     return response
 
 
@@ -258,6 +258,6 @@ def get_log_content(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    if report.log is None or len(report.log) == 0:
+    if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    return HttpResponse(report.log)
+    return HttpResponse(report.log.file.read())

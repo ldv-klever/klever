@@ -118,6 +118,9 @@ $(document).ready(function () {
                         $('#file_content_div').find('div').empty();
                         file_div.hide();
                     });
+                },
+                error: function (x) {
+                    console.log(x.responseText);
                 }
             });
         }

@@ -8,7 +8,6 @@ from jobs.utils import create_job, update_job
 from jobs.models import Job
 from marks.models import UnsafeTag, SafeTag, MarkSafeTag, MarkUnsafeTag
 from reports.models import *
-from marks.populate import populate_functions
 
 
 def populate_jobs(username):
@@ -121,7 +120,6 @@ def populate_reports(username):
         report.component = root_component
         report.computer = computer
         report.data = "Data...".encode('utf8')
-        report.log = "Log...".encode('utf8')
         report.root = job.reportroot
         report.start_date = pytz.timezone('UTC').localize(datetime(
             2015, 7, 31, random.randint(10, 15), random.randint(5, 50), 17
@@ -209,4 +207,3 @@ def main_population(username):
     populate_verdicts()
     populate_unknowns()
     populate_tags()
-    populate_functions()
