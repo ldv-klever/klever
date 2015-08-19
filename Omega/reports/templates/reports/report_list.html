@@ -8,10 +8,10 @@
     <div class="row">
         <div class="col-sm-5">
             <h1>{{ title }}</h1>
-            <span class="purple-title">{% trans 'Report author' %}: </span>
+            <span class="purple-title">{% trans 'Author' %}: </span>
             <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
             <br>
-            <span class="purple-title">{% trans 'Verification Job' %}: </span>
+            <span class="purple-title">{% trans 'Job' %}: </span>
             <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
         </div>
         <div class="col-sm-7">

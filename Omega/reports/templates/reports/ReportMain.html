@@ -33,7 +33,7 @@
                 {% if resources %}
                     <span class="purple-subtitle">{% trans 'Wall time' %}: </span> {{ resources.wall_time }}<br>
                     <span class="purple-subtitle">{% trans 'CPU time' %}: </span> {{ resources.cpu_time }}<br>
-                    <span class="purple-subtitle">{% trans 'Max memory size' %}: </span> {{ resources.memory }}<br>
+                    <span class="purple-subtitle">{% trans 'Maximum memory size' %}: </span> {{ resources.memory }}<br>
                 {% endif %}
             </span>
         </div>
@@ -41,12 +41,12 @@
         {% if report.log %}<button id="show_component_log" class="btn btn-success" style="float: right">{% trans 'Log' %}</button>{% endif %}
 
         {% if report.root.user %}
-            <span class="purple-title">{% trans 'Report author' %}: </span>
+            <span class="purple-title">{% trans 'Author' %}: </span>
             <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
             <br>
         {% endif %}
 
-        <span class="purple-title">{% trans 'Verification Job' %}: </span>
+        <span class="purple-title">{% trans 'Job' %}: </span>
         <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
         <br>
 
