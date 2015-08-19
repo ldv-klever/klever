@@ -272,7 +272,6 @@ def upload_marks(request):
     if len(failed_marks) > 0:
         return JsonResponse({'status': False, 'messages': failed_marks})
     if num_of_new_marks == 1:
-        print(num_of_new_marks, mark_id, mark_type)
         return JsonResponse({
             'status': True, 'mark_id': str(mark_id), 'mark_type': mark_type
         })

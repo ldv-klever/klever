@@ -20,7 +20,6 @@ class ViewJobData(object):
         self.report = report
         self.user = user
         (self.view, self.view_id) = self.__get_view(view, view_id)
-        print(self.view)
         self.views = self.__views()
         self.unknowns_total = None
         self.show_verdicts = False

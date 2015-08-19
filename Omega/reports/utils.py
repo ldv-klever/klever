@@ -240,7 +240,7 @@ class ReportTable(object):
                     data[attr.name.name] = {}
                 data[attr.name.name][report] = attr.value
 
-        columns = ['report', 'marks_number']
+        columns = ['number', 'marks_number']
         if self.verdict is None:
             columns.append('report_verdict')
 
@@ -274,7 +274,7 @@ class ReportTable(object):
                     val = data[col][report]
                     if not self.__filter_attr(col, val):
                         break
-                elif col == 'report':
+                elif col == 'number':
                     val = cnt
                     href = reverse('reports:leaf',
                                    args=[list_types[self.type], report.pk])

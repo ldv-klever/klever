@@ -120,6 +120,7 @@
             </tr>
         </table><hr>
 
+        <h3 class="purple-subtitle">{% trans 'Component children' %}</h3>
         {% include 'reports/AttrsFilters.html' with view_type='3' view=TableData.view view_id=TableData.view_id views=TableData.views %}
         {% if TableData.table_data.values|length %}
             <div class="attrs-table">
@@ -147,6 +148,7 @@
             </div>
         {% endif %}
         <hr>
+        <h3 class="purple-subtitle">{% trans 'Children statistics' %}</h3>
         {% if reportdata %}
             {% include 'jobs/jobData.html' with reportdata=reportdata %}
         {% endif %}
