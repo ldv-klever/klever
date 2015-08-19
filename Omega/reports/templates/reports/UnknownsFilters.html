@@ -25,9 +25,10 @@
                 </label>
             </div>
             <hr>
-            <h4>{% trans 'Value of attribute' %}*:</h4>
+            <h4>{% trans 'Value of attribute' %}:</h4>
             <label for="filter__attr__attr_name"></label>
             <input id="filter__attr__attr_name" class="form-control" type="text" value="{{ view.filters.attr.attr }}">
+            <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
             <div class="form-inline">
 
                 <br>
@@ -43,7 +44,6 @@
             {% include 'viewButtons.html' with view_type=view_type view_id=view_id views=views %}
 
             <br><br>
-            <small style="color: #656565">*{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
         </div>
     </div>
 </div>
