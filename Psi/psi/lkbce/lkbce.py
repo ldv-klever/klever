@@ -47,6 +47,9 @@ class PsiComponent(psi.components.PsiComponentBase):
             pass
         psi.components.launch_in_parrallel(self.logger,
                                            (self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
+        # Linux kernel raw build commands file should be kept just in debugging.
+        if not self.conf['debug']:
+            os.remove(self.linux_kernel['raw build cmds file'])
 
     def build_linux_kernel(self):
         self.logger.info('Build Linux kernel')
@@ -187,7 +190,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         while True:
             time.sleep(1)
 
-            with psi.utils.LockedOpen(self.linux_kernel['raw build cmds file']) as fp:
+            with psi.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'r+') as fp:
                 # Move to previous end of file.
                 fp.seek(offset)
 
@@ -312,5 +315,12 @@ class PsiComponent(psi.components.PsiComponentBase):
 
                     prev_line = line
 
-                # Move offset to current end of file.
-                offset = fp.tell()
+                if self.conf['debug']:
+                    # When debugging we keep all file content. So move offset to current end of file to scan just new
+                    # lines from file on the next iteration.
+                    offset = fp.tell()
+                else:
+                    # Clean up all already scanned content of file to save disk space.
+                    fp.seek(0)
+                    fp.truncate()
+
