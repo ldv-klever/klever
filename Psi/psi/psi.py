@@ -16,13 +16,14 @@ import psi.lkbce.lkbce
 import psi.lkvog.lkvog
 import psi.avtg.avtg
 import psi.vtg.vtg
+import psi.vtsc.vtsc
 
 _default_conf_file = 'psi-conf.json'
 _conf = None
 _logger = None
 _job_class_components = {'Verification of Linux kernel modules': [psi.lkbce.lkbce, psi.lkvog.lkvog],
                          # These components are likely appropriate for all job classes.
-                         'Common': [psi.avtg.avtg, psi.vtg.vtg]}
+                         'Common': [psi.avtg.avtg, psi.vtg.vtg, psi.vtsc.vtsc]}
 
 
 def launch():
@@ -202,6 +203,7 @@ def _create_components_conf(comp):
         {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size, 'arch': arch},
          'job priority': _conf['job']['priority'],
          'abstract verification tasks gen priority': _conf['abstract verification tasks gen priority'],
+         'debug': _conf['debug'],
          'allow local source directories use': _conf['allow local source directories use'],
          'parallelism': _conf['parallelism'],
          'logging': _conf['logging']})

@@ -158,7 +158,7 @@ class PsiComponentBase(_PsiComponentBase):
                 self.reports_mq.put(os.path.relpath(unknown_report_file, self.conf['root id']))
 
         with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
-            with open('log') as log_fp:
+            with open('log') if os.path.isfile('log') else io.StringIO('') as log_fp:
                 finish_report_file = psi.utils.dump_report(self.logger, 'finish',
                                                            {'id': self.name,
                                                             'resources': psi.utils.count_consumed_resources(

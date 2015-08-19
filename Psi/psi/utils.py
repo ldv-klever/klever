@@ -62,7 +62,7 @@ def count_consumed_resources(logger, start_time):
     return resources
 
 
-def dump_report(logger, kind, report):
+def dump_report(logger, kind, report, suffix=''):
     """
     Dump the specified report of the specified kind to a file.
     :param logger: a logger for printing debug messages.
@@ -71,7 +71,7 @@ def dump_report(logger, kind, report):
     """
     logger.info('Dump {0} report'.format(kind))
 
-    report_file = '{0} report.json'.format(kind)
+    report_file = '{0}{1} report.json'.format(kind, suffix)
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(os.path.abspath(report_file)))
 
