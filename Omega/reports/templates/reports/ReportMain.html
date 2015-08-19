@@ -58,9 +58,7 @@
         {% elif status == 2 %}
             <span style="color: #00A000">{% trans 'Finished' %}</span>
         {% endif %}
-
         <br>
-
         <table><tr>
             <td><span class="purple-title">{% trans 'Computer' %}:</span></td>
             <td style="padding-left: 10px; padding-top: 5px;">
@@ -76,10 +74,11 @@
             </td>
         </tr></table>
         {% if report.description %}
-            <p class="purple-title">{% trans 'Description' %}</p>
+            <p class="purple-title">{% trans 'Description' %}:</p>
             <p class="omega-text">{{ report.description }}</p>
         {% endif %}
         <br>
+        <span class="purple-title">{% trans 'Attributes' %}:</span>
         <div style="overflow-x: auto">
         <table class="table table-bordered">
             <thead>

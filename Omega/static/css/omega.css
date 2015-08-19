@@ -75,7 +75,7 @@ p.omega-text {
 .error-trace-content {
     white-space: pre;
     font-family: monospace;
-    max-height: 800px;
+    max-height: 500px;
     overflow-y: auto;
     overflow-x: auto;
     border: 1px solid #feae08;
@@ -87,7 +87,7 @@ p.omega-text {
 .safe-proof-content {
     white-space: pre;
     font-family: monospace;
-    max-height: 700px;
+    max-height: 500px;
     overflow-y: auto;
     overflow-x: auto;
     border: 1px solid #7efe7f;
@@ -99,7 +99,7 @@ p.omega-text {
 .problem-description-content {
     white-space: pre;
     font-family: monospace;
-    max-height: 700px;
+    max-height: 500px;
     overflow-y: auto;
     overflow-x: auto;
     border: 1px solid #fe0018;
