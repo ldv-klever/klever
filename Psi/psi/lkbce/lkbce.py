@@ -39,6 +39,9 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.make_canonical_linux_kernel_work_src_tree()
         self.clean_linux_kernel_work_src_tree()
         self.extract_linux_kernel_attrs()
+        attrs_report_file = psi.utils.dump_report(self.logger, 'attrs',
+                                                  {'id': self.name, 'attrs': self.linux_kernel['attrs']})
+        self.reports_mq.put(os.path.relpath(attrs_report_file, self.conf['root id']))
         self.configure_linux_kernel()
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
         # Always create Linux kernel raw build commands file prior to its reading in
@@ -127,7 +130,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.logger.debug('Linux kernel configuration shortcut is "{0}"'.format(self.linux_kernel['conf shortcut']))
 
         self.linux_kernel['attrs'] = [
-            {'Linux kernel': [{'version': self.linux_kernel[attr]} for attr in ('version', 'arch', 'conf shortcut')]}]
+            {'Linux kernel': [{attr: self.linux_kernel[attr]} for attr in ('version', 'arch', 'conf shortcut')]}]
 
     def fetch_linux_kernel_work_src_tree(self):
         self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
