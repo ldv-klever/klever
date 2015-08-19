@@ -4,7 +4,7 @@ from Omega.formatChecker import RestrictedFileField
 from Omega.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
 
 
-JOBFILE_DIR = 'JobFiles'
+JOBFILE_DIR = 'Files'
 
 
 class JobBase(models.Model):

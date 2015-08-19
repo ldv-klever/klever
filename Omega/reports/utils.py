@@ -85,6 +85,7 @@ def report_resources(report, user):
 
 
 class ReportTable(object):
+
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
                  component_id=None, verdict=None):
         self.component_id = component_id
@@ -412,27 +413,26 @@ class ReportTable(object):
 
 def save_attrs(attrs):
     def children(name, val):
-        attr_data = {}
+        attr_data = []
         if isinstance(val, list):
             for v in val:
                 if isinstance(v, dict):
                     nextname = next(iter(v))
-                    new_data = children(nextname.replace(':', '_'), v[nextname])
-                    for n in new_data:
+                    for n in children(nextname.replace(':', '_'), v[nextname]):
                         if len(name) == 0:
-                            new_id = n
+                            new_id = n[0]
                         else:
-                            new_id = "%s:%s" % (name, n)
-                        attr_data[new_id] = new_data[n]
+                            new_id = "%s:%s" % (name, n[0])
+                        attr_data.append((new_id, n[1]))
         elif isinstance(val, str):
-            attr_data[name] = val
+            attr_data = [(name, val)]
         return attr_data
 
     attrs_data = children('', attrs)
     created_attrs = []
-    for attr in attrs_data:
+    for attr, value in attrs_data:
         new_attr_name, created = AttrName.objects.get_or_create(name=attr)
         new_attr, created = Attr.objects.get_or_create(
-            name=new_attr_name, value=attrs_data[attr])
+            name=new_attr_name, value=value)
         created_attrs.append(new_attr)
     return created_attrs
