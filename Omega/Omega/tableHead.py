@@ -49,7 +49,7 @@ class Header(object):
         for col in columns_of_lvl:
             nrows = max_depth - lvl + 1
             for column in self.columns:
-                if column.startswith(col[0]) and col[0] != column:
+                if column.startswith(col[0] + ':') and col[0] != column:
                     nrows = 1
                     break
             columns_data.append({

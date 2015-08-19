@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% load i18n %}
+
+{% block body_block %}
+
+    {% if username and password %}
+        <h1>{% trans 'New user with "manager" role was created' %}</h1>
+        <p>{% trans 'Username' %}:</p> {{ username }}
+        <p>{% trans 'Password' %}:</p> {{ password }}
+        <p>{% trans 'Please save this data and give to the user who will be the manager' %}</p>
+    {% else %}
+        <h1>{% trans 'Welcome to Omega!' %}</h1>
+        <h4>{% trans 'You need to fill database before start working. Just press the button' %}</h4>
+        <hr>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" id="populate_button" class="btn btn-success">{% trans 'Populate' %}</button>
+        </form>
+    {% endif %}
+{% endblock %}

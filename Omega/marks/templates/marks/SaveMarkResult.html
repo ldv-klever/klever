@@ -2,35 +2,38 @@
 {% load i18n %}
 {% block body_block %}
     {% if MarkTable.values|length %}
-        <a href="{% url 'marks:edit_mark' mark_type mark.pk %}" class="btn btn-success">{% trans 'OK' %}</a>
-        <table class="table table-bordered tree table-fixed" style="margin-bottom: 0;">
-            <thead>
-                {% for column_row in MarkTable.header %}
-                    <tr class="info">
-                    {% for coldata in column_row %}
-                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                    {% endfor %}
-                    </tr>
-                {% endfor %}
-            </thead>
-            <tbody>
-                {% for row_data in MarkTable.values %}
-                    <tr>
-                        {% for v in row_data %}
-                            <td class="text-nowrap">
-                                {% if v.href %}
-                                    <a href="{{ v.href }}">{{ v.value }}</a>
-                                {% else %}
-                                    <span{% if v.color %} style="color: {{ v.color }}"{% endif %}>{{ v.value|safe }}</span>
-                                {% endif %}
-                            </td>
+        <div style="overflow-x: auto; max-height: 1000px; overflow-y: auto;">
+            <h1 style="text-align:center;">{% trans 'Changes' %}</h1>
+            <table class="table table-bordered tree table-fixed" style="margin-bottom: 0;">
+                <thead>
+                    {% for column_row in MarkTable.header %}
+                        <tr class="info">
+                        {% for coldata in column_row %}
+                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                         {% endfor %}
-                    </tr>
-                {%  endfor %}
-            </tbody>
-        </table>
+                        </tr>
+                    {% endfor %}
+                </thead>
+                <tbody>
+                    {% for row_data in MarkTable.values %}
+                        <tr>
+                            {% for v in row_data %}
+                                <td class="text-nowrap">
+                                    {% if v.href %}
+                                        <a href="{{ v.href }}">{{ v.value }}</a>
+                                    {% else %}
+                                        <span{% if v.color %} style="color: {{ v.color }}"{% endif %}>{{ v.value|safe }}</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {%  endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <h1>{% trans 'Nothing changed with reports' %}</h1>
-        <a href="{% url 'marks:edit_mark' mark_type mark.pk %}" class="btn btn-success">{% trans 'OK' %}</a>
+        <h1 style="text-align:center;">{% trans 'No new changes with reports' %}</h1>
     {% endif %}
+    <br>
+    <a href="{% url 'marks:edit_mark' mark_type mark.pk %}" class="btn btn-success" style="float: right">{% trans 'Continue editing' %}</a>
 {% endblock %}

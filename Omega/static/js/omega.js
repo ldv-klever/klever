@@ -124,7 +124,6 @@ window.set_actions_for_views = function(filter_type, data_collection) {
         return;
     }
     $('#' + filter_type + '__show_unsaved_view_btn').click(function () {
-        console.log(collect_data());
         $.redirectPost('', collect_data());
     });
 
@@ -150,7 +149,6 @@ window.set_actions_for_views = function(filter_type, data_collection) {
                         data: request_data,
                         success: function(save_data) {
                             if (save_data.status === 0) {
-                                // TODO: check if it works
                                 if (save_data.hasOwnProperty('view_name')) {
                                     $('#' + filter_type + '__available_views').append($('<option>', {
                                         text: save_data['view_name'],

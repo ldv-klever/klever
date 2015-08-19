@@ -5,93 +5,45 @@
 {% load tz %}
 
 {% block body_block %}
-    <table>
-        <tr>
-            {% for parent in parents %}
-            <td>
-                <div class="omega-tooltip">
-                    <a href="{{ parent.href }}">{{ parent.title }}</a>
-                    <span class="tooltip-content">
-                        <strong>{{ parent.title }}</strong><br>
-                        {% for attr in parent.attrs %}
-                            <span class="purple-subtitle">{{ attr.0 }}:</span><br>{{ attr.1|safe }}<br><br>
-                        {% endfor %}
-                    </span>
-                </div>
-            </td><td><strong>/</strong></td>
-            {% endfor %}
-        </tr>
-    </table>
-    <hr>
     <div class="row">
         <div class="col-sm-5">
+            <h1>{{ title }}</h1>
             <span class="purple-title">{% trans 'Report author' %}: </span>
             <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
             <br>
             <span class="purple-title">{% trans 'Verification Job' %}: </span>
             <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
         </div>
-        {% if view_type == '6' %}
-            <div class="col-sm-7">{% include 'reports/UnknownsFilters.html' %}</div>
-        {% else %}
-            <div class="col-sm-7">{% include 'reports/ListFilters.html' %}</div>
-        {% endif %}
-
+        <div class="col-sm-7">
+            <table>
+                <tr>
+                    {% for parent in parents %}
+                    <td>
+                        <div class="omega-tooltip">
+                            <a href="{{ parent.href }}">{{ parent.title }}</a>
+                            <span class="tooltip-content">
+                                <strong>{{ parent.title }}</strong><br>
+                                {% for attr in parent.attrs %}
+                                    <span class="purple-subtitle">{{ attr.0 }}:</span><br>{{ attr.1|safe }}<br><br>
+                                {% endfor %}
+                            </span>
+                        </div>
+                    </td><td><strong>/</strong></td>
+                    {% endfor %}
+                </tr>
+            </table>
+            <hr>
+            {% if view_type == '6' %}
+                {% include 'reports/UnknownsFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=view_type %}
+            {% else %}
+                {% include 'reports/ListFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=view_type %}
+            {% endif %}
+        </div>
     </div>
 
-    {% if ChildrenAttrsData.values|length %}
-        <div style="overflow-x:auto;max-height:1000px;overflow-y:auto">
-            <table class="table table-bordered">
-                <thead>
-                    {% for column_row in ChildrenAttrsData.header %}
-                        <tr class="info">
-                        {% for coldata in column_row %}
-                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                        {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </thead>
-                <tbody>
-                    {% for v in ChildrenAttrsData.values %}
-                        <tr>
-                            <td class="text-nowrap" rowspan="{{ v.colspan }}">
-                                {% if v.href %}
-                                    <a href="{{ v.href }}">{{ v.value }}</a>
-                                {% else %}
-                                    <span>{{ v.value }}</span>
-                                {% endif %}
-                            </td>
-                            {% for attr in v.attrs %}
-                                <td class="text-nowrap" rowspan="{{ v.colspan }}"><span>{{ attr }}</span></td>
-                            {% endfor %}
-
-                            {% for md in v.first_mark_row %}
-                                <td class="text-nowrap">
-                                    {% if md.href %}
-                                        <a href="{{ md.href }}">{{ md.value }}</a>
-                                    {% else %}
-                                        <span{% if md.color %} style="color: {{ md.color }}"{% endif %}>{{ md.value }}</span>
-                                    {% endif %}
-                                </td>
-                            {% endfor %}
-                        </tr>
-                        {% for md_row in v.mark_rows %}
-                            <tr>
-                                {% for md in md_row %}
-                                    <td class="text-nowrap">
-                                        {% if md.href %}
-                                            <a href="{{ md.href }}">{{ md.value }}</a>
-                                        {% else %}
-                                            <span{% if md.color %} style="color: {{ md.color }}"{% endif %}>{{ md.value }}</span>
-                                        {% endif %}
-                                    </td>
-                                {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    {% endfor %}
-                </tbody>
-            </table>
+    {% if TableData.table_data.values|length %}
+        <div style="overflow-x:auto;max-height:1000px;overflow-y:auto;">
+            {% include 'table.html' with data=TableData.table_data %}
         </div>
-        <hr>
     {% endif %}
 {% endblock %}

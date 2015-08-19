@@ -11,7 +11,7 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _
 from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
-from users.models import Notifications
+from users.models import Notifications, Extended
 from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
@@ -28,7 +28,11 @@ def user_signin(request):
         if user is not None:
             if user.is_active:
                 login(request, user)
-                return HttpResponseRedirect(reverse('jobs:tree'))
+                try:
+                    Extended.objects.get(user=user)
+                    return HttpResponseRedirect(reverse('jobs:tree'))
+                except ObjectDoesNotExist:
+                    return HttpResponseRedirect(reverse('population'))
             else:
                 login_error = _("Account has been disabled")
         else:

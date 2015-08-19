@@ -3,6 +3,9 @@
 Installation
 ============
 
+Omega installation
+------------------
+
 #. Create a new MySQL user (**mysql_user**) identified by a password (**mysql_passwd**).
 #. Create a new MySQL database (**mysql_db**) with character set utf8 and grant full access on all its tables to **mysql_user**.
 #. Create :file:`Omega/Omega/db.cnf`::
@@ -26,7 +29,7 @@ Installation
 .. _dev-install:
 
 Installation for development purposes
--------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Run a development server::
 
@@ -51,7 +54,7 @@ Installation for development purposes
 .. _production-install:
 
 Installation for production purposes
-------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Add to the file :file:`/etc/apache2/sites-available/000-default.conf` next lines::
 

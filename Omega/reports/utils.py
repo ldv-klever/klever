@@ -3,13 +3,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
-from Omega.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW,\
-    SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW
+from Omega.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
+    SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.utils import get_resource_data
-from reports.models import ReportComponent, Attr, AttrName,\
-    ReportComponentLeaf, ReportUnsafe
-from marks.utils import result_color, SAFE_COLOR, UNSAFE_COLOR, STATUS_COLOR
+from reports.models import ReportComponent, Attr, AttrName, ReportComponentLeaf
+from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from Omega.tableHead import Header
+
 
 REP_MARK_TITLES = {
     'mark_num': _('Mark'),
@@ -17,8 +17,12 @@ REP_MARK_TITLES = {
     'mark_result': _('Similarity'),
     'mark_status': _('Status'),
     'number': '№',
-    'component': _('Component')
+    'component': _('Component'),
+    'marks_number': _("Number of marks"),
+    'report_verdict': _("Verdict"),
 }
+
+MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
 
 
 def computer_description(computer):
@@ -81,7 +85,6 @@ def report_resources(report, user):
 
 
 class ReportTable(object):
-
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
                  component_id=None, verdict=None):
         self.component_id = component_id
@@ -93,79 +96,6 @@ class ReportTable(object):
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
         self.table_data = self.__get_table_data()
-
-    class Header(object):
-
-        def __init__(self, columns):
-            self.columns = columns
-
-        def head_struct(self, table_type):
-            col_data = []
-            depth = self.__max_depth()
-            for d in range(1, depth + 1):
-                col_data.append(self.__cellspan_level(d, depth))
-
-            if table_type != '0':
-                title = '№'
-                if table_type in ['3', '6']:
-                    title = _('Component')
-                if len(col_data) > 0:
-                    col_data[0].insert(0, {
-                        'column': title, 'rows': depth, 'columns': 1
-                    })
-                else:
-                    col_data.append([{
-                        'column': title, 'rows': depth, 'columns': 1
-                    }])
-            return col_data
-
-        def __max_depth(self):
-            max_depth = 0
-            if len(self.columns):
-                max_depth = 1
-            for col in self.columns:
-                depth = len(col.split(':'))
-                if depth > max_depth:
-                    max_depth = depth
-            return max_depth
-
-        def __cellspan_level(self, lvl, max_depth):
-            columns_of_lvl = []
-            prev_col = ''
-            cnt = 0
-            for col in self.columns:
-                col_start = ''
-                col_parts = col.split(':')
-                if len(col_parts) >= lvl:
-                    col_start = ':'.join(col_parts[:lvl])
-                    if col_start == prev_col:
-                        cnt += 1
-                    else:
-                        if prev_col != '':
-                            columns_of_lvl.append([prev_col, cnt])
-                        cnt = 1
-                else:
-                    if prev_col != '':
-                        columns_of_lvl.append([prev_col, cnt])
-                    cnt = 0
-                prev_col = col_start
-
-            if len(prev_col) > 0 and cnt > 0:
-                columns_of_lvl.append([prev_col, cnt])
-
-            columns_data = []
-            for col in columns_of_lvl:
-                nrows = max_depth - lvl + 1
-                for column in self.columns:
-                    if column.startswith(col[0]) and col[0] != column:
-                        nrows = 1
-                        break
-                columns_data.append({
-                    'column': col[0].split(':')[-1],
-                    'rows': nrows,
-                    'columns': col[1],
-                })
-            return columns_data
 
     def __get_view(self, view, view_id):
         if self.type not in ['3', '4', '5', '6']:
@@ -206,23 +136,22 @@ class ReportTable(object):
 
     def __get_table_data(self):
         actions = {
-            '0': self.__self_attrs,
-            '3': self.__component_attrs,
-            '4': self.__verdict_attrs,
-            '5': self.__verdict_attrs,
-            '6': self.__unknowns_attrs,
+            '0': self.__self_data,
+            '3': self.__component_data,
+            '4': self.__verdict_data,
+            '5': self.__verdict_data,
+            '6': self.__unknowns_data,
         }
         if self.type in actions:
             self.columns, values = actions[self.type]()
         else:
             return {}
         return {
-            # 'header': self.Header(self.columns).head_struct(self.type),
-            'header': Header(self.columns, REP_MARK_TITLES).head_struct(),
+            'header': Header(self.columns, REP_MARK_TITLES).struct,
             'values': values
         }
 
-    def __self_attrs(self):
+    def __self_data(self):
         columns = []
         values = []
         for attr in self.report.attr.all().order_by('name__name'):
@@ -230,7 +159,7 @@ class ReportTable(object):
             values.append(attr.value)
         return columns, values
 
-    def __component_attrs(self):
+    def __component_data(self):
         data = {}
         components = {}
         component_filters = {
@@ -239,7 +168,7 @@ class ReportTable(object):
         if 'component' in self.view['filters']:
             component_filters[
                 'component__name__' + self.view['filters']['component']['type']
-            ] = self.view['filters']['component']['value']
+                ] = self.view['filters']['component']['value']
         for report in ReportComponent.objects.filter(**component_filters):
             for attr in report.attr.all():
                 if attr.name.name not in data:
@@ -280,7 +209,7 @@ class ReportTable(object):
         columns.insert(0, 'component')
         return columns, values_data
 
-    def __verdict_attrs(self):
+    def __verdict_data(self):
         list_types = {
             '4': 'unsafe',
             '5': 'safe',
@@ -289,8 +218,6 @@ class ReportTable(object):
             return None, None
 
         data = {}
-        mark_data = {}
-        report_ids = []
         leaf_filter = {'report': self.report}
         if self.verdict is not None:
             leaf_filter[list_types[self.type] + '__verdict'] = self.verdict
@@ -300,99 +227,83 @@ class ReportTable(object):
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
-                data[attr.name.name][report.pk] = attr.value
-            report_ids.append(report.pk)
-            if self.type == '4':
-                mark_data[report.pk] = report.markunsafereport_set\
-                    .order_by('-result')
-            else:
-                mark_data[report.pk] = report.marksafereport_set.all()
+                data[attr.name.name][report] = attr.value
 
-        columns = []
+        columns = ['report', 'marks_number']
+        if self.verdict is None:
+            columns.append('report_verdict')
         for name in sorted(data):
             columns.append(name)
 
-        ids_ordered = []
+        reports_ordered = []
         if 'order' in self.view and self.view['order'] in data:
-            for rep_id in data[self.view['order']]:
-                ids_ordered.append((data[self.view['order']][rep_id], rep_id))
-            report_ids = [x[1] for x in sorted(ids_ordered, key=lambda x: x[0])]
+            for report in data[self.view['order']]:
+                reports_ordered.append(
+                    (data[self.view['order']][report], report)
+                )
+            reports_ordered = \
+                [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
+        else:
+            for attr in data:
+                for report in data[attr]:
+                    if report not in reports_ordered:
+                        reports_ordered.append(report)
 
-        cnt = 0
+        cnt = 1
         values_data = []
-        for rep_id in report_ids:
+        for report in reports_ordered:
             values_row = []
             for col in columns:
-                cell_val = '-'
-                if rep_id in data[col]:
-                    cell_val = data[col][rep_id]
-                values_row.append(cell_val)
-                if not self.__filter_attr(col, cell_val):
-                    break
+                val = '-'
+                href = None
+                color = None
+                if col in data and report in data[col]:
+                    val = data[col][report]
+                    if not self.__filter_attr(col, val):
+                        break
+                elif col == 'report':
+                    val = cnt
+                    href = reverse('reports:leaf',
+                                   args=[list_types[self.type], report.pk])
+                elif col == 'marks_number':
+                    broken = 0
+                    if list_types[self.type] == 'unsafe':
+                        broken = \
+                            len(report.markunsafereport_set.filter(broken=True))
+                        num_of_connects = len(report.markunsafereport_set.all())
+                    else:
+                        num_of_connects = len(report.marksafereport_set.all())
+                    if broken > 0:
+                        val = _('%(all)s (%(broken)s are broken)') % {
+                            'all': num_of_connects,
+                            'broken': broken
+                        }
+                    else:
+                        val = num_of_connects
+                elif col == 'report_verdict':
+                    if list_types[self.type] == 'unsafe':
+                        for uns in UNSAFE_VERDICTS:
+                            if uns[0] == report.verdict:
+                                val = uns[1]
+                                break
+                        color = UNSAFE_COLOR[report.verdict]
+                    else:
+                        for s in SAFE_VERDICTS:
+                            if s[0] == report.verdict:
+                                val = s[1]
+                                break
+                        color = SAFE_COLOR[report.verdict]
+                values_row.append({
+                    'value': val,
+                    'color': color,
+                    'href': href
+                })
             else:
                 cnt += 1
-                values_data.append({
-                    'href': reverse('reports:leaf',
-                                    args=[list_types[self.type], rep_id]),
-                    'value': cnt,
-                    'attrs': values_row,
-                    'pk': rep_id
-                })
-        if self.type == '4':
-            add_columns = ['mark_num', 'mark_verdict',
-                           'mark_result', 'mark_status']
-        else:
-            add_columns = ['mark_num', 'mark_verdict', 'mark_status']
-        columns.extend(add_columns)
-        new_val_data = []
-        for row in values_data:
-            row_data = row
-            mark_rows = []
-            if len(mark_data[row['pk']]) == 0:
-                mark_row = []
-                for col in add_columns:
-                    mark_row.append({'value': '-'})
-                mark_rows.append(mark_row)
+                values_data.append(values_row)
+        return columns, values_data
 
-            cnt = 0
-            for mark_rep in mark_data[row['pk']]:
-                mark_row = []
-                cnt += 1
-                for col in add_columns:
-                    val = '-'
-                    href = None
-                    color = None
-                    if col == 'mark_num':
-                        val = cnt
-                        href = reverse('marks:edit_mark',
-                                       args=[list_types[self.type],
-                                             mark_rep.mark.pk])
-                    elif col == 'mark_verdict':
-                        val = mark_rep.mark.get_verdict_display()
-                        if self.type == '4':
-                            color = UNSAFE_COLOR[mark_rep.mark.verdict]
-                        else:
-                            color = SAFE_COLOR[mark_rep.mark.verdict]
-                    elif col == 'mark_result':
-                        val = "{:.0%}".format(mark_rep.result)
-                        color = result_color(mark_rep.result)
-                    elif col == 'mark_status':
-                        val = mark_rep.mark.get_status_display()
-                        color = STATUS_COLOR[mark_rep.mark.status]
-                    mark_row.append({
-                        'value': val,
-                        'color': color,
-                        'href': href
-                    })
-                mark_rows.append(mark_row)
-            row_data['colspan'] = len(mark_rows)
-            row_data['first_mark_row'] = mark_rows[0]
-            row_data['mark_rows'] = mark_rows[1:]
-            new_val_data.append(row_data)
-        columns.insert(0, 'number')
-        return columns, new_val_data
-
-    def __unknowns_attrs(self):
+    def __unknowns_data(self):
 
         def filter_component(component_name):
             if 'component' in self.view['filters']:
@@ -491,7 +402,6 @@ class ReportTable(object):
 
 
 def save_attrs(attrs):
-
     def children(name, val):
         attr_data = {}
         if isinstance(val, list):

@@ -454,8 +454,8 @@ $(document).ready(function () {
         }
     });
 
-    $('.btn-file :file').on('fileselect', function () {
-        var files = $('#upload_job_file_input')[0].files,
+    $('#upload_job_file_input').on('fileselect', function () {
+        var files = $(this)[0].files,
             filename_list = $('<ul>');
         for (var i = 0; i < files.length; i++) {
             filename_list.append($('<li>', {text: files[i].name}));
@@ -511,4 +511,66 @@ $(document).ready(function () {
             }
         });
     });
+
+    $('#upload_marks_start').click(function () {
+        $('body').addClass("loading");
+        $('#upload_marks_popup').toggle();
+        var files = $('#upload_marks_file_input')[0].files,
+            data = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            data.append('file', files[i]);
+        }
+        $.ajax({
+            url: marks_ajax_url + 'upload_marks/',
+            type: 'POST',
+            data: data,
+            dataType: 'json',
+            contentType: false,
+            processData: false,
+            mimeType: 'multipart/form-data',
+            // async: false,
+            xhr: function() {
+                return $.ajaxSettings.xhr();
+            },
+            success: function (data) {
+                $('body').removeClass("loading");
+                if (data.status) {
+                    if (data.mark_id.length && data.mark_type.length) {
+                        window.location.replace("/marks/" + data.mark_type + "/edit/" + data.mark_id + "/")
+                    }
+                }
+                else {
+                    if (data.messages && data.messages.length) {
+                        for (var i = 0; i < data.messages.length; i++) {
+                            var err_message = data.messages[i][0] + ' (' + data.messages[i][1] + ')';
+                            err_notify(err_message, 10000);
+                        }
+                    }
+                    else if (data.message && data.message.length) {
+                        err_notify(data.message);
+                    }
+                }
+            },
+            error: function (x) {
+                console.log(x.responseText);
+            }
+        });
+    });
+
+    $('#upload_marks_cancel').click(function () {
+        var file_input = $('#upload_marks_file_input');
+        file_input.replaceWith(file_input.clone( true ));
+        $('#upload_marks_filename').empty();
+    });
+
+    $('#upload_marks_file_input').on('fileselect', function () {
+        console.log($(this).attr('id'));
+        var files = $(this)[0].files,
+            filename_list = $('<ul>');
+        for (var i = 0; i < files.length; i++) {
+            filename_list.append($('<li>', {text: files[i].name}));
+        }
+        $('#upload_marks_filename').html(filename_list);
+    });
+
 });
