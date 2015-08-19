@@ -12,6 +12,7 @@ class UploadReport(object):
     def __init__(self, user, job, data):
         self.job = job
         self.data = {}
+        self.ordered_attrs = []
         self.error = self.__check_data(data)
         if self.error is not None:
             return
@@ -158,6 +159,17 @@ class UploadReport(object):
                     return 'Parent was not found'
                 except MultipleObjectsReturned:
                     return 'Identifiers are not unique'
+        elif self.data['id'] == '/':
+            return None
+        else:
+            try:
+                curr_report = ReportComponent.objects.get(
+                    identifier__startswith=self.job.identifier,
+                    identifier__endswith=("##%s" % self.data['id']))
+                self.parent = ReportComponent.objects.get(
+                    root=self.job.reportroot, pk=curr_report.parent_id)
+            except ObjectDoesNotExist:
+                return None
         return None
 
     def __upload(self):
@@ -184,6 +196,12 @@ class UploadReport(object):
         report = actions[self.data['type']](identifier)
         if report is None:
             return 'Error while saving report'
+        single_attrs_order = []
+        for attr in list(reversed(self.ordered_attrs)):
+            if attr not in single_attrs_order:
+                single_attrs_order.insert(0, attr)
+        report.attr_order = json.dumps(single_attrs_order)
+        report.save()
         return None
 
     def __create_report_component(self, identifier):
@@ -397,17 +415,21 @@ class UploadReport(object):
         return report
 
     def __add_attrs(self, report):
+        self.ordered_attrs = json.loads(report.attr_order)
         if 'attrs' not in self.data or not isinstance(self.data['attrs'], list):
             return
         for attr in save_attrs(self.data['attrs']):
             if not report.attr.filter(pk=attr.pk).exists():
                 report.attr.add(attr)
+                self.ordered_attrs.append(attr.name.name)
             ReportAttr.objects.get_or_create(report=report, attr=attr)
         report.save()
 
     def __collect_attrs(self, report):
         parent = self.parent
         while parent is not None:
+            self.ordered_attrs = json.loads(parent.attr_order) + \
+                self.ordered_attrs
             for p_attr in parent.attr.all():
                 if not report.attr.filter(pk=p_attr.pk).exists():
                     report.attr.add(p_attr)

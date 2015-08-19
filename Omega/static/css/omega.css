@@ -47,7 +47,7 @@ body {
 }
 
 p.omega-text {
-    white-space: pre-wrap;
+    white-space: pre;
     max-height: 300px;
     overflow-y: auto;
     overflow-x: auto;
@@ -72,7 +72,7 @@ p.omega-text {
 }
 
 .error-trace-content {
-    white-space: pre-wrap;
+    white-space: pre;
     max-height: 800px;
     overflow-y: auto;
     overflow-x: auto;
@@ -83,7 +83,7 @@ p.omega-text {
 }
 
 .safe-proof-content {
-    white-space: pre-wrap;
+    white-space: pre;
     max-height: 700px;
     overflow-y: auto;
     overflow-x: auto;
@@ -94,7 +94,7 @@ p.omega-text {
 }
 
 .problem-description-content {
-    white-space: pre-wrap;
+    white-space: pre;
     max-height: 700px;
     overflow-y: auto;
     overflow-x: auto;
@@ -116,7 +116,7 @@ p.omega-text {
 }
 
 .file-view-div div {
-    white-space: pre-wrap;
+    white-space: pre;
     position: fixed;
     top: 10%;
     left: 20%;

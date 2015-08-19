@@ -6,7 +6,7 @@ from django.utils.translation import ugettext_lazy as _
 from Omega.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.utils import get_resource_data
-from reports.models import ReportComponent, Attr, AttrName, ReportComponentLeaf
+from reports.models import ReportComponent, Attr, AttrName
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from Omega.tableHead import Header
 
@@ -218,10 +218,11 @@ class ReportTable(object):
             return None, None
 
         data = {}
-        leaf_filter = {'report': self.report}
+        leaf_filter = {}
         if self.verdict is not None:
             leaf_filter[list_types[self.type] + '__verdict'] = self.verdict
-        for leaf in ReportComponentLeaf.objects.filter(
+
+        for leaf in self.report.leaves.filter(
                 Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
             report = getattr(leaf, list_types[self.type])
             for attr in report.attr.all():
@@ -323,8 +324,7 @@ class ReportTable(object):
 
         data = {}
         components = {}
-        for leaf in ReportComponentLeaf.objects.filter(
-                Q(report=self.report) & ~Q(unknown=None)):
+        for leaf in self.report.leaves.filter(~Q(unknown=None)):
             report = leaf.unknown
             try:
                 parent = ReportComponent.objects.get(pk=report.parent_id)
@@ -339,51 +339,44 @@ class ReportTable(object):
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
                 data[attr.name.name][report.pk] = attr.value
-            components[report.pk] = parent.component
+            components[report.pk] = parent.component.name
 
-        columns = []
+        columns = ['component']
         for name in sorted(data):
             columns.append(name)
 
-        sorted_components = []
+        report_ids = []
         if 'order' in self.view and self.view['order'] in data:
             ids_ordered = []
             for rep_id in data[self.view['order']]:
                 ids_ordered.append((data[self.view['order']][rep_id], rep_id))
             report_ids = [x[1] for x in sorted(ids_ordered, key=lambda x: x[0])]
-            for rep_id in report_ids:
-                sorted_components.append({
-                    'pk': rep_id,
-                    'component': components[rep_id]
-                })
         else:
             comp_data = []
             for pk in components:
-                comp_data.append((components[pk].name, {
-                    'pk': pk,
-                    'component': components[pk]
-                }))
-            for name, dt in sorted(comp_data, key=lambda x: x[0]):
-                sorted_components.append(dt)
+                comp_data.append((components[pk], pk))
+            for name, rep_id in sorted(comp_data, key=lambda x: x[0]):
+                report_ids.append(rep_id)
 
         values_data = []
-        for comp_data in sorted_components:
+        for rep_id in report_ids:
             values_row = []
             for col in columns:
-                cell_val = '-'
-                if comp_data['pk'] in data[col]:
-                    cell_val = data[col][comp_data['pk']]
-                values_row.append(cell_val)
-                if not self.__filter_attr(col, cell_val):
-                    break
-            else:
-                values_data.append({
-                    'attrs': values_row,
-                    'value': comp_data['component'].name,
-                    'href': reverse('reports:leaf',
-                                    args=['unknown', comp_data['pk']])
+                val = '-'
+                href = None
+                if col in data and rep_id in data[col]:
+                    val = data[col][rep_id]
+                    if not self.__filter_attr(col, val):
+                        break
+                elif col == 'component':
+                    val = components[rep_id]
+                    href = reverse('reports:leaf', args=['unknown', rep_id])
+                values_row.append({
+                    'value': val,
+                    'href': href
                 })
-        columns.insert(0, 'component')
+            else:
+                values_data.append(values_row)
         return columns, values_data
 
     def __filter_attr(self, attribute, value):
