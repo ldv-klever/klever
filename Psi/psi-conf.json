@@ -10,6 +10,7 @@
     "user": null,
     "passwd": null
   },
+  "debug": false,
   "allow local source directories use": false,
   "logging": {
     "formatters": [

@@ -202,6 +202,7 @@ def _create_components_conf(comp):
         {'root id': os.path.abspath(os.path.curdir), 'sys': {'CPUs num': cpus_num, 'mem size': mem_size, 'arch': arch},
          'job priority': _conf['job']['priority'],
          'abstract verification tasks gen priority': _conf['abstract verification tasks gen priority'],
+         'debug': _conf['debug'],
          'allow local source directories use': _conf['allow local source directories use'],
          'parallelism': _conf['parallelism'],
          'logging': _conf['logging']})
