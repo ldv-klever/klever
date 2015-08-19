@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from jobs.models import ReportRoot
 from Omega.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
+from jobs.models import File
+
+LOG_DIR = 'ReportLogs'
 
 
 class AttrName(models.Model):
@@ -67,10 +70,10 @@ class ReportComponent(Report):
     component = models.ForeignKey(Component, related_name='component_reports')
     resource = models.ForeignKey(Resource,
                                  related_name='resource_report_set', null=True)
-    log = models.BinaryField(null=True)
     data = models.BinaryField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
+    log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
 
     class Meta:
         db_table = 'report_component'

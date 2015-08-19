@@ -1,8 +1,11 @@
 import json
 import pytz
+import hashlib
+from io import BytesIO
 from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
+from django.core.files import File as Newfile
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectMarks
@@ -241,7 +244,17 @@ class UploadReport(object):
             resources.save()
             report.resource = resources
         if 'log' in self.data:
-            report.log = self.data['log'].encode('utf8')
+            file_content = BytesIO(self.data['log'].encode('utf8'))
+            check_sum = hashlib.md5(file_content.read()).hexdigest()
+            try:
+                file_in_db = File.objects.get(hash_sum=check_sum)
+            except ObjectDoesNotExist:
+                file_in_db = File()
+                file_in_db.file.save(component_name + '.log',
+                                     Newfile(file_content))
+                file_in_db.hash_sum = check_sum
+                file_in_db.save()
+            report.log = file_in_db
         if 'data' in self.data:
             report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
@@ -290,7 +303,17 @@ class UploadReport(object):
             resources.save()
             report.resource = resources
         if 'log' in self.data:
-            report.log = self.data['log'].encode('utf8')
+            file_content = BytesIO(self.data['log'].encode('utf8'))
+            check_sum = hashlib.md5(file_content.read()).hexdigest()
+            try:
+                file_in_db = File.objects.get(hash_sum=check_sum)
+            except ObjectDoesNotExist:
+                file_in_db = File()
+                file_in_db.file.save(report.component.name + '.log',
+                                     Newfile(file_content))
+                file_in_db.hash_sum = check_sum
+                file_in_db.save()
+            report.log = file_in_db
         if 'data' in self.data:
             report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
