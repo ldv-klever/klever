@@ -16,13 +16,14 @@ import psi.lkbce.lkbce
 import psi.lkvog.lkvog
 import psi.avtg.avtg
 import psi.vtg.vtg
+import psi.vtsc.vtsc
 
 _default_conf_file = 'psi-conf.json'
 _conf = None
 _logger = None
 _job_class_components = {'Verification of Linux kernel modules': [psi.lkbce.lkbce, psi.lkvog.lkvog],
                          # These components are likely appropriate for all job classes.
-                         'Common': [psi.avtg.avtg, psi.vtg.vtg]}
+                         'Common': [psi.avtg.avtg, psi.vtg.vtg, psi.vtsc.vtsc]}
 
 
 def launch():
