@@ -231,10 +231,10 @@ class ReportTable(object):
         attr_order = []
         for leaf in self.report.leaves.filter(
                 Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
-            for new_a in json.loads(leaf.report.attr_order):
+            report = getattr(leaf, list_types[self.type])
+            for new_a in json.loads(report.attr_order):
                 if new_a not in attr_order:
                     attr_order.append(new_a)
-            report = getattr(leaf, list_types[self.type])
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}

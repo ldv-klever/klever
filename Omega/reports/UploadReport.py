@@ -204,7 +204,9 @@ class UploadReport(object):
             if attr not in single_attrs_order:
                 single_attrs_order.insert(0, attr)
             else:
-                print("Attribute already exists for this component!")
+                print("Got double attribute: '%s' for report with "
+                      "type '%s' and id '%s'" % (attr, self.data['type'],
+                                                 self.data['id']))
         report.attr_order = json.dumps(single_attrs_order)
         report.save()
         return None
@@ -446,10 +448,7 @@ class UploadReport(object):
         for attr in save_attrs(self.data['attrs']):
             if not report.attr.filter(pk=attr.pk).exists():
                 report.attr.add(attr)
-                if attr.name.name not in self.ordered_attrs:
-                    self.ordered_attrs.append(attr.name.name)
-                else:
-                    print("Attribute already exists for this component")
+                self.ordered_attrs.append(attr.name.name)
             ReportAttr.objects.get_or_create(report=report, attr=attr)
         report.save()
 
