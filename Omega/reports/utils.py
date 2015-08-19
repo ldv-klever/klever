@@ -169,7 +169,11 @@ class ReportTable(object):
             component_filters[
                 'component__name__' + self.view['filters']['component']['type']
                 ] = self.view['filters']['component']['value']
+        attr_order = []
         for report in ReportComponent.objects.filter(**component_filters):
+            for new_a in json.loads(report.attr_order):
+                if new_a not in attr_order:
+                    attr_order.append(new_a)
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
@@ -177,8 +181,9 @@ class ReportTable(object):
             components[report.pk] = report.component
 
         columns = []
-        for name in sorted(data):
-            columns.append(name)
+        for name in attr_order:
+            if name in data:
+                columns.append(name)
 
         comp_data = []
         for pk in components:
@@ -222,8 +227,12 @@ class ReportTable(object):
         if self.verdict is not None:
             leaf_filter[list_types[self.type] + '__verdict'] = self.verdict
 
+        attr_order = []
         for leaf in self.report.leaves.filter(
                 Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
+            for new_a in json.loads(leaf.report.attr_order):
+                if new_a not in attr_order:
+                    attr_order.append(new_a)
             report = getattr(leaf, list_types[self.type])
             for attr in report.attr.all():
                 if attr.name.name not in data:
@@ -233,8 +242,10 @@ class ReportTable(object):
         columns = ['report', 'marks_number']
         if self.verdict is None:
             columns.append('report_verdict')
-        for name in sorted(data):
-            columns.append(name)
+
+        for name in attr_order:
+            if name in data:
+                columns.append(name)
 
         reports_ordered = []
         if 'order' in self.view and self.view['order'] in data:
@@ -324,8 +335,12 @@ class ReportTable(object):
 
         data = {}
         components = {}
+        attr_order = []
         for leaf in self.report.leaves.filter(~Q(unknown=None)):
             report = leaf.unknown
+            for new_a in json.loads(report.attr_order):
+                if new_a not in attr_order:
+                    attr_order.append(new_a)
             try:
                 parent = ReportComponent.objects.get(pk=report.parent_id)
             except ObjectDoesNotExist:
@@ -342,8 +357,9 @@ class ReportTable(object):
             components[report.pk] = parent.component.name
 
         columns = ['component']
-        for name in sorted(data):
-            columns.append(name)
+        for name in attr_order:
+            if name in data:
+                columns.append(name)
 
         report_ids = []
         if 'order' in self.view and self.view['order'] in data:

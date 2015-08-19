@@ -1,3 +1,4 @@
+import json
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
@@ -80,14 +81,20 @@ class MarkChangesTable(object):
 
     def __add_attrs(self):
         data = {}
+        attr_order = []
         for report in self.changes:
+            for new_a in json.loads(report.attr_order):
+                if new_a not in attr_order:
+                    attr_order.append(new_a)
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
                 data[attr.name.name][report] = attr.value
         columns = []
-        for name in sorted(data):
-            columns.append(name)
+        for name in attr_order:
+            if name in data:
+                columns.append(name)
+
         values_data = {}
         for report in self.changes:
             values_data[report] = {}
@@ -342,8 +349,12 @@ class MarkReportsTable(object):
         else:
             m_r_set = self.mark.marksafereport_set.all()
         reports = []
+        attr_order = []
         for mark_report in m_r_set:
             report = mark_report.report
+            for new_a in json.loads(report.attr_order):
+                if new_a not in attr_order:
+                    attr_order.append(new_a)
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
@@ -351,8 +362,9 @@ class MarkReportsTable(object):
             reports.append(report)
 
         columns = []
-        for name in sorted(data):
-            columns.append(name)
+        for name in attr_order:
+            if name in data:
+                columns.append(name)
 
         values_data = {}
         for report in reports:
