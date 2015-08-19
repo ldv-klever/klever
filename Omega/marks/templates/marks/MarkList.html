@@ -3,8 +3,12 @@
 {% load i18n %}
 
 {% block body_block %}
-    <h2 style="text-align:center">{{ title }}</h2>
-    <div style="overflow-x:auto;max-height: 1000px;overflow-y:auto;">
-        {% include 'table.html' with data=tabledata %}
-    </div>
+    {% if tabledata.values|length %}
+        <h2 style="text-align:center">{{ title }}</h2>
+        <div style="overflow-x:auto;max-height: 1000px;overflow-y:auto;">
+            {% include 'table.html' with data=tabledata %}
+        </div>
+    {% else %}
+        <h2 style="text-align:center">{% trans 'There are no marks yet' %}</h2>
+    {% endif %}
 {% endblock %}

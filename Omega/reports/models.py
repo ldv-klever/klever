@@ -24,13 +24,13 @@ class Report(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
     attr = models.ManyToManyField(Attr)
+    attr_order = models.CharField(max_length=10000, default='[]')
     description = models.BinaryField(null=True)
 
     class Meta:
         db_table = 'report'
 
 
-# Do we need it?
 class ReportAttr(models.Model):
     report = models.ForeignKey(Report)
     attr = models.ForeignKey(Attr)
@@ -103,7 +103,7 @@ class ReportUnknown(Report):
 
 
 class ReportComponentLeaf(models.Model):
-    report = models.ForeignKey(ReportComponent)
+    report = models.ForeignKey(ReportComponent, related_name='leaves')
     safe = models.ForeignKey(ReportSafe, null=True, related_name='+')
     unsafe = models.ForeignKey(ReportUnsafe, null=True, related_name='+')
     unknown = models.ForeignKey(ReportUnknown, null=True, related_name='+')
