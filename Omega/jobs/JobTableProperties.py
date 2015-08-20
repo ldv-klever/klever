@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.models import Job
-from marks.models import MarkSafeTag, MarkUnsafeTag
+from marks.models import ReportSafeTag, ReportUnsafeTag
 from reports.models import Verdict, ComponentResource, ComponentUnknown,\
     ComponentMarkUnknownProblem, ReportComponent
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess
@@ -499,7 +499,12 @@ class TableTree(object):
     def __safe_tags_columns(self):
         tags_data = {}
         for job in self.jobdata:
-            for tag in job['job'].safe_tags.all():
+            try:
+                root_report = ReportComponent.objects.get(root__job=job['job'],
+                                                          parent=None)
+            except ObjectDoesNotExist:
+                continue
+            for tag in root_report.safe_tags.all():
                 tag_name = tag.tag.tag
                 tag_id = 'tag:safe:tag_%s' % tag.tag_id
                 if tag_id not in tags_data:
@@ -510,7 +515,12 @@ class TableTree(object):
     def __unsafe_tags_columns(self):
         tags_data = {}
         for job in self.jobdata:
-            for tag in job['job'].unsafe_tags.all():
+            try:
+                root_report = ReportComponent.objects.get(root__job=job['job'],
+                                                          parent=None)
+            except ObjectDoesNotExist:
+                continue
+            for tag in root_report.unsafe_tags.all():
                 tag_name = tag.tag.tag
                 tag_id = 'tag:unsafe:tag_%s' % tag.tag_id
                 if tag_id not in tags_data:
@@ -775,16 +785,28 @@ class TableTree(object):
                                 last_version.get_global_role_display()
 
         def collect_safe_tags():
-            for st in MarkSafeTag.objects.filter(job_id__in=job_pks):
-                if st.job_id in values_data:
-                    values_data[st.job_id]['tag:safe:tag_' + str(st.tag_id)] = \
-                        st.number
+            for st in ReportSafeTag.objects.filter(
+                    report__root__job_id__in=job_pks):
+                curr_job_id = st.report.root.job.pk
+                if curr_job_id in values_data:
+                    values_data[curr_job_id]['tag:safe:tag_' + str(st.tag_id)] \
+                        = (
+                        st.number,
+                        reverse('reports:list_tag',
+                                args=[st.report_id, 'safes', st.tag_id])
+                    )
 
         def collect_unsafe_tags():
-            for ut in MarkUnsafeTag.objects.filter(job_id__in=job_pks):
-                if ut.job_id in values_data:
-                    values_data[ut.job_id]['tag:unsafe:tag_' + str(ut.tag_id)] \
-                        = ut.number
+            for ut in ReportUnsafeTag.objects.filter(
+                    report__root__job_id__in=job_pks):
+                curr_job_id = ut.report.root.job.pk
+                if curr_job_id in values_data:
+                    values_data[curr_job_id][
+                        'tag:unsafe:tag_' + str(ut.tag_id)] = (
+                        ut.number,
+                        reverse('reports:list_tag',
+                                args=[ut.report_id, 'unsafes', ut.tag_id])
+                    )
 
         def collect_resourses():
             for cr in ComponentResource.objects.filter(

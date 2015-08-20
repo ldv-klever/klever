@@ -6,7 +6,6 @@ from datetime import datetime
 from django.db.models import Q
 from jobs.utils import create_job, update_job
 from jobs.models import Job
-from marks.models import UnsafeTag, SafeTag, MarkSafeTag, MarkUnsafeTag
 from reports.models import *
 
 
@@ -54,35 +53,6 @@ def populate_jobs(username):
                 'description': job.jobhistory_set.get(version=1).description
             }
             update_job(update_kwargs)
-
-
-def populate_tags():
-    SafeTag.objects.all().delete()
-    UnsafeTag.objects.all().delete()
-    MarkSafeTag.objects.all().delete()
-    MarkUnsafeTag.objects.all().delete()
-    for i in range(5):
-        newtag = SafeTag()
-        newtag.tag = 'my:safe:tag:%s' % str(i + 1)
-        newtag.save()
-        newtag = UnsafeTag()
-        newtag.tag = 'my:unsafe:tag:%s' % str(i + 1)
-        newtag.save()
-    for job in Job.objects.all():
-        for st in SafeTag.objects.all():
-            if random.randint(1, 10) < 4:
-                mark_tag = MarkSafeTag()
-                mark_tag.tag = st
-                mark_tag.number = random.randint(0, 5)
-                mark_tag.job = job
-                mark_tag.save()
-        for st in UnsafeTag.objects.all():
-            if random.randint(1, 10) < 4:
-                mark_tag = MarkUnsafeTag()
-                mark_tag.tag = st
-                mark_tag.number = random.randint(0, 5)
-                mark_tag.job = job
-                mark_tag.save()
 
 
 def populate_reports(username):

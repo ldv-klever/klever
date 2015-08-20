@@ -553,9 +553,6 @@ $(document).ready(function () {
                         err_notify(data.message);
                     }
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -567,7 +564,6 @@ $(document).ready(function () {
     });
 
     $('#upload_marks_file_input').on('fileselect', function () {
-        console.log($(this).attr('id'));
         var files = $(this)[0].files,
             filename_list = $('<ul>');
         for (var i = 0; i < files.length; i++) {

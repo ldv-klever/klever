@@ -112,7 +112,7 @@ class ReportComponentLeaf(models.Model):
     unknown = models.ForeignKey(ReportUnknown, null=True, related_name='+')
 
     class Meta:
-        db_table = 'cache_report_component_report_leaf'
+        db_table = 'cache_report_component_leaf'
 
 
 class Verdict(models.Model):
@@ -133,7 +133,7 @@ class Verdict(models.Model):
     unknown = models.IntegerField(default=0)
 
     class Meta:
-        db_table = "cache_job_verdict"
+        db_table = "cache_report_verdict"
 
 
 class ComponentUnknown(models.Model):
@@ -143,7 +143,7 @@ class ComponentUnknown(models.Model):
     number = models.IntegerField(default=0)
 
     class Meta:
-        db_table = 'cache_job_component_unknown'
+        db_table = 'cache_report_component_unknown'
 
 
 class UnknownProblem(models.Model):
@@ -162,7 +162,7 @@ class ComponentMarkUnknownProblem(models.Model):
     number = models.IntegerField(default=0)
 
     class Meta:
-        db_table = 'cache_job_component_mark_unknown_problem'
+        db_table = 'cache_report_component_mark_unknown_problem'
 
 
 class ComponentResource(models.Model):
@@ -173,4 +173,4 @@ class ComponentResource(models.Model):
     resource = models.ForeignKey(Resource, related_name='resource_cache_set')
 
     class Meta:
-        db_table = 'cache_job_component_resource'
+        db_table = 'cache_report_component_resource'

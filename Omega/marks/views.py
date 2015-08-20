@@ -10,7 +10,7 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import USER_ROLES
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, UpdateVerdict,\
-    MarkAccess
+    MarkAccess, TagsInfo, UpdateTags
 from marks.tables import MarkAttrTable, MarkData, MarkChangesTable,\
     MarkReportsTable2, MarksList
 from marks.models import *
@@ -37,7 +37,8 @@ def create_mark(request, mark_type, report_id):
         'type': mark_type,
         'AttrTable': MarkAttrTable(report),
         'markdata': MarkData(mark_type),
-        'can_freeze': (request.user.extended.role == USER_ROLES[2][0])
+        'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
+        'tags': TagsInfo(mark_type)
     })
 
 
@@ -89,7 +90,8 @@ def edit_mark(request, mark_type, mark_id):
         'markdata': MarkData(mark_type, last_version),
         'reports': MarkReportsTable2(request.user, mark),
         'versions': mark_versions,
-        'can_freeze': (request.user.extended.role == USER_ROLES[2][0])
+        'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
+        'tags': TagsInfo(mark_type, mark)
     })
 
 
@@ -285,17 +287,25 @@ def upload_marks(request):
 
 @login_required
 def delete_mark(request, mark_type, mark_id):
+    old_tags = []
     try:
         if mark_type == 'unsafe':
             mark = MarkUnsafe.objects.get(pk=int(mark_id))
+            for marktag in mark.markunsafehistory_set.order_by('-version')[0]\
+                    .tags.all():
+                old_tags.append(marktag.tag)
         elif mark_type == 'safe':
             mark = MarkSafe.objects.get(pk=int(mark_id))
+            for marktag in mark.marksafehistory_set.order_by('-version')[0]\
+                    .tags.all():
+                old_tags.append(marktag.tag)
         else:
             return HttpResponseRedirect(reverse('error', args=[500]))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
     if not MarkAccess(request.user, mark=mark).can_delete():
         return HttpResponseRedirect(reverse('error', args=[602]))
+    UpdateTags(mark, old_tags, [])
     mark.delete()
     if mark_type == 'safe':
         for report in ReportSafe.objects.all():
@@ -366,7 +376,7 @@ def get_mark_versions(request):
     except ObjectDoesNotExist:
         return JsonResponse({'message': _('The mark was not found')})
     mark_versions = []
-    for m in  mark_history_set:
+    for m in mark_history_set:
         mark_time = m.change_date.astimezone(
             pytz.timezone(request.user.extended.timezone)
         )
