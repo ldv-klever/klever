@@ -88,6 +88,7 @@ class JobAccess(object):
         self.__job_role = None
         self.__user_role = user.extended.role
         self.__is_manager = (self.__user_role == USER_ROLES[2][0])
+        self.__is_expert = (self.__user_role == USER_ROLES[3][0])
         self.__get_prop(user)
 
     def can_download_for_deciding(self):
@@ -103,7 +104,7 @@ class JobAccess(object):
         if self.job is None:
             return False
         if self.__is_manager or self.__is_author or \
-           self.__job_role != JOB_ROLES[0][0]:
+           self.__job_role != JOB_ROLES[0][0] or self.__is_expert:
             return True
         return False
 

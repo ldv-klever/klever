@@ -683,22 +683,70 @@ class TableTree(object):
                             verdict.unsafe,
                             reverse('reports:list',
                                     args=[verdict.report.pk, 'unsafes'])),
-                        'unsafe:bug': verdict.unsafe_bug,
-                        'unsafe:target_bug': verdict.unsafe_target_bug,
-                        'unsafe:false_positive': verdict.unsafe_false_positive,
-                        'unsafe:unknown': verdict.unsafe_unknown,
-                        'unsafe:unassociated': verdict.unsafe_unassociated,
-                        'unsafe:inconclusive': verdict.unsafe_inconclusive,
+                        'unsafe:bug': (
+                            verdict.unsafe_bug,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '1'])
+                        ),
+                        'unsafe:target_bug': (
+                            verdict.unsafe_target_bug,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '2'])
+                        ),
+                        'unsafe:false_positive': (
+                            verdict.unsafe_false_positive,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '3'])
+                        ),
+                        'unsafe:unknown': (
+                            verdict.unsafe_unknown,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '0'])
+                        ),
+                        'unsafe:unassociated': (
+                            verdict.unsafe_unassociated,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '5'])
+                        ),
+                        'unsafe:inconclusive': (
+                            verdict.unsafe_inconclusive,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '4'])
+                        ),
                         'safe:total': (
                             verdict.safe,
                             reverse('reports:list',
                                     args=[verdict.report.pk, 'safes'])),
-                        'safe:missed_bug': verdict.safe_missed_bug,
-                        'safe:unknown': verdict.safe_unknown,
-                        'safe:inconclusive': verdict.safe_inconclusive,
-                        'safe:unassociated': verdict.safe_unassociated,
-                        'safe:incorrect': verdict.safe_incorrect_proof,
-                        'problem:total': verdict.unknown
+                        'safe:missed_bug': (
+                            verdict.safe_missed_bug,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '2'])
+                        ),
+                        'safe:unknown': (
+                            verdict.safe_unknown,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '0'])
+                        ),
+                        'safe:inconclusive': (
+                            verdict.safe_inconclusive,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '3'])
+                        ),
+                        'safe:unassociated': (
+                            verdict.safe_unassociated,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '4'])
+                        ),
+                        'safe:incorrect': (
+                            verdict.safe_incorrect_proof,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '1'])
+                        ),
+                        'problem:total': (
+                            verdict.unknown,
+                            reverse('reports:list',
+                                    args=[verdict.report.pk, 'unknowns'])
+                        )
                     })
 
         def collect_roles():

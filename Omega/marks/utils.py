@@ -95,7 +95,8 @@ class NewMark(object):
             encode('utf8')
         mark.identifier = hashlib.md5(time_encoded).hexdigest()
 
-        if 'is_modifiable' in args and isinstance(args['is_modifiable'], bool):
+        if 'is_modifiable' in args and isinstance(args['is_modifiable'], bool) \
+                and self.user.extended.role == USER_ROLES[2][0]:
             mark.is_modifiable = args['is_modifiable']
 
         if 'verdict' in args:
@@ -158,6 +159,10 @@ class NewMark(object):
         if 'status' in args and \
                 args['status'] in list(x[0] for x in MARK_STATUS):
             mark.status = args['status']
+
+        if 'is_modifiable' in args and isinstance(args['is_modifiable'], bool) \
+                and self.user.extended.role == USER_ROLES[2][0]:
+            mark.is_modifiable = args['is_modifiable']
 
         mark.version += 1
         mark.save()

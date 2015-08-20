@@ -14,7 +14,8 @@
             <div class="col-sm-6">
                 <div class="btn-group" style="float: right;">
                     <a href="{% url 'marks:download_mark' type mark.pk %}" class="btn btn-success">{% trans 'Download' %}</a>
-                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_mark_popup" style="float:right;">{% trans 'Delete' %}</button>
+                    <button id="edit_mark_versions" type="button" class="btn btn-warning">{% trans 'Delete versions' %}</button>
+                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_mark_popup">{% trans 'Delete' %}</button>
                 </div>
                 <span class="purple-title">{% trans 'Identifier' %}: </span> {{ mark.identifier }}<br>
                 <span class="purple-title">{% trans 'Format' %}: </span> {{ mark.format }}<br>
@@ -35,35 +36,10 @@
 
                 <h4>{% trans 'Associated leaf reports' %}:</h4>
                 <div style="overflow-x: auto; max-height: 400px;">
-                    <table class="table table-bordered tree table-fixed" style="margin-bottom: 0;">
-                        <thead>
-                            {% for column_row in reports.header %}
-                                <tr class="info">
-                                {% for coldata in column_row %}
-                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                                {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </thead>
-                        <tbody>
-                            {% for row_data in reports.values %}
-                                <tr>
-                                    {% for v in row_data %}
-                                        <td class="text-nowrap">
-                                            {% if v.href %}
-                                                <a href="{{ v.href }}">{{ v.value }}</a>
-                                            {% else %}
-                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
-                                            {% endif %}
-                                        </td>
-                                    {% endfor %}
-                                </tr>
-                            {%  endfor %}
-                        </tbody>
-                    </table>
+                    {% include 'table.html' with data=reports auto=True %}
                 </div>
             </div>
-            <div class="col-sm-6">
+            <div id="div_for_version_list" class="col-sm-6">
                 {% if versions|length %}
                     <label for="mark_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
                     <select id="mark_version_selector" class="form-control">

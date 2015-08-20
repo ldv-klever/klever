@@ -7,6 +7,8 @@ from types import MethodType
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 
+DEFAULT_CONVERT = 'default_convert'
+
 
 class ConvertTrace(object):
 

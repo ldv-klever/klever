@@ -22,14 +22,6 @@ class MarkUnsafeCompare(models.Model):
         return self.name
 
 
-class MarkDefaultFunctions(models.Model):
-    convert = models.OneToOneField(MarkUnsafeConvert)
-    compare = models.OneToOneField(MarkUnsafeCompare)
-
-    def __str__(self):
-        return "Default functions"
-
-
 # Abstract tables
 class Mark(models.Model):
     identifier = models.CharField(max_length=255, unique=True)

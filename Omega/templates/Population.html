@@ -9,6 +9,8 @@
         <p>{% trans 'Username' %}: {{ username }}</p>
         <p>{% trans 'Password' %}: {{ password }}</p>
         <p>{% trans 'Please save this data and give it to the user who will be the Manager' %}</p>
+    {% elif functions %}
+        <h1>{% trans 'Error traces convertion and comparison functions were updated.' %}</h1>
     {% else %}
         <h1>{% trans 'Welcome to Omega!' %}</h1>
         <h4>{% trans 'You need to populate the database before start working, please, press the button below' %}</h4>

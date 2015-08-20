@@ -166,7 +166,7 @@ def report_leaf(request, leaf_type, report_id):
             'report': report,
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
-            'MarkTable': ReportMarkTable(report)
+            'MarkTable': ReportMarkTable(request.user, report)
         }
     )
 

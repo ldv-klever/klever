@@ -3,6 +3,7 @@ import pytz
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.template.loader import get_template
@@ -11,7 +12,7 @@ from Omega.vars import USER_ROLES
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, UpdateVerdict,\
     MarkAccess
 from marks.tables import MarkAttrTable, MarkData, MarkChangesTable,\
-    MarkReportsTable, MarksList
+    MarkReportsTable2, MarksList
 from marks.models import *
 
 
@@ -86,7 +87,7 @@ def edit_mark(request, mark_type, mark_id):
         'type': mark_type,
         'AttrTable': MarkAttrTable(mark_version=last_version),
         'markdata': MarkData(mark_type, last_version),
-        'reports': MarkReportsTable(mark),
+        'reports': MarkReportsTable2(request.user, mark),
         'versions': mark_versions,
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0])
     })
@@ -140,7 +141,7 @@ def save_mark(request):
     return render(request, 'marks/SaveMarkResult.html', {
         'mark_type': mark.type,
         'mark': mark.mark,
-        'MarkTable': MarkChangesTable(mark.mark, mark.changes)
+        'MarkTable': MarkChangesTable(request.user, mark.mark, mark.changes)
     })
 
 
@@ -156,12 +157,16 @@ def get_func_description(request):
         try:
             function = MarkUnsafeCompare.objects.get(pk=func_id)
         except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The error traces comparison function was not found')})
+            return JsonResponse({
+                'error': _('The error traces comparison function was not found')
+            })
     elif func_type == 'convert':
         try:
             function = MarkUnsafeConvert.objects.get(pk=func_id)
         except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The error traces conversion function was not found')})
+            return JsonResponse({
+                'error': _('The error traces conversion function was not found')
+            })
     else:
         return JsonResponse({'error': _('Unknown error')})
     return JsonResponse({'description': function.description})
@@ -214,7 +219,7 @@ def mark_list(request, marks_type):
         'unknown': _('Unknown marks'),
     }
     return render(request, 'marks/MarkList.html', {
-        'tabledata': MarksList(marks_type),
+        'tabledata': MarksList(request.user, marks_type),
         'title': titles[marks_type],
     })
 
@@ -299,3 +304,79 @@ def delete_mark(request, mark_type, mark_id):
         for report in ReportUnsafe.objects.all():
             UpdateVerdict(report, {}, '=')
     return HttpResponseRedirect(reverse('marks:mark_list', args=[mark_type]))
+
+
+@login_required
+def remove_versions(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+    mark_id = int(request.POST.get('mark_id', 0))
+    mark_type = request.POST.get('mark_type', None)
+    try:
+        if mark_type == 'safe':
+            mark = MarkSafe.objects.get(pk=mark_id)
+            mark_history_set = mark.marksafehistory_set.filter(
+                ~Q(version__in=[mark.version, 1])).order_by('-version')
+        elif mark_type == 'unsafe':
+            mark = MarkUnsafe.objects.get(pk=mark_id)
+            mark_history_set = mark.markunsafehistory_set.filter(
+                ~Q(version__in=[mark.version, 1])).order_by('-version')
+        else:
+            return JsonResponse({'message': _('Unknown error')})
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'status': 1, 'message': _('The mark was not found')
+        })
+    if not MarkAccess(request.user, mark).can_edit():
+        return JsonResponse({
+            'status': 1,
+            'message': _("You don't have access to edit this mark")
+        })
+
+    versions = json.loads(request.POST.get('versions', '[]'))
+    checked_versions = mark_history_set.filter(version__in=versions)
+    deleted_versions = len(checked_versions)
+    checked_versions.delete()
+
+    if deleted_versions > 0:
+        return JsonResponse({
+            'status': 0,
+            'message': _('Selected versions were successfully deleted')
+        })
+    return JsonResponse({'status': 1, 'message': _('Nothing to delete')})
+
+
+@login_required
+def get_mark_versions(request):
+    if request.method != 'POST':
+        return JsonResponse({'message': _('Unknown error')})
+    mark_id = int(request.POST.get('mark_id', 0))
+    mark_type = request.POST.get('mark_type', None)
+    try:
+        if mark_type == 'safe':
+            mark = MarkSafe.objects.get(pk=mark_id)
+            mark_history_set = mark.marksafehistory_set.filter(
+                ~Q(version__in=[mark.version, 1])).order_by('-version')
+        elif mark_type == 'unsafe':
+            mark = MarkUnsafe.objects.get(pk=mark_id)
+            mark_history_set = mark.markunsafehistory_set.filter(
+                ~Q(version__in=[mark.version, 1])).order_by('-version')
+        else:
+            return JsonResponse({'message': _('Unknown error')})
+    except ObjectDoesNotExist:
+        return JsonResponse({'message': _('The mark was not found')})
+    mark_versions = []
+    for m in  mark_history_set:
+        mark_time = m.change_date.astimezone(
+            pytz.timezone(request.user.extended.timezone)
+        )
+        title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
+        title += " (%s %s)" % (m.author.extended.last_name,
+                               m.author.extended.first_name)
+        title += ': ' + m.comment
+        mark_versions.append({
+            'version': m.version,
+            'title': title
+        })
+    return render(request, 'marks/markVersions.html',
+                  {'versions': mark_versions})

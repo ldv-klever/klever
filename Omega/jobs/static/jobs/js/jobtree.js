@@ -411,6 +411,9 @@ $(document).ready(function () {
                 jobs_for_delete.push($(this).attr('id').replace('job_checkbox__', ''));
             }
         });
+        if (jobs_for_delete.length == 0) {
+            err_notify($('#error__no_jobs_to_delete').text());
+        }
         if (jobs_for_delete.length) {
             $.post(
                 job_ajax_url + 'removejobs/',

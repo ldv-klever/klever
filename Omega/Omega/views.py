@@ -35,6 +35,8 @@ def omega_error(request, err_code=0, user_message=None):
 def population(request):
     if request.method == 'POST':
         username, password = Population(request.user).full_population()
-        return render(request, 'Population.html',
+        if username is None or password is None:
+            return render(request, 'Population.html',
                       {'password': password, 'username': username})
+        return render(request, 'Population.html', {'functions': True})
     return render(request, 'Population.html', {})
