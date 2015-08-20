@@ -481,7 +481,7 @@ def save_job(request):
         if not JobAccess(request.user).can_create():
             return JsonResponse({
                 'status': 1,
-                'message': _("You don't have an access to create a new job")
+                'message': _("You don't have an access to create new jobs")
             })
         job_kwargs['parent'] = parent
         job_kwargs['absolute_url'] = 'http://' + request.get_host()

@@ -13,7 +13,7 @@
         <hr>
         <div class="row">
             <div class="col-sm-4">
-                <label for="convert_function">{% trans 'Convert function' %}</label>
+                <label for="convert_function">{% trans 'Error traces conversion function' %}</label>
                 <select id="convert_function" class="form-control">
                     {% for f in markdata.convertion %}
                         <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
@@ -23,7 +23,7 @@
                 <p id="convert_function_description" class="omega-text" style="margin: 0">{{ markdata.convert_desc }}</p>
             </div>
             <div class="col-sm-4">
-                <label for="compare_function">{% trans 'Compare trace function' %}</label>
+                <label for="compare_function">{% trans 'Error traces comparison function' %}</label>
                 <select id="compare_function" class="form-control">
                     {% for f in markdata.comparison %}
                         <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>

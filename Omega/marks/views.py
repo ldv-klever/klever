@@ -156,12 +156,12 @@ def get_func_description(request):
         try:
             function = MarkUnsafeCompare.objects.get(pk=func_id)
         except ObjectDoesNotExist:
-            return JsonResponse({'error': _('Compare function was not found')})
+            return JsonResponse({'error': _('The error traces comparison function was not found')})
     elif func_type == 'convert':
         try:
             function = MarkUnsafeConvert.objects.get(pk=func_id)
         except ObjectDoesNotExist:
-            return JsonResponse({'error': _('Convert function was not found')})
+            return JsonResponse({'error': _('The error traces conversion function was not found')})
     else:
         return JsonResponse({'error': _('Unknown error')})
     return JsonResponse({'description': function.description})
@@ -190,11 +190,11 @@ def get_mark_version_data(request):
             )
     except ObjectDoesNotExist:
         return JsonResponse({
-            'error': _('Version was not found, please reload page')
+            'error': _('Your version is expired, please reload the page')
         })
     if not MarkAccess(request.user, mark=mark_version.mark).can_edit():
         return JsonResponse({
-            'error': _("You don't have access to edit this mark")
+            'error': _("You don't have an access to edit this mark")
         })
     table_templ = get_template('marks/MarkAttrTable.html')
     table = table_templ.render({

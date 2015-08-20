@@ -10,10 +10,10 @@ ERRORS = {
     451: _('Wrong parameters, please reload page and try again.'),
     504: _('The report was not found'),
     604: _("The mark was not found"),
-    600: _("You don't have access to this mark"),
-    601: _("You don't have access to create new marks"),
-    602: _("You don't have access to delete this mark"),
-    605: _("You don't have access to download this mark"),
+    600: _("You don't have an access to this mark"),
+    601: _("You don't have an access to create new marks"),
+    602: _("You don't have an access to delete this mark"),
+    605: _("You don't have an access to download this mark"),
     650: _("Saving mark failed"),
 }
 

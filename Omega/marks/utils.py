@@ -665,10 +665,10 @@ class ReadTarMark(object):
                     mark.function = \
                         MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:
-                    return _("Compare function was not found")
+                    return _("The error traces comparison function was not found")
             mark.format = int(args['format'])
             if mark.format != FORMAT:
-                return _('Mark format is not supported')
+                return _('The mark format is not supported')
             mark.type = args['type']
 
             time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z").\
@@ -721,10 +721,10 @@ class ReadTarMark(object):
 
         def __create_attributes(self, attrs):
             if not isinstance(attrs, list):
-                return _('Attributes has wrong format')
+                return _('The attributes have wrong format')
             for a in attrs:
                 if any(x not in a for x in ['attr', 'value', 'is_compare']):
-                    return _('Attributes has wrong format')
+                    return _('The attributes have wrong format')
             for a in attrs:
                 attr_name = AttrName.objects.get_or_create(name=a['attr'])[0]
                 attr = Attr.objects.get_or_create(
@@ -769,19 +769,19 @@ class ReadTarMark(object):
         if not isinstance(mark_data, dict) or \
                 any(x not in mark_data for x in [
                     'mark_type', 'is_modifiable', 'type', 'format']):
-            return _("Mark archive was corrupted")
+            return _("The mark archive is corrupted")
         self.type = mark_data['mark_type']
         if self.type == 'unsafe':
             if err_trace is None:
-                return _("Mark archive was corrupted: error trace not found")
+                return _("The mark archive is corrupted: the error trace is not found")
 
         version_list = list(versions_data[v] for v in sorted(versions_data))
         for version in version_list:
             if any(x not in version
                    for x in ['verdict', 'status', 'comment', 'attrs']):
-                return _("Mark archive was corrupted")
+                return _("The mark archive is corrupted")
             if self.type == 'unsafe' and 'function' not in version:
-                return _("Mark archive was corrupted")
+                return _("The mark archive is corrupted")
 
         create_mark_data = {
             'format': mark_data['format'],

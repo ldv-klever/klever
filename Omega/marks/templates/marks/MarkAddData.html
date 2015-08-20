@@ -2,7 +2,7 @@
 
 {% if markdata.type == 'unsafe' %}
 <div class="col-sm-6">
-    <label for="compare_function">{% trans 'Compare trace function' %}</label>
+    <label for="compare_function">{% trans 'Error traces comparison function' %}</label>
     <select id="compare_function" class="form-control">
         {% for f in markdata.comparison %}
             <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>

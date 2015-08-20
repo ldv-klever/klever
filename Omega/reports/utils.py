@@ -18,8 +18,8 @@ REP_MARK_TITLES = {
     'mark_status': _('Status'),
     'number': '№',
     'component': _('Component'),
-    'marks_number': _("Number of marks"),
-    'report_verdict': _("Verdict"),
+    'marks_number': _("Number of associated marks"),
+    'report_verdict': _("Total verdict"),
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
