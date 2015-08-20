@@ -109,7 +109,7 @@ def launch():
                 p.join(1.0 / len(component_processes))
                 operating_components_num += p.is_alive()
 
-            if not operating_components_num:
+            if not operating_components_num or reporting_p.exitcode:
                 break
 
         raise Exception('TODO: remove me after all!')
