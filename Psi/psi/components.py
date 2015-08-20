@@ -1,4 +1,3 @@
-import io
 import multiprocessing
 import os
 import signal
@@ -17,7 +16,7 @@ class PsiComponentError(ChildProcessError):
 
 
 class _PsiComponentBase(multiprocessing.Process):
-    def __init__(self, component, conf, logger, reports_mq=None):
+    def __init__(self, component, conf, logger, report_files_mq=None):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -27,7 +26,7 @@ class _PsiComponentBase(multiprocessing.Process):
         # avoid to use parent logger in component process.
         self.logger = logger
         # Reports MQ.
-        self.reports_mq = reports_mq
+        self.report_files_mq = report_files_mq
 
         # Use component specific name if defined. Otherwise multiprocessing.Process will use some artificial name.
         if hasattr(component, 'name'):
@@ -114,10 +113,13 @@ class PsiComponentBase(_PsiComponentBase):
 
         _PsiComponentBase.run(self)
 
-        start_report_file = psi.utils.dump_report(self.logger, 'start',
-                                                  {'id': self.name, 'parent id': '/', 'name': self.name})
-        self.reports_mq.put(os.path.relpath(start_report_file, self.conf['root id']))
-
+        psi.utils.report(self.logger,
+                         'start',
+                         {'id': self.name,
+                          'parent id': '/',
+                          'name': self.name},
+                         self.report_files_mq,
+                         self.conf['root id'])
 
         # Try to launch component. Catch all exceptions to print information on them to logs (without this
         # multiprocessing will print information on exceptions to STDERR).
@@ -151,23 +153,25 @@ class PsiComponentBase(_PsiComponentBase):
                     fp.write('Terminated since some other component(s) likely failed')
 
         if os.path.isfile('problem desc'):
-            with open('problem desc') as fp:
-                unknown_report_file = psi.utils.dump_report(self.logger, 'unknown',
-                                                            {'id': 'unknown', 'parent id': self.name,
-                                                             'problem desc': fp.read()})
-                self.reports_mq.put(os.path.relpath(unknown_report_file, self.conf['root id']))
+            psi.utils.report(self.logger,
+                             'unknown',
+                             {'id': 'unknown',
+                              'parent id': self.name,
+                              'problem desc': '__file:problem desc'},
+                             self.report_files_mq,
+                             self.conf['root id'])
 
-        with open('desc') if os.path.isfile('desc') else io.StringIO('') as desc_fp:
-            with open('log') if os.path.isfile('log') else io.StringIO('') as log_fp:
-                finish_report_file = psi.utils.dump_report(self.logger, 'finish',
-                                                           {'id': self.name,
-                                                            'resources': psi.utils.count_consumed_resources(
-                                                                self.logger,
-                                                                self.start_time),
-                                                            'desc': desc_fp.read(),
-                                                            'log': log_fp.read(),
-                                                            'data': ''})
-                self.reports_mq.put(os.path.relpath(finish_report_file, self.conf['root id']))
+        psi.utils.report(self.logger,
+                         'finish',
+                         {'id': self.name,
+                          'resources': psi.utils.count_consumed_resources(
+                              self.logger,
+                              self.start_time),
+                          'desc': '__file:desc',
+                          'log': '__file:log',
+                          'data': ''},
+                         self.report_files_mq,
+                         self.conf['root id'])
 
         # Don't forget to terminate itself if somebody tries to do such.
         if signum:

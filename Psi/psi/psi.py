@@ -1,8 +1,10 @@
 import argparse
 import getpass
+import io
 import json
 import multiprocessing
 import os
+import re
 import shutil
 import time
 import traceback
@@ -64,17 +66,20 @@ def launch():
 
         comp = psi.utils.get_comp_desc(_logger)
 
-        start_report_file = psi.utils.dump_report(_logger, 'start',
-                                                  {'id': '/', 'attrs': [{'psi version': version}], 'comp': comp})
+        start_report_file = psi.utils.report(_logger,
+                                             'start',
+                                             {'id': '/',
+                                              'attrs': [{'psi version': version}],
+                                              'comp': comp})
 
         session = psi.session.Session(_logger, omega['user'], omega['passwd'], _conf['Omega']['name'])
         session.decide_job(job, start_report_file)
 
         # TODO: create parallel process to send requests about successful operation to Omega.
 
-        reports_mq = multiprocessing.Queue()
-        reports_p = multiprocessing.Process(target=_send_reports, args=(session, reports_mq))
-        reports_p.start()
+        report_files_mq = multiprocessing.Queue()
+        reporting_p = multiprocessing.Process(target=_send_reports, args=(session, report_files_mq))
+        reporting_p.start()
 
         job.extract_archive()
 
@@ -94,7 +99,7 @@ def launch():
         for component in components:
             # Use the same reports MQ in all components.
             # TODO: fix passing of MQs after all.
-            p = component.PsiComponent(component, components_conf, _logger, reports_mq)
+            p = component.PsiComponent(component, components_conf, _logger, report_files_mq)
             p.start()
             component_processes.append(p)
 
@@ -116,15 +121,17 @@ def launch():
     except Exception as e:
         _exit_code = 1
 
-        if 'reports_mq' in locals():
+        if 'report_files_mq' in locals():
             with open('problem desc', 'w') as fp:
                 traceback.print_exc(file=fp)
 
             with open('problem desc') as fp:
-                unknown_report_file = psi.utils.dump_report(_logger, 'unknown',
-                                                            {'id': 'unknown', 'parent id': '/',
-                                                             'problem desc': fp.read()})
-                reports_mq.put(unknown_report_file)
+                psi.utils.report(_logger,
+                                 'unknown',
+                                 {'id': 'unknown',
+                                  'parent id': '/',
+                                  'problem desc': '__file:problem desc'},
+                                 report_files_mq)
 
         if _logger:
             _logger.exception('Catch exception')
@@ -138,24 +145,25 @@ def launch():
                     p.terminate()
                     p.join()
 
-        if 'reports_mq' in locals():
-            with open(conf_file) as conf_fp:
-                with open('log') as log_fp:
-                    finish_report_file = psi.utils.dump_report(_logger, 'finish',
-                                                               {'id': '/',
-                                                                'resources': psi.utils.count_consumed_resources(
-                                                                    _logger, start_time),
-                                                                'desc': conf_fp.read(),
-                                                                'log': log_fp.read(),
-                                                                'data': ''})
-                    reports_mq.put(finish_report_file)
+        if 'report_files_mq' in locals():
+            psi.utils.report(_logger,
+                             'finish',
+                             {'id': '/',
+                              'resources': psi.utils.count_consumed_resources(
+                                  _logger,
+                                  start_time),
+                              'desc': '__file:{0}'.format(conf_file),
+                              'log': '__file:log',
+                              'data': ''},
+                             report_files_mq)
 
-            _logger.info('Terminate reports message queue')
-            reports_mq.put(None)
+            _logger.info('Terminate report files message queue')
+            report_files_mq.put(None)
 
             _logger.info('Wait for uploading all reports')
-            reports_p.join()
-            exit_code = exit_code if 'exit_code' in locals() else reports_p.exitcode
+            reporting_p.join()
+            if 'exit_code' not in locals():
+                exit_code = reporting_p.exitcode
 
         if 'session' in locals():
             session.sign_out()
@@ -311,15 +319,29 @@ def _prepare_work_dir():
     return is_solving_file, open(is_solving_file, 'w')
 
 
-def _send_reports(session, reports_mq):
+def _send_reports(session, report_files_mq):
     try:
         while True:
-            m = reports_mq.get()
-            if m is None:
-                _logger.debug('Report message queue was terminated')
+            report_file = report_files_mq.get()
+
+            if report_file is None:
+                _logger.debug('Report files message queue was terminated')
                 break
-            _logger.debug('Upload report "{0}"'.format(m))
-            session.upload_report(m)
+
+            _logger.debug('Upload report file "{0}"'.format(report_file))
+            with open(report_file) as fp:
+                report = json.load(fp)
+            # Read content of files specified via "__file:".
+            for key in report:
+                if isinstance(report[key], str):
+                    match = re.search(r'^__file:(.+)$', report[key])
+                    if match:
+                        # All these files should be placed in the same directory as uploaded report file.
+                        file = os.path.join(os.path.dirname(report_file), match.groups()[0])
+                        # As well these files may not exist.
+                        with open(file) if os.path.isfile(file) else io.StringIO('') as fp:
+                            report[key] = fp.read()
+            session.upload_report(json.dumps(report))
     except Exception as e:
         # If we can't send reports to Omega by some reason we can just silently die.
         _logger.exception('Catch exception when sending reports to Omega')

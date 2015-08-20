@@ -16,13 +16,22 @@ class PsiComponentCallbacks(psi.components.PsiComponentCallbacksBase):
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
         # TODO: delete following stub code after all.
-        attrs_report_file = psi.utils.dump_report(self.logger, 'attrs', {'id': self.name, 'attrs': [
-            {"Linux kernel": [{"version": "3.5.0"}, {"arch": "x86_64"}, {"conf shortcut": "allmodconfig"}]},
-            {'Linux kernel verification objs gen strategy': [
-                {'name': 'separate module'},
-                {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
-            ]}]})
-        self.reports_mq.put(os.path.relpath(attrs_report_file, self.conf['root id']))
+        psi.utils.report(self.logger,
+                         'attrs',
+                         {'id': self.name,
+                          'attrs': [
+                              {"Linux kernel": [
+                                  {"version": "3.5.0"},
+                                  {"arch": "x86_64"},
+                                  {"conf shortcut": "allmodconfig"}
+                              ]},
+                              {'Linux kernel verification objs gen strategy': [
+                                  {'name': 'separate module'},
+                                  {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
+                              ]}
+                          ]},
+                         self.report_files_mq,
+                         self.conf['root id'])
 
         # Start and finish AVTG plugins.
         for i, verification_obj in enumerate(('drivers/usb/core/usbcore.ko', 'drivers/usb/usb-commmon.ko')):
@@ -38,32 +47,34 @@ class PsiComponent(psi.components.PsiComponentBase):
                     os.makedirs(plugin_work_dir)
                     os.chdir(plugin_work_dir)
 
-                    plugin_start_report_file = psi.utils.dump_report(self.logger, 'start', {
-                        'id': id, 'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec}],
-                        'name': plugin, 'parent id': 'AVTG'
-                    })
-                    self.reports_mq.put(os.path.relpath(plugin_start_report_file, self.conf['root id']))
+                    psi.utils.report(self.logger,
+                                     'start',
+                                     {'id': id,
+                                      'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec}],
+                                      'name': plugin,
+                                      'parent id': 'AVTG'},
+                                     self.report_files_mq,
+                                     self.conf['root id'])
 
                     # As promised DEG11 fails.
                     if i == 1 and j == 1 and plugin == 'DEG':
-                        plugin_unknown_report_file = psi.utils.dump_report(self.logger, 'unknown', {
-                            'id': 'unknown', 'parent id': id,
-                            'problem desc': 'Fatal error!'
-                        })
-                        self.reports_mq.put(os.path.relpath(plugin_unknown_report_file, self.conf['root id']))
+                        psi.utils.report(self.logger,
+                                         'unknown',
+                                         {'id': 'unknown',
+                                          'parent id': id,
+                                          'problem desc': 'Fatal error!'},
+                                         self.report_files_mq,
+                                         self.conf['root id'])
 
-                    plugin_finish_report_file = psi.utils.dump_report(self.logger,
-                                                                      'finish',
-                                                                      {'id': id,
-                                                                       'resources': {
-                                                                           'wall time': random.randint(
-                                                                               0, 10000),
-                                                                           'CPU time': random.randint(
-                                                                               0, 10000),
-                                                                           'max mem size': random.randint(
-                                                                               0, 1000000000)},
-                                                                       'log': '', 'data': ''
-                                                                       })
-                    self.reports_mq.put(os.path.relpath(plugin_finish_report_file, self.conf['root id']))
+                    psi.utils.report(self.logger,
+                                     'finish',
+                                     {'id': id,
+                                      'resources': {'wall time': random.randint(0, 10000),
+                                                    'CPU time': random.randint(0, 10000),
+                                                    'max mem size': random.randint(0, 1000000000)},
+                                      'log': '',
+                                      'data': ''},
+                                     self.report_files_mq,
+                                     self.conf['root id'])
 
                     os.chdir(os.pardir)

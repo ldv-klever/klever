@@ -39,9 +39,12 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.make_canonical_linux_kernel_work_src_tree()
         self.clean_linux_kernel_work_src_tree()
         self.extract_linux_kernel_attrs()
-        attrs_report_file = psi.utils.dump_report(self.logger, 'attrs',
-                                                  {'id': self.name, 'attrs': self.linux_kernel['attrs']})
-        self.reports_mq.put(os.path.relpath(attrs_report_file, self.conf['root id']))
+        psi.utils.report(self.logger,
+                         'attrs',
+                         {'id': self.name,
+                          'attrs': self.linux_kernel['attrs']},
+                         self.report_files_mq,
+                         self.conf['root id'])
         self.configure_linux_kernel()
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
         # Always create Linux kernel raw build commands file prior to its reading in

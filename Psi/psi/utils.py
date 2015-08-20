@@ -62,30 +62,6 @@ def count_consumed_resources(logger, start_time):
     return resources
 
 
-def dump_report(logger, kind, report, suffix=''):
-    """
-    Dump the specified report of the specified kind to a file.
-    :param logger: a logger for printing debug messages.
-    :param kind: a report kind (a file where a report will be dumped will be named "kind report.json").
-    :param report: a report object (usually it should be a dictionary).
-    """
-    logger.info('Dump {0} report'.format(kind))
-
-    report_file = '{0}{1} report.json'.format(kind, suffix)
-    if os.path.isfile(report_file):
-        raise FileExistsError('Report file "{0}" already exists'.format(os.path.abspath(report_file)))
-
-    # Specify report type.
-    report.update({'type': kind})
-
-    with open(report_file, 'w') as fp:
-        json.dump(report, fp, sort_keys=True, indent=4)
-
-    logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), report_file))
-
-    return report_file
-
-
 def find_file_or_dir(logger, root_id, file_or_dir):
     search_dirs = tuple(
         os.path.relpath(os.path.join(root_id, search_dir)) for search_dir in ('job/root', os.path.pardir))
@@ -255,3 +231,26 @@ def get_parallel_threads_num(logger, conf, action):
     logger.debug('The number of parallel threads for "{0}" is "{1}"'.format(action, parallel_threads_num))
 
     return str(parallel_threads_num)
+
+
+def report(logger, type, report, mq=None, dir=None, suffix=None):
+    logger.info('Create {0} report'.format(type))
+
+    # Specify report type.
+    report.update({'type': type})
+
+    # Create report file in current working directory.
+    report_file = '{0}{1} report.json'.format(type, suffix or '')
+    rel_report_file = os.path.relpath(report_file, dir) if dir else report_file
+    if os.path.isfile(report_file):
+        raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
+    with open(report_file, 'w') as fp:
+        json.dump(report, fp, sort_keys=True, indent=4)
+
+    logger.debug('{0} report was dumped to file "{1}"'.format(type.capitalize(), rel_report_file))
+
+    # Put report to message queue if it is specified.
+    if mq:
+        mq.put(rel_report_file)
+
+    return report_file

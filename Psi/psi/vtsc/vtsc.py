@@ -16,13 +16,22 @@ class PsiComponentCallbacks(psi.components.PsiComponentCallbacksBase):
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
         # TODO: delete following stub code after all.
-        attrs_report_file = psi.utils.dump_report(self.logger, 'attrs', {'id': self.name, 'attrs': [
-            {"Linux kernel": [{"version": "3.5.0"}, {"arch": "x86_64"}, {"conf shortcut": "allmodconfig"}]},
-            {'Linux kernel verification objs gen strategy': [
-                {'name': 'separate module'},
-                {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
-            ]}]})
-        self.reports_mq.put(os.path.relpath(attrs_report_file, self.conf['root id']))
+        psi.utils.report(self.logger,
+                         'attrs',
+                         {'id': self.name,
+                          'attrs': [
+                              {"Linux kernel": [
+                                  {"version": "3.5.0"},
+                                  {"arch": "x86_64"},
+                                  {"conf shortcut": "allmodconfig"}
+                              ]},
+                              {'Linux kernel verification objs gen strategy': [
+                                  {'name': 'separate module'},
+                                  {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
+                              ]}
+                          ]},
+                         self.report_files_mq,
+                         self.conf['root id'])
 
         # Verification tasks are solved on another computer.
         verification_comp = [
@@ -50,37 +59,40 @@ class PsiComponent(psi.components.PsiComponentBase):
                         os.makedirs(verifier_work_dir)
                         os.chdir(verifier_work_dir)
 
-                        verifier_report_file = psi.utils.dump_report(self.logger, 'verification', {
-                            'id': id, 'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec},
-                                                {'bug kind': bug_kind}],
-                            'name': 'BLAST 2.7.2' if i == 0 else 'CPAchecker r12345', 'parent id': 'VTSC',
-                            'comp': verification_comp, 'resources': {
-                                'wall time': random.randint(
-                                    0, 10000),
-                                'CPU time': random.randint(
-                                    0, 10000),
-                                'max mem size': random.randint(
-                                    0, 1000000000)},
-                            'log': '', 'data': ''
-                        })
-                        self.reports_mq.put(os.path.relpath(verifier_report_file, self.conf['root id']))
+                        psi.utils.report(self.logger,
+                                         'verification',
+                                         {'id': id,
+                                          'parent id': 'VTSC',
+                                          'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec},
+                                                    {'bug kind': bug_kind}],
+                                          'name': 'BLAST 2.7.2' if i == 0 else 'CPAchecker r12345',
+                                          'comp': verification_comp,
+                                          'resources': {'wall time': random.randint(0, 10000),
+                                                        'CPU time': random.randint(0, 10000),
+                                                        'max mem size': random.randint(0, 1000000000)},
+                                          'log': '',
+                                          'data': ''},
+                                         self.report_files_mq,
+                                         self.conf['root id'])
 
                         if i == 1 and k == 1:
-                            verifier_report_file = psi.utils.dump_report(self.logger, 'verification', {
-                                'id': id + '-retry',
-                                'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec},
-                                          {'bug kind': bug_kind}],
-                                'name': 'CPAchecker r12345', 'parent id': 'VTSC', 'comp': verification_comp,
-                                'resources': {
-                                    'wall time': random.randint(
-                                        0, 10000),
-                                    'CPU time': random.randint(
-                                        0, 10000),
-                                    'max mem size': random.randint(
-                                        0, 1000000000)},
-                                'log': '', 'data': ''
-                            }, 'retry')
-                        self.reports_mq.put(os.path.relpath(verifier_report_file, self.conf['root id']))
+                            psi.utils.report(self.logger,
+                                             'verification',
+                                             {'id': id + '-retry',
+                                              'parent id': 'VTSC',
+                                              'attrs': [{'verification obj': verification_obj},
+                                                        {'rule spec': rule_spec},
+                                                        {'bug kind': bug_kind}],
+                                              'name': 'CPAchecker r12345',
+                                              'comp': verification_comp,
+                                              'resources': {'wall time': random.randint(0, 10000),
+                                                            'CPU time': random.randint(0, 10000),
+                                                            'max mem size': random.randint(0, 1000000000)},
+                                              'log': '',
+                                              'data': ''},
+                                             self.report_files_mq,
+                                             self.conf['root id'],
+                                             'retry')
 
                         os.chdir(os.pardir)
 
@@ -95,19 +107,20 @@ class PsiComponent(psi.components.PsiComponentBase):
                         os.makedirs(verifier_work_dir)
                         os.chdir(verifier_work_dir)
 
-                        verifier_report_file = psi.utils.dump_report(self.logger, 'verification', {
-                            'id': id, 'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec},
-                                                {'entry point': entry_point},
-                                                {'bug kind': 'linux:one thread:double acquisition'}],
-                            'name': 'BLAST 2.7.2', 'parent id': 'VTSC', 'comp': verification_comp, 'resources': {
-                                'wall time': random.randint(
-                                    0, 10000),
-                                'CPU time': random.randint(
-                                    0, 10000),
-                                'max mem size': random.randint(
-                                    0, 1000000000)},
-                            'log': '', 'data': ''
-                        })
-                        self.reports_mq.put(os.path.relpath(verifier_report_file, self.conf['root id']))
+                        psi.utils.report(self.logger,
+                                         'verification',
+                                         {'id': id,
+                                          'parent id': 'VTSC',
+                                          'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec},
+                                                    {'bug kind': 'linux:one thread:double acquisition'}],
+                                          'name': 'BLAST 2.7.2',
+                                          'comp': verification_comp,
+                                          'resources': {'wall time': random.randint(0, 10000),
+                                                        'CPU time': random.randint(0, 10000),
+                                                        'max mem size': random.randint(0, 1000000000)},
+                                          'log': '',
+                                          'data': ''},
+                                         self.report_files_mq,
+                                         self.conf['root id'])
 
                         os.chdir(os.pardir)
