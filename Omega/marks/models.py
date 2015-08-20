@@ -43,6 +43,7 @@ class Mark(models.Model):
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
+    attr_order = models.CharField(max_length=10000, default='[]')
 
     def __str__(self):
         return self.identifier

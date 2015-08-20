@@ -155,7 +155,11 @@ class ReportTable(object):
     def __self_data(self):
         columns = []
         values = []
-        for attr in self.report.attr.all().order_by('name__name'):
+        for name in json.loads(self.report.attr_order):
+            try:
+                attr = self.report.attr.get(name__name=name)
+            except ObjectDoesNotExist:
+                continue
             columns.append(attr.name.name)
             values.append(attr.value)
         return columns, values

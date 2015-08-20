@@ -5,7 +5,7 @@ from io import BytesIO
 from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from Omega.vars import USER_ROLES, JOB_ROLES, FORMAT
+from Omega.vars import USER_ROLES, JOB_ROLES
 from marks.models import *
 from reports.models import ReportComponent, Attr, AttrName
 from marks.ConvertTrace import ConvertTrace
@@ -89,6 +89,7 @@ class NewMark(object):
         mark.format = report.root.job.format
         mark.type = report.root.job.type
         mark.job = report.root.job
+        mark.attr_order = report.attr_order
 
         time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z").\
             encode('utf8')

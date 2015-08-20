@@ -148,8 +148,8 @@ VIEWJOB_DEF_VIEW = {
         'safes',
         'unknowns',
         'resources',
-        'tags_safe',
-        'tags_unsafe'
+        # 'tags_safe',
+        # 'tags_unsafe'
     ],
     # Available filters (id [types], (example value)):
     # unknown_component [iexact, istartswith, icontains] (<any text>)

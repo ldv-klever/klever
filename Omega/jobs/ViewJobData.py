@@ -121,6 +121,11 @@ class ViewJobData(object):
                 res_data[cr.component.name] = {}
             rd = get_resource_data(self.user, cr.resource)
             res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
+
+        rd = get_resource_data(self.user, self.report.resource)
+        res_data[self.report.component.name] = "%s %s %s" % (
+            rd[0], rd[1], rd[2])
+
         resource_data = [
             {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 

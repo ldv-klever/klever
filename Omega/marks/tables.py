@@ -518,8 +518,12 @@ class MarksList(object):
     def __add_attrs(self):
         data = {}
         marks = []
+        attr_order = []
         if self.type == 'unsafe':
             for mark in MarkUnsafe.objects.all():
+                for new_a in json.loads(mark.attr_order):
+                    if new_a not in attr_order:
+                        attr_order.append(new_a)
                 last_v = mark.markunsafehistory_set.get(version=mark.version)
                 for attr in last_v.markunsafeattr_set.all():
                     if attr.is_compare:
@@ -529,6 +533,9 @@ class MarksList(object):
                 marks.append(mark)
         else:
             for mark in MarkSafe.objects.all():
+                for new_a in json.loads(mark.attr_order):
+                    if new_a not in attr_order:
+                        attr_order.append(new_a)
                 last_v = mark.marksafehistory_set.get(version=mark.version)
                 for attr in last_v.marksafeattr_set.all():
                     if attr.is_compare:
@@ -538,8 +545,9 @@ class MarksList(object):
                 marks.append(mark)
 
         columns = []
-        for name in sorted(data):
-            columns.append(name)
+        for name in attr_order:
+            if name in data:
+                columns.append(name)
 
         values_data = {}
         for mark in marks:
@@ -614,21 +622,33 @@ class MarkAttrTable(object):
         columns = []
         values = []
         if isinstance(self.mark_version, MarkUnsafeHistory):
-            for attr in self.mark_version.markunsafeattr_set.all().order_by(
-                    'attr__name__name'):
+            for name in json.loads(self.mark_version.mark.attr_order):
+                try:
+                    attr = self.mark_version.markunsafeattr_set.get(
+                        attr__name__name=name)
+                except ObjectDoesNotExist:
+                    continue
                 columns.append(attr.attr.name.name)
                 values.append(
                     (attr.attr.name.name, attr.attr.value, attr.is_compare)
                 )
         elif isinstance(self.mark_version, MarkSafeHistory):
-            for attr in self.mark_version.marksafeattr_set.all().order_by(
-                    'attr__name__name'):
+            for name in json.loads(self.mark_version.mark.attr_order):
+                try:
+                    attr = self.mark_version.marksafeattr_set.get(
+                        attr__name__name=name)
+                except ObjectDoesNotExist:
+                    continue
                 columns.append(attr.attr.name.name)
                 values.append(
                     (attr.attr.name.name, attr.attr.value, attr.is_compare)
                 )
         else:
-            for attr in self.report.attr.all().order_by('name__name'):
+            for name in json.loads(self.report.attr_order):
+                try:
+                    attr = self.report.attr.get(name__name=name)
+                except ObjectDoesNotExist:
+                    continue
                 columns.append(attr.name.name)
                 values.append((attr.name.name, attr.value, True))
         return Header(columns, {}).struct, values
