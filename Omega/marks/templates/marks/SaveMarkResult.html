@@ -3,7 +3,7 @@
 {% block body_block %}
     {% if MarkTable.values|length %}
         <div style="overflow-x: auto; max-height: 1000px; overflow-y: auto;">
-            <h1 style="text-align:center;">{% trans 'Changes' %}</h1>
+            <h1 style="text-align:center;">{% trans 'Changes in associations of marks with leaf reports' %}</h1>
             <table class="table table-bordered tree table-fixed" style="margin-bottom: 0;">
                 <thead>
                     {% for column_row in MarkTable.header %}
@@ -32,7 +32,7 @@
             </table>
         </div>
     {% else %}
-        <h1 style="text-align:center;">{% trans 'No new changes with reports' %}</h1>
+        <h1 style="text-align:center;">{% trans 'No changes in associations of marks with leaf reports' %}</h1>
     {% endif %}
     <br>
     <a href="{% url 'marks:edit_mark' mark_type mark.pk %}" class="btn btn-success" style="float: right">{% trans 'Continue editing' %}</a>

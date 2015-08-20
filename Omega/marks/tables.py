@@ -15,9 +15,9 @@ MARK_TITLES = {
     'author': _('Author'),
     'report': _('Report'),
     'job': _('Job'),
-    'format': _('Psi format'),
+    'format': _('Format'),
     'number': '№',
-    'num_of_links': _('Number of links'),
+    'num_of_links': _('Number of associated leaf reports'),
 }
 
 STATUS_COLOR = {
@@ -203,7 +203,7 @@ class MarkChangesTable(object):
                 elif col == 'result':
                     if report_mark is not None and report_mark.broken:
                         val = '<span style="color:%s">%s</span>' % (
-                            result_color(0), _("Compare failed"))
+                            result_color(0), _("Comparison failed"))
                     else:
                         val = get_result_change(report)
                 elif col == 'author':
@@ -415,7 +415,7 @@ class MarkReportsTable(object):
                     color = STATUS_COLOR[l_v.status]
                 elif col == 'result':
                     if report_mark.broken:
-                        val = _("Compare failed")
+                        val = _("Comparison failed")
                         color = result_color(0)
                     else:
                         val = "{:.0%}".format(report_mark.result)
@@ -478,7 +478,7 @@ class ReportMarkTable(object):
                         color = SAFE_COLOR[mark_rep.mark.verdict]
                 elif col == 'result':
                     if mark_rep.broken:
-                        value = _("Compare failed")
+                        value = _("Comparison failed")
                         color = result_color(0)
                     else:
                         value = "{:.0%}".format(mark_rep.result)

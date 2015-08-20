@@ -350,11 +350,11 @@ class ReadZipJob(object):
             if files_map[f_id] in files_in_db:
                 files_map[f_id] = files_in_db[files_map[f_id]]
             else:
-                return _("Job archive is corrupted")
+                return _("The job archive is corrupted")
         if job_format is None:
-            return _("Can't detect job's format")
+            return _("Couldn't find the job format")
         if job_type is None:
-            return _("Can't detect job's class")
+            return _("Couldn't find the job class")
 
         version_list = list(versions_data[v] for v in sorted(versions_data))
         for i in range(0, len(version_list)):
@@ -372,7 +372,7 @@ class ReadZipJob(object):
                         fdata_elem['type'] = '1'
                         fdata_elem['hash_sum'] = files_map[str(file['file'])]
                     else:
-                        return _("Job archive is corrupted")
+                        return _("The job archive is corrupted")
                 filedata.append(fdata_elem)
             version_list[i]['filedata'] = filedata
         job = create_job({
@@ -690,7 +690,7 @@ def create_job(kwargs):
     elif 'type' in kwargs:
         newjob.type = kwargs['type']
     else:
-        return _("Parent or job type are required")
+        return _("The parent or the job class are required")
     if 'pk' in kwargs:
         try:
             Job.objects.get(pk=int(kwargs['pk']))

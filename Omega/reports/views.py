@@ -91,19 +91,19 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None):
     }
 
     if ltype == 'safes':
-        title = _("Total safes")
+        title = _("All safes")
         for s in SAFE_VERDICTS:
             if s[0] == verdict:
                 title = string_concat(_("Safes"), ': ', s[1])
                 break
     elif ltype == 'unsafes':
-        title = _("Total unsafes")
+        title = _("All unsafes")
         for s in UNSAFE_VERDICTS:
             if s[0] == verdict:
                 title = string_concat(_("Unsafes"), ': ', s[1])
                 break
     else:
-        title = _("Unknowns")
+        title = _("All unknowns")
 
     report_attrs_data = [request.user, report]
     if request.method == 'POST':

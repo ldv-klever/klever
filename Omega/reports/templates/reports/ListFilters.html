@@ -8,11 +8,12 @@
             </h4>
         </div>
         <div id="collapse" class="panel-collapse collapse" style="margin-left: 10px;">
-            <h4>{% trans 'Order by attribute*:' %}</h4>
+            <h4>{% trans 'Order by attribute' %}</h4>
             <label for="filter__attr__order"></label>
             <input id="filter__attr__order" class="form-control" type="text" value="{{ view.order }}">
+            <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
             <hr>
-            <h4>{% trans 'Value of attribute' %}:</h4>
+            <h4>{% trans 'Value of attribute' %}</h4>
             <label for="filter__attr__attr"></label>
             <input id="filter__attr__attr" class="form-control" type="text" value="{{ view.filters.attr.attr }}">
             <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
