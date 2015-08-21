@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.models import Job
-from marks.models import MarkSafeTag, MarkUnsafeTag
+from marks.models import ReportSafeTag, ReportUnsafeTag
 from reports.models import Verdict, ComponentResource, ComponentUnknown,\
     ComponentMarkUnknownProblem, ReportComponent
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess
@@ -499,7 +499,12 @@ class TableTree(object):
     def __safe_tags_columns(self):
         tags_data = {}
         for job in self.jobdata:
-            for tag in job['job'].safe_tags.all():
+            try:
+                root_report = ReportComponent.objects.get(root__job=job['job'],
+                                                          parent=None)
+            except ObjectDoesNotExist:
+                continue
+            for tag in root_report.safe_tags.all():
                 tag_name = tag.tag.tag
                 tag_id = 'tag:safe:tag_%s' % tag.tag_id
                 if tag_id not in tags_data:
@@ -510,7 +515,12 @@ class TableTree(object):
     def __unsafe_tags_columns(self):
         tags_data = {}
         for job in self.jobdata:
-            for tag in job['job'].unsafe_tags.all():
+            try:
+                root_report = ReportComponent.objects.get(root__job=job['job'],
+                                                          parent=None)
+            except ObjectDoesNotExist:
+                continue
+            for tag in root_report.unsafe_tags.all():
                 tag_name = tag.tag.tag
                 tag_id = 'tag:unsafe:tag_%s' % tag.tag_id
                 if tag_id not in tags_data:
@@ -683,22 +693,70 @@ class TableTree(object):
                             verdict.unsafe,
                             reverse('reports:list',
                                     args=[verdict.report.pk, 'unsafes'])),
-                        'unsafe:bug': verdict.unsafe_bug,
-                        'unsafe:target_bug': verdict.unsafe_target_bug,
-                        'unsafe:false_positive': verdict.unsafe_false_positive,
-                        'unsafe:unknown': verdict.unsafe_unknown,
-                        'unsafe:unassociated': verdict.unsafe_unassociated,
-                        'unsafe:inconclusive': verdict.unsafe_inconclusive,
+                        'unsafe:bug': (
+                            verdict.unsafe_bug,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '1'])
+                        ),
+                        'unsafe:target_bug': (
+                            verdict.unsafe_target_bug,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '2'])
+                        ),
+                        'unsafe:false_positive': (
+                            verdict.unsafe_false_positive,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '3'])
+                        ),
+                        'unsafe:unknown': (
+                            verdict.unsafe_unknown,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '0'])
+                        ),
+                        'unsafe:unassociated': (
+                            verdict.unsafe_unassociated,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '5'])
+                        ),
+                        'unsafe:inconclusive': (
+                            verdict.unsafe_inconclusive,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'unsafes', '4'])
+                        ),
                         'safe:total': (
                             verdict.safe,
                             reverse('reports:list',
                                     args=[verdict.report.pk, 'safes'])),
-                        'safe:missed_bug': verdict.safe_missed_bug,
-                        'safe:unknown': verdict.safe_unknown,
-                        'safe:inconclusive': verdict.safe_inconclusive,
-                        'safe:unassociated': verdict.safe_unassociated,
-                        'safe:incorrect': verdict.safe_incorrect_proof,
-                        'problem:total': verdict.unknown
+                        'safe:missed_bug': (
+                            verdict.safe_missed_bug,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '2'])
+                        ),
+                        'safe:unknown': (
+                            verdict.safe_unknown,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '0'])
+                        ),
+                        'safe:inconclusive': (
+                            verdict.safe_inconclusive,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '3'])
+                        ),
+                        'safe:unassociated': (
+                            verdict.safe_unassociated,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '4'])
+                        ),
+                        'safe:incorrect': (
+                            verdict.safe_incorrect_proof,
+                            reverse('reports:list_verdict',
+                                    args=[verdict.report.pk, 'safes', '1'])
+                        ),
+                        'problem:total': (
+                            verdict.unknown,
+                            reverse('reports:list',
+                                    args=[verdict.report.pk, 'unknowns'])
+                        )
                     })
 
         def collect_roles():
@@ -727,16 +785,28 @@ class TableTree(object):
                                 last_version.get_global_role_display()
 
         def collect_safe_tags():
-            for st in MarkSafeTag.objects.filter(job_id__in=job_pks):
-                if st.job_id in values_data:
-                    values_data[st.job_id]['tag:safe:tag_' + str(st.tag_id)] = \
-                        st.number
+            for st in ReportSafeTag.objects.filter(
+                    report__root__job_id__in=job_pks):
+                curr_job_id = st.report.root.job.pk
+                if curr_job_id in values_data:
+                    values_data[curr_job_id]['tag:safe:tag_' + str(st.tag_id)] \
+                        = (
+                        st.number,
+                        reverse('reports:list_tag',
+                                args=[st.report_id, 'safes', st.tag_id])
+                    )
 
         def collect_unsafe_tags():
-            for ut in MarkUnsafeTag.objects.filter(job_id__in=job_pks):
-                if ut.job_id in values_data:
-                    values_data[ut.job_id]['tag:unsafe:tag_' + str(ut.tag_id)] \
-                        = ut.number
+            for ut in ReportUnsafeTag.objects.filter(
+                    report__root__job_id__in=job_pks):
+                curr_job_id = ut.report.root.job.pk
+                if curr_job_id in values_data:
+                    values_data[curr_job_id][
+                        'tag:unsafe:tag_' + str(ut.tag_id)] = (
+                        ut.number,
+                        reverse('reports:list_tag',
+                                args=[ut.report_id, 'unsafes', ut.tag_id])
+                    )
 
         def collect_resourses():
             for cr in ComponentResource.objects.filter(

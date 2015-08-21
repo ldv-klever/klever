@@ -14,7 +14,7 @@ function collect_attrs_data() {
 }
 
 
-function collect_new_markdata() {
+function collect_new_markdata(tags) {
     var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true;
     if (is_modifiable_checkbox.length) {
         is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
@@ -28,11 +28,16 @@ function collect_new_markdata() {
         verdict: $("input[name='selected_verdict']:checked").val(),
         status: $("input[name='selected_status']:checked").val(),
         data_type: $('#report_type').val(),
-        is_modifiable: is_modifiable
+        is_modifiable: is_modifiable,
+        tags: tags.getTags()
     });
 }
 
-function collect_markdata() {
+function collect_markdata(tags) {
+    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true;
+    if (is_modifiable_checkbox.length) {
+        is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
+    }
     return JSON.stringify({
         attrs: collect_attrs_data(),
         mark_id: $('#mark_pk').val(),
@@ -40,7 +45,9 @@ function collect_markdata() {
         compare_id: $("#compare_function").val(),
         comment: $('#edit_mark_comment').val(),
         verdict: $("input[name='selected_verdict']:checked").val(),
-        status: $("input[name='selected_status']:checked").val()
+        status: $("input[name='selected_status']:checked").val(),
+        is_modifiable: is_modifiable,
+        tags: tags.getTags()
     });
 }
 
@@ -57,16 +64,66 @@ function set_action_on_func_change() {
                 $('#compare_function_description').text(data.description);
             }
 
-        },
-        error: function (x) {
-            console.log(x.responseText);
         }
     });
 }
 
+function set_actions_for_mark_versions_delete() {
+    $('#cancel_del_versions_mark_btn').click(function () {
+        window.location.replace('');
+    });
+
+    $('#delete_versions_btn').click(function () {
+        var checked_versions = [];
+        $('input[id^="checkbox_version__"]').each(function () {
+            if ($(this).is(':checked')) {
+                checked_versions.push($(this).attr('id').replace('checkbox_version__', ''));
+            }
+        });
+        $.post(
+            marks_ajax_url + 'remove_versions/',
+            {
+                mark_id: $('#mark_pk').val(),
+                mark_type: $('#mark_type').val(),
+                versions: JSON.stringify(checked_versions)
+            },
+            function (data) {
+                $.each(checked_versions, function (i, val) {
+                     $("#checkbox_version__" + val).parent().parent().parent().remove();
+                });
+                data.status === 0 ? success_notify(data.message) : err_notify(data.message);
+            },
+            'json'
+        );
+    });
+}
+
+function activate_tags() {
+    var available_tags = [], old_tags = [];
+
+    $('#tags_old').children().each(function () {
+        old_tags.push($(this).text());
+    });
+
+    $('#tags_available').children().each(function () {
+        available_tags.push($(this).text());
+    });
+
+    return $('#tag_list').tags({
+        tagData: old_tags,
+        suggestions: available_tags,
+        tagClass: "btn-success",
+        promptText: $('#tags__enter_tags').text(),
+        readOnlyEmptyMessage: $('#tags__not_tags_to_display').text()
+    });
+}
+
 $(document).ready(function () {
+
+    var marktags = activate_tags();
+
     $('#save_new_mark_btn').click(function () {
-        $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_new_markdata()});
+        $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_new_markdata(marktags)});
     });
 
     $('#convert_function').change(function () {
@@ -82,9 +139,6 @@ $(document).ready(function () {
                     $('#convert_function_description').text(data.description);
                 }
 
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -116,11 +170,27 @@ $(document).ready(function () {
     $('#save_mark_btn').click(function () {
         var comment_input = $('#edit_mark_comment');
         if (comment_input.val().length > 0) {
-            $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_markdata()});
+            $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_markdata(marktags)});
         }
         else {
             err_notify($('#error__comment_required').text());
             comment_input.focus();
         }
+    });
+
+    $('#edit_mark_versions').click(function () {
+        $.post(
+            marks_ajax_url + 'getversions/',
+            {mark_id: $('#mark_pk').val(), mark_type: $('#mark_type').val()},
+            function (data) {
+                try {
+                    JSON.stringify(data);
+                    err_notify(data.message);
+                } catch (e) {
+                    $('#div_for_version_list').html(data);
+                    set_actions_for_mark_versions_delete();
+                }
+            }
+        );
     });
 });

@@ -87,12 +87,13 @@ def report_resources(report, user):
 class ReportTable(object):
 
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
-                 component_id=None, verdict=None):
+                 component_id=None, verdict=None, tag=None):
         self.component_id = component_id
         self.report = report
         self.user = user
         self.type = table_type
         self.verdict = verdict
+        self.tag = tag
         self.columns = []
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
@@ -155,7 +156,11 @@ class ReportTable(object):
     def __self_data(self):
         columns = []
         values = []
-        for attr in self.report.attr.all().order_by('name__name'):
+        for name in json.loads(self.report.attr_order):
+            try:
+                attr = self.report.attr.get(name__name=name)
+            except ObjectDoesNotExist:
+                continue
             columns.append(attr.name.name)
             values.append(attr.value)
         return columns, values
@@ -232,6 +237,8 @@ class ReportTable(object):
         for leaf in self.report.leaves.filter(
                 Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
             report = getattr(leaf, list_types[self.type])
+            if not self.__has_tag(report):
+                continue
             for new_a in json.loads(report.attr_order):
                 if new_a not in attr_order:
                     attr_order.append(new_a)
@@ -315,6 +322,28 @@ class ReportTable(object):
                 cnt += 1
                 values_data.append(values_row)
         return columns, values_data
+
+    def __has_tag(self, report):
+        if self.tag is None:
+            return True
+        has_tag = False
+        if self.type == '4':  # unsafe
+            for mark_rep in report.markunsafereport_set.all():
+                try:
+                    mark_rep.mark.markunsafehistory_set\
+                        .order_by('-version')[0].tags.get(tag=self.tag)
+                    has_tag = True
+                except ObjectDoesNotExist:
+                    continue
+        elif self.type == '5':  # safe
+            for mark_rep in report.marksafereport_set.all():
+                try:
+                    mark_rep.mark.marksafehistory_set\
+                        .order_by('-version')[0].tags.get(tag=self.tag)
+                    has_tag = True
+                except ObjectDoesNotExist:
+                    continue
+        return has_tag
 
     def __unknowns_data(self):
 

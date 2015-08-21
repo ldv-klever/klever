@@ -80,10 +80,11 @@ class ViewJobData(object):
             safe_tag_filter = {ft: fv}
 
         safe_tags_data = []
-        for st in self.report.root.job.safe_tags.filter(**safe_tag_filter):
+        for st in self.report.safe_tags.filter(**safe_tag_filter):
             safe_tags_data.append({
                 'number': st.number,
-                'href': '#',
+                'href': reverse('reports:list_tag',
+                                args=[self.report.pk, 'safes', st.tag.pk]),
                 'name': st.tag.tag,
             })
         return safe_tags_data
@@ -96,10 +97,11 @@ class ViewJobData(object):
             unsafe_tag_filter = {ft: fv}
 
         unsafe_tags_data = []
-        for ut in self.report.root.job.unsafe_tags.filter(**unsafe_tag_filter):
+        for ut in self.report.unsafe_tags.filter(**unsafe_tag_filter):
             unsafe_tags_data.append({
                 'number': ut.number,
-                'href': '#',
+                'href': reverse('reports:list_tag',
+                                args=[self.report.pk, 'unsafes', ut.tag.pk]),
                 'name': ut.tag.tag,
             })
         return unsafe_tags_data
@@ -121,6 +123,13 @@ class ViewJobData(object):
                 res_data[cr.component.name] = {}
             rd = get_resource_data(self.user, cr.resource)
             res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
+        try:
+            rd = get_resource_data(self.user, self.report.resource)
+            res_data[self.report.component.name] = "%s %s %s" % (
+                rd[0], rd[1], rd[2])
+        except AttributeError:
+            pass
+
         resource_data = [
             {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 

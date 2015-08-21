@@ -411,6 +411,9 @@ $(document).ready(function () {
                 jobs_for_delete.push($(this).attr('id').replace('job_checkbox__', ''));
             }
         });
+        if (jobs_for_delete.length == 0) {
+            err_notify($('#error__no_jobs_to_delete').text());
+        }
         if (jobs_for_delete.length) {
             $.post(
                 job_ajax_url + 'removejobs/',
@@ -550,9 +553,6 @@ $(document).ready(function () {
                         err_notify(data.message);
                     }
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -564,7 +564,6 @@ $(document).ready(function () {
     });
 
     $('#upload_marks_file_input').on('fileselect', function () {
-        console.log($(this).attr('id'));
         var files = $(this)[0].files,
             filename_list = $('<ul>');
         for (var i = 0; i < files.length; i++) {

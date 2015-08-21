@@ -50,12 +50,13 @@
                         <br>
                     {% endfor %}
                 </div>
+                {% include 'marks/Tags.html' %}
                 <hr>
                 {% if can_freeze %}
                     <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Modifiable' %}</label><br>
                 {% endif %}
-                <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
                 <a href="{% url 'reports:leaf' type report_pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
+                <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
             </div>
         </div>
     </form>
@@ -89,12 +90,13 @@
                 </div>
             </div>
         </div>
+        {% include 'marks/Tags.html' %}
         <hr>
         {% if can_freeze %}
             <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Modifiable' %}</label><br>
         {% endif %}
-        <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
         <a href="{% url 'reports:leaf' type report_pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
+        <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
     </form>
 {% endif %}
 {% endblock %}

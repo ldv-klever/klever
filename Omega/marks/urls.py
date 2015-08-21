@@ -19,4 +19,6 @@ urlpatterns = [
     url(r'^ajax/get_func_description/$', views.get_func_description),
     url(r'^ajax/upload_marks/$', views.upload_marks),
     url(r'^ajax/get_mark_version_data/$', views.get_mark_version_data),
+    url(r'^ajax/getversions/$', views.get_mark_versions),
+    url(r'^ajax/remove_versions/$', views.remove_versions),
 ]

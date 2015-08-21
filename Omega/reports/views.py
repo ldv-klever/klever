@@ -5,6 +5,7 @@ from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from jobs.models import Job
 from marks.tables import ReportMarkTable
+from marks.models import UnsafeTag, SafeTag
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
@@ -73,7 +74,8 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-def report_list(request, report_id, ltype, component_id=None, verdict=None):
+def report_list(request, report_id, ltype, component_id=None, verdict=None,
+                tag=None):
     activate(request.user.extended.language)
 
     try:
@@ -92,16 +94,22 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None):
 
     if ltype == 'safes':
         title = _("All safes")
-        for s in SAFE_VERDICTS:
-            if s[0] == verdict:
-                title = string_concat(_("Safes"), ': ', s[1])
-                break
+        if tag is not None:
+            title = string_concat(_("Safes"), ' (', tag.tag, ')')
+        elif verdict is not None:
+            for s in SAFE_VERDICTS:
+                if s[0] == verdict:
+                    title = string_concat(_("Safes"), ': ', s[1])
+                    break
     elif ltype == 'unsafes':
         title = _("All unsafes")
-        for s in UNSAFE_VERDICTS:
-            if s[0] == verdict:
-                title = string_concat(_("Unsafes"), ': ', s[1])
-                break
+        if tag is not None:
+            title = string_concat(_("Unsafes"), ' (', tag.tag, ')')
+        elif verdict is not None:
+            for s in UNSAFE_VERDICTS:
+                if s[0] == verdict:
+                    title = string_concat(_("Unsafes"), ': ', s[1])
+                    break
     else:
         title = _("All unknowns")
 
@@ -119,11 +127,23 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None):
             'parents': get_parents(report),
             'TableData': ReportTable(
                 *report_attrs_data, table_type=list_types[ltype],
-                component_id=component_id, verdict=verdict),
+                component_id=component_id, verdict=verdict, tag=tag),
             'view_type': list_types[ltype],
             'title': title
         }
     )
+
+
+@login_required
+def report_list_tag(request, report_id, ltype, tag_id):
+    try:
+        if ltype == 'unsafes':
+            tag = UnsafeTag.objects.get(pk=int(tag_id))
+        else:
+            tag = SafeTag.objects.get(pk=int(tag_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[704]))
+    return report_list(request, report_id, ltype, tag=tag)
 
 
 @login_required
@@ -166,7 +186,7 @@ def report_leaf(request, leaf_type, report_id):
             'report': report,
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
-            'MarkTable': ReportMarkTable(report)
+            'MarkTable': ReportMarkTable(request.user, report)
         }
     )
 

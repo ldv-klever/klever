@@ -8,6 +8,8 @@ from types import MethodType
 # Do not use 'error_trace', 'pattern_error_trace', 'error'
 # and 'result' as function name.
 
+DEFAULT_COMPARE = 'default_compare'
+
 
 class CompareTrace(object):
 

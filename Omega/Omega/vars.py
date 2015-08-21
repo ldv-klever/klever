@@ -15,6 +15,7 @@ ERRORS = {
     602: _("You don't have an access to delete this mark"),
     605: _("You don't have an access to download this mark"),
     650: _("Saving mark failed"),
+    704: _("Tag was not found")
 }
 
 JOB_CLASSES = (
@@ -148,8 +149,8 @@ VIEWJOB_DEF_VIEW = {
         'safes',
         'unknowns',
         'resources',
-        'tags_safe',
-        'tags_unsafe'
+        # 'tags_safe',
+        # 'tags_unsafe'
     ],
     # Available filters (id [types], (example value)):
     # unknown_component [iexact, istartswith, icontains] (<any text>)

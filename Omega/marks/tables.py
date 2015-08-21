@@ -4,8 +4,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from Omega.tableHead import Header
 from marks.models import *
+from marks.utils import MarkAccess
+from jobs.utils import JobAccess
+from marks.CompareTrace import DEFAULT_COMPARE
+from marks.ConvertTrace import DEFAULT_CONVERT
 
 
+NO_ACCESS_COLOR = '#666666'
 MARK_TITLES = {
     'mark_num': '№',
     'change_kind': _('Change kind'),
@@ -63,7 +68,7 @@ def result_color(result):
 
 class MarkChangesTable(object):
 
-    def __init__(self, mark, changes):
+    def __init__(self, user, mark, changes):
         self.columns = ['report', 'change_kind', 'verdict']
         if isinstance(mark, MarkUnsafe):
             self.columns.append('result')
@@ -72,12 +77,18 @@ class MarkChangesTable(object):
         self.columns.extend(['status', 'author', 'job', 'format'])
         self.mark = mark
         self.changes = changes
+        self.__accessed_changes(user)
         self.attr_values_data = self.__add_attrs()
         self.header = Header(self.columns, MARK_TITLES).struct
         if isinstance(mark, MarkUnsafe):
             self.values = self.__get_unsafe_values()
         else:
             self.values = self.__get_safe_values()
+
+    def __accessed_changes(self, user):
+        for report in self.changes:
+            if not JobAccess(user, report.root.job).can_view():
+                del self.changes[report]
 
     def __add_attrs(self):
         data = {}
@@ -328,9 +339,10 @@ class MarkChangesTable(object):
 
 # Table data for showing links between the specified mark and reports
 class MarkReportsTable(object):
-    def __init__(self, mark):
+    def __init__(self, user, mark):
         self.columns = ['report', 'verdict']
         self.type = 'safe'
+        self.user = user
         if isinstance(mark, MarkUnsafe):
             self.columns.append('result')
             self.type = 'unsafe'
@@ -340,7 +352,7 @@ class MarkReportsTable(object):
         self.mark = mark
         self.attr_values_data, self.reports = self.__add_attrs()
         self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_unsafe_values()
+        self.values = self.__get_values()
 
     def __add_attrs(self):
         data = {}
@@ -352,6 +364,8 @@ class MarkReportsTable(object):
         attr_order = []
         for mark_report in m_r_set:
             report = mark_report.report
+            if not JobAccess(self.user, report.root.job):
+                continue
             for new_a in json.loads(report.attr_order):
                 if new_a not in attr_order:
                     attr_order.append(new_a)
@@ -377,7 +391,7 @@ class MarkReportsTable(object):
         self.columns.extend(columns)
         return values_data, reports
 
-    def __get_unsafe_values(self):
+    def __get_values(self):
         values = []
         cnt = 0
         for report in self.reports:
@@ -439,9 +453,10 @@ class MarkReportsTable(object):
 
 # Table data for showing links between the specified report and marks
 class ReportMarkTable(object):
-    def __init__(self, report):
+    def __init__(self, user, report):
         self.report = report
         self.type = 'safe'
+        self.user = user
         self.columns = ['number', 'verdict']
         if isinstance(report, ReportUnsafe):
             self.columns.append('result')
@@ -468,8 +483,9 @@ class ReportMarkTable(object):
                 color = None
                 if col == 'number':
                     value = cnt
-                    href = reverse('marks:edit_mark',
-                                   args=[self.type, mark_rep.mark.pk])
+                    if MarkAccess(self.user, mark=mark_rep.mark).can_edit():
+                        href = reverse('marks:edit_mark',
+                                       args=[self.type, mark_rep.mark.pk])
                 elif col == 'verdict':
                     value = mark_rep.mark.get_verdict_display()
                     if self.type == 'unsafe':
@@ -505,11 +521,12 @@ class ReportMarkTable(object):
 
 class MarksList(object):
 
-    def __init__(self, marks_type):
+    def __init__(self, user, marks_type):
         self.columns = ['mark_num', 'num_of_links', 'verdict']
         if marks_type != 'unsafe' and marks_type != 'safe':
             return
         self.type = marks_type
+        self.user = user
         self.columns.extend(['status', 'author', 'format'])
         self.attr_values_data, self.marks = self.__add_attrs()
         self.header = Header(self.columns, MARK_TITLES).struct
@@ -518,8 +535,12 @@ class MarksList(object):
     def __add_attrs(self):
         data = {}
         marks = []
+        attr_order = []
         if self.type == 'unsafe':
             for mark in MarkUnsafe.objects.all():
+                for new_a in json.loads(mark.attr_order):
+                    if new_a not in attr_order:
+                        attr_order.append(new_a)
                 last_v = mark.markunsafehistory_set.get(version=mark.version)
                 for attr in last_v.markunsafeattr_set.all():
                     if attr.is_compare:
@@ -529,6 +550,9 @@ class MarksList(object):
                 marks.append(mark)
         else:
             for mark in MarkSafe.objects.all():
+                for new_a in json.loads(mark.attr_order):
+                    if new_a not in attr_order:
+                        attr_order.append(new_a)
                 last_v = mark.marksafehistory_set.get(version=mark.version)
                 for attr in last_v.marksafeattr_set.all():
                     if attr.is_compare:
@@ -538,8 +562,9 @@ class MarksList(object):
                 marks.append(mark)
 
         columns = []
-        for name in sorted(data):
-            columns.append(name)
+        for name in attr_order:
+            if name in data:
+                columns.append(name)
 
         values_data = {}
         for mark in marks:
@@ -567,7 +592,9 @@ class MarksList(object):
                     val = self.attr_values_data[mark][col]
                 elif col == 'mark_num':
                     val = cnt
-                    href = reverse('marks:edit_mark', args=[self.type, mark.pk])
+                    if MarkAccess(self.user, mark=mark).can_edit():
+                        href = reverse('marks:edit_mark',
+                                       args=[self.type, mark.pk])
                 elif col == 'num_of_links':
                     if self.type == 'unsafe':
                         broken = len(
@@ -614,21 +641,33 @@ class MarkAttrTable(object):
         columns = []
         values = []
         if isinstance(self.mark_version, MarkUnsafeHistory):
-            for attr in self.mark_version.markunsafeattr_set.all().order_by(
-                    'attr__name__name'):
+            for name in json.loads(self.mark_version.mark.attr_order):
+                try:
+                    attr = self.mark_version.markunsafeattr_set.get(
+                        attr__name__name=name)
+                except ObjectDoesNotExist:
+                    continue
                 columns.append(attr.attr.name.name)
                 values.append(
                     (attr.attr.name.name, attr.attr.value, attr.is_compare)
                 )
         elif isinstance(self.mark_version, MarkSafeHistory):
-            for attr in self.mark_version.marksafeattr_set.all().order_by(
-                    'attr__name__name'):
+            for name in json.loads(self.mark_version.mark.attr_order):
+                try:
+                    attr = self.mark_version.marksafeattr_set.get(
+                        attr__name__name=name)
+                except ObjectDoesNotExist:
+                    continue
                 columns.append(attr.attr.name.name)
                 values.append(
                     (attr.attr.name.name, attr.attr.value, attr.is_compare)
                 )
         else:
-            for attr in self.report.attr.all().order_by('name__name'):
+            for name in json.loads(self.report.attr_order):
+                try:
+                    attr = self.report.attr.get(name__name=name)
+                except ObjectDoesNotExist:
+                    continue
                 columns.append(attr.name.name)
                 values.append((attr.name.name, attr.value, True))
         return Header(columns, {}).struct, values
@@ -696,13 +735,8 @@ class MarkData(object):
         if self.type != 'unsafe':
             return [], None
         functions = []
-        def_func = None
         if func_type == 'compare':
             selected_description = None
-            try:
-                def_func = MarkDefaultFunctions.objects.all()[0].compare
-            except IndexError:
-                pass
 
             for f in MarkUnsafeCompare.objects.all().order_by('name'):
                 func_data = {
@@ -715,7 +749,7 @@ class MarkData(object):
                         func_data['selected'] = True
                         selected_description = f.description
                 elif (not isinstance(self.mark_version, MarkUnsafe) and
-                        def_func == f):
+                        f.name == DEFAULT_COMPARE):
                     func_data['selected'] = True
                     selected_description = f.description
                 functions.append(func_data)
@@ -724,10 +758,6 @@ class MarkData(object):
                 return [], None
 
             selected_description = None
-            try:
-                def_func = MarkDefaultFunctions.objects.all()[0].convert
-            except IndexError:
-                pass
 
             for f in MarkUnsafeConvert.objects.all().order_by('name'):
                 func_data = {
@@ -735,10 +765,66 @@ class MarkData(object):
                     'selected': False,
                     'value': f.pk,
                 }
-                if def_func == f:
+                if f.name == DEFAULT_CONVERT:
                     func_data['selected'] = True
                     selected_description = f.description
                 functions.append(func_data)
         else:
             return [], None
         return functions, selected_description
+
+
+# Table data for showing links between the specified mark and reports
+class MarkReportsTable2(object):
+    def __init__(self, user, mark):
+        self.columns = ['report']
+        self.type = 'safe'
+        self.user = user
+        if isinstance(mark, MarkUnsafe):
+            self.columns.append('result')
+            self.type = 'unsafe'
+        elif not isinstance(mark, MarkSafe):
+            return
+        self.mark = mark
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_values()
+
+    def __get_values(self):
+        if self.type == 'unsafe':
+            m_r_set = self.mark.markunsafereport_set.all().order_by('-result')
+        else:
+            m_r_set = self.mark.marksafereport_set.all()
+        values = []
+        cnt = 0
+        for mark_report in m_r_set:
+            report = mark_report.report
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                try:
+                    if self.type == 'unsafe':
+                        report_mark = self.mark.markunsafereport_set.get(
+                            report=report)
+                    else:
+                        report_mark = self.mark.marksafereport_set.get(
+                            report=report)
+                except ObjectDoesNotExist:
+                    continue
+                val = '-'
+                color = None
+                href = None
+                if col == 'report':
+                    val = cnt
+                    if JobAccess(self.user, report.root.job):
+                        href = reverse('reports:leaf',
+                                       args=[self.type, report.pk])
+                elif col == 'result':
+                    if report_mark.broken:
+                        val = _("Comparison failed")
+                        color = result_color(0)
+                    else:
+                        val = "{:.0%}".format(report_mark.result)
+                        color = result_color(report_mark.result)
+                values_str.append({'value': val, 'href': href, 'color': color})
+            values.append(values_str)
+        return values
