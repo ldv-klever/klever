@@ -12,7 +12,7 @@ from Omega.vars import USER_ROLES
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, UpdateVerdict,\
     MarkAccess, TagsInfo, UpdateTags
 from marks.tables import MarkAttrTable, MarkData, MarkChangesTable,\
-    MarkReportsTable2, MarksList
+    MarkReportsTable, MarksList
 from marks.models import *
 
 
@@ -58,41 +58,55 @@ def edit_mark(request, mark_type, mark_id):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
 
-    if not MarkAccess(request.user, mark=mark).can_edit():
-        return HttpResponseRedirect(reverse('error', args=[600]))
+    can_edit = False
+    if MarkAccess(request.user, mark=mark).can_edit():
+        can_edit = True
 
-    mark_versions = []
-    for m in history_set:
-        if m.version == mark.version:
-            title = _("Current version")
-        else:
-            change_time = m.change_date.astimezone(
-                pytz.timezone(request.user.extended.timezone)
-            )
-            title = change_time.strftime("%d.%m.%Y %H:%M:%S")
-            title += " (%s %s)" % (
-                m.author.extended.last_name,
-                m.author.extended.first_name,
-            )
-            title += ': ' + m.comment
-        mark_versions.append({
-            'version': m.version,
-            'title': title
-        })
     last_version = history_set[0]
+    if can_edit:
+        mark_versions = []
+        for m in history_set:
+            if m.version == mark.version:
+                title = _("Current version")
+            else:
+                change_time = m.change_date.astimezone(
+                    pytz.timezone(request.user.extended.timezone)
+                )
+                title = change_time.strftime("%d.%m.%Y %H:%M:%S")
+                title += " (%s %s)" % (
+                    m.author.extended.last_name,
+                    m.author.extended.first_name,
+                )
+                title += ': ' + m.comment
+            mark_versions.append({
+                'version': m.version,
+                'title': title
+            })
 
-    return render(request, 'marks/EditMark.html', {
-        'mark': mark,
-        'version': last_version,
-        'first_version': history_set.order_by('version')[0],
-        'type': mark_type,
-        'AttrTable': MarkAttrTable(mark_version=last_version),
-        'markdata': MarkData(mark_type, last_version),
-        'reports': MarkReportsTable2(request.user, mark),
-        'versions': mark_versions,
-        'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-        'tags': TagsInfo(mark_type, mark)
-    })
+        return render(request, 'marks/EditMark.html', {
+            'mark': mark,
+            'version': last_version,
+            'first_version': history_set.order_by('version')[0],
+            'type': mark_type,
+            'AttrTable': MarkAttrTable(mark_version=last_version),
+            'markdata': MarkData(mark_type, last_version),
+            'reports': MarkReportsTable(request.user, mark),
+            'versions': mark_versions,
+            'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
+            'tags': TagsInfo(mark_type, mark),
+            'can_edit': can_edit
+        })
+    else:
+        return render(request, 'marks/ViewMark.html', {
+            'mark': mark,
+            'version': last_version,
+            'first_version': history_set.order_by('version')[0],
+            'type': mark_type,
+            'AttrTable': MarkAttrTable(mark_version=last_version),
+            'markdata': MarkData(mark_type, last_version),
+            'reports': MarkReportsTable(request.user, mark),
+            'tags': TagsInfo(mark_type, mark)
+        })
 
 
 @login_required
@@ -208,7 +222,8 @@ def get_mark_version_data(request):
         'data': MarkAttrTable(mark_version=mark_version)
     })
     data_templ = get_template('marks/MarkAddData.html')
-    data = data_templ.render({'markdata': MarkData(mark_type, mark_version)})
+    data = data_templ.render({'markdata': MarkData(mark_type, mark_version),
+                              'tags': TagsInfo(mark_type, mark_version)})
     return JsonResponse({'table': table, 'adddata': data})
 
 
@@ -240,9 +255,6 @@ def download_mark(request, mark_type, mark_id):
             return HttpResponseRedirect(reverse('error', args=[500]))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
-
-    if not MarkAccess(request.user, mark=mark).can_edit():
-        return HttpResponseRedirect(reverse('error', args=[605]))
 
     mark_tar = CreateMarkTar(mark, mark_type)
 
@@ -287,25 +299,18 @@ def upload_marks(request):
 
 @login_required
 def delete_mark(request, mark_type, mark_id):
-    old_tags = []
     try:
         if mark_type == 'unsafe':
             mark = MarkUnsafe.objects.get(pk=int(mark_id))
-            for marktag in mark.markunsafehistory_set.order_by('-version')[0]\
-                    .tags.all():
-                old_tags.append(marktag.tag)
         elif mark_type == 'safe':
             mark = MarkSafe.objects.get(pk=int(mark_id))
-            for marktag in mark.marksafehistory_set.order_by('-version')[0]\
-                    .tags.all():
-                old_tags.append(marktag.tag)
         else:
             return HttpResponseRedirect(reverse('error', args=[500]))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
     if not MarkAccess(request.user, mark=mark).can_delete():
         return HttpResponseRedirect(reverse('error', args=[602]))
-    UpdateTags(mark, old_tags, [])
+    UpdateTags(mark, delete=True)
     mark.delete()
     if mark_type == 'safe':
         for report in ReportSafe.objects.all():

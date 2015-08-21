@@ -1,8 +1,8 @@
 {% load i18n %}
 
-<h4>{% trans 'Tags' %}:</h4>
+<h4>{% trans 'Tags' %}</h4>
 <div id="tag_list" class="tag-list"></div>
-<p style="color: #6d6d6d;">{% trans "After entering press 'Enter'" %}</p>
+{% if can_edit %}<p style="color: #6d6d6d;">{% trans "After entering press 'Enter'" %}</p>{% endif %}
 <br>
 
 <ul id="tags_old" hidden>

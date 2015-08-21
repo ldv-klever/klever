@@ -1,7 +1,7 @@
 {% extends 'marks/base.html' %}
 
 {% load i18n %}
-
+{% block title %}{% trans 'Create mark' %}{% endblock %}
 {% block body_block %}
 {% if type == 'unsafe' %}
     <form autocomplete="off" onsubmit="return false">

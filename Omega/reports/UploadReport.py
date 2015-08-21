@@ -472,9 +472,14 @@ class UploadReport(object):
             res_set = rep.componentresource_set.filter(~Q(component=None))
             if len(res_set) > 0:
                 new_res = Resource()
-                new_res.wall_time = 0
-                new_res.cpu_time = 0
-                new_res.memory = 0
+                if rep.resource is None:
+                    new_res.wall_time = 0
+                    new_res.cpu_time = 0
+                    new_res.memory = 0
+                else:
+                    new_res.wall_time = rep.resource.wall_time
+                    new_res.cpu_time = rep.resource.cpu_time
+                    new_res.memory = rep.resource.memory
 
                 for comp_res in res_set:
                     new_res.wall_time += comp_res.resource.wall_time
@@ -494,6 +499,13 @@ class UploadReport(object):
 
         update_total_resources(report)
         component = report.component
+
+        try:
+            report.componentresource_set.get(component=component)
+        except ObjectDoesNotExist:
+            report.componentresource_set.create(component=component,
+                                                resource=report.resource)
+
         parent = self.parent
         while parent is not None:
             new_resource = Resource()

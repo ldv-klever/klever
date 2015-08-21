@@ -4,6 +4,7 @@
 
 {% load tz %}
 
+{% block title %}{{ report.component.name }}{% endblock %}
 {% block body_block %}{% timezone user.extended.timezone %}
 
 <div class="row">
@@ -74,11 +75,11 @@
             </td>
         </tr></table>
         {% if report.description %}
-            <p class="purple-title">{% trans 'Description' %}:</p>
+            <p class="purple-title">{% trans 'Description' %}</p>
             <p class="omega-text">{{ report.description }}</p>
         {% endif %}
         <br>
-        <span class="purple-title">{% trans 'Attributes' %}:</span>
+        <span class="purple-title">{% trans 'Attributes' %}</span>
         <div style="overflow-x: auto">
         <table class="table table-bordered">
             <thead>

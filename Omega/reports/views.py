@@ -95,7 +95,7 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None,
     if ltype == 'safes':
         title = _("All safes")
         if tag is not None:
-            title = string_concat(_("Safes"), ' (', tag.tag, ')')
+            title = string_concat(_("Safes"), ': ', tag.tag)
         elif verdict is not None:
             for s in SAFE_VERDICTS:
                 if s[0] == verdict:
@@ -104,7 +104,7 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None,
     elif ltype == 'unsafes':
         title = _("All unsafes")
         if tag is not None:
-            title = string_concat(_("Unsafes"), ' (', tag.tag, ')')
+            title = string_concat(_("Unsafes"), ': ', tag.tag)
         elif verdict is not None:
             for s in UNSAFE_VERDICTS:
                 if s[0] == verdict:

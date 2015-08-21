@@ -13,16 +13,16 @@
                 <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
             {% endfor %}
         </select>
-        <label class="purple-title">{% trans 'or change the job' %}:</label>
+        <label class="purple-title">{% trans 'or change the job' %}</label>
         <br>
     {% endif %}
 
     <label style="width: 100%;">
-        {% trans 'Title' %}:<input class="form-control" id="job_title" type="text" value="{{ job.name }}">
+        {% trans 'Title' %}<input class="form-control" id="job_title" type="text" value="{{ job.name }}">
     </label>
 
     {% if job_versions|length %}
-        <label for="job_parent_identifier">{% trans 'Parent identifier' %}:</label>
+        <label for="job_parent_identifier">{% trans 'Parent identifier' %}</label>
         <input class="form-control" id="job_parent_identifier" type="text"{% if parent_id %} value="{{ parent_id }}"{% endif %}>
     {% else %}
         <input id="job_parent_identifier" type="hidden" value="{{ parent_id }}">
@@ -30,7 +30,7 @@
 
 
     <label style="width: 100%;">
-        {% trans 'Description' %}:<textarea id="job_description" class="form-control" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
+        {% trans 'Description' %}<textarea id="job_description" class="form-control" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
     </label>
 
     <ul class="list-group">
@@ -38,7 +38,7 @@
             <div class="row">
                 <div class="col-sm-6">
                     <div class="form-inline">
-                        <label for="job_global_roles">{% trans 'Role for all users' %}:</label><br>
+                        <label for="job_global_roles">{% trans 'Role for all users' %}</label><br>
                         <select id="job_global_roles" class="form-control">
                             {% for jr in job_roles %}
                                 <option value="{{ jr.0 }}"{% if roles.global == jr.0 %} selected{% endif %} >{{ jr.1 }}</option>
@@ -48,7 +48,7 @@
                 </div>
                 <div class="col-sm-6">
                     <div id="job_user_role_div" class="form-inline">
-                        <label for="job_available_users">{% trans 'Add role to user' %}:</label><br>
+                        <label for="job_available_users">{% trans 'Add role to user' %}</label><br>
                         <select id="job_available_users" class="form-control">
                             {% for au in roles.available_users %}
                                 <option value="{{ au.id }}">{{ au.name }}</option>
@@ -84,7 +84,7 @@
     {% include 'jobs/filesTree.html' %}
     <hr>
     {% if job_versions|length %}
-        <label style="width: 100%;">{% trans "Change comment" %}:<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
+        <label style="width: 100%;">{% trans "Change comment" %}<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
     {% endif %}
     <button id="save_job_btn" type="submit" class="btn btn-success">{% trans 'Save' %}</button>
     {% if job_versions|length %}

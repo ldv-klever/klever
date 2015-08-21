@@ -192,3 +192,21 @@ class MarkUnsafeTag(models.Model):
 
     class Meta:
         db_table = 'cache_mark_unsafe_tag'
+
+
+class UnsafeReportTag(models.Model):
+    report = models.ForeignKey(ReportUnsafe)
+    tag = models.ForeignKey(UnsafeTag)
+    number = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_unsafe_report_unsafe_tag'
+
+
+class SafeReportTag(models.Model):
+    report = models.ForeignKey(ReportSafe)
+    tag = models.ForeignKey(SafeTag)
+    number = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_safe_report_safe_tag'

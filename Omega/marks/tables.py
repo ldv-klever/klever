@@ -4,7 +4,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from Omega.tableHead import Header
 from marks.models import *
-from marks.utils import MarkAccess
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.ConvertTrace import DEFAULT_CONVERT
@@ -69,12 +68,7 @@ def result_color(result):
 class MarkChangesTable(object):
 
     def __init__(self, user, mark, changes):
-        self.columns = ['report', 'change_kind', 'verdict']
-        if isinstance(mark, MarkUnsafe):
-            self.columns.append('result')
-        elif not isinstance(mark, MarkSafe):
-            return
-        self.columns.extend(['status', 'author', 'job', 'format'])
+        self.columns = ['report', 'change_kind', 'verdict', 'job', 'format']
         self.mark = mark
         self.changes = changes
         self.__accessed_changes(user)
@@ -337,120 +331,6 @@ class MarkChangesTable(object):
         return values
 
 
-# Table data for showing links between the specified mark and reports
-class MarkReportsTable(object):
-    def __init__(self, user, mark):
-        self.columns = ['report', 'verdict']
-        self.type = 'safe'
-        self.user = user
-        if isinstance(mark, MarkUnsafe):
-            self.columns.append('result')
-            self.type = 'unsafe'
-        elif not isinstance(mark, MarkSafe):
-            return
-        self.columns.extend(['status', 'author', 'job', 'format'])
-        self.mark = mark
-        self.attr_values_data, self.reports = self.__add_attrs()
-        self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_values()
-
-    def __add_attrs(self):
-        data = {}
-        if self.type == 'unsafe':
-            m_r_set = self.mark.markunsafereport_set.all().order_by('-result')
-        else:
-            m_r_set = self.mark.marksafereport_set.all()
-        reports = []
-        attr_order = []
-        for mark_report in m_r_set:
-            report = mark_report.report
-            if not JobAccess(self.user, report.root.job):
-                continue
-            for new_a in json.loads(report.attr_order):
-                if new_a not in attr_order:
-                    attr_order.append(new_a)
-            for attr in report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][report] = attr.value
-            reports.append(report)
-
-        columns = []
-        for name in attr_order:
-            if name in data:
-                columns.append(name)
-
-        values_data = {}
-        for report in reports:
-            values_data[report] = {}
-            for col in columns:
-                cell_val = '-'
-                if report in data[col]:
-                    cell_val = data[col][report]
-                values_data[report][col] = cell_val
-        self.columns.extend(columns)
-        return values_data, reports
-
-    def __get_values(self):
-        values = []
-        cnt = 0
-        for report in self.reports:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                try:
-                    if self.type == 'unsafe':
-                        report_mark = self.mark.markunsafereport_set.get(
-                            report=report)
-                    else:
-                        report_mark = self.mark.marksafereport_set.get(
-                            report=report)
-                except ObjectDoesNotExist:
-                    continue
-                val = '-'
-                color = None
-                href = None
-                if col in self.attr_values_data[report]:
-                    val = self.attr_values_data[report][col]
-                elif col == 'report':
-                    val = cnt
-                    href = reverse('reports:leaf', args=[self.type, report.pk])
-                elif col == 'verdict':
-                    val = report.get_verdict_display()
-                    color = UNSAFE_COLOR[report.verdict]
-                elif col == 'status':
-                    if self.type == 'unsafe':
-                        l_v = self.mark.markunsafehistory_set.get(
-                            version=self.mark.version)
-                    else:
-                        l_v = self.mark.marksafehistory_set.get(
-                            version=self.mark.version)
-                    val = l_v.get_status_display()
-                    color = STATUS_COLOR[l_v.status]
-                elif col == 'result':
-                    if report_mark.broken:
-                        val = _("Comparison failed")
-                        color = result_color(0)
-                    else:
-                        val = "{:.0%}".format(report_mark.result)
-                        color = result_color(report_mark.result)
-                elif col == 'author':
-                    val = "%s %s" % (
-                        report_mark.mark.author.extended.last_name,
-                        report_mark.mark.author.extended.first_name
-                    )
-                    href = reverse('users:show_profile',
-                                   args=[report_mark.mark.author.pk])
-                elif col == 'job':
-                    val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job.pk])
-                elif col == 'format':
-                    val = report.root.job.format
-                values_str.append({'value': val, 'href': href, 'color': color})
-            values.append(values_str)
-        return values
-
-
 # Table data for showing links between the specified report and marks
 class ReportMarkTable(object):
     def __init__(self, user, report):
@@ -483,9 +363,8 @@ class ReportMarkTable(object):
                 color = None
                 if col == 'number':
                     value = cnt
-                    if MarkAccess(self.user, mark=mark_rep.mark).can_edit():
-                        href = reverse('marks:edit_mark',
-                                       args=[self.type, mark_rep.mark.pk])
+                    href = reverse('marks:edit_mark',
+                                   args=[self.type, mark_rep.mark.pk])
                 elif col == 'verdict':
                     value = mark_rep.mark.get_verdict_display()
                     if self.type == 'unsafe':
@@ -592,9 +471,8 @@ class MarksList(object):
                     val = self.attr_values_data[mark][col]
                 elif col == 'mark_num':
                     val = cnt
-                    if MarkAccess(self.user, mark=mark).can_edit():
-                        href = reverse('marks:edit_mark',
-                                       args=[self.type, mark.pk])
+                    href = reverse('marks:edit_mark',
+                                   args=[self.type, mark.pk])
                 elif col == 'num_of_links':
                     if self.type == 'unsafe':
                         broken = len(
@@ -775,9 +653,9 @@ class MarkData(object):
 
 
 # Table data for showing links between the specified mark and reports
-class MarkReportsTable2(object):
+class MarkReportsTable(object):
     def __init__(self, user, mark):
-        self.columns = ['report']
+        self.columns = ['report', 'job']
         self.type = 'safe'
         self.user = user
         if isinstance(mark, MarkUnsafe):
@@ -815,7 +693,7 @@ class MarkReportsTable2(object):
                 href = None
                 if col == 'report':
                     val = cnt
-                    if JobAccess(self.user, report.root.job):
+                    if JobAccess(self.user, report.root.job).can_view():
                         href = reverse('reports:leaf',
                                        args=[self.type, report.pk])
                 elif col == 'result':
@@ -825,6 +703,127 @@ class MarkReportsTable2(object):
                     else:
                         val = "{:.0%}".format(report_mark.result)
                         color = result_color(report_mark.result)
+                elif col == 'job':
+                    val = report.root.job.name
+                    if JobAccess(self.user, report.root.job).can_view():
+                        href = reverse('jobs:job', args=[report.root.job.pk])
+                values_str.append({'value': val, 'href': href, 'color': color})
+            values.append(values_str)
+        return values
+
+
+# Table data for showing links between the specified mark and reports
+class MarkReportsTable2(object):
+    def __init__(self, user, mark):
+        self.columns = ['report', 'verdict']
+        self.type = 'safe'
+        self.user = user
+        if isinstance(mark, MarkUnsafe):
+            self.columns.append('result')
+            self.type = 'unsafe'
+        elif not isinstance(mark, MarkSafe):
+            return
+        self.columns.extend(['status', 'author', 'job', 'format'])
+        self.mark = mark
+        self.attr_values_data, self.reports = self.__add_attrs()
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_values()
+
+    def __add_attrs(self):
+        data = {}
+        if self.type == 'unsafe':
+            m_r_set = self.mark.markunsafereport_set.all().order_by('-result')
+        else:
+            m_r_set = self.mark.marksafereport_set.all()
+        reports = []
+        attr_order = []
+        for mark_report in m_r_set:
+            report = mark_report.report
+            if not JobAccess(self.user, report.root.job).can_view():
+                continue
+            for new_a in json.loads(report.attr_order):
+                if new_a not in attr_order:
+                    attr_order.append(new_a)
+            for attr in report.attr.all():
+                if attr.name.name not in data:
+                    data[attr.name.name] = {}
+                data[attr.name.name][report] = attr.value
+            reports.append(report)
+
+        columns = []
+        for name in attr_order:
+            if name in data:
+                columns.append(name)
+
+        values_data = {}
+        for report in reports:
+            values_data[report] = {}
+            for col in columns:
+                cell_val = '-'
+                if report in data[col]:
+                    cell_val = data[col][report]
+                values_data[report][col] = cell_val
+        self.columns.extend(columns)
+        return values_data, reports
+
+    def __get_values(self):
+        values = []
+        cnt = 0
+        for report in self.reports:
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                try:
+                    if self.type == 'unsafe':
+                        report_mark = self.mark.markunsafereport_set.get(
+                            report=report)
+                    else:
+                        report_mark = self.mark.marksafereport_set.get(
+                            report=report)
+                except ObjectDoesNotExist:
+                    continue
+                val = '-'
+                color = None
+                href = None
+                if col in self.attr_values_data[report]:
+                    val = self.attr_values_data[report][col]
+                elif col == 'report':
+                    val = cnt
+                    if JobAccess(self.user, report.root.job).can_view():
+                        href = reverse('reports:leaf',
+                                       args=[self.type, report.pk])
+                elif col == 'verdict':
+                    val = report.get_verdict_display()
+                    color = UNSAFE_COLOR[report.verdict]
+                elif col == 'status':
+                    if self.type == 'unsafe':
+                        l_v = self.mark.markunsafehistory_set.get(
+                            version=self.mark.version)
+                    else:
+                        l_v = self.mark.marksafehistory_set.get(
+                            version=self.mark.version)
+                    val = l_v.get_status_display()
+                    color = STATUS_COLOR[l_v.status]
+                elif col == 'result':
+                    if report_mark.broken:
+                        val = _("Comparison failed")
+                        color = result_color(0)
+                    else:
+                        val = "{:.0%}".format(report_mark.result)
+                        color = result_color(report_mark.result)
+                elif col == 'author':
+                    val = "%s %s" % (
+                        report_mark.mark.author.extended.last_name,
+                        report_mark.mark.author.extended.first_name
+                    )
+                    href = reverse('users:show_profile',
+                                   args=[report_mark.mark.author.pk])
+                elif col == 'job':
+                    val = report.root.job.name
+                    if JobAccess(self.user, report.root.job).can_view():
+                        href = reverse('jobs:job', args=[report.root.job.pk])
+                elif col == 'format':
+                    val = report.root.job.format
                 values_str.append({'value': val, 'href': href, 'color': color})
             values.append(values_str)
         return values

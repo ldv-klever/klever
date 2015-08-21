@@ -13,7 +13,7 @@
 </div>
 {% endif %}
 <div class="col-sm-6">
-    <h4>{% trans 'Verdict' %}:</h4>
+    <h4>{% trans 'Verdict' %}</h4>
     <div style="margin-left: 25px">
         {% for v in markdata.verdicts %}
             <input id="selected_verdict__{{ v.value }}" type="radio" name="selected_verdict" value="{{ v.value }}"{% if v.checked %} checked{% endif %}>
@@ -28,7 +28,7 @@
     <hr>
 {% endif %}
 
-    <h4>{% trans 'Status' %}:</h4>
+    <h4>{% trans 'Status' %}</h4>
     <div style="margin-left: 25px">
         {% for s in markdata.statuses %}
             <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
@@ -37,3 +37,4 @@
         {% endfor %}
     </div>
 </div>
+{% include 'marks/Tags.html' %}

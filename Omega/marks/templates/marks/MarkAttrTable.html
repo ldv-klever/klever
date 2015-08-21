@@ -3,8 +3,7 @@
         {% for column_row in data.header %}
             <tr class="info">
             {% for coldata in column_row %}
-                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">
-                    {{ coldata.column }}</th>
+                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
             {% endfor %}
             </tr>
         {% endfor %}

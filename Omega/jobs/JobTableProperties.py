@@ -290,7 +290,7 @@ class TableTree(object):
             for col in columns_of_lvl:
                 nrows = max_depth - lvl + 1
                 for column in self.columns:
-                    if column.startswith(col[0]) and col[0] != column:
+                    if column.startswith(col[0] + ':') and col[0] != column:
                         nrows = 1
                         break
                 columns_data.append({
@@ -786,7 +786,7 @@ class TableTree(object):
 
         def collect_safe_tags():
             for st in ReportSafeTag.objects.filter(
-                    report__root__job_id__in=job_pks):
+                    report__root__job_id__in=job_pks, report__parent=None):
                 curr_job_id = st.report.root.job.pk
                 if curr_job_id in values_data:
                     values_data[curr_job_id]['tag:safe:tag_' + str(st.tag_id)] \
@@ -798,7 +798,7 @@ class TableTree(object):
 
         def collect_unsafe_tags():
             for ut in ReportUnsafeTag.objects.filter(
-                    report__root__job_id__in=job_pks):
+                    report__root__job_id__in=job_pks, report__parent=None):
                 curr_job_id = ut.report.root.job.pk
                 if curr_job_id in values_data:
                     values_data[curr_job_id][
@@ -894,7 +894,8 @@ class TableTree(object):
                     if col in values_data[job['pk']]:
                         if isinstance(values_data[job['pk']][col], tuple):
                             cell_value = values_data[job['pk']][col][0]
-                            href = values_data[job['pk']][col][1]
+                            if cell_value != 0:
+                                href = values_data[job['pk']][col][1]
                         else:
                             cell_value = values_data[job['pk']][col]
                 row_values.append({

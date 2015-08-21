@@ -29,7 +29,7 @@ def populate_jobs(user):
     }
 
     for i in range(len(JOB_CLASSES)):
-        kwargs['name'] = 'Title of the job %s' % str(i + 1)
+        kwargs['name'] = JOB_CLASSES[i][1]
         kwargs['pk'] = i + 1
         kwargs['type'] = JOB_CLASSES[i][0]
         create_job(kwargs)
@@ -38,13 +38,16 @@ def populate_jobs(user):
 
 class Population(object):
 
-    def __init__(self, user):
+    def __init__(self, user, username=None):
         self.user = user
         self.jobs_updated = False
         self.functions_updated = False
         self.manager_password = None
-        self.manager_username = 'manager'
+        self.manager_username = username
         self.__population()
+        self.something_changed = (self.functions_updated or
+                                  self.manager_password is not None
+                                  or self.jobs_updated)
 
     def __population(self):
         try:
@@ -53,29 +56,30 @@ class Population(object):
             self.__extend_user(self.user)
         manager = self.__get_manager()
         self.__populate_functions()
-        if len(Job.objects.all()) == 0:
+        if len(Job.objects.all()) == 0 and isinstance(manager, User):
             self.jobs_updated = True
             populate_jobs(manager)
 
     def __populate_functions(self):
-        self.user = self.user
-        MarkUnsafeConvert.objects.all().delete()
         for func_name in [x for x, y in ConvertTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
             description = getattr(ConvertTrace, func_name).__doc__
-            func = MarkUnsafeConvert.objects.get_or_create(name=func_name)[0]
-            if isinstance(description, str):
+            func, crtd = MarkUnsafeConvert.objects.get_or_create(name=func_name)
+            if crtd or description != func.description:
+                self.functions_updated = True
+            elif isinstance(description, str):
                 func.description = description
                 func.save()
 
         for func_name in [x for x, y in CompareTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
             description = getattr(CompareTrace, func_name).__doc__
-            func = MarkUnsafeCompare.objects.get_or_create(name=func_name)[0]
-            if isinstance(description, str):
+            func, crtd = MarkUnsafeCompare.objects.get_or_create(name=func_name)
+            if crtd or description != func.description:
+                self.functions_updated = True
+            elif isinstance(description, str):
                 func.description = description
                 func.save()
-        self.functions_updated = True
 
     def __extend_user(self, user, role='1'):
         self.user = self.user
@@ -87,8 +91,11 @@ class Population(object):
         extended.save()
 
     def __get_manager(self):
+        if self.manager_username is None:
+            return None
         try:
-            return User.objects.get(username=self.manager_username)
+            return User.objects.get(username=self.manager_username,
+                                    extended__role='2')
         except ObjectDoesNotExist:
             pass
         manager = User()
@@ -96,7 +103,7 @@ class Population(object):
         manager.save()
         time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z")\
             .encode('utf8')
-        password = hashlib.md5(time_encoded).hexdigest()
+        password = hashlib.md5(time_encoded).hexdigest()[:8]
         manager.set_password(password)
         manager.save()
         self.__extend_user(manager, '2')
