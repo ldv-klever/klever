@@ -83,14 +83,17 @@ def launch():
 
         job.extract_archive()
 
-        components_conf = _create_components_conf(comp)
-
         job.get_class()
 
-        # Use Psi logger to report events that are common to all components.
         components = _get_components(job.type)
+
+        # Do not read anything from job directory untill job class will be examined (it might be unsupported). This
+        # differs from specification that doesn't treat unsupported job classes at all.
+        components_conf = _create_components_conf(comp)
+
         # Component callbacks aren't obtained in parallel since it is quite fast.
         for component in components:
+            # Use Psi logger to report events that are common to all components.
             p = component.PsiComponentCallbacks(component, components_conf, _logger)
             p.start()
             p.join()
