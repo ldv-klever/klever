@@ -340,7 +340,7 @@ def remove_versions(request):
     if not MarkAccess(request.user, mark).can_edit():
         return JsonResponse({
             'status': 1,
-            'message': _("You don't have access to edit this mark")
+            'message': _("You don't have an access to edit this mark")
         })
 
     versions = json.loads(request.POST.get('versions', '[]'))
