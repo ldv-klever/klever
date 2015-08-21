@@ -6,17 +6,18 @@ class Job:
     format = 1
     archive = 'job.tar.gz'
     dir = 'job'
-    type = os.path.join(dir, 'class')
+    class_file = os.path.join(dir, 'class')
 
     def __init__(self, logger, id):
         self.logger = logger
         self.logger.debug('Support jobs of format "{0}"'.format(self.format))
         self.id = id
         self.logger.debug('Job identifier is "{0}"'.format(id))
+        self.type = None
 
     def get_class(self):
         self.logger.info('Get job class')
-        with open(self.type) as fp:
+        with open(self.class_file) as fp:
             self.type = fp.read()
         self.logger.debug('Job class is "{0}"'.format(self.type))
 
