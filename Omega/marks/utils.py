@@ -61,7 +61,6 @@ class NewMark(object):
         else:
             self.error = "Wrong parameters"
             return
-        UpdateTags(self.mark, self.old_tags, self.new_tags)
 
     def __create_mark(self, report, args):
         if self.type == 'unsafe':
@@ -131,6 +130,7 @@ class NewMark(object):
         self.mark = mark
         if self.calculate:
             self.__update_links()
+            UpdateTags(self.mark, self.old_tags, self.new_tags)
         return None
 
     def __change_mark(self, mark, args):
@@ -191,6 +191,7 @@ class NewMark(object):
                 self.__update_links()
             elif recalc_verdicts:
                 self.changes = UpdateVerdict(mark, {}, '=').changes
+            UpdateTags(self.mark, self.old_tags, self.new_tags)
         return None
 
     def __update_mark(self, mark, comment='', tags=None):
@@ -672,11 +673,13 @@ class ReadTarMark(object):
         self.error = self.__create_mark_from_tar()
 
     class UploadMark(object):
+
         def __init__(self, user, mark_type, args):
             self.mark = None
             self.mark_version = None
             self.user = user
             self.type = mark_type
+            self.new_tags = []
             if self.type != 'safe' and self.type != 'unsafe':
                 self.error = "Wrong mark type"
             elif not isinstance(args, dict) or not isinstance(user, User):
@@ -719,21 +722,25 @@ class ReadTarMark(object):
             if args['status'] in list(x[0] for x in MARK_STATUS):
                 mark.status = args['status']
 
+            tags = []
+            if 'tags' in args:
+                tags = args['tags']
+
             try:
                 mark.save()
             except Exception as e:
                 print(e)
                 return _("Unknown error")
 
-            self.__update_mark(mark)
-            res = self.__create_attributes(args['attrs'])
+            self.__update_mark(mark, tags=tags)
+            res = self.__create_attributes(args['attrs'], mark)
             if res is not None:
                 mark.delete()
                 return res
             self.mark = mark
             return None
 
-        def __update_mark(self, mark, comment=''):
+        def __update_mark(self, mark, comment='', tags=None):
             if self.type == 'unsafe':
                 new_version = MarkUnsafeHistory()
             else:
@@ -750,14 +757,29 @@ class ReadTarMark(object):
             new_version.author = mark.author
             new_version.save()
             self.mark_version = new_version
+            if isinstance(tags, list):
+                for tag in tags:
+                    if self.type == 'safe':
+                        safetag, crtd = SafeTag.objects.get_or_create(tag=tag)
+                        MarkSafeTag.objects.create(tag=safetag,
+                                                   mark_version=new_version)
+                        self.new_tags.append(safetag)
+                    elif self.type == 'unsafe':
+                        unsafetag, crtd = UnsafeTag.objects.get_or_create(
+                            tag=tag)
+                        MarkUnsafeTag.objects.create(tag=unsafetag,
+                                                     mark_version=new_version)
+                        self.new_tags.append(unsafetag)
 
-        def __create_attributes(self, attrs):
+        def __create_attributes(self, attrs, mark):
+            attr_order = []
             if not isinstance(attrs, list):
                 return _('The attributes have wrong format')
             for a in attrs:
                 if any(x not in a for x in ['attr', 'value', 'is_compare']):
                     return _('The attributes have wrong format')
             for a in attrs:
+                attr_order.append(a['attr'])
                 attr_name = AttrName.objects.get_or_create(name=a['attr'])[0]
                 attr = Attr.objects.get_or_create(
                     name=attr_name, value=a['value'])[0]
@@ -770,6 +792,8 @@ class ReadTarMark(object):
                     MarkUnsafeAttr.objects.get_or_create(**create_args)
                 else:
                     MarkSafeAttr.objects.get_or_create(**create_args)
+            mark.attr_order = json.dumps(attr_order)
+            mark.save()
             return None
 
     def __create_mark_from_tar(self):
@@ -816,7 +840,6 @@ class ReadTarMark(object):
             if self.type == 'unsafe' and 'function' not in version:
                 return _("The mark archive is corrupted")
 
-        # TODO: add mark's tags
         create_mark_data = {
             'format': mark_data['format'],
             'type': mark_data['type'],
@@ -825,6 +848,7 @@ class ReadTarMark(object):
             'status': version_list[0]['status'],
             'attrs': version_list[0]['attrs'],
             'compare_id': get_func_id(version_list[0]['function']),
+            'tags': version_list[0]['tags']
         }
         if self.type == 'unsafe':
             create_mark_data['error_trace'] = err_trace
@@ -836,6 +860,7 @@ class ReadTarMark(object):
         if not (self.type == 'unsafe' and isinstance(mark, MarkUnsafe) or
                 isinstance(mark, MarkSafe)):
             return _("Unknown error")
+        new_tags = umark.new_tags
         for version_data in version_list[1:]:
             if len(version_data['comment']) == 0:
                 version_data['comment'] = '1'
@@ -846,14 +871,16 @@ class ReadTarMark(object):
                 'status': version_data['status'],
                 'comment': version_data['comment'],
                 'compare_id': get_func_id(version_data['function']),
+                'tags': version_data['tags']
             }, False)
+            new_tags = updated_mark.new_tags
 
             if updated_mark.error is not None:
                 mark.delete()
                 return updated_mark.error
 
         ConnectMarks(mark)
-
+        UpdateTags(mark, [], new_tags)
         self.mark = mark
         return None
 
