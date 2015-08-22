@@ -271,7 +271,7 @@ class Component:
         self.stderr = []
 
     def start(self):
-        self.logger.info('Execute "{0}"'.format(self.cmd))
+        self.logger.debug('Execute "{0}"'.format(self.cmd))
 
         p = subprocess.Popen(self.cmd, env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 

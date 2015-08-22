@@ -335,7 +335,7 @@ def _send_reports(session, report_files_mq):
                 _logger.debug('Report files message queue was terminated')
                 break
 
-            _logger.info('Upload report file "{0}"'.format(report_file))
+            _logger.debug('Upload report file "{0}"'.format(report_file))
             with open(report_file) as fp:
                 report = json.load(fp)
             # Read content of files specified via "__file:".

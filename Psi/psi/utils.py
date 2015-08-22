@@ -50,7 +50,7 @@ def count_consumed_resources(logger, start_time):
     Note that launching under PyCharm gives its maximum memory size rather than the process one.
     :return: resources.
     """
-    logger.info('Count consumed resources')
+    logger.debug('Count consumed resources')
 
     utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
     resources = {'wall time': round(100 * (time.time() - start_time)),
@@ -249,19 +249,23 @@ def invoke_callbacks(func, logger=None, components=None, context=None):
     # Invoke all before actions.
     for component in components:
         if hasattr(component, before_action):
-            logger.info('Invoke before callback of {0} for "{1}"'.format(component.name, action))
+            logger.debug('Invoke before callback of {0} for "{1}"'.format(component.name, action))
             getattr(component, before_action)(callbacks_context)
 
     # Invoke function itself.
-    if context:
+    if context and args:
+        ret = func(context, *args)
+    elif context:
         ret = func(context)
+    elif args:
+        ret = func(*args)
     else:
         ret = func()
 
     # Invoke all after actions.
     for component in components:
         if hasattr(component, after_action):
-            logger.info('Invoke after callback of {0} for "{1}"'.format(component.name, action))
+            logger.debug('Invoke after callback of {0} for "{1}"'.format(component.name, action))
             getattr(component, after_action)(callbacks_context)
 
     # Return what function returned.
@@ -269,7 +273,7 @@ def invoke_callbacks(func, logger=None, components=None, context=None):
 
 
 def report(logger, type, report, mq=None, dir=None, suffix=None):
-    logger.info('Create {0} report'.format(type))
+    logger.debug('Create {0} report'.format(type))
 
     # Specify report type.
     report.update({'type': type})
