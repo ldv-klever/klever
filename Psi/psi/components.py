@@ -191,7 +191,7 @@ class AuxPsiComponent(multiprocessing.Process):
         signal.signal(signal.SIGTERM, self.__finalize)
 
         try:
-            self.func()
+            psi.utils.invoke_callbacks(self.func)
         except Exception:
             self.exception_info = traceback.format_exc().rstrip()
             exit(1)
