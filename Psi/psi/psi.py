@@ -333,6 +333,7 @@ def _send_reports(session, report_files_mq):
 
             if report_file is None:
                 _logger.debug('Report files message queue was terminated')
+                report_files_mq.close()
                 break
 
             _logger.debug('Upload report file "{0}"'.format(report_file))
