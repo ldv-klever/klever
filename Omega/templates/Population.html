@@ -2,6 +2,8 @@
 
 {% load i18n %}
 
+{% block title %}{% trans 'Population' %}{% endblock %}
+
 {% block body_block %}
     {% if population %}
         {% if population.manager_password %}
@@ -11,17 +13,22 @@
             <p>{% trans 'Please save this data and give it to the user who will be the Manager' %}</p>
         {% endif %}
         {% if population.functions_updated %}
-            <h1>{% trans 'Error traces convertion and comparison functions were updated.' %}</h1>
+            <h1>{% trans 'Error traces conversion and comparison functions were updated' %}</h1>
         {% endif %}
         {% if population.jobs_updated %}
-            <h1>{% trans 'New jobs were uploaded.' %}</h1>
+            <h1>{% trans 'New jobs were uploaded' %}</h1>
+        {% endif %}
+        {% if not population.something_changed %}
+            <h1>{% trans 'Nothing changed' %}</h1>
         {% endif %}
     {% else %}
         <h1>{% trans 'Welcome to Omega!' %}</h1>
-        <h4>{% trans 'You need to populate the database before start working, please, press the button below' %}</h4>
+        <h4>{% trans "Specified manager's username will be used for jobs population if it doesn't exists. If manager doesn't exists he will be created." %}</h4>
         <hr>
         <form method="post">
             {% csrf_token %}
+            <label for="manager_username">{% trans 'Manger username' %}</label>
+            <input id="manager_username" name="manager_username" type="text">
             <button type="submit" id="populate_button" class="btn btn-success">{% trans 'Populate' %}</button>
         </form>
     {% endif %}

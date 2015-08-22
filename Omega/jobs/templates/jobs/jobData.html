@@ -4,7 +4,7 @@
 <div class="row">
     {% if reportdata.view_data.unsafes|length %}
         <div class="col-sm-6">
-            <span class="purple-title"><b>{% trans 'Unsafes' %}: </b></span>
+            <span class="purple-title"><b>{% trans 'Unsafes' %}</b></span>
             <ul>
                 {% for v in reportdata.view_data.unsafes %}
                     <li><span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
@@ -20,7 +20,7 @@
     {% endif %}
     {% if reportdata.view_data.safes|length %}
         <div class="col-sm-6">
-            <span class="purple-title"><b>{% trans 'Safes' %}:</b></span>
+            <span class="purple-title"><b>{% trans 'Safes' %}</b></span>
             <ul>
                 {% for v in reportdata.view_data.safes %}
                     <li><span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
@@ -57,7 +57,13 @@
     <span id="resource_title_span" class="purple-title"><b>{% trans 'Resources' %}*</b></span>
     <ul>
         {% for res_data in reportdata.view_data.resources %}
-            <li>{{ res_data.component }}: <span style="color: darkblue">{{ res_data.val }}</span></li>
+            <li>
+                {% if reportdata.report.component.name == res_data.component %}
+                    <strong style="color: #821961;">{{ res_data.component }}:</strong>
+                {% else %}
+                    {{ res_data.component }}:
+                {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
+            </li>
         {% endfor %}
     </ul>
 {% endif %}
@@ -68,7 +74,7 @@
         <div class="row">
             {% if reportdata.view_data.tags_unsafe|length %}
                 <div class="col-sm-6">
-                    <span class="purple-title"><small>{% trans 'Unsafe' %}: </small></span>
+                    <span class="purple-title"><small>{% trans 'Unsafe' %}</small></span>
                     <ul>
                         {% for t in reportdata.view_data.tags_unsafe %}
                             <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>
@@ -78,7 +84,7 @@
             {% endif %}
             {% if reportdata.view_data.tags_safe|length %}
                 <div class="col-sm-6">
-                    <span class="purple-title"><small>{% trans 'Safe' %}: </small></span>
+                    <span class="purple-title"><small>{% trans 'Safe' %}</small></span>
                     <ul>
                         {% for t in reportdata.view_data.tags_safe %}
                             <li><span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a></li>

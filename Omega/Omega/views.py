@@ -34,6 +34,9 @@ def omega_error(request, err_code=0, user_message=None):
 @login_required
 def population(request):
     if request.method == 'POST':
-        population = Population(request.user)
-        return render(request, 'Population.html', {'population': population})
+        manager_username = request.POST.get('manager_username', None)
+        if not(isinstance(manager_username, str) and len(manager_username) > 0):
+            manager_username = None
+        popul = Population(request.user, manager_username)
+        return render(request, 'Population.html', {'population': popul})
     return render(request, 'Population.html', {})

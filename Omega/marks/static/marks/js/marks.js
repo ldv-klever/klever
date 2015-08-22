@@ -99,23 +99,33 @@ function set_actions_for_mark_versions_delete() {
 }
 
 function activate_tags() {
-    var available_tags = [], old_tags = [];
-
+    var available_tags = [], old_tags = [], save_mark_btn = $('#save_mark_btn');
     $('#tags_old').children().each(function () {
         old_tags.push($(this).text());
     });
 
-    $('#tags_available').children().each(function () {
+    if (save_mark_btn.length) {
+        $('#tags_available').children().each(function () {
         available_tags.push($(this).text());
-    });
+        });
 
-    return $('#tag_list').tags({
-        tagData: old_tags,
-        suggestions: available_tags,
-        tagClass: "btn-success",
-        promptText: $('#tags__enter_tags').text(),
-        readOnlyEmptyMessage: $('#tags__not_tags_to_display').text()
-    });
+        return $('#tag_list').tags({
+            tagData: old_tags,
+            suggestions: available_tags,
+            tagClass: "btn-success",
+            promptText: $('#tags__enter_tags').text(),
+            readOnlyEmptyMessage: $('#tags__not_tags_to_display').text()
+        });
+    }
+    else {
+        return $('#tag_list').tags({
+            tagData: old_tags,
+            tagClass: "btn-success",
+            promptText: $('#tags__enter_tags').text(),
+            readOnlyEmptyMessage: $('#tags__not_tags_to_display').text(),
+            readOnly: true
+        });
+    }
 }
 
 $(document).ready(function () {
@@ -162,7 +172,11 @@ $(document).ready(function () {
                     $('#mark_attributes_table').html(data.table);
                     $('#mark_add_data_div').html(data.adddata);
                     $('#compare_function').change(set_action_on_func_change);
+                    marktags = activate_tags();
                 }
+            },
+            error: function (x) {
+                console.log(x.responseText);
             }
         });
     });

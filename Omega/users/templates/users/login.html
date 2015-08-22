@@ -2,10 +2,12 @@
 
 {% load static %}
 {% load i18n %}
-{% block title %}Sign in{% endblock %}
+{% block title %}{% trans 'Sign in' %}{% endblock %}
+
 {% block head_block %}
     <link href="/static/users/css/login.css" rel="stylesheet">
 {% endblock %}
+
 {% block body_block %}
     <form class="form-signin" role="form" id="login_form" method="post" action="{% url 'users:login' %}{% if request.GET %}?next={{ request.GET.next }}{% endif %}">
         {% csrf_token %}

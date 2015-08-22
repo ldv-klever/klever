@@ -41,7 +41,15 @@
                 <div class="navbar-collapse collapse">
                     <ul class="nav navbar-nav">
                         {% if user.is_authenticated %}
-                            <li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>
+                            <li class="dropdown">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                                    {% trans 'Jobs' %} <span class="caret"></span>
+                                </a>
+                                <ul class="dropdown-menu">
+                                    {% block job_menu %}<li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>{% endblock %}
+                                    <li><a href = "#" data-toggle="modal" data-target="#upload_job_popup">{% trans 'Upload' %}</a></li>
+                                </ul>
+                            </li>
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
                                     {% trans 'Marks' %} <span class="caret"></span>
@@ -50,9 +58,13 @@
                                     <li><a href="{% url 'marks:mark_list' 'unsafe' %}">{% trans 'Unsafes' %}</a></li>
                                     <li><a href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a></li>
                                     <li><a href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a></li>
+                                    <li><a href="#" data-toggle="modal" data-target="#upload_marks_popup">{% trans 'Upload' %}</a></li>
                                 </ul>
                             </li>
-                            {% if user.is_staff %}<li><a href="/admin/">{% trans 'Admin Tools' %}</a></li>{% endif %}
+                            {% if user.is_staff %}
+                                <li><a href="/admin/">{% trans 'Admin Tools' %}</a></li>
+                                <li><a href="{% url 'population' %}">{% trans 'Population' %}</a></li>
+                            {% endif %}
                         {% endif %}
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
@@ -72,5 +84,48 @@
         {% block body_block %}{% endblock %}
         </div>
         <div class="modal-loading"></div>
+        <div id="upload_marks_popup" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">{% trans 'Upload marks' %}</h4>
+                    </div>
+                    <div class="modal-body">
+                        <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_marks_file_input" type="file" multiple></span>
+                        <br>
+                        <span id="upload_marks_filename"></span>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="upload_marks_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
+                        <button id="upload_marks_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="upload_job_popup" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">{% trans 'Upload jobs' %}</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p>{% trans "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
+                        <label><input id="upload_job_parent_id" type="text" class="form-control" placeholder="{% trans 'Identifier' %}"></label>
+                        <br>
+                        <br>
+                        <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file" multiple></span>
+                        <br>
+                        <span id="upload_job_filename"></span>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="upload_jobs_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
+                        <button id="upload_job_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <span id="error__parent_required" hidden>{% trans 'The parent identifier is required' %}</span>
     </body>
 </html>

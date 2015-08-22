@@ -6,18 +6,15 @@
 
 {% block jobs_head_block %}<script src="/static/jobs/js/jobtree.js"></script>{% endblock %}
 
+{% block job_menu %}
+    <li><a href="#" id="compare_reports_btn">{% trans 'Compare reports' %}</a></li>
+    <li><a href="#" data-toggle="modal" data-target="#remove_jobs_popup">{% trans 'Delete selected jobs' %}</a></li>
+    <li><a href="#" id="download_selected_jobs">{% trans 'Download selected jobs' %}</a></li>
+{% endblock %}
+
 {% block body_block %}
     <div class="row" id="jobstree-first-big-part"><form autocomplete="off" onsubmit="return false">
-        <div class="col-sm-2">
-            {% if can_create %}
-                <button type="button" data-toggle="modal" data-target="#upload_job_popup" class="btn btn-primary btn-block">{% trans 'Upload jobs' %}</button>
-            {% endif %}
-            <button id="download_selected_jobs" type="button" class="btn btn-primary btn-block">{% trans 'Download jobs' %}</button>
-            <button data-toggle="modal" data-target="#upload_marks_popup" type="button" class="btn btn-primary btn-block">{% trans 'Upload marks' %}</button>
-            <button id="compare_btn_job" class="btn btn-success btn-block">{% trans 'Compare reports' %}</button>
-            <button type="button" data-toggle="modal" data-target="#remove_jobs_popup" class="btn btn-danger btn-block">{% trans 'Delete' %}</button>
-        </div>
-        <div class="col-sm-10" id="table_filters">
+        <div class="col-sm-12" id="table_filters">
             <div class="panel-group" id="accordion">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
@@ -279,23 +276,25 @@
                 </div>
             </div>
             <div class="form-inline" style="margin-top: 5px;">
-                <label for="available_views"></label>
-                <select id="available_views" class="form-control">
-                    <option value="default">{% trans 'Default' %}</option>
-                    {% for v in FF.user_views %}
-                        <option title="{{ v.title }}" value="{{ v.id }}"{% if v.selected %} selected{% endif %}>{{ v.title }}</option>
-                    {% endfor %}
-                </select>
-                <div class="btn-group">
-                    <button id="show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
-                    <button id="update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
-                    <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Make preferred' %}</button>
-                    <button id="remove_view_btn" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
+                <div style="float: right;">
+                    <label for="available_views"></label>
+                    <select id="available_views" class="form-control">
+                        <option value="default">{% trans 'Default' %}</option>
+                        {% for v in FF.user_views %}
+                            <option title="{{ v.title }}" value="{{ v.id }}"{% if v.selected %} selected{% endif %}>{{ v.title }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="btn-group">
+                        <button id="show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
+                        <button id="update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
+                        <button id="make_preferable_view_btn" type="button" class="btn btn-success">{% trans 'Make preferred' %}</button>
+                        <button id="remove_view_btn" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
+                    </div>
+                    <label><input id="new_view_name_input" type="text" class="form-control" placeholder="{% trans 'New view name' %}"></label>
+                    <button id="save_view_btn" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
                 </div>
-                <button id="show_unsaved_view_btn" type="button" style="float: right" class="btn btn-primary">{% trans 'Show' %}</button>
-                <br><br>
-                <label><input id="new_view_name_input" type="text" class="form-control" placeholder="{% trans 'New view name' %}"></label>
-                <button id="save_view_btn" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
+                <button id="show_unsaved_view_btn" type="button" class="btn btn-primary">{% trans 'Show' %}</button>
+                <br>
             </div>
         </div>
     </form></div>
@@ -324,50 +323,7 @@
             </div>
         </div>
     </div>
-    <div id="upload_job_popup" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{% trans 'Upload jobs' %}</h4>
-                </div>
-                <div class="modal-body">
-                    <p>{% trans "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
-                    <label><input id="upload_job_parent_id" type="text" class="form-control" placeholder="{% trans 'Identifier' %}"></label>
-                    <br>
-                    <br>
-                    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file" multiple></span>
-                    <br>
-                    <span id="upload_job_filename"></span>
-                </div>
-                <div class="modal-footer">
-                    <button id="upload_jobs_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
-                    <button id="upload_job_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div id="upload_marks_popup" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{% trans 'Upload marks' %}</h4>
-                </div>
-                <div class="modal-body">
-                    <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_marks_file_input" type="file" multiple></span>
-                    <br>
-                    <span id="upload_marks_filename"></span>
-                </div>
-                <div class="modal-footer">
-                    <button id="upload_marks_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
-                    <button id="upload_marks_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                </div>
-            </div>
-        </div>
-    </div>
     {% include 'jobs/treeTmp.html' %}
     <span id="error__no_jobs_to_download" hidden>{% trans 'Please select jobs you want to download' %}</span>
-    <span id="error__parent_required" hidden>{% trans 'The parent identifier is required' %}</span>
     <span id="error__no_jobs_to_delete" hidden>{% trans 'Please select jobs you want to delete' %}</span>
 {% endblock %}

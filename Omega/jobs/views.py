@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
+from django.core.exceptions import MultipleObjectsReturned
 from Omega.vars import VIEW_TYPES
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
@@ -691,29 +692,6 @@ def upload_job(request, parent_id=None):
     })
 
 
-def psi_set_status(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    if request.method == 'POST':
-        identifier = request.POST.get('identifier', None)
-        status = request.POST.get('status', None)
-        if identifier and status:
-            try:
-                job = Job.objects.get(identifier=identifier)
-            except ObjectDoesNotExist:
-                return JsonResponse({'error': 304})
-            if JobAccess(request.user, job).can_download_for_deciding():
-                if status in [x[0] for x in JOB_STATUS]:
-                    job.status = status
-                    job.save()
-                    return JsonResponse({'error': 0})
-                else:
-                    JsonResponse({'error': 302})
-            else:
-                JsonResponse({'error': 303})
-    return JsonResponse({'error': 500})
-
-
 def decide_job(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -729,12 +707,16 @@ def decide_job(request):
         return JsonResponse({'error': 'Hash sum is not specified'})
 
     try:
-        job = Job.objects.get(identifier=request.POST['job id'],
+        job = Job.objects.get(identifier__startswith=request.POST['job id'],
                               format=int(request.POST['job format']))
         request.session['job_id'] = job.id
     except ObjectDoesNotExist:
         return JsonResponse({
             'error': 'Job with the specified identifier "{0}" was not found'
+            .format(request.POST['job id'])})
+    except MultipleObjectsReturned:
+        return JsonResponse({
+            'error': 'Specified identifier "{0}" is not unique'
             .format(request.POST['job id'])})
 
     if not JobAccess(request.user, job).can_download_for_deciding():

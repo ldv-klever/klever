@@ -48,7 +48,6 @@ class NewMark(object):
         self.do_recalk = False
         self.changes = {}
         self.old_tags = []
-        self.new_tags = []
         self.cnt = 0
         if not isinstance(args, dict) or not isinstance(user, User):
             self.error = "Wrong parameters"
@@ -61,7 +60,6 @@ class NewMark(object):
         else:
             self.error = "Wrong parameters"
             return
-        UpdateTags(self.mark, self.old_tags, self.new_tags)
 
     def __create_mark(self, report, args):
         if self.type == 'unsafe':
@@ -131,12 +129,12 @@ class NewMark(object):
         self.mark = mark
         if self.calculate:
             self.__update_links()
+        else:
+            UpdateTags(self.mark)
         return None
 
     def __change_mark(self, mark, args):
         recalc_verdicts = False
-        if not mark.is_modifiable:
-            return "Mark is not modifiable"
         if 'comment' not in args or len(args['comment']) == 0:
             return 'Change comment is required'
         if self.type == 'unsafe':
@@ -144,7 +142,8 @@ class NewMark(object):
         else:
             last_v = mark.marksafehistory_set.all().order_by('-version')[0]
 
-        self.old_tags = list(last_v.tags.all())
+        for tag in last_v.tags.all():
+            self.old_tags.append(tag.tag)
         mark.author = self.user
         if self.type == 'unsafe' and 'compare_id' in args:
             try:
@@ -185,12 +184,18 @@ class NewMark(object):
                 mark.save()
                 self.mark_version.delete()
                 return res
+
         self.mark = mark
         if self.calculate:
             if self.do_recalk:
                 self.__update_links()
             elif recalc_verdicts:
                 self.changes = UpdateVerdict(mark, {}, '=').changes
+                UpdateTags(self.mark)
+            else:
+                UpdateTags(self.mark)
+        else:
+            UpdateTags(self.mark)
         return None
 
     def __update_mark(self, mark, comment='', tags=None):
@@ -216,12 +221,10 @@ class NewMark(object):
                     safetag, crtd = SafeTag.objects.get_or_create(tag=tag)
                     MarkSafeTag.objects.create(tag=safetag,
                                                mark_version=new_version)
-                    self.new_tags.append(safetag)
                 elif self.type == 'unsafe':
                     unsafetag, crtd = UnsafeTag.objects.get_or_create(tag=tag)
                     MarkUnsafeTag.objects.create(tag=unsafetag,
                                                  mark_version=new_version)
-                    self.new_tags.append(unsafetag)
 
     def __update_attributes(self, attrs, old_mark):
         if not isinstance(attrs, list):
@@ -320,11 +323,13 @@ class ConnectMarks(object):
                     MarkUnsafeReport.objects.create(
                         mark=mark, report=unsafe, result=compare.result,
                         broken=compare_failed)
-                    UpdateVerdict(mark, self.changes)
+                    UpdateTags(mark, full=True)
                     self.cnt += 1
+        UpdateVerdict(unsafe, self.changes)
 
     def __connect_safe(self, safe):
         self.cnt = 0
+        safe.marksafereport_set.all().delete()
         for mark in MarkSafe.objects.filter(type=safe.root.job.type):
             if mark.type != safe.root.job.type:
                 continue
@@ -338,8 +343,9 @@ class ConnectMarks(object):
                         break
             else:
                 MarkSafeReport.objects.create(mark=mark, report=safe)
-                UpdateVerdict(mark, self.changes)
+                UpdateTags(mark, full=True)
                 self.cnt += 1
+        UpdateVerdict(safe, self.changes)
 
     def __connect_unsafe_mark(self, mark):
         self.cnt = 0
@@ -376,6 +382,7 @@ class ConnectMarks(object):
                     self.cnt += 1
         if self.cnt > 0:
             self.changes.update(UpdateVerdict(mark, self.changes).changes)
+            UpdateTags(mark)
 
     def __connect_safe_mark(self, mark):
         self.cnt = 0
@@ -400,6 +407,7 @@ class ConnectMarks(object):
                 self.cnt += 1
         if self.cnt > 0:
             self.changes.update(UpdateVerdict(mark, self.changes).changes)
+            UpdateTags(mark)
 
 
 class UpdateVerdict(object):
@@ -672,11 +680,13 @@ class ReadTarMark(object):
         self.error = self.__create_mark_from_tar()
 
     class UploadMark(object):
+
         def __init__(self, user, mark_type, args):
             self.mark = None
             self.mark_version = None
             self.user = user
             self.type = mark_type
+            self.new_tags = []
             if self.type != 'safe' and self.type != 'unsafe':
                 self.error = "Wrong mark type"
             elif not isinstance(args, dict) or not isinstance(user, User):
@@ -719,21 +729,25 @@ class ReadTarMark(object):
             if args['status'] in list(x[0] for x in MARK_STATUS):
                 mark.status = args['status']
 
+            tags = []
+            if 'tags' in args:
+                tags = args['tags']
+
             try:
                 mark.save()
             except Exception as e:
                 print(e)
                 return _("Unknown error")
 
-            self.__update_mark(mark)
-            res = self.__create_attributes(args['attrs'])
+            self.__update_mark(mark, tags=tags)
+            res = self.__create_attributes(args['attrs'], mark)
             if res is not None:
                 mark.delete()
                 return res
             self.mark = mark
             return None
 
-        def __update_mark(self, mark, comment=''):
+        def __update_mark(self, mark, comment='', tags=None):
             if self.type == 'unsafe':
                 new_version = MarkUnsafeHistory()
             else:
@@ -750,14 +764,29 @@ class ReadTarMark(object):
             new_version.author = mark.author
             new_version.save()
             self.mark_version = new_version
+            if isinstance(tags, list):
+                for tag in tags:
+                    if self.type == 'safe':
+                        safetag, crtd = SafeTag.objects.get_or_create(tag=tag)
+                        MarkSafeTag.objects.create(tag=safetag,
+                                                   mark_version=new_version)
+                        self.new_tags.append(safetag)
+                    elif self.type == 'unsafe':
+                        unsafetag, crtd = UnsafeTag.objects.get_or_create(
+                            tag=tag)
+                        MarkUnsafeTag.objects.create(tag=unsafetag,
+                                                     mark_version=new_version)
+                        self.new_tags.append(unsafetag)
 
-        def __create_attributes(self, attrs):
+        def __create_attributes(self, attrs, mark):
+            attr_order = []
             if not isinstance(attrs, list):
                 return _('The attributes have wrong format')
             for a in attrs:
                 if any(x not in a for x in ['attr', 'value', 'is_compare']):
                     return _('The attributes have wrong format')
             for a in attrs:
+                attr_order.append(a['attr'])
                 attr_name = AttrName.objects.get_or_create(name=a['attr'])[0]
                 attr = Attr.objects.get_or_create(
                     name=attr_name, value=a['value'])[0]
@@ -770,6 +799,8 @@ class ReadTarMark(object):
                     MarkUnsafeAttr.objects.get_or_create(**create_args)
                 else:
                     MarkSafeAttr.objects.get_or_create(**create_args)
+            mark.attr_order = json.dumps(attr_order)
+            mark.save()
             return None
 
     def __create_mark_from_tar(self):
@@ -816,7 +847,6 @@ class ReadTarMark(object):
             if self.type == 'unsafe' and 'function' not in version:
                 return _("The mark archive is corrupted")
 
-        # TODO: add mark's tags
         create_mark_data = {
             'format': mark_data['format'],
             'type': mark_data['type'],
@@ -825,6 +855,7 @@ class ReadTarMark(object):
             'status': version_list[0]['status'],
             'attrs': version_list[0]['attrs'],
             'compare_id': get_func_id(version_list[0]['function']),
+            'tags': version_list[0]['tags']
         }
         if self.type == 'unsafe':
             create_mark_data['error_trace'] = err_trace
@@ -833,6 +864,7 @@ class ReadTarMark(object):
         if umark.error is not None:
             return umark.error
         mark = umark.mark
+        UpdateTags(mark)
         if not (self.type == 'unsafe' and isinstance(mark, MarkUnsafe) or
                 isinstance(mark, MarkSafe)):
             return _("Unknown error")
@@ -846,6 +878,7 @@ class ReadTarMark(object):
                 'status': version_data['status'],
                 'comment': version_data['comment'],
                 'compare_id': get_func_id(version_data['function']),
+                'tags': version_data['tags']
             }, False)
 
             if updated_mark.error is not None:
@@ -853,7 +886,6 @@ class ReadTarMark(object):
                 return updated_mark.error
 
         ConnectMarks(mark)
-
         self.mark = mark
         return None
 
@@ -954,51 +986,111 @@ class TagsInfo(object):
             if isinstance(self.mark, MarkUnsafe):
                 versions = self.mark.markunsafehistory_set.order_by('-version')
                 self.tags_old = versions[0].tags.order_by('tag__tag')
+            elif isinstance(self.mark, MarkUnsafeHistory):
+                self.tags_old = self.mark.tags.order_by('tag__tag')
             for tag in UnsafeTag.objects.all():
                 self.tags_available.append(tag.tag)
         elif self.type == 'safe':
             if isinstance(self.mark, MarkSafe):
                 versions = self.mark.marksafehistory_set.order_by('-version')
                 self.tags_old = versions[0].tags.order_by('tag__tag')
+            elif isinstance(self.mark, MarkSafeHistory):
+                self.tags_old = self.mark.tags.order_by('tag__tag')
             for tag in SafeTag.objects.all():
                 self.tags_available.append(tag.tag)
 
 
 class UpdateTags(object):
 
-    def __init__(self, mark, old_tags, new_tags):
+    def __init__(self, mark, delete=False, full=False):
         self.mark = mark
+        self.cnt = 0
         self.tags_added = []
         self.tags_deleted = []
-        self.__get_tags_change(old_tags, new_tags)
+        self.__get_tags_change(delete, full)
         if isinstance(mark, MarkUnsafe):
             self.__update_unsafe_tags()
         elif isinstance(mark, MarkUnsafe):
             self.__update_safe_tags()
 
-    def __get_tags_change(self, old_tags, new_tags):
-        for newt in new_tags:
-            if newt not in old_tags:
+    def __get_tags_change(self, delete, full):
+        if isinstance(self.mark, MarkUnsafe):
+            vers_set = self.mark.markunsafehistory_set.order_by('-version')
+        elif isinstance(self.mark, MarkSafe):
+            vers_set = self.mark.marksafehistory_set.order_by('-version')
+        else:
+            return
+
+        last_v = vers_set[0]
+        try:
+            prev_v = vers_set[1]
+        except IndexError:
+            prev_v = None
+
+        last_v_tags = []
+        for marktag in last_v.tags.all():
+            last_v_tags.append(marktag.tag)
+
+        if delete:
+            self.tags_deleted = last_v_tags
+            return
+        elif full:
+            self.tags_added = last_v_tags
+            return
+
+        prev_v_tags = []
+        if prev_v is not None:
+            for marktag in prev_v.tags.all():
+                prev_v_tags.append(marktag.tag)
+
+        for newt in last_v_tags:
+            if newt not in prev_v_tags:
                 self.tags_added.append(newt)
-        for oldt in old_tags:
-            if oldt not in new_tags:
+        for oldt in prev_v_tags:
+            if oldt not in last_v_tags:
                 self.tags_deleted.append(oldt)
 
     def __update_unsafe_tags(self):
         for mark_rep in self.mark.markunsafereport_set.all():
-            try:
-                parent = ReportComponent.objects.get(
-                    pk=mark_rep.report.parent_id)
-            except ObjectDoesNotExist:
-                parent = None
-            while parent is not None:
-                for newtag in self.tags_added:
-                    reptag, crtd = parent.unsafe_tags.get_or_create(tag=newtag)
-                    reptag.number += 1
-                    reptag.save()
-                for oldtag in self.tags_deleted:
+            tag_data = []
+            for newtag in self.tags_added:
+                un_rep_tag, created = mark_rep.report.unsafereporttag_set\
+                    .get_or_create(tag=newtag)
+                if created:
+                    tag_data.append({
+                        'action': 'add',
+                        'tag': newtag
+                    })
+                un_rep_tag.number += 1
+                un_rep_tag.save()
+            for oldtag in self.tags_deleted:
+                try:
+                    reptag = mark_rep.report.unsafereporttag_set.get(tag=oldtag)
+                    if reptag.number > 0:
+                        reptag.number -= 1
+                        reptag.save()
+                        if reptag.number == 0:
+                            reptag.delete()
+                            tag_data.append({
+                                'action': 'delete',
+                                'tag': oldtag
+                            })
+                except ObjectDoesNotExist:
+                    pass
+            if len(tag_data) > 0:
+                self.__update_unsafe_parents(mark_rep.report, tag_data)
+
+    def __update_unsafe_parents(self, unsafe, tag_data):
+        self.cnt = 1
+        try:
+            parent = ReportComponent.objects.get(pk=unsafe.parent_id)
+        except ObjectDoesNotExist:
+            parent = None
+        while parent is not None:
+            for td in tag_data:
+                if td['action'] == 'delete':
                     try:
-                        reptag = parent.unsafe_tags.get(tag=oldtag)
+                        reptag = parent.unsafe_tags.get(tag=td['tag'])
                         if reptag.number > 0:
                             reptag.number -= 1
                             reptag.save()
@@ -1006,26 +1098,56 @@ class UpdateTags(object):
                                 reptag.delete()
                     except ObjectDoesNotExist:
                         pass
-                try:
-                    parent = ReportComponent.objects.get(pk=parent.parent_id)
-                except ObjectDoesNotExist:
-                    parent = None
+                elif td['action'] == 'add':
+                    reptag = parent.unsafe_tags.get_or_create(tag=td['tag'])[0]
+                    reptag.number += 1
+                    reptag.save()
+            try:
+                parent = ReportComponent.objects.get(pk=parent.parent_id)
+            except ObjectDoesNotExist:
+                parent = None
 
     def __update_safe_tags(self):
         for mark_rep in self.mark.marksafereport_set.all():
-            try:
-                parent = ReportComponent.objects.get(
-                    pk=mark_rep.report.parent_id)
-            except ObjectDoesNotExist:
-                parent = None
-            while parent is not None:
-                for newtag in self.tags_added:
-                    reptag, crtd = parent.safe_tags.get_or_create(tag=newtag)
-                    reptag.number += 1
-                    reptag.save()
-                for oldtag in self.tags_deleted:
+            tag_data = []
+            for newtag in self.tags_added:
+                s_rep_tag, created = mark_rep.report.safereporttag_set\
+                    .get_or_create(tag=newtag)
+                if created:
+                    tag_data.append({
+                        'action': 'add',
+                        'tag': newtag
+                    })
+                s_rep_tag.number += 1
+                s_rep_tag.save()
+            for oldtag in self.tags_deleted:
+                try:
+                    reptag = mark_rep.report.safereporttag_set.get(tag=oldtag)
+                    if reptag.number > 0:
+                        reptag.number -= 1
+                        reptag.save()
+                        if reptag.number == 0:
+                            reptag.delete()
+                            tag_data.append({
+                                'action': 'delete',
+                                'tag': oldtag
+                            })
+                except ObjectDoesNotExist:
+                    pass
+            if len(tag_data) > 0:
+                self.__update_safe_parents(mark_rep.report, tag_data)
+
+    def __update_safe_parents(self, safe, tag_data):
+        self.cnt = 1
+        try:
+            parent = ReportComponent.objects.get(pk=safe.parent_id)
+        except ObjectDoesNotExist:
+            parent = None
+        while parent is not None:
+            for td in tag_data:
+                if td['action'] == 'delete':
                     try:
-                        reptag = parent.safe_tags.get(tag=oldtag)
+                        reptag = parent.safe_tags.get(tag=td['tag'])
                         if reptag.number > 0:
                             reptag.number -= 1
                             reptag.save()
@@ -1033,7 +1155,11 @@ class UpdateTags(object):
                                 reptag.delete()
                     except ObjectDoesNotExist:
                         pass
-                try:
-                    parent = ReportComponent.objects.get(pk=parent.parent_id)
-                except ObjectDoesNotExist:
-                    parent = None
+                elif td['action'] == 'add':
+                    reptag = parent.safe_tags.get_or_create(tag=td['tag'])[0]
+                    reptag.number += 1
+                    reptag.save()
+            try:
+                parent = ReportComponent.objects.get(pk=parent.parent_id)
+            except ObjectDoesNotExist:
+                parent = None

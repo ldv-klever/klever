@@ -2,6 +2,8 @@
 
 {% load i18n %}
 
+{% block title %}{% trans 'Error' %}{% endblock %}
+
 {% block body_block %}
     {% if message %}
         <h1 style="color: #ef2f6c">{{ message }}</h1>

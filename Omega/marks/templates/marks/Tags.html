@@ -1,8 +1,8 @@
 {% load i18n %}
 
-<h4>{% trans 'Tags' %}:</h4>
+<h4>{% trans 'Tags' %}</h4>
 <div id="tag_list" class="tag-list"></div>
-<p style="color: #6d6d6d;">{% trans "After entering tag name press 'Enter'" %}</p>
+{% if can_edit %}<p style="color: #6d6d6d;">{% trans "After entering press 'Enter'" %}</p>{% endif %}
 <br>
 
 <ul id="tags_old" hidden>
@@ -15,5 +15,5 @@
         <li>{{ tag }}</li>
     {% endfor %}
 </ul>
-<span id="tags__not_tags_to_display" hidden>{% trans 'No tags to display' %}</span>
-<span id="tags__enter_tags" hidden>{% trans 'Enter tags' %}</span>
+<span id="tags__not_tags_to_display" hidden>{% trans '__No tags to display' %}</span>
+<span id="tags__enter_tags" hidden>{% trans 'Enter tag' %}</span>

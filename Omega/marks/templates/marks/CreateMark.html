@@ -1,7 +1,7 @@
 {% extends 'marks/base.html' %}
 
 {% load i18n %}
-
+{% block title %}{% trans 'Create mark' %}{% endblock %}
 {% block body_block %}
 {% if type == 'unsafe' %}
     <form autocomplete="off" onsubmit="return false">
@@ -53,7 +53,7 @@
                 {% include 'marks/Tags.html' %}
                 <hr>
                 {% if can_freeze %}
-                    <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Modifiable' %}</label><br>
+                    <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Editable' %}</label><br>
                 {% endif %}
                 <a href="{% url 'reports:leaf' type report_pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
                 <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
@@ -93,7 +93,7 @@
         {% include 'marks/Tags.html' %}
         <hr>
         {% if can_freeze %}
-            <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Modifiable' %}</label><br>
+            <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Editable' %}</label><br>
         {% endif %}
         <a href="{% url 'reports:leaf' type report_pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
         <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>

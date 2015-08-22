@@ -1,7 +1,7 @@
 {% extends 'marks/base.html' %}
 
 {% load i18n %}
-
+{% block title %}{% trans 'Marks' %}{% endblock %}
 {% block body_block %}
     {% if tabledata.values|length %}
         <h2 style="text-align:center">{{ title }}</h2>
