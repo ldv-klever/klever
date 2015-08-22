@@ -28,17 +28,13 @@ _cmd_opts = {
            'opts discarding out file': ()}}
 
 
-class PsiComponentCallbacks(psi.components.PsiComponentCallbacksBase):
-    pass
-
-
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
         self.linux_kernel = {}
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
         self.clean_linux_kernel_work_src_tree()
-        self.extract_linux_kernel_attrs()
+        psi.utils.invoke_callbacks(self.logger, self.extract_linux_kernel_attrs, self.components)
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,

@@ -1,7 +1,8 @@
 import fcntl
 import json
 import logging
-import os.path
+import os
+import re
 import resource
 import subprocess
 import sys
@@ -233,8 +234,36 @@ def get_parallel_threads_num(logger, conf, action):
     return str(parallel_threads_num)
 
 
-def invoke_callbacks(logger, func, components, context):
-    return func(context)
+def invoke_callbacks(logger, func, components=None, context=None):
+    action = re.sub(r'^_*', '', func.__name__)
+    before_action = 'before_{0}'.format(action)
+    after_action = 'after_{0}'.format(action)
+
+    if '__self__' in dir(func):
+        callbacks_context = func.__self__
+    else:
+        callbacks_context = context
+
+    # Invoke all before actions.
+    for component in components:
+        if hasattr(component, before_action):
+            logger.info('Invoke before callback of {0} for "{1}"'.format(component.name, action))
+            getattr(component, before_action)(callbacks_context)
+
+    # Invoke function itself.
+    if context:
+        ret = func(context)
+    else:
+        ret = func()
+
+    # Invoke all after actions.
+    for component in components:
+        if hasattr(component, after_action):
+            logger.info('Invoke after callback of {0} for "{1}"'.format(component.name, action))
+            getattr(component, after_action)(callbacks_context)
+
+    # Return what function returned.
+    return ret
 
 
 def report(logger, type, report, mq=None, dir=None, suffix=None):

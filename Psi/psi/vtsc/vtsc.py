@@ -9,10 +9,6 @@ import psi.utils
 name = 'VTSC'
 
 
-class PsiComponentCallbacks(psi.components.PsiComponentCallbacksBase):
-    pass
-
-
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
         # TODO: delete following stub code after all.

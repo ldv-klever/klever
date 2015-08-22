@@ -91,18 +91,12 @@ def launch():
         # differs from specification that doesn't treat unsupported job classes at all.
         components_conf = _create_components_conf(comp)
 
-        # Component callbacks aren't obtained in parallel since it is quite fast.
-        for component in components:
-            # Use Psi logger to report events that are common to all components.
-            p = component.PsiComponentCallbacks(component, components_conf, _logger)
-            p.start()
-            p.join()
-
-        # Use the same report files MQ in all components.
-        component_processes = psi.utils.invoke_callbacks(_logger, _launch_all_components, components,
-                                                         {'components': components,
-                                                          'components conf': components_conf,
-                                                          'MQs': {'report files': report_files_mq}})
+        # Use the same configuration and report files MQ in all components.
+        context = {'components': components,
+                   'components conf': components_conf,
+                   'MQs': {'report files': report_files_mq}}
+        psi.utils.invoke_callbacks(_logger, _launch_all_components, components, context)
+        component_processes = context['component processes']
 
         _logger.info('Wait for components')
         # Every second check whether some component died. Otherwise even if some non-first component will die we
@@ -297,11 +291,14 @@ def _get_version():
 
 def _launch_all_components(context):
     component_processes = []
+
     for component in context['components']:
-        p = component.PsiComponent(component, context['components conf'], _logger, context['MQs'])
+        p = component.PsiComponent(component, context['components conf'], _logger, context['components'],
+                                   context['MQs'])
         p.start()
         component_processes.append(p)
-    return component_processes
+
+    context['component processes'] = component_processes
 
 
 def _prepare_work_dir():
@@ -338,7 +335,7 @@ def _send_reports(session, report_files_mq):
                 _logger.debug('Report files message queue was terminated')
                 break
 
-            _logger.debug('Upload report file "{0}"'.format(report_file))
+            _logger.info('Upload report file "{0}"'.format(report_file))
             with open(report_file) as fp:
                 report = json.load(fp)
             # Read content of files specified via "__file:".

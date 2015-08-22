@@ -15,8 +15,8 @@ class PsiComponentError(ChildProcessError):
     pass
 
 
-class _PsiComponentBase(multiprocessing.Process):
-    def __init__(self, component, conf, logger, mqs=None):
+class PsiComponentBase(multiprocessing.Process):
+    def __init__(self, component, conf, logger, components=None, mqs=None):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -25,6 +25,8 @@ class _PsiComponentBase(multiprocessing.Process):
         # Parent logger will be used untill component will change working directory and get its own logger. We should
         # avoid to use parent logger in component process.
         self.logger = logger
+        # All Psi components.
+        self.components = components
         # MQs.
         self.mqs = mqs
 
@@ -59,10 +61,36 @@ class _PsiComponentBase(multiprocessing.Process):
             raise PsiComponentError('Component "{0}" failed'.format(self.name))
 
     def run(self):
+        # Remember approximate time of start to count wall time.
+        self.start_time = time.time()
+
+        # Specially process SIGTERM since it can be sent by parent when some other component(s) failed. Official
+        # documentation says that exit handlers and finally clauses, etc., will not be executed. But we still need
+        # to count consumed resources and create finish report - all this is done in self.__finalize().
+        signal.signal(signal.SIGTERM, self.__finalize)
+
         # Change working directory in child process.
         os.chdir(self.work_dir)
         # Get component specific logger.
         self.logger = psi.utils.get_logger(self.name, self.conf['logging'])
+
+        psi.utils.report(self.logger,
+                         'start',
+                         {'id': self.name,
+                          'parent id': '/',
+                          'name': self.name},
+                         self.mqs['report files'],
+                         self.conf['root id'])
+
+        # Try to launch component. Catch all exceptions to print information on them to logs (without this
+        # multiprocessing will print information on exceptions to STDERR).
+        try:
+            self.launch()
+        except Exception:
+            self.exception_info = traceback.format_exc().rstrip()
+            exit(1)
+        finally:
+            self.__finalize()
 
     def start(self):
         # Component working directory will be created in parent process.
@@ -83,53 +111,6 @@ class _PsiComponentBase(multiprocessing.Process):
 
         # Actually terminate process.
         multiprocessing.Process.terminate(self)
-
-
-class PsiComponentCallbacksBase(_PsiComponentBase):
-    def run(self):
-        _PsiComponentBase.run(self)
-
-        # Try to get component specific callbacks.
-        if hasattr(self.__class__, 'get_callbacks') and callable(getattr(self.__class__, 'get_callbacks')):
-            # Catch all exceptions to print them to logs.
-            try:
-                self.get_callbacks()
-            except Exception:
-                self.logger.exception('Raised exception:')
-                exit(1)
-        else:
-            self.logger.info('Have not any callbacks yet')
-
-
-class PsiComponentBase(_PsiComponentBase):
-    def run(self):
-        # Remember approximate time of start to count wall time.
-        self.start_time = time.time()
-
-        # Specially process SIGTERM since it can be sent by parent when some other component(s) failed. Official
-        # documentation says that exit handlers and finally clauses, etc., will not be executed. But we still need
-        # to count consumed resources and create finish report - all this is done in self.__finalize().
-        signal.signal(signal.SIGTERM, self.__finalize)
-
-        _PsiComponentBase.run(self)
-
-        psi.utils.report(self.logger,
-                         'start',
-                         {'id': self.name,
-                          'parent id': '/',
-                          'name': self.name},
-                         self.mqs['report files'],
-                         self.conf['root id'])
-
-        # Try to launch component. Catch all exceptions to print information on them to logs (without this
-        # multiprocessing will print information on exceptions to STDERR).
-        try:
-            self.launch()
-        except Exception:
-            self.exception_info = traceback.format_exc().rstrip()
-            exit(1)
-        finally:
-            self.__finalize()
 
     def __finalize(self, signum=None, frame=None):
         # If component didn't raise exception but exitted abnormally (that assumes special SystemExit exception).
