@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.core.files import File as Newfile
 from reports.models import *
 from reports.utils import save_attrs
-from marks.utils import ConnectMarks
+from marks.utils import ConnectReportWithMarks
 
 
 class UploadReport(object):
@@ -438,7 +438,7 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
-        ConnectMarks(report)
+        ConnectReportWithMarks(report)
         return report
 
     def __add_attrs(self, report):

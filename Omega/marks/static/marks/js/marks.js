@@ -99,12 +99,13 @@ function set_actions_for_mark_versions_delete() {
 }
 
 function activate_tags() {
-    var available_tags = [], old_tags = [], save_mark_btn = $('#save_mark_btn');
+    var available_tags = [], old_tags = [], save_mark_btn = $('#save_mark_btn'),
+        save_new_mark_btn = $('#save_new_mark_btn');
     $('#tags_old').children().each(function () {
         old_tags.push($(this).text());
     });
 
-    if (save_mark_btn.length) {
+    if (save_mark_btn.length || save_new_mark_btn.length) {
         $('#tags_available').children().each(function () {
         available_tags.push($(this).text());
         });

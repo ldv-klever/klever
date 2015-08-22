@@ -14,6 +14,7 @@ MARK_TITLES = {
     'mark_num': '№',
     'change_kind': _('Change kind'),
     'verdict': _("Verdict"),
+    'sum_verdict': _('Final verdict'),
     'result': _('Similarity'),
     'status': _('Status'),
     'author': _('Author'),
@@ -68,7 +69,7 @@ def result_color(result):
 class MarkChangesTable(object):
 
     def __init__(self, user, mark, changes):
-        self.columns = ['report', 'change_kind', 'verdict', 'job', 'format']
+        self.columns = ['report', 'change_kind', 'sum_verdict', 'job', 'format']
         self.mark = mark
         self.changes = changes
         self.__accessed_changes(user)
@@ -197,7 +198,7 @@ class MarkChangesTable(object):
                 elif col == 'report':
                     val = cnt
                     href = reverse('reports:leaf', args=['unsafe', report.pk])
-                elif col == 'verdict':
+                elif col == 'sum_verdict':
                     val = get_verdict_change(report)
                 elif col == 'status':
                     val = get_status_change()
@@ -302,7 +303,7 @@ class MarkChangesTable(object):
                 elif col == 'report':
                     val = cnt
                     href = reverse('reports:leaf', args=['safe', report.pk])
-                elif col == 'verdict':
+                elif col == 'sum_verdict':
                     val = get_verdict_change(report)
                 elif col == 'status':
                     val = get_status_change()
@@ -712,7 +713,8 @@ class MarkReportsTable(object):
         return values
 
 
-# Table data for showing links between the specified mark and reports
+# Table data for showing links between the specified mark and reports,
+# old version
 class MarkReportsTable2(object):
     def __init__(self, user, mark):
         self.columns = ['report', 'verdict']
