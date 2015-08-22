@@ -30,7 +30,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                   {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
                               ]}
                           ]},
-                         self.report_files_mq,
+                         self.mqs['report files'],
                          self.conf['root id'])
 
         # Start and finish AVTG plugins.
@@ -53,7 +53,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                       'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec}],
                                       'name': plugin,
                                       'parent id': 'AVTG'},
-                                     self.report_files_mq,
+                                     self.mqs['report files'],
                                      self.conf['root id'])
 
                     # As promised DEG11 fails.
@@ -63,7 +63,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                          {'id': 'unknown',
                                           'parent id': id,
                                           'problem desc': 'Fatal error!'},
-                                         self.report_files_mq,
+                                         self.mqs['report files'],
                                          self.conf['root id'])
 
                     psi.utils.report(self.logger,
@@ -74,7 +74,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                     'max mem size': random.randint(0, 1000000000)},
                                       'log': '',
                                       'data': ''},
-                                     self.report_files_mq,
+                                     self.mqs['report files'],
                                      self.conf['root id'])
 
                     os.chdir(os.pardir)

@@ -98,13 +98,11 @@ def launch():
             p.start()
             p.join()
 
-        component_processes = []
-        for component in components:
-            # Use the same reports MQ in all components.
-            # TODO: fix passing of MQs after all.
-            p = component.PsiComponent(component, components_conf, _logger, report_files_mq)
-            p.start()
-            component_processes.append(p)
+        # Use the same report files MQ in all components.
+        component_processes = psi.utils.invoke_callbacks(_logger, _launch_all_components, components,
+                                                         {'components': components,
+                                                          'components conf': components_conf,
+                                                          'MQs': {'report files': report_files_mq}})
 
         _logger.info('Wait for components')
         # Every second check whether some component died. Otherwise even if some non-first component will die we
@@ -295,6 +293,15 @@ def _get_version():
         version = ''
 
     return version
+
+
+def _launch_all_components(context):
+    component_processes = []
+    for component in context['components']:
+        p = component.PsiComponent(component, context['components conf'], _logger, context['MQs'])
+        p.start()
+        component_processes.append(p)
+    return component_processes
 
 
 def _prepare_work_dir():

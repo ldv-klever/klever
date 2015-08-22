@@ -16,7 +16,7 @@ class PsiComponentError(ChildProcessError):
 
 
 class _PsiComponentBase(multiprocessing.Process):
-    def __init__(self, component, conf, logger, report_files_mq=None):
+    def __init__(self, component, conf, logger, mqs=None):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -25,8 +25,8 @@ class _PsiComponentBase(multiprocessing.Process):
         # Parent logger will be used untill component will change working directory and get its own logger. We should
         # avoid to use parent logger in component process.
         self.logger = logger
-        # Reports MQ.
-        self.report_files_mq = report_files_mq
+        # MQs.
+        self.mqs = mqs
 
         # Use component specific name if defined. Otherwise multiprocessing.Process will use some artificial name.
         if hasattr(component, 'name'):
@@ -118,7 +118,7 @@ class PsiComponentBase(_PsiComponentBase):
                          {'id': self.name,
                           'parent id': '/',
                           'name': self.name},
-                         self.report_files_mq,
+                         self.mqs['report files'],
                          self.conf['root id'])
 
         # Try to launch component. Catch all exceptions to print information on them to logs (without this
@@ -158,7 +158,7 @@ class PsiComponentBase(_PsiComponentBase):
                              {'id': 'unknown',
                               'parent id': self.name,
                               'problem desc': '__file:problem desc'},
-                             self.report_files_mq,
+                             self.mqs['report files'],
                              self.conf['root id'])
 
         psi.utils.report(self.logger,
@@ -170,7 +170,7 @@ class PsiComponentBase(_PsiComponentBase):
                           'desc': '__file:desc',
                           'log': '__file:log',
                           'data': ''},
-                         self.report_files_mq,
+                         self.mqs['report files'],
                          self.conf['root id'])
 
         # Don't forget to terminate itself if somebody tries to do such.

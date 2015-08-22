@@ -30,7 +30,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                   {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
                               ]}
                           ]},
-                         self.report_files_mq,
+                         self.mqs['report files'],
                          self.conf['root id'])
 
         # Verification tasks are solved on another computer.
@@ -72,7 +72,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                         'max mem size': random.randint(0, 1000000000)},
                                           'log': '',
                                           'data': ''},
-                                         self.report_files_mq,
+                                         self.mqs['report files'],
                                          self.conf['root id'])
 
                         if i == 1 and k == 1:
@@ -90,7 +90,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                             'max mem size': random.randint(0, 1000000000)},
                                               'log': '',
                                               'data': ''},
-                                             self.report_files_mq,
+                                             self.mqs['report files'],
                                              self.conf['root id'],
                                              'retry')
 
@@ -120,7 +120,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                         'max mem size': random.randint(0, 1000000000)},
                                           'log': '',
                                           'data': ''},
-                                         self.report_files_mq,
+                                         self.mqs['report files'],
                                          self.conf['root id'])
 
                         os.chdir(os.pardir)

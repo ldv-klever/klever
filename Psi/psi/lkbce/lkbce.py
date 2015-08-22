@@ -43,7 +43,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                          'attrs',
                          {'id': self.name,
                           'attrs': self.linux_kernel['attrs']},
-                         self.report_files_mq,
+                         self.mqs['report files'],
                          self.conf['root id'])
         self.configure_linux_kernel()
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'

@@ -233,6 +233,10 @@ def get_parallel_threads_num(logger, conf, action):
     return str(parallel_threads_num)
 
 
+def invoke_callbacks(logger, func, components, context):
+    return func(context)
+
+
 def report(logger, type, report, mq=None, dir=None, suffix=None):
     logger.info('Create {0} report'.format(type))
 

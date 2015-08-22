@@ -30,7 +30,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                   {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
                               ]}
                           ]},
-                         self.report_files_mq,
+                         self.mqs['report files'],
                          self.conf['root id'])
 
         # Start and finish "WRAPPER". Upload safes, unsafes and unknowns in the middle.
@@ -52,7 +52,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                   'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec}],
                                   'name': 'WRAPPER',
                                   'parent id': 'VTG'},
-                                 self.report_files_mq,
+                                 self.mqs['report files'],
                                  self.conf['root id'])
 
                 # We have two different bug kinds for mutex and "WRAPPER*0" produces one verification task per each bug
@@ -69,7 +69,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
                                               'proof': 'It does not matter...'},
-                                             self.report_files_mq,
+                                             self.mqs['report files'],
                                              self.conf['root id'])
                         elif i == 0 and k == 1:
                             psi.utils.report(self.logger,
@@ -78,7 +78,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
                                               'error trace': 'It does not matter...'},
-                                             self.report_files_mq,
+                                             self.mqs['report files'],
                                              self.conf['root id'])
                         else:
                             psi.utils.report(self.logger,
@@ -87,7 +87,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
                                               'error trace': 'It does not matter...'},
-                                             self.report_files_mq,
+                                             self.mqs['report files'],
                                              self.conf['root id'],
                                              '1')
                             psi.utils.report(self.logger,
@@ -96,7 +96,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
                                               'error trace': 'It does not matter...'},
-                                             self.report_files_mq,
+                                             self.mqs['report files'],
                                              self.conf['root id'],
                                              '2')
                             psi.utils.report(self.logger,
@@ -105,7 +105,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
                                               'problem desc': 'Fatal error!'},
-                                             self.report_files_mq,
+                                             self.mqs['report files'],
                                              self.conf['root id'])
 
                 # We have two different entry points for spin lock and "WRAPPER01" produces one verification task per
@@ -121,7 +121,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               'attrs': [{'entry point': entry_point},
                                                         {'bug kind': 'linux:one thread:double acquisition'}],
                                               'error trace': 'It does not matter...'},
-                                             self.report_files_mq,
+                                             self.mqs['report files'],
                                              self.conf['root id'])
                         else:
                             psi.utils.report(self.logger,
@@ -131,7 +131,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               'attrs': [{'entry point': entry_point},
                                                         {'bug kind': 'linux:one thread:double acquisition'}],
                                               'problem desc': 'Fatal error!'},
-                                             self.report_files_mq,
+                                             self.mqs['report files'],
                                              self.conf['root id'])
 
                 psi.utils.report(self.logger,
@@ -142,7 +142,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                                 'max mem size': random.randint(0, 1000000000)},
                                   'log': '',
                                   'data': ''},
-                                 self.report_files_mq,
+                                 self.mqs['report files'],
                                  self.conf['root id'])
 
                 os.chdir(os.pardir)

@@ -29,5 +29,5 @@ class PsiComponent(psi.components.PsiComponentBase):
                                   {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
                               ]}
                           ]},
-                         self.report_files_mq,
+                         self.mqs['report files'],
                          self.conf['root id'])
