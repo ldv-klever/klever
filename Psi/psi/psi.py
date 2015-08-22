@@ -95,7 +95,7 @@ def launch():
         context = {'components': components,
                    'components conf': components_conf,
                    'MQs': {'report files': report_files_mq}}
-        psi.utils.invoke_callbacks(_logger, _launch_all_components, components, context)
+        psi.utils.invoke_callbacks(_launch_all_components, _logger, components, context)
         component_processes = context['component processes']
 
         _logger.info('Wait for components')

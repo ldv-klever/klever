@@ -234,12 +234,14 @@ def get_parallel_threads_num(logger, conf, action):
     return str(parallel_threads_num)
 
 
-def invoke_callbacks(logger, func, components=None, context=None):
+def invoke_callbacks(func, logger=None, components=None, context=None):
     action = re.sub(r'^_*', '', func.__name__)
     before_action = 'before_{0}'.format(action)
     after_action = 'after_{0}'.format(action)
 
     if '__self__' in dir(func):
+        logger = func.__self__.logger
+        components = func.__self__.components
         callbacks_context = func.__self__
     else:
         callbacks_context = context

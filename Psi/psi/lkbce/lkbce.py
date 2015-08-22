@@ -34,7 +34,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
         self.clean_linux_kernel_work_src_tree()
-        psi.utils.invoke_callbacks(self.logger, self.extract_linux_kernel_attrs, self.components)
+        psi.utils.invoke_callbacks(self.extract_linux_kernel_attrs)
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,
