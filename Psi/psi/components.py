@@ -167,7 +167,7 @@ class AuxPsiComponentError(ChildProcessError):
 # TODO: very close to _PsiComponentBase. Maybe join them together.
 class AuxPsiComponent(multiprocessing.Process):
     def __init__(self, func, logger):
-        multiprocessing.Process.__init__(self, target=func)
+        multiprocessing.Process.__init__(self)
 
         self.func = func
         self.logger = logger
