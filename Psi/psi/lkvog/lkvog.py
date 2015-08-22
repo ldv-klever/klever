@@ -18,23 +18,20 @@ def after_extract_linux_kernel_attrs(context):
 
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
-        self.linux_kernel = {}
-        self.linux_kernel['attrs'] = self.mqs['Linux kernel attrs'].get()
-
-        # TODO: delete following stub code after all.
+        self.linux_kernel_verification_objs_gen = {}
+        self.extract_linux_kernel_verification_objs_gen_attrs()
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,
-                          'attrs': [
-                              {"Linux kernel": [
-                                  {"version": "3.5.0"},
-                                  {"arch": "x86_64"},
-                                  {"conf shortcut": "allmodconfig"}
-                              ]},
-                              {'Linux kernel verification objs gen strategy': [
-                                  {'name': 'separate module'},
-                                  {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
-                              ]}
-                          ]},
+                          'attrs': self.linux_kernel_verification_objs_gen['attrs']},
                          self.mqs['report files'],
                          self.conf['root id'])
+
+    def extract_linux_kernel_verification_objs_gen_attrs(self):
+        self.logger.info('Extract Linux kernel verification objects generation strategy atributes')
+
+        self.linux_kernel_verification_objs_gen['attrs'] = self.mqs['Linux kernel attrs'].get()
+        self.mqs['Linux kernel attrs'].close()
+        self.linux_kernel_verification_objs_gen['attrs'].extend(
+            [{'Linux kernel verification objs gen strategy': [
+                {'name': self.conf['Linux kernel verification objs gen strategy']['name']}]}])
