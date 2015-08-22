@@ -198,7 +198,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                 fp.seek(offset)
 
                 # Read new lines from file.
-                cmd = None
+                self.linux_kernel['build cmd'] = {}
+                self.linux_kernel['build cmd']['type'] = None
                 opts = []
                 for line in fp:
                     if line == psi.lkbce.cmds.cmds.Command.cmds_separator:
@@ -206,14 +207,14 @@ class PsiComponent(psi.components.PsiComponentBase):
                             self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
                             return
                         else:
-                            self.process_raw_linux_kernel_build_cmd(cmd, opts)
+                            psi.utils.invoke_callbacks(self.process_linux_kernel_raw_build_cmd, args=(opts,))
 
                             # Go to the next command or finish operation.
-                            cmd = None
+                            self.linux_kernel['build cmd']['type'] = None
                             opts = []
                     else:
-                        if not cmd:
-                            cmd = line.rstrip()
+                        if not self.linux_kernel['build cmd']['type']:
+                            self.linux_kernel['build cmd']['type'] = line.rstrip()
                         else:
                             opts.append(line.rstrip())
 
@@ -228,18 +229,18 @@ class PsiComponent(psi.components.PsiComponentBase):
                     fp.seek(0)
                     fp.truncate()
 
-    def process_raw_linux_kernel_build_cmd(self, cmd, opts):
-        self.logger.info('Process Linux kernel raw build command "{0}"'.format(cmd))
+    def process_linux_kernel_raw_build_cmd(self, opts):
+        self.logger.info('Process Linux kernel raw build command "{0}"'.format(self.linux_kernel['build cmd']['type']))
 
-        cmd_in_files = []
-        cmd_out_file = None
-        cmd_opts = []
+        self.linux_kernel['build cmd']['in files'] = []
+        self.linux_kernel['build cmd']['out file'] = None
+        self.linux_kernel['build cmd']['opts'] = []
         # Input files and output files should be presented almost always.
         cmd_requires_in_files = True
         cmd_requires_out_file = True
 
-        if cmd == 'CC' or cmd == 'LD':
-            opts_requiring_vals = _cmd_opts[cmd]['opts requiring vals']
+        if self.linux_kernel['build cmd']['type'] in ('CC', 'LD'):
+            opts_requiring_vals = _cmd_opts[self.linux_kernel['build cmd']['type']]['opts requiring vals']
             skip_next_opt = False
             for idx, opt in enumerate(opts):
                 # Option represents already processed value of the previous option.
@@ -247,11 +248,13 @@ class PsiComponent(psi.components.PsiComponentBase):
                     skip_next_opt = False
                     continue
 
-                for opt_discarding_in_files in _cmd_opts[cmd]['opts discarding in files']:
+                for opt_discarding_in_files in \
+                        _cmd_opts[self.linux_kernel['build cmd']['type']]['opts discarding in files']:
                     if re.search(r'^-{0}'.format(opt_discarding_in_files), opt):
                         cmd_requires_in_files = False
 
-                for opt_discarding_out_file in _cmd_opts[cmd]['opts discarding out file']:
+                for opt_discarding_out_file in \
+                        _cmd_opts[self.linux_kernel['build cmd']['type']]['opts discarding out file']:
                     if re.search(r'^-{0}'.format(opt_discarding_out_file), opt):
                         cmd_requires_out_file = False
 
@@ -269,43 +272,44 @@ class PsiComponent(psi.components.PsiComponentBase):
 
                         # Output file.
                         if opt == 'o':
-                            cmd_out_file = val
+                            self.linux_kernel['build cmd']['out file'] = val
                         else:
                             # Use original formatting of options.
                             if skip_next_opt:
-                                cmd_opts.extend(['-{0}'.format(opt), val])
+                                self.linux_kernel['build cmd']['opts'].extend(['-{0}'.format(opt), val])
                             else:
-                                cmd_opts.append('-{0}{1}{2}'.format(opt, eq, val))
+                                self.linux_kernel['build cmd']['opts'].append('-{0}{1}{2}'.format(opt, eq, val))
 
                         break
 
                 if not match:
                     # Options without values.
                     if re.search(r'^-.+$', opt):
-                        cmd_opts.append(opt)
+                        self.linux_kernel['build cmd']['opts'].append(opt)
                     # Input files.
                     else:
-                        cmd_in_files.append(opt)
-        elif cmd == 'MV':
+                        self.linux_kernel['build cmd']['in files'].append(opt)
+        elif self.linux_kernel['build cmd']['type'] == 'MV':
             # We assume that MV options always have such the form:
             #     [-opt]... in_file out_file
             for opt in opts:
                 if re.search(r'^-', opt):
-                    cmd_opts.append(opt)
-                elif not cmd_in_files:
-                    cmd_in_files.append(opt)
+                    self.linux_kernel['build cmd']['opts'].append(opt)
+                elif not self.linux_kernel['build cmd']['in files']:
+                    self.linux_kernel['build cmd']['in files'].append(opt)
                 else:
-                    cmd_out_file = opt
+                    self.linux_kernel['build cmd']['out file'] = opt
         else:
             raise NotImplementedError(
-                'Linux kernel raw build command "{0}" is not supported yet'.format(cmd))
+                'Linux kernel raw build command "{0}" is not supported yet'.format(
+                    self.linux_kernel['build cmd']['type']))
 
-        if cmd_requires_in_files and not cmd_in_files:
+        if cmd_requires_in_files and not self.linux_kernel['build cmd']['in files']:
             raise ValueError(
                 'Could not get Linux kernel raw build command input files'
                 + ' from options "{0}"'.format(
                     opts))
-        if cmd_requires_out_file and not cmd_out_file:
+        if cmd_requires_out_file and not self.linux_kernel['build cmd']['out file']:
             raise ValueError(
                 'Could not get Linux kernel raw build command output file'
                 + ' from options "{0}"'.format(
@@ -316,18 +320,20 @@ class PsiComponent(psi.components.PsiComponentBase):
         original_opts = opts
         if '-o' in original_opts:
             original_opts.remove('-o')
-        resulting_opts = cmd_in_files + cmd_opts
-        if cmd_out_file:
-            resulting_opts.append(cmd_out_file)
+        resulting_opts = self.linux_kernel['build cmd']['in files'] + self.linux_kernel['build cmd']['opts']
+        if self.linux_kernel['build cmd']['out file']:
+            resulting_opts.append(self.linux_kernel['build cmd']['out file'])
         if set(original_opts) != set(resulting_opts):
             raise RuntimeError(
                 'Some options were not parsed: "{0} != {1} + {2} + {3}"'.format(original_opts,
-                                                                                cmd_in_files,
-                                                                                cmd_out_file,
-                                                                                cmd_opts))
+                                                                                self.linux_kernel['build cmd'][
+                                                                                    'in files'],
+                                                                                self.linux_kernel['build cmd'][
+                                                                                    'out file'],
+                                                                                self.linux_kernel['build cmd']['opts']))
 
         self.logger.debug(
-            'Input files are "{0}"'.format(cmd_in_files))
+            'Input files are "{0}"'.format(self.linux_kernel['build cmd']['in files']))
         self.logger.debug(
-            'Output file is "{0}"'.format(cmd_out_file))
-        self.logger.debug('Options are "{0}"'.format(cmd_opts))
+            'Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
+        self.logger.debug('Options are "{0}"'.format(self.linux_kernel['build cmd']['opts']))
