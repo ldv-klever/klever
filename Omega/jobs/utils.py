@@ -324,8 +324,7 @@ class ReadZipJob(object):
             elif file_name == 'type':
                 job_type = file_obj.read().decode('utf-8')
                 if job_type != self.parent.type:
-                    return _("The job class does not equal to the parent's"
-                             " class")
+                    return _("The job class does not equal to the parent class")
             elif file_name == 'filedata':
                 files_map = json.loads(file_obj.read().decode('utf-8'))
             elif file_name.startswith(JOBFILE_DIR):
@@ -679,9 +678,9 @@ def create_version(job, kwargs):
 def create_job(kwargs):
     newjob = Job()
     if 'name' not in kwargs or len(kwargs['name']) == 0:
-        return _("Job's title is required")
+        return _("Job title is required")
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        return _("Job's author is required")
+        return _("Job author is required")
     newjob.name = kwargs['name']
     newjob.change_author = kwargs['author']
     if 'parent' in kwargs:

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-08-24 13:08+0000\n"
+"POT-Creation-Date: 2015-08-24 13:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -195,7 +195,7 @@ msgstr "Несовместимые оценки"
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: Omega/views.py:29 jobs/utils.py:261 jobs/utils.py:726 jobs/views.py:42
+#: Omega/views.py:29 jobs/utils.py:261 jobs/utils.py:725 jobs/views.py:42
 #: jobs/views.py:47 jobs/views.py:86 jobs/views.py:91 jobs/views.py:115
 #: jobs/views.py:123 jobs/views.py:161 jobs/views.py:165 jobs/views.py:312
 #: jobs/views.py:340 jobs/views.py:400 jobs/views.py:493 jobs/views.py:501
@@ -361,7 +361,7 @@ msgstr "Сохранить"
 msgid "Cancel"
 msgstr "Отменить"
 
-#: jobs/templates/jobs/editJob.html:105 jobs/utils.py:730
+#: jobs/templates/jobs/editJob.html:105 jobs/utils.py:729
 #: marks/templates/marks/EditMark.html:68
 msgid "Change comment is required"
 msgstr "Требуется написать комментарий к изменению"
@@ -836,66 +836,66 @@ msgid "The job format is not supported"
 msgstr "Формат задания не поддерживается"
 
 #: jobs/utils.py:327
-msgid "The job class does not equal to the parent's class"
+msgid "The job class does not equal to the parent class"
 msgstr "Класс задания не совпадает с классом родителя"
 
-#: jobs/utils.py:354 jobs/utils.py:376
+#: jobs/utils.py:353 jobs/utils.py:375
 msgid "The job archive is corrupted"
 msgstr "Архив задания поврежден"
 
-#: jobs/utils.py:356
+#: jobs/utils.py:355
 msgid "Couldn't find the job format"
 msgstr "Не удалось найти формат задания"
 
-#: jobs/utils.py:358
+#: jobs/utils.py:357
 msgid "Couldn't find the job class"
 msgstr "Не удалось найти класс задания"
 
-#: jobs/utils.py:590
+#: jobs/utils.py:589
 msgid "ms"
 msgstr "мс"
 
-#: jobs/utils.py:594
+#: jobs/utils.py:593
 msgid "s"
 msgstr "с"
 
-#: jobs/utils.py:598
+#: jobs/utils.py:597
 msgid "min"
 msgstr "мин"
 
-#: jobs/utils.py:599
+#: jobs/utils.py:598
 msgid "h"
 msgstr "ч"
 
-#: jobs/utils.py:607
+#: jobs/utils.py:606
 msgid "B"
 msgstr "Б"
 
-#: jobs/utils.py:611
+#: jobs/utils.py:610
 msgid "KiB"
 msgstr "Кбайт"
 
-#: jobs/utils.py:615
+#: jobs/utils.py:614
 msgid "MiB"
 msgstr "Мбайт"
 
-#: jobs/utils.py:616
+#: jobs/utils.py:615
 msgid "GiB"
 msgstr "Гбайт"
 
-#: jobs/utils.py:682
-msgid "Job's title is required"
+#: jobs/utils.py:681
+msgid "Job title is required"
 msgstr "Требуется название задания"
 
-#: jobs/utils.py:684
-msgid "Job's author is required"
+#: jobs/utils.py:683
+msgid "Job author is required"
 msgstr "Требуется автор задания"
 
-#: jobs/utils.py:694
+#: jobs/utils.py:693
 msgid "The parent or the job class are required"
 msgstr "Требуется родитель или класс задания"
 
-#: jobs/utils.py:728
+#: jobs/utils.py:727
 msgid "Change author is required"
 msgstr "Требуется автор изменения"
 
