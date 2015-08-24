@@ -6,36 +6,6 @@ function isFileReadable(name) {
     return ($.inArray(extension, readable_extensions) !== -1);
 }
 
-function check_all_roles () {
-    var global_role = $('#job_global_roles').children('option:selected').val();
-    var gr_num = parseInt(global_role);
-    if (gr_num === 4) {
-        $('#job_user_role_div').hide();
-        return false;
-    }
-    $('#all_user_roles').find("select[id^='job_user_role_select__']").each(function () {
-        var is_dis = false;
-        var has_selected = $(this).children('option[selected="selected"]').length;
-        $(this).children('option').each(function () {
-            var opt_num = parseInt($(this).val());
-            if (opt_num < gr_num) {
-                $(this).attr('disabled', 'disabled');
-            }
-            else if (opt_num === gr_num) {
-                $(this).attr('disabled', 'disabled');
-                is_dis = true;
-            }
-            else if (is_dis) {
-                if (has_selected === 0) {
-                    $(this).attr('selected', 'selected');
-                }
-                return false;
-            }
-        });
-    });
-    return false;
-}
-
 
 function check_filename(str) {
     if (str.length > 0) {
@@ -43,7 +13,7 @@ function check_filename(str) {
             return true;
         }
         else {
-            err_notify("Name with non-ASCII characters must be less than 30 characters!");
+            err_notify($("#error__filename_not_ascii").text());
             return false;
         }
     }
@@ -52,26 +22,55 @@ function check_filename(str) {
 }
 
 
-function check_add_user_role() {
-    if ($('#job_available_users').children().length === 0) {
-        $('#job_user_role_div').hide();
-    }
-    else {
-        $('#job_user_role_div').show();
-    }
-}
-
-
-function remove_user_role_form (id) {
-    $('#job_available_users').append($('<option>', {
-        value: id,
-        text: $("label[for='job_user_role_select__" + id + "']").text()
-    }));
-    $('#job_user_role__' + id).remove();
-}
-
-
 function set_actions_for_edit_form () {
+
+    function check_all_roles() {
+        var global_role = $('#job_global_roles').children('option:selected').val();
+        var gr_num = parseInt(global_role);
+        if (gr_num === 4) {
+            $('#job_user_role_div').hide();
+            return false;
+        }
+        $('#all_user_roles').find("select[id^='job_user_role_select__']").each(function () {
+            var is_dis = false;
+            var has_selected = $(this).children('option[selected="selected"]').length;
+            $(this).children('option').each(function () {
+                var opt_num = parseInt($(this).val());
+                if (opt_num < gr_num) {
+                    $(this).attr('disabled', 'disabled');
+                }
+                else if (opt_num === gr_num) {
+                    $(this).attr('disabled', 'disabled');
+                    is_dis = true;
+                }
+                else if (is_dis) {
+                    if (has_selected === 0) {
+                        $(this).attr('selected', 'selected');
+                    }
+                    return false;
+                }
+            });
+        });
+        return false;
+    }
+
+    function remove_user_role_form (id) {
+        $('#job_available_users').append($('<option>', {
+            value: id,
+            text: $("label[for='job_user_role_select__" + id + "']").text()
+        }));
+        $('#job_user_role__' + id).remove();
+    }
+
+    function check_add_user_role() {
+        if ($('#job_available_users').children().length === 0) {
+            $('#job_user_role_div').hide();
+        }
+        else {
+            $('#job_user_role_div').show();
+        }
+    }
+
     check_all_roles();
     check_add_user_role();
     set_actions_for_file_form();
@@ -228,20 +227,6 @@ function set_actions_for_edit_form () {
             }
         );
     });
-}
-
-
-function get_folders() {
-    var options = [];
-    $('input[id^="selected_filerow__0__"]').each(function () {
-        var folder_id = $(this).attr('id').replace('selected_filerow__0__', '');
-        var new_option = $('<option>', {
-            value: folder_id,
-            text: $('#file_title__0__' + folder_id).text()
-        });
-        options.push(new_option);
-    });
-    return options;
 }
 
 
@@ -444,6 +429,20 @@ function set_action_on_file_click () {
 }
 
 function set_actions_for_file_form() {
+
+    function get_folders() {
+        var options = [];
+        $('input[id^="selected_filerow__0__"]').each(function () {
+            var folder_id = $(this).attr('id').replace('selected_filerow__0__', '');
+            var new_option = $('<option>', {
+                value: folder_id,
+                text: $('#file_title__0__' + folder_id).text()
+            });
+            options.push(new_option);
+        });
+        return options;
+    }
+
     update_treegrid();
     set_action_on_file_click();
     var cnt = 0;

@@ -21,7 +21,7 @@
         {% trans 'Title' %}<input class="form-control" id="job_title" type="text" value="{{ job.name }}">
     </label>
 
-    {% if job_versions|length %}
+    {% if job_id %}
         <label for="job_parent_identifier">{% trans 'Parent identifier' %}</label>
         <input class="form-control" id="job_parent_identifier" type="text"{% if parent_id %} value="{{ parent_id }}"{% endif %}>
     {% else %}
@@ -83,11 +83,11 @@
     <h4>{% trans 'Files' %}</h4>
     {% include 'jobs/filesTree.html' %}
     <hr>
-    {% if job_versions|length %}
+    {% if job_id %}
         <label style="width: 100%;">{% trans "Change comment" %}<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
     {% endif %}
     <button id="save_job_btn" type="submit" class="btn btn-success">{% trans 'Save' %}</button>
-    {% if job_versions|length %}
+    {% if job_id %}
         <button id="cancel_edit_job_btn" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</button>
     {% endif %}
 </form>
@@ -104,5 +104,3 @@
 </div>
 <div id="error__comment_required" hidden>{% trans "Change comment is required" %}</div>
 <div id="error__title_required" hidden>{% trans 'Title is required' %}</div>
-<div id="error__cant_move_dir" hidden>{% trans "You can't move folder" %}</div>
-<div id="error__nofile_selected" hidden>{% trans "Please choose the file" %}</div>

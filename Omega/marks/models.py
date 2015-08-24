@@ -195,7 +195,7 @@ class MarkUnsafeTag(models.Model):
 
 
 class UnsafeReportTag(models.Model):
-    report = models.ForeignKey(ReportUnsafe)
+    report = models.ForeignKey(ReportUnsafe, related_name='tags')
     tag = models.ForeignKey(UnsafeTag)
     number = models.PositiveIntegerField(default=0)
 
@@ -204,7 +204,7 @@ class UnsafeReportTag(models.Model):
 
 
 class SafeReportTag(models.Model):
-    report = models.ForeignKey(ReportSafe)
+    report = models.ForeignKey(ReportSafe, related_name='tags')
     tag = models.ForeignKey(SafeTag)
     number = models.PositiveIntegerField(default=0)
 

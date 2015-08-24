@@ -2,13 +2,13 @@
 
 <dl class="dl-horizontal">
     {% if description|length %}
-        <dt class="purple-title">{% trans 'Description' %}:</dt><dd class="dt-text">{{ description|safe }}</dd><br>
+        <dt class="purple-title">{% trans 'Description' %}</dt><dd class="dt-text">{{ description|safe }}</dd><br>
     {% endif %}
     {% if job.parent_id %}
-        <dt class="purple-title">{% trans 'Parent identifier' %}:</dt>
+        <dt class="purple-title">{% trans 'Parent identifier' %}</dt>
         <dd style="color: #15c46b">{{ job.parent.identifier }}</dd><br>
     {% endif %}
     {% if filedata|length %}
-        <dt class="purple-title">{% trans 'Files' %}:</dt><dd>{% include 'jobs/viewFileTable.html' %}</dd>
+        <dt class="purple-title">{% trans 'Files' %}</dt><dd>{% include 'jobs/viewFileTable.html' %}</dd>
     {% endif %}
 </dl>

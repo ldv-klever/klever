@@ -261,7 +261,10 @@ def edit_job(request):
 
     job_id = request.POST.get('job_id', 0)
 
-    job = get_object_or_404(Job, pk=int(job_id))
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return HttpResponse('')
     if not JobAccess(request.user, job).can_edit():
         return HttpResponse('')
 
@@ -410,7 +413,7 @@ def save_job(request):
     job_id = request.POST.get('job_id', None)
     parent_identifier = request.POST.get('parent_identifier', None)
 
-    if job_id:
+    if job_id is not None:
         try:
             job = Job.objects.get(pk=int(job_id))
         except ObjectDoesNotExist:
@@ -423,7 +426,7 @@ def save_job(request):
                 'status': 1,
                 'message': _("You don't have an access to edit this job")
             })
-        if parent_identifier:
+        if parent_identifier is not None and len(parent_identifier) > 0:
             parents = Job.objects.filter(
                 identifier__startswith=parent_identifier
             )
@@ -452,7 +455,7 @@ def save_job(request):
                                  "be set for this job")
                 })
             job_kwargs['parent'] = parent
-        elif job.parent:
+        elif job.parent is not None:
             return JsonResponse({
                 'status': 1,
                 'message': _("The parent identifier is required for this job")
@@ -471,7 +474,7 @@ def save_job(request):
             return JsonResponse({'status': 0, 'job_id': job.pk})
         else:
             return JsonResponse({'status': 1, 'message': updated_job + ''})
-    elif job_id is None and parent_identifier is not None:
+    elif parent_identifier is not None:
         try:
             parent = Job.objects.get(identifier=parent_identifier)
         except ObjectDoesNotExist:
@@ -527,7 +530,6 @@ def remove_jobs(request):
 @login_required
 def showjobdata(request):
     activate(request.user.extended.language)
-
     if request.method != 'POST':
         return HttpResponse('')
     try:
@@ -657,38 +659,35 @@ def check_access(request):
 
 @login_required
 def upload_job(request, parent_id=None):
-    if len(parent_id) > 0:
-        parents = Job.objects.filter(identifier__startswith=parent_id)
-        if len(parents) == 0:
-            return JsonResponse({
-                'status': False,
-                'message': _("Parent with the specified identifier "
-                             "was not found")
-            })
-        elif len(parents) > 1:
-            return JsonResponse({
-                'status': False,
-                'message': _("Too many jobs starts with the specified "
-                             "identifier")
-            })
-        parent = parents[0]
-        failed_jobs = []
-        for f in request.FILES.getlist('file'):
-            zipdata = ReadZipJob(parent, request.user, f)
-            if zipdata.err_message is not None:
-                failed_jobs.append([zipdata.err_message + '', f.name])
-        if len(failed_jobs) > 0:
-            return JsonResponse({
-                'status': False,
-                'messages': failed_jobs
-            })
+    if len(parent_id) == 0:
         return JsonResponse({
-            'status': True
+            'status': False,
+            'message': _("The parent identifier was not got")
         })
-
+    parents = Job.objects.filter(identifier__startswith=parent_id)
+    if len(parents) == 0:
+        return JsonResponse({
+            'status': False,
+            'message': _("The parent with the specified identifier was not found")
+        })
+    elif len(parents) > 1:
+        return JsonResponse({
+            'status': False,
+            'message': _("Too many jobs starts with the specified identifier")
+        })
+    parent = parents[0]
+    failed_jobs = []
+    for f in request.FILES.getlist('file'):
+        zipdata = ReadZipJob(parent, request.user, f)
+        if zipdata.err_message is not None:
+            failed_jobs.append([zipdata.err_message + '', f.name])
+    if len(failed_jobs) > 0:
+        return JsonResponse({
+            'status': False,
+            'messages': failed_jobs
+        })
     return JsonResponse({
-        'status': False,
-        'message': _("Parent identifier was not got")
+        'status': True
     })
 
 
@@ -763,16 +762,3 @@ def getfilecontent(request):
     except ObjectDoesNotExist:
         return JsonResponse({'message': _("The file was not found")})
     return HttpResponse(source.file.file.read())
-
-
-@login_required
-def clear_all_files(request):
-    if request.user.is_staff:
-        deleted = clear_files()
-        for i in range(0, len(deleted)):
-            deleted[i] = "<li>%s</li>" % deleted[i]
-        if len(deleted) > 0:
-            return HttpResponse("<h1>Deleted files</h1><ul>%s</ul>" %
-                                ''.join(deleted))
-        return HttpResponse("<h1>Nothing to delete</h1>")
-    return HttpResponse("<h1>You are not the staff</h1>")

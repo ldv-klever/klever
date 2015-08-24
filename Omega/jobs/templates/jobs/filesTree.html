@@ -29,7 +29,7 @@
     <label for="new_folder_name">{% trans 'Folder name' %}</label>
         <input id="tmp___new_folder_name" type="text" class="form-control" placeholder="{% trans 'Name' %}">
     <br>
-    <label for="tmp___new_folder_parent">{% trans 'Subfolder of' %}:</label>
+    <label for="tmp___new_folder_parent">{% trans 'Subfolder of' %}</label>
     <select id="tmp___new_folder_parent" class="form-control">
         <option value="root">{% trans 'Root' %}</option>
     </select>
@@ -39,7 +39,7 @@
 </div>
 <div id="rename_template" hidden>
     <hr>
-    <label for="tmp___object_name">{% trans 'New name' %}:</label>
+    <label for="tmp___object_name">{% trans 'New name' %}</label>
     <input id="tmp___object_name" type="text" class="form-control">
     <br>
     <button id="tmp___change_name_btn" type="button" class="btn btn-success">{% trans 'Rename' %}</button>
@@ -47,7 +47,7 @@
 </div>
 <div id="move_object_template" hidden>
     <hr>
-    <label for="tmp___move_object_parent">{% trans 'Move' %} '<span id="tmp___moving_object_title"></span>' {% trans 'to' %}:</label>
+    <label for="tmp___move_object_parent">{% trans 'Move' %} '<span id="tmp___moving_object_title"></span>' {% trans 'to' %}</label>
     <select id="tmp___move_object_parent" class="form-control">
         <option value="root">{% trans 'Root' %}</option>
     </select>
@@ -65,10 +65,10 @@
     <hr>
     <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="tmp___new_file_input" type="file"></span>
     <br><br>
-    <label for="tmp___new_file_name">{% trans 'Name' %}:</label>
+    <label for="tmp___new_file_name">{% trans 'Name' %}</label>
     <input id="tmp___new_file_name" type="text" class="form-control">
     <br>
-    <label for="tmp___new_file_parent">{% trans 'Upload to folder' %}:</label>
+    <label for="tmp___new_file_parent">{% trans 'Upload to folder' %}</label>
     <select id="tmp___new_file_parent" class="form-control">
         <option value="root">{% trans 'Root' %}</option>
     </select>
@@ -80,7 +80,7 @@
     <hr>
     <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="tmp___new_file_input" type="file"></span>
     <br><br>
-    <label for="tmp___new_file_name">{% trans 'Name' %}:</label>
+    <label for="tmp___new_file_name">{% trans 'Name' %}</label>
     <input id="tmp___new_file_name" type="text" class="form-control">
     <br>
     <button id="tmp___save_new_file_btn" class="btn btn-success" type="button">{% trans 'Replace' %}</button>
@@ -96,3 +96,6 @@
 <span id="error__file_not_uploaded" hidden>{% trans 'One of the files was not uploaded' %}</span>
 <span id="error__cant_replace_folder" hidden>{% trans "The folder can't be replaced with the file" %}</span>
 <span id="error__noselected_replace" hidden>{% trans "Choose the file you want to replace" %}</span>
+<span id="error__cant_move_dir" hidden>{% trans "You can't move folder" %}</span>
+<span id="error__nofile_selected" hidden>{% trans "Please choose the file" %}</span>
+<span id="error__filename_not_ascii" hidden>{% trans "Names with non-ASCII characters must be less than 30 characters" %}</span>

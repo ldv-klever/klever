@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat,\
-    ugettext_noop
+    override
 from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole,\
     JOBFILE_DIR
@@ -324,8 +324,7 @@ class ReadZipJob(object):
             elif file_name == 'type':
                 job_type = file_obj.read().decode('utf-8')
                 if job_type != self.parent.type:
-                    return _("The job class does not equal to the parent's"
-                             " class")
+                    return _("The job class does not equal to the parent class")
             elif file_name == 'filedata':
                 files_map = json.loads(file_obj.read().decode('utf-8'))
             elif file_name.startswith(JOBFILE_DIR):
@@ -490,7 +489,8 @@ class JobArchive(object):
         write_file_str(jobtar_obj, 'format', str(self.job.format))
         for job_class in JOB_CLASSES:
             if job_class[0] == self.job.type:
-                write_file_str(jobtar_obj, 'class', ugettext_noop(job_class[1]))
+                with override('en'):
+                    write_file_str(jobtar_obj, 'class', job_class[1])
                 break
         for f in files_for_tar:
             if f['src'] is None:
@@ -679,9 +679,9 @@ def create_version(job, kwargs):
 def create_job(kwargs):
     newjob = Job()
     if 'name' not in kwargs or len(kwargs['name']) == 0:
-        return _("Job's title is required")
+        return _("Job title is required")
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        return _("Job's author is required")
+        return _("Job author is required")
     newjob.name = kwargs['name']
     newjob.change_author = kwargs['author']
     if 'parent' in kwargs:
@@ -783,12 +783,9 @@ def delete_versions(job, versions):
 
 
 def clear_files():
-    deleted = []
     for file in File.objects.all():
         if len(file.filesystem_set.all()) == 0:
-            deleted.append(file.file.name)
             file.delete()
-    return deleted
 
 
 def check_new_parent(job, parent):

@@ -66,20 +66,20 @@ class Population(object):
             description = getattr(ConvertTrace, func_name).__doc__
             func, crtd = MarkUnsafeConvert.objects.get_or_create(name=func_name)
             if crtd or description != func.description:
-                self.functions_updated = True
-            elif isinstance(description, str):
-                func.description = description
-                func.save()
+                if isinstance(description, str):
+                    self.functions_updated = True
+                    func.description = description
+                    func.save()
 
         for func_name in [x for x, y in CompareTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
             description = getattr(CompareTrace, func_name).__doc__
             func, crtd = MarkUnsafeCompare.objects.get_or_create(name=func_name)
             if crtd or description != func.description:
-                self.functions_updated = True
-            elif isinstance(description, str):
-                func.description = description
-                func.save()
+                if isinstance(description, str):
+                    self.functions_updated = True
+                    func.description = description
+                    func.save()
 
     def __extend_user(self, user, role='1'):
         self.user = self.user

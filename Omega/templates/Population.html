@@ -23,11 +23,11 @@
         {% endif %}
     {% else %}
         <h1>{% trans 'Welcome to Omega!' %}</h1>
-        <h4>{% trans "Specified manager's username will be used for jobs population if it doesn't exists. If manager doesn't exists he will be created." %}</h4>
+        <h4>{% trans "Create the Manager with the specified username and jobs of all classes on behalf of that Manager" %}</h4>
         <hr>
         <form method="post">
             {% csrf_token %}
-            <label for="manager_username">{% trans 'Manger username' %}</label>
+            <label for="manager_username">{% trans 'Manager username' %}</label>
             <input id="manager_username" name="manager_username" type="text">
             <button type="submit" id="populate_button" class="btn btn-success">{% trans 'Populate' %}</button>
         </form>
