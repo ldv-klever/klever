@@ -14,7 +14,7 @@ MARK_TITLES = {
     'mark_num': '№',
     'change_kind': _('Change kind'),
     'verdict': _("Verdict"),
-    'sum_verdict': _('Final verdict'),
+    'sum_verdict': _('Total verdict'),
     'result': _('Similarity'),
     'status': _('Status'),
     'author': _('Author'),

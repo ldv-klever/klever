@@ -14,7 +14,7 @@
             <h2><ins>{{ report.component.name }}</ins></h2>
             <span class="tooltip-content">
                 <strong>{{ report.component.name }}</strong><br>
-                <!--span class="purple-subtitle">{% trans 'Last request date' %}: </span--> {{ report.root.last_request_date|date:"d.m.y H:i:s"|date:"" }}
+                <!--span class="purple-subtitle">{% trans '__Last request date' %}: </span--> {{ report.root.last_request_date|date:"d.m.y H:i:s"|date:"" }}
                 <!--br-->
                 {% if duration != None %}
                     {% if duration %}
