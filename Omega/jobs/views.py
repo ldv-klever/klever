@@ -662,20 +662,18 @@ def upload_job(request, parent_id=None):
     if len(parent_id) == 0:
         return JsonResponse({
             'status': False,
-            'message': _("Parent identifier was not got")
+            'message': _("The parent identifier was not got")
         })
     parents = Job.objects.filter(identifier__startswith=parent_id)
     if len(parents) == 0:
         return JsonResponse({
             'status': False,
-            'message': _("Parent with the specified identifier "
-                         "was not found")
+            'message': _("The parent with the specified identifier was not found")
         })
     elif len(parents) > 1:
         return JsonResponse({
             'status': False,
-            'message': _("Too many jobs starts with the specified "
-                         "identifier")
+            'message': _("Too many jobs starts with the specified identifier")
         })
     parent = parents[0]
     failed_jobs = []

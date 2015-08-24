@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-08-24 13:58+0000\n"
+"POT-Creation-Date: 2015-08-24 14:37+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,12 +33,12 @@ msgstr ""
 msgid "The page was not found"
 msgstr "Страница не была найдена"
 
-#: Omega/vars.py:7 jobs/views.py:318 jobs/views.py:345 jobs/views.py:419
-#: jobs/views.py:507 jobs/views.py:645
+#: Omega/vars.py:7 jobs/views.py:321 jobs/views.py:348 jobs/views.py:422
+#: jobs/views.py:510 jobs/views.py:647
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
-#: Omega/vars.py:8 jobs/views.py:650
+#: Omega/vars.py:8 jobs/views.py:652
 msgid "You don't have an access to this job"
 msgstr "У Вас нет прав на данное задание"
 
@@ -56,7 +56,7 @@ msgstr ""
 msgid "The report was not found"
 msgstr "Отчет не был найден"
 
-#: Omega/vars.py:12 marks/views.py:343 marks/views.py:382
+#: Omega/vars.py:12 marks/views.py:336 marks/views.py:375
 msgid "The mark was not found"
 msgstr "Оценка не была найдена"
 
@@ -197,11 +197,11 @@ msgstr "Нет оценок"
 
 #: Omega/views.py:29 jobs/utils.py:261 jobs/utils.py:725 jobs/views.py:42
 #: jobs/views.py:47 jobs/views.py:86 jobs/views.py:91 jobs/views.py:115
-#: jobs/views.py:123 jobs/views.py:161 jobs/views.py:165 jobs/views.py:312
-#: jobs/views.py:340 jobs/views.py:400 jobs/views.py:493 jobs/views.py:501
-#: jobs/views.py:756 jobs/views.py:760 marks/utils.py:743 marks/utils.py:873
-#: marks/views.py:169 marks/views.py:187 marks/views.py:200 marks/views.py:327
-#: marks/views.py:340 marks/views.py:367 marks/views.py:380 users/views.py:204
+#: jobs/views.py:123 jobs/views.py:161 jobs/views.py:165 jobs/views.py:315
+#: jobs/views.py:343 jobs/views.py:403 jobs/views.py:496 jobs/views.py:504
+#: jobs/views.py:755 jobs/views.py:759 marks/utils.py:737 marks/utils.py:863
+#: marks/views.py:169 marks/views.py:187 marks/views.py:200 marks/views.py:320
+#: marks/views.py:333 marks/views.py:360 marks/views.py:373 users/views.py:204
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
@@ -259,7 +259,7 @@ msgstr "Название компонента"
 #: jobs/JobTableProperties.py:41 jobs/templates/jobs/jobData.html:41
 #: jobs/templates/jobs/viewJobFilters.html:15
 #: jobs/templates/jobs/viewJobFilters.html:24 jobs/utils.py:65
-#: templates/base.html:59
+#: templates/base.html:58
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
@@ -280,7 +280,7 @@ msgstr "Формат"
 msgid "Total"
 msgstr "Всего"
 
-#: jobs/templates/jobs/base.html:5 templates/base.html:46
+#: jobs/templates/jobs/base.html:5 templates/base.html:45
 msgid "Jobs"
 msgstr "Задания"
 
@@ -338,7 +338,7 @@ msgstr "Комментарий"
 
 #: jobs/templates/jobs/editJob.html:89 jobs/templates/jobs/tree.html:294
 #: marks/templates/marks/CreateMark.html:59
-#: marks/templates/marks/CreateMark.html:99
+#: marks/templates/marks/CreateMark.html:101
 #: marks/templates/marks/EditMark.html:64 templates/viewButtons.html:11
 #: users/templates/users/edit-profile.html:43
 #: users/templates/users/notifications.html:29
@@ -353,11 +353,11 @@ msgstr "Сохранить"
 #: jobs/templates/jobs/viewVersions.html:17
 #: jobs/templates/jobs/viewVersions.html:31
 #: marks/templates/marks/CreateMark.html:58
-#: marks/templates/marks/CreateMark.html:98
+#: marks/templates/marks/CreateMark.html:100
 #: marks/templates/marks/EditMark.html:81
 #: marks/templates/marks/markVersions.html:17
-#: marks/templates/marks/markVersions.html:31 templates/base.html:101
-#: templates/base.html.py:124
+#: marks/templates/marks/markVersions.html:31 templates/base.html:100
+#: templates/base.html.py:123
 msgid "Cancel"
 msgstr "Отменить"
 
@@ -369,14 +369,6 @@ msgstr "Требуется написать комментарий к измен
 #: jobs/templates/jobs/editJob.html:106
 msgid "Title is required"
 msgstr "Требуется указать название"
-
-#: jobs/templates/jobs/editJob.html:107
-msgid "You can't move folder"
-msgstr "Вы не можете переместить папку"
-
-#: jobs/templates/jobs/editJob.html:108
-msgid "Please choose the file"
-msgstr "Пожалуйста, выберете файл"
 
 #: jobs/templates/jobs/filesTree.html:17
 msgid "New folder"
@@ -450,7 +442,7 @@ msgid "will be deleted. Do you want to continue?"
 msgstr "будет удален(а). Вы хотите продолжить?"
 
 #: jobs/templates/jobs/filesTree.html:66 jobs/templates/jobs/filesTree.html:81
-#: templates/base.html:95 templates/base.html.py:118
+#: templates/base.html:94 templates/base.html.py:117
 msgid "Browse"
 msgstr "Выбрать файл"
 
@@ -478,17 +470,31 @@ msgstr "Папка не может быть заменена на файл"
 msgid "Choose the file you want to replace"
 msgstr "Укажите файл, который Вы хотите заменить"
 
+#: jobs/templates/jobs/filesTree.html:99
+msgid "You can't move folder"
+msgstr "Вы не можете переместить папку"
+
+#: jobs/templates/jobs/filesTree.html:100
+msgid "Please choose the file"
+msgstr "Пожалуйста, выберете файл"
+
+#: jobs/templates/jobs/filesTree.html:101
+msgid "Names with non-ASCII characters must be less than 30 characters"
+msgstr ""
+"Названия, в которых используются не ASCII символы, должны быть меньше 30 "
+"символов"
+
 #: jobs/templates/jobs/jobData.html:7
 #: jobs/templates/jobs/viewJobFilters.html:13 jobs/utils.py:57
 #: jobs/utils.py:71 reports/views.py:107 reports/views.py:111
-#: templates/base.html:58
+#: templates/base.html:57
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
 #: jobs/templates/jobs/jobData.html:23
 #: jobs/templates/jobs/viewJobFilters.html:14 jobs/utils.py:50
 #: jobs/utils.py:70 reports/views.py:98 reports/views.py:102
-#: templates/base.html:60
+#: templates/base.html:59
 msgid "Safes"
 msgstr "Доказательства корректности"
 
@@ -518,7 +524,7 @@ msgstr ""
 "Показаны ресурсы (астрономическое время, процессорное время и максимальный "
 "объем оперативной памяти) по отдельности для каждого компонента и суммарно"
 
-#: jobs/templates/jobs/tree.html:5 templates/base.html:49
+#: jobs/templates/jobs/tree.html:5 templates/base.html:48
 msgid "Jobs Tree"
 msgstr "Дерево заданий"
 
@@ -723,7 +729,7 @@ msgstr "Класс"
 
 #: jobs/templates/jobs/viewJob.html:34 jobs/utils.py:72 jobs/utils.py:76
 #: marks/templates/marks/EditMark.html:21
-#: marks/templates/marks/ViewMark.html:27 templates/base.html:115
+#: marks/templates/marks/ViewMark.html:27 templates/base.html:114
 msgid "Identifier"
 msgstr "Идентификатор"
 
@@ -942,31 +948,31 @@ msgstr "Вы не можете удалить представление, кот
 msgid "The view was successfully removed"
 msgstr "Представление было успешно удалено"
 
-#: jobs/views.py:277 marks/views.py:70
+#: jobs/views.py:280 marks/views.py:70
 msgid "Current version"
 msgstr "Текущая версия"
 
-#: jobs/views.py:323
+#: jobs/views.py:326
 msgid "You don't have access to delete versions"
 msgstr "У Вас нет прав удалить версии"
 
-#: jobs/views.py:332 marks/views.py:359
+#: jobs/views.py:335 marks/views.py:352
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
-#: jobs/views.py:334 marks/views.py:361
+#: jobs/views.py:337 marks/views.py:354
 msgid "Nothing to delete"
 msgstr "Нечего удалять"
 
-#: jobs/views.py:424
+#: jobs/views.py:427
 msgid "You don't have an access to edit this job"
 msgstr "У Вас нет прав редактировать данное задание"
 
-#: jobs/views.py:433 jobs/views.py:480
+#: jobs/views.py:436 jobs/views.py:483
 msgid "The job parent was not found"
 msgstr "Родитель задания не был найден"
 
-#: jobs/views.py:438
+#: jobs/views.py:441
 msgid ""
 "Several parents match the specified identifier, please increase the length "
 "of the parent identifier"
@@ -974,55 +980,55 @@ msgstr ""
 "Указанному идентификатору соответствуют несколько родителей, пожалуйста, "
 "увеличьте длину идентификатора родителя"
 
-#: jobs/views.py:446
+#: jobs/views.py:449
 msgid "Parent can't be specified for root jobs"
 msgstr "Нельзя указывать родителя для корневых заданий"
 
-#: jobs/views.py:451
+#: jobs/views.py:454
 msgid "The specified parent can't be set for this job"
 msgstr "Для этого задания не может быть установлен указанный родитель"
 
-#: jobs/views.py:458
+#: jobs/views.py:461
 msgid "The parent identifier is required for this job"
 msgstr "Для этого задания требуется идентификатор родителя"
 
-#: jobs/views.py:463 marks/views.py:214
+#: jobs/views.py:466 marks/views.py:214
 msgid "Your version is expired, please reload the page"
 msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
-#: jobs/views.py:485
+#: jobs/views.py:488
 msgid "You don't have an access to create new jobs"
 msgstr "У Вас нет прав создавать новые задания"
 
-#: jobs/views.py:511
+#: jobs/views.py:514
 msgid "One of the selected jobs was not found"
 msgstr "Одно из отмеченных заданий не было найдено"
 
-#: jobs/views.py:517
+#: jobs/views.py:520
 msgid "You don't have an access to remove this job"
 msgstr "У Вас нет прав удалить данное задание"
 
-#: jobs/views.py:521
+#: jobs/views.py:524
 msgid "You don't have an access to remove one of the selected jobs"
 msgstr "У Вас нет прав удалить одно из отмеченных заданий"
 
-#: jobs/views.py:571
+#: jobs/views.py:573
 msgid "File uploading failed"
 msgstr "Загрузка файла на сервер провалилась"
 
 #: jobs/views.py:665
-msgid "Parent with the specified identifier was not found"
-msgstr "Родитель с указанным идентификатором не был найден"
+msgid "The parent identifier was not got"
+msgstr "Не был получен идентификатор родителя"
 
 #: jobs/views.py:671
+msgid "The parent with the specified identifier was not found"
+msgstr "Родитель с указанным идентификатором не был найден"
+
+#: jobs/views.py:676
 msgid "Too many jobs starts with the specified identifier"
 msgstr "Слишком много заданий начинаются с указанного идентификатора"
 
-#: jobs/views.py:691
-msgid "Parent identifier was not got"
-msgstr "Не был получен идентификатор родителя"
-
-#: jobs/views.py:764
+#: jobs/views.py:763
 msgid "The file was not found"
 msgstr "Файл не был найден"
 
@@ -1099,7 +1105,7 @@ msgid "Error traces comparison function"
 msgstr "Функция сравнения трасс ошибок"
 
 #: marks/templates/marks/CreateMark.html:56
-#: marks/templates/marks/CreateMark.html:96
+#: marks/templates/marks/CreateMark.html:98
 #: marks/templates/marks/EditMark.html:61
 msgid "Editable"
 msgstr "Возможно ли редактирование"
@@ -1113,7 +1119,7 @@ msgstr "Привязанные листовые отчеты"
 msgid "All versions and all data of this mark will be deleted"
 msgstr "Все версии и все данные данной оценки будут удалены"
 
-#: marks/templates/marks/MarkList.html:4 templates/base.html:55
+#: marks/templates/marks/MarkList.html:4 templates/base.html:54
 msgid "Marks"
 msgstr "Оценки"
 
@@ -1149,23 +1155,23 @@ msgstr "Введите тег"
 msgid "Mark"
 msgstr "Оценка"
 
-#: marks/utils.py:712 marks/views.py:177
+#: marks/utils.py:706 marks/views.py:177
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: marks/utils.py:716
+#: marks/utils.py:710
 msgid "The mark format is not supported"
 msgstr "Формат оценки не поддерживается"
 
-#: marks/utils.py:787 marks/utils.py:790
+#: marks/utils.py:778 marks/utils.py:781
 msgid "The attributes have wrong format"
 msgstr "Формат атрибутов некорректный"
 
-#: marks/utils.py:838 marks/utils.py:849 marks/utils.py:851
+#: marks/utils.py:829 marks/utils.py:840 marks/utils.py:842
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
-#: marks/utils.py:842
+#: marks/utils.py:833
 msgid "The mark archive is corrupted: the error trace is not found"
 msgstr "Архив оценки поврежден: не найдена трасса ошибки"
 
@@ -1173,7 +1179,7 @@ msgstr "Архив оценки поврежден: не найдена трас
 msgid "The error traces conversion function was not found"
 msgstr "Функция преобразования трасс ошибок не была найдена"
 
-#: marks/views.py:218 marks/views.py:348
+#: marks/views.py:218 marks/views.py:341
 msgid "You don't have an access to edit this mark"
 msgstr "У Вас нет прав редактировать данную оценку"
 
@@ -1293,7 +1299,7 @@ msgstr "Все предупрждения об ошибках"
 msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
-#: templates/Population.html:5 templates/base.html:66
+#: templates/Population.html:5 templates/base.html:65
 msgid "Population"
 msgstr "Наполнение базы данных"
 
@@ -1348,45 +1354,50 @@ msgstr "Имя Руководителя"
 msgid "Populate"
 msgstr "Наполнить базу данных"
 
-#: templates/base.html:35
+#: templates/base.html:15 users/templates/users/login.html:5
+#: users/templates/users/login.html:19
+msgid "Sign in"
+msgstr "Войти"
+
+#: templates/base.html:34
 msgid "Toggle navigation"
 msgstr "Переключить управление"
 
-#: templates/base.html:50 templates/base.html.py:61 templates/base.html:100
-#: templates/base.html.py:123
+#: templates/base.html:49 templates/base.html.py:60 templates/base.html:99
+#: templates/base.html.py:122
 msgid "Upload"
 msgstr "Загрузить на сервер"
 
-#: templates/base.html:65
+#: templates/base.html:64
 msgid "Admin Tools"
 msgstr "Панель администатора"
 
-#: templates/base.html:73 users/templates/users/edit-profile.html:9
+#: templates/base.html:72 users/templates/users/edit-profile.html:9
 #: users/templates/users/edit-profile.html:17
 msgid "Settings"
 msgstr "Настройки"
 
-#: templates/base.html:74
+#: templates/base.html:73
 msgid "Sign Out"
 msgstr "Выйти"
 
-#: templates/base.html:76 users/templates/users/register.html:42
+#: templates/base.html:75 users/templates/users/register.html:42
 msgid "Register"
 msgstr "Регистрация"
 
-#: templates/base.html:77
+#: templates/base.html:76
 msgid "Sign In"
 msgstr "Войти"
 
-#: templates/base.html:92
+#: templates/base.html:91
 msgid "Upload marks"
 msgstr "Загрузить оценки на сервер"
 
-#: templates/base.html:111
+#: templates/base.html:110
 msgid "Upload jobs"
 msgstr "Загрузить задания на сервер"
 
-#: templates/base.html:114
+#: templates/base.html:113
 msgid ""
 "Set parent identifier (keep in mind that job class will be inherited from "
 "parent). All file or folder names with non-ASCII characters will be "
@@ -1396,7 +1407,7 @@ msgstr ""
 "от родителя). Все названия файлов и папок, в которых используются не ASCII "
 "символы, будут обрезаны до 30 символов."
 
-#: templates/base.html:129
+#: templates/base.html:128
 msgid "The parent identifier is required"
 msgstr "Требуется идентификатор родителя"
 
@@ -1601,10 +1612,6 @@ msgstr "Уведомлять о моих изменениях"
 #: users/templates/users/showProfile.html:18
 msgid "Time zone"
 msgstr "Часовой пояс"
-
-#: users/templates/users/login.html:5 users/templates/users/login.html:19
-msgid "Sign in"
-msgstr "Войти"
 
 #: users/templates/users/notifications.html:3
 msgid "Notifications"
