@@ -28,7 +28,6 @@ $(document).on('change', '.btn-file :file', function () {
     input.trigger('fileselect', [numFiles, label]);
 });
 
-// For making safe post requests
 $.ajaxSetup({
     beforeSend: function(xhr, settings) {
         if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
@@ -42,7 +41,6 @@ $.extend({
     redirectPost: function (location, args) {
         var form = '<input type="hidden" name="csrfmiddlewaretoken" value="' + getCookie('csrftoken') + '">';
         $.each(args, function (key, value) {
-            // value = value.split('"').join('\"');
             form += '<input type="hidden" name="' + key + '" value=\'' + value + '\'>';
         });
         $('<form action="' + location + '" method="POST">' + form + '</form>').appendTo($(document.body)).submit();

@@ -9,8 +9,8 @@ from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import USER_ROLES
-from marks.utils import NewMark, CreateMarkTar, ReadTarMark, UpdateVerdict,\
-    MarkAccess, TagsInfo, UpdateTags
+from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess,\
+    TagsInfo, DeleteMark
 from marks.tables import MarkAttrTable, MarkData, MarkChangesTable,\
     MarkReportsTable, MarksList
 from marks.models import *
@@ -310,14 +310,7 @@ def delete_mark(request, mark_type, mark_id):
         return HttpResponseRedirect(reverse('error', args=[604]))
     if not MarkAccess(request.user, mark=mark).can_delete():
         return HttpResponseRedirect(reverse('error', args=[602]))
-    UpdateTags(mark, delete=True)
-    mark.delete()
-    if mark_type == 'safe':
-        for report in ReportSafe.objects.all():
-            UpdateVerdict(report, {}, '=')
-    else:
-        for report in ReportUnsafe.objects.all():
-            UpdateVerdict(report, {}, '=')
+    DeleteMark(mark)
     return HttpResponseRedirect(reverse('marks:mark_list', args=[mark_type]))
 
 

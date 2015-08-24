@@ -403,7 +403,7 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
-
+        ConnectReportWithMarks(report)
         return report
 
     def __create_report_unsafe(self, identifier):

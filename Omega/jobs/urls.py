@@ -7,7 +7,6 @@ urlpatterns = [
     url(r'^(?P<job_id>[0-9]+)/$', views.show_job, name='job'),
     url(r'^downloadfile/(?P<file_id>[0-9]+)/$', views.download_file,
         name='download_file'),
-    url(r'^clear_all_files/$', views.clear_all_files),
 
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),

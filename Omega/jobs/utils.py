@@ -782,12 +782,9 @@ def delete_versions(job, versions):
 
 
 def clear_files():
-    deleted = []
     for file in File.objects.all():
         if len(file.filesystem_set.all()) == 0:
-            deleted.append(file.file.name)
             file.delete()
-    return deleted
 
 
 def check_new_parent(job, parent):

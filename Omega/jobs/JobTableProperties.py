@@ -850,12 +850,6 @@ class TableTree(object):
                                 args=[cu.report_id, cu.component_id])
                     )
 
-        def get_href(job_pk, column, black):
-            if job_pk in values_data and not black:
-                if column == 'name':
-                    return reverse('jobs:job', args=[job_pk])
-            return None
-
         if 'author' in self.columns:
             collect_authors()
         if any(x in [
@@ -889,7 +883,8 @@ class TableTree(object):
                 href = None
                 if col == 'name' and job['pk'] in names_data:
                     cell_value = names_data[job['pk']]
-                    href = get_href(job['pk'], 'name', job['black'])
+                    if job['pk'] in values_data and not job['black']:
+                        href = reverse('jobs:job', args=[job['pk']])
                 elif job['pk'] in values_data:
                     if col in values_data[job['pk']]:
                         if isinstance(values_data[job['pk']][col], tuple):
@@ -901,8 +896,7 @@ class TableTree(object):
                 row_values.append({
                     'value': cell_value,
                     'id': '__'.join(col.split(':')) + ('__%d' % col_id),
-                    'href': href,
-                    # get_href(job['pk'], col, job['black']),
+                    'href': href
                 })
             table_rows.append({
                 'id': job['pk'],

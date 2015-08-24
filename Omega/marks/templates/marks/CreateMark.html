@@ -89,8 +89,10 @@
                     {% endfor %}
                 </div>
             </div>
+            <div class="col-sm-5">
+                {% include 'marks/Tags.html' %}
+            </div>
         </div>
-        {% include 'marks/Tags.html' %}
         <hr>
         {% if can_freeze %}
             <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Editable' %}</label><br>
