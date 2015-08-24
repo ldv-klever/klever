@@ -831,7 +831,7 @@ class ReadTarMark(object):
         if self.type == 'unsafe':
             if err_trace is None:
                 return _("The mark archive is corrupted: "
-                         "the error trace is not found")
+                         "the pattern error trace is not found")
 
         version_list = list(versions_data[v] for v in sorted(versions_data))
         for version in version_list:

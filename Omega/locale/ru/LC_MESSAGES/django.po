@@ -1172,8 +1172,8 @@ msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
 #: marks/utils.py:833
-msgid "The mark archive is corrupted: the error trace is not found"
-msgstr "Архив оценки поврежден: не найдена трасса ошибки"
+msgid "The mark archive is corrupted: the pattern error trace is not found"
+msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
 #: marks/views.py:184
 msgid "The error traces conversion function was not found"
