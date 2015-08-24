@@ -13,7 +13,7 @@ from django.core.urlresolvers import reverse
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat,\
-    ugettext_noop
+    override
 from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole,\
     JOBFILE_DIR
@@ -489,7 +489,8 @@ class JobArchive(object):
         write_file_str(jobtar_obj, 'format', str(self.job.format))
         for job_class in JOB_CLASSES:
             if job_class[0] == self.job.type:
-                write_file_str(jobtar_obj, 'class', ugettext_noop(job_class[1]))
+                with override('en'):
+                    write_file_str(jobtar_obj, 'class', job_class[1])
                 break
         for f in files_for_tar:
             if f['src'] is None:
