@@ -33,7 +33,7 @@
                 <p id="compare_function_description" class="omega-text" style="margin: 0">{{ markdata.compare_desc }}</p>
             </div>
             <div class="col-sm-4">
-                <h4>{% trans 'Verdict' %}:</h4>
+                <h4>{% trans 'Verdict' %}</h4>
                 <div style="margin-left: 25px">
                     {% for v in markdata.verdicts %}
                         <input id="selected_verdict__{{ v.value }}" type="radio" name="selected_verdict" value="{{ v.value }}"{% if v.checked %} checked{% endif %}>
@@ -42,7 +42,7 @@
                     {% endfor %}
                 </div>
                 <hr>
-                <h4>{% trans 'Status' %}:</h4>
+                <h4>{% trans 'Status' %}</h4>
                 <div style="margin-left: 25px">
                     {% for s in markdata.statuses %}
                         <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
@@ -70,7 +70,7 @@
         <hr>
         <div class="row">
             <div class="col-sm-4">
-                <h4>{% trans 'Verdict' %}:</h4>
+                <h4>{% trans 'Verdict' %}</h4>
                 <div style="margin-left: 25px">
                     {% for v in markdata.verdicts %}
                         <input id="selected_verdict__{{ v.value }}" type="radio" name="selected_verdict" value="{{ v.value }}"{% if v.checked %} checked{% endif %}>
@@ -80,7 +80,7 @@
                 </div>
             </div>
             <div class="col-sm-4">
-                <h4>{% trans 'Status' %}:</h4>
+                <h4>{% trans 'Status' %}</h4>
                 <div style="margin-left: 25px">
                     {% for s in markdata.statuses %}
                         <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
