@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
+import json
 import multiprocessing
+import os
 import re
 
 import psi.components
@@ -19,8 +21,21 @@ def after_extract_linux_kernel_attrs(context):
 
 
 def after_process_linux_kernel_raw_build_cmd(context):
-    context.mqs['Linux kernel build cmd descs'].put(
-        {attr: context.linux_kernel['build cmd'][attr] for attr in ('type', 'in files', 'out file')})
+    # Do not dump full description if output file is absent or '/dev/null'. Corresponding CC commands will not be
+    # traversed when building verification object descriptions.
+    if context.linux_kernel['build cmd']['type'] == 'CC' and context.linux_kernel['build cmd']['out file'] and not re.search(r'^/', context.linux_kernel['build cmd']['out file']):
+        context.linux_kernel['build cmd']['full desc file'] = '{0}.json'.format(
+            context.linux_kernel['build cmd']['out file'])
+
+        context.logger.debug(
+            'Dump Linux kernel CC full description to file "{0}"'.format(
+                context.linux_kernel['build cmd']['full desc file']))
+        with open(
+                os.path.join(context.conf['root id'], 'linux', context.linux_kernel['build cmd']['full desc file']),
+                'w') as fp:
+            json.dump(context.linux_kernel['build cmd']['full desc file'], fp, sort_keys=True, indent=4)
+
+    context.mqs['Linux kernel build cmd descs'].put(context.linux_kernel['build cmd'])
 
 
 def after_process_all_linux_kernel_raw_build_cmds(context):
@@ -34,7 +49,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_module_names_mq = multiprocessing.Queue()
         self.module = {}
-        self.verification_obj = {}
+        self.verification_obj_desc = {}
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         psi.utils.report(self.logger,
@@ -74,10 +89,29 @@ class PsiComponent(psi.components.PsiComponentBase):
         strategy = self.conf['Linux kernel verification objs gen strategy']['name']
 
         if strategy == 'separate modules':
-            self.verification_obj['id'] = 'linux/{0}'.format(self.module['name'])
-            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj['id']))
+            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
+            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
+
             self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
-            self.logger.info(self.module)
+            self.verification_obj_desc['grps'] = [
+                {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
+            self.logger.debug(
+                'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
+
+            self.verification_obj_desc['deps'] = {self.module['name']: []}
+            self.logger.debug(
+                'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
+
+            if self.conf['debug']:
+                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+                self.logger.debug(
+                    'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
+                        self.module['name'], verification_obj_desc_file))
+                with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
+                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+        else:
+            raise NotImplementedError(
+                'Linux kernel verification object generation strategy "{0}" is not supported'.format(strategy))
 
     def process_all_linux_kernel_build_cmd_descs(self):
         while True:
@@ -112,10 +146,15 @@ class PsiComponent(psi.components.PsiComponentBase):
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
 
+        cc_full_desc_files = []
+
         out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file]
 
         if out_file_desc['type'] == 'CC':
-            return out_file_desc['in files'][0]
+            cc_full_desc_files.append(out_file_desc['full desc file'])
+        else:
+            for in_file in out_file_desc['in files']:
+                if not re.search(r'\.mod\.o$', in_file):
+                    cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
-        return [self.__find_cc_full_desc_files(in_file) for in_file in out_file_desc['in files'] if
-                not re.search(r'\.mod\.o$', in_file)]
+        return cc_full_desc_files
