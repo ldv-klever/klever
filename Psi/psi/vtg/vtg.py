@@ -73,7 +73,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unsafe',
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
-                                              'error trace': 'It does not matter...'},
+                                              'error trace': 'Error trace 1'},
                                              self.mqs['report files'],
                                              self.conf['root id'])
                         else:
@@ -82,7 +82,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unsafe1',
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
-                                              'error trace': 'It does not matter...'},
+                                              'error trace': 'Error trace 2'},
                                              self.mqs['report files'],
                                              self.conf['root id'],
                                              '1')
@@ -91,7 +91,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unsafe2',
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
-                                              'error trace': 'It does not matter...'},
+                                              'error trace': 'Error trace 2'},
                                              self.mqs['report files'],
                                              self.conf['root id'],
                                              '2')
@@ -116,7 +116,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                               'parent id': id,
                                               'attrs': [{'entry point': entry_point},
                                                         {'bug kind': 'linux:one thread:double acquisition'}],
-                                              'error trace': 'It does not matter...'},
+                                              'error trace': 'Error trace 3'},
                                              self.mqs['report files'],
                                              self.conf['root id'])
                         else:
