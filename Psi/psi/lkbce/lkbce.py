@@ -175,13 +175,20 @@ class PsiComponent(psi.components.PsiComponentBase):
         if not linux_kernel_work_src_tree_root:
             raise ValueError('Could not find Makefile in Linux kernel source code')
 
-        # TODO: specification requires to remove everything in self.linux_kernel['work src tree'] except moved
-        # linux_kernel_work_src_tree_root.
         if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']):
             self.logger.debug(
-                'Move "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']))
+                'Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
+                                                         self.linux_kernel['work src tree']))
             for path in os.listdir(linux_kernel_work_src_tree_root):
                 shutil.move(os.path.join(linux_kernel_work_src_tree_root, path), self.linux_kernel['work src tree'])
+            trash_dir = linux_kernel_work_src_tree_root
+            while True:
+                parent_dir = os.path.join(trash_dir, os.path.pardir)
+                if os.path.samefile(parent_dir, self.linux_kernel['work src tree']):
+                    break
+                trash_dir = parent_dir
+            self.logger.debug('Remove "{0}"'.format(trash_dir))
+            os.rmdir(trash_dir)
 
     def process_all_linux_kernel_raw_build_cmds(self):
         self.logger.info('Process all Linux kernel raw build commands')
