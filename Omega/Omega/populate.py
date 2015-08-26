@@ -63,7 +63,8 @@ class Population(object):
     def __populate_functions(self):
         for func_name in [x for x, y in ConvertTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
-            description = getattr(ConvertTrace, func_name).__doc__
+            description = self.__correct_description(
+                getattr(ConvertTrace, func_name).__doc__)
             func, crtd = MarkUnsafeConvert.objects.get_or_create(name=func_name)
             if crtd or description != func.description:
                 if isinstance(description, str):
@@ -73,7 +74,9 @@ class Population(object):
 
         for func_name in [x for x, y in CompareTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
-            description = getattr(CompareTrace, func_name).__doc__
+            description = self.__correct_description(
+                getattr(CompareTrace, func_name).__doc__
+            )
             func, crtd = MarkUnsafeCompare.objects.get_or_create(name=func_name)
             if crtd or description != func.description:
                 if isinstance(description, str):
@@ -109,3 +112,12 @@ class Population(object):
         self.__extend_user(manager, '2')
         self.manager_password = password
         return manager
+
+    def __correct_description(self, descr):
+        self.ccc  = 0
+        descr_strs = descr.split('\n')
+        new_descr_strs = []
+        for s in descr_strs:
+            if len(s) > 0 and len(s.split()) > 0:
+                new_descr_strs.append(s)
+        return '\n'.join(new_descr_strs)

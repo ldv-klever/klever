@@ -53,9 +53,7 @@
                     <br>
                 {% endif %}
                 <hr>
-                <div id="mark_add_data_div" class="row">
-                    {% include 'marks/MarkAddData.html' with markdata=markdata %}
-                </div>
+                {% include 'marks/MarkAddData.html' with markdata=markdata %}
                 <hr>
                 {% if can_freeze %}
                     <label><input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>  {% trans 'Editable' %}</label><br>

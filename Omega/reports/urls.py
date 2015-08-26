@@ -12,7 +12,8 @@ urlpatterns = [
     url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes)/'
         r'tag/(?P<tag_id>[0-9]+)$', views.report_list_tag, name='list_tag'),
     url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes)/'
-        r'(?P<verdict>[0-9])/$', views.report_list, name='list_verdict'),
+        r'(?P<verdict>[0-9])/$', views.report_list_by_verdict,
+        name='list_verdict'),
 
     url(r'^(?P<leaf_type>unsafe|safe|unknown)/(?P<report_id>[0-9]+)/$',
         views.report_leaf, name='leaf'),

@@ -53,21 +53,6 @@
     </ul>
 {% endif %}
 
-{% if reportdata.view_data.resources|length %}
-    <span id="resource_title_span" class="purple-title"><b>{% trans 'Resources' %}*</b></span>
-    <ul>
-        {% for res_data in reportdata.view_data.resources %}
-            <li>
-                {% if reportdata.report.component.name == res_data.component %}
-                    <strong style="color: #821961;">{{ res_data.component }}:</strong>
-                {% else %}
-                    {{ res_data.component }}:
-                {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
-            </li>
-        {% endfor %}
-    </ul>
-{% endif %}
-
 {% if reportdata.show_tags %}
     {% if reportdata.view_data.tags_unsafe|length or reportdata.view_data.tags_safe|length %}
         <br><span class="purple-title"><b>{% trans 'Tags' %}</b></span>
@@ -94,6 +79,21 @@
             {% endif %}
         </div>
     {% endif %}
+{% endif %}
+
+{% if reportdata.view_data.resources|length %}
+    <span id="resource_title_span" class="purple-title"><b>{% trans 'Resources' %}*</b></span>
+    <ul>
+        {% for res_data in reportdata.view_data.resources %}
+            <li>
+                {% if reportdata.report.component.name == res_data.component %}
+                    <strong style="color: #821961;">{{ res_data.component }}:</strong>
+                {% else %}
+                    {{ res_data.component }}:
+                {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
+            </li>
+        {% endfor %}
+    </ul>
 {% endif %}
 
 <div id="resource_star_div">
