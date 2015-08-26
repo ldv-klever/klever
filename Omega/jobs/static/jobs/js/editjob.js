@@ -750,20 +750,22 @@ function set_actions_for_versions_delete() {
 
 $(document).ready(function () {
 
-    $.ajax({
-        url: job_ajax_url + 'showjobdata/',
-        data: {job_id: $('#job_pk').text()},
-        type: 'POST',
-        success: function (data) {
-            $('#edit_job_div').html(data);
-            $('.tree').treegrid({
-                treeColumn: 0,
-                expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
-                expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
-            });
-            set_action_on_file_click();
-        }
-    });
+    if ($('#edit_job_div').length) {
+        $.ajax({
+            url: job_ajax_url + 'showjobdata/',
+            data: {job_id: $('#job_pk').text()},
+            type: 'POST',
+            success: function (data) {
+                $('#edit_job_div').html(data);
+                $('.tree').treegrid({
+                    treeColumn: 0,
+                    expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
+                    expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
+                });
+                set_action_on_file_click();
+            }
+        });
+    }
 
     if($('#create_job_global_div').length) {
         set_actions_for_edit_form();

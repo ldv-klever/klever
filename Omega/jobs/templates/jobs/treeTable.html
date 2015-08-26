@@ -2,51 +2,55 @@
 
 {% load tz %}
 
-{% timezone user.extended.timezone %}
-<table class="table table-bordered tree table-fixed" style="margin-bottom: 0;">
-    <thead>
-        {% for column_row in TableData.header %}
-            <tr class="info">
-            {% for coldata in column_row %}
-                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+{% if TableData.values|length %}
+    {% timezone user.extended.timezone %}
+    <table class="table table-bordered tree table-fixed" style="margin-bottom: 0;">
+        <thead>
+            {% for column_row in TableData.header %}
+                <tr class="info">
+                {% for coldata in column_row %}
+                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                {% endfor %}
+                </tr>
             {% endfor %}
-            </tr>
-        {% endfor %}
-    </thead>
-    <tbody>
-        {% for row_data in TableData.values %}
-            <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
-                style="{% if TableData.counter.dark %}background: #f0f5fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
-            <td id="value__{{ row_data.id }}">
-                <label><input type="checkbox" id="job_checkbox__{{ row_data.id }}"></label>
-            </td>
-            {% for v in row_data.values %}
-                <td id="value__{{ v.id }}__{{ row_data.id }}" class="text-nowrap">
-                    {% if v.href %}
-                        <a href="{{ v.href }}">{{ v.value }}</a>
-                    {% else %}
-                        <span>{{ v.value }}</span>
-                    {% endif %}
+        </thead>
+        <tbody>
+            {% for row_data in TableData.values %}
+                <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
+                    style="{% if TableData.counter.dark %}background: #f0f5fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
+                <td id="value__{{ row_data.id }}">
+                    <label><input type="checkbox" id="job_checkbox__{{ row_data.id }}"></label>
                 </td>
-            {% endfor %}
-            <span hidden>{{ TableData.counter.increment }}</span>
-            </tr>
-        {%  endfor %}
-    </tbody>
+                {% for v in row_data.values %}
+                    <td id="value__{{ v.id }}__{{ row_data.id }}" class="text-nowrap">
+                        {% if v.href %}
+                            <a href="{{ v.href }}">{{ v.value }}</a>
+                        {% else %}
+                            <span>{{ v.value }}</span>
+                        {% endif %}
+                    </td>
+                {% endfor %}
+                <span hidden>{{ TableData.counter.increment }}</span>
+                </tr>
+            {%  endfor %}
+        </tbody>
 
-{% if TableData.footer|length %}
-    <tr class="info">
-        <td colspan="{{ TableData.footer_title_length }}" align="right" class="text-nowrap">{% trans 'All' %}</td>
-        {% for fc in TableData.footer %}
-            <td id="all__{{ fc }}">-</td>
-        {% endfor %}
-    </tr>
-    <tr class="info">
-        <td colspan="{{ TableData.footer_title_length }}" align="right" class="text-nowrap">{% trans 'All for checked' %}</td>
-        {% for fc in TableData.footer %}
-            <td id="checked__{{ fc }}">-</td>
-        {% endfor %}
-    </tr>
+    {% if TableData.footer|length %}
+        <tr class="info">
+            <td colspan="{{ TableData.footer_title_length }}" align="right" class="text-nowrap">{% trans 'All' %}</td>
+            {% for fc in TableData.footer %}
+                <td id="all__{{ fc }}">-</td>
+            {% endfor %}
+        </tr>
+        <tr class="info">
+            <td colspan="{{ TableData.footer_title_length }}" align="right" class="text-nowrap">{% trans 'All for checked' %}</td>
+            {% for fc in TableData.footer %}
+                <td id="checked__{{ fc }}">-</td>
+            {% endfor %}
+        </tr>
+    {% endif %}
+    </table>
+    {% endtimezone %}
+{% else %}
+    <h1>{% trans 'There are no jobs, please, populate them' %}</h1>
 {% endif %}
-</table>
-{% endtimezone %}

@@ -307,10 +307,11 @@ class ConnectReportWithMarks(object):
             for attr in last_version.markunsafeattr_set.all():
                 if attr.is_compare:
                     try:
-                        self.report.attr.get(name__name=attr.attr.name.name,
-                                             value=attr.attr.value)
+                        if self.report.attr.get(name__name=attr.attr.name.name)\
+                                .value != attr.attr.value:
+                            break
                     except ObjectDoesNotExist:
-                        break
+                        pass
             else:
                 compare_failed = False
                 compare = CompareTrace(
@@ -334,10 +335,11 @@ class ConnectReportWithMarks(object):
             for attr in last_version.marksafeattr_set.all():
                 if attr.is_compare:
                     try:
-                        self.report.attr.get(name__name=attr.attr.name.name,
-                                             value=attr.attr.value)
+                        if self.report.attr.get(name__name=attr.attr.name.name)\
+                                .value != attr.attr.value:
+                            break
                     except ObjectDoesNotExist:
-                        break
+                        pass
             else:
                 MarkSafeReport.objects.create(mark=mark, report=self.report)
 
@@ -370,10 +372,11 @@ class ConnectMarkWithReports(object):
             for attr in last_version.markunsafeattr_set.all():
                 if attr.is_compare:
                     try:
-                        unsafe.attr.get(name__name=attr.attr.name.name,
-                                        value=attr.attr.value)
+                        if unsafe.attr.get(name__name=attr.attr.name.name)\
+                                .value != attr.attr.value:
+                            break
                     except ObjectDoesNotExist:
-                        break
+                        pass
             else:
                 compare_failed = False
                 compare = CompareTrace(
@@ -411,10 +414,11 @@ class ConnectMarkWithReports(object):
             for attr in last_version.marksafeattr_set.all():
                 if attr.is_compare:
                     try:
-                        safe.attr.get(name__name=attr.attr.name.name,
-                                      value=attr.attr.value)
+                        if safe.attr.get(name__name=attr.attr.name.name)\
+                                .value != attr.attr.value:
+                            break
                     except ObjectDoesNotExist:
-                        break
+                        pass
             else:
                 MarkSafeReport.objects.create(mark=self.mark, report=safe)
                 if safe in self.changes:
