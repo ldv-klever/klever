@@ -21,21 +21,22 @@ def after_extract_linux_kernel_attrs(context):
 
 
 def after_process_linux_kernel_raw_build_cmd(context):
+    pass
     # Do not dump full description if output file is absent or '/dev/null'. Corresponding CC commands will not be
     # traversed when building verification object descriptions.
-    if context.linux_kernel['build cmd']['type'] == 'CC' and context.linux_kernel['build cmd']['out file'] and not re.search(r'^/', context.linux_kernel['build cmd']['out file']):
-        context.linux_kernel['build cmd']['full desc file'] = '{0}.json'.format(
-            context.linux_kernel['build cmd']['out file'])
-
-        context.logger.debug(
-            'Dump Linux kernel CC full description to file "{0}"'.format(
-                context.linux_kernel['build cmd']['full desc file']))
-        with open(
-                os.path.join(context.conf['root id'], 'linux', context.linux_kernel['build cmd']['full desc file']),
-                'w') as fp:
-            json.dump(context.linux_kernel['build cmd']['full desc file'], fp, sort_keys=True, indent=4)
-
-    context.mqs['Linux kernel build cmd descs'].put(context.linux_kernel['build cmd'])
+    # if context.linux_kernel['build cmd']['type'] == 'CC' and context.linux_kernel['build cmd']['out file'] and not re.search(r'^/', context.linux_kernel['build cmd']['out file']):
+    #     context.linux_kernel['build cmd']['full desc file'] = '{0}.json'.format(
+    #         context.linux_kernel['build cmd']['out file'])
+    #
+    #     context.logger.debug(
+    #         'Dump Linux kernel CC full description to file "{0}"'.format(
+    #             context.linux_kernel['build cmd']['full desc file']))
+    #     with open(
+    #             os.path.join(context.conf['root id'], 'linux', context.linux_kernel['build cmd']['full desc file']),
+    #             'w') as fp:
+    #         json.dump(context.linux_kernel['build cmd']['full desc file'], fp, sort_keys=True, indent=4)
+    #
+    # context.mqs['Linux kernel build cmd descs'].put(context.linux_kernel['build cmd'])
 
 
 def after_process_all_linux_kernel_raw_build_cmds(context):

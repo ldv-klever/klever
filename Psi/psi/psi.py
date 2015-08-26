@@ -111,8 +111,6 @@ def launch():
 
             if not operating_components_num or reporting_p.exitcode:
                 break
-
-        raise Exception('TODO: remove me after all!')
     except Exception as e:
         _exit_code = 1
 
