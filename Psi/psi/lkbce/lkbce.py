@@ -180,7 +180,8 @@ class PsiComponent(psi.components.PsiComponentBase):
         if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']):
             self.logger.debug(
                 'Move "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']))
-            os.rename(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree'])
+            for path in os.listdir(linux_kernel_work_src_tree_root):
+                shutil.move(os.path.join(linux_kernel_work_src_tree_root, path), self.linux_kernel['work src tree'])
 
     def process_all_linux_kernel_raw_build_cmds(self):
         self.logger.info('Process all Linux kernel raw build commands')
