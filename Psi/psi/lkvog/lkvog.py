@@ -69,8 +69,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.linux_kernel_verification_objs_gen['attrs'] = self.mqs['Linux kernel attrs'].get()
         self.mqs['Linux kernel attrs'].close()
         self.linux_kernel_verification_objs_gen['attrs'].extend(
-            [{'Linux kernel verification objs gen strategy': [
-                {'name': self.conf['Linux kernel verification objs gen strategy']['name']}]}])
+            [{'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}])
 
     def generate_all_verification_obj_descs(self):
         while True:

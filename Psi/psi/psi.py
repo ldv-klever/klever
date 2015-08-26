@@ -69,7 +69,7 @@ def launch():
         start_report_file = psi.utils.report(_logger,
                                              'start',
                                              {'id': '/',
-                                              'attrs': [{'psi version': version}],
+                                              'attrs': [{'PSI version': version}],
                                               'comp': comp})
 
         session = psi.session.Session(_logger, omega['user'], omega['passwd'], _conf['Omega']['name'])

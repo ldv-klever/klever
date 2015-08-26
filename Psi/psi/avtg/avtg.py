@@ -18,13 +18,10 @@ class PsiComponent(psi.components.PsiComponentBase):
                           'attrs': [
                               {"Linux kernel": [
                                   {"version": "3.5.0"},
-                                  {"arch": "x86_64"},
-                                  {"conf shortcut": "allmodconfig"}
+                                  {"architecture": "x86_64"},
+                                  {"configuration": "allmodconfig"}
                               ]},
-                              {'Linux kernel verification objs gen strategy': [
-                                  {'name': 'separate module'},
-                                  {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
-                              ]}
+                              {'LKVOG strategy': [{'name': 'separate modules'}]}
                           ]},
                          self.mqs['report files'],
                          self.conf['root id'])
@@ -46,7 +43,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                     psi.utils.report(self.logger,
                                      'start',
                                      {'id': id,
-                                      'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec}],
+                                      'attrs': [{'verification object': verification_obj},
+                                                {'rule specification': rule_spec}],
                                       'name': plugin,
                                       'parent id': 'AVTG'},
                                      self.mqs['report files'],

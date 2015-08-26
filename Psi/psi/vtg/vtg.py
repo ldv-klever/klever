@@ -18,20 +18,17 @@ class PsiComponent(psi.components.PsiComponentBase):
                           'attrs': [
                               {"Linux kernel": [
                                   {"version": "3.5.0"},
-                                  {"arch": "x86_64"},
-                                  {"conf shortcut": "allmodconfig"}
+                                  {"architecture": "x86_64"},
+                                  {"configuration": "allmodconfig"}
                               ]},
-                              {'Linux kernel verification objs gen strategy': [
-                                  {'name': 'separate module'},
-                                  {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
-                              ]}
+                              {'LKVOG strategy': [{'name': 'separate modules'}]}
                           ]},
                          self.mqs['report files'],
                          self.conf['root id'])
 
         # Start and finish "WRAPPER". Upload safes, unsafes and unknowns in the middle.
         for i, verification_obj in enumerate(('drivers/usb/core/usbcore.ko', 'drivers/usb/usb-commmon.ko')):
-            for j, rule_spec in enumerate(('mutex', 'spin lock')):
+            for j, rule_spec in enumerate(('linux:mutex', 'linux:spin lock')):
                 # As expected "WRAPPER11" isn't started at all since DEG11 has failed.
                 if i == 1 and j == 1:
                     continue
@@ -45,7 +42,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                 psi.utils.report(self.logger,
                                  'start',
                                  {'id': id,
-                                  'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec}],
+                                  'attrs': [{'verification object': verification_obj},
+                                            {'rule specification': rule_spec}],
                                   'name': 'WRAPPER',
                                   'parent id': 'VTG'},
                                  self.mqs['report files'],
@@ -57,7 +55,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                 # task: UNSAFE + UNSAFE + UNKNOWN.
                 if j == 0:
                     for k, bug_kind in enumerate(
-                            ('linux:one thread:double acquisition', 'linux:one thread:unreleased at exit')):
+                            ('one thread:double acquisition', 'one thread:unreleased at exit')):
                         if k == 0:
                             psi.utils.report(self.logger,
                                              'safe',
@@ -115,7 +113,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unsafe',
                                               'parent id': id,
                                               'attrs': [{'entry point': entry_point},
-                                                        {'bug kind': 'linux:one thread:double acquisition'}],
+                                                        {'bug kind': 'one thread:double acquisition'}],
                                               'error trace': 'Error trace 3'},
                                              self.mqs['report files'],
                                              self.conf['root id'])
@@ -125,7 +123,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unknown',
                                               'parent id': id,
                                               'attrs': [{'entry point': entry_point},
-                                                        {'bug kind': 'linux:one thread:double acquisition'}],
+                                                        {'bug kind': 'one thread:double acquisition'}],
                                               'problem desc': 'Fatal error!'},
                                              self.mqs['report files'],
                                              self.conf['root id'])

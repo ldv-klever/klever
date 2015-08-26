@@ -101,11 +101,11 @@ class PsiComponent(psi.components.PsiComponentBase):
 
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
-        if 'conf' in self.conf['Linux kernel']:
+        if 'configuration' in self.conf['Linux kernel']:
             psi.components.Component(self.logger,
                                      ('make', '-C', self.linux_kernel['work src tree'],
                                       'ARCH={0}'.format(self.linux_kernel['arch']),
-                                      self.conf['Linux kernel']['conf'])).start()
+                                      self.conf['Linux kernel']['configuration'])).start()
         else:
             raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
@@ -121,22 +121,24 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))
 
         self.logger.debug('Get Linux kernel architecture')
-        self.linux_kernel['arch'] = self.conf['Linux kernel'].get('arch') or self.conf['sys']['arch']
+        self.linux_kernel['arch'] = self.conf['Linux kernel'].get('architecture') or self.conf['sys']['arch']
         self.logger.debug('Linux kernel architecture is "{0}"'.format(self.linux_kernel['arch']))
 
         self.logger.debug('Get Linux kernel configuration shortcut')
-        self.linux_kernel['conf shortcut'] = self.conf['Linux kernel']['conf']
+        self.linux_kernel['conf shortcut'] = self.conf['Linux kernel']['configuration']
         self.logger.debug('Linux kernel configuration shortcut is "{0}"'.format(self.linux_kernel['conf shortcut']))
 
         self.linux_kernel['attrs'] = [
-            {'Linux kernel': [{attr: self.linux_kernel[attr]} for attr in ('version', 'arch', 'conf shortcut')]}]
+            {'Linux kernel': [{'version': self.linux_kernel['version']},
+                              {'architecture': self.linux_kernel['arch']},
+                              {'configuration': self.linux_kernel['conf shortcut']}]}]
 
     def fetch_linux_kernel_work_src_tree(self):
         self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
 
         self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel['work src tree']))
 
-        self.linux_kernel['src'] = self.conf['Linux kernel']['src']
+        self.linux_kernel['src'] = self.conf['Linux kernel']['source']
 
         o = urllib.parse.urlparse(self.linux_kernel['src'])
         if o[0] in ('http', 'https', 'ftp'):

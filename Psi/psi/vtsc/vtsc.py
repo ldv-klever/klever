@@ -18,13 +18,10 @@ class PsiComponent(psi.components.PsiComponentBase):
                           'attrs': [
                               {"Linux kernel": [
                                   {"version": "3.5.0"},
-                                  {"arch": "x86_64"},
-                                  {"conf shortcut": "allmodconfig"}
+                                  {"architecture": "x86_64"},
+                                  {"configuration": "allmodconfig"}
                               ]},
-                              {'Linux kernel verification objs gen strategy': [
-                                  {'name': 'separate module'},
-                                  {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
-                              ]}
+                              {'LKVOG strategy': [{'name': 'separate modules'}]}
                           ]},
                          self.mqs['report files'],
                          self.conf['root id'])
@@ -39,7 +36,7 @@ class PsiComponent(psi.components.PsiComponentBase):
 
         # Solve verification tasks produced by "WRAPPER".
         for i, verification_obj in enumerate(('drivers/usb/core/usbcore.ko', 'drivers/usb/usb-commmon.ko')):
-            for j, rule_spec in enumerate(('mutex', 'spin lock')):
+            for j, rule_spec in enumerate(('linux:mutex', 'linux:spin lock')):
                 # "WRAPPER11" doesn't produce any verification task since it wasn't started.
                 if i == 1 and j == 1:
                     continue
@@ -48,7 +45,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                 # kind first. Then "WRAPPER10" produces one more verification task for the second bug kind.
                 if j == 0:
                     for k, bug_kind in enumerate(
-                            ('linux:one thread:double acquisition', 'linux:one thread:unreleased at exit')):
+                            ('one thread:double acquisition', 'one thread:unreleased at exit')):
                         id = '{0}/{1}/{2}/verifier'.format(verification_obj, rule_spec, bug_kind)
                         verifier_work_dir = 'VERIFIER{0}{1}{2}'.format(i, j, k)
 
@@ -59,7 +56,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                                          'verification',
                                          {'id': id,
                                           'parent id': 'VTSC',
-                                          'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec},
+                                          'attrs': [{'verification object': verification_obj},
+                                                    {'rule specification': rule_spec},
                                                     {'bug kind': bug_kind}],
                                           'name': 'BLAST 2.7.2' if i == 0 else 'CPAchecker r12345',
                                           'comp': verification_comp,
@@ -76,8 +74,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              'verification',
                                              {'id': id + '-retry',
                                               'parent id': 'VTSC',
-                                              'attrs': [{'verification obj': verification_obj},
-                                                        {'rule spec': rule_spec},
+                                              'attrs': [{'verification object': verification_obj},
+                                                        {'rule specification': rule_spec},
                                                         {'bug kind': bug_kind}],
                                               'name': 'CPAchecker r12345',
                                               'comp': verification_comp,
@@ -107,8 +105,9 @@ class PsiComponent(psi.components.PsiComponentBase):
                                          'verification',
                                          {'id': id,
                                           'parent id': 'VTSC',
-                                          'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec},
-                                                    {'bug kind': 'linux:one thread:double acquisition'}],
+                                          'attrs': [{'verification object': verification_obj},
+                                                    {'rule specification': rule_spec},
+                                                    {'bug kind': 'one thread:double acquisition'}],
                                           'name': 'BLAST 2.7.2',
                                           'comp': verification_comp,
                                           'resources': {'wall time': random.randint(0, 10000),
