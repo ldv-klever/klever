@@ -3,6 +3,7 @@
 import os
 import re
 import shutil
+import sys
 import tarfile
 import time
 import urllib.parse
@@ -86,8 +87,9 @@ class PsiComponent(psi.components.PsiComponentBase):
                                             '-C', self.linux_kernel['work src tree'],
                                             'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd)),
                                      env=dict(os.environ,
-                                              PATH='{0}:{1}'.format(os.path.join(os.path.dirname(__file__), 'cmds'),
-                                                                    os.environ['PATH']),
+                                              PATH='{0}:{1}'.format(
+                                                  os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
+                                                  os.environ['PATH']),
                                               LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
                                                   self.linux_kernel['raw build cmds file']))).start()
 
