@@ -120,7 +120,7 @@ class PsiComponent(psi.components.PsiComponentBase):
             if desc is None:
                 self.logger.debug('Linux kernel build command descriptions message queue was terminated')
                 self.mqs['Linux kernel build cmd descs'].close()
-                self.logger.info('Terminate Linux kernel modules message queue')
+                self.logger.info('Terminate Linux kernel module names message queue')
                 self.linux_kernel_module_names_mq.put(None)
                 break
 
