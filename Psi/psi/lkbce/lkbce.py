@@ -213,7 +213,9 @@ class PsiComponent(psi.components.PsiComponentBase):
                 opts = []
                 for line in fp:
                     if line == psi.lkbce.cmds.cmds.Command.cmds_separator:
-                        if prev_line == psi.lkbce.cmds.cmds.Command.cmds_separator:
+                        # If there is no Linux kernel raw build commands just one separator will be printed by LKBCE
+                        # itself when terminating corresponding message queue.
+                        if not prev_line or prev_line == psi.lkbce.cmds.cmds.Command.cmds_separator:
                             self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
                             return
                         else:
