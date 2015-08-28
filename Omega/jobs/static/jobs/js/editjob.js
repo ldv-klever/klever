@@ -819,4 +819,19 @@ $(document).ready(function () {
             }
         );
     });
+
+    $('#stop_job_btn').click(function () {
+        $.post(
+            job_ajax_url + 'stop_decision/',
+            {job_id: $('#job_pk').text()},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else if (data.status) {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
 });

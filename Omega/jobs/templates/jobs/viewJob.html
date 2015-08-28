@@ -16,6 +16,9 @@
                 <div class="btn-group" role="group">
                     {% if can_create %}<button id="copy_job_btn" class="btn btn-info">{% trans 'Make copy' %}</button>{% endif %}
                     <button id="load_job_btn" class="btn btn-success">{% trans 'Download' %}</button>
+                    {% if user.extended.role == '2' and job.status == '1' %}
+                        <button id="stop_job_btn" class="btn btn-warning">{% trans 'Stop decision' %}</button>
+                    {% endif %}
                     {% if can_edit %}
                         <button id="edit_job_btn" class="btn btn-primary">{% trans 'Edit' %}</button>
                         <button id="edit_versions" class="btn btn-warning">{% trans 'Delete versions' %}</button>

@@ -12,19 +12,27 @@ from marks.utils import ConnectReportWithMarks
 
 
 class UploadReport(object):
+
     def __init__(self, user, job, data):
         self.job = job
         self.data = {}
         self.ordered_attrs = []
         self.error = self.__check_data(data)
         if self.error is not None:
+            print(self.error)
+            self.job.status = '5'
             return
         self.parent = None
         self.error = self.__get_parent()
         if self.error is not None:
+            print(self.error)
+            self.job.status = '5'
             return
         self.root = self.__get_root_report(user)
         self.error = self.__upload()
+        if self.error is not None:
+            print(self.error)
+            self.job.status = '5'
 
     def __check_data(self, data):
         if not isinstance(data, dict):
@@ -128,6 +136,10 @@ class UploadReport(object):
                 self.job.reportroot.delete()
             except ObjectDoesNotExist:
                 pass
+            if self.job.status == '1':
+                return 'The job is already solving'
+        elif self.job.status != '1':
+            return 'The job is not solving'
         return None
 
     def __get_root_report(self, user):
@@ -203,7 +215,8 @@ class UploadReport(object):
         for attr in list(reversed(self.ordered_attrs)):
             if attr not in single_attrs_order:
                 single_attrs_order.insert(0, attr)
-            else:
+            elif self.data['type'] not in ['safe', 'unsafe', 'unknown']:
+                self.job.status = '5'
                 print("Got double attribute: '%s' for report with "
                       "type '%s' and id '%s'" % (attr, self.data['type'],
                                                  self.data['id']))
@@ -329,10 +342,15 @@ class UploadReport(object):
             self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            if len(ReportUnknown.objects.filter(parent=report)) > 0:
-                self.job.status = '4'
-            else:
-                self.job.status = '3'
+            if len(ReportComponent.objects.filter(finish_date=None,
+                                                  root=self.root)):
+                print("There are unfinished reports")
+                self.job.status = '5'
+            elif self.job.status != '5':
+                if len(ReportUnknown.objects.filter(parent=report)) > 0:
+                    self.job.status = '4'
+                else:
+                    self.job.status = '3'
             self.job.save()
 
         return report
@@ -443,13 +461,12 @@ class UploadReport(object):
 
     def __add_attrs(self, report):
         self.ordered_attrs = json.loads(report.attr_order)
-        if 'attrs' not in self.data or not isinstance(self.data['attrs'], list):
+        if 'attrs' not in self.data:
             return
         for attr in save_attrs(self.data['attrs']):
             if not report.attr.filter(pk=attr.pk).exists():
                 report.attr.add(attr)
                 self.ordered_attrs.append(attr.name.name)
-            ReportAttr.objects.get_or_create(report=report, attr=attr)
         report.save()
 
     def __collect_attrs(self, report):

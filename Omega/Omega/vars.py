@@ -104,6 +104,7 @@ JOB_STATUS = (
     ('2', _('Stopped')),
     ('3', _('Solved')),
     ('4', _('Failed')),
+    ('5', _('Corrupted'))
 )
 
 MARK_STATUS = (

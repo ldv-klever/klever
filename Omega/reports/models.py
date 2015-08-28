@@ -34,14 +34,6 @@ class Report(models.Model):
         db_table = 'report'
 
 
-class ReportAttr(models.Model):
-    report = models.ForeignKey(Report)
-    attr = models.ForeignKey(Attr)
-
-    class Meta:
-        db_table = 'cache_report_attr'
-
-
 class Computer(models.Model):
     description = models.TextField()
 

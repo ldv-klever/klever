@@ -26,6 +26,8 @@ urlpatterns = [
     url(r'^ajax/getfilecontent/$', views.getfilecontent),
     url(r'^ajax/getversions/$', views.get_job_versions),
     url(r'^ajax/remove_versions/$', views.remove_versions),
+    url(r'^ajax/stop_decision/$', views.stop_decision),
+
 
     # For psi
     url(r'^downloadlock/$', views.download_lock),
