@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from Omega.populate import Population
 from Omega.vars import ERRORS
-
+from users.models import Extended
 
 def omega_error(request, err_code=0, user_message=None):
     if request.user.is_authenticated():
@@ -39,4 +39,6 @@ def population(request):
             manager_username = None
         popul = Population(request.user, manager_username)
         return render(request, 'Population.html', {'population': popul})
-    return render(request, 'Population.html', {})
+    return render(request, 'Population.html', {
+        'need_manager': (len(Extended.objects.filter(role='2')) == 0)
+    })

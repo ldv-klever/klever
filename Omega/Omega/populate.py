@@ -96,11 +96,10 @@ class Population(object):
     def __get_manager(self):
         if self.manager_username is None:
             return None
-        try:
-            return User.objects.get(username=self.manager_username,
-                                    extended__role='2')
-        except ObjectDoesNotExist:
-            pass
+        managers = User.objects.filter(username=self.manager_username,
+                                       extended__role='2')
+        if len(managers) > 0:
+            return managers[0]
         manager = User()
         manager.username = self.manager_username
         manager.save()
