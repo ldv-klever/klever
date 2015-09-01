@@ -7,9 +7,10 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.models import Job
-from marks.models import ReportSafeTag, ReportUnsafeTag
-from reports.models import Verdict, ComponentResource, ComponentUnknown,\
-    ComponentMarkUnknownProblem, ReportComponent
+from marks.models import ReportSafeTag, ReportUnsafeTag,\
+    ComponentMarkUnknownProblem
+from reports.models import Verdict, ComponentResource, ReportComponent,\
+    ComponentUnknown
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess
 
 
@@ -764,8 +765,8 @@ class TableTree(object):
             for j in self.jobdata:
                 if j['pk'] in values_data:
                     try:
-                        first_version = j['job'].jobhistory_set.get(version=1)
-                        last_version = j['job'].jobhistory_set.get(
+                        first_version = j['job'].versions.get(version=1)
+                        last_version = j['job'].versions.get(
                             version=j['job'].version)
                     except ObjectDoesNotExist:
                         return

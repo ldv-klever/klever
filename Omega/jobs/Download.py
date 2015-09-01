@@ -106,7 +106,7 @@ class PSIDownloadJob(object):
             self.error = "Can't download job now"
 
     def __create_tar(self, job):
-        last_version = job.jobhistory_set.get(version=job.version)
+        last_version = job.versions.get(version=job.version)
 
         def write_file_str(jobtar, file_name, file_content):
             file_content = file_content.encode('utf-8')
@@ -115,8 +115,8 @@ class PSIDownloadJob(object):
             jobtar.addfile(t, BytesIO(file_content))
 
         files_for_tar = []
-        for f in last_version.file_set.all():
-            if len(f.children_set.all()) == 0:
+        for f in last_version.filesystem_set.all():
+            if len(f.children.all()) == 0:
                 src = None
                 if f.file is not None:
                     src = os.path.join(
@@ -173,9 +173,9 @@ class DownloadJob(object):
         files_in_tar = {}
         self.tarname = 'VJ__' + job.identifier + '.tar.gz'
         jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
-        for jobversion in job.jobhistory_set.all():
+        for jobversion in job.versions.all():
             filedata = []
-            for f in jobversion.file_set.all():
+            for f in jobversion.filesystem_set.all():
                 filedata_element = {
                     'pk': f.pk,
                     'parent': f.parent_id,

@@ -287,12 +287,9 @@ class ReportTable(object):
                                    args=[list_types[self.type], report.pk])
                 elif col == 'marks_number':
                     broken = 0
+                    num_of_connects = len(report.markreport_set.all())
                     if list_types[self.type] == 'unsafe':
-                        broken = \
-                            len(report.markunsafereport_set.filter(broken=True))
-                        num_of_connects = len(report.markunsafereport_set.all())
-                    else:
-                        num_of_connects = len(report.marksafereport_set.all())
+                        broken = len(report.markreport_set.filter(broken=True))
                     if broken > 0:
                         val = _('%(all)s (%(broken)s are broken)') % {
                             'all': num_of_connects,
@@ -328,17 +325,17 @@ class ReportTable(object):
             return True
         has_tag = False
         if self.type == '4':  # unsafe
-            for mark_rep in report.markunsafereport_set.all():
+            for mark_rep in report.markreport_set.all():
                 try:
-                    mark_rep.mark.markunsafehistory_set\
+                    mark_rep.mark.versions\
                         .order_by('-version')[0].tags.get(tag=self.tag)
                     has_tag = True
                 except ObjectDoesNotExist:
                     continue
         elif self.type == '5':  # safe
-            for mark_rep in report.marksafereport_set.all():
+            for mark_rep in report.markreport_set.all():
                 try:
-                    mark_rep.mark.marksafehistory_set\
+                    mark_rep.mark.versions\
                         .order_by('-version')[0].tags.get(tag=self.tag)
                     has_tag = True
                 except ObjectDoesNotExist:

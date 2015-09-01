@@ -116,9 +116,8 @@ class ViewJobData(object):
             fv = self.view['filters']['resource_component']['value']
             resource_filters = {ft: fv}
 
-        for cr in self.report.componentresource_set.filter(
-                ~Q(component=None) & Q(**resource_filters)
-        ):
+        for cr in self.report.resources_cache.filter(
+                ~Q(component=None) & Q(**resource_filters)):
             if cr.resource is not None:
                 if cr.component.name not in res_data:
                     res_data[cr.component.name] = {}
@@ -130,7 +129,7 @@ class ViewJobData(object):
 
         if 'resource_total' not in self.view['filters'] or \
                 self.view['filters']['resource_total']['type'] == 'show':
-            res_total = self.report.componentresource_set.filter(
+            res_total = self.report.resources_cache.filter(
                 component=None)
             if len(res_total):
                 rd = get_resource_data(self.user, res_total[0].resource)
@@ -158,7 +157,7 @@ class ViewJobData(object):
             unknowns_filters[ft] = fv
 
         unknowns_data = {}
-        for cmup in self.report.componentmarkunknownproblem_set.filter(
+        for cmup in self.report.mark_unknowns_cache.filter(
                 ~Q(problem=None) & Q(**unknowns_filters)):
             if cmup.component.name not in unknowns_data:
                 unknowns_data[cmup.component.name] = {}
@@ -176,7 +175,7 @@ class ViewJobData(object):
 
         if 'unknowns_nomark' not in self.view['filters'] or \
                 self.view['filters']['unknowns_nomark']['type'] == 'show':
-            for cmup in self.report.componentmarkunknownproblem_set.filter(
+            for cmup in self.report.mark_unknowns_cache.filter(
                     Q(problem=None) & Q(**components_filters)):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
@@ -187,7 +186,7 @@ class ViewJobData(object):
 
         if 'unknowns_total' not in self.view['filters'] or \
                 self.view['filters']['unknowns_total']['type'] == 'show':
-            for cmup in self.report.componentunknown_set.filter(
+            for cmup in self.report.unknowns_cache.filter(
                     **components_filters):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []

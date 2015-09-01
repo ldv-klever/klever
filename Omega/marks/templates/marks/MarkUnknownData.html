@@ -1,0 +1,18 @@
+{% load i18n %}
+
+<h4 class="purple-title">{% trans 'Status' %}</h4>
+<div style="margin-left:25px">
+    {% for s in markdata.statuses %}
+        <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
+        <label for="selected_status__{{ s.value }}" style="color: {{ s.color }}">{{ s.title }}</label>
+        <br>
+    {% endfor %}
+</div>
+<label for="unknown_function">{% trans 'Function' %}</label>
+<input id="unknown_function" type="text" pattern="{% trans 'Regular expression' %}" value="{{ markdata.unknown_data.0 }}">
+<br>
+<label for="unknown_problem_pattern">{% trans 'Problem pattern' %}</label>
+<input id="unknown_problem_pattern" type="text" value="{{ markdata.unknown_data.1 }}">
+<br>
+<label for="unknown_link">{% trans 'Link to the problem' %}</label>
+<input id="unknown_link" type="url"  value="{{ markdata.unknown_data.2 }}">

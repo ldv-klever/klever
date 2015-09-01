@@ -5,7 +5,7 @@
 {% block body_block %}
 {% if type == 'unsafe' %}
     <form autocomplete="off" onsubmit="return false">
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
+        <input id="component_pk" type="hidden" value="{{ report_pk }}">
         <input id="report_type" type="hidden" value="{{ type }}">
         <div style="overflow-x: auto">
             {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
@@ -55,14 +55,14 @@
                 {% if can_freeze %}
                     <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Editable' %}</label><br>
                 {% endif %}
-                <a href="{% url 'reports:leaf' type report.pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
+                <a href="{% url 'reports:leaf' type report_pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
                 <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
             </div>
         </div>
     </form>
 {% elif type == 'safe' %}
     <form autocomplete="off" onsubmit="return false">
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
+        <input id="report_pk" type="hidden" value="{{ report_pk }}">
         <input id="report_type" type="hidden" value="{{ type }}">
         <div style="overflow-x: auto">
             {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
@@ -97,45 +97,8 @@
         {% if can_freeze %}
             <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Editable' %}</label><br>
         {% endif %}
-        <a href="{% url 'reports:leaf' type report.pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
+        <a href="{% url 'reports:leaf' type report_pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
         <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
     </form>
-{% elif type == 'unknown' %}
-    <form autocomplete="off" onsubmit="return false">
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
-        <input id="report_type" type="hidden" value="{{ type }}">
-        <div class="row">
-            <div class="col-sm-5">
-                <span class="purple-title">{% trans 'Component' %}: </span><strong>{{ report.component.name }}</strong>
-                <h4>{% trans 'Status' %}</h4>
-                <div style="margin-left: 25px">
-                    {% for s in markdata.statuses %}
-                        <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
-                        <label for="selected_status__{{ s.value }}" style="color: {{ s.color }}">{{ s.title }}</label>
-                        <br>
-                    {% endfor %}
-                </div>
-                <label for="unknown_function">{% trans 'Function' %}</label>
-                <input id="unknown_function" type="text" pattern="{% trans 'Regular expression' %}">
-                <br>
-                <label for="unknown_problem_pattern">{% trans 'Problem pattern' %}</label>
-                <input id="unknown_problem_pattern" type="text">
-                <br>
-                <label for="unknown_link">{% trans 'Link to the problem' %}</label>
-                <input id="unknown_link" type="url">
-            </div>
-            <div class="col-sm-7">
-                <p class="problem-description-content">{{ report.problem_description }}</p>
-            </div>
-        </div>
-        <hr>
-        {% if can_freeze %}
-            <label><input type="checkbox" id="is_modifiable" checked>  {% trans 'Editable' %}</label><br>
-        {% endif %}
-        <a href="{% url 'reports:leaf' type report.pk %}" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</a>
-        <button id="save_new_mark_btn" class="btn btn-success">{% trans 'Save' %}</button>
-    </form>
-    <span id="error__function_required" hidden>{% trans 'Function is requred' %}</span>
-    <span id="error__problem_required" hidden>{% trans 'Problem pattern is requred' %}</span>
 {% endif %}
 {% endblock %}

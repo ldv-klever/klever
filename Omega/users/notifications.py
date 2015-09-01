@@ -29,7 +29,8 @@ MESSAGES = {
         _('The job with identifier %(id)s was created by %(user)s.')
     ],
     1: [
-        _('The job <a href="%(url)s">%(id)s</a> was changed by %(user)s: %(comm)s'),
+        _('The job <a href="%(url)s">%(id)s</a> was changed by '
+          '%(user)s: %(comm)s'),
         _('The job with identifier %(id)s was changed by %(user)s: %(comm)s')
     ],
     2: _("The job with identifier %(id)s was deleted by %(user)s"),
@@ -90,8 +91,8 @@ class UserMessage(object):
 
     def __get_job_prop(self, job):
         try:
-            first_version = job.jobhistory_set.get(version=1)
-            last_version = job.jobhistory_set.get(version=job.version)
+            first_version = job.versions.get(version=1)
+            last_version = job.versions.get(version=job.version)
         except ObjectDoesNotExist:
             return None
         self.is_producer = (self.user == first_version.change_author)
@@ -153,7 +154,7 @@ class UserMessage(object):
                         self.change_user.extended.last_name,
                         self.change_user.extended.first_name
                     )),
-                    'comm': job.jobhistory_set.get(version=job.version).comment
+                    'comm': job.versions.get(version=job.version).comment
                 }
             else:
                 msg = MESSAGES[1][1] % {
@@ -162,8 +163,7 @@ class UserMessage(object):
                         self.change_user.extended.last_name,
                         self.change_user.extended.first_name
                     )),
-                    'comm': job.jobhistory_set.get(
-                        version=job.version).comment
+                    'comm': job.versions.get(version=job.version).comment
                 }
         elif self.type == 2:
             msg = MESSAGES[self.type] % {

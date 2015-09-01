@@ -15,40 +15,101 @@ function collect_attrs_data() {
 
 
 function collect_new_markdata(tags) {
-    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true;
+    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true,
+        mark_type = $('#report_type').val(), mark_data;
+
     if (is_modifiable_checkbox.length) {
         is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
     }
 
-    return JSON.stringify({
-        attrs: collect_attrs_data(),
-        report_id: $('#report_pk').val(),
-        convert_id: $("#convert_function").val(),
-        compare_id: $("#compare_function").val(),
-        verdict: $("input[name='selected_verdict']:checked").val(),
-        status: $("input[name='selected_status']:checked").val(),
-        data_type: $('#report_type').val(),
-        is_modifiable: is_modifiable,
-        tags: tags.getTags()
-    });
+    if (mark_type == 'unknown') {
+        var unknown_function = $('#unknown_function').val(),
+            unknown_problem_pattern = $('#unknown_problem_pattern').val();
+        if (unknown_function.length <= 0) {
+            err_notify($('#error__function_required').text());
+        }
+        if (unknown_problem_pattern.length <= 0) {
+            err_notify($('#error__problem_required').text());
+        }
+        mark_data = {
+            report_id: $('#report_pk').val(),
+            status: $("input[name='selected_status']:checked").val(),
+            data_type: mark_type,
+            is_modifiable: is_modifiable,
+            problem: unknown_problem_pattern,
+            function: unknown_function,
+            link: $('#unknown_link').val(),
+            tags: tags.getTags()
+        };
+    }
+    else {
+        mark_data = {
+            attrs: collect_attrs_data(),
+            report_id: $('#report_pk').val(),
+            verdict: $("input[name='selected_verdict']:checked").val(),
+            status: $("input[name='selected_status']:checked").val(),
+            data_type: mark_type,
+            is_modifiable: is_modifiable,
+            tags: tags.getTags()
+        };
+    }
+
+    if (mark_type == 'unsafe') {
+        mark_data['convert_id'] = $("#convert_function").val();
+        mark_data['compare_id'] = $("#compare_function").val();
+    }
+
+    return JSON.stringify(mark_data);
 }
 
+
 function collect_markdata(tags) {
-    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true;
+    var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true,
+        mark_type = $('#mark_type').val(), mark_data;
+
     if (is_modifiable_checkbox.length) {
         is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
     }
-    return JSON.stringify({
-        attrs: collect_attrs_data(),
-        mark_id: $('#mark_pk').val(),
-        data_type: $('#mark_type').val(),
-        compare_id: $("#compare_function").val(),
-        comment: $('#edit_mark_comment').val(),
-        verdict: $("input[name='selected_verdict']:checked").val(),
-        status: $("input[name='selected_status']:checked").val(),
-        is_modifiable: is_modifiable,
-        tags: tags.getTags()
-    });
+
+    if (mark_type == 'unknown') {
+        var unknown_function = $('#unknown_function').val(),
+            unknown_problem_pattern = $('#unknown_problem_pattern').val();
+        if (unknown_function.length <= 0) {
+            err_notify($('#error__function_required').text());
+        }
+        if (unknown_problem_pattern.length <= 0) {
+            err_notify($('#error__problem_required').text());
+        }
+        mark_data = {
+            mark_id: $('#mark_pk').val(),
+            status: $("input[name='selected_status']:checked").val(),
+            data_type: mark_type,
+            is_modifiable: is_modifiable,
+            problem: unknown_problem_pattern,
+            function: unknown_function,
+            link: $('#unknown_link').val(),
+            tags: tags.getTags(),
+            comment: $('#edit_mark_comment').val()
+        };
+    }
+    else {
+        mark_data = {
+            attrs: collect_attrs_data(),
+            mark_id: $('#mark_pk').val(),
+            verdict: $("input[name='selected_verdict']:checked").val(),
+            status: $("input[name='selected_status']:checked").val(),
+            data_type: mark_type,
+            is_modifiable: is_modifiable,
+            tags: tags.getTags(),
+            comment: $('#edit_mark_comment').val()
+        };
+    }
+
+    if (mark_type == 'unsafe') {
+        mark_data['compare_id'] = $("#compare_function").val();
+    }
+
+    return JSON.stringify(mark_data);
 }
 
 function set_action_on_func_change() {
@@ -99,6 +160,10 @@ function set_actions_for_mark_versions_delete() {
 }
 
 function activate_tags() {
+    var tag_list = $('#tag_list');
+    if (!tag_list.length) {
+        return false;
+    }
     var available_tags = [], old_tags = [], save_mark_btn = $('#save_mark_btn'),
         save_new_mark_btn = $('#save_new_mark_btn');
     $('#tags_old').children().each(function () {
@@ -110,7 +175,7 @@ function activate_tags() {
         available_tags.push($(this).text());
         });
 
-        return $('#tag_list').tags({
+        return tag_list.tags({
             tagData: old_tags,
             suggestions: available_tags,
             tagClass: "btn-success",
@@ -119,7 +184,7 @@ function activate_tags() {
         });
     }
     else {
-        return $('#tag_list').tags({
+        return tag_list.tags({
             tagData: old_tags,
             tagClass: "btn-success",
             promptText: $('#tags__enter_tags').text(),

@@ -1,0 +1,80 @@
+{% extends 'marks/base.html' %}
+
+{% load i18n %}
+{% load tz %}
+{% block body_block %}
+    <form autocomplete="off" onsubmit="return false">
+        <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
+        <input id="mark_type" type="hidden" value="{{ type }}">
+        <div class="row">
+            <div class="col-sm-5">
+                <div class="btn-group">
+                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="btn btn-success">{% trans 'Download' %}</a>
+                    <button id="edit_mark_versions" type="button" class="btn btn-warning">{% trans 'Delete versions' %}</button>
+                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_mark_popup">{% trans 'Delete' %}</button>
+                </div>
+                <br><br>
+                <span class="purple-title">{% trans 'Identifier' %}: </span> {{ mark.identifier }}<br>
+                <span class="purple-title">{% trans 'Format' %}: </span> {{ mark.format }}<br>
+                {% if first_version.author %}<span class="purple-title">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.extended.last_name }} {{ first_version.author.extended.first_name }}</a><br>{% endif %}
+                <span class="purple-title">{% trans 'Last change' %}</span>
+                <br>
+                {% if version.author %}
+                    <span class="green-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.extended.last_name }} {{ version.author.extended.first_name }}</a>
+                    <br>
+                {% endif %}
+                <span class="green-subtitle">{% trans 'Date' %}: </span>
+                {% timezone user.extended.timezone %}
+                    {{ version.change_date|date:'d.m.y H:i:s' }}
+                {% endtimezone %}
+                {% if version.comment|length %}
+                    <br>
+                    <span class="green-subtitle">{% trans 'Comment' %}:</span> <small>"{{ version.comment }}"</small><br>
+                {% endif %}
+                <br>
+
+                <h4>{% trans 'Associated leaf reports' %}</h4>
+                <div style="overflow-x: auto; max-height: 400px;">
+                    {% include 'table.html' with data=reports auto=True %}
+                </div>
+            </div>
+            <div id="div_for_version_list" class="col-sm-7">
+                {% if versions|length %}
+                    <label for="mark_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
+                    <select id="mark_version_selector" class="form-control">
+                        {% for mv in versions %}
+                            <option value="{{ mv.version }}">{{ mv.title }}</option>
+                        {% endfor %}
+                    </select>
+                    <br>
+                {% endif %}
+                <hr>
+                <div id="mark_add_data_div">{% include 'marks/MarkUnknownData.html' with markdata=markdata %}</div>
+                <hr>
+                {% if can_freeze %}
+                    <label><input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>  {% trans 'Editable' %}</label><br>
+                {% endif %}
+                <label for="edit_mark_comment"><input id="edit_mark_comment" style="width: 150%" class="form-control" type="text" placeholder="{% trans 'Comment' %}"></label>
+                <button id="save_mark_btn" style="float: right" class="btn btn-success">{% trans 'Save' %}</button>
+            </div>
+        </div>
+    </form>
+    <span id="error__comment_required" hidden>{% trans 'Change comment is required' %}</span>
+    <div id="remove_mark_popup" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">{% trans 'Are you sure' %}?</h4>
+                </div>
+                <div class="modal-body">
+                    <p>{% trans 'All versions and all data of this mark will be deleted' %}</p>
+                </div>
+                <div class="modal-footer">
+                    <a style="float: left" href="{% url 'marks:delete_mark' type mark.pk %}" class="btn btn-danger">{% trans 'Delete' %}</a>
+                    <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

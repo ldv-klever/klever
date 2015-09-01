@@ -49,36 +49,43 @@
             </div>
         </div>
         <div class="col-sm-7">
-            <div class="row">
-                {% if markdata.type == 'unsafe' %}
-                <div class="col-sm-6">
-                <h4>{% trans 'Error traces comparison function' %}</h4>
-                    {% for f in markdata.comparison %}<strong>{% if f.selected %}{{ f.name }}{% endif %}</strong>{% endfor %}
+            {% if markdata.type == 'unsafe' %}
+                <span class="purple-title">{% trans 'Verdict' %}: </span>
+                {% for v in markdata.verdicts %}
+                    {% if v.checked %}<strong style="color: {{ v.color }}">{{ v.title }}</strong>{% endif %}
+                {% endfor %}
+                <br>
+                <span class="purple-title">{% trans 'Status' %}: </span>
+                {% for s in markdata.statuses %}
+                    {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
+                {% endfor %}
+                <br>
+                <span class="purple-title">{% trans 'Error traces comparison function' %}: </span>
+                {% for f in markdata.comparison %}<strong>{% if f.selected %}{{ f.name }}{% endif %}</strong>{% endfor %}
+                <br>
+                <p id="compare_function_description" class="omega-text">{{ markdata.compare_desc }}</p>
+            {% elif markdata.type == 'safe' %}
+                <span class="purple-title">{% trans 'Verdict' %}: </span>
+                <div style="margin-left: 25px">
+                    {% for v in markdata.verdicts %}
+                        {% if v.checked %}<label style="color: {{ v.color }}">{{ v.title }}</label>{% endif %}
+                    {% endfor %}
+                </div>
+                <span class="purple-title">{% trans 'Status' %}: </span>
+                {% for s in markdata.statuses %}
+                    {% if s.checked %}<label style="color: {{ s.color }}">{{ s.title }}</label>{% endif %}
+                {% endfor %}
+            {% elif markdata.type == 'unknown' %}
+                <span class="purple-title">{% trans 'Function' %}</span>
+                <p>{{ markdata.unknown_data.0 }}</p>
+                <span class="purple-title">{% trans 'Problem' %}</span>
+                {% if markdata.unknown_data.2 %}
                     <br>
-                    <p id="compare_function_description" class="omega-text">{{ markdata.compare_desc }}</p>
-                </div>
-                {% endif %}
-                <div class="col-sm-6">
-                    <h4>{% trans 'Verdict' %}</h4>
-                    <div style="margin-left: 25px">
-                        {% for v in markdata.verdicts %}
-                            {% if v.checked %}<label style="color: {{ v.color }}">{{ v.title }}</label>{% endif %}
-                        {% endfor %}
-                    </div>
-                {% if markdata.type == 'safe' %}
-                    </div>
-                    <div class="col-sm-6">
+                    <a href="{{ markdata.unknown_data.2 }}">{{ markdata.unknown_data.1 }}</a>
                 {% else %}
-                    <hr>
+                    <p>{{ markdata.unknown_data.1 }}</p>
                 {% endif %}
-                    <h4>{% trans 'Status' %}</h4>
-                    <div style="margin-left: 25px">
-                        {% for s in markdata.statuses %}
-                            {% if s.checked %}<label style="color: {{ s.color }}">{{ s.title }}</label>{% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
+            {% endif %}
             {% include 'marks/Tags.html' %}
         </div>
     </div>
