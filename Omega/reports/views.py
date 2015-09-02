@@ -148,13 +148,14 @@ def report_list_tag(request, report_id, ltype, tag_id):
 
 @login_required
 def report_list_by_verdict(request, report_id, ltype, verdict):
-    return report_list(request, report_id, ltype, verdict)
+    return report_list(request, report_id, ltype, verdict=verdict)
 
 
 @login_required
 def report_unknowns(request, report_id, component_id):
     activate(request.user.extended.language)
-    return report_list(request, report_id, 'unknowns', component_id)
+    return report_list(request, report_id, 'unknowns',
+                       component_id=component_id)
 
 
 @login_required

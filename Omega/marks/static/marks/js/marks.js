@@ -175,9 +175,6 @@ $(document).ready(function () {
                     $('#compare_function').change(set_action_on_func_change);
                     marktags = activate_tags();
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });

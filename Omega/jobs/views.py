@@ -1,5 +1,8 @@
+import os
+import json
 import pytz
 import mimetypes
+from io import BytesIO
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
@@ -13,6 +16,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
+from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
 from jobs.utils import *
 
 
@@ -610,27 +614,26 @@ def download_job(request, job_id):
         return HttpResponseRedirect(
             reverse('error', args=[451]) + "?back=%s" % back_url
         )
-    job_tar = JobArchive(job=job, hash_sum=hash_sum, full=True)
+    jobtar = DownloadJob(job, hash_sum)
 
-    if not job_tar.create_tar():
+    if jobtar.error is not None:
         return HttpResponseRedirect(
             reverse('error', args=[500]) + "?back=%s" % back_url
         )
     response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % \
-                                      job_tar.jobtar_name
-    job_tar.memory.seek(0)
-    response.write(job_tar.memory.read())
+    response["Content-Disposition"] = "attachment; filename=%s" % jobtar.tarname
+    jobtar.memory.seek(0)
+    response.write(jobtar.memory.read())
     return response
 
 
 @login_required
 def download_lock(request):
-    ziplock = JobArchive(user=request.user)
-    status = ziplock.first_lock()
+    tarlock = DownloadLock(user=request.user)
+    status = tarlock.locked
     response_data = {'status': status}
     if status:
-        response_data['hash_sum'] = ziplock.hash_sum
+        response_data['hash_sum'] = tarlock.hash_sum
     return JsonResponse(response_data)
 
 
@@ -668,7 +671,8 @@ def upload_job(request, parent_id=None):
     if len(parents) == 0:
         return JsonResponse({
             'status': False,
-            'message': _("The parent with the specified identifier was not found")
+            'message': _("The parent with the specified "
+                         "identifier was not found")
         })
     elif len(parents) > 1:
         return JsonResponse({
@@ -678,7 +682,7 @@ def upload_job(request, parent_id=None):
     parent = parents[0]
     failed_jobs = []
     for f in request.FILES.getlist('file'):
-        zipdata = ReadZipJob(parent, request.user, f)
+        zipdata = UploadJob(parent, request.user, f)
         if zipdata.err_message is not None:
             failed_jobs.append([zipdata.err_message + '', f.name])
     if len(failed_jobs) > 0:
@@ -724,18 +728,15 @@ def decide_job(request):
                 request.user, job.identifier
             )
         })
-
-    job_tar = JobArchive(job=job, hash_sum=request.POST['hash sum'],
-                         user=request.user, full=False)
-    if not job_tar.create_tar():
+    jobtar = PSIDownloadJob(job, request.POST['hash sum'])
+    if jobtar.error is not None:
         return JsonResponse({
             'error': 'Couldn not prepare archive for job "{0}"'.format(
                 job.identifier
             )
         })
 
-    job_tar.memory.seek(0)
-
+    jobtar.memory.seek(0)
     error = UploadReport(request.user, job,
                          json.loads(request.POST.get('report', '{}'))).error
     if error is not None:
@@ -743,8 +744,8 @@ def decide_job(request):
 
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = 'attachment; filename={0}'.format(
-        job_tar.jobtar_name)
-    response.write(job_tar.memory.read())
+        jobtar.tarname)
+    response.write(jobtar.memory.read())
 
     return response
 
@@ -762,3 +763,26 @@ def getfilecontent(request):
     except ObjectDoesNotExist:
         return JsonResponse({'message': _("The file was not found")})
     return HttpResponse(source.file.file.read())
+
+
+@login_required
+def stop_decision(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': _("Unknown error")})
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({
+            'error': _("You don't have access to stop the job")
+        })
+    try:
+        job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The job was not found")})
+    if job.status != JOB_STATUS[1][0]:
+        return JsonResponse({'error': _("The job is not solving")})
+    job.status = JOB_STATUS[5][0]
+    job.save()
+    for report in ReportComponent.objects.filter(root__job=job):
+        if report.finish_date is None:
+            report.finish_date = pytz.timezone('UTC').localize(datetime.now())
+            report.save()
+    return JsonResponse({'status': True})

@@ -457,8 +457,13 @@ def save_attrs(attrs):
             attr_data = [(name, val)]
         return attr_data
 
-    attrs_data = children('', attrs)
     created_attrs = []
+    if isinstance(attrs, list):
+        attrs_data = children('', attrs)
+    elif isinstance(attrs, dict) and 'values' in attrs:
+        attrs_data = attrs['values']
+    else:
+        return created_attrs
     for attr, value in attrs_data:
         new_attr_name, created = AttrName.objects.get_or_create(name=attr)
         new_attr, created = Attr.objects.get_or_create(

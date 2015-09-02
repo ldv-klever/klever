@@ -1,22 +1,12 @@
-# coding: utf-8
-
-import os
-import json
-import tarfile
 import hashlib
-from io import BytesIO
 from datetime import datetime
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.core.files import File as NewFile
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, string_concat,\
-    override
-from Omega.vars import USER_ROLES, JOB_CLASSES, JOB_ROLES, JOB_STATUS, FORMAT
-from jobs.models import Job, JobHistory, FileSystem, File, UserRole,\
-    JOBFILE_DIR
+from django.utils.translation import ugettext_lazy as _, string_concat
+from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
 
 
@@ -77,8 +67,6 @@ TITLES = {
     'role': _('Your role'),
 }
 
-DOWNLOAD_LOCKFILE = 'download.lock'
-
 
 class JobAccess(object):
 
@@ -93,6 +81,8 @@ class JobAccess(object):
 
     def can_download_for_deciding(self):
         if self.job is None:
+            return False
+        if self.job.status in [js[0] for js in JOB_STATUS[1:2]]:
             return False
         if self.__is_manager or self.__is_author:
             return True
@@ -295,291 +285,6 @@ class DBFileData(object):
                 if fd['parent'] is None:
                     new_level.append(fd)
         return new_level
-
-
-class ReadZipJob(object):
-
-    def __init__(self, parent, user, zip_archive):
-        self.parent = parent
-        self.job_id = None
-        self.user = user
-        self.zip_file = zip_archive
-        self.err_message = self.__create_job_from_tar()
-
-    def __create_job_from_tar(self):
-        inmemory = BytesIO(self.zip_file.read())
-        jobzip_file = tarfile.open(fileobj=inmemory, mode='r')
-        job_format = None
-        job_type = None
-        files_map = {}
-        files_in_db = {}
-        versions_data = {}
-        for f in jobzip_file.getmembers():
-            file_name = f.name
-            file_obj = jobzip_file.extractfile(f)
-            if file_name == 'format':
-                job_format = int(file_obj.read().decode('utf-8'))
-                if job_format != FORMAT:
-                    return _("The job format is not supported")
-            elif file_name == 'type':
-                job_type = file_obj.read().decode('utf-8')
-                if job_type != self.parent.type:
-                    return _("The job class does not equal to the parent class")
-            elif file_name == 'filedata':
-                files_map = json.loads(file_obj.read().decode('utf-8'))
-            elif file_name.startswith(JOBFILE_DIR):
-                if f.isreg():
-                    file_content = BytesIO(file_obj.read())
-                    check_sum = hashlib.md5(file_content.read()).hexdigest()
-                    file_in_db = File.objects.filter(hash_sum=check_sum)
-                    if len(file_in_db) == 0:
-                        db_file = File()
-                        db_file.file.save(
-                            os.path.basename(file_name),
-                            NewFile(file_content)
-                        )
-                        db_file.hash_sum = check_sum
-                        db_file.save()
-                    files_in_db[file_name] = check_sum
-            elif file_name.startswith('version-'):
-                version_id = int(file_name.replace('version-', ''))
-                versions_data[version_id] = json.loads(
-                    file_obj.read().decode('utf-8'))
-
-        for f_id in files_map:
-            if files_map[f_id] in files_in_db:
-                files_map[f_id] = files_in_db[files_map[f_id]]
-            else:
-                return _("The job archive is corrupted")
-        if job_format is None:
-            return _("Couldn't find the job format")
-        if job_type is None:
-            return _("Couldn't find the job class")
-
-        version_list = list(versions_data[v] for v in sorted(versions_data))
-        for i in range(0, len(version_list)):
-            filedata = []
-            for file in version_list[i]['filedata']:
-                fdata_elem = {
-                    'title': file['name'],
-                    'id': file['pk'],
-                    'type': '0',
-                    'parent': file['parent'],
-                    'hash_sum': None
-                }
-                if file['file'] is not None:
-                    if str(file['file']) in files_map:
-                        fdata_elem['type'] = '1'
-                        fdata_elem['hash_sum'] = files_map[str(file['file'])]
-                    else:
-                        return _("The job archive is corrupted")
-                filedata.append(fdata_elem)
-            version_list[i]['filedata'] = filedata
-        job = create_job({
-            'name': version_list[0]['name'],
-            'author': self.user,
-            'description': version_list[0]['description'],
-            'parent': self.parent,
-            'type': self.parent.type,
-            'global_role': version_list[0]['global_role'],
-            'filedata': version_list[0]['filedata'],
-            'comment': version_list[0]['comment']
-        })
-        if not isinstance(job, Job):
-            return job
-        for version_data in version_list[1:]:
-            updated_job = update_job({
-                'job': job,
-                'name': version_data['name'],
-                'author': self.user,
-                'description': version_data['description'],
-                'parent': self.parent,
-                'type': self.parent.type,
-                'filedata': version_data['filedata'],
-                'global_role': version_data['global_role'],
-                'comment': version_data['comment']
-            })
-            if not isinstance(updated_job, Job):
-                job.delete()
-                return updated_job
-        self.job_id = job.pk
-        return None
-
-
-# For first lock: job = None, hash_sum = None, user != None;
-#  if first_lock return True self.hash_sum =- hash_sum in lock file.
-# After it create JobArchive with job != None, hash_sum != None
-# and call create_tar(); then read tar archive from 'memory'.
-class JobArchive(object):
-
-    def __init__(self, job=None, hash_sum=None, user=None, full=True):
-        self.lockfile = DOWNLOAD_LOCKFILE
-        self.full = full
-        self.jobtar_name = ''
-        self.job = job
-        self.user = user
-        self.hash_sum = hash_sum
-        self.__prepare_workdir()
-        self.memory = BytesIO()
-
-    def first_lock(self):
-        f = open(self.lockfile, 'r')
-        line = f.readline()
-        f.close()
-        curr_time = (datetime.now() - datetime(2000, 1, 1)).total_seconds()
-        if line == 'unlocked':
-            self.__update_hash_sum()
-            if self.hash_sum:
-                f = open(self.lockfile, 'w')
-                f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
-                f.close()
-                return True
-        elif line.startswith('locked#'):
-            line_lock_time = float(line.split('#')[1])
-            if (curr_time - line_lock_time) > 10:
-                self.__update_hash_sum()
-                if self.hash_sum:
-                    f = open(self.lockfile, 'w')
-                    f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
-                    f.close()
-                    return True
-        return False
-
-    def create_tar(self):
-        if self.job is None:
-            return False
-
-        if self.__second_lock():
-            if self.full:
-                self.__full_tar()
-            else:
-                self.__normal_tar()
-            self.__unlock()
-            return True
-        return False
-
-    def __normal_tar(self):
-        last_version = self.job.jobhistory_set.get(version=self.job.version)
-
-        def write_file_str(jobtar, file_name, file_content):
-            file_content = file_content.encode('utf-8')
-            t = tarfile.TarInfo(file_name)
-            t.size = len(file_content)
-            jobtar.addfile(t, BytesIO(file_content))
-
-        files_for_tar = []
-        for f in last_version.file_set.all():
-            if len(f.children_set.all()) == 0:
-                src = None
-                if f.file is not None:
-                    src = os.path.join(
-                        settings.MEDIA_ROOT, f.file.file.name)
-                file_path = f.name
-                file_parent = f.parent
-                while file_parent is not None:
-                    file_path = file_parent.name + '/' + file_path
-                    file_parent = file_parent.parent
-                files_for_tar.append({
-                    'path': 'root' + '/' + file_path,
-                    'src': src
-                })
-
-        self.jobtar_name = 'VJ__' + self.job.identifier + '.tar.gz'
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
-        write_file_str(jobtar_obj, 'format', str(self.job.format))
-        for job_class in JOB_CLASSES:
-            if job_class[0] == self.job.type:
-                with override('en'):
-                    write_file_str(jobtar_obj, 'class', job_class[1])
-                break
-        for f in files_for_tar:
-            if f['src'] is None:
-                folder = tarfile.TarInfo(f['path'])
-                folder.type = tarfile.DIRTYPE
-                jobtar_obj.addfile(folder)
-            else:
-                jobtar_obj.add(f['src'], f['path'])
-        jobtar_obj.close()
-
-    def __full_tar(self):
-
-        def write_file_str(jobtar, file_name, file_content):
-            file_content = file_content.encode('utf-8')
-            t = tarfile.TarInfo(file_name)
-            t.size = len(file_content)
-            jobtar.addfile(t, BytesIO(file_content))
-
-        files_in_tar = {}
-        self.jobtar_name = 'VJ__' + self.job.identifier + '.tar.gz'
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
-        for jobversion in self.job.jobhistory_set.all():
-            filedata = []
-            for f in jobversion.file_set.all():
-                filedata_element = {
-                    'pk': f.pk,
-                    'parent': f.parent_id,
-                    'name': f.name,
-                    'file': None
-                }
-                if f.file is not None:
-                    filedata_element['file'] = f.file.pk
-                    if f.file.pk not in files_in_tar:
-                        files_in_tar[f.file.pk] = f.file.file.name
-                        jobtar_obj.add(
-                            os.path.join(settings.MEDIA_ROOT, f.file.file.name),
-                            f.file.file.name)
-                filedata.append(filedata_element)
-            version_data = {
-                'filedata': filedata,
-                'description': jobversion.description,
-                'name': jobversion.name,
-                'global_role': jobversion.global_role,
-                'comment': jobversion.comment,
-            }
-            write_file_str(jobtar_obj, 'version-%s' % jobversion.version,
-                           json.dumps(version_data))
-
-        write_file_str(jobtar_obj, 'format', str(self.job.format))
-        write_file_str(jobtar_obj, 'type', str(self.job.type))
-        write_file_str(jobtar_obj, 'filedata', json.dumps(files_in_tar))
-        jobtar_obj.close()
-
-    def __prepare_workdir(self):
-        self.lockfile = os.path.join(settings.MEDIA_ROOT, self.lockfile)
-        if not os.path.isfile(self.lockfile):
-            f = open(self.lockfile, 'w')
-            f.write('unlocked')
-            f.close()
-
-    def __update_hash_sum(self):
-        if self.user:
-            hash_data = (
-                '%s%s' % (self.user.extended.pk, datetime.now().isoformat())
-            ).encode('utf-8')
-            self.hash_sum = hashlib.md5(hash_data).hexdigest()
-
-    def __second_lock(self):
-        f = open(self.lockfile, 'r')
-        line = f.readline()
-        f.close()
-        line_data = line.split('#')
-        if len(line_data) == 3 and line_data[0] == 'locked':
-            if self.hash_sum == line_data[2]:
-                f = open(self.lockfile, 'w')
-                f.write('doublelocked')
-                f.close()
-                return True
-        return False
-
-    def __unlock(self):
-        f = open(self.lockfile, 'r')
-        status = f.readline()
-        f.close()
-        if status == 'unlocked':
-            return
-        f = open(self.lockfile, 'w')
-        f.write('unlocked')
-        f.close()
 
 
 def convert_time(val, acc):
