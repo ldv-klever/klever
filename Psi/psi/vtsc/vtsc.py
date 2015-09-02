@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import multiprocessing
 import os
 import random
 
@@ -9,23 +10,27 @@ import psi.utils
 name = 'VTSC'
 
 
+def before_launch_all_components(context):
+    context['MQs']['{0} common prj attrs'.format(name)] = multiprocessing.Queue()
+    context['MQs']['verification obj descs'] = multiprocessing.Queue()
+
+
+def after_extract_common_prj_attrs(context):
+    context.mqs['{0} common prj attrs'.format(name)].put(context.common_prj_attrs)
+
+
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
-        # TODO: delete following stub code after all.
+        self.common_prj_attrs = {}
+        self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,
-                          'attrs': [
-                              {"Linux kernel": [
-                                  {"version": "3.5.0"},
-                                  {"architecture": "x86_64"},
-                                  {"configuration": "allmodconfig"}
-                              ]},
-                              {'LKVOG strategy': [{'name': 'separate modules'}]}
-                          ]},
+                          'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
                          self.conf['root id'])
 
+        # TODO: delete following stub code after all.
         # Verification tasks are solved on another computer.
         verification_comp = [
             {'node name': 'chehab.intra.ispras.ru'},
@@ -119,3 +124,10 @@ class PsiComponent(psi.components.PsiComponentBase):
                                          self.conf['root id'])
 
                         os.chdir(os.pardir)
+
+    def extract_common_prj_attrs(self):
+        self.logger.info('Extract common project atributes')
+
+        self.common_prj_attrs = self.mqs['{0} common prj attrs'.format(name)].get()
+
+        self.mqs['{0} common prj attrs'.format(name)].close()

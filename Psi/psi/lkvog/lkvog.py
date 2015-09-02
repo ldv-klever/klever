@@ -53,12 +53,14 @@ def after_process_all_linux_kernel_raw_build_cmds(context):
 class PsiComponent(psi.components.PsiComponentBase):
     def launch(self):
         self.linux_kernel_verification_objs_gen = {}
+        self.common_prj_attrs = {}
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_module_names_mq = multiprocessing.Queue()
         self.module = {}
         self.verification_obj_desc = {}
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
+        psi.utils.invoke_callbacks(self.extract_common_prj_attrs)
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,
@@ -68,6 +70,10 @@ class PsiComponent(psi.components.PsiComponentBase):
         psi.components.launch_in_parrallel(self.logger,
                                            (self.process_all_linux_kernel_build_cmd_descs,
                                             self.generate_all_verification_obj_descs))
+
+    def extract_common_prj_attrs(self):
+        self.logger.info('Extract common project atributes')
+        self.common_prj_attrs = self.linux_kernel_verification_objs_gen['attrs']
 
     def extract_linux_kernel_verification_objs_gen_attrs(self):
         self.logger.info('Extract Linux kernel verification objects generation strategy atributes')
@@ -86,6 +92,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                 self.linux_kernel_module_names_mq.close()
                 break
 
+            # TODO: specification requires to do this in parallel...
             self.generate_verification_obj_desc()
 
     def generate_verification_obj_desc(self):
