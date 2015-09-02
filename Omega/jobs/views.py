@@ -771,7 +771,7 @@ def stop_decision(request):
         return JsonResponse({'error': _("Unknown error")})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({
-            'error': _("You don't have access to stop the job")
+            'error': _("You don't have an access to stop decision of this job")
         })
     try:
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))

@@ -464,7 +464,7 @@ class UploadJob(object):
         if not self.__upload_reports(json.loads(jobdata['reports'])):
             self.job.delete()
             self.job = None
-            return _("One of reports was not uploaded")
+            return _("One of the reports was not uploaded")
         self.job.status = jobdata['status']
         self.job.save()
         return None
