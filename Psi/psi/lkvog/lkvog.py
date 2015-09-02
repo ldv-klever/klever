@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import copy
 import json
 import multiprocessing
 import os
@@ -21,22 +22,27 @@ def after_extract_linux_kernel_attrs(context):
 
 
 def after_process_linux_kernel_raw_build_cmd(context):
-    pass
-    # Do not dump full description if output file is absent or '/dev/null'. Corresponding CC commands will not be
-    # traversed when building verification object descriptions.
-    # if context.linux_kernel['build cmd']['type'] == 'CC' and context.linux_kernel['build cmd']['out file'] and not re.search(r'^/', context.linux_kernel['build cmd']['out file']):
-    #     context.linux_kernel['build cmd']['full desc file'] = '{0}.json'.format(
-    #         context.linux_kernel['build cmd']['out file'])
-    #
-    #     context.logger.debug(
-    #         'Dump Linux kernel CC full description to file "{0}"'.format(
-    #             context.linux_kernel['build cmd']['full desc file']))
-    #     with open(
-    #             os.path.join(context.conf['root id'], 'linux', context.linux_kernel['build cmd']['full desc file']),
-    #             'w') as fp:
-    #         json.dump(context.linux_kernel['build cmd']['full desc file'], fp, sort_keys=True, indent=4)
-    #
-    # context.mqs['Linux kernel build cmd descs'].put(context.linux_kernel['build cmd'])
+    # Do not dump full description if input file is absent or '/dev/null' or STDIN ('-') or output file is absent.
+    # Corresponding CC commands will not be traversed when building verification object descriptions.
+    if context.linux_kernel['build cmd']['type'] == 'CC' \
+            and context.linux_kernel['build cmd']['in files'] \
+            and context.linux_kernel['build cmd']['in files'][0] != '-' \
+            and not re.search(r'^/', context.linux_kernel['build cmd']['in files'][0]) \
+            and context.linux_kernel['build cmd']['out file']:
+        context.linux_kernel['build cmd']['full desc file'] = '{0}.json'.format(
+            context.linux_kernel['build cmd']['out file'])
+
+        context.logger.debug(
+            'Dump Linux kernel CC full description to file "{0}"'.format(
+                context.linux_kernel['build cmd']['full desc file']))
+        with open(
+                os.path.join(context.conf['root id'], 'linux', context.linux_kernel['build cmd']['full desc file']),
+                'w') as fp:
+            json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
+                      sort_keys=True, indent=4)
+
+    # We need to copy build command description since it may be accidently overwritten by LKBCE.
+    context.mqs['Linux kernel build cmd descs'].put(copy.deepcopy(context.linux_kernel['build cmd']))
 
 
 def after_process_all_linux_kernel_raw_build_cmds(context):
@@ -86,7 +92,7 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.logger.info(
             'Generate Linux kernel verification object description for module "{0}"'.format(self.module['name']))
 
-        strategy = self.conf['Linux kernel verification objs gen strategy']['name']
+        strategy = self.conf['LKVOG strategy']['name']
 
         if strategy == 'separate modules':
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
@@ -114,6 +120,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                 'Linux kernel verification object generation strategy "{0}" is not supported'.format(strategy))
 
     def process_all_linux_kernel_build_cmd_descs(self):
+        self.logger.info('Process all Linux kernel build command decriptions')
+
         while True:
             desc = self.mqs['Linux kernel build cmd descs'].get()
 
