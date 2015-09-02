@@ -12,7 +12,6 @@ name = 'VTSC'
 
 def before_launch_all_components(context):
     context['MQs']['{0} common prj attrs'.format(name)] = multiprocessing.Queue()
-    context['MQs']['verification obj descs'] = multiprocessing.Queue()
 
 
 def after_extract_common_prj_attrs(context):

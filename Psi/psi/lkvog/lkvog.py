@@ -84,6 +84,8 @@ class PsiComponent(psi.components.PsiComponentBase):
             [{'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}])
 
     def generate_all_verification_obj_descs(self):
+        self.logger.info('Generate all Linux kernel verification object decriptions')
+
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
 
@@ -93,7 +95,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                 break
 
             # TODO: specification requires to do this in parallel...
-            self.generate_verification_obj_desc()
+            psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
 
     def generate_verification_obj_desc(self):
         self.logger.info(
