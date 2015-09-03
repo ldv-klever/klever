@@ -1,16 +1,18 @@
+import hashlib
 from time import sleep
+from datetime import datetime
+from types import FunctionType
+from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
+from django.utils.translation import override
+from Omega.vars import JOB_CLASSES
+from Omega.settings import LANGUAGE_CODE
+from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
-from reports.models import *
-import hashlib
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert
-from django.core.exceptions import ObjectDoesNotExist
-from datetime import datetime
-from users.models import Extended
-from Omega.vars import JOB_CLASSES
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
-from types import FunctionType
 
 
 def populate_jobs(user):
@@ -21,18 +23,17 @@ def populate_jobs(user):
                 job.delete()
         old_jobs = Job.objects.all()
 
-    kwargs = {
+    args = {
         'author': user,
-        'type': '0',
-        'description': "A lot of text (description)!",
         'global_role': '1',
     }
-
     for i in range(len(JOB_CLASSES)):
-        kwargs['name'] = JOB_CLASSES[i][1]
-        kwargs['pk'] = i + 1
-        kwargs['type'] = JOB_CLASSES[i][0]
-        create_job(kwargs)
+        with override(LANGUAGE_CODE):
+            args['name'] = JOB_CLASSES[i][1]
+            args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
+        args['pk'] = i + 1
+        args['type'] = JOB_CLASSES[i][0]
+        create_job(args)
         sleep(0.1)
 
 
@@ -113,7 +114,7 @@ class Population(object):
         return manager
 
     def __correct_description(self, descr):
-        self.ccc  = 0
+        self.ccc = 0
         descr_strs = descr.split('\n')
         new_descr_strs = []
         for s in descr_strs:

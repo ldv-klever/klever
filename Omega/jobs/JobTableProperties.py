@@ -844,8 +844,8 @@ class TableTree(object):
                         ] = (
                             cmup.number,
                             reverse('reports:unknowns_problem',
-                                args=[cmup.report.pk, cmup.component.pk,
-                                      cmup.problem_id])
+                                    args=[cmup.report.pk, cmup.component.pk,
+                                          cmup.problem_id])
                         )
             for cu in ComponentUnknown.objects.filter(
                     report__root__job_id__in=job_pks, report__parent=None):

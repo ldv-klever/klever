@@ -418,11 +418,17 @@ def create_job(kwargs):
             return db_fdata.err_message
     if 'absolute_url' in kwargs:
         newjob_url = reverse('jobs:job', args=[newjob.pk])
-        Notify(newjob, 0, {
-            'absurl': kwargs['absolute_url'] + newjob_url
-        })
+        try:
+            Notify(newjob, 0, {
+                'absurl': kwargs['absolute_url'] + newjob_url
+            })
+        except Exception as e:
+            print(e)
     else:
-        Notify(newjob, 0)
+        try:
+            Notify(newjob, 0)
+        except Exception as e:
+            print(e)
     return newjob
 
 
@@ -451,9 +457,15 @@ def update_job(kwargs):
             kwargs['job'].save()
             return db_fdata.err_message
     if 'absolute_url' in kwargs:
-        Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
+        try:
+            Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
+        except Exception as e:
+            print(e)
     else:
-        Notify(kwargs['job'], 1)
+        try:
+            Notify(kwargs['job'], 1)
+        except Exception as e:
+            print(e)
     return kwargs['job']
 
 
@@ -468,7 +480,10 @@ def remove_jobs_by_id(user, job_ids):
         if not JobAccess(user, job).can_delete():
             return 400
     for job in jobs:
-        Notify(job, 2)
+        try:
+            Notify(job, 2)
+        except Exception as e:
+            print(e)
         job.delete()
     clear_files()
     return 0

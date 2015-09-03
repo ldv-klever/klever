@@ -777,7 +777,7 @@ def stop_decision(request):
         return JsonResponse({'error': _("The job was not found")})
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': _("The job is not solving")})
-    job.status = JOB_STATUS[5][0]
+    job.status = JOB_STATUS[6][0]
     job.save()
     for report in ReportComponent.objects.filter(root__job=job):
         if report.finish_date is None:
