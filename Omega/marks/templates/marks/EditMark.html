@@ -11,7 +11,7 @@
         </div>
         <hr>
         <div class="row">
-            <div class="col-sm-6">
+            <div class="col-sm-5">
                 <div class="btn-group">
                     <a href="{% url 'marks:download_mark' type mark.pk %}" class="btn btn-success">{% trans 'Download' %}</a>
                     <button id="edit_mark_versions" type="button" class="btn btn-warning">{% trans 'Delete versions' %}</button>
@@ -42,7 +42,7 @@
                     {% include 'table.html' with data=reports auto=True %}
                 </div>
             </div>
-            <div id="div_for_version_list" class="col-sm-6">
+            <div id="div_for_version_list" class="col-sm-7">
                 {% if versions|length %}
                     <label for="mark_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
                     <select id="mark_version_selector" class="form-control">
@@ -53,7 +53,9 @@
                     <br>
                 {% endif %}
                 <hr>
-                {% include 'marks/MarkAddData.html' with markdata=markdata %}
+                <div id="mark_add_data_div">
+                    {% include 'marks/MarkAddData.html' with markdata=markdata %}
+                </div>
                 <hr>
                 {% if can_freeze %}
                     <label><input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>  {% trans 'Editable' %}</label><br>

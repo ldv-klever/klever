@@ -105,9 +105,10 @@
         <input id="report_pk" type="hidden" value="{{ report.pk }}">
         <input id="report_type" type="hidden" value="{{ type }}">
         <div class="row">
-            <div class="col-sm-5">
+            <div class="col-sm-6">
                 <span class="purple-title">{% trans 'Component' %}: </span><strong>{{ report.component.name }}</strong>
-                <h4>{% trans 'Status' %}</h4>
+                <br>
+                <span class="purple-title">{% trans 'Status' %}</span>
                 <div style="margin-left: 25px">
                     {% for s in markdata.statuses %}
                         <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
@@ -115,16 +116,16 @@
                         <br>
                     {% endfor %}
                 </div>
-                <label for="unknown_function">{% trans 'Function' %}</label>
-                <input id="unknown_function" type="text" pattern="{% trans 'Regular expression' %}">
+                <label for="unknown_function" class="purple-title">{% trans 'Function' %}</label>
+                <input id="unknown_function" type="text" class="form-control" placeholder="{% trans 'Regular expression' %}">
                 <br>
-                <label for="unknown_problem_pattern">{% trans 'Problem pattern' %}</label>
-                <input id="unknown_problem_pattern" type="text">
+                <label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem pattern' %}</label>
+                <input id="unknown_problem_pattern" type="text" class="form-control">
                 <br>
-                <label for="unknown_link">{% trans 'Link to the problem' %}</label>
-                <input id="unknown_link" type="url">
+                <label for="unknown_link" class="purple-title">{% trans 'Link to the problem' %}</label>
+                <input id="unknown_link" type="url" class="form-control">
             </div>
-            <div class="col-sm-7">
+            <div class="col-sm-6">
                 <p class="problem-description-content">{{ report.problem_description }}</p>
             </div>
         </div>

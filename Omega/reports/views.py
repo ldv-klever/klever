@@ -75,7 +75,7 @@ def report_component(request, job_id, report_id):
 
 @login_required
 def report_list(request, report_id, ltype, component_id=None, verdict=None,
-                tag=None):
+                tag=None, problem=None):
     activate(request.user.extended.language)
 
     try:
@@ -112,6 +112,8 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None,
                     break
     else:
         title = _("All unknowns")
+        if problem is not None:
+            title = string_concat(_("Unknowns"), ': ', problem.name)
 
     report_attrs_data = [request.user, report]
     if request.method == 'POST':
@@ -127,7 +129,8 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None,
             'parents': get_parents(report),
             'TableData': ReportTable(
                 *report_attrs_data, table_type=list_types[ltype],
-                component_id=component_id, verdict=verdict, tag=tag),
+                component_id=component_id, verdict=verdict, tag=tag,
+                problem=problem),
             'view_type': list_types[ltype],
             'title': title
         }
@@ -156,6 +159,21 @@ def report_unknowns(request, report_id, component_id):
     activate(request.user.extended.language)
     return report_list(request, report_id, 'unknowns',
                        component_id=component_id)
+
+
+@login_required
+def report_unknowns_by_problem(request, report_id, component_id, problem_id):
+    activate(request.user.extended.language)
+    problem_id = int(problem_id)
+    if problem_id == 0:
+        problem = 0
+    else:
+        try:
+            problem = UnknownProblem.objects.get(pk=problem_id)
+        except ObjectDoesNotExist:
+            return HttpResponseRedirect(reverse('error', args=[804]))
+    return report_list(request, report_id, 'unknowns',
+                       component_id=component_id, problem=problem)
 
 
 @login_required

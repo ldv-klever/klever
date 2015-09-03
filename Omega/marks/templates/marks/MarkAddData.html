@@ -1,20 +1,19 @@
 {% load i18n %}
 
-<div id="mark_add_data_div" class="row">
-    {% if markdata.type == 'unsafe' %}
+{% if markdata.type == 'unsafe' %}
+    <label for="compare_function" class="purple-title">{% trans 'Error traces comparison function' %}</label>
+    <select id="compare_function" class="form-control">
+        {% for f in markdata.comparison %}
+            <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
+        {% endfor %}
+    </select>
+    <br>
+    <p id="compare_function_description" class="omega-text">{{ markdata.compare_desc }}</p>
+{% endif %}
+
+<div class="row">
     <div class="col-sm-6">
-        <label for="compare_function">{% trans 'Error traces comparison function' %}</label>
-        <select id="compare_function" class="form-control">
-            {% for f in markdata.comparison %}
-                <option value="{{ f.value }}"{% if f.selected %} selected{% endif %}>{{ f.name }}</option>
-            {% endfor %}
-        </select>
-        <br>
-        <p id="compare_function_description" class="omega-text">{{ markdata.compare_desc }}</p>
-    </div>
-    {% endif %}
-    <div class="col-sm-6">
-        <h4>{% trans 'Verdict' %}</h4>
+        <p class="purple-title">{% trans 'Verdict' %}</p>
         <div style="margin-left: 25px">
             {% for v in markdata.verdicts %}
                 <input id="selected_verdict__{{ v.value }}" type="radio" name="selected_verdict" value="{{ v.value }}"{% if v.checked %} checked{% endif %}>
@@ -22,14 +21,9 @@
                 <br>
             {% endfor %}
         </div>
-    {% if markdata.type == 'safe' %}
-        </div>
-        <div class="col-sm-6">
-    {% else %}
-        <hr>
-    {% endif %}
-
-        <h4>{% trans 'Status' %}</h4>
+    </div>
+    <div class="col-sm-6">
+        <p class="purple-title">{% trans 'Status' %}</p>
         <div style="margin-left: 25px">
             {% for s in markdata.statuses %}
                 <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>

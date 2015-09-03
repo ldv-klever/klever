@@ -832,12 +832,21 @@ class TableTree(object):
                         values_data[job_pk][
                             'problem:pr_component_' + str(cmup.component_id) +
                             ':z_no_mark'
-                        ] = cmup.number
+                        ] = (
+                            cmup.number,
+                            reverse('reports:unknowns_problem',
+                                    args=[cmup.report.pk, cmup.component.pk, 0])
+                        )
                     else:
                         values_data[job_pk][
                             'problem:pr_component_' + str(cmup.component_id) +
                             ':problem_' + str(cmup.problem_id)
-                        ] = cmup.number
+                        ] = (
+                            cmup.number,
+                            reverse('reports:unknowns_problem',
+                                args=[cmup.report.pk, cmup.component.pk,
+                                      cmup.problem_id])
+                        )
             for cu in ComponentUnknown.objects.filter(
                     report__root__job_id__in=job_pks, report__parent=None):
                 job_pk = cu.report.root.job_id

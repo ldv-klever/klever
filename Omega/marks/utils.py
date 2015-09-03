@@ -156,9 +156,10 @@ class NewMark(object):
 
         if 'comment' not in args or len(args['comment']) == 0:
             return 'Change comment is required'
-        last_v = mark.versions.order_by('-version')[0]
         old_tags = []
+        last_v = None
         if self.type != 'unknown':
+            last_v = mark.versions.order_by('-version')[0]
             for tag in last_v.tags.all():
                 old_tags.append(tag.tag)
         mark.author = self.user
@@ -173,11 +174,11 @@ class NewMark(object):
 
         if self.type == 'unknown':
             if 'function' in args and len(args['function']) > 0:
-                if mark.function != last_v.function:
+                if args['function'] != mark.function:
                     self.do_recalk = True
                     mark.function = args['function']
             if 'problem' in args and len(args['problem']) > 0:
-                if mark.problem_pattern != last_v.problem_pattern:
+                if args['problem'] != mark.problem_pattern:
                     self.do_recalk = True
                     mark.problem_pattern = args['problem']
             if 'link' in args and len(args['link']) > 0:
@@ -218,7 +219,7 @@ class NewMark(object):
         if self.calculate:
             if self.do_recalk:
                 self.changes = ConnectMarkWithReports(self.mark).changes
-            else:
+            elif self.type != 'unknown':
                 for mark_rep in mark.markreport_set.all():
                     self.changes[mark_rep.report] = {
                         'kind': '=',
@@ -365,7 +366,7 @@ class ConnectReportWithMarks(object):
                 type=self.report.root.job.type,
                 component=self.report.component):
             problem = MatchUnknown(
-                self.report.problem_description,
+                self.report.problem_description.decode('utf8'),
                 mark.function,
                 mark.problem_pattern
             ).problem
@@ -468,7 +469,7 @@ class ConnectMarkWithReports(object):
         for unknown in ReportUnknown.objects.filter(
                 component=self.mark.component):
             problem = MatchUnknown(
-                unknown.report.problem_description,
+                unknown.problem_description.decode('utf8'),
                 self.mark.function,
                 self.mark.problem_pattern
             ).problem
@@ -476,11 +477,11 @@ class ConnectMarkWithReports(object):
                 continue
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(
-                mark=self.mark, report=unknown.report, problem=problem)
-            if unknown.report in self.changes:
-                self.changes[unknown.report]['kind'] = '='
+                mark=self.mark, report=unknown, problem=problem)
+            if unknown in self.changes:
+                self.changes[unknown]['kind'] = '='
             else:
-                self.changes[unknown.report] = {'kind': '+'}
+                self.changes[unknown] = {'kind': '+'}
         update_unknowns_cache(self.changes)
 
 
@@ -1256,7 +1257,9 @@ class MatchUnknown(object):
     def __check_pattern(self):
         self.numbers = re.findall('{(\d+)}', self.pattern)
         self.numbers = [int(x) for x in self.numbers]
-        self.max_pn = max(self.numbers)
+        self.max_pn = -1
+        if len(self.numbers) > 0:
+            self.max_pn = max(self.numbers)
         for n in range(self.max_pn + 1):
             if n not in self.numbers:
                 self.max_pn = None
@@ -1288,10 +1291,12 @@ def update_unknowns_cache(changes):
     for report in reports_to_recalc:
         problems = {}
         report.mark_unknowns_cache.all().delete()
-        total_unknowns = 0
+        total_unknowns = {}
         for leaf in report.leaves.filter(~Q(unknown=None)):
-            total_unknowns += 1
             component = leaf.unknown.component
+            if component not in total_unknowns:
+                total_unknowns[component] = 0
+            total_unknowns[component] += 1
             for mark_report in leaf.unknown.markreport_set.all():
                 new_id = (component, mark_report.problem)
                 if new_id not in problems:
@@ -1308,13 +1313,13 @@ def update_unknowns_cache(changes):
                 report=report,
                 component=component,
                 problem=problem,
-                number=problems[(component, problem)]
+                number=problems[(component, problem)]['num']
             )
             if component not in total_numbers:
                 total_numbers[component] = 0
-            total_numbers[component] += problems[(component, problem)]
+            total_numbers[component] += problems[(component, problem)]['num']
         for component in total_numbers:
-            unmarked = total_unknowns - total_numbers[component]
+            unmarked = total_unknowns[component] - total_numbers[component]
             if unmarked > 0:
                 ComponentMarkUnknownProblem.objects.create(
                     report=report,

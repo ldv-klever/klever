@@ -242,8 +242,11 @@ def get_mark_version_data(request):
         'data': MarkAttrTable(mark_version=mark_version)
     })
     data_templ = get_template('marks/MarkAddData.html')
-    data = data_templ.render({'markdata': MarkData(mark_type, mark_version),
-                              'tags': TagsInfo(mark_type, mark_version)})
+    data = data_templ.render({
+        'markdata': MarkData(mark_type, mark_version),
+        'tags': TagsInfo(mark_type, mark_version),
+        'can_edit': True
+    })
     return JsonResponse({'table': table, 'adddata': data})
 
 

@@ -161,15 +161,21 @@ class ViewJobData(object):
                 ~Q(problem=None) & Q(**unknowns_filters)):
             if cmup.component.name not in unknowns_data:
                 unknowns_data[cmup.component.name] = {}
-            unknowns_data[cmup.component.name][cmup.problem.name] = cmup.number
+            unknowns_data[cmup.component.name][cmup.problem.name] = (
+                cmup.number,
+                reverse('reports:unknowns_problem',
+                        args=[self.report.pk, cmup.component.pk,
+                              cmup.problem_id])
+            )
 
         unknowns_sorted = {}
         for comp in unknowns_data:
             problems_sorted = []
             for probl in sorted(unknowns_data[comp]):
                 problems_sorted.append({
-                    'num': unknowns_data[comp][probl],
+                    'num': unknowns_data[comp][probl][0],
                     'problem': probl,
+                    'href': unknowns_data[comp][probl][1],
                 })
             unknowns_sorted[comp] = problems_sorted
 
@@ -181,7 +187,9 @@ class ViewJobData(object):
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({
                     'problem': _('Without marks'),
-                    'num': cmup.number
+                    'num': cmup.number,
+                    'href': reverse('reports:unknowns_problem',
+                                    args=[self.report.pk, cmup.component.pk, 0])
                 })
 
         if 'unknowns_total' not in self.view['filters'] or \

@@ -38,8 +38,7 @@ function collect_new_markdata(tags) {
             is_modifiable: is_modifiable,
             problem: unknown_problem_pattern,
             function: unknown_function,
-            link: $('#unknown_link').val(),
-            tags: tags.getTags()
+            link: $('#unknown_link').val()
         };
     }
     else {
@@ -88,7 +87,6 @@ function collect_markdata(tags) {
             problem: unknown_problem_pattern,
             function: unknown_function,
             link: $('#unknown_link').val(),
-            tags: tags.getTags(),
             comment: $('#edit_mark_comment').val()
         };
     }
@@ -234,7 +232,7 @@ $(document).ready(function () {
                 if (data.error) {
                     err_notify(data.error);
                 }
-                else if (data.table && data.adddata) {
+                else {
                     $('#mark_attributes_table').html(data.table);
                     $('#mark_add_data_div').html(data.adddata);
                     $('#compare_function').change(set_action_on_func_change);

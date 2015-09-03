@@ -8,11 +8,11 @@
         <br>
     {% endfor %}
 </div>
-<label for="unknown_function">{% trans 'Function' %}</label>
-<input id="unknown_function" type="text" pattern="{% trans 'Regular expression' %}" value="{{ markdata.unknown_data.0 }}">
+<label for="unknown_function" class="purple-title">{% trans 'Function' %}</label>
+<input id="unknown_function" class="form-control" type="text" pattern="{% trans 'Regular expression' %}" value="{{ markdata.unknown_data.0 }}">
 <br>
-<label for="unknown_problem_pattern">{% trans 'Problem pattern' %}</label>
-<input id="unknown_problem_pattern" type="text" value="{{ markdata.unknown_data.1 }}">
+<label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem pattern' %}</label>
+<input id="unknown_problem_pattern" class="form-control" type="text" value="{{ markdata.unknown_data.1 }}">
 <br>
-<label for="unknown_link">{% trans 'Link to the problem' %}</label>
-<input id="unknown_link" type="url"  value="{{ markdata.unknown_data.2 }}">
+<label for="unknown_link" class="purple-title">{% trans 'Link to the problem' %}</label>
+<input id="unknown_link" class="form-control" type="url" {% if markdata.unknown_data.2 %}value="{{ markdata.unknown_data.2 }}"{% endif %}>
