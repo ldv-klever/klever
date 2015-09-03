@@ -112,7 +112,7 @@ class JobAccess(object):
     def can_delete(self):
         if self.job is None:
             return False
-        if len(self.job.children_set.all()) > 0:
+        if len(self.job.children.all()) > 0:
             return False
         if self.__is_manager:
             return True
@@ -125,8 +125,8 @@ class JobAccess(object):
     def __get_prop(self, user):
         if self.job is not None:
             try:
-                first_version = self.job.jobhistory_set.get(version=1)
-                last_version = self.job.jobhistory_set.get(
+                first_version = self.job.versions.get(version=1)
+                last_version = self.job.versions.get(
                     version=self.job.version)
             except ObjectDoesNotExist:
                 return
@@ -147,7 +147,7 @@ class FileData(object):
         self.__order_by_lvl()
 
     def __get_filedata(self, job):
-        for f in job.file_set.all().order_by('name'):
+        for f in job.filesystem_set.all().order_by('name'):
             file_info = {
                 'title': f.name,
                 'id': f.pk,
@@ -327,7 +327,7 @@ def role_info(job, user):
     users = []
     user_roles_data = []
     users_roles = job.userrole_set.filter(~Q(user=user))
-    job_author = job.job.jobhistory_set.get(version=1).change_author
+    job_author = job.job.versions.get(version=1).change_author
 
     for ur in users_roles:
         title = ur.user.extended.last_name + ' ' + ur.user.extended.first_name
@@ -480,7 +480,7 @@ def delete_versions(job, versions):
         v = int(v)
         if v != 1 and v != job.version:
             access_versions.append(v)
-    checked_versions = job.jobhistory_set.filter(version__in=access_versions)
+    checked_versions = job.versions.filter(version__in=access_versions)
     num_of_deleted = len(checked_versions)
     checked_versions.delete()
     clear_files()

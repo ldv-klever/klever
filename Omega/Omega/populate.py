@@ -17,7 +17,7 @@ def populate_jobs(user):
     old_jobs = Job.objects.all()
     while len(old_jobs) > 0:
         for job in old_jobs:
-            if len(job.children_set.all()) == 0:
+            if len(job.children.all()) == 0:
                 job.delete()
         old_jobs = Job.objects.all()
 

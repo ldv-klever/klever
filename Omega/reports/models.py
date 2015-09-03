@@ -58,10 +58,9 @@ class Resource(models.Model):
 
 
 class ReportComponent(Report):
-    computer = models.ForeignKey(Computer, related_name='computer_reports')
-    component = models.ForeignKey(Component, related_name='component_reports')
-    resource = models.ForeignKey(Resource,
-                                 related_name='resource_report_set', null=True)
+    computer = models.ForeignKey(Computer, related_name='+')
+    component = models.ForeignKey(Component, related_name='+')
+    resource = models.ForeignKey(Resource, related_name='cache1', null=True)
     data = models.BinaryField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
@@ -91,6 +90,7 @@ class ReportSafe(Report):
 
 
 class ReportUnknown(Report):
+    component = models.ForeignKey(Component)
     problem_description = models.BinaryField()
 
     class Meta:
@@ -99,9 +99,9 @@ class ReportUnknown(Report):
 
 class ReportComponentLeaf(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='leaves')
-    safe = models.ForeignKey(ReportSafe, null=True, related_name='+')
-    unsafe = models.ForeignKey(ReportUnsafe, null=True, related_name='+')
-    unknown = models.ForeignKey(ReportUnknown, null=True, related_name='+')
+    safe = models.ForeignKey(ReportSafe, null=True, related_name='leaves')
+    unsafe = models.ForeignKey(ReportUnsafe, null=True, related_name='leaves')
+    unknown = models.ForeignKey(ReportUnknown, null=True, related_name='leaves')
 
     class Meta:
         db_table = 'cache_report_component_leaf'
@@ -128,41 +128,21 @@ class Verdict(models.Model):
         db_table = "cache_report_verdict"
 
 
+class ComponentResource(models.Model):
+    report = models.ForeignKey(ReportComponent, related_name='resources_cache')
+    component = models.ForeignKey(Component, null=True, blank=True,
+                                  on_delete=models.SET_NULL,
+                                  related_name='+')
+    resource = models.ForeignKey(Resource, related_name='cache2')
+
+    class Meta:
+        db_table = 'cache_report_component_resource'
+
+
 class ComponentUnknown(models.Model):
-    report = models.ForeignKey(ReportComponent)
-    component = models.ForeignKey(Component,
-                                  related_name='component_cache1_set')
+    report = models.ForeignKey(ReportComponent, related_name='unknowns_cache')
+    component = models.ForeignKey(Component, related_name='+')
     number = models.IntegerField(default=0)
 
     class Meta:
         db_table = 'cache_report_component_unknown'
-
-
-class UnknownProblem(models.Model):
-    name = models.CharField(max_length=1023)
-
-    class Meta:
-        db_table = 'cache_mark_unknown_problem'
-
-
-class ComponentMarkUnknownProblem(models.Model):
-    report = models.ForeignKey(ReportComponent)
-    component = models.ForeignKey(Component,
-                                  related_name='component_cache2_set')
-    problem = models.ForeignKey(UnknownProblem, null=True, blank=True,
-                                on_delete=models.SET_NULL, related_name='+')
-    number = models.IntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_component_mark_unknown_problem'
-
-
-class ComponentResource(models.Model):
-    report = models.ForeignKey(ReportComponent)
-    component = models.ForeignKey(Component, null=True, blank=True,
-                                  on_delete=models.SET_NULL,
-                                  related_name='component_cache3_set')
-    resource = models.ForeignKey(Resource, related_name='resource_cache_set')
-
-    class Meta:
-        db_table = 'cache_report_component_resource'

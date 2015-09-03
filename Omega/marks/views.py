@@ -26,14 +26,14 @@ def create_mark(request, mark_type, report_id):
         elif mark_type == 'safe':
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
-            return HttpResponseRedirect(reverse('error', args=[500]))
+            report = ReportUnknown.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
         return HttpResponseRedirect(reverse('error', args=[601]))
 
     return render(request, 'marks/CreateMark.html', {
-        'report_pk': report.pk,
+        'report': report,
         'type': mark_type,
         'AttrTable': MarkAttrTable(report),
         'markdata': MarkData(mark_type),
@@ -49,21 +49,20 @@ def edit_mark(request, mark_type, mark_id):
     try:
         if mark_type == 'unsafe':
             mark = MarkUnsafe.objects.get(pk=int(mark_id))
-            history_set = mark.markunsafehistory_set.all().order_by('-version')
         elif mark_type == 'safe':
             mark = MarkSafe.objects.get(pk=int(mark_id))
-            history_set = mark.marksafehistory_set.all().order_by('-version')
         else:
-            return HttpResponseRedirect(reverse('error', args=[500]))
+            mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
 
-    can_edit = False
-    if MarkAccess(request.user, mark=mark).can_edit():
-        can_edit = True
-
+    can_edit = MarkAccess(request.user, mark=mark).can_edit()
+    history_set = mark.versions.order_by('-version')
     last_version = history_set[0]
     if can_edit:
+        template = 'marks/EditMark.html'
+        if mark_type == 'unknown':
+            template = 'marks/EditUnknownMark.html'
         mark_versions = []
         for m in history_set:
             if m.version == mark.version:
@@ -83,7 +82,7 @@ def edit_mark(request, mark_type, mark_id):
                 'title': title
             })
 
-        return render(request, 'marks/EditMark.html', {
+        return render(request, template, {
             'mark': mark,
             'version': last_version,
             'first_version': history_set.order_by('version')[0],
@@ -118,19 +117,27 @@ def save_mark(request):
 
     savedata = json.loads(request.POST.get('savedata', '{}'))
     if 'data_type' not in savedata or \
-            savedata['data_type'] not in ['safe', 'unsafe']:
+            savedata['data_type'] not in ['safe', 'unsafe', 'unknown']:
         return HttpResponseRedirect(reverse('error', args=[650]))
 
-    if any(x not in savedata for x in ['verdict', 'status', 'attrs']):
+    if 'status' not in savedata:
         return HttpResponseRedirect(reverse('error', args=[650]))
+    if savedata['data_type'] == 'unknown':
+        if any(x not in savedata for x in ['function', 'problem']):
+            return HttpResponseRedirect(reverse('error', args=[650]))
+    else:
+        if any(x not in savedata for x in ['verdict', 'attrs']):
+            return HttpResponseRedirect(reverse('error', args=[650]))
     if 'report_id' in savedata:
         try:
             if savedata['data_type'] == 'unsafe':
                 inst = ReportUnsafe.objects.get(pk=int(savedata['report_id']))
                 if any(x not in savedata for x in ['convert_id', 'compare_id']):
                     return HttpResponseRedirect(reverse('error', args=[650]))
-            else:
+            elif savedata['data_type'] == 'safe':
                 inst = ReportSafe.objects.get(pk=int(savedata['report_id']))
+            else:
+                inst = ReportUnknown.objects.get(pk=int(savedata['report_id']))
         except ObjectDoesNotExist:
             return HttpResponseRedirect(reverse('error', args=[504]))
         if not MarkAccess(request.user, report=inst).can_create():
@@ -141,8 +148,10 @@ def save_mark(request):
                 if 'compare_id' not in savedata:
                     return HttpResponseRedirect(reverse('error', args=[650]))
                 inst = MarkUnsafe.objects.get(pk=int(savedata['mark_id']))
-            else:
+            elif savedata['data_type'] == 'safe':
                 inst = MarkSafe.objects.get(pk=int(savedata['mark_id']))
+            else:
+                inst = MarkUnknown.objects.get(pk=int(savedata['mark_id']))
         except ObjectDoesNotExist:
             return HttpResponseRedirect(reverse('error', args=[604]))
         if not MarkAccess(request.user, mark=inst).can_edit():
@@ -196,7 +205,7 @@ def get_mark_version_data(request):
         return HttpResponse('')
 
     mark_type = request.POST.get('type', None)
-    if mark_type not in ['safe', 'unsafe']:
+    if mark_type not in ['safe', 'unsafe', 'unknown']:
         return JsonResponse({'error': _('Unknown error')})
     try:
         if mark_type == 'unsafe':
@@ -204,8 +213,13 @@ def get_mark_version_data(request):
                 version=int(request.POST.get('version', '0')),
                 mark_id=int(request.POST.get('mark_id', '0'))
             )
-        else:
+        elif mark_type == 'safe':
             mark_version = MarkSafeHistory.objects.get(
+                version=int(request.POST.get('version', '0')),
+                mark_id=int(request.POST.get('mark_id', '0'))
+            )
+        else:
+            mark_version = MarkUnknownHistory.objects.get(
                 version=int(request.POST.get('version', '0')),
                 mark_id=int(request.POST.get('mark_id', '0'))
             )
@@ -217,13 +231,22 @@ def get_mark_version_data(request):
         return JsonResponse({
             'error': _("You don't have an access to edit this mark")
         })
+    if mark_type == 'unknown':
+        unknown_data_tmpl = get_template('marks/MarkUnknownData.html')
+        unknown_data = unknown_data_tmpl.render({
+            'markdata': MarkData(mark_type, mark_version)
+        })
+        return JsonResponse({'adddata': unknown_data})
     table_templ = get_template('marks/MarkAttrTable.html')
     table = table_templ.render({
         'data': MarkAttrTable(mark_version=mark_version)
     })
     data_templ = get_template('marks/MarkAddData.html')
-    data = data_templ.render({'markdata': MarkData(mark_type, mark_version),
-                              'tags': TagsInfo(mark_type, mark_version)})
+    data = data_templ.render({
+        'markdata': MarkData(mark_type, mark_version),
+        'tags': TagsInfo(mark_type, mark_version),
+        'can_edit': True
+    })
     return JsonResponse({'table': table, 'adddata': data})
 
 
@@ -252,11 +275,11 @@ def download_mark(request, mark_type, mark_id):
         elif mark_type == 'unsafe':
             mark = MarkUnsafe.objects.get(pk=int(mark_id))
         else:
-            return HttpResponseRedirect(reverse('error', args=[500]))
+            mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
 
-    mark_tar = CreateMarkTar(mark, mark_type)
+    mark_tar = CreateMarkTar(mark)
 
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = "attachment; filename=%s" % \
@@ -305,7 +328,7 @@ def delete_mark(request, mark_type, mark_id):
         elif mark_type == 'safe':
             mark = MarkSafe.objects.get(pk=int(mark_id))
         else:
-            return HttpResponseRedirect(reverse('error', args=[500]))
+            mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
     if not MarkAccess(request.user, mark=mark).can_delete():
@@ -323,14 +346,13 @@ def remove_versions(request):
     try:
         if mark_type == 'safe':
             mark = MarkSafe.objects.get(pk=mark_id)
-            mark_history_set = mark.marksafehistory_set.filter(
-                ~Q(version__in=[mark.version, 1])).order_by('-version')
         elif mark_type == 'unsafe':
             mark = MarkUnsafe.objects.get(pk=mark_id)
-            mark_history_set = mark.markunsafehistory_set.filter(
-                ~Q(version__in=[mark.version, 1])).order_by('-version')
+        elif mark_type == 'unknown':
+            mark = MarkUnknown.objects.get(pk=mark_id)
         else:
             return JsonResponse({'message': _('Unknown error')})
+        mark_history = mark.versions.filter(~Q(version__in=[mark.version, 1]))
     except ObjectDoesNotExist:
         return JsonResponse({
             'status': 1, 'message': _('The mark was not found')
@@ -342,7 +364,7 @@ def remove_versions(request):
         })
 
     versions = json.loads(request.POST.get('versions', '[]'))
-    checked_versions = mark_history_set.filter(version__in=versions)
+    checked_versions = mark_history.filter(version__in=versions)
     deleted_versions = len(checked_versions)
     checked_versions.delete()
 
@@ -363,18 +385,18 @@ def get_mark_versions(request):
     try:
         if mark_type == 'safe':
             mark = MarkSafe.objects.get(pk=mark_id)
-            mark_history_set = mark.marksafehistory_set.filter(
-                ~Q(version__in=[mark.version, 1])).order_by('-version')
         elif mark_type == 'unsafe':
             mark = MarkUnsafe.objects.get(pk=mark_id)
-            mark_history_set = mark.markunsafehistory_set.filter(
-                ~Q(version__in=[mark.version, 1])).order_by('-version')
+        elif mark_type == 'unknown':
+            mark = MarkUnknown.objects.get(pk=mark_id)
         else:
             return JsonResponse({'message': _('Unknown error')})
+        mark_history = mark.versions.filter(
+            ~Q(version__in=[mark.version, 1])).order_by('-version')
     except ObjectDoesNotExist:
         return JsonResponse({'message': _('The mark was not found')})
     mark_versions = []
-    for m in mark_history_set:
+    for m in mark_history:
         mark_time = m.change_date.astimezone(
             pytz.timezone(request.user.extended.timezone)
         )

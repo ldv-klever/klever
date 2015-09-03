@@ -8,6 +8,7 @@ from Omega.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
 from jobs.utils import get_resource_data
 from reports.models import ReportComponent, Attr, AttrName
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
+from marks.models import UnknownProblem
 from Omega.tableHead import Header
 
 
@@ -87,13 +88,14 @@ def report_resources(report, user):
 class ReportTable(object):
 
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
-                 component_id=None, verdict=None, tag=None):
+                 component_id=None, verdict=None, tag=None, problem=None):
         self.component_id = component_id
         self.report = report
         self.user = user
         self.type = table_type
         self.verdict = verdict
         self.tag = tag
+        self.problem = problem
         self.columns = []
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
@@ -287,12 +289,9 @@ class ReportTable(object):
                                    args=[list_types[self.type], report.pk])
                 elif col == 'marks_number':
                     broken = 0
+                    num_of_connects = len(report.markreport_set.all())
                     if list_types[self.type] == 'unsafe':
-                        broken = \
-                            len(report.markunsafereport_set.filter(broken=True))
-                        num_of_connects = len(report.markunsafereport_set.all())
-                    else:
-                        num_of_connects = len(report.marksafereport_set.all())
+                        broken = len(report.markreport_set.filter(broken=True))
                     if broken > 0:
                         val = _('%(all)s (%(broken)s are broken)') % {
                             'all': num_of_connects,
@@ -328,17 +327,17 @@ class ReportTable(object):
             return True
         has_tag = False
         if self.type == '4':  # unsafe
-            for mark_rep in report.markunsafereport_set.all():
+            for mark_rep in report.markreport_set.all():
                 try:
-                    mark_rep.mark.markunsafehistory_set\
+                    mark_rep.mark.versions\
                         .order_by('-version')[0].tags.get(tag=self.tag)
                     has_tag = True
                 except ObjectDoesNotExist:
                     continue
         elif self.type == '5':  # safe
-            for mark_rep in report.marksafereport_set.all():
+            for mark_rep in report.markreport_set.all():
                 try:
-                    mark_rep.mark.marksafehistory_set\
+                    mark_rep.mark.versions\
                         .order_by('-version')[0].tags.get(tag=self.tag)
                     has_tag = True
                 except ObjectDoesNotExist:
@@ -371,20 +370,21 @@ class ReportTable(object):
             for new_a in json.loads(report.attr_order):
                 if new_a not in attr_order:
                     attr_order.append(new_a)
-            try:
-                parent = ReportComponent.objects.get(pk=report.parent_id)
-            except ObjectDoesNotExist:
-                continue
             if self.component_id is not None and \
-                    parent.component_id != int(self.component_id):
+                    report.component_id != int(self.component_id):
                 continue
-            if not filter_component(parent.component.name):
+            if isinstance(self.problem, UnknownProblem) and len(
+                    report.markreport_set.filter(problem=self.problem)) == 0:
+                continue
+            elif self.problem == 0 and len(report.markreport_set.all()) > 0:
+                continue
+            if not filter_component(report.component.name):
                 continue
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
                 data[attr.name.name][report.pk] = attr.value
-            components[report.pk] = parent.component.name
+            components[report.pk] = report.component.name
 
         columns = ['component']
         for name in attr_order:

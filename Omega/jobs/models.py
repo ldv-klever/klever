@@ -23,9 +23,8 @@ class Job(JobBase):
     version = models.PositiveSmallIntegerField(default=1)
     change_date = models.DateTimeField(auto_now=True)
     identifier = models.CharField(max_length=255, unique=True)
-    parent = models.ForeignKey('self', null=True, blank=True,
-                               on_delete=models.PROTECT,
-                               related_name='children_set')
+    parent = models.ForeignKey('self', null=True, on_delete=models.PROTECT,
+                               related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
 
     class Meta:
@@ -33,12 +32,12 @@ class Job(JobBase):
 
 
 class JobHistory(JobBase):
-    job = models.ForeignKey(Job)
+    job = models.ForeignKey(Job, related_name='versions')
     version = models.PositiveSmallIntegerField()
     change_date = models.DateTimeField()
     comment = models.CharField(max_length=255, default='')
-    parent = models.ForeignKey(Job, null=True, blank=True,
-                               on_delete=models.SET_NULL, related_name='+')
+    parent = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL,
+                               related_name='+')
     global_role = models.CharField(max_length=1, choices=JOB_ROLES, default='0')
     description = models.TextField(default='')
 
@@ -47,8 +46,7 @@ class JobHistory(JobBase):
 
 
 class ReportRoot(models.Model):
-    user = models.ForeignKey(User, blank=True, null=True,
-                             on_delete=models.SET_NULL, related_name='+')
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     job = models.OneToOneField(Job)
     last_request_date = models.DateTimeField()
 
@@ -72,12 +70,10 @@ class File(models.Model):
 
 
 class FileSystem(models.Model):
-    job = models.ForeignKey(JobHistory, related_name='file_set')
-    file = models.ForeignKey(File, related_name='filesystem_set',
-                             null=True, blank=True)
+    job = models.ForeignKey(JobHistory)
+    file = models.ForeignKey(File, null=True)
     name = models.CharField(max_length=150)
-    parent = models.ForeignKey('self', null=True, blank=True,
-                               related_name='children_set')
+    parent = models.ForeignKey('self', null=True, related_name='children')
 
     def __str__(self):
         return self.name
