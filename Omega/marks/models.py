@@ -50,6 +50,7 @@ class Mark(models.Model):
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
     attr_order = models.CharField(max_length=10000, default='[]')
+    description = models.TextField(default='')
 
     def __str__(self):
         return self.identifier
@@ -65,6 +66,7 @@ class MarkHistory(models.Model):
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     change_date = models.DateTimeField()
     comment = models.TextField()
+    description = models.TextField()
 
     class Meta:
         abstract = True
@@ -235,6 +237,7 @@ class MarkUnknown(models.Model):
     function = models.TextField()
     problem_pattern = models.CharField(max_length=100)
     link = models.URLField(null=True)
+    description = models.TextField(default='')
 
     class Meta:
         db_table = 'mark_unknown'
@@ -250,6 +253,7 @@ class MarkUnknownHistory(models.Model):
     link = models.URLField(null=True)
     change_date = models.DateTimeField()
     comment = models.TextField()
+    description = models.TextField()
 
     class Meta:
         db_table = 'mark_unknown_history'

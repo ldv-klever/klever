@@ -532,6 +532,11 @@ class MarkData(object):
         self.comparison, self.compare_desc = self.__functions('compare')
         self.convertion, self.convert_desc = self.__functions('convert')
         self.unknown_data = self.__unknown_info()
+        self.description = ''
+        if isinstance(self.mark_version,
+                      (MarkUnsafeHistory, MarkSafeHistory, MarkUnknownHistory)):
+            self.description = self.mark_version.description
+        print(self.description)
 
     def __unknown_info(self):
         unknown_markdata = []

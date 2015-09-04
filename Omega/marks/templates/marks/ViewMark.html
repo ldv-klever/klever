@@ -88,6 +88,11 @@
                     <span>{{ markdata.unknown_data.1 }}</span>
                 {% endif %}
             {% endif %}
+            {% if markdata.description|length > 0 %}
+                <br>
+                <p class="purple-title">{% trans 'Description' %}</p>
+                {{ markdata.description|safe }}
+            {% endif %}
         </div>
     </div>
 {% endblock %}

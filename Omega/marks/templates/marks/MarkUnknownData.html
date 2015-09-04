@@ -16,3 +16,6 @@
 <br>
 <label for="unknown_link" class="purple-title">{% trans 'Link to the problem' %}</label>
 <input id="unknown_link" class="form-control" type="url" {% if markdata.unknown_data.2 %}value="{{ markdata.unknown_data.2 }}"{% endif %}>
+<br>
+<label for="mark_description" class="purple-title">{% trans 'Description' %}</label>
+<textarea id="mark_description" class="form-control" rows="5" style="resize:none" placeholder="{% trans 'Description' %}">{{ markdata.description }}</textarea>

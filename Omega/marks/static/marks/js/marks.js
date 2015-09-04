@@ -16,7 +16,20 @@ function collect_attrs_data() {
 
 function collect_new_markdata(tags) {
     var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true,
-        mark_type = $('#report_type').val(), mark_data;
+        mark_type = $('#report_type').val(), mark_data,
+        description = $('#mark_description').val();
+
+    var tmp_div = $('<div>').html(description);
+    tmp_div.find('script').remove();
+    tmp_div.find('*').each(function () {
+        var element_in_div = $(this);
+        $.each($(this)[0].attributes, function (i, attr) {
+            if (attr.name.match("^on")) {
+                element_in_div.removeAttr(attr.name)
+            }
+        });
+    });
+    description = tmp_div.html();
 
     if (is_modifiable_checkbox.length) {
         is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
@@ -38,7 +51,8 @@ function collect_new_markdata(tags) {
             is_modifiable: is_modifiable,
             problem: unknown_problem_pattern,
             function: unknown_function,
-            link: $('#unknown_link').val()
+            link: $('#unknown_link').val(),
+            description: description
         };
     }
     else {
@@ -49,7 +63,8 @@ function collect_new_markdata(tags) {
             status: $("input[name='selected_status']:checked").val(),
             data_type: mark_type,
             is_modifiable: is_modifiable,
-            tags: tags.getTags()
+            tags: tags.getTags(),
+            description: description
         };
     }
 
@@ -64,7 +79,19 @@ function collect_new_markdata(tags) {
 
 function collect_markdata(tags) {
     var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true,
-        mark_type = $('#mark_type').val(), mark_data;
+        mark_type = $('#mark_type').val(), mark_data, description = $('#mark_description').val();
+
+    var tmp_div = $('<div>').html(description);
+    tmp_div.find('script').remove();
+    tmp_div.find('*').each(function () {
+        var element_in_div = $(this);
+        $.each($(this)[0].attributes, function (i, attr) {
+            if (attr.name.match("^on")) {
+                element_in_div.removeAttr(attr.name)
+            }
+        });
+    });
+    description = tmp_div.html();
 
     if (is_modifiable_checkbox.length) {
         is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
@@ -87,7 +114,8 @@ function collect_markdata(tags) {
             problem: unknown_problem_pattern,
             function: unknown_function,
             link: $('#unknown_link').val(),
-            comment: $('#edit_mark_comment').val()
+            comment: $('#edit_mark_comment').val(),
+            description: description
         };
     }
     else {
@@ -99,7 +127,8 @@ function collect_markdata(tags) {
             data_type: mark_type,
             is_modifiable: is_modifiable,
             tags: tags.getTags(),
-            comment: $('#edit_mark_comment').val()
+            comment: $('#edit_mark_comment').val(),
+            description: description
         };
     }
 

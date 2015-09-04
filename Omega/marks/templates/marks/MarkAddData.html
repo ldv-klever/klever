@@ -33,4 +33,6 @@
         </div>
     </div>
 </div>
+<label for="mark_description" class="purple-title">{% trans 'Description' %}</label>
+<textarea id="mark_description" class="form-control" rows="5" style="resize:none" placeholder="{% trans 'Description' %}">{{ markdata.description }}</textarea>
 {% include 'marks/Tags.html' %}

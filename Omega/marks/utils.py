@@ -133,6 +133,8 @@ class NewMark(object):
         tags = []
         if 'tags' in args:
             tags = args['tags']
+        if 'description' in args:
+            mark.description = args['description']
 
         try:
             mark.save()
@@ -199,6 +201,8 @@ class NewMark(object):
         if 'is_modifiable' in args and isinstance(args['is_modifiable'], bool) \
                 and self.user.extended.role == USER_ROLES[2][0]:
             mark.is_modifiable = args['is_modifiable']
+        if 'description' in args:
+            mark.description = args['description']
 
         tags = []
         if 'tags' in args:
@@ -257,6 +261,7 @@ class NewMark(object):
         new_version.change_date = mark.change_date
         new_version.comment = comment
         new_version.author = mark.author
+        new_version.description = mark.description
         new_version.save()
         self.mark_version = new_version
         if isinstance(tags, list):
@@ -691,7 +696,8 @@ class CreateMarkTar(object):
         for markversion in self.mark.versions.all():
             version_data = {
                 'status': markversion.status,
-                'comment': markversion.comment
+                'comment': markversion.comment,
+                'description': markversion.description
             }
             if self.type == 'unknown':
                 version_data['function'] = markversion.function
@@ -807,6 +813,8 @@ class ReadTarMark(object):
             tags = []
             if 'tags' in args and self.type != 'unknown':
                 tags = args['tags']
+            if 'description' in args:
+                mark.description = args['description']
 
             try:
                 mark.save()
@@ -845,6 +853,7 @@ class ReadTarMark(object):
             new_version.change_date = mark.change_date
             new_version.comment = comment
             new_version.author = mark.author
+            new_version.description = mark.description
             new_version.save()
             if isinstance(tags, list):
                 for tag in tags:
