@@ -73,10 +73,10 @@ function unknown_filters_data() {
 }
 
 $(document).ready(function () {
-    var report_list = $('#report_list_table').find('tbody').children();
+    /*var report_list = $('#report_list_table').find('tbody').children();
     if (report_list.length == 1) {
         window.location.replace(report_list.find('a').first().attr('href'));
-    }
+    }*/
 
     $('input[class=buttons-view-type]').each(function () {
         var data_collection;
