@@ -9,16 +9,14 @@ import random
 import psi.components
 import psi.utils
 
-name = 'AVTG'
-
 
 def before_launch_all_components(context):
-    context['MQs']['{0} common prj attrs'.format(name)] = multiprocessing.Queue()
-    context['MQs']['verification obj descs'] = multiprocessing.Queue()
+    context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
+    context.mqs['verification obj descs'] = multiprocessing.Queue()
 
 
 def after_extract_common_prj_attrs(context):
-    context.mqs['{0} common prj attrs'.format(name)].put(context.common_prj_attrs)
+    context.mqs['AVTG common prj attrs'].put(context.common_prj_attrs)
 
 
 def after_generate_verification_obj_desc(context):
@@ -34,8 +32,8 @@ def after_generate_all_verification_obj_descs(context):
 # TODO: get callbacks of plugins.
 
 
-class PsiComponent(psi.components.PsiComponentBase):
-    def launch(self):
+class AVTG(psi.components.Component):
+    def generate_abstract_verification_tasks(self):
         self.common_prj_attrs = {}
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
@@ -95,12 +93,14 @@ class PsiComponent(psi.components.PsiComponentBase):
 
                     os.chdir(os.pardir)
 
+    main = generate_abstract_verification_tasks
+
     def extract_common_prj_attrs(self):
         self.logger.info('Extract common project atributes')
 
-        self.common_prj_attrs = self.mqs['{0} common prj attrs'.format(name)].get()
+        self.common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
 
-        self.mqs['{0} common prj attrs'.format(name)].close()
+        self.mqs['AVTG common prj attrs'].close()
 
     def generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
@@ -122,6 +122,14 @@ class PsiComponent(psi.components.PsiComponentBase):
             'Generate abstract verification task description for {0}'.format(
                 'verification object "{0}" and rule specification "{1}"'.format(
                     verification_obj_desc['id'], rule_spec_desc['id'])))
+
+        # plugins_work_dir = os.path.relpath(
+        #     os.path.join(self.conf['root id'], '{0}.task'.format(verification_obj_desc['id'])))
+        # os.makedirs(plugins_work_dir)
+        # self.logger.debug('Plugins working directory is "{0}"'.format(plugins_work_dir))
+        #
+        # for plugin_desc in rule_spec_desc['plugins']:
+        #     pass
 
         # TODO: generate abstract verification task description!
 

@@ -4,26 +4,11 @@ import time
 
 
 class Session:
-    def __init__(self, logger, user, passwd, name):
-        # Check arguments passed.
-        if not isinstance(user, str):
-            raise ValueError('User name should be a string')
-        if len(user) == 0:
-            raise ValueError('User name should not be empty')
-        if not isinstance(passwd, str):
-            raise ValueError('Password should be a string')
-        if len(passwd) == 0:
-            raise ValueError('Password should not be empty')
-        if not isinstance(name, str):
-            raise ValueError('Server name should be a string')
-        if len(name) == 0:
-            raise ValueError('Server name should not be empty')
-
-        logger.info('Create session for user "{0}" on server "{1}"'.format(user, name))
+    def __init__(self, logger, omega):
+        logger.info('Create session for user "{0}" at Omega "{1}"'.format(omega['user'], omega['name']))
 
         self.logger = logger
-        self.user = user
-        self.name = name
+        self.name = omega['name']
         self.session = requests.Session()
 
         # TODO: try to autentificate like with httplib2.Http().add_credentials().
@@ -32,8 +17,8 @@ class Session:
 
         # Sign in.
         self.__request('users/psi_signin/', 'POST', {
-            'username': user,
-            'password': passwd,
+            'username': omega['user'],
+            'password': omega['passwd'],
         })
         logger.debug('Session was created')
 
@@ -85,7 +70,7 @@ class Session:
                 fp.write(chunk)
 
     def sign_out(self):
-        self.logger.info('Finish session for user "{0}" on server "{1}"'.format(self.user, self.name))
+        self.logger.info('Finish session')
         self.__request('users/psi_signout/')
 
     def upload_report(self, report):

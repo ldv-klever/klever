@@ -12,8 +12,6 @@ import psi.components
 import psi.lkbce.cmds.cmds
 import psi.utils
 
-name = 'LKBCE'
-
 # We assume that CC/LD options always start with "-".
 # Some CC/LD options always require values that can be specified either together with option itself (maybe separated
 # with "=") or by means of the following option.
@@ -29,8 +27,8 @@ _cmd_opts = {
            'opts discarding out file': ()}}
 
 
-class PsiComponent(psi.components.PsiComponentBase):
-    def launch(self):
+class LKBCE(psi.components.Component):
+    def extract_linux_kernel_build_commands(self):
         self.linux_kernel = {}
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
@@ -48,11 +46,12 @@ class PsiComponent(psi.components.PsiComponentBase):
         # self.process_all_linux_kernel_raw_build_cmds().
         with open(self.linux_kernel['raw build cmds file'], 'w'):
             pass
-        psi.components.launch_in_parrallel(self.logger,
-                                           (self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
+        self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
         if not self.conf['debug']:
             os.remove(self.linux_kernel['raw build cmds file'])
+
+    main = extract_linux_kernel_build_commands
 
     def build_linux_kernel(self):
         self.logger.info('Build Linux kernel')
@@ -79,19 +78,19 @@ class PsiComponent(psi.components.PsiComponentBase):
             'Following build commands will be executed:\n{0}'.format('\n'.join([' '.join(cmd) for cmd in cmds])))
 
         for cmd in cmds:
-            psi.components.Component(self.logger,
-                                     tuple(['make', '-j',
-                                            psi.utils.get_parallel_threads_num(self.logger,
-                                                                               self.conf,
-                                                                               'Linux kernel build'),
-                                            '-C', self.linux_kernel['work src tree'],
-                                            'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd)),
-                                     env=dict(os.environ,
-                                              PATH='{0}:{1}'.format(
-                                                  os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
-                                                  os.environ['PATH']),
-                                              LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
-                                                  self.linux_kernel['raw build cmds file']))).start()
+            psi.utils.execute(self.logger,
+                              tuple(['make', '-j',
+                                     psi.utils.get_parallel_threads_num(self.logger,
+                                                                        self.conf,
+                                                                        'Linux kernel build'),
+                                     '-C', self.linux_kernel['work src tree'],
+                                     'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd)),
+                              dict(os.environ,
+                                   PATH='{0}:{1}'.format(
+                                       os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
+                                       os.environ['PATH']),
+                                   LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
+                                       self.linux_kernel['raw build cmds file'])))
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with psi.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a') as fp:
@@ -99,15 +98,15 @@ class PsiComponent(psi.components.PsiComponentBase):
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
-        psi.components.Component(self.logger, ('make', '-C', self.linux_kernel['work src tree'], 'mrproper')).start()
+        psi.utils.execute(self.logger, ('make', '-C', self.linux_kernel['work src tree'], 'mrproper'))
 
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
         if 'configuration' in self.conf['Linux kernel']:
-            psi.components.Component(self.logger,
-                                     ('make', '-C', self.linux_kernel['work src tree'],
-                                      'ARCH={0}'.format(self.linux_kernel['arch']),
-                                      self.conf['Linux kernel']['configuration'])).start()
+            psi.utils.execute(self.logger,
+                              ('make', '-C', self.linux_kernel['work src tree'],
+                               'ARCH={0}'.format(self.linux_kernel['arch']),
+                               self.conf['Linux kernel']['configuration']))
         else:
             raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
@@ -115,11 +114,10 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.logger.info('Extract Linux kernel atributes')
 
         self.logger.debug('Get Linux kernel version')
-        p = psi.components.Component(self.logger,
-                                     ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'),
-                                     collect_all_stdout=True)
-        p.start()
-        self.linux_kernel['version'] = p.stdout[0]
+        stdout = psi.utils.execute(self.logger,
+                                   ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'),
+                                   collect_all_stdout=True)
+        self.linux_kernel['version'] = stdout[0]
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))
 
         self.logger.debug('Get Linux kernel architecture')

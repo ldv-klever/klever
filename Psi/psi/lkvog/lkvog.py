@@ -9,12 +9,10 @@ import re
 import psi.components
 import psi.utils
 
-name = 'LKVOG'
-
 
 def before_launch_all_components(context):
-    context['MQs']['Linux kernel attrs'] = multiprocessing.Queue()
-    context['MQs']['Linux kernel build cmd descs'] = multiprocessing.Queue()
+    context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
+    context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
 
 
 def after_extract_linux_kernel_attrs(context):
@@ -42,6 +40,7 @@ def after_process_linux_kernel_raw_build_cmd(context):
                       sort_keys=True, indent=4)
 
     # We need to copy build command description since it may be accidently overwritten by LKBCE.
+    # TODO: build command options shouldn't be copied!
     context.mqs['Linux kernel build cmd descs'].put(copy.deepcopy(context.linux_kernel['build cmd']))
 
 
@@ -50,8 +49,8 @@ def after_process_all_linux_kernel_raw_build_cmds(context):
     context.mqs['Linux kernel build cmd descs'].put(None)
 
 
-class PsiComponent(psi.components.PsiComponentBase):
-    def launch(self):
+class LKVOG(psi.components.Component):
+    def generate_linux_kernel_verification_objects(self):
         self.linux_kernel_verification_objs_gen = {}
         self.common_prj_attrs = {}
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
@@ -67,9 +66,10 @@ class PsiComponent(psi.components.PsiComponentBase):
                           'attrs': self.linux_kernel_verification_objs_gen['attrs']},
                          self.mqs['report files'],
                          self.conf['root id'])
-        psi.components.launch_in_parrallel(self.logger,
-                                           (self.process_all_linux_kernel_build_cmd_descs,
-                                            self.generate_all_verification_obj_descs))
+        self.launch_subcomponents((self.process_all_linux_kernel_build_cmd_descs,
+                                   self.generate_all_verification_obj_descs))
+
+    main = generate_linux_kernel_verification_objects
 
     def extract_common_prj_attrs(self):
         self.logger.info('Extract common project atributes')

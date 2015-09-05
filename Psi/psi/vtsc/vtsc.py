@@ -7,19 +7,18 @@ import random
 import psi.components
 import psi.utils
 
-name = 'VTSC'
-
 
 def before_launch_all_components(context):
-    context['MQs']['{0} common prj attrs'.format(name)] = multiprocessing.Queue()
+    context.mqs['VTSC common prj attrs'] = multiprocessing.Queue()
 
 
 def after_extract_common_prj_attrs(context):
-    context.mqs['{0} common prj attrs'.format(name)].put(context.common_prj_attrs)
+    context.mqs['VTSC common prj attrs'].put(context.common_prj_attrs)
 
 
-class PsiComponent(psi.components.PsiComponentBase):
-    def launch(self):
+# TODO: get rid of this stupid component.
+class VTSC(psi.components.Component):
+    def verification_tasks_scheduler_client(self):
         self.common_prj_attrs = {}
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
@@ -124,9 +123,11 @@ class PsiComponent(psi.components.PsiComponentBase):
 
                         os.chdir(os.pardir)
 
+    main = verification_tasks_scheduler_client
+
     def extract_common_prj_attrs(self):
         self.logger.info('Extract common project atributes')
 
-        self.common_prj_attrs = self.mqs['{0} common prj attrs'.format(name)].get()
+        self.common_prj_attrs = self.mqs['VTSC common prj attrs'].get()
 
-        self.mqs['{0} common prj attrs'.format(name)].close()
+        self.mqs['VTSC common prj attrs'].close()

@@ -6,7 +6,9 @@ import re
 import resource
 import subprocess
 import sys
+import threading
 import time
+import queue
 
 
 # Based on http://blog.gocept.com/2013/07/15/reliable-file-updates-with-python/.
@@ -71,6 +73,85 @@ def count_consumed_resources(logger, start_time, children=False):
     return resources
 
 
+class CommandError(ChildProcessError):
+    pass
+
+
+class StreamQueue:
+    def __init__(self, stream, stream_name, collect_all_output=False):
+        self.stream = stream
+        self.stream_name = stream_name
+        self.collect_all_output = collect_all_output
+        self.queue = queue.Queue()
+        self.finished = False
+        self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
+        self.output = []
+
+    def get(self):
+        try:
+            return self.queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def join(self):
+        self.thread.join()
+
+    def start(self):
+        self.thread.start()
+
+    def __put_lines_from_stream_to_queue(self):
+        # This will put lines from stream to queue until stream will be closed. For instance it will happen when
+        # execution of command will be completed.
+        for line in self.stream:
+            line = line.decode('utf8').rstrip()
+            self.queue.put(line)
+            if self.collect_all_output:
+                self.output.append(line)
+
+        # Nothing will be put to queue from now.
+        self.finished = True
+
+
+# TODO: it is necessary to disable simultaneous execution of several components since their outputs and consumed resources will be intermixed.
+# TODO: count resources consumed by the component and either create a component start and finish report with these resoruces or "add" them to parent resources.
+def execute(logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
+    logger.debug('Execute "{0}"'.format(cmd))
+
+    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
+
+    for stream_q in (out_q, err_q):
+        stream_q.start()
+
+    # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds.
+    while not out_q.finished or not err_q.finished:
+        time.sleep(timeout)
+
+        for stream_q in (out_q, err_q):
+            output = []
+            while True:
+                line = stream_q.get()
+                if line is None:
+                    break
+                output.append(line)
+            if output:
+                m = '"{0}" outputted to {1}:\n{2}'.format(cmd[0], stream_q.stream_name, '\n'.join(output))
+                if stream_q is out_q:
+                    logger.debug(m)
+                else:
+                    logger.warning(m)
+
+    for stream_q in (out_q, err_q):
+        stream_q.join()
+
+    if p.poll():
+        logger.error('"{0}" exitted with "{1}"'.format(cmd[0], p.poll()))
+        raise CommandError('"{0}" failed'.format(cmd[0]))
+
+    return out_q.output
+
+
 def find_file_or_dir(logger, root_id, file_or_dir):
     search_dirs = tuple(
         os.path.relpath(os.path.join(root_id, search_dir)) for search_dir in ('job/root', os.path.pardir))
@@ -95,6 +176,7 @@ def is_src_tree_root(filenames):
     return False
 
 
+# TODO: this and following functions are likely should be moved to psi.py.
 def get_comp_desc(logger):
     """
     Return a given computer description (a node name, a CPU model, a number of CPUs, a memory size, a Linux kernel
@@ -242,41 +324,27 @@ def get_parallel_threads_num(logger, conf, action):
     return str(parallel_threads_num)
 
 
-def invoke_callbacks(func, logger=None, components=None, context=None, args=None):
-    action = re.sub(r'^_*', '', func.__name__)
-    before_action = 'before_{0}'.format(action)
-    after_action = 'after_{0}'.format(action)
+def invoke_callbacks(event, args=None):
+    name = event.__name__
+    logger = event.__self__.logger
+    callbacks = event.__self__.callbacks
+    context = event.__self__
+    ret = None
 
-    if '__self__' in dir(func):
-        logger = func.__self__.logger
-        components = func.__self__.components
-        callbacks_context = func.__self__
-    else:
-        callbacks_context = context
+    for kind in ('before', 'instead', 'after'):
+        # Invoke callbacks if so.
+        if name in callbacks[kind]:
+            for component, callback in callbacks[kind][name]:
+                logger.debug('Invoke {0} callback of component "{1}" for "{2}"'.format(kind, component, name))
+                ret = callback(context)
+        # Invoke event itself.
+        elif kind == 'instead':
+            if args:
+                ret = event(*args)
+            else:
+                ret = event()
 
-    # Invoke all before actions.
-    for component in components:
-        if hasattr(component, before_action):
-            logger.debug('Invoke before callback of {0} for "{1}"'.format(component.name, action))
-            getattr(component, before_action)(callbacks_context)
-
-    # Invoke function itself.
-    if context and args:
-        ret = func(context, *args)
-    elif context:
-        ret = func(context)
-    elif args:
-        ret = func(*args)
-    else:
-        ret = func()
-
-    # Invoke all after actions.
-    for component in components:
-        if hasattr(component, after_action):
-            logger.debug('Invoke after callback of {0} for "{1}"'.format(component.name, action))
-            getattr(component, after_action)(callbacks_context)
-
-    # Return what function returned.
+    # Return what event or instead/after callbacks returned.
     return ret
 
 
