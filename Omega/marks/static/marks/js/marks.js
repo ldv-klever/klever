@@ -1,3 +1,54 @@
+function collect_filters_data() {
+    var view_values = {columns: []}, filter_values = {},
+        columns = ['num_of_links', 'verdict', 'status', 'author', 'format'],
+        order_type = $('input[name=marks_enable_order]:checked').val();
+    $.each(columns, function (index, val) {
+        var column_checkbox = $('#marks_filter_checkbox__' + val);
+        if (column_checkbox.length && column_checkbox.is(':checked')) {
+            view_values['columns'].push(val);
+        }
+    });
+    if (order_type == 'attribute') {
+        var order = $('#filter__attr__order').val();
+        if (order.length > 0) {
+            view_values['order'] = order;
+        }
+    }
+    else if (order_type == 'num_of_links') {
+        view_values['order'] = 'num_of_links';
+    }
+
+    var attr_val = $('#filter__attr__value').val(),
+        attr_attr = $('#filter__attr__attr').val();
+    if (attr_val && attr_attr && attr_val.length > 0 && attr_attr.length > 0) {
+        filter_values['attr'] = {
+            attr: attr_attr,
+            type: $('#filter__attr__type').val(),
+            value: attr_val
+        }
+    }
+    if ($('#filter__enable__verdict').is(':checked')) {
+        filter_values['verdict'] = {
+            type: $('#filter__type__verdict').val(),
+            value: $('#filter__value__verdict').children(':selected').val()
+        }
+    }
+    if ($('#filter__enable__status').is(':checked')) {
+        filter_values['status'] = {
+            type: $('#filter__type__status').val(),
+            value: $('#filter__value__status').children(':selected').val()
+        }
+    }
+    if ($('#filter__enable__author').is(':checked')) {
+        filter_values['author'] = {
+            type: 'is',
+            value: parseInt($('#filter__value__author').children(':selected').val())
+        }
+    }
+    view_values['filters'] = filter_values;
+    return JSON.stringify(view_values);
+}
+
 function collect_attrs_data() {
     var attrs = [];
     $("input[id^='attr_checkbox__']").each(function () {
@@ -222,7 +273,10 @@ function activate_tags() {
 }
 
 $(document).ready(function () {
-
+    var view_type_input = $('#view_type');
+    if (view_type_input.length) {
+        set_actions_for_views(view_type_input.val(), collect_filters_data);
+    }
     var marktags = activate_tags();
 
     $('#save_new_mark_btn').click(function () {

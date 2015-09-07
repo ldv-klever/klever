@@ -1,8 +1,10 @@
 import json
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from Omega.tableHead import Header
+from Omega.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW
 from marks.models import *
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -381,48 +383,101 @@ class ReportMarkTable(object):
 
 class MarksList(object):
 
-    def __init__(self, user, marks_type):
+    def __init__(self, user, marks_type, view=None, view_id=None):
         self.user = user
         self.type = marks_type
         if self.type not in ['unsafe', 'safe', 'unknown']:
             return
-        if self.type == 'unknown':
-            self.columns = ['mark_num', 'num_of_links', 'status', 'author',
-                            'format']
-            self.marks = MarkUnknown.objects.all()
-        else:
-            self.columns = ['mark_num', 'num_of_links', 'verdict', 'status',
-                            'author', 'format']
-            self.attr_values, self.marks = self.__add_attrs()
+        self.authors = []
+        self.view, self.view_id = self.__get_view(view, view_id)
+        self.columns = self.__get_columns()
+        self.marks = self.__get_marks()
+        if self.type != 'unknown':
+            self.attr_values = self.__get_attrs()
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
 
-    def __add_attrs(self):
-        data = {}
-        marks = []
-        attr_order = []
-        if self.type == 'unsafe':
-            for mark in MarkUnsafe.objects.all():
-                for new_a in json.loads(mark.attr_order):
-                    if new_a not in attr_order:
-                        attr_order.append(new_a)
-                for attr in mark.versions.get(version=mark.version).attrs.all():
-                    if attr.is_compare:
-                        if attr.attr.name.name not in data:
-                            data[attr.attr.name.name] = {}
-                        data[attr.attr.name.name][mark] = attr.attr.value
-                marks.append(mark)
+    def __get_view(self, view, view_id):
+        def_views = {
+            'unsafe': MARKS_UNSAFE_VIEW,
+            'safe': MARKS_SAFE_VIEW,
+            'unknown': MARKS_UNKNOWN_VIEW
+        }
+        view_types = {
+            'unsafe': '7',
+            'safe': '8',
+            'unknown': '9',
+        }
+
+        if view is not None:
+            return json.loads(view), None
+        if view_id is None:
+            pref_view = self.user.preferableview_set.filter(
+                view__type=view_types[self.type])
+            if len(pref_view) > 0:
+                return json.loads(pref_view[0].view.view), pref_view[0].view_id
+        elif view_id == 'default':
+            return def_views[self.type], 'default'
         else:
-            for mark in MarkSafe.objects.all():
-                for new_a in json.loads(mark.attr_order):
-                    if new_a not in attr_order:
-                        attr_order.append(new_a)
-                for attr in mark.versions.get(version=mark.version).attrs.all():
-                    if attr.is_compare:
-                        if attr.attr.name.name not in data:
-                            data[attr.attr.name.name] = {}
-                        data[attr.attr.name.name][mark] = attr.attr.value
-                marks.append(mark)
+            try:
+                user_view = self.user.view_set.get(
+                    pk=int(view_id), type=view_types[self.type])
+                return json.loads(user_view.view), user_view.pk
+            except ObjectDoesNotExist:
+                pass
+        return def_views[self.type], 'default'
+
+    def __get_columns(self):
+        columns = ['mark_num']
+        if self.type == 'unknown':
+            for col in ['num_of_links', 'status', 'author',
+                        'format']:
+                if col in self.view['columns']:
+                    columns.append(col)
+        else:
+            for col in ['num_of_links', 'verdict', 'status',
+                        'author', 'format']:
+                if col in self.view['columns']:
+                    columns.append(col)
+        return columns
+
+    def __get_marks(self):
+        filters = {}
+        unfilter = {}
+        if 'filters' in self.view:
+            if 'status' in self.view['filters']:
+                if self.view['filters']['status']['type'] == 'is':
+                    filters['status'] = self.view['filters']['status']['value']
+                else:
+                    unfilter['status'] = self.view['filters']['status']['value']
+            if self.type != 'unknown' and 'verdict' in self.view['filters']:
+                if self.view['filters']['verdict']['type'] == 'is':
+                    filters['verdict'] = \
+                        self.view['filters']['verdict']['value']
+                else:
+                    unfilter['verdict'] = \
+                        self.view['filters']['verdict']['value']
+            if 'author' in self.view['filters']:
+                filters['author_id'] = self.view['filters']['author']['value']
+
+        if self.type == 'unsafe':
+            return MarkUnsafe.objects.filter(Q(**filters) & ~Q(**unfilter))
+        elif self.type == 'safe':
+            return MarkSafe.objects.filter(Q(**filters) & ~Q(**unfilter))
+        return MarkUnknown.objects.filter(Q(**filters) & ~Q(**unfilter))
+
+    def __get_attrs(self):
+        data = {}
+        attr_order = []
+        for mark in self.marks:
+            for new_a in json.loads(mark.attr_order):
+                if new_a not in attr_order:
+                    attr_order.append(new_a)
+            for attr in mark.versions.get(version=mark.version).attrs.all():
+                if attr.is_compare:
+                    if attr.attr.name.name not in data:
+                        data[attr.attr.name.name] = {}
+                    data[attr.attr.name.name][mark] = attr.attr.value
 
         columns = []
         for name in attr_order:
@@ -430,7 +485,7 @@ class MarksList(object):
                 columns.append(name)
 
         values_data = {}
-        for mark in marks:
+        for mark in self.marks:
             values_data[mark] = {}
             for col in columns:
                 cell_val = '-'
@@ -438,26 +493,37 @@ class MarksList(object):
                     cell_val = data[col][mark]
                 values_data[mark][col] = cell_val
         self.columns.extend(columns)
-        return values_data, marks
+        return values_data
 
     def __get_values(self):
         values = []
         cnt = 0
         for mark in self.marks:
+            if mark.author not in self.authors:
+                self.authors.append(mark.author)
             cnt += 1
             values_str = []
+            order_by_value = ''
             for col in self.columns:
                 val = '-'
                 color = None
                 href = None
                 if self.type != 'unknown' and col in self.attr_values[mark]:
                     val = self.attr_values[mark][col]
+                    if 'order' in self.view and self.view['order'] == col:
+                        order_by_value = val
+                    if 'filters' in self.view and \
+                            not self.__filter_attr(col, val):
+                        break
                 elif col == 'mark_num':
                     val = cnt
                     href = reverse('marks:edit_mark',
                                    args=[self.type, mark.pk])
                 elif col == 'num_of_links':
                     val = len(mark.markreport_set.all())
+                    if 'order' in self.view \
+                            and self.view['order'] == 'num_of_links':
+                        order_by_value = val
                     if self.type == 'unsafe':
                         broken = len(mark.markreport_set.filter(broken=True))
                         if broken > 0:
@@ -483,8 +549,31 @@ class MarksList(object):
                 elif col == 'format':
                     val = mark.format
                 values_str.append({'color': color, 'value': val, 'href': href})
-            values.append(values_str)
-        return values
+            else:
+                values.append((order_by_value, values_str))
+
+        ordered_values = []
+        if 'order' in self.view and self.view['order'] == 'num_of_links':
+            for ord_by, val_str in reversed(sorted(values, key=lambda x: x[0])):
+                ordered_values.append(val_str)
+        elif 'order' in self.view:
+            for ord_by, val_str in sorted(values, key=lambda x: x[0]):
+                ordered_values.append(val_str)
+        else:
+            ordered_values = list(x[1] for x in values)
+        return ordered_values
+
+    def __filter_attr(self, attribute, value):
+        if 'attr' in self.view['filters'] and \
+                self.view['filters']['attr']['attr'] == attribute:
+            fvalue = self.view['filters']['attr']['value']
+            ftype = self.view['filters']['attr']['type']
+            if ftype == 'iexact' and fvalue.lower() != value.lower():
+                return False
+            elif ftype == 'istartswith' and \
+                    not value.lower().startswith(fvalue.lower()):
+                return False
+        return True
 
 
 class MarkAttrTable(object):
@@ -536,7 +625,6 @@ class MarkData(object):
         if isinstance(self.mark_version,
                       (MarkUnsafeHistory, MarkSafeHistory, MarkUnknownHistory)):
             self.description = self.mark_version.description
-        print(self.description)
 
     def __unknown_info(self):
         unknown_markdata = []

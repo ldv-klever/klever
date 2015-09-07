@@ -76,7 +76,6 @@ def get_view(user, view=None, view_id=None):
 class FilterForm(object):
 
     def __init__(self, user, view=None, view_id=None):
-        self.cnt = 1
         (self.view, self.view_id) = get_view(user, view, view_id)
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
@@ -87,7 +86,7 @@ class FilterForm(object):
         self.user_views = self.__user_views(user)
 
     def __column_title(self, column):
-        self.cnt = 1
+        self.ccc = 1
         col_parts = column.split(':')
         column_starts = []
         for i in range(0, len(col_parts)):
@@ -150,7 +149,6 @@ class FilterForm(object):
         return new_orders
 
     def __user_views(self, user):
-        self.cnt += 1
         view_data = []
         views = user.view_set.filter(type='1')
         for v in views:
@@ -194,7 +192,6 @@ class FilterForm(object):
 class TableTree(object):
 
     def __init__(self, user, view=None, view_id=None):
-        self.cnt = 1
         self.user = user
         self.columns = ['name']
         self.view = get_view(user, view, view_id)[0]
@@ -340,7 +337,6 @@ class TableTree(object):
             if job_access.can_view():
                 rowdata.append(job)
 
-        cnt = 0
         for job in rowdata:
             parent = job.parent
             row_job_data = {
@@ -369,7 +365,6 @@ class TableTree(object):
                 self.jobdata.append(row_job_data)
                 blackdata.append(parent)
                 parent = next_parent
-            cnt += 1
         self.__order_jobs()
 
     def __order_jobs(self):

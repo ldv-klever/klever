@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import USER_ROLES
+from users.models import View
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess,\
     TagsInfo, DeleteMark
 from marks.tables import MarkAttrTable, MarkData, MarkChangesTable,\
@@ -258,9 +259,30 @@ def mark_list(request, marks_type):
         'safe': _('Safe marks'),
         'unknown': _('Unknown marks'),
     }
+    verdicts = {
+        'unsafe': MARK_UNSAFE,
+        'safe': MARK_SAFE,
+        'unknown': []
+    }
+    view_type = {
+        'unsafe': '7',
+        'safe': '8',
+        'unknown': '9'
+    }
+    table_args = [request.user, marks_type]
+    if request.method == 'POST':
+        if request.POST.get('view_type', None) == view_type[marks_type]:
+            table_args.append(request.POST.get('view', None))
+            table_args.append(request.POST.get('view_id', None))
+
     return render(request, 'marks/MarkList.html', {
-        'tabledata': MarksList(request.user, marks_type),
+        'tabledata': MarksList(*table_args),
         'title': titles[marks_type],
+        'statuses': MARK_STATUS,
+        'verdicts': verdicts[marks_type],
+        'authors': User.objects.all(),
+        'view_type': view_type[marks_type],
+        'views': View.objects.filter(type=view_type[marks_type]),
     })
 
 

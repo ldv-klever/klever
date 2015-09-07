@@ -117,7 +117,7 @@ class ReportTable(object):
         if view_id is None:
             pref_view = self.user.preferableview_set.filter(
                 view__type=self.type)
-            if len(pref_view):
+            if len(pref_view) > 0:
                 return json.loads(pref_view[0].view.view), pref_view[0].view_id
         elif view_id == 'default':
             return def_views[self.type], 'default'

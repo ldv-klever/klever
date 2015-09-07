@@ -3,6 +3,8 @@
 {% load i18n %}
 {% block title %}{% trans 'Marks' %}{% endblock %}
 {% block body_block %}
+    <input id="view_type" type="hidden" value="{{ view_type }}">
+    {% include 'marks/filters.html' %}
     {% if tabledata.values|length %}
         <h2 style="text-align:center">{{ title }}</h2>
         <div style="overflow-x:auto;max-height: 1000px;overflow-y:auto;">

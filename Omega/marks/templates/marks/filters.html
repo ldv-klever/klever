@@ -1,0 +1,93 @@
+{% load i18n %}
+
+<div class="panel-group" id="accordion-attrs">
+    <div class="panel panel-primary">
+        <div class="panel-heading">
+            <h4 class="panel-title">
+                <a data-toggle="collapse" data-parent="#accordion-attrs" href="#collapse-attrs"><span class="glyphicon glyphicon-filter"></span> {% trans 'Filters' %}</a>
+            </h4>
+        </div>
+        <div id="collapse-attrs" class="panel-collapse collapse" style="margin-left: 10px;">
+        <div class="row">
+            <div class="col-sm-6">
+                <h4>{% trans 'Columns' %}</h4>
+                <label><input type="checkbox" id="marks_filter_checkbox__num_of_links"{% if 'num_of_links' in tabledata.view.columns %} checked{% endif %}>{% trans 'Number of associated reports' %}</label><br>
+            {% if tabledata.type != 'unknown' %}
+                <label><input type="checkbox" id="marks_filter_checkbox__verdict"{% if 'verdict' in tabledata.view.columns %} checked{% endif %}>{% trans 'Verdict' %}</label><br>
+            {% endif %}
+                <label><input type="checkbox" id="marks_filter_checkbox__status"{% if 'status' in tabledata.view.columns %} checked{% endif %}>{% trans 'Status' %}</label><br>
+                <label><input type="checkbox" id="marks_filter_checkbox__author"{% if 'author' in tabledata.view.columns %} checked{% endif %}>{% trans 'Last change author' %}</label><br>
+                <label><input type="checkbox" id="marks_filter_checkbox__format"{% if 'format' in tabledata.view.columns %} checked{% endif %}>{% trans 'Format' %}</label><br>
+                <br>
+                <h4>{% trans 'Order' %}</h4>
+                {% if tabledata.type != 'unknown' %}
+                    <label><input type="radio" name="marks_enable_order" value="attribute"{% if tabledata.view.order and tabledata.view.order != 'num_of_links' %} checked{% endif %}>{% trans 'Order by attribute' %}</label><br>
+                    <label for="filter__attr__order"></label>
+                    <input id="filter__attr__order" class="form-control" type="text"{% if tabledata.view.order != 'num_of_links' %} value="{{ tabledata.view.order }}"{% endif %}>
+                    <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small><br>
+                {% endif %}
+                <label><input {% if tabledata.type == 'unknown' %}type="checkbox" {% else %}type="radio" {% endif %}name="marks_enable_order" value="num_of_links"{% if tabledata.view.order == 'num_of_links' %} checked{% endif %}>{% trans 'Order by number of associated leaf reports' %}</label><br>
+            </div>
+            <div class="col-sm-6">
+                <h4>{% trans 'Filters' %}</h4>
+                <label><input type="checkbox" id="filter__enable__status"{% if 'status' in tabledata.view.filters %} checked{% endif %}>{% trans 'Status' %}</label><br>
+                <div class="form-inline">
+                    <label><select id="filter__type__status" class="form-control">
+                        <option value="is"{% if tabledata.view.filters.status.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
+                        <option value="isnot"{% if tabledata.view.filters.status.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
+                    </select></label>
+                    <label><select id="filter__value__status" class="form-control">
+                        {% for status in statuses %}
+                            <option value="{{ status.0 }}"{% if tabledata.view.filters.status.value == status.0 %} selected{% endif %}>{{ status.1 }}</option>
+                        {% endfor %}
+                    </select></label>
+                </div>
+                <br>
+            {% if tabledata.type != 'unknown' %}
+                <label><input type="checkbox" id="filter__enable__verdict"{% if 'verdict' in tabledata.view.filters %} checked{% endif %}>{% trans 'Verdict' %}</label><br>
+                <div class="form-inline">
+                    <label><select id="filter__type__verdict" class="form-control">
+                        <option value="is"{% if tabledata.view.filters.verdict.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
+                        <option value="isnot"{% if tabledata.view.filters.verdict.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
+                    </select></label>
+                    <label><select id="filter__value__verdict" class="form-control">
+                        {% for verdict in verdicts %}
+                            <option value="{{ verdict.0 }}"{% if tabledata.view.filters.verdict.value == verdict.0 %} selected{% endif %}>{{ verdict.1 }}</option>
+                        {% endfor %}
+                    </select></label>
+                </div>
+            {% endif %}
+                <br>
+                <label><input type="checkbox" id="filter__enable__author"{% if 'author' in tabledata.view.filters %} checked{% endif %}>{% trans 'Author' %}</label><br>
+                <div class="form-inline">
+                    <strong>{% trans 'is' %}</strong>
+                    <label><select id="filter__value__author" class="form-control">
+                        {% for author in authors %}
+                            <option value="{{ author.pk }}"{% if tabledata.view.filters.author.value == author.pk %} selected{% endif %}>{{ author.extended.last_name }} {{ author.extended.first_name }}</option>
+                        {% endfor %}
+                    </select></label>
+                </div>
+            {% if tabledata.type != 'unknown' %}
+                <h4>{% trans 'Value of attribute' %}</h4>
+                <label for="filter__attr__attr"></label>
+                <input id="filter__attr__attr" class="form-control" type="text" value="{{ tabledata.view.filters.attr.attr }}">
+                <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
+                <div class="form-inline">
+                    <br>
+                    <label><select id="filter__attr__type" class="form-control">
+                        <option value="iexact"{% if tabledata.view.filters.attr.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                        <option value="istartswith"{% if tabledata.view.filters.attr.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    </select></label>
+                    <label>
+                        <input id="filter__attr__value" class="form-control" type="text" value="{{ tabledata.view.filters.attr.value }}">
+                    </label>
+                </div>
+            {% endif %}
+            </div>
+        </div>
+            <hr>
+            {% include 'viewButtons.html' with view_type=view_type view_id=tabledata.view_id views=views %}
+            <br><br>
+        </div>
+    </div>
+</div>
