@@ -1,3 +1,5 @@
+import io
+import json
 import multiprocessing
 import os
 import re
@@ -48,7 +50,7 @@ class Component(multiprocessing.Process):
         multiprocessing.Process.start(self)
 
     def main(self):
-        self.logger('I forget to define main function!')
+        self.logger.error('I forgot to define main function!')
 
     def run(self):
         # Remember approximate time of start to count wall time.
@@ -99,17 +101,34 @@ class Component(multiprocessing.Process):
                                      self.mqs['report files'],
                                      self.conf['root id'])
 
-                psi.utils.report(self.logger,
-                                 'finish',
-                                 {'id': self.name,
-                                  'resources': psi.utils.count_consumed_resources(
-                                      self.logger,
-                                      self.start_time),
-                                  'desc': '__file:desc',
-                                  'log': '__file:log',
-                                  'data': ''},
-                                 self.mqs['report files'],
-                                 self.conf['root id'])
+                with open('child resources') if os.path.isfile('child resources') else io.StringIO('{}') as fp:
+                    psi.utils.report(self.logger,
+                                     'finish',
+                                     {'id': self.name,
+                                      'resources': psi.utils.count_consumed_resources(
+                                          self.logger,
+                                          self.start_time,
+                                          child_resources=json.load(fp)),
+                                      'desc': '__file:desc',
+                                      'log': '__file:log',
+                                      'data': ''},
+                                     self.mqs['report files'],
+                                     self.conf['root id'])
+            else:
+                with psi.utils.LockedOpen('child resources', 'a+') as fp:
+                    child_resources = {}
+
+                    # Read resources of other children if so.
+                    if fp.tell():
+                        fp.seek(0)
+                        child_resources = json.load(fp)
+                        fp.truncate(0)
+
+                    # Calculate our resources.
+                    child_resources[self.name] = psi.utils.count_consumed_resources(self.logger, self.start_time)
+
+                    # Write our resources together with resources of other children.
+                    json.dump(child_resources, fp, sort_keys=True, indent=4)
 
             if sys.exc_info()[0]:
                 # Treat component stopping as normal termination.

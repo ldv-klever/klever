@@ -46,13 +46,16 @@ class LockedOpen(object):
         self.fp.close()
 
 
-def count_consumed_resources(logger, start_time, children=False):
+def count_consumed_resources(logger, start_time, children=False, child_resources=None):
     """
     Count resources (wall time, CPU time and maximum memory size) consumed by the process without its childred.
     Note that launching under PyCharm gives its maximum memory size rather than the process one.
     :return: resources.
     """
     logger.debug('Count consumed resources')
+
+    assert not (children and child_resources), \
+        'Do not calculate resources of process with children and simultaneosly provide resources of children'
 
     utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
 
@@ -62,6 +65,12 @@ def count_consumed_resources(logger, start_time, children=False):
         utime += utime_children
         stime += stime_children
         maxrss = max(maxrss, maxrss_children)
+    elif child_resources:
+        for child in child_resources:
+            # CPU time is sum of utime and stime, so add it just one time.
+            utime += child_resources[child]['CPU time'] / 100
+            maxrss = max(maxrss, child_resources[child]['max mem size'] / 1000)
+            # Wall time of children is included in wall time of their parent.
 
     resources = {'wall time': round(100 * (time.time() - start_time)),
                  'CPU time': round(100 * (utime + stime)),
