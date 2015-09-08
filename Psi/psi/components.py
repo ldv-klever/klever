@@ -21,7 +21,8 @@ class ComponentStopped(ChildProcessError):
 
 
 class Component(multiprocessing.Process):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, separate_from_parent=False):
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, separate_from_parent=False,
+                 include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -33,6 +34,7 @@ class Component(multiprocessing.Process):
         self.callbacks = callbacks
         self.mqs = mqs
         self.separate_from_parent = separate_from_parent
+        self.include_child_resources = include_child_resources
         self.name = self.__class__.__name__
         # Component working directory.
         self.work_dir = self.name.lower()
@@ -108,7 +110,8 @@ class Component(multiprocessing.Process):
                                       'resources': psi.utils.count_consumed_resources(
                                           self.logger,
                                           self.start_time,
-                                          child_resources=json.load(fp)),
+                                          self.include_child_resources,
+                                          json.load(fp)),
                                       'desc': '__file:desc',
                                       'log': '__file:log',
                                       'data': ''},
@@ -125,7 +128,8 @@ class Component(multiprocessing.Process):
                         fp.truncate(0)
 
                     # Calculate our resources.
-                    child_resources[self.name] = psi.utils.count_consumed_resources(self.logger, self.start_time)
+                    child_resources[self.name] = psi.utils.count_consumed_resources(self.logger, self.start_time,
+                                                                                    self.include_child_resources)
 
                     # Write our resources together with resources of other children.
                     json.dump(child_resources, fp, sort_keys=True, indent=4)
