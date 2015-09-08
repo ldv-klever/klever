@@ -36,6 +36,7 @@ class Psi:
         self.version = None
         self.job = None
         self.comp = []
+        self.id = '/'
         self.session = None
         self.mqs = {}
         self.uploading_reports_process = None
@@ -67,7 +68,7 @@ class Psi:
             self.comp = psi.utils.get_comp_desc(self.logger)
             start_report_file = psi.utils.report(self.logger,
                                                  'start',
-                                                 {'id': '/',
+                                                 {'id': self.id,
                                                   'attrs': [{'PSI version': self.version}],
                                                   'comp': self.comp})
             self.session = psi.session.Session(self.logger, self.omega)
@@ -94,7 +95,7 @@ class Psi:
                     psi.utils.report(self.logger,
                                      'unknown',
                                      {'id': 'unknown',
-                                      'parent id': '/',
+                                      'parent id': self.id,
                                       'problem desc': '__file:problem desc'},
                                      self.mqs['report files'])
 
@@ -112,7 +113,7 @@ class Psi:
                 if self.mqs:
                     psi.utils.report(self.logger,
                                      'finish',
-                                     {'id': '/',
+                                     {'id': self.id,
                                       'resources': psi.utils.count_consumed_resources(
                                           self.logger,
                                           self.start_time),
@@ -321,7 +322,7 @@ class Psi:
         self.logger.info('Launch all components')
 
         for component in self.components:
-            p = component(self.components_conf, self.logger, self.callbacks, self.mqs, True)
+            p = component(self.components_conf, self.logger, self.id, self.callbacks, self.mqs, True)
             p.start()
             self.component_processes.append(p)
 

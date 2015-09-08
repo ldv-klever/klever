@@ -19,7 +19,7 @@ class ComponentStopped(ChildProcessError):
 
 
 class Component(multiprocessing.Process):
-    def __init__(self, conf, logger, callbacks, mqs, separate_from_parent=False):
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, separate_from_parent=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -27,6 +27,7 @@ class Component(multiprocessing.Process):
         # Parent logger will be used untill component will change working directory and get its own logger. We should
         # avoid to use parent logger in component process.
         self.logger = logger
+        self.parent_id = parent_id
         self.callbacks = callbacks
         self.mqs = mqs
         self.separate_from_parent = separate_from_parent
@@ -71,7 +72,7 @@ class Component(multiprocessing.Process):
                 psi.utils.report(self.logger,
                                  'start',
                                  {'id': self.name,
-                                  'parent id': '/',
+                                  'parent id': self.parent_id,
                                   'name': self.name},
                                  self.mqs['report files'],
                                  self.conf['root id'])
@@ -167,7 +168,7 @@ class Component(multiprocessing.Process):
                     ''.join(re.findall(r'_(.)', subcomponent.__name__)).upper() + subcomponent.__name__[0].upper(),
                     (Component,))
                 setattr(subcomponent_class, 'main', subcomponent)
-                p = subcomponent_class(self.conf, self.logger, self.callbacks, self.mqs)
+                p = subcomponent_class(self.conf, self.logger, self.name, self.callbacks, self.mqs)
                 p.start()
                 subcomponent_processes.append(p)
 
