@@ -190,9 +190,13 @@ class Component(multiprocessing.Process):
             for subcomponent in subcomponents:
                 subcomponent_class = types.new_class(
                     ''.join(re.findall(r'_(.)', subcomponent.__name__)).upper() + subcomponent.__name__[0].upper(),
-                    (Component,))
+                    (self.__class__,))
                 setattr(subcomponent_class, 'main', subcomponent)
-                p = subcomponent_class(self.conf, self.logger, self.name, self.callbacks, self.mqs)
+                # Do not try to separate these subcomponents from their parents - it is a true headache.
+                # We always include child resources into resources of these components since otherwise they will
+                # disappear from resources statistics.
+                p = subcomponent_class(self.conf, self.logger, self.name, self.callbacks,
+                                       self.mqs, False, True)
                 p.start()
                 subcomponent_processes.append(p)
 
