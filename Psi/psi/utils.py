@@ -28,7 +28,7 @@ class LockedOpen(object):
 
             fp_new = open(self.name, *self.args, **self.kwargs)
 
-            # Other process didn't modify file between we open and lock it. So we can safely use created file stream.
+            # Other processes didn't modify file between we open and lock it. So we can safely use initial file stream.
             if os.path.sameopenfile(fp.fileno(), fp_new.fileno()):
                 fp_new.close()
                 break
