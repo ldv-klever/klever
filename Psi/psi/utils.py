@@ -2,7 +2,6 @@ import fcntl
 import json
 import logging
 import os
-import re
 import resource
 import subprocess
 import sys
@@ -11,39 +10,39 @@ import time
 import queue
 
 
-# Based on http://blog.gocept.com/2013/07/15/reliable-file-updates-with-python/.
+# Based on https://pypi.python.org/pypi/filelock/.
 class LockedOpen(object):
-    def __init__(self, name, *args, **kwargs):
-        self.name = name
+    def __init__(self, file, *args, **kwargs):
+        self.file = file
         self.args = args
         self.kwargs = kwargs
 
-        self.fp = None
+        self.lock_file = '{0}.lock'.format(self.file)
+        self.lock_file_descriptor = None
+        self.file_descriptor = None
 
     def __enter__(self):
-        fp = open(self.name, *self.args, **self.kwargs)
-
+        # Ensure that specified file is opened exclusively.
         while True:
-            fcntl.flock(fp, fcntl.LOCK_EX)
-
-            fp_new = open(self.name, *self.args, **self.kwargs)
-
-            # Other processes didn't modify file between we open and lock it. So we can safely use initial file stream.
-            if os.path.sameopenfile(fp.fileno(), fp_new.fileno()):
-                fp_new.close()
-                break
-            # Otherwise we need to reopen file.
+            self.lock_file_descriptor = os.open(self.lock_file, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+            try:
+                fcntl.flock(self.lock_file_descriptor, fcntl.LOCK_EX)
+            except (IOError, OSError):
+                os.close(self.lock_file_descriptor)
+                continue
             else:
-                fp.close()
-                fp = fp_new
-
-        self.fp = fp
-
-        return fp
+                self.file_descriptor = open(self.file, *self.args, **self.kwargs)
+                return self.file_descriptor
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.fp.flush()
-        self.fp.close()
+        self.file_descriptor.flush()
+        self.file_descriptor.close()
+        fcntl.flock(self.lock_file_descriptor, fcntl.LOCK_UN)
+        os.close(self.lock_file_descriptor)
+        try:
+            os.remove(self.lock_file)
+        except OSError:
+            pass
 
 
 def count_consumed_resources(logger, start_time, include_child_resources=False, child_resources=None):

@@ -125,8 +125,7 @@ class Component(multiprocessing.Process):
                     if fp.tell():
                         fp.seek(0)
                         child_resources = json.load(fp)
-                        fp.seek(0)
-                        fp.truncate()
+                        fp.truncate(0)
 
                     # Calculate our resources.
                     child_resources[self.name] = psi.utils.count_consumed_resources(self.logger, self.start_time,
