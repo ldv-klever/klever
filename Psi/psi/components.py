@@ -1,5 +1,3 @@
-import io
-import json
 import multiprocessing
 import os
 import re
@@ -33,6 +31,9 @@ class Component(multiprocessing.Process):
         self.parent_id = parent_id
         self.callbacks = callbacks
         self.mqs = mqs
+        # Create special message queue where child resources of processes separated from parents will be printed.
+        if separate_from_parent:
+            self.mqs.update({'child resources': multiprocessing.Queue()})
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
         self.name = self.__class__.__name__
@@ -103,36 +104,38 @@ class Component(multiprocessing.Process):
                                      self.mqs['report files'],
                                      self.conf['root id'])
 
-                with open('child resources') if os.path.isfile('child resources') else io.StringIO('{}') as fp:
-                    psi.utils.report(self.logger,
-                                     'finish',
-                                     {'id': self.name,
-                                      'resources': psi.utils.count_consumed_resources(
-                                          self.logger,
-                                          self.start_time,
-                                          self.include_child_resources,
-                                          json.load(fp)),
-                                      'desc': '__file:desc',
-                                      'log': '__file:log',
-                                      'data': ''},
-                                     self.mqs['report files'],
-                                     self.conf['root id'])
+                self.logger.info('Terminate child resources message queue')
+                self.mqs['child resources'].put(None)
+
+                all_child_resources = {}
+                while True:
+                    child_resources = self.mqs['child resources'].get()
+
+                    if child_resources is None:
+                        self.logger.debug('Child resources message queue was terminated')
+                        self.mqs['child resources'].close()
+                        break
+
+                    self.logger.info(child_resources)
+                    all_child_resources.update(child_resources)
+
+                psi.utils.report(self.logger,
+                                 'finish',
+                                 {'id': self.name,
+                                  'resources': psi.utils.count_consumed_resources(
+                                      self.logger,
+                                      self.start_time,
+                                      self.include_child_resources,
+                                      all_child_resources),
+                                  'desc': '__file:desc',
+                                  'log': '__file:log',
+                                  'data': ''},
+                                 self.mqs['report files'],
+                                 self.conf['root id'])
             else:
-                with psi.utils.LockedOpen('child resources', 'a+') as fp:
-                    child_resources = {}
-
-                    # Read resources of other children if so.
-                    if fp.tell():
-                        fp.seek(0)
-                        child_resources = json.load(fp)
-                        fp.truncate(0)
-
-                    # Calculate our resources.
-                    child_resources[self.name] = psi.utils.count_consumed_resources(self.logger, self.start_time,
-                                                                                    self.include_child_resources)
-
-                    # Write our resources together with resources of other children.
-                    json.dump(child_resources, fp, sort_keys=True, indent=4)
+                self.mqs['child resources'].put(
+                    {self.name: psi.utils.count_consumed_resources(self.logger, self.start_time,
+                                                                   self.include_child_resources)})
 
             if sys.exc_info()[0]:
                 # Treat component stopping as normal termination.
