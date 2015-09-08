@@ -116,7 +116,6 @@ class Component(multiprocessing.Process):
                         self.mqs['child resources'].close()
                         break
 
-                    self.logger.info(child_resources)
                     all_child_resources.update(child_resources)
 
                 psi.utils.report(self.logger,
