@@ -71,8 +71,8 @@ def count_consumed_resources(logger, start_time, include_child_resources=False, 
             maxrss = max(maxrss, child_resources[child]['max mem size'] / 1000)
             # Wall time of children is included in wall time of their parent.
 
-    resources = {'wall time': round(100 * (time.time() - start_time)),
-                 'CPU time': round(100 * (utime + stime)),
+    resources = {'wall time': round(1000 * (time.time() - start_time)),
+                 'CPU time': round(1000 * (utime + stime)),
                  'max mem size': 1000 * maxrss}
 
     logger.debug('Consumed the following resources:\n%s',
