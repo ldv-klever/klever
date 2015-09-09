@@ -59,7 +59,7 @@ class LKBCE(psi.components.Component):
         # First of all collect all build commands to be executed.
         cmds = []
         if 'whole build' in self.conf['Linux kernel']:
-            cmds.append(('modules',))
+            cmds.append(('all',))
         elif 'modules' in self.conf['Linux kernel']:
             # TODO: check that module sets aren't intersect explicitly.
             for modules in self.conf['Linux kernel']['modules']:
