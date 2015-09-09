@@ -242,7 +242,6 @@ class LKBCE(psi.components.Component):
                     fp.truncate()
 
     def process_linux_kernel_raw_build_cmd(self, opts):
-        # TODO: print output file.
         self.logger.info('Process Linux kernel raw build command "{0}"'.format(self.linux_kernel['build cmd']['type']))
 
         self.linux_kernel['build cmd']['in files'] = []

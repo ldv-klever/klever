@@ -118,6 +118,7 @@ class AVTG(psi.components.Component):
                 self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
+        # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
         self.logger.info(
             'Generate abstract verification task description for {0}'.format(
                 'verification object "{0}" and rule specification "{1}"'.format(
