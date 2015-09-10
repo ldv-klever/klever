@@ -67,7 +67,7 @@ def count_consumed_resources(logger, start_time, include_child_resources=False, 
     elif child_resources:
         for child in child_resources:
             # CPU time is sum of utime and stime, so add it just one time.
-            utime += child_resources[child]['CPU time'] / 100
+            utime += child_resources[child]['CPU time'] / 1000
             maxrss = max(maxrss, child_resources[child]['max mem size'] / 1000)
             # Wall time of children is included in wall time of their parent.
 
