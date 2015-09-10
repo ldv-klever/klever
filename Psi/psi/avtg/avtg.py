@@ -9,6 +9,10 @@ import random
 import psi.components
 import psi.utils
 
+# ATVG plugins.
+import psi.avtg.deg.deg
+import psi.avtg.ri.ri
+
 
 def before_launch_all_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
@@ -35,6 +39,8 @@ def after_generate_all_verification_obj_descs(context):
 class AVTG(psi.components.Component):
     def generate_abstract_verification_tasks(self):
         self.common_prj_attrs = {}
+        self.plugins = (psi.avtg.deg.deg.DEG, psi.avtg.ri.ri.RI)
+        self.plugins_work_dir = None
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
@@ -44,54 +50,6 @@ class AVTG(psi.components.Component):
                          self.conf['root id'])
         self.rule_spec_descs = _extract_rule_spec_descs(self.conf, self.logger)
         psi.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
-
-        # TODO: delete following stub code after all.
-        # Start and finish AVTG plugins.
-        for i, verification_obj in enumerate(('drivers/usb/core/usbcore.ko', 'drivers/usb/usb-commmon.ko')):
-            for j, rule_spec in enumerate(('mutex', 'spin lock')):
-                for plugin in ('DEG', 'RI'):
-                    # Surprise! RI11 isn't started since DEG11 is going to fail. Keep in touch!
-                    if i == 1 and j == 1 and plugin == 'RI':
-                        continue
-
-                    id = '{0}/{1}/{2}'.format(verification_obj, rule_spec, plugin)
-                    plugin_work_dir = '{0}{1}{2}'.format(plugin, i, j)
-
-                    os.makedirs(plugin_work_dir)
-                    os.chdir(plugin_work_dir)
-
-                    psi.utils.report(self.logger,
-                                     'start',
-                                     {'id': id,
-                                      'attrs': [{'verification object': verification_obj},
-                                                {'rule specification': rule_spec}],
-                                      'name': plugin,
-                                      'parent id': 'AVTG'},
-                                     self.mqs['report files'],
-                                     self.conf['root id'])
-
-                    # As promised DEG11 fails.
-                    if i == 1 and j == 1 and plugin == 'DEG':
-                        psi.utils.report(self.logger,
-                                         'unknown',
-                                         {'id': 'unknown',
-                                          'parent id': id,
-                                          'problem desc': 'Fatal error!'},
-                                         self.mqs['report files'],
-                                         self.conf['root id'])
-
-                    psi.utils.report(self.logger,
-                                     'finish',
-                                     {'id': id,
-                                      'resources': {'wall time': random.randint(0, 10000),
-                                                    'CPU time': random.randint(0, 10000),
-                                                    'max mem size': random.randint(0, 1000000000)},
-                                      'log': '',
-                                      'data': ''},
-                                     self.mqs['report files'],
-                                     self.conf['root id'])
-
-                    os.chdir(os.pardir)
 
     main = generate_abstract_verification_tasks
 
@@ -117,6 +75,34 @@ class AVTG(psi.components.Component):
             for rule_spec_desc in self.rule_spec_descs:
                 self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
 
+    def __launch_plugin(self, plugin_desc, verification_obj_desc, rule_spec_desc):
+        # Find appropriate class, create its instance and launch it. All plugins are invoked one by one.
+        plugin_found = False
+        for plugin in self.plugins:
+            if plugin_desc['name'] == plugin.__name__:
+                self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+
+                plugin_found = True
+
+                p = plugin(self.conf, self.logger, self.name, self.callbacks, self.mqs,
+                           '{0}/{1}/{2}'.format(verification_obj_desc['id'], rule_spec_desc['id'], plugin_desc['name']),
+                           os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
+                           [{'verification object': verification_obj_desc['id']},
+                            {'rule specification': rule_spec_desc['id']}], True, True)
+
+                # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
+                # verification objects or/and rule specifications.
+                try:
+                    p.start()
+                    p.join()
+                except psi.components.ComponentError:
+                    return 1
+
+        if not plugin_found:
+            raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
+
+        return 0
+
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
         self.logger.info(
@@ -124,15 +110,14 @@ class AVTG(psi.components.Component):
                 'verification object "{0}" and rule specification "{1}"'.format(
                     verification_obj_desc['id'], rule_spec_desc['id'])))
 
-        # plugins_work_dir = os.path.relpath(
-        #     os.path.join(self.conf['root id'], '{0}.task'.format(verification_obj_desc['id'])))
-        # os.makedirs(plugins_work_dir)
-        # self.logger.debug('Plugins working directory is "{0}"'.format(plugins_work_dir))
-        #
-        # for plugin_desc in rule_spec_desc['plugins']:
-        #     pass
+        self.plugins_work_dir = os.path.relpath(
+            os.path.join(self.conf['root id'], '{0}.task'.format(verification_obj_desc['id']), rule_spec_desc['id']))
+        os.makedirs(self.plugins_work_dir)
+        self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
 
-        # TODO: generate abstract verification task description!
+        for plugin_desc in rule_spec_desc['plugins']:
+            if self.__launch_plugin(plugin_desc, verification_obj_desc, rule_spec_desc):
+                break
 
 
 def _extract_rule_spec_descs(conf, logger):
@@ -236,6 +221,6 @@ def _extract_rule_spec_descs(conf, logger):
             del (rule_spec_desc[plugin_name])
         rule_spec_desc['plugins'] = plugin_descs
 
-        rule_spec_descs.append({'id': rule_spec_id, 'desc': rule_spec_desc})
+        rule_spec_descs.append({'id': rule_spec_id, 'plugins': plugin_descs})
 
     return rule_spec_descs
