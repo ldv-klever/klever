@@ -54,6 +54,7 @@ class Component(multiprocessing.Process):
 
     def main(self):
         self.logger.error('I forgot to define main function!')
+        exit(1)
 
     def run(self):
         # Remember approximate time of start to count wall time.
