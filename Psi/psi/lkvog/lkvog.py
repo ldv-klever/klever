@@ -145,8 +145,11 @@ class LKVOG(psi.components.Component):
 
     def process_linux_kernel_build_cmd_desc(self, desc):
         self.logger.info(
-            'Process description of Linux kernel build command "{0}" (output file is "{1}")'.format(desc['type'],
-                                                                                                    desc['out file']))
+            'Process description of Linux kernel build command "{0}" {1}'.format(desc['type'],
+                                                                                 '(output file is {0})'.format(
+                                                                                     '"{0}"'.format(desc['out file'])
+                                                                                     if desc['out file']
+                                                                                     else 'not specified')))
 
         self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = desc
 
