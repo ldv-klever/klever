@@ -56,6 +56,7 @@ class LKVOG(psi.components.Component):
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_module_names_mq = multiprocessing.Queue()
         self.module = {}
+        self.all_modules = {}
         self.verification_obj_desc = {}
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
@@ -94,8 +95,12 @@ class LKVOG(psi.components.Component):
                 self.linux_kernel_module_names_mq.close()
                 break
 
-            # TODO: specification requires to do this in parallel...
-            psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
+            # Collect all modules for what we generate verification objects to avoid generation of the same verification
+            # object.
+            if not self.module['name'] in self.all_modules:
+                self.all_modules[self.module['name']] = True
+                # TODO: specification requires to do this in parallel...
+                psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
 
     def generate_verification_obj_desc(self):
         self.logger.info(
