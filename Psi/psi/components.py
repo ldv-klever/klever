@@ -182,7 +182,7 @@ class Component(multiprocessing.Process):
 
         # Examine component exit code in parent process.
         if self.exitcode:
-            self.logger.error('Component "{0}" exitted with "{1}"'.format(self.name, self.exitcode))
+            self.logger.warning('Component "{0}" exitted with "{1}"'.format(self.name, self.exitcode))
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
     # TODO: very close to code in Psi. Maybe join them.
