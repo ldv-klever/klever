@@ -322,7 +322,8 @@ class Psi:
         self.logger.info('Launch all components')
 
         for component in self.components:
-            p = component(self.components_conf, self.logger, self.id, self.callbacks, self.mqs, True)
+            p = component(self.components_conf, self.logger, self.id, self.callbacks, self.mqs,
+                          separate_from_parent=True)
             p.start()
             self.component_processes.append(p)
 

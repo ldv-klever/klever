@@ -19,7 +19,8 @@ class ComponentStopped(ChildProcessError):
 
 
 class Component(multiprocessing.Process):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, separate_from_parent=False,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, id=None, work_dir=None, attrs=None,
+                 separate_from_parent=False,
                  include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
@@ -31,14 +32,16 @@ class Component(multiprocessing.Process):
         self.parent_id = parent_id
         self.callbacks = callbacks
         self.mqs = mqs
+        self.attrs = attrs
         # Create special message queue where child resources of processes separated from parents will be printed.
         if separate_from_parent:
             self.mqs.update({'child resources': multiprocessing.Queue()})
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
+
         self.name = self.__class__.__name__
-        # Component working directory.
-        self.work_dir = self.name.lower()
+        self.id = id if id else self.name
+        self.work_dir = work_dir if work_dir else self.name.lower()
         # Component start time.
         self.start_time = 0
 
@@ -75,11 +78,14 @@ class Component(multiprocessing.Process):
                 # Get component specific logger.
                 self.logger = psi.utils.get_logger(self.name, self.conf['logging'])
 
+                report = {'id': self.id,
+                          'parent id': self.parent_id,
+                          'name': self.name}
+                if self.attrs:
+                    report.update({'attrs': self.attrs})
                 psi.utils.report(self.logger,
                                  'start',
-                                 {'id': self.name,
-                                  'parent id': self.parent_id,
-                                  'name': self.name},
+                                 report,
                                  self.mqs['report files'],
                                  self.conf['root id'])
 
@@ -100,7 +106,7 @@ class Component(multiprocessing.Process):
                     psi.utils.report(self.logger,
                                      'unknown',
                                      {'id': 'unknown',
-                                      'parent id': self.name,
+                                      'parent id': self.id,
                                       'problem desc': '__file:problem desc'},
                                      self.mqs['report files'],
                                      self.conf['root id'])
@@ -121,7 +127,7 @@ class Component(multiprocessing.Process):
 
                 psi.utils.report(self.logger,
                                  'finish',
-                                 {'id': self.name,
+                                 {'id': self.id,
                                   'resources': psi.utils.count_consumed_resources(
                                       self.logger,
                                       self.start_time,
@@ -197,8 +203,8 @@ class Component(multiprocessing.Process):
                 # Do not try to separate these subcomponents from their parents - it is a true headache.
                 # We always include child resources into resources of these components since otherwise they will
                 # disappear from resources statistics.
-                p = subcomponent_class(self.conf, self.logger, self.name, self.callbacks,
-                                       self.mqs, False, True)
+                p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs,
+                                       include_child_resources=True)
                 p.start()
                 subcomponent_processes.append(p)
 
