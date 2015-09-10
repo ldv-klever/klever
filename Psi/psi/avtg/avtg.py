@@ -84,7 +84,12 @@ class AVTG(psi.components.Component):
 
                 plugin_found = True
 
-                p = plugin(self.conf, self.logger, self.name, self.callbacks, self.mqs,
+                # Get plugin configuration on the basis of common configuration and plugin options specific for rule
+                # specification.
+                plugin_conf = copy.deepcopy(self.conf)
+                plugin_conf.update(plugin_desc['opts'])
+
+                p = plugin(plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
                            '{0}/{1}/{2}'.format(verification_obj_desc['id'], rule_spec_desc['id'], plugin_desc['name']),
                            os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
                            [{'verification object': verification_obj_desc['id']},
@@ -97,6 +102,14 @@ class AVTG(psi.components.Component):
                     p.join()
                 except psi.components.ComponentError:
                     return 1
+
+                # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
+                # anything before.
+                if self.conf['debug']:
+                    plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
+                    self.logger.debug('Create configuration file "{0}"'.format(plugin_conf_file))
+                    with open(plugin_conf_file, 'w') as fp:
+                        json.dump(plugin_conf, fp, sort_keys=True, indent=4)
 
         if not plugin_found:
             raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
