@@ -100,6 +100,17 @@ class LKBCE(psi.components.Component):
         self.logger.info('Clean Linux kernel working source tree')
         psi.utils.execute(self.logger, ('make', '-C', self.linux_kernel['work src tree'], 'mrproper'))
 
+        # In this case we need to remove intermediate files and directories that could be created during previous run.
+        if self.conf['allow local source directories use']:
+            for dirpath, dirnames, filenames in os.walk(self.linux_kernel['work src tree']):
+                for filename in filenames:
+                    if re.search(r'\.json$', filename):
+                        os.remove(os.path.join(dirpath, filename))
+                for dirname in dirnames:
+                    if re.search(r'\.task$', dirname):
+                        shutil.rmtree(os.path.join(dirpath, dirname))
+
+
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
         if 'configuration' in self.conf['Linux kernel']:
