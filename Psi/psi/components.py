@@ -69,7 +69,7 @@ class Component(multiprocessing.Process):
         signal.signal(signal.SIGUSR1, self.__stop)
 
         if self.separate_from_parent:
-            self.logger.info('Change working directory to "{0}"'.format(self.work_dir))
+            self.logger.info('Change working directory to "{0}" for component "{1}"'.format(self.work_dir, self.name))
             os.chdir(self.work_dir)
 
         # Try to launch component.
