@@ -4,7 +4,6 @@ import copy
 import json
 import multiprocessing
 import os
-import random
 
 import psi.components
 import psi.utils
@@ -33,106 +32,7 @@ def after_generate_all_verification_obj_descs(context):
     context.mqs['verification obj descs'].put(None)
 
 
-# TODO: get callbacks of plugins.
-
-
-class AVTG(psi.components.Component):
-    def generate_abstract_verification_tasks(self):
-        self.common_prj_attrs = {}
-        self.plugins = (psi.avtg.deg.deg.DEG, psi.avtg.ri.ri.RI)
-        self.plugins_work_dir = None
-        self.extract_common_prj_attrs()
-        psi.utils.report(self.logger,
-                         'attrs',
-                         {'id': self.name,
-                          'attrs': self.common_prj_attrs},
-                         self.mqs['report files'],
-                         self.conf['root id'])
-        self.rule_spec_descs = _extract_rule_spec_descs(self.conf, self.logger)
-        psi.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
-
-    main = generate_abstract_verification_tasks
-
-    def extract_common_prj_attrs(self):
-        self.logger.info('Extract common project atributes')
-
-        self.common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
-
-        self.mqs['AVTG common prj attrs'].close()
-
-    def generate_all_abstract_verification_task_descs(self):
-        self.logger.info('Generate all abstract verification task decriptions')
-
-        while True:
-            verification_obj_desc = self.mqs['verification obj descs'].get()
-
-            if verification_obj_desc is None:
-                self.logger.debug('Verification object descriptions message queue was terminated')
-                self.mqs['verification obj descs'].close()
-                break
-
-            # TODO: specification requires to do this in parallel...
-            for rule_spec_desc in self.rule_spec_descs:
-                self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
-
-    def __launch_plugin(self, plugin_desc, verification_obj_desc, rule_spec_desc):
-        # Find appropriate class, create its instance and launch it. All plugins are invoked one by one.
-        plugin_found = False
-        for plugin in self.plugins:
-            if plugin_desc['name'] == plugin.__name__:
-                self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
-
-                plugin_found = True
-
-                # Get plugin configuration on the basis of common configuration and plugin options specific for rule
-                # specification.
-                plugin_conf = copy.deepcopy(self.conf)
-                plugin_conf.update(plugin_desc['opts'])
-
-                p = plugin(plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
-                           '{0}/{1}/{2}'.format(verification_obj_desc['id'], rule_spec_desc['id'], plugin_desc['name']),
-                           os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
-                           [{'verification object': verification_obj_desc['id']},
-                            {'rule specification': rule_spec_desc['id']}], True, True)
-
-                # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
-                # verification objects or/and rule specifications.
-                try:
-                    p.start()
-                    p.join()
-                except psi.components.ComponentError:
-                    return 1
-
-                # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
-                # anything before.
-                if self.conf['debug']:
-                    plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
-                    self.logger.debug('Create configuration file "{0}"'.format(plugin_conf_file))
-                    with open(plugin_conf_file, 'w') as fp:
-                        json.dump(plugin_conf, fp, sort_keys=True, indent=4)
-
-        if not plugin_found:
-            raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
-
-        return 0
-
-    def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
-        # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
-        self.logger.info(
-            'Generate abstract verification task description for {0}'.format(
-                'verification object "{0}" and rule specification "{1}"'.format(
-                    verification_obj_desc['id'], rule_spec_desc['id'])))
-
-        self.plugins_work_dir = os.path.relpath(
-            os.path.join(self.conf['root id'], '{0}.task'.format(verification_obj_desc['id']), rule_spec_desc['id']))
-        os.makedirs(self.plugins_work_dir)
-        self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
-
-        for plugin_desc in rule_spec_desc['plugins']:
-            if self.__launch_plugin(plugin_desc, verification_obj_desc, rule_spec_desc):
-                break
-
-
+# This function is invoked to collect plugin callbacks.
 def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
 
@@ -237,3 +137,116 @@ def _extract_rule_spec_descs(conf, logger):
         rule_spec_descs.append({'id': rule_spec_id, 'plugins': plugin_descs})
 
     return rule_spec_descs
+
+
+_rule_spec_descs = None
+_plugins = (psi.avtg.deg.deg.DEG, psi.avtg.ri.ri.RI)
+
+
+def get_subcomponent_callbacks(conf, logger):
+    logger.info('Get AVTG plugin callbacks')
+
+    global _rule_spec_descs
+    _rule_spec_descs = _extract_rule_spec_descs(conf, logger)
+
+    plugins = []
+
+    # Find appropriate classes for plugins if so.
+    for rule_spec_desc in _rule_spec_descs:
+        for plugin_desc in rule_spec_desc['plugins']:
+            plugin_found = False
+            for plugin in _plugins:
+                if plugin_desc['name'] == plugin.__name__:
+                    plugin_found = True
+                    # Remember found class to create its instance during main operation.
+                    plugin_desc['plugin'] = plugin
+                    if plugin not in plugins:
+                        plugins.append(plugin)
+                    break
+            if not plugin_found:
+                raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
+
+    return psi.utils.get_component_callbacks(logger, plugins, conf)
+
+
+class AVTG(psi.components.Component):
+    def generate_abstract_verification_tasks(self):
+        self.common_prj_attrs = {}
+        self.plugins_work_dir = None
+        self.extract_common_prj_attrs()
+        psi.utils.report(self.logger,
+                         'attrs',
+                         {'id': self.name,
+                          'attrs': self.common_prj_attrs},
+                         self.mqs['report files'],
+                         self.conf['root id'])
+        self.rule_spec_descs = _rule_spec_descs
+        psi.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
+
+    main = generate_abstract_verification_tasks
+
+    def extract_common_prj_attrs(self):
+        self.logger.info('Extract common project atributes')
+
+        self.common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
+
+        self.mqs['AVTG common prj attrs'].close()
+
+    def generate_all_abstract_verification_task_descs(self):
+        self.logger.info('Generate all abstract verification task decriptions')
+
+        while True:
+            verification_obj_desc = self.mqs['verification obj descs'].get()
+
+            if verification_obj_desc is None:
+                self.logger.debug('Verification object descriptions message queue was terminated')
+                self.mqs['verification obj descs'].close()
+                break
+
+            # TODO: specification requires to do this in parallel...
+            for rule_spec_desc in self.rule_spec_descs:
+                self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
+
+    def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
+        # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
+        self.logger.info(
+            'Generate abstract verification task description for {0}'.format(
+                'verification object "{0}" and rule specification "{1}"'.format(
+                    verification_obj_desc['id'], rule_spec_desc['id'])))
+
+        self.plugins_work_dir = os.path.relpath(
+            os.path.join(self.conf['root id'], '{0}.task'.format(verification_obj_desc['id']), rule_spec_desc['id']))
+        os.makedirs(self.plugins_work_dir)
+        self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
+
+        # Invoke all plugins one by one.
+        for plugin_desc in rule_spec_desc['plugins']:
+            self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+
+            # Get plugin configuration on the basis of common configuration and plugin options specific for rule
+            # specification.
+            plugin_conf = copy.deepcopy(self.conf)
+            plugin_conf.update(plugin_desc['opts'])
+
+            p = plugin_desc['plugin'](plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
+                                      '{0}/{1}/{2}'.format(verification_obj_desc['id'], rule_spec_desc['id'],
+                                                           plugin_desc['name']),
+                                      os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
+                                      [{'verification object': verification_obj_desc['id']},
+                                       {'rule specification': rule_spec_desc['id']}], True, True)
+
+            # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
+            # verification objects or/and rule specifications.
+            try:
+                p.start()
+                p.join()
+            except psi.components.ComponentError:
+                break
+
+            # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
+            # anything before.
+            if self.conf['debug']:
+                plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
+                self.logger.debug('Create configuration file "{0}"'.format(plugin_conf_file))
+                with open(plugin_conf_file, 'w') as fp:
+                    json.dump(plugin_conf, fp, sort_keys=True, indent=4)

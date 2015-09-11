@@ -6,7 +6,6 @@ import multiprocessing
 import os
 import re
 import shutil
-import sys
 import time
 import traceback
 
@@ -46,7 +45,7 @@ class Psi:
             'Common': [psi.avtg.avtg.AVTG, psi.vtg.vtg.VTG, psi.vtsc.vtsc.VTSC]}
         self.components = []
         self.components_conf = None
-        self.callbacks = {'before': {}, 'instead': {}, 'after': {}}
+        self.callbacks = {}
         self.component_processes = []
 
     def main(self):
@@ -83,7 +82,7 @@ class Psi:
             # Do not read anything from job directory untill job class will be examined (it might be unsupported). This
             # differs from specification that doesn't treat unsupported job classes at all.
             self.create_components_conf()
-            self.get_callbacks()
+            self.callbacks = psi.utils.get_component_callbacks(self.logger, self.components, self.components_conf)
             psi.utils.invoke_callbacks(self.launch_all_components)
             self.wait_for_components()
         except Exception:
@@ -303,20 +302,6 @@ class Psi:
             self.logger.debug('Create components configuration file "components conf.json"')
             with open('components conf.json', 'w') as fp:
                 json.dump(self.components_conf, fp, sort_keys=True, indent=4)
-
-    def get_callbacks(self):
-        self.logger.info('Get callbacks')
-
-        for component in self.components:
-            module = sys.modules[component.__module__]
-            for attr in dir(module):
-                for kind in ('before', 'after'):
-                    match = re.search(r'^{0}_(.+)$'.format(kind), attr)
-                    if match:
-                        event = match.groups()[0]
-                        if event not in self.callbacks[kind]:
-                            self.callbacks[kind][event] = []
-                        self.callbacks[kind][event].append((component.__name__, getattr(module, attr)))
 
     def launch_all_components(self):
         self.logger.info('Launch all components')

@@ -2,12 +2,16 @@ import fcntl
 import json
 import logging
 import os
+import re
 import resource
 import subprocess
 import sys
 import threading
 import time
 import queue
+
+
+_callback_kinds = ('before', 'instead', 'after')
 
 
 # Based on https://pypi.python.org/pypi/filelock/.
@@ -184,6 +188,38 @@ def is_src_tree_root(filenames):
     return False
 
 
+def get_component_callbacks(logger, components, components_conf):
+    logger.info('Get callbacks for components "{0}"'.format([component.__name__ for component in components]))
+
+    # At the beginning there is no callbacks of any kind.
+    callbacks = {kind: {} for kind in _callback_kinds}
+
+    for component in components:
+        module = sys.modules[component.__module__]
+        for attr in dir(module):
+            for kind in _callback_kinds:
+                match = re.search(r'^{0}_(.+)$'.format(kind), attr)
+                if match:
+                    event = match.groups()[0]
+                    if event not in callbacks[kind]:
+                        callbacks[kind][event] = []
+                    callbacks[kind][event].append((component.__name__, getattr(module, attr)))
+
+            # This special function implies that component has subcomponents for which callbacks should be get as well
+            # using this function.
+            if attr == 'get_subcomponent_callbacks':
+                subcomponents_callbacks = getattr(module, attr)(components_conf, logger)
+
+                # Merge subcomponent callbacks into component ones.
+                for kind in _callback_kinds:
+                    for event in subcomponents_callbacks[kind]:
+                        if event not in callbacks[kind]:
+                            callbacks[kind][event] = []
+                        callbacks[kind][event].extend(subcomponents_callbacks[kind][event])
+
+    return callbacks
+
+
 # TODO: this and following functions are likely should be moved to psi.py.
 def get_comp_desc(logger):
     """
@@ -339,7 +375,7 @@ def invoke_callbacks(event, args=None):
     context = event.__self__
     ret = None
 
-    for kind in ('before', 'instead', 'after'):
+    for kind in _callback_kinds:
         # Invoke callbacks if so.
         if name in callbacks[kind]:
             for component, callback in callbacks[kind][name]:
