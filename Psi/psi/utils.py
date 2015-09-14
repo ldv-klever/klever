@@ -10,7 +10,6 @@ import threading
 import time
 import queue
 
-
 _callback_kinds = ('before', 'instead', 'after')
 
 
@@ -124,8 +123,6 @@ class StreamQueue:
         self.finished = True
 
 
-# TODO: it is necessary to disable simultaneous execution of several components since their outputs and consumed resources will be intermixed.
-# TODO: count resources consumed by the component and either create a component start and finish report with these resoruces or "add" them to parent resources.
 def execute(logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
     logger.debug('Execute "{0}"'.format(cmd))
 
