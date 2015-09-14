@@ -67,13 +67,22 @@ class LKBCE(psi.components.Component):
                     if i != j and modules1.startswith(modules2):
                         raise ValueError('Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
+            # Examine module sets.
             for modules in self.conf['Linux kernel']['modules']:
+                # Module sets ending with .ko imply individual modules.
                 if re.search(r'\.ko$', modules):
                     cmds.append((modules,))
+                # Otherwise it is directory that can contain modules.
                 else:
                     # Add "modules_prepare" target once.
                     if not cmds or cmds[0] != ('modules_prepare',):
                         cmds.insert(0, ('modules_prepare',))
+
+                    if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules)):
+                        raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules,
+                                                                                            self.linux_kernel[
+                                                                                                'work src tree']))
+
                     cmds.append(('M={0}'.format(modules), 'modules'))
         else:
             raise KeyError(
@@ -114,7 +123,6 @@ class LKBCE(psi.components.Component):
                 for dirname in dirnames:
                     if re.search(r'\.task$', dirname):
                         shutil.rmtree(os.path.join(dirpath, dirname))
-
 
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
