@@ -217,27 +217,6 @@ def get_component_callbacks(logger, components, components_conf):
     return callbacks
 
 
-# TODO: this and following functions are likely should be moved to psi.py.
-def get_comp_desc(logger):
-    """
-    Return a given computer description (a node name, a CPU model, a number of CPUs, a memory size, a Linux kernel
-    version and an architecture).
-    :param logger: a logger for printing debug messages.
-    """
-    logger.info('Get computer description')
-
-    return [{entity_name_cmd[0]: get_entity_val(logger,
-                                                entity_name_cmd[1] if entity_name_cmd[1] else entity_name_cmd[0],
-                                                entity_name_cmd[2])} for entity_name_cmd in
-            [['node name', '', 'uname -n'],
-             ['CPU model', '', 'cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"'],
-             ['CPUs num', 'number of CPUs', 'cat /proc/cpuinfo | grep processor | wc -l'],
-             ['mem size', 'memory size',
-              'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'],
-             ['Linux kernel version', '', 'uname -r'],
-             ['arch', 'architecture', 'uname -m']]]
-
-
 def get_entity_val(logger, name, cmd):
     """
     Return a value of the specified entity name by executing the specified command and reading its first string

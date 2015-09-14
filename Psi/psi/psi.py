@@ -64,7 +64,7 @@ class Psi:
                           'passwd': self.get_passwd('Omega')}
             self.get_version()
             self.job = psi.job.Job(self.logger, self.conf['job']['id'])
-            self.comp = psi.utils.get_comp_desc(self.logger)
+            self.get_comp_desc()
             start_report_file = psi.utils.report(self.logger,
                                                  'start',
                                                  {'id': self.id,
@@ -223,6 +223,21 @@ class Psi:
         else:
             # TODO: get version of installed Psi.
             self.version = ''
+
+    def get_comp_desc(self):
+        self.logger.info('Get computer description')
+
+        self.comp = [{entity_name_cmd[0]: psi.utils.get_entity_val(self.logger,
+                                                                   entity_name_cmd[1] if entity_name_cmd[1] else
+                                                                   entity_name_cmd[0],
+                                                                   entity_name_cmd[2])} for entity_name_cmd in
+                     [['node name', '', 'uname -n'],
+                      ['CPU model', '', 'cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"'],
+                      ['CPUs num', 'number of CPUs', 'cat /proc/cpuinfo | grep processor | wc -l'],
+                      ['mem size', 'memory size',
+                       'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'],
+                      ['Linux kernel version', '', 'uname -r'],
+                      ['arch', 'architecture', 'uname -m']]]
 
     def send_reports(self):
         try:
