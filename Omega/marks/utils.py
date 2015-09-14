@@ -707,25 +707,17 @@ class CreateMarkTar(object):
             else:
                 version_data['attrs'] = []
                 version_data['tags'] = []
+                version_data['verdict'] = markversion.verdict
+                if self.type == 'unsafe':
+                    version_data['function'] = markversion.function.name
                 for tag in markversion.tags.all():
                     version_data['tags'].append(tag.tag.tag)
-                if self.type == 'unsafe':
-                    version_data['verdict'] = markversion.verdict
-                    version_data['function'] = markversion.function.name
-                    for attr in markversion.markunsafeattr_set.all():
-                        version_data['attrs'].append({
-                            'attr': attr.attr.name.name,
-                            'value': attr.attr.value,
-                            'is_compare': attr.is_compare
-                        })
-                elif self.type == 'safe':
-                    version_data['verdict'] = markversion.verdict
-                    for attr in markversion.attrs.all():
-                        version_data['attrs'].append({
-                            'attr': attr.attr.name.name,
-                            'value': attr.attr.value,
-                            'is_compare': attr.is_compare
-                        })
+                for attr in markversion.attrs.all():
+                    version_data['attrs'].append({
+                        'attr': attr.attr.name.name,
+                        'value': attr.attr.value,
+                        'is_compare': attr.is_compare
+                    })
             write_file_str(marktar_obj, 'version-%s' % markversion.version,
                            json.dumps(version_data))
         common_data = {
@@ -966,12 +958,11 @@ class ReadTarMark(object):
         for version_data in version_list[1:]:
             if len(version_data['comment']) == 0:
                 version_data['comment'] = '1'
-            upd_m_args = version_data
-            del upd_m_args['function']
             if self.type == 'unsafe':
-                upd_m_args['compare_id'] = get_func_id(version_data['function'])
-
-            upd_mark = NewMark(mark, self.user, self.type, upd_m_args, False)
+                version_data['compare_id'] = \
+                    get_func_id(version_data['function'])
+            del version_data['function']
+            upd_mark = NewMark(mark, self.user, self.type, version_data, False)
             if upd_mark.error is not None:
                 mark.delete()
                 return upd_mark.error
