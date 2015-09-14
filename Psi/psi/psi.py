@@ -279,18 +279,14 @@ class Psi:
         with open('job/root/conf.json') as fp:
             self.components_conf = json.load(fp)
 
-        # TODO: try to convert list of dictionaries to one dictionary to simplify code below.
-        for comp_param in self.comp:
-            if 'CPUs num' in comp_param:
-                cpus_num = comp_param['CPUs num']
-            elif 'mem size' in comp_param:
-                mem_size = comp_param['mem size']
-            elif 'arch' in comp_param:
-                arch = comp_param['arch']
+        # Convert list of primitive dictionaries to one dictionary to simplify code below.
+        comp = {}
+        for attr in self.comp:
+            comp.update(attr)
 
         self.components_conf.update(
             {'root id': os.path.abspath(os.path.curdir),
-             'sys': {'CPUs num': cpus_num, 'mem size': mem_size, 'arch': arch},
+             'sys': {attr: comp[attr] for attr in ('CPUs num', 'mem size', 'arch')},
              'job priority': self.conf['job']['priority'],
              'AVTG priority': self.conf['AVTG priority'],
              'debug': self.conf['debug'],
