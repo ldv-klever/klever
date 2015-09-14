@@ -61,7 +61,12 @@ class LKBCE(psi.components.Component):
         if 'whole build' in self.conf['Linux kernel']:
             cmds.append(('all',))
         elif 'modules' in self.conf['Linux kernel']:
-            # TODO: check that module sets aren't intersect explicitly.
+            # Check that module sets aren't intersect explicitly.
+            for i, modules1 in enumerate(self.conf['Linux kernel']['modules']):
+                for j, modules2 in enumerate(self.conf['Linux kernel']['modules']):
+                    if i != j and modules1.startswith(modules2):
+                        raise ValueError('Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
+
             for modules in self.conf['Linux kernel']['modules']:
                 if re.search(r'\.ko$', modules):
                     cmds.append((modules,))
