@@ -40,8 +40,9 @@ def after_process_linux_kernel_raw_build_cmd(context):
                       sort_keys=True, indent=4)
 
     # We need to copy build command description since it may be accidently overwritten by LKBCE.
-    # TODO: build command options shouldn't be copied!
-    context.mqs['Linux kernel build cmd descs'].put(copy.deepcopy(context.linux_kernel['build cmd']))
+    context.mqs['Linux kernel build cmd descs'].put(
+        {attr: copy.deepcopy(context.linux_kernel['build cmd'][attr]) for attr in
+         ('type', 'in files', 'out file', 'full desc file') if attr in context.linux_kernel['build cmd']})
 
 
 def after_process_all_linux_kernel_raw_build_cmds(context):
