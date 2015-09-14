@@ -246,7 +246,9 @@ class Psi:
 
                 if report_file is None:
                     self.logger.debug('Report files message queue was terminated')
-                    # TODO: this is likely could be easily omitted.
+                    # Note that this and all other closing of message queues aren't strictly necessary and everything
+                    # will work without them as well, but this potentially can save some memory since closing explicitly
+                    # notifies that corresponding message queue won't be used any more and its memory could be freed.
                     self.mqs['report files'].close()
                     break
 
