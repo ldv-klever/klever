@@ -1,14 +1,20 @@
 {% load i18n %}
 
-<dl class="dl-horizontal">
-    {% if description|length %}
-        <dt class="purple-title">{% trans 'Description' %}</dt><dd class="dt-text">{{ description|safe }}</dd><br>
-    {% endif %}
-    {% if job.parent_id %}
-        <dt class="purple-title">{% trans 'Parent identifier' %}</dt>
-        <dd style="color: #15c46b">{{ job.parent.identifier }}</dd><br>
-    {% endif %}
-    {% if filedata|length %}
-        <dt class="purple-title">{% trans 'Files' %}</dt><dd>{% include 'jobs/viewFileTable.html' %}</dd>
-    {% endif %}
-</dl>
+{% if description|length %}
+    <div class="ui violet segment">
+        <h4 class="header ui violet">{% trans 'Description' %}</h4>
+        {{ description|safe }}
+    </div>
+{% endif %}
+{% if job.parent_id %}
+    <div class="ui green segment">
+        <h4 class="header ui green">{% trans 'Parent identifier' %}</h4>
+        <p>{{ job.parent.identifier }}</p>
+    </div>
+{% endif %}
+{% if filedata|length %}
+    <div class="ui teal segment">
+        <h4 class="header ui teal">{% trans 'Files' %}</h4>
+        {% include 'jobs/viewFileTable.html' %}
+    </div>
+{% endif %}

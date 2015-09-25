@@ -1,166 +1,200 @@
 {% load i18n %}
 
 <div id="selected_order_template" hidden>
-    <div class="form-inline" id="order__">
-        <label><strong><span id="selected_order_title__"></span>:</strong></label>
-        <div class="radio">
-            <label>
-                <input type="radio" name="{{ so.value }}" value="down" checked>
-                <span class="glyphicon glyphicon-arrow-down"></span>
-            </label>
-            <label>
-                <input type="radio" name="{{ so.value }}" value="up">
-                <span class="glyphicon glyphicon-arrow-up"></span>
-            </label>
+    <div class="inline fields" id="order__">
+        <strong style="margin-right: 10px;"><span id="selected_order_title__"></span>:</strong>
+        <div class="ui radio checkbox">
+            <input id="order_checkbox_down__" class="hidden" type="radio" value="down" checked>
+            <label for="order_checkbox_down__"><i class="arrow down icon"></i></label>
         </div>
-        <button id="remove__order__" class="btn-close-x">
-            <span class="glyphicon glyphicon-remove"></span>
+        <div class="ui radio checkbox">
+            <input id="order_checkbox_up__" class="hidden" type="radio" value="up">
+            <label for="order_checkbox_up__"><i class="arrow up icon"></i></label>
+        </div>
+        <button id="remove__order__" class="circular ui mini icon red basic button">
+            <i class="icon remove"></i>
         </button>
     </div>
 </div>
 <div id="filter_form_template__name" hidden>
-    <div class="form-inline">
-        <label><span id="temp___filter_title__name"></span>
-            <select id="temp___filter_type__name" class="form-control">
-                <option value="iexact">{% trans 'is' %}</option>
-                <option value="istartswith">{% trans 'starts with' %}</option>
-                <option value="icontains">{% trans 'contains' %}</option>
-            </select>
-        </label>
-        <label>
-            <input id="temp___filter_value__name" class="form-control" type="text">
-        </label>
-        <button id="temp___remove__filter__name" class="btn-close-x" style="float:right;">
-            <span class="glyphicon glyphicon-remove"></span>
-        </button>
+    <div class="ui purple segment">
+        <h4 class="header" id="temp___filter_title__name"></h4>
+        <div class="ui grid">
+            <div class="six wide column field">
+                <select id="temp___filter_type__name" class="ui dropdown">
+                    <option value="iexact">{% trans 'is' %}</option>
+                    <option value="istartswith">{% trans 'starts with' %}</option>
+                    <option value="icontains">{% trans 'contains' %}</option>
+                </select>
+            </div>
+            <div class="eight wide column field">
+                <input id="temp___filter_value__name" type="text">
+            </div>
+            <div class="two wide column field">
+                <button id="temp___remove__filter__name" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 <div id="filter_form_template__change_author" hidden>
-    <div class="form-inline">
-        <label>
-            <span id="temp___filter_title__change_author"></span> {% trans 'is' %}
-            <input type="hidden" value="is" id="temp___filter_type__change_author">
-            <select class="form-control" id="temp___filter_value__change_author">
-                {% for u in users %}
-                    <option value="{{ u.pk }}">{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button id="temp___remove__filter__change_author" class="btn-close-x" style="float:right;">
-            <span class="glyphicon glyphicon-remove"></span>
-        </button>
+    <div class="ui purple segment">
+        <h4 class="header"><span id="temp___filter_title__change_author"></span> {% trans 'is' %}</h4>
+        <input type="hidden" value="is" id="temp___filter_type__change_author">
+        <div class="ui grid">
+            <div class="fourteen wide column">
+                <select class="ui dropdown" id="temp___filter_value__change_author">
+                    {% for u in users %}
+                        <option value="{{ u.pk }}">{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="two wide column">
+                <button id="temp___remove__filter__change_author" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 <div id="filter_form_template__change_date" hidden>
-    <div class="form-inline">
-        <label>
-            <span id="temp___filter_title__change_date"></span>
-            <select id="temp___filter_type__change_date" class="form-control">
-                <option value="older">{% trans 'older' %}</option>
-                <option value="younger">{% trans 'younger' %}</option>
-            </select>
-            {% trans 'than' %}
-        </label>
-        <label>
-            <input style="width: 60px;" id="filter_value_1__change_date" class="form-control" type="text" value="{{ fil.value.valval }}">
-        </label>
-        <label>
-            <select id="temp___filter_value_0__change_date" class="form-control">
-                <option value="minutes">{% trans 'minutes' %}</option>
-                <option value="hours">{% trans 'hours' %}</option>
-                <option value="days">{% trans 'days' %}</option>
-                <option value="weeks">{% trans 'weeks' %}</option>
-            </select>
-        </label>
-        <button id="temp___remove__filter__change_date" class="btn-close-x" style="float:right;">
-            <span class="glyphicon glyphicon-remove"></span>
-        </button>
+    <div class="ui purple segment">
+        <h4 class="header" id="temp___filter_title__change_date"></h4>
+        <div class="ui grid">
+            <div class="four wide column">
+                <select id="temp___filter_type__change_date" class="ui dropdown">
+                    <option value="older">{% trans 'older' %}</option>
+                    <option value="younger">{% trans 'younger' %}</option>
+                </select>
+            </div>
+            <div class="two wide column">
+                <h4>{% trans 'than' %}</h4>
+            </div>
+            <div class="three wide column">
+                <input id="temp___filter_value_1__change_date" type="number" min="0">
+            </div>
+            <div class="five wide column">
+                <select id="temp___filter_value_0__change_date" class="ui dropdown">
+                    <option value="minutes">{% trans 'minutes' %}</option>
+                    <option value="hours">{% trans 'hours' %}</option>
+                    <option value="days">{% trans 'days' %}</option>
+                    <option value="weeks">{% trans 'weeks' %}</option>
+                </select>
+            </div>
+            <div class="two wide column">
+                <button id="temp___remove__filter__change_date" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 <div id="filter_form_template__status" hidden>
-    <div class="form-inline">
-        <label>
-            <span id="temp___filter_title__status"></span>
-            <select id="temp___filter_type__status" class="form-control">
-                <option value="is">{% trans 'is' %}</option>
-                <option value="isnot">{% trans 'is not' %}</option>
-            </select>
-        </label>
-        <label>
-            <select id="temp___filter_value__status" class="form-control">
-                {% for status in statuses %}
-                    <option value="{{ status.0 }}">{{ status.1 }}</option>
-                {% endfor %}
-            </select>
-        </label>
-        <button id="temp___remove__filter__status" class="btn-close-x" style="float:right;">
-            <span class="glyphicon glyphicon-remove"></span>
-        </button>
+    <div class="ui purple segment">
+        <h4 class="header" id="temp___filter_title__status"></h4>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="temp___filter_type__status" class="ui dropdown">
+                    <option value="is">{% trans 'is' %}</option>
+                    <option value="isnot">{% trans 'is not' %}</option>
+                </select>
+            </div>
+            <div class="eight wide column">
+                <select id="temp___filter_value__status" class="ui dropdown">
+                    {% for status in statuses %}
+                        <option value="{{ status.0 }}">{{ status.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="two wide column">
+                <button id="temp___remove__filter__status" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 <div id="filter_form_template__resource_component" hidden>
-    <div class="form-inline">
-        <label>
-            <span id="temp___filter_title__resource_component"></span>
-            <select id="temp___filter_type__resource_component" class="form-control">
-                <option value="iexact">{% trans 'is' %}</option>
-                <option value="istartswith">{% trans 'starts with' %}</option>
-                <option value="icontains">{% trans 'contains' %}</option>
-            </select>
-        </label>
-        <label>
-            <input id="temp___filter_value__resource_component" class="form-control" type="text">
-        </label>
-        <button id="temp___remove__filter__resource_component" class="btn-close-x" style="float:right;">
-            <span class="glyphicon glyphicon-remove"></span>
-        </button>
+    <div class="ui purple segment">
+        <h4 class="header" id="temp___filter_title__resource_component"></h4>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="temp___filter_type__resource_component" class="ui dropdown">
+                    <option value="iexact">{% trans 'is' %}</option>
+                    <option value="istartswith">{% trans 'starts with' %}</option>
+                    <option value="icontains">{% trans 'contains' %}</option>
+                </select>
+            </div>
+            <div class="eight wide column">
+                <input id="temp___filter_value__resource_component" type="text">
+            </div>
+            <div class="two wide column">
+                <button id="temp___remove__filter__resource_component" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 <div id="filter_form_template__problem_component" hidden>
-    <div class="form-inline">
-        <label>
-            <span id="temp___filter_title__problem_component"></span>
-            <select id="temp___filter_type__problem_component" class="form-control">
-                <option value="iexact">{% trans 'is' %}</option>
-                <option value="istartswith">{% trans 'starts with' %}</option>
-                <option value="icontains">{% trans 'contains' %}</option>
-            </select>
-        </label>
-        <label>
-            <input id="temp___filter_value__problem_component" class="form-control" type="text">
-        </label>
-        <button id="temp___remove__filter__problem_component" class="btn-close-x" style="float:right;">
-            <span class="glyphicon glyphicon-remove"></span>
-        </button>
+    <div class="ui purple segment">
+        <h4 class="header" id="temp___filter_title__problem_component"></h4>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="temp___filter_type__problem_component" class="ui dropdown">
+                    <option value="iexact">{% trans 'is' %}</option>
+                    <option value="istartswith">{% trans 'starts with' %}</option>
+                    <option value="icontains">{% trans 'contains' %}</option>
+                </select>
+            </div>
+            <div class="eight wide column">
+                <input id="temp___filter_value__problem_component" type="text">
+            </div>
+            <div class="two wide column">
+                <button id="temp___remove__filter__problem_component" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 <div id="filter_form_template__problem_problem" hidden>
-    <div class="form-inline">
-        <label>
-            <span id="temp___filter_title__problem_problem"></span>
-            <select id="temp___filter_type__problem_problem" class="form-control">
-                <option value="iexact">{% trans 'is' %}</option>
-                <option value="istartswith">{% trans 'starts with' %}</option>
-                <option value="icontains">{% trans 'contains' %}</option>
-            </select>
-        </label>
-        <label>
-            <input id="temp___filter_value__problem_problem" class="form-control" type="text">
-        </label>
-        <button id="temp___remove__filter__problem_problem" class="btn-close-x" style="float:right;">
-            <span class="glyphicon glyphicon-remove"></span>
-        </button>
+    <div class="ui purple segment">
+        <h4 class="header" id="temp___filter_title__problem_problem"></h4>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="temp___filter_type__problem_problem" class="ui dropdown">
+                    <option value="iexact">{% trans 'is' %}</option>
+                    <option value="istartswith">{% trans 'starts with' %}</option>
+                    <option value="icontains">{% trans 'contains' %}</option>
+                </select>
+            </div>
+            <div class="eight wide column">
+                <input id="temp___filter_value__problem_problem" type="text">
+            </div>
+            <div class="two wide column">
+                <button id="temp___remove__filter__problem_problem" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 <div id="filter_form_template__format" hidden>
-    <div class="form-inline">
-        <label>
-            <span id="temp___filter_title__format"></span> {% trans 'is' %}
-            <input type="hidden" value="is" id="filter_type__format">
-            <input id="temp___filter_value__format" type="text" class="form-control" style="width: 60px;">
-        </label>
-        <button id="temp___remove__filter__format" class="btn-close-x" style="float:right;">
-            <span class="glyphicon glyphicon-remove"></span>
-        </button>
+    <div class="ui purple segment">
+        <h4 class="header"><span id="temp___filter_title__format"></span> {% trans 'is' %}</h4>
+        <input type="hidden" value="is" id="temp___filter_type__format">
+        <div class="ui grid">
+            <div class="three wide column">
+                <input id="temp___filter_value__format" type="text">
+            </div>
+            <div class="eleven wide column"></div>
+            <div class="two wide column">
+                <button id="temp___remove__filter__format" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
     </div>
 </div>

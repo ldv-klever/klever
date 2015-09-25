@@ -70,8 +70,14 @@ function add_new_order() {
         var new_button = new_item.find('button[id=remove__order__]');
         new_button.attr('id', 'remove__order__' + sel_value);
         new_button.click(delete_selected_order);
-        new_item.find('input').attr('name', sel_value);
+        new_item.find('input').each(function () {
+            var old_id = $(this).attr('id');
+            $(this).attr('name', sel_value);
+            $(this).attr('id', old_id + sel_value);
+            new_item.find('label[for="' + old_id + '"]').attr('for', old_id + sel_value);
+        });
         available_orders.children('option[value=' + sel_value + ']').remove();
+        available_orders.dropdown('set selected', available_orders.children().first().val());
         check_order_form();
     }
     return false;
@@ -233,13 +239,13 @@ function collect_filter_data () {
 
 
 $(document).ready(function () {
+    $('.ui.accordion').accordion();
+    $('#remove_jobs_popup').modal({transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#show_remove_jobs_popup', 'show');
+
     var max_table_height = $(window).height() - 100,
         small_table_height = $(window).height() - 300;
-    $('.tree').treegrid({
-        treeColumn: 1,
-        expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-chevron-down',
-        expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-chevron-right'
-    });
+    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon');
     $('#jobtable').attr('style', 'max-height: ' + small_table_height + 'px;');
     check_order_form();
     check_filters_form();
@@ -268,12 +274,12 @@ $(document).ready(function () {
         var tree_1_bigpart = $('#jobstree-first-big-part');
         if (tree_1_bigpart.is(':visible')) {
             tree_1_bigpart.hide();
-            $(this).find('span').attr('class', "glyphicon glyphicon-save");
+            $(this).find('i').attr('class', "toggle down icon");
             $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;')
         }
         else {
             tree_1_bigpart.show();
-            $(this).find('span').attr('class', "glyphicon glyphicon-fullscreen");
+            $(this).find('i').attr('class', "maximize icon");
             $('#jobtable').attr('style', 'max-height: ' + small_table_height + 'px;')
         }
         return false;
@@ -282,23 +288,25 @@ $(document).ready(function () {
     $('button[id^=remove__filter__]').click(remove_filter_form);
 
     $('#add_filter_btn').click(function () {
-        var selected_filter = $('#available_filters').children('option:selected'),
+        var available_filters = $('#available_filters'),
+            selected_filter = available_filters.children('option:selected'),
             filter_name = selected_filter.val();
         var filter_template = $('#filter_form_template__' + filter_name).html();
-        var new_filter_element = $('<li>', {
-            "class": "list-group-item",
+        var new_filter_element = $('<div>', {
             id: ("filter_form__" + filter_name)
         }).append(filter_template);
         new_filter_element.find('[id^="temp___"]').each(function () {
             // var new_id = $(this).attr('id').replace('temp___', '');
             $(this).attr('id', $(this).attr('id').replace('temp___', ''));
             if ($(this).attr('id') === ('filter_title__' + filter_name)) {
-                $(this).html(selected_filter.html());
+                $(this).text(selected_filter.text());
             }
         });
         $('#selected_filters_list').append(new_filter_element);
         $('#remove__filter__' + filter_name).click(remove_filter_form);
         selected_filter.remove();
+        $('.ui.dropdown').dropdown();
+        available_filters.dropdown('set selected', available_filters.children().first().val());
         check_filters_form();
         return false;
     });
@@ -428,6 +436,7 @@ $(document).ready(function () {
         if (jobs_for_delete.length == 0) {
             err_notify($('#error__no_jobs_to_delete').text());
         }
+        $('#remove_jobs_popup').modal('hide');
         if (jobs_for_delete.length) {
             $.post(
                 job_ajax_url + 'removejobs/',
@@ -438,6 +447,9 @@ $(document).ready(function () {
                 'json'
             );
         }
+    });
+    $('#cancel_remove_jobs').click(function () {
+        $('#remove_jobs_popup').modal('hide');
     });
 
     $('#download_selected_jobs').click(function () {

@@ -1,6 +1,7 @@
-
 body {
     padding-top: 55px;
+    padding-left: 10px;
+    padding-right: 10px;
     padding-bottom: 20px;
 }
 
@@ -13,7 +14,7 @@ body {
 .purple-title {
     color: #6416ad;
     font-weight: bold;
-    font-size: 1.2em;
+    font-size: 1.1em;
 }
 
 .omega-tooltip>p {
@@ -108,45 +109,12 @@ p.omega-text {
     border-radius: 5px;
 }
 
-.file-view-div {
-    display: none;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    position: fixed;
-    z-index: 1000;
-    background: rgba(177, 238, 253, 0.8);
-}
-
-.file-view-div div {
+.filecontent {
     white-space: pre;
     font-family: monospace;
-    position: fixed;
-    top: 10%;
-    left: 10%;
-    height: 85%;
-    width: 80%;
     overflow-y: auto;
-    padding: 10px;
-    background: rgba(255, 255, 255, 1);
-}
-
-body.file-view {
-    overflow: hidden;
-    display: block;
-}
-
-.file-view-div #download_file_form_view {
-    position: absolute;
-    left: 10%;
-    top: 6%;
-}
-
-.file-view-div #close_file_view {
-    position: absolute;
-    right: 10%;
-    top: 6%;
+    overflow-x: auto;
+    height: 700px;
 }
 
 .green-subtitle {
@@ -171,4 +139,24 @@ body.file-view {
     background: white;
     cursor: inherit;
     display: block;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.violet-link:link {
+    color: #fff16c;
+}
+
+.violet-link:visited {
+    color: #fff16c;
+}
+
+.violet-link:hover {
+    color: #87ffbf;
 }

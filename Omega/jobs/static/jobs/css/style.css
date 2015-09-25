@@ -37,17 +37,6 @@ th {
 	top:1px;
 }
 
-#jobstree-fullscreen-btn {
-    float: right;
-    height: 20px;
-    width: 20px;
-    padding-top: 0;
-}
-
-.show-job-name {
-    font-style: italic;
-}
-
 #available_views {
     max-width: 187px;
 }
@@ -68,11 +57,6 @@ th {
 
 input[type=checkbox] {
     margin-right: 3px;
-}
-
-.col-vertical-buttons {
-    float: left;
-    width: 4%;
 }
 
 .dt-text {
@@ -115,4 +99,50 @@ body.loading {
 
 body.loading .modal-loading {
     display: block;
+}
+
+.status0-link:link {
+    color: #f1ffff;
+}
+.status0-link:visited {
+    color: #f1ffff;
+}
+.status1-link:link {
+    color: #cbff4d;
+}
+.status1-link:visited {
+    color: #cbff4d;
+}
+.status2-link:link {
+    color: #ff82ce;
+}
+.status2-link:visited {
+    color: #ff82ce;
+}
+.status3-link:link {
+    color: #4ce215;
+}
+.status3-link:visited {
+    color: #4ce215;
+}
+.status4-link:link {
+    color: #ef4a4a;
+}
+.status4-link:visited {
+    color: #ef4a4a;
+}
+.status5-link:link {
+    color: #ef4a4a;
+}
+.status5-link:visited {
+    color: #ef4a4a;
+}
+.status6-link:link {
+    color: #ff853d;
+}
+.status6-link:visited {
+    color: #ff853d;
+}
+.status-link:hover {
+    color: #87ffbf;
 }

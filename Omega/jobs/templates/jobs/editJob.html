@@ -1,106 +1,122 @@
 {% load i18n %}
+<div class="ui form">
+    <form id="edit_job_form" autocomplete="off" onsubmit="return false">
 
-<form id="edit_job_form" autocomplete="off" onsubmit="return false">
+        {% if job_id %}
+            <input id="job_id_input" type="hidden" value="{{ job_id }}">
+        {% endif %}
+        {% if job_versions|length %}
+            <label for="job_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
+            <select id="job_version_selector" class="ui dropdown fluid">
+                {% for jv in job_versions %}
+                    <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
+                {% endfor %}
+            </select>
+            <label class="purple-title">{% trans 'or change the job' %}</label>
+            <br>
+        {% endif %}
 
-    {% if job_id %}
-        <input id="job_id_input" type="hidden" value="{{ job_id }}">
-    {% endif %}
+        <div class="ui violet segment">
+            <label for="job_title"><strong>{% trans 'Title' %}</strong></label>
+            <div class="ui input fluid">
+                <input class="ui fluid" id="job_title" type="text" value="{{ job.name }}">
+            </div>
+            <br>
+            {% if job_id %}
+                <label for="job_parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
+                <div class="ui input fluid">
+                    <input id="job_parent_identifier" type="text"{% if parent_id %} value="{{ parent_id }}"{% endif %}>
+                </div>
+            {% else %}
+                <input id="job_parent_identifier" type="hidden" value="{{ parent_id }}">
+            {% endif %}
+            <br>
+            <label style="width: 100%;"><strong>{% trans 'Description' %}</strong></label>
+            <textarea id="job_description" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
+        </div>
 
-    {% if job_versions|length %}
-        <label for="job_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
-        <select id="job_version_selector" class="form-control">
-            {% for jv in job_versions %}
-                <option value="{{ jv.version }}"{% if jv.version == version %} selected{% endif %}>{{ jv.title }}</option>
-            {% endfor %}
-        </select>
-        <label class="purple-title">{% trans 'or change the job' %}</label>
-        <br>
-    {% endif %}
-
-    <label style="width: 100%;">
-        {% trans 'Title' %}<input class="form-control" id="job_title" type="text" value="{{ job.name }}">
-    </label>
-
-    {% if job_id %}
-        <label for="job_parent_identifier">{% trans 'Parent identifier' %}</label>
-        <input class="form-control" id="job_parent_identifier" type="text"{% if parent_id %} value="{{ parent_id }}"{% endif %}>
-    {% else %}
-        <input id="job_parent_identifier" type="hidden" value="{{ parent_id }}">
-    {% endif %}
-
-
-    <label style="width: 100%;">
-        {% trans 'Description' %}<textarea id="job_description" class="form-control" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
-    </label>
-
-    <ul class="list-group">
-        <li class="list-group-item">
-            <div class="row">
-                <div class="col-sm-6">
-                    <div class="form-inline">
-                        <label for="job_global_roles">{% trans 'Role for all users' %}</label><br>
-                        <select id="job_global_roles" class="form-control">
+        <div class="ui green segment">
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <label for="job_global_roles"><strong>{% trans 'Role for all users' %}</strong></label>
+                    <div class="ui small input fluid">
+                        <select id="job_global_roles" class="ui dropdown mini fluid">
                             {% for jr in job_roles %}
                                 <option value="{{ jr.0 }}"{% if roles.global == jr.0 %} selected{% endif %} >{{ jr.1 }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
-                <div class="col-sm-6">
-                    <div id="job_user_role_div" class="form-inline">
-                        <label for="job_available_users">{% trans 'Add role to user' %}</label><br>
-                        <select id="job_available_users" class="form-control">
-                            {% for au in roles.available_users %}
-                                <option value="{{ au.id }}">{{ au.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <button id="add_user_for_role" class="btn btn-primary">{% trans 'Add' %}</button>
+                <div class="eight wide column">
+                    <div id="job_user_role_div">
+                        <label for="job_available_users"><strong>{% trans 'Add role to user' %}</strong></label>
+                        <div class="ui small action input fluid">
+                            <select id="job_available_users" class="ui dropdown fluid">
+                                {% for au in roles.available_users %}
+                                    <option value="{{ au.id }}">{{ au.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button id="add_user_for_role" class="ui green button">{% trans 'Add' %}</button>
+                        </div>
                     </div>
                 </div>
             </div>
             <br>
-            <table class="table" id="all_user_roles">
+            <div id="all_user_roles">
                 {% for ur in roles.user_roles %}
-                    <tr id="job_user_role__{{ ur.user.id }}">
-                        <td>
-                            <label for="job_user_role_select__{{ ur.user.id }}">{{ ur.user.name }}</label>
-                        </td>
-                        <td>
-                            <select id="job_user_role_select__{{ ur.user.id }}" class="form-control">
+                    <div class="ui grid segment" id="job_user_role__{{ ur.user.id }}">
+                        <div class="six wide column right aligned">
+                            <label for="job_user_role_select__{{ ur.user.id }}"><strong>{{ ur.user.name }}</strong></label>
+                        </div>
+                        <div class="eight wide column fluid">
+                            <select id="job_user_role_select__{{ ur.user.id }}" class="ui dropdown fluid">
                                 {% for jr in job_roles %}
                                     <option value="{{ jr.0 }}"{% if ur.role.val == jr.0 %} selected{% endif %}>{{ jr.1 }}</option>
                                 {% endfor %}
                             </select>
-                        </td>
-                        <td>
-                            <button id="remove_user_role__{{ ur.user.id }}" class="btn-close-x"><span class="glyphicon glyphicon-remove"></span></button>
-                        </td>
-                    </tr>
+                        </div>
+                        <div class="two wide column">
+                            <button id="remove_user_role__{{ ur.user.id }}" class="ui icon red basic button"><i class="remove icon"></i></button>
+                        </div>
+                    </div>
                 {% endfor %}
-            </table>
-        </li>
-    </ul>
-    <h4>{% trans 'Files' %}</h4>
-    {% include 'jobs/filesTree.html' %}
-    <hr>
-    {% if job_id %}
-        <label style="width: 100%;">{% trans "Change comment" %}<input id="job_comment" type="text" class="form-control" placeholder="{% trans 'Comment' %}"></label>
-    {% endif %}
-    <button id="save_job_btn" type="submit" class="btn btn-success">{% trans 'Save' %}</button>
-    {% if job_id %}
-        <button id="cancel_edit_job_btn" class="btn btn-primary" style="float: right">{% trans 'Cancel' %}</button>
-    {% endif %}
-</form>
+            </div>
+        </div>
+
+        <div class="ui teal segment">
+            <h4 class="header ui teal">{% trans 'Files' %}</h4>
+            {% include 'jobs/filesTree.html' %}
+        </div>
+
+        {% if job_id %}
+            <label style="width: 100%;" for="job_comment"><strong>{% trans "Change comment" %}</strong></label>
+            <div class="ui input fluid">
+                <input id="job_comment" type="text" placeholder="{% trans 'Comment' %}">
+            </div>
+        {% endif %}
+        <br>
+        <button id="save_job_btn" type="submit" class="ui olive button">{% trans 'Save' %}</button>
+        {% if job_id %}
+            <button id="cancel_edit_job_btn" class="ui violet button" style="float: right">{% trans 'Cancel' %}</button>
+        {% endif %}
+    </form>
+</div>
 
 <!-- Templates for jQuery -->
 <div id="template__user_role" hidden>
-    <label for="job_user_role_select__"></label>
-    <select id="job_user_role_select__" class="form-control">
-        {% for jr in job_roles %}
-            <option value="{{ jr.0 }}">{{ jr.1 }}</option>
-        {% endfor %}
-    </select>
-    <button id="remove_user_role__" class="btn-close-x"><span class="glyphicon glyphicon-remove"></span></button>
+    <div class="six wide column right aligned">
+        <strong><label for="job_user_role_select__"></label></strong>
+    </div>
+    <div class="eight wide column">
+        <select id="job_user_role_select__">
+            {% for jr in job_roles %}
+                <option value="{{ jr.0 }}"{% if ur.role.val == jr.0 %} selected{% endif %}>{{ jr.1 }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="two wide column">
+        <button id="remove_user_role__" class="ui icon red basic button"><i class="remove icon"></i></button>
+    </div>
 </div>
 <div id="error__comment_required" hidden>{% trans "Change comment is required" %}</div>
 <div id="error__title_required" hidden>{% trans 'Title is required' %}</div>

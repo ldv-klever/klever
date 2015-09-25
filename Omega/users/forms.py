@@ -6,10 +6,10 @@ from django.utils.translation import ugettext_lazy as _
 
 class UserForm(forms.ModelForm):
     password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+        widget=forms.PasswordInput()
     )
     retype_password = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        widget=forms.PasswordInput(),
         help_text=_('Confirmation'),
         required=True
     )
@@ -31,8 +31,8 @@ class UserForm(forms.ModelForm):
         model = User
         fields = ('username', 'password', 'retype_password', 'email')
         widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'username': forms.TextInput(),
+            'email': forms.EmailInput(),
         }
 
 
@@ -40,14 +40,14 @@ class EditUserForm(forms.ModelForm):
 
     new_password = forms.CharField(
         widget=forms.PasswordInput(
-            attrs={'class': 'form-control', 'autocomplete': 'off'}
+            attrs={'autocomplete': 'off'}
         ),
         required=False
     )
 
     retype_password = forms.CharField(
         widget=forms.PasswordInput(
-            attrs={'class': 'form-control', 'autocomplete': 'off'}
+            attrs={'autocomplete': 'off'}
         ),
         required=False
     )
@@ -71,14 +71,13 @@ class EditUserForm(forms.ModelForm):
         model = User
         fields = ('new_password', 'retype_password', 'email')
         widgets = {
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(),
         }
 
 
 class UserExtendedForm(forms.ModelForm):
     accuracy = forms.IntegerField(
-        widget=forms.NumberInput(attrs={'class': 'form-control'}),
-        min_value=0, max_value=10, initial=2
+        widget=forms.NumberInput(), min_value=0, max_value=10, initial=2
     )
 
     def __init__(self, *args, **kwargs):
@@ -94,8 +93,8 @@ class UserExtendedForm(forms.ModelForm):
         fields = ('accuracy', 'data_format', 'language',
                   'first_name', 'last_name')
         widgets = {
-            'data_format': forms.Select(attrs={'class': 'form-control'}),
-            'language': forms.Select(attrs={'class': 'form-control'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'})
+            'data_format': forms.Select(attrs={'class': 'ui selection dropdown'}),
+            'language': forms.Select(attrs={'class': 'ui selection dropdown'}),
+            'first_name': forms.TextInput(),
+            'last_name': forms.TextInput()
         }

@@ -1,103 +1,156 @@
 {% load i18n %}
 
-<div class="panel-group" id="accordion">
-    <div class="panel panel-primary">
-        <div class="panel-heading">
-            <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion" href="#collapse"><span class="glyphicon glyphicon-filter"></span> {% trans 'Filters' %}</a>
-            </h4>
-        </div>
-        <div id="collapse" class="panel-collapse collapse" style="margin-left: 10px;">
-            <div class="row">
-                <div class="col-sm-5">
-                    <label><input type="checkbox" id="job_filter_checkbox__unsafes"{% if 'unsafes' in reportdata.view.data %} checked{% endif %}>{% trans 'Unsafes' %}</label><br>
-                    <label><input type="checkbox" id="job_filter_checkbox__safes"{% if 'safes' in reportdata.view.data %} checked{% endif %}>{% trans 'Safes' %}</label><br>
-                    <label><input type="checkbox" id="job_filter_checkbox__unknowns"{% if 'unknowns' in reportdata.view.data %} checked{% endif %}>{% trans 'Unknowns' %}</label><br>
+<div class="ui styled accordion fluid">
+    <div class="title">
+        <i class="filter icon"></i>{% trans 'Filters' %}
+    </div>
+    <div class="content ui form">
+        <div class="ui grid">
+            <div class="eight wide column">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__unsafes"{% if 'unsafes' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__unsafes">{% trans 'Unsafes' %}</label>
                 </div>
-                <div class="col-sm-5">
-                    <label><input type="checkbox" id="job_filter_checkbox__resources"{% if 'resources' in reportdata.view.data %} checked{% endif %}>{% trans 'Resources' %}</label><br>
-                    <label><input type="checkbox" id="job_filter_checkbox__tags_safe"{% if 'tags_safe' in reportdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Safe' %}</label><br>
-                    <label><input type="checkbox" id="job_filter_checkbox__tags_unsafe"{% if 'tags_unsafe' in reportdata.view.data %} checked{% endif %}>{% trans 'Tags' %}/{% trans 'Unsafe' %}</label><br>
-                </div>
-            </div>
-            <hr>
-            <h4>{% trans 'Unknowns' %}</h4>
-            <div class="row">
-                <div class="col-sm-7">
-                    <label><input type="checkbox" id="job_filter_checkbox__unknowns_nomark"{% if reportdata.view.filters.unknowns_nomark.type == 'hide' %} checked{% endif %}>{% trans 'Hide problems without marks' %}</label><br>
-                </div>
-                <div class="col-sm-4">
-                    <label><input type="checkbox" id="job_filter_checkbox__unknowns_total"{% if reportdata.view.filters.unknowns_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
-                </div>
-            </div>
-            <div class="form-inline">
-                <label for="filter__type__unknown_component"><span>{% trans 'Component name' %}</span></label>
                 <br>
-                <select id="filter__type__unknown_component" class="form-control">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__safes"{% if 'safes' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__safes">{% trans 'Safes' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__unknowns"{% if 'unknowns' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__unknowns">{% trans 'Unknowns' %}</label>
+                </div>
+            </div>
+            <div class="eight wide column">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__resources"{% if 'resources' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__resources">{% trans 'Resources' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__tags_safe"{% if 'tags_safe' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__tags_safe">{% trans 'Tags' %}/{% trans 'Safe' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__tags_unsafe"{% if 'tags_unsafe' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__tags_unsafe">{% trans 'Tags' %}/{% trans 'Unsafe' %}</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="ui divider"></div>
+        <h4 class="header">{% trans 'Unknowns' %}</h4>
+        <div class="ui grid">
+            <div class="ten wide column">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__unknowns_nomark"{% if reportdata.view.filters.unknowns_nomark.type == 'hide' %} checked{% endif %}>
+                    <label for="job_filter_checkbox__unknowns_nomark">{% trans 'Hide problems without marks' %}</label>
+                </div>
+            </div>
+            <div class="six wide column">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__unknowns_total"{% if reportdata.view.filters.unknowns_total.type == 'hide' %} checked{% endif %}>
+                    <label for="job_filter_checkbox__unknowns_total">{% trans 'Hide total' %}</label>
+                </div>
+            </div>
+        </div>
+        <br>
+        <label for="filter__type__unknown_component"><strong>{% trans 'Component name' %}</strong></label>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="filter__type__unknown_component" class="ui dropdown fluid">
                     <option value="iexact"{% if reportdata.view.filters.unknown_component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if reportdata.view.filters.unknown_component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="icontains"{% if reportdata.view.filters.unknown_component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
-                <label>
-                    <input id="filter__value__unknown_component" class="form-control" type="text" value="{{ reportdata.view.filters.unknown_component.value }}">
-                </label>
             </div>
-            <div class="form-inline">
-                <label for="filter__type__unknown_problem"><span>{% trans 'Problem name' %}</span></label>
-                <br>
-                <select id="filter__type__unknown_problem" class="form-control">
+            <div class="ten wide column">
+                <div class="ui input fluid">
+                    <input id="filter__value__unknown_component" type="text" value="{{ reportdata.view.filters.unknown_component.value }}">
+                </div>
+                <label for="filter__value__unknown_component"></label>
+            </div>
+        </div>
+        <br>
+        <label for="filter__type__unknown_problem"><strong>{% trans 'Problem name' %}</strong></label>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="filter__type__unknown_problem" class="ui dropdown fluid">
                     <option value="iexact"{% if reportdata.view.filters.unknown_problem.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if reportdata.view.filters.unknown_problem.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="icontains"{% if reportdata.view.filters.unknown_problem.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
-                <label>
-                    <input id="filter__value__unknown_problem" class="form-control" type="text" value="{{ reportdata.view.filters.unknown_problem.value }}">
-                </label>
             </div>
-            <hr>
-            <h4>{% trans 'Resources' %}</h4>
-            <label><input type="checkbox" id="job_filter_checkbox__resource_total"{% if reportdata.view.filters.resource_total.type == 'hide' %} checked{% endif %}>{% trans 'Hide total' %}</label><br>
-            <div class="form-inline">
-                <label for="filter__type__resource_component"><span>{% trans 'Component name' %}</span></label>
-                <br>
-                <select id="filter__type__resource_component" class="form-control">
+            <div class="ten wide column">
+                <div class="ui input fluid">
+                    <input id="filter__value__unknown_problem" class="form-control" type="text" value="{{ reportdata.view.filters.unknown_problem.value }}">
+                </div>
+                <label for="filter__value__unknown_problem"></label>
+            </div>
+        </div>
+
+        <div class="ui divider"></div>
+        <h4 class="header">{% trans 'Resources' %}</h4>
+        <div class="ui checkbox">
+            <input type="checkbox" id="job_filter_checkbox__resource_total"{% if reportdata.view.filters.resource_total.type == 'hide' %} checked{% endif %}>
+            <label for="job_filter_checkbox__resource_total">{% trans 'Hide total' %}</label>
+        </div>
+        <br><br>
+        <label for="filter__type__resource_component"><strong>{% trans 'Component name' %}</strong></label>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="filter__type__resource_component" class="ui dropdown fluid">
                     <option value="iexact"{% if reportdata.view.filters.resource_component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if reportdata.view.filters.resource_component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="icontains"{% if reportdata.view.filters.resource_component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
-                <label>
-                    <input id="filter__value__resource_component" class="form-control" type="text" value="{{ reportdata.view.filters.resource_component.value }}">
-                </label>
             </div>
-            <hr>
-            <h4>{% trans 'Tags' %}</h4>
-            <div class="form-inline">
-                <label for="filter__type__safe_tag"><span>{% trans 'Safe tag' %}</span></label>
-                <br>
-                <select id="filter__type__safe_tag" class="form-control">
+            <div class="ten wide column">
+                <div class="ui fluid">
+                    <input id="filter__value__resource_component" type="text" value="{{ reportdata.view.filters.resource_component.value }}">
+                    <label for="filter__value__resource_component"></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="ui divider"></div>
+        <h4 class="header">{% trans 'Tags' %}</h4>
+        <label for="filter__type__safe_tag"><strong>{% trans 'Safe tag' %}</strong></label>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="filter__type__safe_tag" class="ui dropdown fluid">
                     <option value="iexact"{% if reportdata.view.filters.safe_tag.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if reportdata.view.filters.safe_tag.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="icontains"{% if reportdata.view.filters.safe_tag.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
-                <label>
-                    <input id="filter__value__safe_tag" class="form-control" type="text" value="{{ reportdata.view.filters.safe_tag.value }}">
-                </label>
             </div>
-            <div class="form-inline">
-                <label for="filter__type__unsafe_tag"><span>{% trans 'Unsafe tag' %}</span></label>
-                <br>
-                <select id="filter__type__unsafe_tag" class="form-control">
+            <div class="ten wide column">
+                <div class="ui fluid">
+                    <input id="filter__value__safe_tag" type="text" value="{{ reportdata.view.filters.safe_tag.value }}">
+                    <label for="filter__value__safe_tag"></label>
+                </div>
+            </div>
+        </div>
+        <br>
+        <label for="filter__type__unsafe_tag"><strong>{% trans 'Unsafe tag' %}</strong></label>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="filter__type__unsafe_tag" class="ui dropdown fluid">
                     <option value="iexact"{% if reportdata.view.filters.unsafe_tag.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if reportdata.view.filters.unsafe_tag.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="icontains"{% if reportdata.view.filters.unsafe_tag.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
-                <label>
-                    <input id="filter__value__unsafe_tag" class="form-control" type="text" value="{{ reportdata.view.filters.unsafe_tag.value }}">
-                </label>
             </div>
-            <hr>
-            {% include 'viewButtons.html' with view_type='2' view_id=reportdata.view_id views=reportdata.views %}
-            <br><br>
+            <div class="ten wide column">
+                <div class="ui fluid">
+                    <input id="filter__value__unsafe_tag" type="text" value="{{ reportdata.view.filters.unsafe_tag.value }}">
+                    <label for="filter__value__unsafe_tag"></label>
+                </div>
+            </div>
         </div>
+        <div class="ui divider"></div>
+        {% include 'viewButtons.html' with view_type='2' view_id=reportdata.view_id views=reportdata.views %}
     </div>
 </div>
