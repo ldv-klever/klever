@@ -240,8 +240,47 @@ function collect_filter_data () {
 
 $(document).ready(function () {
     $('.ui.accordion').accordion();
-    $('#remove_jobs_popup').modal({transition: 'fly up', autofocus: false, closable: false})
-        .modal('attach events', '#show_remove_jobs_popup', 'show');
+
+    $('#jobs_actions_menu').popup({
+        hoverable: true,
+        position: 'right center',
+        on: 'click',
+        delay: {
+            show: 300,
+            hide: 600
+        }
+    });
+
+    $('#remove_jobs_popup').modal({transition: 'fly up', autofocus: false, closable: false});
+    $('#show_remove_jobs_popup').click(function () {
+        $('#jobs_actions_menu').popup('hide');
+        var jobs_for_delete = [], confirm_delete_btn = $('#delete_jobs_btn'),
+            confirm_delete_modal = $('#remove_jobs_popup');
+        $("input[id^='job_checkbox__']").each(function () {
+            if ($(this).is(':checked')) {
+                jobs_for_delete.push($(this).attr('id').replace('job_checkbox__', ''));
+            }
+        });
+        if (jobs_for_delete.length == 0) {
+            err_notify($('#error__no_jobs_to_delete').text());
+            confirm_delete_modal.modal('hide');
+        }
+        else {
+            confirm_delete_modal.modal('show');
+            confirm_delete_btn.unbind();
+            confirm_delete_btn.click(function () {
+                $.post(
+                    job_ajax_url + 'removejobs/',
+                    {jobs: JSON.stringify(jobs_for_delete)},
+                    function (data) {
+                        confirm_delete_modal.modal('hide');
+                        data.status === 0 ? window.location.replace('') : err_notify(data.message);
+                    },
+                    'json'
+                );
+            });
+        }
+    });
 
     var max_table_height = $(window).height() - 100,
         small_table_height = $(window).height() - 300;

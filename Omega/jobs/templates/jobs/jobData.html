@@ -36,7 +36,6 @@
         </div>
     {% endif %}
 </div>
-<br>
 {% if reportdata.view_data.unknowns|length %}
     <h4 class="header ui violet">{% trans 'Unknowns' %}{% if reportdata.unknowns_total %} (<a href="{{ reportdata.unknowns_total.href }}">{{ reportdata.unknowns_total.num }}</a>){% endif %}</h4>
     <div class="ui small list">

@@ -31,11 +31,11 @@
             </div>
         {% if user.is_authenticated %}
             <a class="browse item">{% trans 'Menu' %}<i class="dropdown icon"></i></a>
-            <div class="ui fluid inverted popup bottom left transition hidden" style="max-width: 50%">
+            <div class="ui fluid inverted popup bottom left transition hidden" style="max-width: 50%;">
                 <div class="ui two column relaxed equeal height divided grid">
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
-                        {% block job_menu %}<a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>{% endblock %}
+                        <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
                         <a class="item" href = "#" id="show_upload_job_popup">{% trans 'Upload' %}</a>
                     </div>
                     <div class="column">
@@ -65,6 +65,7 @@
         </div>
         <br>
         {% block body_block %}{% endblock %}
+
         <div class="modal-loading"></div>
         <div id="upload_marks_popup" class="ui modal">
             <div class="header">{% trans 'Upload marks' %}</div>

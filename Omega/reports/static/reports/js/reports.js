@@ -73,6 +73,11 @@ function unknown_filters_data() {
 }
 
 $(document).ready(function () {
+    $('#component_name_tr').popup({popup: $('#timeinfo_popup'), position: 'right center'});
+    $('#computer_description_tr').popup({popup: $('#computer_info_popup'), position: 'right center'});
+    $('.parent-popup').popup({inline:true});
+    $('.ui.accordion').accordion();
+
     /*var report_list = $('#report_list_table').find('tbody').children();
     if (report_list.length == 1) {
         window.location.replace(report_list.find('a').first().attr('href'));

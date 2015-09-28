@@ -1,44 +1,51 @@
 {% load i18n %}
 
-<div class="panel-group" id="accordion-attrs">
-    <div class="panel panel-primary">
-        <div class="panel-heading">
-            <h4 class="panel-title">
-                <a data-toggle="collapse" data-parent="#accordion-attrs" href="#collapse-attrs"><span class="glyphicon glyphicon-filter"></span> {% trans 'Filters' %}</a>
-            </h4>
-        </div>
-        <div id="collapse-attrs" class="panel-collapse collapse" style="margin-left: 10px;">
-            <h4>{% trans 'Component name' %}</h4>
-            <div class="form-inline">
-                <label><select id="filter__type__attr_component" class="form-control">
+<div class="ui styled accordion fluid">
+    <div class="title">
+        <i class="filter icon"></i>{% trans 'Filters' %}
+    </div>
+    <div class="content">
+        <h4 class="header">{% trans 'Component name' %}</h4>
+        <div class="ui grid">
+            <div class="six wide column">
+                <label for="filter__type__attr_component"></label>
+                <select id="filter__type__attr_component" class="ui dropdown fluid">
                     <option value="iexact"{% if view.filters.component.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if view.filters.component.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                     <option value="icontains"{% if view.filters.component.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                </select></label>
-                <label>
-                    <input id="filter__value__attr_component" class="form-control" type="text" value="{{ view.filters.component.value }}">
-                </label>
+                </select>
             </div>
-            <hr>
-            <h4>{% trans 'Value of attribute' %}</h4>
-            <label for="filter__attr__attr_name"></label>
-            <input id="filter__attr__attr_name" class="form-control" type="text" value="{{ view.filters.attr.attr }}">
-            <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
-            <div class="form-inline">
-
-                <br>
-                <label><select id="filter__type__attr_attr" class="form-control">
+            <div class="ten wide column">
+                <label for="filter__value__attr_component"></label>
+                <div class="ui input fluid">
+                    <input id="filter__value__attr_component" type="text" value="{{ view.filters.component.value }}">
+                </div>
+            </div>
+        </div>
+        <div class="ui divider"></div>
+        <h4 class="header">{% trans 'Value of attribute' %}</h4>
+        <label for="filter__attr__attr_name"></label>
+        <div class="ui input fluid">
+            <input id="filter__attr__attr_name" type="text" value="{{ view.filters.attr.attr }}">
+        </div>
+        <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
+        <br><br>
+        <div class="ui grid">
+            <div class="six wide column">
+                <label for="filter__type__attr_attr"></label>
+                <select id="filter__type__attr_attr" class="ui dropdown fluid">
                     <option value="iexact"{% if view.filters.attr.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if view.filters.attr.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                </select></label>
-                <label>
-                    <input id="filter__attr__attr_value" class="form-control" type="text" value="{{ view.filters.attr.value }}">
-                </label>
+                </select>
             </div>
-            <hr>
-            {% include 'viewButtons.html' with view_type=view_type view_id=view_id views=views %}
-
-            <br><br>
+            <div class="ten wide column">
+                <label for="filter__attr__attr_value"></label>
+                <div class="ui input fluid">
+                    <input id="filter__attr__attr_value" type="text" value="{{ view.filters.attr.value }}">
+                </div>
+            </div>
         </div>
+        <div class="ui divider"></div>
+        {% include 'viewButtons.html' with view_type=view_type view_id=view_id views=views %}
     </div>
 </div>

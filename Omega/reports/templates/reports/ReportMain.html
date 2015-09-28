@@ -7,13 +7,80 @@
 {% block title %}{{ report.component.name }}{% endblock %}
 {% block body_block %}{% timezone user.extended.timezone %}
 
-<div class="row">
-    <div class="col-sm-5">
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
-        <div class="omega-tooltip">
-            <h2><ins>{{ report.component.name }}</ins></h2>
-            <span class="tooltip-content">
-                <strong>{{ report.component.name }}</strong><br>
+<div class="ui grid">
+    <div class="seven wide column">
+        <table class="ui selectable compact inverted violet table attached">
+            <tbody>
+                <tr id="component_name_tr" data-variation="wide">
+                    <th colspan="2" class="center aligned header">
+                        <h3 class="header" style="margin-top: 5px;margin-bottom: 5px;">{{ report.component.name }}</h3>
+                    </th>
+                </tr>
+            {% if report.root.user %}
+                <tr>
+                    <th class="right aligned">{% trans 'Author' %}</th>
+                    <td><a class="violet-link" href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a></td>
+                </tr>
+            {% endif %}
+                <tr>
+                    <th class="right aligned">{% trans 'Job' %}</th>
+                    <td><a class="violet-link" href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a></td>
+                </tr>
+                <tr>
+                    <th class="right aligned">{% trans 'Status' %}</th>
+                    <td>
+                    {% if unknown %}
+                        <a class="violet-link" href="{{ unknown }}">{% trans 'Failed' %}</a>
+                    {% elif status == 1 %}
+                        <span style="color: #a4e9eb">{% trans 'In progress' %}</span>
+                    {% elif status == 2 %}
+                        <span style="color: #4ce215">{% trans 'Finished' %}</span>
+                    {% endif %}
+                    </td>
+                </tr>
+                <tr id="computer_description_tr" data-variation="very wide">
+                    <th class="right aligned">{% trans 'Computer' %}</th>
+                    <td>{{ computer.name }}</td>
+                </tr>
+                {% if report.description %}
+                    <tr>
+                        <th colspan="2" class="center aligned">
+                            <h4 class="header" style="margin-top: 5px;margin-bottom: 5px;">{% trans 'Description' %}</h4>
+                        </th>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+        {% if report.description %}
+            <p class="omega-text bottom attached">{{ report.description }}</p>
+        {% endif %}
+        {% if SelfAttrsData.values|length %}
+            <h4 class="header ui violet">{% trans 'Attributes' %}</h4>
+            <div style="overflow-x: auto">
+                <table class="ui violet celled table">
+                    <thead>
+                        {% for column_row in SelfAttrsData.header %}
+                            <tr class="info">
+                            {% for coldata in column_row %}
+                                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                            {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </thead>
+                    <tbody>
+                    <tr>
+                        {% for v in SelfAttrsData.values %}
+                            <td class="collapsing"><span>{{ v }}</span></td>
+                        {%  endfor %}
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        <div id="timeinfo_popup" class="ui popup">
+            <div class="header">{{ report.component.name }}</div>
+            <div class="content" style="white-space:nowrap;">
                 <!--span class="purple-subtitle">{% trans '__Last request date' %}: </span--> {{ report.root.last_request_date|date:"d.m.y H:i:s"|date:"" }}
                 <!--br-->
                 {% if duration != None %}
@@ -36,122 +103,80 @@
                     <span class="purple-subtitle">{% trans 'CPU time' %}: </span> {{ resources.cpu_time }}<br>
                     <span class="purple-subtitle">{% trans 'Maximum memory size' %}: </span> {{ resources.memory }}<br>
                 {% endif %}
-            </span>
-        </div>
-
-        {% if report.log %}<button id="show_component_log" class="btn btn-success" style="float: right">{% trans 'Log' %}</button>{% endif %}
-
-        {% if report.root.user %}
-            <span class="purple-title">{% trans 'Author' %}: </span>
-            <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
-            <br>
-        {% endif %}
-
-        <span class="purple-title">{% trans 'Job' %}: </span>
-        <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
-        <br>
-
-        <span class="purple-title">{% trans 'Status' %}:</span>
-        {% if unknown %}
-            <a href="{{ unknown }}">{% trans 'Failed' %}</a>
-        {% elif status == 1 %}
-            <span style="color: #d56f1c">{% trans 'In progress' %}</span>
-        {% elif status == 2 %}
-            <span style="color: #00A000">{% trans 'Finished' %}</span>
-        {% endif %}
-        <br>
-        <table><tr>
-            <td><span class="purple-title">{% trans 'Computer' %}:</span></td>
-            <td style="padding-left: 10px; padding-top: 5px;">
-                <div class="omega-tooltip">
-                    <p>{{ computer.name }}</p>
-                    <span class="tooltip-content">
-                        <strong>{{ computer.name }}</strong><br>
-                        {% for c_data in computer.data %}
-                            <span class="purple-subtitle">{{ c_data.0 }}: </span>{{ c_data.1 }}<br><br>
-                        {% endfor %}
-                    </span>
-                </div>
-            </td>
-        </tr></table>
-        {% if report.description %}
-            <p class="purple-title">{% trans 'Description' %}</p>
-            <p class="omega-text">{{ report.description }}</p>
-        {% endif %}
-        <br>
-        <span class="purple-title">{% trans 'Attributes' %}</span>
-        <div style="overflow-x: auto">
-        <table class="table table-bordered">
-            <thead>
-                {% for column_row in SelfAttrsData.header %}
-                    <tr class="info">
-                    {% for coldata in column_row %}
-                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                    {% endfor %}
-                    </tr>
-                {% endfor %}
-            </thead>
-            <tbody>
-            <tr>
-                {% for v in SelfAttrsData.values %}
-                    <td><span>{{ v }}</span></td>
-                {%  endfor %}
-            </tr>
-            </tbody>
-        </table>
-        </div>
-    </div>
-    <div class="col-sm-7">
-        <table>
-            <tr>
-                {% for parent in parents %}
-                <td>
-                    <div class="omega-tooltip">
-                        <a href="{{ parent.href }}">{{ parent.title }}</a>
-                        <span class="tooltip-content">
-                            <strong>{{ parent.title }}</strong><br>
-                            {% for attr in parent.attrs %}
-                                <span class="purple-subtitle">{{ attr.0 }}:</span><br>{{ attr.1|safe }}<br><br>
-                            {% endfor %}
-                        </span>
-                    </div>
-                </td><td><strong>/</strong></td>
-                {% endfor %}
-            </tr>
-        </table><hr>
-
-        <h3 class="purple-subtitle">{% trans 'Children' %}</h3>
-        {% include 'reports/AttrsFilters.html' with view_type='3' view=TableData.view view_id=TableData.view_id views=TableData.views %}
-        {% if TableData.table_data.values|length %}
-            <div class="attrs-table">
-            <table class="table table-bordered">
-                <thead>
-                    {% for column_row in TableData.table_data.header %}
-                        <tr class="info">
-                        {% for coldata in column_row %}
-                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                        {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </thead>
-                <tbody>
-                    {% for v in TableData.table_data.values %}
-                        <tr>
-                            <td><a href="{% url 'reports:component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
-                            {% for attr in v.attrs %}
-                                <td><span>{{ attr }}</span></td>
-                            {% endfor %}
-                        </tr>
-                    {%  endfor %}
-                </tbody>
-            </table>
             </div>
-        {% endif %}
-        <hr>
-        <h3 class="purple-subtitle">{% trans 'Statistics on component and its children' %}</h3>
-        {% if reportdata %}
-            {% include 'jobs/jobData.html' with reportdata=reportdata %}
-        {% endif %}
+        </div>
+        <div id="computer_info_popup" class="ui popup">
+            <div class="header">{{ computer.name }}</div>
+            <div class="content" style="white-space:nowrap;">
+                {% for c_data in computer.data %}
+                    <span class="purple-subtitle">{{ c_data.0 }}: </span>{{ c_data.1 }}<br>
+                {% endfor %}
+            </div>
+        </div>
+        <input id="report_pk" type="hidden" value="{{ report.pk }}">
+
+        {% if report.log %}<button id="show_component_log" class="ui green button" style="float: right">{% trans 'Log' %}</button>{% endif %}
+    </div>
+
+    <div class="nine wide column">
+        <div class="ui breadcrumb">
+            <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
+            <div class="ui special popup">
+                <div class="header">{{ parents.0.title }}</div>
+                <div class="content">
+                    {% for attr in parents.0.attrs %}
+                        <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
+                    {% endfor %}
+                </div>
+            </div>
+            {% for parent in parents|slice:"1:" %}
+                <i class="right arrow icon divider"></i>
+                <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
+                <div class="ui special popup">
+                    <div class="header">{{ parent.title }}</div>
+                    <div class="content">
+                        {% for attr in parent.attrs %}
+                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="ui teal segment">
+            <h3 class="header ui violet italic">{% trans 'Children' %}</h3>
+            {% include 'reports/AttrsFilters.html' with view_type='3' view=TableData.view view_id=TableData.view_id views=TableData.views %}
+            {% if TableData.table_data.values|length %}
+                <div class="attrs-table">
+                <table class="ui celled compact teal table">
+                    <thead>
+                        {% for column_row in TableData.table_data.header %}
+                            <tr>
+                            {% for coldata in column_row %}
+                                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                            {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </thead>
+                    <tbody>
+                        {% for v in TableData.table_data.values %}
+                            <tr>
+                                <td class="collapsing"><a href="{% url 'reports:component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
+                                {% for attr in v.attrs %}
+                                    <td class="collapsing"><span>{{ attr }}</span></td>
+                                {% endfor %}
+                            </tr>
+                        {%  endfor %}
+                    </tbody>
+                </table>
+                </div>
+            {% endif %}
+        </div>
+        <div class="ui orange segment">
+            <h3 class="header ui violet italic">{% trans 'Statistics on component and its children' %}</h3>
+            {% if reportdata %}
+                {% include 'jobs/jobData.html' with reportdata=reportdata %}
+            {% endif %}
+        </div>
     </div>
 </div>
 

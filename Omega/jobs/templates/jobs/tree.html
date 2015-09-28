@@ -6,12 +6,6 @@
 
 {% block jobs_head_block %}<script src="/static/jobs/js/jobtree.js"></script>{% endblock %}
 
-{% block job_menu %}
-    <a class="item" href="#" id="compare_reports_btn">{% trans 'Compare reports' %}</a>
-    <a class="item" href="#" id="show_remove_jobs_popup">{% trans 'Delete selected jobs' %}</a>
-    <a class="item" href="#" id="download_selected_jobs">{% trans 'Download selected jobs' %}</a>
-{% endblock %}
-
 {% block body_block %}
     <div id="jobstree-first-big-part" class="ui form violet segment">
         <form autocomplete="off" onsubmit="return false">
@@ -330,7 +324,16 @@
             </div>
         </form>
     </div>
-    <button type="button" class="ui mini violet icon basic button" id="jobstree-fullscreen-btn" style="float:right;">
+    <div id="jobs_actions_menu" class="ui blue launch fixed small icon inverted button">
+        <i class="content icon"></i>
+    </div>
+    <div id="actions_popup" class="ui blue inverted popup transition vertical menu hidden">
+        <a class="item" href="#" id="compare_reports_btn">{% trans 'Compare reports' %}</a>
+        <a class="item" href="#" id="show_remove_jobs_popup">{% trans 'Delete selected jobs' %}</a>
+        <a class="item" href="#" id="download_selected_jobs">{% trans 'Download selected jobs' %}</a>
+    </div>
+
+    <button type="button" class="ui mini violet icon basic button" id="jobstree-fullscreen-btn" style="float:right;margin-right: 10px;">
         <i class="maximize icon"></i>
     </button>
     <div class="tableScroll" id="jobtable">
