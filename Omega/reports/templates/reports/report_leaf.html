@@ -7,9 +7,9 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block body_block %}
-<div class="row">
-    <div class="col-sm-5">
-        <h2><ins>{{ title }}</ins></h2>
+<div class="ui grid">
+    <div class="seven wide column">
+        <h2 class="header"><ins>{{ title }}</ins></h2>
         {% if report.root.user %}
             <span class="purple-title">{% trans 'Author' %}: </span>
             <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
@@ -18,9 +18,9 @@
 
         <span class="purple-title">{% trans 'Job' %}: </span>
         <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
-        <br>
+        <br><br>
         <div style="overflow-x: auto">
-            <table class="table table-bordered">
+            <table class="ui compact celled violet table">
                 <thead>
                     {% for column_row in SelfAttrsData.header %}
                         <tr class="info">
@@ -39,11 +39,11 @@
                 </tbody>
             </table>
         </div>
-    <br>
+        <br>
         {% if MarkTable.values|length %}
-            <h4>{% trans 'Associated marks' %}</h4>
-            <div style="overflow-x: auto">
-                <table class="table table-bordered">
+            <h4 class="header">{% trans 'Associated marks' %}</h4>
+            <div style="overflow-x:auto">
+                <table class="ui celled compact pink table">
                     <thead>
                         {% for column_row in MarkTable.header %}
                             <tr class="info">
@@ -71,33 +71,39 @@
                 </table>
             </div>
         {% endif %}
-        <a class="btn btn-success" href="{% url 'marks:create_mark' type report.pk %}">{% trans 'Create mark' %}</a>
+        <a class="ui pink button" href="{% url 'marks:create_mark' type report.pk %}">{% trans 'Create mark' %}</a>
     </div>
-    <div class="col-sm-7">
-        <table>
-            <tr>
-                {% for parent in parents %}
-                <td>
-                    <div class="omega-tooltip">
-                        <a href="{{ parent.href }}">{{ parent.title }}</a>
-                        <span class="tooltip-content">
-                            <strong>{{ parent.title }}</strong><br>
-                            {% for attr in parent.attrs %}
-                                <span class="purple-subtitle">{{ attr.0 }}:</span><br>{{ attr.1|safe }}<br><br>
-                            {% endfor %}
-                        </span>
+    <div class="nine wide column">
+        <div class="ui breadcrumb">
+            <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
+            <div class="ui special popup">
+                <div class="header">{{ parents.0.title }}</div>
+                <div class="content">
+                    {% for attr in parents.0.attrs %}
+                        <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
+                    {% endfor %}
+                </div>
+            </div>
+            {% for parent in parents|slice:"1:" %}
+                <i class="right arrow icon divider"></i>
+                <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
+                <div class="ui special popup">
+                    <div class="header">{{ parent.title }}</div>
+                    <div class="content">
+                        {% for attr in parent.attrs %}
+                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
+                        {% endfor %}
                     </div>
-                </td><td><strong>/</strong></td>
-                {% endfor %}
-            </tr>
-        </table>
-        <hr>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="ui divider"></div>
         {% if type == 'unsafe' %}
-            <p class="error-trace-content">{{ report.error_trace_processed }}</p>
+            <div class="ui orange segment filecontent">{{ report.error_trace_processed }}</div>
         {% elif type == 'safe' %}
-            <p class="safe-proof-content">{{ report.proof }}</p>
+            <div class="ui green segment filecontent">{{ report.proof }}</div>
         {% elif type == 'unknown' %}
-            <p class="problem-description-content">{{ report.problem_description }}</p>
+            <div class="ui red segment filecontent">{{ report.problem_description }}</div>
         {% endif %}
         {% if report.description %}
             <p class="purple-title">{% trans 'Description' %}</p>
