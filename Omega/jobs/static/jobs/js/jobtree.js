@@ -239,7 +239,7 @@ function collect_filter_data () {
 
 
 $(document).ready(function () {
-    $('.ui.accordion').accordion();
+    $('.ui.dropdown').dropdown();
 
     $('#jobs_actions_menu').popup({
         hoverable: true,

@@ -4,7 +4,7 @@
     <div class="title">
         <i class="filter icon"></i>{% trans 'Filters' %}
     </div>
-    <div class="content ui form">
+    <div class="content ui small form">
         <div class="ui grid">
             <div class="eight wide column">
                 <div class="ui checkbox">
@@ -67,7 +67,7 @@
                 </select>
             </div>
             <div class="ten wide column">
-                <div class="ui input fluid">
+                <div class="fluid">
                     <input id="filter__value__unknown_component" type="text" value="{{ reportdata.view.filters.unknown_component.value }}">
                 </div>
                 <label for="filter__value__unknown_component"></label>
@@ -84,7 +84,7 @@
                 </select>
             </div>
             <div class="ten wide column">
-                <div class="ui input fluid">
+                <div class="fluid">
                     <input id="filter__value__unknown_problem" class="form-control" type="text" value="{{ reportdata.view.filters.unknown_problem.value }}">
                 </div>
                 <label for="filter__value__unknown_problem"></label>
@@ -108,7 +108,7 @@
                 </select>
             </div>
             <div class="ten wide column">
-                <div class="ui fluid">
+                <div class="fluid">
                     <input id="filter__value__resource_component" type="text" value="{{ reportdata.view.filters.resource_component.value }}">
                     <label for="filter__value__resource_component"></label>
                 </div>
@@ -127,7 +127,7 @@
                 </select>
             </div>
             <div class="ten wide column">
-                <div class="ui fluid">
+                <div class="fluid">
                     <input id="filter__value__safe_tag" type="text" value="{{ reportdata.view.filters.safe_tag.value }}">
                     <label for="filter__value__safe_tag"></label>
                 </div>
@@ -144,7 +144,7 @@
                 </select>
             </div>
             <div class="ten wide column">
-                <div class="ui fluid">
+                <div class="fluid">
                     <input id="filter__value__unsafe_tag" type="text" value="{{ reportdata.view.filters.unsafe_tag.value }}">
                     <label for="filter__value__unsafe_tag"></label>
                 </div>

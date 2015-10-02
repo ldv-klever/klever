@@ -4,7 +4,7 @@
     <div class="title">
         <i class="filter icon"></i>{% trans 'Filters' %}
     </div>
-    <div class="content">
+    <div class="content ui small form">
         <h4 class="header">{% trans 'Component name' %}</h4>
         <div class="ui grid">
             <div class="six wide column">
@@ -17,7 +17,7 @@
             </div>
             <div class="ten wide column">
                 <label for="filter__value__attr_component"></label>
-                <div class="ui input fluid">
+                <div class="fluid">
                     <input id="filter__value__attr_component" type="text" value="{{ view.filters.component.value }}">
                 </div>
             </div>
@@ -25,7 +25,7 @@
         <div class="ui divider"></div>
         <h4 class="header">{% trans 'Value of attribute' %}</h4>
         <label for="filter__attr__attr_name"></label>
-        <div class="ui input fluid">
+        <div class="fluid">
             <input id="filter__attr__attr_name" type="text" value="{{ view.filters.attr.attr }}">
         </div>
         <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
@@ -40,7 +40,7 @@
             </div>
             <div class="ten wide column">
                 <label for="filter__attr__attr_value"></label>
-                <div class="ui input fluid">
+                <div class="fluid">
                     <input id="filter__attr__attr_value" type="text" value="{{ view.filters.attr.value }}">
                 </div>
             </div>

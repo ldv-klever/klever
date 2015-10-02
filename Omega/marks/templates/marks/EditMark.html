@@ -9,77 +9,119 @@
         <div id="mark_attributes_table" style="overflow-x: auto">
             {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
         </div>
-        <hr>
-        <div class="row">
-            <div class="col-sm-5">
-                <div class="btn-group">
-                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="btn btn-success">{% trans 'Download' %}</a>
-                    <button id="edit_mark_versions" type="button" class="btn btn-warning">{% trans 'Delete versions' %}</button>
-                    <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#remove_mark_popup">{% trans 'Delete' %}</button>
+        <br>
+        <div class="ui grid">
+            <div class="six wide column">
+                <div class="ui tiny buttons top attached">
+                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button">{% trans 'Download' %}</a>
+                    <button id="edit_mark_versions" type="button" class="ui brown button">{% trans 'Delete versions' %}</button>
+                    <button id="show_remove_mark_popup" type="button" class="ui red button">{% trans 'Delete' %}</button>
                 </div>
-                <br><br>
-                <span class="purple-title">{% trans 'Identifier' %}: </span> {{ mark.identifier }}<br>
-                <span class="purple-title">{% trans 'Format' %}: </span> {{ mark.format }}<br>
-                {% if first_version.author %}<span class="purple-title">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.extended.last_name }} {{ first_version.author.extended.first_name }}</a><br>{% endif %}
-                <span class="purple-title">{% trans 'Last change' %}</span>
-                <br>
-                {% if version.author %}
-                    <span class="green-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.extended.last_name }} {{ version.author.extended.first_name }}</a>
-                    <br>
-                {% endif %}
-                <span class="green-subtitle">{% trans 'Date' %}: </span>
-                {% timezone user.extended.timezone %}
-                    {{ version.change_date|date:'d.m.y H:i:s' }}
-                {% endtimezone %}
-                {% if version.comment|length %}
-                    <br>
-                    <span class="green-subtitle">{% trans 'Comment' %}:</span> <small>"{{ version.comment }}"</small><br>
-                {% endif %}
-                <br>
-
-                <h4>{% trans 'Associated leaf reports' %}</h4>
+                <table class="ui selectable compact inverted violet table attached">
+                    <tbody>
+                        <tr>
+                            <th class="right aligned">{% trans 'Identifier' %}</th>
+                            <td>{{ mark.identifier }}</td>
+                        </tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Format' %}</th>
+                            <td>{{ mark.format }}</td>
+                        </tr>
+                        {% if first_version.author %}
+                            <tr>
+                                <th class="right aligned">{% trans 'Author' %}</th>
+                                <td><a class="violet-link" href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.extended.last_name }} {{ first_version.author.extended.first_name }}</a></td>
+                            </tr>
+                        {% endif %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Last change' %}</th>
+                            <td>
+                                {% timezone user.extended.timezone %}
+                                    {{ version.change_date|date:'d.m.y H:i:s' }}
+                                {% endtimezone %}
+                                {% if version.author %}
+                                    (<a class="violet-link" href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.extended.last_name }} {{ version.author.extended.first_name }}</a>)
+                                {% endif %}
+                                {% if version.comment|length %}
+                                    <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ version.comment }}"</small></p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h4 class="header">{% trans 'Associated leaf reports' %}</h4>
                 <div style="overflow-x: auto; max-height: 400px;">
-                    {% include 'table.html' with data=reports auto=True %}
+                    <table class="ui compact teal celled table" style="width:auto;">
+                        <thead>
+                            {% for column_row in reports.header %}
+                                <tr>
+                                {% for coldata in column_row %}
+                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                                {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </thead>
+                        <tbody>
+                            {% for row_data in reports.values %}
+                                <tr>
+                                    {% for v in row_data %}
+                                        <td class="collapsing">
+                                            {% if v.href %}
+                                                <a href="{{ v.href }}">{{ v.value }}</a>
+                                            {% else %}
+                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {%  endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div id="div_for_version_list" class="col-sm-7">
+            <div id="div_for_version_list" class="ten wide column">
                 {% if versions|length %}
                     <label for="mark_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
-                    <select id="mark_version_selector" class="form-control">
+                    <select id="mark_version_selector" class="ui dropdown fluid">
                         {% for mv in versions %}
                             <option value="{{ mv.version }}">{{ mv.title }}</option>
                         {% endfor %}
                     </select>
-                    <br>
                 {% endif %}
-                <hr>
+                <div class="ui divider"></div>
                 <div id="mark_add_data_div">
                     {% include 'marks/MarkAddData.html' with markdata=markdata %}
                 </div>
-                <hr>
                 {% if can_freeze %}
-                    <label><input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>  {% trans 'Editable' %}</label><br>
+                    <div class="ui checkbox">
+                        <input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>
+                        <label for="is_modifiable">{% trans 'Editable' %}</label>
+                    </div>
                 {% endif %}
-                <label for="edit_mark_comment"><input id="edit_mark_comment" style="width: 150%" class="form-control" type="text" placeholder="{% trans 'Comment' %}"></label>
-                <button id="save_mark_btn" style="float: right" class="btn btn-success">{% trans 'Save' %}</button>
+                <br><br>
+                <label for="edit_mark_comment"></label>
+                <div class="ui action input fluid">
+                    <input id="edit_mark_comment" type="text" placeholder="{% trans 'Comment' %}">
+                    <button id="save_mark_btn" style="float: right" class="ui green button">{% trans 'Save' %}</button>
+                </div>
             </div>
         </div>
     </form>
     <span id="error__comment_required" hidden>{% trans 'Change comment is required' %}</span>
-    <div id="remove_mark_popup" class="modal fade" role="dialog">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{% trans 'Are you sure' %}?</h4>
-                </div>
-                <div class="modal-body">
-                    <p>{% trans 'All versions and all data of this mark will be deleted' %}</p>
-                </div>
-                <div class="modal-footer">
-                    <a style="float: left" href="{% url 'marks:delete_mark' type mark.pk %}" class="btn btn-danger">{% trans 'Delete' %}</a>
-                    <button type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
-                </div>
+    <div id="remove_mark_popup" class="ui basic modal">
+        <div class="ui icon header">
+            <i class="warning sign icon"></i>
+            {% trans 'Are you sure' %}?
+        </div>
+        <div class="content">
+            <div class="ui center aligned grid">
+                <p>{% trans 'All versions and all data of this mark will be deleted' %}!</p>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui center aligned grid">
+                <button id="cancel_remove_mark" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                <a href="{% url 'marks:delete_mark' type mark.pk %}" class="ui red basic inverted button">{% trans 'Delete' %}</a>
             </div>
         </div>
     </div>

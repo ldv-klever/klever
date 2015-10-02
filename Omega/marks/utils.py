@@ -1022,7 +1022,8 @@ class MarkAccess(object):
             first_v = self.report.root.job.versions.order_by('version')[0]
             if first_v.change_author == self.user:
                 return True
-            last_v = self.mark.job.versions.get(version=self.mark.job.version)
+            last_v = self.report.root.job.versions.get(
+                version=self.report.root.job.version)
             if last_v.global_role in [JOB_ROLES[2][0], JOB_ROLES[4][0]]:
                 return True
             try:
@@ -1057,22 +1058,23 @@ class TagsInfo(object):
         self.__get_tags()
 
     def __get_tags(self):
+        if self.type not in ['unsafe', 'safe']:
+            return
+        if isinstance(self.mark, (MarkUnsafe, MarkSafe)):
+            versions = self.mark.versions.order_by('-version')
+            for tag in versions[0].tags.order_by('tag__tag'):
+                self.tags_old.append(tag.tag.tag)
+        elif isinstance(self.mark, (MarkUnsafeHistory, MarkSafeHistory)):
+            for tag in self.mark.tags.order_by('tag__tag'):
+                self.tags_old.append(tag.tag.tag)
         if self.type == 'unsafe':
-            if isinstance(self.mark, MarkUnsafe):
-                versions = self.mark.versions.order_by('-version')
-                self.tags_old = versions[0].tags.order_by('tag__tag')
-            elif isinstance(self.mark, MarkUnsafeHistory):
-                self.tags_old = self.mark.tags.order_by('tag__tag')
             for tag in UnsafeTag.objects.all():
-                self.tags_available.append(tag.tag)
-        elif self.type == 'safe':
-            if isinstance(self.mark, MarkSafe):
-                versions = self.mark.versions.order_by('-version')
-                self.tags_old = versions[0].tags.order_by('tag__tag')
-            elif isinstance(self.mark, MarkSafeHistory):
-                self.tags_old = self.mark.tags.order_by('tag__tag')
+                if tag.tag not in self.tags_old:
+                    self.tags_available.append(tag.tag)
+        else:
             for tag in SafeTag.objects.all():
-                self.tags_available.append(tag.tag)
+                if tag.tag not in self.tags_old:
+                    self.tags_available.append(tag.tag)
 
 
 class UpdateTags(object):

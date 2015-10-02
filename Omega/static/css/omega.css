@@ -115,7 +115,6 @@ p.omega-text {
     font-family: monospace;
     overflow-y: auto;
     overflow-x: auto;
-    height: 700px;
 }
 
 .green-subtitle {
@@ -160,4 +159,8 @@ p.omega-text {
 
 .violet-link:hover {
     color: #87ffbf;
+}
+
+.klever-active {
+    background: #dcfbfe;
 }

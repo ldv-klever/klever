@@ -208,11 +208,23 @@ function set_action_on_func_change() {
 }
 
 function set_actions_for_mark_versions_delete() {
+    $('.ui.checkbox').checkbox();
+    $('#remove_versions_popup').modal({transition: 'fly up', autofocus: false, closable: false});
+    $('#show_remove_mark_versions_popup').click(function () {
+        $('#remove_versions_popup').modal('show');
+    });
+    $('#cancel_remove_mark_versions').click(function () {
+        $('#remove_versions_popup').modal('hide');
+    });
     $('#cancel_del_versions_mark_btn').click(function () {
+        window.location.replace('');
+    });
+    $('#reload_page__versions').click(function () {
         window.location.replace('');
     });
 
     $('#delete_versions_btn').click(function () {
+        $('#remove_versions_popup').modal('hide');
         var checked_versions = [];
         $('input[id^="checkbox_version__"]').each(function () {
             if ($(this).is(':checked')) {
@@ -227,10 +239,17 @@ function set_actions_for_mark_versions_delete() {
                 versions: JSON.stringify(checked_versions)
             },
             function (data) {
+                var global_parent;
                 $.each(checked_versions, function (i, val) {
-                     $("#checkbox_version__" + val).parent().parent().parent().remove();
+                    var curr_checkbox = $("#checkbox_version__" + val);
+                    global_parent = curr_checkbox.parent().parent().parent();
+                    curr_checkbox.parent().parent().remove();
                 });
                 data.status === 0 ? success_notify(data.message) : err_notify(data.message);
+                if (global_parent && global_parent.children().first().children().length == 0) {
+                    $('#versions_to_delete_form').hide();
+                    $('#no_versions_to_delete').show();
+                }
             },
             'json'
         );
@@ -238,38 +257,17 @@ function set_actions_for_mark_versions_delete() {
 }
 
 function activate_tags() {
-    var tag_list = $('#tag_list');
-    if (!tag_list.length) {
-        return false;
-    }
-    var available_tags = [], old_tags = [], save_mark_btn = $('#save_mark_btn'),
-        save_new_mark_btn = $('#save_new_mark_btn');
-    $('#tags_old').children().each(function () {
-        old_tags.push($(this).text());
+    $('#tag_list').dropdown({
+        allowAdditions: true,
+        className: {
+            label: 'ui label orange',
+            selected: 'klever-active'
+        },
+        message: {
+            addResult: $('#tags__add_tag').text() + ' <b>{term}</b>'
+        }
     });
-
-    if (save_mark_btn.length || save_new_mark_btn.length) {
-        $('#tags_available').children().each(function () {
-        available_tags.push($(this).text());
-        });
-
-        return tag_list.tags({
-            tagData: old_tags,
-            suggestions: available_tags,
-            tagClass: "btn-success",
-            promptText: $('#tags__enter_tags').text(),
-            readOnlyEmptyMessage: $('#tags__not_tags_to_display').text()
-        });
-    }
-    else {
-        return tag_list.tags({
-            tagData: old_tags,
-            tagClass: "btn-success",
-            promptText: $('#tags__enter_tags').text(),
-            readOnlyEmptyMessage: $('#tags__not_tags_to_display').text(),
-            readOnly: true
-        });
-    }
+    return false;
 }
 
 $(document).ready(function () {
@@ -278,6 +276,16 @@ $(document).ready(function () {
         set_actions_for_views(view_type_input.val(), collect_filters_data);
     }
     var marktags = activate_tags();
+    $('.ui.dropdown').each(function () {
+        if (!$(this).hasClass('search')) {
+            $(this).dropdown();
+        }
+    });
+    $('#remove_mark_popup').modal({transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#show_remove_mark_popup', 'show');
+    $('#cancel_remove_mark').click(function () {
+        $('#remove_mark_popup').modal('hide');
+    });
 
     $('#save_new_mark_btn').click(function () {
         $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_new_markdata(marktags)});
@@ -320,6 +328,12 @@ $(document).ready(function () {
                     $('#mark_add_data_div').html(data.adddata);
                     $('#compare_function').change(set_action_on_func_change);
                     marktags = activate_tags();
+                    $('.ui.dropdown').each(function () {
+                        if (!$(this).hasClass('search')) {
+                            $(this).dropdown();
+                        }
+                    });
+                    $('.ui.checkbox').checkbox();
                 }
             }
         });

@@ -239,8 +239,7 @@ $(document).ready(function () {
         }
     });
     $('.ui.checkbox').checkbox();
-    $('.ui.dropdown').dropdown();
-    $('.ui.radio.checkbox').checkbox();
+    $('.ui.accordion').accordion();
 
     $('#upload_marks_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_marks_popup', 'show');
     $('#upload_job_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_job_popup', 'show');

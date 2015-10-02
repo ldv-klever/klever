@@ -6,11 +6,37 @@
     <input id="view_type" type="hidden" value="{{ view_type }}">
     {% include 'marks/filters.html' %}
     {% if tabledata.values|length %}
-        <h2 style="text-align:center">{{ title }}</h2>
+        <h2 class="header" style="text-align:center">{{ title }}</h2>
         <div style="overflow-x:auto;max-height: 1000px;overflow-y:auto;">
-            {% include 'table.html' with data=tabledata %}
+            <table class="ui compact celled table {% if view_type == '7' %}orange{% elif view_type == '8' %}green{% elif view_type == '9' %}red{% endif %}">
+                <thead>
+                    {% for column_row in tabledata.header %}
+                        <tr>
+                        {% for coldata in column_row %}
+                            <th style="background: {% if view_type == '7' %}#fff1df{% elif view_type == '8' %}#dcffed{% elif view_type == '9' %}#ffd3d5{% endif %}" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                        {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </thead>
+                <tbody>
+                    {% for row_data in tabledata.values %}
+                        <tr>
+                            {% for v in row_data %}
+                                <td class="collapsing">
+                                    {% if v.href %}
+                                        <a href="{{ v.href }}">{{ v.value }}</a>
+                                    {% else %}
+                                        <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {%  endfor %}
+                </tbody>
+            </table>
         </div>
+        <br><br><br>
     {% else %}
-        <h2 style="text-align:center">{% trans 'There are no marks of the given type yet' %}</h2>
+        <h2 class="header" style="text-align:center;">{% trans 'There are no marks of the given type yet' %}</h2>
     {% endif %}
 {% endblock %}

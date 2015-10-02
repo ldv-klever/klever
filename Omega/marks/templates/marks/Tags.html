@@ -1,19 +1,28 @@
 {% load i18n %}
 
-<p class="purple-title">{% trans 'Tags' %}</p>
-<div id="tag_list" class="tag-list"></div>
-{% if can_edit %}<p style="color: #6d6d6d;">{% trans "After entering press 'Enter'" %}</p>{% endif %}
-<br>
-
-<ul id="tags_old" hidden>
-    {% for tag in tags.tags_old %}
-        <li>{{ tag }}</li>
-    {% endfor %}
-</ul>
-<ul id="tags_available" hidden>
-    {% for tag in tags.tags_available %}
-        <li>{{ tag }}</li>
-    {% endfor %}
-</ul>
-<span id="tags__not_tags_to_display" hidden>{% trans 'No tags to display' %}</span>
-<span id="tags__enter_tags" hidden>{% trans 'Enter tag' %}</span>
+<div class="ui pink segment">
+    <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+    {% if can_edit %}
+        <label for="tag_list"></label>
+        <select id="tag_list" class="ui search selection dropdown fluid" multiple>
+            <option value="">{% trans 'Enter tag' %}</option>
+            {% for tag in tags.tags_old %}
+                <option value="{{ tag }}" selected>{{ tag }}</option>
+            {% endfor %}
+            {% for tag in tags.tags_available %}
+                <option value="{{ tag }}">{{ tag }}</option>
+            {% endfor %}
+        </select>
+    {% else %}
+        {% if tags.tags_old|length == 0 %}
+            <small class="italic">{% trans 'No tags to display' %}</small>
+        {% else %}
+            <div class="ui orange labels">
+                {% for tag in tags.tags_old %}
+                    <a class="ui label">{{ tag }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+<span id="tags__add_tag" hidden>{% trans 'Add' %}</span>

@@ -735,6 +735,7 @@ function set_actions_for_file_form() {
 
 function set_actions_for_versions_delete() {
     $('.ui.checkbox').checkbox();
+
     $('#remove_versions_popup').modal({transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_versions_modal', 'show');
     $('#cancel_edit_job_btn').click(function () {
@@ -782,8 +783,6 @@ $(document).ready(function () {
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
     });
-
-    $('.ui.accordion').accordion();
 
     if ($('#edit_job_div').length) {
         $.ajax({
