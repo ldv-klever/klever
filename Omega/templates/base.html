@@ -23,6 +23,10 @@
         {% block head_block %}{% endblock %}
     </head>
     <body>
+        <div id="dimmer_of_page" class="ui dimmer">
+            <div class="ui text loader">{% trans 'Loading' %}</div>
+        </div>
+
         <div id="page_header" class="ui fixed inverted menu">
             <div class="item">
                 <a href="{% url 'jobs:tree' %}">
@@ -65,8 +69,6 @@
         </div>
         <br>
         {% block body_block %}{% endblock %}
-
-        <div class="modal-loading"></div>
         <div id="upload_marks_popup" class="ui modal">
             <div class="header">{% trans 'Upload marks' %}</div>
             <div class="content">
@@ -94,7 +96,7 @@
                     <div class="row">
                         <div class="five wide column">
                             <div class="ui fluid input">
-                                <input id="upload_job_parent_id" type="text" class="form-control" placeholder="{% trans 'Identifier' %}">
+                                <input id="upload_job_parent_id" type="text" placeholder="{% trans 'Identifier' %}">
                             </div>
                         </div>
                         <div class="three wide column right aligned">

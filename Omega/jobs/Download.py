@@ -280,7 +280,9 @@ class ReverseReport(object):
             self.report_data['data'] = report.data.decode('utf8')
         else:
             self.report_data['data'] = ''
-        self.report_data['log'] = report.log.file.read().decode('utf8')
+        self.report_data['log'] = ''
+        if report.log is not None:
+            self.report_data['log'] = report.log.file.read().decode('utf8')
         if report.description is not None:
             self.report_data['desc'] = report.description.decode('utf8')
 
@@ -310,7 +312,10 @@ class ReverseReport(object):
                 'max mem size': self.report.resource.memory,
                 'wall time': self.report.resource.wall_time
             }
-            self.report_data['log'] = self.report.log.file.read().decode('utf8')
+            self.report_data['log'] = ''
+            if self.report.log is not None:
+                self.report_data['log'] = \
+                    self.report.log.file.read().decode('utf8')
 
     def __revert_leaf_report(self):
         if isinstance(self.report, ReportUnsafe):

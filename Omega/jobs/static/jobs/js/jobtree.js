@@ -493,6 +493,7 @@ $(document).ready(function () {
 
     $('#download_selected_jobs').click(function () {
         event.preventDefault();
+        $('#jobs_actions_menu').popup('hide');
         var job_ids = [];
         $('input[id^="job_checkbox__"]:checked').each(function () {
             job_ids.push($(this).attr('id').replace('job_checkbox__', ''));

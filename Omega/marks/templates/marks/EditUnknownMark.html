@@ -7,7 +7,7 @@
         <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
         <input id="mark_type" type="hidden" value="{{ type }}">
         <div class="ui grid">
-            <div class="six wide column">
+            <div class="seven wide column">
                 <div class="ui tiny buttons top attached">
                     <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button">{% trans 'Download' %}</a>
                     <button id="edit_mark_versions" type="button" class="ui brown button">{% trans 'Delete versions' %}</button>
@@ -77,7 +77,7 @@
                     </table>
                 </div>
             </div>
-            <div id="div_for_version_list" class="ten wide column">
+            <div id="div_for_version_list" class="nine wide column">
                 {% if versions|length %}
                     <label for="mark_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
                     <select id="mark_version_selector" class="ui dropdown fluid">
@@ -90,7 +90,7 @@
                 <div id="mark_add_data_div">{% include 'marks/MarkUnknownData.html' with markdata=markdata %}</div>
                 <br>
                 {% if can_freeze %}
-                    <div class="ui checkbox">
+                    <div class="ui toggle checkbox">
                         <input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>
                         <label for="is_modifiable">{% trans 'Editable' %}</label>
                     </div>

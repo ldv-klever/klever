@@ -92,16 +92,16 @@ window.download_job = function(job_id) {
             success: function (resp) {
                 if (resp.status) {
                     clearInterval(interval);
-                    $('body').removeClass("loading");
+                    $('#dimmer_of_page').removeClass('active');
                     window.location.replace(job_ajax_url + 'downloadjob/' + job_id + '/' + '?hashsum=' + resp.hash_sum);
                 }
                 else {
-                    $('body').addClass("loading");
+                    $('#dimmer_of_page').addClass('active');
                 }
             }
         });
     };
-    $('body').addClass("loading");
+    $('#dimmer_of_page').addClass('active');
     interval = setInterval(try_lock, 1000);
 };
 
@@ -247,7 +247,7 @@ $(document).ready(function () {
     $('#upload_marks_start').click(function () {
         var files = $('#upload_marks_file_input')[0].files,
             data = new FormData();
-        if (files.length <= 1) {
+        if (files.length <= 0) {
             err_notify($('#error__no_file_chosen').text());
             return false;
         }
@@ -331,7 +331,7 @@ $(document).ready(function () {
         }
         var files = $('#upload_job_file_input')[0].files,
             data = new FormData();
-        if (files.length <= 1) {
+        if (files.length <= 0) {
             err_notify($('#error__no_file_chosen').text());
             return false;
         }

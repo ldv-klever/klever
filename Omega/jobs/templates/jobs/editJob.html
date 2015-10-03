@@ -84,8 +84,10 @@
         </div>
 
         <div class="ui teal segment">
-            <h4 class="header ui teal">{% trans 'Files' %}</h4>
-            {% include 'jobs/filesTree.html' %}
+            <div class="ui top left attached teal large label">{% trans 'Files' %}</div>
+            <div>
+                {% include 'jobs/filesTree.html' %}
+            </div>
         </div>
 
         {% if job_id %}

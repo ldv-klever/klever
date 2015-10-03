@@ -298,11 +298,20 @@
             </div>
             <br>
             <div class="ui grid">
-                <div class="two wide column">
+                <div class="ten wide column">
                     <button id="show_unsaved_view_btn" type="button" class="ui violet small button">{% trans 'Show' %}</button>
                 </div>
-                <div class="ten wide column right aligned">
-                    <div class="ui action small input">
+                <div class="six wide column right aligned">
+                    <div class="ui small action fluid input">
+                        <input id="new_view_name_input" type="text" placeholder="{% trans 'New view name' %}">
+                        <button id="save_view_btn" type="button" class="ui small olive button">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <div class="ui grid">
+                <div class="sixteen wide column center aligned">
+                    <div class="ui action input">
                         <select id="available_views" class="ui dropdown">
                             <option value="default">{% trans 'Default' %}</option>
                             {% for v in FF.user_views %}
@@ -313,12 +322,6 @@
                         <button id="make_preferable_view_btn" type="button" class="ui small green button">{% trans 'Make preferred' %}</button>
                         <button id="update_view_btn" type="button" class="ui small pink button">{% trans 'Update' %}</button>
                         <button id="remove_view_btn" type="button" class="ui small orange button">{% trans 'Delete' %}</button>
-                    </div>
-                </div>
-                <div class="four wide column right aligned">
-                    <div class="ui small action fluid input">
-                        <input id="new_view_name_input" type="text" placeholder="{% trans 'New view name' %}">
-                        <button id="save_view_btn" type="button" class="ui small olive button">{% trans 'Save' %}</button>
                     </div>
                 </div>
             </div>

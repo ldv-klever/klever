@@ -1,62 +1,14 @@
 body {
     padding-top: 55px;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 5px;
+    padding-right: 5px;
     padding-bottom: 20px;
-}
-
-@-moz-document url-prefix() {
-    fieldset {
-        display: table-cell;
-    }
 }
 
 .purple-title {
     color: #6416ad;
     font-weight: bold;
     font-size: 1.1em;
-}
-
-.omega-tooltip>p {
-    outline: none;
-    color: darkblue;
-    text-decoration: underline;
-}
-.omega-tooltip strong {
-    line-height: 30px;
-}
-.omega-tooltip:hover {
-    text-decoration: none;
-    cursor: pointer;
-}
-.omega-tooltip .tooltip-content {
-    z-index: 10;
-    display: none;
-    padding: 14px 20px;
-    width: 300px;
-    line-height: 16px;
-    border-radius: 4px;
-    box-shadow: 5px 5px 8px #CCC;
-}
-
-.omega-tooltip:hover .tooltip-content {
-    display: inline;
-    position: absolute;
-    color: #111;
-    border: 1px solid #DCA;
-    background: #fffAF0;
-}
-
-p.omega-text {
-    white-space: pre;
-    font-family: monospace;
-    max-height: 300px;
-    overflow-y: auto;
-    overflow-x: auto;
-    border: 2px solid #4F20B5;
-    padding: 5px;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
 }
 
 .purple-subtitle {
@@ -74,51 +26,11 @@ p.omega-text {
     padding: 10px;
 }
 
-.error-trace-content {
-    white-space: pre;
-    font-family: monospace;
-    max-height: 500px;
-    overflow-y: auto;
-    overflow-x: auto;
-    border: 1px solid #feae08;
-    margin: 10px;
-    padding: 5px;
-    border-radius: 5px;
-}
-
-.safe-proof-content {
-    white-space: pre;
-    font-family: monospace;
-    max-height: 500px;
-    overflow-y: auto;
-    overflow-x: auto;
-    border: 1px solid #7efe7f;
-    margin: 10px;
-    padding: 5px;
-    border-radius: 5px;
-}
-
-.problem-description-content {
-    white-space: pre;
-    font-family: monospace;
-    max-height: 500px;
-    overflow-y: auto;
-    overflow-x: auto;
-    border: 1px solid #fe0018;
-    margin: 10px;
-    padding: 5px;
-    border-radius: 5px;
-}
-
 .filecontent {
     white-space: pre;
     font-family: monospace;
     overflow-y: auto;
     overflow-x: auto;
-}
-
-.green-subtitle {
-    color: #73b284;
 }
 
 .btn-file {

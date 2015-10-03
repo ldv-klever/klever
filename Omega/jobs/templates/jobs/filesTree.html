@@ -18,10 +18,14 @@
     {% endfor %}
     </tbody>
 </table>
-<div class="ui mini buttons bottom attached fluid">
+<div class="ui tiny buttons bottom attached fluid">
     <button id="new_folder_btn" type="button" class="ui brown button">{% trans 'New folder' %}</button>
     <button id="new_file_btn" type="button" class="ui olive button">{% trans 'New file' %}</button>
     <button id="rename_file_btn" type="button" class="ui pink button">{% trans 'Rename' %}</button>
+{% if job_id %}
+</div>
+<div class="ui tiny buttons bottom attached fluid">
+{% endif %}
     <button id="move_file_btn" type="button" class="ui blue button">{% trans 'Move file' %}</button>
     <button id="replace_file_btn" type="button" class="ui orange button">{% trans 'Replace file' %}</button>
     <button id="remove_obj_btn" type="button" class="ui red button">{% trans 'Delete' %}</button>

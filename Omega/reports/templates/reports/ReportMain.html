@@ -11,7 +11,7 @@
     <div class="seven wide column">
         <table class="ui selectable compact inverted violet table attached">
             <tbody>
-                <tr id="component_name_tr" data-variation="wide">
+                <tr id="component_name_tr" data-variation="very wide">
                     <th colspan="2" class="center aligned header">
                         <h3 class="header" style="margin-top: 5px;margin-bottom: 5px;">{{ report.component.name }}</h3>
                     </th>
@@ -52,7 +52,7 @@
             </tbody>
         </table>
         {% if report.description %}
-            <p class="omega-text bottom attached">{{ report.description }}</p>
+            <div class="ui segment bottom attached bottom attached filecontent" style="max-height: 400px;">{{ report.description }}</div>
         {% endif %}
         {% if SelfAttrsData.values|length %}
             <h4 class="header ui violet">{% trans 'Attributes' %}</h4>

@@ -17,7 +17,7 @@
         {% if tags.tags_old|length == 0 %}
             <small class="italic">{% trans 'No tags to display' %}</small>
         {% else %}
-            <div class="ui orange labels">
+            <div class="ui {% if markdata.type == 'safe' %}green{% elif markdata.type == 'unsafe' %}orange{% endif %} labels">
                 {% for tag in tags.tags_old %}
                     <a class="ui label">{{ tag }}</a>
                 {% endfor %}
@@ -26,3 +26,4 @@
     {% endif %}
 </div>
 <span id="tags__add_tag" hidden>{% trans 'Add' %}</span>
+<span id="tag_label_color" hidden>{% if markdata.type == 'safe' %}green{% elif markdata.type == 'unsafe' %}orange{% endif %}</span>

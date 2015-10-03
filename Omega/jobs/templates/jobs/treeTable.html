@@ -19,7 +19,7 @@
                 <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
                     style="{% if TableData.counter.dark %}background: #e8f9fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
                 <td id="value__{{ row_data.id }}" class="one wide">
-                    <div class="ui checkbox">
+                    <div class="ui fitted checkbox">
                         <input type="checkbox" id="job_checkbox__{{ row_data.id }}">
                         <label for="job_checkbox__{{ row_data.id }}"></label>
                     </div>

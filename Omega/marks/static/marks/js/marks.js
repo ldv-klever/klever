@@ -65,7 +65,7 @@ function collect_attrs_data() {
 }
 
 
-function collect_new_markdata(tags) {
+function collect_new_markdata() {
     var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true,
         mark_type = $('#report_type').val(), mark_data,
         description = $('#mark_description').val();
@@ -114,7 +114,7 @@ function collect_new_markdata(tags) {
             status: $("input[name='selected_status']:checked").val(),
             data_type: mark_type,
             is_modifiable: is_modifiable,
-            tags: tags.getTags(),
+            tags: $('#tag_list').val(),
             description: description
         };
     }
@@ -128,7 +128,7 @@ function collect_new_markdata(tags) {
 }
 
 
-function collect_markdata(tags) {
+function collect_markdata() {
     var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true,
         mark_type = $('#mark_type').val(), mark_data, description = $('#mark_description').val();
 
@@ -177,7 +177,7 @@ function collect_markdata(tags) {
             status: $("input[name='selected_status']:checked").val(),
             data_type: mark_type,
             is_modifiable: is_modifiable,
-            tags: tags.getTags(),
+            tags: $('#tag_list').val(),
             comment: $('#edit_mark_comment').val(),
             description: description
         };
@@ -242,8 +242,8 @@ function set_actions_for_mark_versions_delete() {
                 var global_parent;
                 $.each(checked_versions, function (i, val) {
                     var curr_checkbox = $("#checkbox_version__" + val);
-                    global_parent = curr_checkbox.parent().parent().parent();
-                    curr_checkbox.parent().parent().remove();
+                    global_parent = curr_checkbox.parents().eq(2);
+                    curr_checkbox.parents().eq(1).remove();
                 });
                 data.status === 0 ? success_notify(data.message) : err_notify(data.message);
                 if (global_parent && global_parent.children().first().children().length == 0) {
@@ -260,7 +260,7 @@ function activate_tags() {
     $('#tag_list').dropdown({
         allowAdditions: true,
         className: {
-            label: 'ui label orange',
+            label: 'ui label ' + $('#tag_label_color').text(),
             selected: 'klever-active'
         },
         message: {
@@ -275,7 +275,7 @@ $(document).ready(function () {
     if (view_type_input.length) {
         set_actions_for_views(view_type_input.val(), collect_filters_data);
     }
-    var marktags = activate_tags();
+    activate_tags();
     $('.ui.dropdown').each(function () {
         if (!$(this).hasClass('search')) {
             $(this).dropdown();
@@ -288,7 +288,7 @@ $(document).ready(function () {
     });
 
     $('#save_new_mark_btn').click(function () {
-        $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_new_markdata(marktags)});
+        $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_new_markdata()});
     });
 
     $('#convert_function').change(function () {
@@ -327,7 +327,7 @@ $(document).ready(function () {
                     $('#mark_attributes_table').html(data.table);
                     $('#mark_add_data_div').html(data.adddata);
                     $('#compare_function').change(set_action_on_func_change);
-                    marktags = activate_tags();
+                    activate_tags();
                     $('.ui.dropdown').each(function () {
                         if (!$(this).hasClass('search')) {
                             $(this).dropdown();
@@ -342,7 +342,7 @@ $(document).ready(function () {
     $('#save_mark_btn').click(function () {
         var comment_input = $('#edit_mark_comment');
         if (comment_input.val().length > 0) {
-            $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_markdata(marktags)});
+            $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_markdata()});
         }
         else {
             err_notify($('#error__comment_required').text());

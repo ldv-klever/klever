@@ -39,7 +39,8 @@ def create_mark(request, mark_type, report_id):
         'AttrTable': MarkAttrTable(report),
         'markdata': MarkData(mark_type),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-        'tags': TagsInfo(mark_type)
+        'tags': TagsInfo(mark_type),
+        'can_edit': True
     })
 
 
@@ -94,7 +95,7 @@ def edit_mark(request, mark_type, mark_id):
             'versions': mark_versions,
             'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
             'tags': TagsInfo(mark_type, mark),
-            'can_edit': can_edit
+            'can_edit': True
         })
     else:
         return render(request, 'marks/ViewMark.html', {
