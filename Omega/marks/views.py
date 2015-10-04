@@ -1,5 +1,6 @@
 import json
 import pytz
+from urllib.parse import unquote
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
@@ -117,7 +118,7 @@ def save_mark(request):
     if request.method != 'POST':
         return HttpResponseRedirect(reverse('error', args=[500]))
 
-    savedata = json.loads(request.POST.get('savedata', '{}'))
+    savedata = json.loads(unquote(request.POST.get('savedata', '{}')))
     if 'data_type' not in savedata or \
             savedata['data_type'] not in ['safe', 'unsafe', 'unknown']:
         return HttpResponseRedirect(reverse('error', args=[650]))

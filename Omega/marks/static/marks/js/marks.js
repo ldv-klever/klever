@@ -1,3 +1,7 @@
+function encodeData(s) {
+    return encodeURIComponent(s).replace(/\-/g, "%2D").replace(/\_/g, "%5F").replace(/\./g, "%2E").replace(/\!/g, "%21").replace(/\~/g, "%7E").replace(/\*/g, "%2A").replace(/\'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29");
+}
+
 function collect_filters_data() {
     var view_values = {columns: []}, filter_values = {},
         columns = ['num_of_links', 'verdict', 'status', 'author', 'format'],
@@ -288,7 +292,7 @@ $(document).ready(function () {
     });
 
     $('#save_new_mark_btn').click(function () {
-        $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_new_markdata()});
+        $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: encodeData(collect_new_markdata())});
     });
 
     $('#convert_function').change(function () {
@@ -342,7 +346,7 @@ $(document).ready(function () {
     $('#save_mark_btn').click(function () {
         var comment_input = $('#edit_mark_comment');
         if (comment_input.val().length > 0) {
-            $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: collect_markdata()});
+            $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: encodeData(collect_markdata())});
         }
         else {
             err_notify($('#error__comment_required').text());
