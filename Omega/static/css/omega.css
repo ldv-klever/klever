@@ -43,8 +43,7 @@ body {
     right: 0;
     min-width: 100%;
     min-height: 100%;
-    font-size: 100px;
-    text-align: right;
+    font-size: 20px;
     filter: alpha(opacity=0);
     opacity: 0;
     outline: none;
