@@ -90,6 +90,17 @@ class JobAccess(object):
             return True
         return False
 
+    def service_access(self):
+        if self.job is None:
+            return False
+        if self.job.status != JOB_STATUS[1][0]:
+            return False
+        if self.__is_manager or self.__is_author:
+            return True
+        if self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
+            return True
+        return False
+
     def can_view(self):
         if self.job is None:
             return False

@@ -322,3 +322,31 @@ MARKS_UNKNOWN_VIEW = {
 
     }
 }
+
+PLANNER_AVAILABILITY = (
+    ('HEALTHY', _('Healthy')),
+    ('AILING', _('Ailing')),
+    ('DISCONNECTED', _('Disconnected'))
+)
+
+PRIORITY = (
+    ('URGENT', _('Urgent')),
+    ('HIGH', _('High')),
+    ('LOW', _('Low')),
+    ('IDLE', _('Idle'))
+)
+
+NODE_STATUS = (
+    ('USER_OCCUPIED', _('User occupied')),
+    ('HEALTHY', _('Healthy')),
+    ('AILING', _('Ailing')),
+    ('DISCONNECTED', _('Disconnected'))
+)
+
+TASK_STATUS = (
+    ('PENDING', _('Pending')),
+    ('PROCESSING', _('Processing')),
+    ('ERROR', _('Error')),
+    ('UNKNOWN', _('Unknown')),
+    ('FINISHED', _('Finished'))
+)
