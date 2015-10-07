@@ -1,8 +1,5 @@
-import json
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from django.shortcuts import render
+# from django.shortcuts import render
 from django.http import JsonResponse
-from jobs.models import Job
 from jobs.utils import JobAccess
 from service.utils import *
 
@@ -47,3 +44,34 @@ def init_session(request):
         })
     InitSession(request.user, job, request.POST['max priority'], planners)
     return JsonResponse('OK')
+
+
+def create_task(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Just POST requests are supported'})
+    if 'session id' not in request.POST:
+        return JsonResponse({'error': 'Session identifier is not specified'})
+    if 'priority' not in request.POST:
+        return JsonResponse({'error': 'Task priority is not specified'})
+    archive = None
+    description = None
+    for f in request.FILES.getlist('file'):
+        if f.content_type == 'application/x-tar-gz':
+            archive = f
+        elif f.content_type == 'application/json':
+            description = f
+    if archive is None:
+        return JsonResponse({
+            'error': 'The task archive was not got or has incorrect type'
+        })
+    if description is None:
+        return JsonResponse({
+            'error': 'The task description was not got or has incorrect type'
+        })
+    task_creation = CreateTask(request.POST['session id'], description, archive,
+                               request.POST['priority'])
+    if task_creation.error is not None:
+        return JsonResponse({'error': 'Task priority is not specified'})
+    return JsonResponse({'task id': task_creation.task_id})

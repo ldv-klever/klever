@@ -1,22 +1,34 @@
 from django.db import models
 from django.contrib.auth.models import User
-from Omega.vars import PLANNER_AVAILABILITY, PRIORITY, NODE_STATUS, TASK_STATUS
-from jobs.models import Job, File
+from Omega.vars import PLANNER_STATUS, PRIORITY, NODE_STATUS, TASK_STATUS
+from Omega.formatChecker import RestrictedFileField
+from jobs.models import Job
 
+
+FILE_DIR = 'Service'
 
 class FileData(models.Model):
-    description = models.ForeignKey(File, null=True)
+    description = RestrictedFileField(
+        upload_to=FILE_DIR,
+        max_upload_size=104857600,
+        null=False
+    )
+    archive = RestrictedFileField(
+        upload_to=FILE_DIR,
+        max_upload_size=104857600,
+        null=False
+    )
     description_name = models.CharField(max_length=256)
-    archive = models.ForeignKey(File, null=True)
     archive_name = models.CharField(max_length=256)
 
 
 class Planner(models.Model):
     name = models.CharField(max_length=128)
-    pkey = models.CharField(max_length=12)
-    availability = models.CharField(max_length=12, default='HEALTHY',
-                                    choices=PLANNER_AVAILABILITY)
+    pkey = models.CharField(max_length=12, unique=True)
+    status = models.CharField(max_length=12, default='HEALTHY',
+                                    choices=PLANNER_STATUS)
     need_auth = models.BooleanField(default=False)
+    last_request = models.DateTimeField(auto_now=True)
 
 
 class PlannerUser(models.Model):
@@ -81,7 +93,8 @@ class Task(models.Model):
 
 class TaskSolution(models.Model):
     task = models.ForeignKey(Task)
-    status = models.BooleanField()
+    # TODO: WHat deafult status?
+    status = models.BooleanField(default=True)
     creation = models.DateTimeField()
     files = models.ForeignKey(FileData, null=True)
 
