@@ -219,10 +219,9 @@ def upload_report(request):
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'The job was not found'})
 
-    error = UploadReport(request.user, job,
-                         json.loads(request.POST.get('report', '{}'))).error
-    if error is not None:
-        return JsonResponse({'error': error})
+    err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
+    if err is not None:
+        return JsonResponse({'error': err})
     return JsonResponse({})
 
 

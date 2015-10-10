@@ -10,6 +10,7 @@ urlpatterns = [
     url(r'^jobs/', include('jobs.urls', namespace='jobs')),
     url(r'^reports/', include('reports.urls', namespace='reports')),
     url(r'^marks/', include('marks.urls', namespace='marks')),
+    url(r'^service/', include('service.urls', namespace='service')),
     url(r'^$', 'users.views.index_page'),
     url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
         {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),

@@ -476,7 +476,7 @@ class UploadJob(object):
 
     def __upload_reports(self, reports):
         for report in reports:
-            error = UploadReport(self.user, self.job, report).error
+            error = UploadReport(self.job, report).error
             if error is not None:
                 print(error)
                 return False

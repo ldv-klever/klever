@@ -18,6 +18,7 @@ from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
 from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
 from jobs.utils import *
+from reports.models import ReportRoot
 
 
 @login_required
@@ -251,7 +252,9 @@ def show_job(request, job_id=None):
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),
-            'can_create': job_access.can_create()
+            'can_create': job_access.can_create(),
+            'can_decide': job_access.can_decide(),
+            'schedulers': get_available_schedulers(request.user)
         }
     )
 
@@ -720,7 +723,7 @@ def decide_job(request):
             'error': 'Specified identifier "{0}" is not unique'
             .format(request.POST['job id'])})
 
-    if not JobAccess(request.user, job).can_download_for_deciding():
+    if not JobAccess(request.user, job).service_access():
         return JsonResponse({
             'error': 'User "{0}" has not access to job "{1}"'.format(
                 request.user, job.identifier
@@ -735,10 +738,9 @@ def decide_job(request):
         })
 
     jobtar.memory.seek(0)
-    error = UploadReport(request.user, job,
-                         json.loads(request.POST.get('report', '{}'))).error
-    if error is not None:
-        return JsonResponse({'error': error})
+    err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
+    if err is not None:
+        return JsonResponse({'error': err})
 
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = 'attachment; filename={0}'.format(
@@ -783,4 +785,49 @@ def stop_decision(request):
         if report.finish_date is None:
             report.finish_date = pytz.timezone('UTC').localize(datetime.now())
             report.save()
+    return JsonResponse({'status': True})
+
+
+@login_required
+def run_decision(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    try:
+        job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'status': False, 'error': _('The job was not found')
+        })
+    schedulers_ids = json.loads(request.POST.get('schedulers', '[]'))
+    if not JobAccess(request.user, job):
+        return JsonResponse({
+            'status': False,
+            'error': _("You don't have access to start decision")
+        })
+    try:
+        job.reportroot.delete()
+    except ObjectDoesNotExist:
+        pass
+    reportroot = ReportRoot.objects.create(user=request.user, job=job)
+    for sch_id in schedulers_ids:
+        try:
+            scheduler = Scheduler.objects.get(pk=int(sch_id))
+        except ObjectDoesNotExist:
+            continue
+        if scheduler.status == SCHEDULER_STATUS[0][0]:
+            if scheduler.need_auth:
+                scheduler_users = \
+                    scheduler.scheduleruser_set.filter(user=request.user)
+                if len(scheduler_users) > 0:
+                    reportroot.schedulers.add(scheduler)
+            else:
+                reportroot.schedulers.add(scheduler)
+    reportroot.save()
+    if len(reportroot.schedulers.all()) == 0:
+        reportroot.delete()
+        return JsonResponse({
+            'status': False, 'error': _('There are no available schedulers')
+        })
+    job.status = JOB_STATUS[1][0]
+    job.save()
     return JsonResponse({'status': True})

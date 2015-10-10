@@ -1,11 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
-from Omega.vars import PLANNER_STATUS, PRIORITY, NODE_STATUS, TASK_STATUS
+from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS
 from Omega.formatChecker import RestrictedFileField
-from jobs.models import Job
+from jobs.models import Job, Scheduler
 
 
 FILE_DIR = 'Service'
+
 
 class FileData(models.Model):
     description = RestrictedFileField(
@@ -21,50 +22,57 @@ class FileData(models.Model):
     description_name = models.CharField(max_length=256)
     archive_name = models.CharField(max_length=256)
 
-
-class Planner(models.Model):
-    name = models.CharField(max_length=128)
-    pkey = models.CharField(max_length=12, unique=True)
-    status = models.CharField(max_length=12, default='HEALTHY',
-                                    choices=PLANNER_STATUS)
-    need_auth = models.BooleanField(default=False)
-    last_request = models.DateTimeField(auto_now=True)
+    class Meta:
+        db_table = 'service_service_files'
 
 
-class PlannerUser(models.Model):
+class SchedulerUser(models.Model):
     user = models.ForeignKey(User)
-    planner = models.ForeignKey(Planner)
+    scheduler = models.ForeignKey(Scheduler)
     login = models.CharField(max_length=128)
     password = models.CharField(max_length=128)
-    max_priority = models.CharField(max_length=6, choices=PRIORITY)
-    last_request = models.DateTimeField()
+    max_priority = models.CharField(max_length=6, choices=PRIORITY,
+                                    default='LOW')
+    last_request = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'service_scheduler_user'
 
 
 class NodesConfiguration(models.Model):
-    planner = models.ForeignKey(Planner)
+    scheduler = models.ForeignKey(Scheduler)
     cpu = models.CharField(max_length=256)
     ram = models.PositiveIntegerField()
     memory = models.PositiveIntegerField()
     kernels = models.PositiveSmallIntegerField()
+
+    class Meta:
+        db_table = 'service_nodes_configuration'
 
 
 class Node(models.Model):
     config = models.ForeignKey(NodesConfiguration)
     status = models.CharField(max_length=13, choices=NODE_STATUS)
     hostname = models.CharField(max_length=256)
-    tasks = models.PositiveSmallIntegerField()  # number
-    jobs = models.PositiveSmallIntegerField()  # number
+    tasks = models.PositiveSmallIntegerField()  # number of solving
+    jobs = models.PositiveSmallIntegerField()  # number of solving
     ram = models.PositiveIntegerField()  # in use
     kernels = models.PositiveSmallIntegerField()  # in use
     memory = models.FloatField()  # in use
     for_tasks = models.BooleanField()  # availability
     for_jobs = models.BooleanField()  # availability
 
+    class Meta:
+        db_table = 'service_node'
+
 
 class VerificationTool(models.Model):
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
     usage = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'service_verification_tool'
 
 
 class JobSession(models.Model):
@@ -76,27 +84,38 @@ class JobSession(models.Model):
     last_request = models.DateTimeField(auto_now=True)
     finish_date = models.DateTimeField(null=True)
 
+    class Meta:
+        db_table = 'service_job_session'
 
-class PlannerSession(models.Model):
-    planner = models.ForeignKey(Planner)
+
+class SchedulerSession(models.Model):
+    scheduler = models.ForeignKey(Scheduler)
     session = models.ForeignKey(JobSession)
     priority = models.PositiveSmallIntegerField()
 
+    class Meta:
+        db_table = 'service_scheduler_session'
+
 
 class Task(models.Model):
-    planner_session = models.ForeignKey(PlannerSession)
+    scheduler_session = models.ForeignKey(SchedulerSession)
     job_session = models.ForeignKey(JobSession)
     status = models.CharField(max_length=10, choices=TASK_STATUS,
                               default='PENDING')
     files = models.ForeignKey(FileData, null=True)
 
+    class Meta:
+        db_table = 'service_task'
+
 
 class TaskSolution(models.Model):
     task = models.ForeignKey(Task)
-    # TODO: WHat deafult status?
-    status = models.BooleanField(default=True)
+    status = models.BooleanField(default=False)
     creation = models.DateTimeField()
     files = models.ForeignKey(FileData, null=True)
+
+    class Meta:
+        db_table = 'service_solution'
 
 
 class TasksResults(models.Model):
@@ -113,6 +132,12 @@ class TasksResults(models.Model):
 class JobTasksResults(TasksResults):
     session = models.OneToOneField(JobSession, related_name='statistic')
 
+    class Meta:
+        db_table = 'cache_job_task_results'
 
-class PlannerTasksResults(TasksResults):
-    session = models.OneToOneField(PlannerSession, related_name='statistic')
+
+class SchedulerTasksResults(TasksResults):
+    session = models.OneToOneField(SchedulerSession, related_name='statistic')
+
+    class Meta:
+        db_table = 'cache_scheduler_task_results'

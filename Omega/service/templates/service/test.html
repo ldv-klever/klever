@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block head_block %}
+    <script src="/static/service/js/service.js"></script>
+{% endblock %}
+{% block body_block %}
+    <h1 class="header">Testing cloud</h1>
+    <div class="ui purple segment">
+        <h2 class="header">Add new scheduler</h2>
+        <div class="ui grid">
+            <div class="five wide column">
+                <div class="ui fluid input">
+                    <input id="new_scheduler_name" type="text" placeholder="Scheduler name">
+                </div>
+            </div>
+            <div class="five wide column">
+                <div class="ui fluid input">
+                    <input id="new_scheduler_key" maxlength="12" type="text" placeholder="Scheduler key">
+                </div>
+            </div>
+            <div class="two wide column right aligned">
+                <label for="new_scheduler_need_auth">Need auth?</label>
+            </div>
+            <div class="two wide column">
+                <div class="ui fluid input">
+                    <select id="new_scheduler_need_auth" class="ui dropdown fluid">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                </div>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="add_new_scheduler_btn" class="ui purple button">Add</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -79,5 +79,69 @@
     <div class="ui purple segment right aligned">
         {% include 'users/notifications.html' %}
     </div>
-    <div class="ui divider"></div>
+    <div class="ui green segment">
+        <h3 class="header">{% trans 'Scheduler login data' %}</h3>
+        <label for="scheduler"></label>
+        <div class="ui grid">
+            <div class="five wide column">
+                <select id="scheduler" class="ui dropdown fluid">
+                    {% for scheduler in schedulers %}
+                        <option value="{{ scheduler.pk }}">{{ scheduler.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="seven wide column">
+                <div id="scheduler_login_data" class="ui segment">
+                    <p><span style="color: #818181">{% trans 'Login' %}:</span> <span id="scheduler_login"></span></p>
+                    <p><span style="color: #818181">{% trans 'Password' %}:</span> <span id="scheduler_password"></span></p>
+                    <p><span style="color: #818181">{% trans 'Max priority' %}:</span> <span id="max_priority"></span></p>
+                </div>
+            </div>
+            <div class="four wide column right aligned">
+                <div class="ui buttons">
+                    <button id="add_new_scheduler_data" class="ui green button"></button>
+                    <button id="remove_scheduler_login_data" class="ui red button">{% trans 'Delete' %}</button>
+                </div>
+            </div>
+        </div>
+        <span id="update_scheduler_data_btn_text" hidden>{% trans 'Update' %}</span>
+        <span id="add_scheduler_data_btn_text" hidden>{% trans 'Add' %}</span>
+        <span id="new_login_scheduler_required" hidden>{% trans 'Login required' %}</span>
+        <span id="new_password_scheduler_required" hidden>{% trans 'Password required' %}</span>
+    </div>
+    <div id="new_scheduler_data_popup" class="ui small modal">
+        <div class="header">{% trans 'Add login and password' %}</div>
+        <div class="content">
+            <div class="ui grid">
+                <div class="five wide column"></div>
+                <div class="six wide column">
+                    <label for="new_scheduler_login"></label>
+                    <div class="ui input fluid">
+                        <input id="new_scheduler_login" type="text" placeholder="{% trans 'Username' %}">
+                    </div>
+                    <br>
+                    <label for="new_scheduler_password"></label>
+                    <div class="ui input fluid">
+                        <input id="new_scheduler_password" type="text"  placeholder="{% trans 'Password' %}">
+                    </div>
+                    <br>
+                    <label for="new_max_priority">{% trans 'Max priority' %}</label>
+                    <select id="new_max_priority" class="ui dropdown fluid">
+                        {% for pr in priorities reversed %}
+                            <option value="{{ pr.0 }}">{{ pr.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="five wide column"></div>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui grid">
+                <div class="sixteen wide column center aligned">
+                    <button id="add_scheduler_data_confirm" type="button" class="ui positive button">{% trans 'Save' %}</button>
+                    <button id="add_scheduler_data_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}

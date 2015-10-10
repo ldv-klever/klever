@@ -1,10 +1,23 @@
 from django.db import models
 from django.contrib.auth.models import User
 from Omega.formatChecker import RestrictedFileField
-from Omega.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
+from Omega.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS,\
+    SCHEDULER_STATUS
 
 
 JOBFILE_DIR = 'Files'
+
+
+class Scheduler(models.Model):
+    name = models.CharField(max_length=128)
+    pkey = models.CharField(max_length=12, unique=True)
+    status = models.CharField(max_length=12, default='HEALTHY',
+                              choices=SCHEDULER_STATUS)
+    need_auth = models.BooleanField(default=False)
+    last_request = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'service_scheduler'
 
 
 class JobBase(models.Model):
@@ -43,15 +56,6 @@ class JobHistory(JobBase):
 
     class Meta:
         db_table = 'jobhistory'
-
-
-class ReportRoot(models.Model):
-    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
-    job = models.OneToOneField(Job)
-    last_request_date = models.DateTimeField()
-
-    class Meta:
-        db_table = 'report_root'
 
 
 class File(models.Model):

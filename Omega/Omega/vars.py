@@ -323,7 +323,7 @@ MARKS_UNKNOWN_VIEW = {
     }
 }
 
-PLANNER_STATUS = (
+SCHEDULER_STATUS = (
     ('HEALTHY', _('Healthy')),
     ('AILING', _('Ailing')),
     ('DISCONNECTED', _('Disconnected'))

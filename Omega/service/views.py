@@ -1,5 +1,6 @@
-# from django.shortcuts import render
+from django.shortcuts import render
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
 from jobs.utils import JobAccess
 from service.utils import *
 
@@ -13,13 +14,17 @@ def init_session(request):
         return JsonResponse({'error': 'Session identifier is not specified'})
     if 'job id' not in request.POST:
         return JsonResponse({'error': 'Job identifier is not specified'})
-    if 'planners' not in request.POST:
-        return JsonResponse({'error': 'Planners are not specified'})
+    if 'schedulers' not in request.POST:
+        return JsonResponse({'error': 'Schedulers are not specified'})
     if 'max priority' not in request.POST:
         return JsonResponse({'error': 'Max priority is not specified'})
+    if 'verifier name' not in request.POST:
+        return JsonResponse({'error': 'Verifier name is not specified'})
+    if 'verifier version' not in request.POST:
+        return JsonResponse({'error': 'Verifier version is not specified'})
 
     try:
-        planners = list(json.loads(request.POST['planners']))
+        schedulers = list(json.loads(request.POST['schedulers']))
     except Exception as e:
         return JsonResponse({'error': e})
 
@@ -42,7 +47,8 @@ def init_session(request):
                 request.user, job.identifier
             )
         })
-    InitSession(request.user, job, request.POST['max priority'], planners)
+    InitSession(job, request.POST['max priority'], schedulers,
+                request.POST['verifier name'], request.POST['verifier version'])
     return JsonResponse('OK')
 
 
@@ -75,3 +81,102 @@ def create_task(request):
     if task_creation.error is not None:
         return JsonResponse({'error': 'Task priority is not specified'})
     return JsonResponse({'task id': task_creation.task_id})
+
+
+@login_required
+def add_scheduler(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    scheduler_name = request.POST.get('scheduler name', '')
+    scheduler_key = request.POST.get('scheduler key', '')
+    need_auth = request.POST.get('need auth', None)
+    if need_auth is None:
+        return JsonResponse({'error': 'Wrong arguments: need auth'})
+    need_auth = bool(int(need_auth))
+    adding_sch = AddScheduler(scheduler_name, scheduler_key, need_auth)
+    if adding_sch.error is not None:
+        return JsonResponse({'error': adding_sch.error})
+    return JsonResponse({})
+
+
+@login_required
+def get_scheduler_login_data(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    try:
+        scheduler = Scheduler.objects.get(pk=int(request.POST.get('sch_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Scheduler was not found'})
+    if not scheduler.need_auth:
+        return JsonResponse({
+            'error': 'This scheduler does not need authentification'
+        })
+    if len(scheduler.scheduleruser_set.filter(user=request.user)) > 0:
+        login_data = scheduler.scheduleruser_set.filter(user=request.user)[0]
+        return JsonResponse({
+            'login': login_data.login,
+            'password': login_data.password,
+            'max_priority': login_data.get_max_priority_display()
+        })
+    return JsonResponse({})
+
+
+@login_required
+def add_scheduler_login_data(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    new_login = request.POST.get('login', '')
+    new_password = request.POST.get('password', '')
+    max_priority = request.POST.get('max_priority', None)
+    if len(new_login) == 0 or len(new_password) == 0 \
+            or all(x[0] != max_priority for x in PRIORITY):
+        return JsonResponse({
+            'error': 'Login, password or max priority was not got'
+        })
+    try:
+        scheduler = Scheduler.objects.get(pk=int(request.POST.get('sch_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Scheduler was not found'})
+    if not scheduler.need_auth:
+        return JsonResponse({
+            'error': 'This scheduler does not need authentification'
+        })
+    if len(scheduler.scheduleruser_set.filter(user=request.user)) > 0:
+        login_data = scheduler.scheduleruser_set.filter(user=request.user)[0]
+        login_data.login = new_login
+        login_data.password = new_password
+        login_data.max_priority = max_priority
+        login_data.save()
+        return JsonResponse({
+            'login': login_data.login,
+            'password': login_data.password
+        })
+    login_data = SchedulerUser.objects.create(
+        login=new_login, password=new_password,
+        max_priority=max_priority, scheduler=scheduler, user=request.user
+    )
+    return JsonResponse({
+        'login': login_data.login,
+        'password': login_data.password
+    })
+
+
+@login_required
+def remove_sch_logindata(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    try:
+        scheduler = Scheduler.objects.get(pk=int(request.POST.get('sch_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Scheduler was not found'})
+    if not scheduler.need_auth:
+        return JsonResponse({
+            'error': 'This scheduler does not need authentification'
+        })
+    scheduler.scheduleruser_set.filter(user=request.user).delete()
+    return JsonResponse({})
+
+
+@login_required
+def test(request):
+    return render(request, 'service/test.html', {})

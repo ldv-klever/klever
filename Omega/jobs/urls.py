@@ -27,6 +27,7 @@ urlpatterns = [
     url(r'^ajax/getversions/$', views.get_job_versions),
     url(r'^ajax/remove_versions/$', views.remove_versions),
     url(r'^ajax/stop_decision/$', views.stop_decision),
+    url(r'^ajax/run_decision/$', views.run_decision),
 
 
     # For psi

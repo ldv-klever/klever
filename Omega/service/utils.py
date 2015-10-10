@@ -1,20 +1,18 @@
 import pytz
 import json
-from io import BytesIO
-import hashlib
 from datetime import datetime, timedelta
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.utils.translation import ugettext_lazy as _
 from django.db.models import Q
 from service.models import *
-from Omega.vars import PRIORITY, PLANNER_STATUS
+from Omega.vars import PRIORITY, SCHEDULER_STATUS
 
 
 # Case 3.1.1.(2). DONE
 # If self.error is None you can get self.jobsession.pk as identifier
 # of the new session.
 class InitSession(object):
-    def __init__(self, job, max_priority, planners,
+    def __init__(self, job, max_priority, schedulers,
                  verifier_name, verifier_version):
         self.error = None
         if not (isinstance(job, Job) and
@@ -23,10 +21,10 @@ class InitSession(object):
             self.error = 'Wrong arguments'
             return
         self.max_priority = max_priority
-        self.planners = planners
+        self.schedulers = schedulers
         self.jobsession = self.__create_job_session(
             self.__get_verifier(verifier_name, verifier_version), job)
-        self.__check_planners()
+        self.__check_schedulers()
         self.__check_verifiers()
 
     def __create_job_session(self, verifier, job):
@@ -37,43 +35,46 @@ class InitSession(object):
         JobTasksResults.objects.create(session=jobsession)
         return jobsession
 
-    def __check_planners(self):
+    def __check_schedulers(self):
         has_available = False
-        planner_priority = 0
-        for planner in self.planners:
+        scheduler_priority = 0
+        for scheduler in self.schedulers:
             try:
-                planner = Planner.objects.get(name=planner)
+                scheduler = Scheduler.objects.get(name=scheduler)
             except ObjectDoesNotExist:
-                self.error = "One of the planners doesn't exist"
+                self.error = "One of the schedulers doesn't exist"
                 return
-            if planner.need_auth:
+            if scheduler.need_auth:
                 try:
                     operator = self.jobsession.job.reportroot.user
                 except ObjectDoesNotExist:
                     self.error = "Job is not for solving"
                     return
                 try:
-                    planner_user = planner.planneruser_set.get(user=operator)
+                    scheduler_user = scheduler.scheduleruser_set.get(
+                        user=operator)
                 except ObjectDoesNotExist:
                     continue
                 except MultipleObjectsReturned:
-                    print('Too many users for one planner')
-                    planner_user = planner.planneruser_set.all()[0]
-                if compare_priority(planner_user.max_priority,
+                    scheduler_user = scheduler.scheduleruser_set.all()[0]
+                if compare_priority(scheduler_user.max_priority,
                                     self.max_priority):
                     continue
-            if planner.status == PLANNER_STATUS[0][0]:
+            if scheduler.status == SCHEDULER_STATUS[0][0]:
                 has_available = True
-            self.__create_planner_session(planner, planner_priority)
-            planner_priority += 1
+            self.__create_scheduler_session(scheduler, scheduler_priority)
+            scheduler_priority += 1
         if not has_available:
             self.error = CloseSession(self.jobsession.pk).error
+            if self.error is None:
+                self.error = 'Session was closed due to ' \
+                             'there are no available schedulers'
 
-    def __create_planner_session(self, planner, priority):
-        planner_session = PlannerSession.objects.create(
-            priority=priority, planner=planner, session=self.jobsession
+    def __create_scheduler_session(self, scheduler, priority):
+        scheduler_session = SchedulerSession.objects.create(
+            priority=priority, scheduler=scheduler, session=self.jobsession
         )
-        PlannerTasksResults.objects.create(session=planner_session)
+        SchedulerTasksResults.objects.create(session=scheduler_session)
 
     def __get_verifier(self, name, version):
         self.ccc = 0
@@ -119,8 +120,8 @@ class CloseSession(object):
             task.status = TASK_STATUS[3][0]
             self.jobsession.statistic.tasks_lost += 1
             self.jobsession.statistic.save()
-            task.planner_session.statistic.tasks_lost += 1
-            task.planner_session.statistic.save()
+            task.scheduler_session.statistic.tasks_lost += 1
+            task.scheduler_session.statistic.save()
             remove_task(task)
 
 
@@ -143,23 +144,23 @@ class CreateTask(object):
         self.task_id = self.__create_task(description, archive)
 
     def __create_task(self, description, archive):
-        planner_session = self.__get_planner_session()
-        if planner_session is None:
-            self.error = 'No available planners'
+        scheduler_session = self.__get_scheduler_session()
+        if scheduler_session is None:
+            self.error = 'No available schedulers'
             return
         task = Task.objects.create(job_session=self.jobsession,
-                                   planner_session=planner_session)
+                                   scheduler_session=scheduler_session)
         task.files = upload_new_files(description, archive)
         task.save()
-        planner_session.statistic.tasks_total += 1
-        planner_session.statistic.save()
+        scheduler_session.statistic.tasks_total += 1
+        scheduler_session.statistic.save()
         self.jobsession.statistic.tasks_total += 1
         self.jobsession.statistic.save()
         return task.pk
 
-    def __get_planner_session(self):
-        sessions = self.jobsession.plannersession_set.filter(
-            planner__status=PLANNER_STATUS[0][0]
+    def __get_scheduler_session(self):
+        sessions = self.jobsession.schedulersession_set.filter(
+            scheduler_status=SCHEDULER_STATUS[0][0]
         ).order_by('priority')
         if len(sessions) > 0:
             return sessions[0]
@@ -203,7 +204,7 @@ class GetSolution(object):
             return
         self.task.job_session.save()
         if self.task.status != TASK_STATUS[4][0]:
-            self.error = 'Status of the task is not finished'
+            self.error = 'Task is not finished'
         self.files = self.__get_files()
 
     def __get_files(self):
@@ -241,18 +242,18 @@ class RemoveTask(object):
         if self.task.status == TASK_STATUS[2][0]:
             self.task.job_session.statistic.tasks_error += 1
             self.task.job_session.statistic.save()
-            self.task.planner_session.statistic.tasks_error += 1
-            self.task.planner_session.statistic.save()
+            self.task.scheduler_session.statistic.tasks_error += 1
+            self.task.scheduler_session.statistic.save()
         elif self.task.status == TASK_STATUS[3][0]:
             self.task.job_session.statistic.tasks_lost += 1
             self.task.job_session.statistic.save()
-            self.task.planner_session.statistic.tasks_lost += 1
-            self.task.planner_session.statistic.save()
+            self.task.scheduler_session.statistic.tasks_lost += 1
+            self.task.scheduler_session.statistic.save()
         elif self.task.status == TASK_STATUS[4][0]:
             self.task.job_session.statistic.tasks_finished += 1
             self.task.job_session.statistic.save()
-            self.task.planner_session.statistic.tasks_finished += 1
-            self.task.planner_session.statistic.save()
+            self.task.scheduler_session.statistic.tasks_finished += 1
+            self.task.scheduler_session.statistic.save()
 
 
 # Case 3.1.1. (7). DONE
@@ -278,34 +279,35 @@ class StopDecision(object):
     def __prepare_for_delete(self):
         self.task.job_session.statistic.tasks_lost += 1
         self.task.job_session.statistic.save()
-        self.task.planner_session.statistic.tasks_lost += 1
-        self.task.planner_session.statistic.save()
+        self.task.scheduler_session.statistic.tasks_lost += 1
+        self.task.scheduler_session.statistic.save()
 
 
-# Case 3.1.2 (2). DONE
-class AddPlanner(object):
+# Case 3.1.2 (2). TESTED
+class AddScheduler(object):
     def __init__(self, name, pkey, need_auth):
         self.error = None
-        if not (len(name) == 0 or len(pkey) == 0 and isinstance(need_auth, bool)):
+        if len(name) == 0 or len(pkey) == 0 or not isinstance(need_auth, bool) \
+                or len(pkey) > 12 or len(name) > 128:
             self.error = 'Wrong arguments'
             return
-        self.__add_planner(name, pkey, need_auth)
+        self.__add_scheduler(name, pkey, need_auth)
 
-    def __add_planner(self, name, pkey, need_auth):
+    def __add_scheduler(self, name, pkey, need_auth):
         try:
-            planner = Planner.objects.get(name=name)
+            scheduler = Scheduler.objects.get(name=name)
         except ObjectDoesNotExist:
             try:
-                Planner.objects.get(pkey=pkey)
-                self.error = 'Planner with specified key already exists'
+                Scheduler.objects.get(pkey=pkey)
+                self.error = 'Scheduler with specified key already exists'
                 return
             except ObjectDoesNotExist:
                 pass
-            planner = Planner()
-            planner.name = name
-        planner.need_auth = need_auth
-        planner.pkey = pkey
-        planner.save()
+            scheduler = Scheduler()
+            scheduler.name = name
+        scheduler.need_auth = need_auth
+        scheduler.pkey = pkey
+        scheduler.save()
 
 
 # Case 3.1.2 (3)
@@ -313,16 +315,83 @@ class GetTasks(object):
     def __init__(self, pkey, tasks):
         self.error = None
         try:
-            planner = Planner.objects.get(pkey=pkey)
+            self.scheduler = Scheduler.objects.get(pkey=pkey)
         except ObjectDoesNotExist:
-            self.error = "Planner doesn't exist"
+            self.error = "Scheduler doesn't exist"
             return
-        planner.save()
-        self.__parse_tasks(tasks)
+        self.scheduler.save()
+        try:
+            self.__parse_tasks(tasks)
+        except KeyError:
+            self.error = 'Wrong task data format'
+            return
 
     def __parse_tasks(self, tasks):
         with open(tasks) as data_file:
             data = json.load(data_file)
+        status_map = {
+            'pending': TASK_STATUS[0][0],
+            'processing': TASK_STATUS[1][0],
+            'finished': TASK_STATUS[4][0],
+            'error': TASK_STATUS[2][0],
+            'unknown': TASK_STATUS[3][0]
+        }
+        found_tasks = []
+        # TODO: rewrite it
+        for task in Task.objects.filter(
+                scheduler_session__scheduler=self.scheduler):
+            for status in status_map:
+                if task.pk in data['tasks'][status]:
+                    if task.status != status_map[status]:
+                        task.status = status_map[status]
+                        task.save()
+                        if task.status == TASK_STATUS[4][0]:
+                            self.__update_solutions(task)
+                    found_tasks.append(task.pk)
+                    break
+            else:
+                if task.status == TASK_STATUS[0][0]:
+                    data['tasks']['pending'].append(task.pk)
+                    data = self.__add_description(task, data)
+                elif task.status == TASK_STATUS[1][0]:
+                    data['tasks']['processing'].append(task.pk)
+                    data = self.__add_description(task, data)
+
+    def __update_solutions(self, task):
+        self.ccc = 0
+        solutions = task.tasksolution_set.order_by('-creation')
+        if len(solutions) >= 1:
+            solutions[0].status = True
+            solutions[0].save()
+            for solution in solutions[1:]:
+                solution.files.delete()
+                solution.delete()
+
+    def __add_description(self, task, data):
+        self.ccc = 0
+        with open(task.files.description) as f:
+            description = json.load(f)
+        operator = task.job_session.job.reportroot.user
+        data['task descriptions'][task.pk] = {
+            'user': operator.username,
+            'description': description
+        }
+        if task.scheduler_session.scheduler.need_auth:
+            if operator.username in data['users']:
+                return data
+            try:
+                scheduler_user = task.scheduler_session.scheduler\
+                    .scheduleruser_set.get(user=operator)
+            except ObjectDoesNotExist:
+                return data
+            except MultipleObjectsReturned:
+                scheduler_user = task.scheduler_session.scheduler.scheduleruser_set\
+                    .filter(user=operator)[0]
+            data['users'][operator.username] = {
+                'login': scheduler_user.login,
+                'password': scheduler_user.password
+            }
+        return data
 
 
 # Case 3.1.2 (4). DONE
@@ -331,9 +400,9 @@ class GetTaskData(object):
     def __init__(self, task_id, pkey):
         self.error = None
         try:
-            self.planner = Planner.objects.get(pkey=pkey)
+            self.scheduler = Scheduler.objects.get(pkey=pkey)
         except ObjectDoesNotExist:
-            self.error = "Planner with specified key doesn't exist"
+            self.error = "Scheduler with specified key doesn't exist"
             return
         try:
             self.task = Task.objects.get(pk=int(task_id))
@@ -355,11 +424,11 @@ class SaveSolution(object):
             self.error = _('Task was not found')
             return
         try:
-            self.planner = Planner.objects.get(pkey=pkey)
+            self.scheduler = Scheduler.objects.get(pkey=pkey)
         except ObjectDoesNotExist:
-            self.error = "Planner with specified key doesn't exist"
+            self.error = "Scheduler with specified key doesn't exist"
             return
-        self.planner.save()
+        self.scheduler.save()
         self.__create_solution(description, archive)
 
     def __create_solution(self, description, archive):
@@ -369,8 +438,91 @@ class SaveSolution(object):
         )
         self.task.job_session.statistic.solutions += 1
         self.task.job_session.statistic.save()
-        self.task.planner_session.statistic.solutions += 1
-        self.task.planner_session.statistic.save()
+        self.task.scheduler_session.statistic.solutions += 1
+        self.task.scheduler_session.statistic.save()
+
+
+# Case 3.1.2 (6). DONE
+class SetNodes(object):
+    def __init__(self, pkey, node_data):
+        self.error = None
+        try:
+            self.scheduler = Scheduler.objects.get(pkey=pkey)
+        except ObjectDoesNotExist:
+            self.error = 'Scheduler was not found'
+            return
+        self.scheduler.save()
+        self.__read_node_data(node_data)
+
+    def __read_node_data(self, node_data_file):
+        with open(node_data_file) as f:
+            node_data = json.load(f)
+        nodes_opts = ['CPU model', 'CPUs', 'RAM', 'disk', 'nodes']
+        node_opts = ['address', 'status', 'CPUs reserved', 'RAM reserved',
+                     'disk space reserved', 'tasks solving', 'jobs solving',
+                     'reserved for jobs', 'reserved for tasks']
+        if not isinstance(node_data, dict) \
+                or any(x not in node_data for x in nodes_opts):
+            self.error = 'Wrong node data format'
+            return
+        if not isinstance(node_data['nodes'], list) \
+                or any(not isinstance(n, dict) for n in node_data['nodes']):
+            self.error = 'Wrong node data format'
+            return
+        for node in node_data['nodes']:
+            if any(x not in node for x in node_opts):
+                self.error = 'Wrong node data format'
+                return
+        try:
+            nodes_conf = NodesConfiguration.objects.get(
+                scheduler=self.scheduler)
+        except ObjectDoesNotExist:
+            nodes_conf = NodesConfiguration()
+            nodes_conf.scheduler = self.scheduler
+        nodes_conf.cpu = node_data['CPU model']
+        nodes_conf.kernels = node_data['CPUs']
+        nodes_conf.ram = node_data['RAM']
+        nodes_conf.memory = node_data['disk']
+        nodes_conf.save()
+        Node.objects.filter(config=nodes_conf).delete()
+        for node in node_data['nodes']:
+            Node.objects.create(
+                config=nodes_conf, status=node['status'],
+                ram=node['RAM reserved'], kernels=node['CPUs reserved'],
+                memory=node['disk space reserved'], hostname=node['address'],
+                jobs=node['jobs solving'], tasks=node['tasks solving'],
+                for_jobs=node['reserved for jobs'],
+                for_tasks=node['reserved for tasks']
+            )
+
+
+# Case 3.1.2 (7). DONE
+class UpdateTools(object):
+    def __init__(self, pkey, tools_data):
+        self.error = None
+        try:
+            self.scheduler = Scheduler.objects.get(pkey=pkey)
+        except ObjectDoesNotExist:
+            self.error = 'Scheduler was not found'
+            return
+        self.scheduler.save()
+        self.__read_tools_data(tools_data)
+
+    def __read_tools_data(self, tools_file):
+        with open(tools_file) as f:
+            data = json.load(f)
+        if not isinstance(data, list) \
+                or any(not isinstance(x, dict) for x in data):
+            self.error = 'Wrong tools data format'
+            return
+        for tool in data:
+            if any(x not in tool for x in ['tool', 'version']):
+                self.error = 'Wrong tools data format'
+                return
+        VerificationTool.objects.filter(usage=False).delete()
+        for tool in data:
+            VerificationTool.objects.get_or_create(name=tool['tool'],
+                                                   version=tool['version'])
 
 
 def compare_priority(priority1, priority2):
@@ -391,7 +543,7 @@ def compare_priority(priority1, priority2):
 def remove_task(task):
     task.files.delete()
     for solution in task.tasksolution_set.all():
-        # TODO: check if it deletes files from disc
+        # TODO: check if it deletes files from the disc
         solution.files.delete()
     task.delete()
 
@@ -406,11 +558,12 @@ def upload_new_files(description, archive):
         archive=archive, archive_name=archive.name
     )
 
+
 # Case 3.1.3 (1). DONE
-def check_planners():
-    Planner.objects.all(
+def check_schedulers():
+    Scheduler.objects.all(
         last_request__lt=(current_date() - timedelta(minutes=1))
-    ).update(status=PLANNER_STATUS[2][0])
+    ).update(status=SCHEDULER_STATUS[2][0])
 
 
 # Case 3.1,3 (2). DONE

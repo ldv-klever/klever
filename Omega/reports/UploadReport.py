@@ -13,8 +13,11 @@ from marks.utils import ConnectReportWithMarks
 
 class UploadReport(object):
 
-    def __init__(self, user, job, data):
+    def __init__(self, job, data):
         self.job = job
+        if self.job.status != '1':
+            self.error = 'The job is not solving'
+            return
         self.data = {}
         self.ordered_attrs = []
         self.error = self.__check_data(data)
@@ -28,7 +31,12 @@ class UploadReport(object):
             print(self.error)
             self.job.status = '5'
             return
-        self.root = self.__get_root_report(user)
+        self.root = None
+        self.__get_root_report()
+        if self.error is not None:
+            print(self.error)
+            self.job.status = '5'
+            return
         self.error = self.__upload()
         if self.error is not None:
             print(self.error)
@@ -130,29 +138,14 @@ class UploadReport(object):
                 return "Property '%s' is required." % e
         else:
             return "Report type is not supported"
-
-        if data['type'] == 'start' and data['id'] == '/':
-            try:
-                self.job.reportroot.delete()
-            except ObjectDoesNotExist:
-                pass
-            if self.job.status == '1':
-                return 'The job is already solving'
-        elif self.job.status != '1':
-            return 'The job is not solving'
         return None
 
-    def __get_root_report(self, user):
+    def __get_root_report(self):
         try:
-            ReportRoot.objects.get(job=self.job)
+            self.root = self.job.reportroot
         except ObjectDoesNotExist:
-            new_reportroot = ReportRoot()
-            new_reportroot.user = user
-            new_reportroot.job = self.job
-            new_reportroot.last_request_date = pytz.timezone('UTC').localize(
-                datetime.now())
-            new_reportroot.save()
-        return self.job.reportroot
+            self.error = "Can't find report root"
+            return
 
     def __get_parent(self):
         if 'parent id' in self.data:
@@ -188,10 +181,6 @@ class UploadReport(object):
         return None
 
     def __upload(self):
-        self.root.last_request_date = pytz.timezone('UTC').localize(
-            datetime.now())
-        self.root.save()
-
         actions = {
             'start': self.__create_report_component,
             'finish': self.__finish_report_component,
@@ -285,9 +274,6 @@ class UploadReport(object):
         if 'resources' in self.data:
             self.__update_parent_resources(report)
 
-        if self.data['id'] == '/':
-            self.job.status = '1'
-            self.job.save()
         return report
 
     def __update_attrs(self, identifier):

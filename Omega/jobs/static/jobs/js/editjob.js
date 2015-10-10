@@ -784,6 +784,12 @@ $(document).ready(function () {
         $('#remove_job_popup').modal('hide');
     });
 
+    $('#decide_job_popup').modal({transition: 'fly up', autofocus: false})
+        .modal('attach events', '#show_decide_job_popup', 'show');
+    $('#decide_job_cancel').click(function () {
+        $('#decide_job_popup').modal('hide');
+    });
+
     if ($('#edit_job_div').length) {
         $.ajax({
             url: job_ajax_url + 'showjobdata/',
@@ -856,6 +862,31 @@ $(document).ready(function () {
         $.post(
             job_ajax_url + 'stop_decision/',
             {job_id: $('#job_pk').text()},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else if (data.status) {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
+
+    $('#decide_job_start').click(function () {
+        var schedulers = [];
+        $('input[id^="scheduler_"]').each(function () {
+            if ($(this).is(':checked')) {
+                schedulers.push($(this).attr('id').replace('scheduler_', ''))
+            }
+        });
+        if (schedulers.length <= 0) {
+            err_notify($('#error___no_schedulers_selected').text());
+            return false;
+        }
+        $.post(
+            job_ajax_url + 'run_decision/',
+            {job_id: $('#job_pk').text(), schedulers: JSON.stringify(schedulers)},
             function (data) {
                 if (data.error) {
                     err_notify(data.error);

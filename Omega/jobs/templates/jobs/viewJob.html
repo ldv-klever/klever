@@ -15,6 +15,9 @@
             <div class="ui fluid mini buttons top attached">
                 {% if can_create %}<button id="copy_job_btn" class="ui violet button">{% trans 'Make copy' %}</button>{% endif %}
                 <button id="load_job_btn" class="ui olive button">{% trans 'Download' %}</button>
+                {% if can_decide %}
+                    <button id="show_decide_job_popup" class="ui pink button">{% trans 'Run decision' %}</button>
+                {% endif %}
                 {% if user.extended.role == '2' and job.status == '1' %}
                     <button id="stop_job_btn" class="ui orange button">{% trans 'Stop decision' %}</button>
                 {% endif %}
@@ -155,5 +158,33 @@
                 </div>
             </div>
         {% endif %}
+        {% if can_decide %}
+             <div id="decide_job_popup" class="ui modal">
+                <div class="header">{% trans 'Decide job' %}</div>
+                <div class="content">
+                    {% if schedulers|length %}
+                        <h4 class="header">{% trans "Choose schedulers" %}</h4>
+                        {% for scheduler in schedulers %}
+                            <div class="ui checkbox">
+                                <input id="scheduler_{{ scheduler.pk }}" type="checkbox">
+                                <label for="scheduler_{{ scheduler.pk }}">{{ scheduler.name }}</label>
+                            </div>
+                            <br><br>
+                        {% endfor %}
+                    {% else %}
+                        <h4 class="header">{% trans 'There are no available schedulers' %}</h4>
+                    {% endif %}
+                </div>
+                <div class="actions">
+                    {% if schedulers|length %}
+                        <button id="decide_job_start" type="button" class="ui positive button">{% trans 'Run' %}</button>
+                        <button id="decide_job_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+                    {% else %}
+                        <button id="decide_job_cancel" type="button" class="ui blue button">{% trans 'OK' %}</button>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
     {% endif %}
+    <span id="error___no_schedulers_selected" hidden>{% trans 'Please choose schedulers' %}</span>
 {% endblock %}
