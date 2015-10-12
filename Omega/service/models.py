@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS
 from Omega.formatChecker import RestrictedFileField
 from jobs.models import Job, Scheduler
@@ -7,23 +9,24 @@ from jobs.models import Job, Scheduler
 
 FILE_DIR = 'Service'
 
-
 class FileData(models.Model):
-    description = RestrictedFileField(
-        upload_to=FILE_DIR,
-        max_upload_size=104857600,
-        null=False
-    )
+    description = models.TextField()
+    archive_name = models.CharField(max_length=256)
     archive = RestrictedFileField(
         upload_to=FILE_DIR,
         max_upload_size=104857600,
         null=False
     )
-    description_name = models.CharField(max_length=256)
-    archive_name = models.CharField(max_length=256)
 
     class Meta:
         db_table = 'service_service_files'
+
+
+@receiver(pre_delete, sender=FileData)
+def filedata_delete(**kwargs):
+    file = kwargs['instance']
+    storage, path = file.archive.storage, file.archive.path
+    storage.delete(path)
 
 
 class SchedulerUser(models.Model):

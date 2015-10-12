@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from Omega.formatChecker import RestrictedFileField
 from Omega.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS,\
     SCHEDULER_STATUS
@@ -71,6 +73,13 @@ class File(models.Model):
 
     def __str__(self):
         return self.hash_sum
+
+
+@receiver(pre_delete, sender=File)
+def file_delete(**kwargs):
+    file = kwargs['instance']
+    storage, path = file.file.storage, file.file.path
+    storage.delete(path)
 
 
 class FileSystem(models.Model):

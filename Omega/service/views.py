@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 from jobs.utils import JobAccess
 from service.utils import *
@@ -10,8 +10,6 @@ def init_session(request):
         return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
-    if 'session id' not in request.POST:
-        return JsonResponse({'error': 'Session identifier is not specified'})
     if 'job id' not in request.POST:
         return JsonResponse({'error': 'Job identifier is not specified'})
     if 'schedulers' not in request.POST:
@@ -47,9 +45,25 @@ def init_session(request):
                 request.user, job.identifier
             )
         })
-    InitSession(job, request.POST['max priority'], schedulers,
-                request.POST['verifier name'], request.POST['verifier version'])
-    return JsonResponse('OK')
+    result = InitSession(job, request.POST['max priority'], schedulers,
+                         request.POST['verifier name'],
+                         request.POST['verifier version'])
+    if result.error is not None:
+        return JsonResponse({'error': result.error})
+    return JsonResponse({'session id': result.jobsession.pk})
+
+
+def close_session(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Just POST requests are supported'})
+    if 'session id' not in request.POST:
+        return JsonResponse({'error': 'Session identifier is not specified'})
+    result = CloseSession(session_id=request.POST.get('session id', '0'))
+    if result.error is not None:
+        return JsonResponse({'error': result.error})
+    return JsonResponse({})
 
 
 def create_task(request):
@@ -64,9 +78,9 @@ def create_task(request):
     archive = None
     description = None
     for f in request.FILES.getlist('file'):
-        if f.content_type == 'application/x-tar-gz':
+        if f.content_type == 'application/gzip':
             archive = f
-        elif f.content_type == 'application/json':
+        else:
             description = f
     if archive is None:
         return JsonResponse({
@@ -79,28 +93,33 @@ def create_task(request):
     task_creation = CreateTask(request.POST['session id'], description, archive,
                                request.POST['priority'])
     if task_creation.error is not None:
-        return JsonResponse({'error': 'Task priority is not specified'})
+        return JsonResponse({'error': task_creation.error})
     return JsonResponse({'task id': task_creation.task_id})
 
 
-@login_required
 def add_scheduler(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     scheduler_name = request.POST.get('scheduler name', '')
     scheduler_key = request.POST.get('scheduler key', '')
     need_auth = request.POST.get('need auth', None)
     if need_auth is None:
-        return JsonResponse({'error': 'Wrong arguments: need auth'})
-    need_auth = bool(int(need_auth))
-    adding_sch = AddScheduler(scheduler_name, scheduler_key, need_auth)
-    if adding_sch.error is not None:
-        return JsonResponse({'error': adding_sch.error})
+        return JsonResponse({'error': 'Wrong argument - need auth'})
+    try:
+        need_auth = bool(int(need_auth))
+    except ValueError:
+        return JsonResponse({'error': 'Wrong argument - need auth'})
+    result = AddScheduler(scheduler_name, scheduler_key, need_auth)
+    if result.error is not None:
+        return JsonResponse({'error': result.error})
     return JsonResponse({})
 
 
-@login_required
 def get_scheduler_login_data(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     try:
@@ -121,8 +140,9 @@ def get_scheduler_login_data(request):
     return JsonResponse({})
 
 
-@login_required
 def add_scheduler_login_data(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     new_login = request.POST.get('login', '')
@@ -177,6 +197,62 @@ def remove_sch_logindata(request):
     return JsonResponse({})
 
 
+def get_tasks(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    sch_key = request.POST.get('scheduler key', '')
+    if len(sch_key) == 0 or len(sch_key) > 12:
+        return JsonResponse({
+            'error': 'Scheduler key is required or has wrong length'
+        })
+    try:
+        scheduler = Scheduler.objects.get(pkey=sch_key)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Scheduler was not found'})
+    result = GetTasks(scheduler, request.POST.get('tasks list', '{}'))
+    if result.error is not None:
+        print(result.error)
+        return JsonResponse({'error': result.error})
+    return JsonResponse({'tasks list': result.data})
+
+
+def clear_sessions(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    try:
+        num_of_hours = float(request.POST.get('hours', ''))
+    except ValueError:
+        return JsonResponse({'error': 'Wrong parameter'})
+    delete_old_sessions(num_of_hours)
+    return JsonResponse({})
+
+
+def check_schedulers(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    change_schedulers_status()
+    return JsonResponse({})
+
+
+def close_sessions(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    try:
+        num_of_minutes = float(request.POST.get('minutes', ''))
+    except ValueError:
+        return JsonResponse({'error': 'Wrong parameter'})
+    close_old_active_sessions(num_of_minutes)
+    return JsonResponse({})
+
+
 @login_required
 def test(request):
-    return render(request, 'service/test.html', {})
+    return render(request, 'service/test.html', {'priorities': PRIORITY})

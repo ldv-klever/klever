@@ -808,7 +808,7 @@ def run_decision(request):
         job.reportroot.delete()
     except ObjectDoesNotExist:
         pass
-    reportroot = ReportRoot.objects.create(user=request.user, job=job)
+    schedulers = []
     for sch_id in schedulers_ids:
         try:
             scheduler = Scheduler.objects.get(pk=int(sch_id))
@@ -819,15 +819,15 @@ def run_decision(request):
                 scheduler_users = \
                     scheduler.scheduleruser_set.filter(user=request.user)
                 if len(scheduler_users) > 0:
-                    reportroot.schedulers.add(scheduler)
+                    schedulers.append(scheduler.pk)
             else:
-                reportroot.schedulers.add(scheduler)
-    reportroot.save()
-    if len(reportroot.schedulers.all()) == 0:
-        reportroot.delete()
+                schedulers.append(scheduler.pk)
+    if len(schedulers) == 0:
         return JsonResponse({
             'status': False, 'error': _('There are no available schedulers')
         })
+    ReportRoot.objects.create(user=request.user, job=job,
+                              schedulers=json.dumps(schedulers))
     job.status = JOB_STATUS[1][0]
     job.save()
     return JsonResponse({'status': True})

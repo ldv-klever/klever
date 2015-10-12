@@ -778,16 +778,22 @@ function set_actions_for_versions_delete() {
 }
 
 $(document).ready(function () {
+    $('.for_popup').popup();
     $('#remove_job_popup').modal({transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_job_popup', 'show');
+
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
     });
 
-    $('#decide_job_popup').modal({transition: 'fly up', autofocus: false})
+    $('#decide_job_popup').modal({autofocus: false, allowMultiple: false})
         .modal('attach events', '#show_decide_job_popup', 'show');
     $('#decide_job_cancel').click(function () {
         $('#decide_job_popup').modal('hide');
+    });
+    $('#decide_job_order_popup').modal({autofocus: false, allowMultiple: false});
+    $('#sch_order_cancel').click(function () {
+        $('#decide_job_order_popup').modal('hide');
     });
 
     if ($('#edit_job_div').length) {
@@ -873,17 +879,48 @@ $(document).ready(function () {
         );
     });
 
+    $('#move_schedulers_up').click(function () {
+        var $op = $('#selected_schedulers').children('option:selected');
+        if ($op.length) {
+            $op.first().prev().before($op);
+        }
+    });
+
+    $('#move_schedulers_down').click(function () {
+        var $op = $('#selected_schedulers').children('option:selected');
+        if ($op.length) {
+            $op.last().next().after($op);
+        }
+    });
+
     $('#decide_job_start').click(function () {
         var schedulers = [];
         $('input[id^="scheduler_"]').each(function () {
             if ($(this).is(':checked')) {
-                schedulers.push($(this).attr('id').replace('scheduler_', ''))
+                schedulers.push([$(this).attr('id').replace('scheduler_', ''), $(this).next('label').text()])
             }
         });
         if (schedulers.length <= 0) {
             err_notify($('#error___no_schedulers_selected').text());
             return false;
         }
+        $('#selected_schedulers').empty();
+        $.each(schedulers, function(i, val) {
+            $('#selected_schedulers').append($('<option>', {
+                value: val[0],
+                text: val[1],
+                title: val[1]
+            }));
+        });
+        $('#decide_job_order_popup').modal('show');
+        return false;
+
+    });
+    $('#sch_order_confirm').click(function () {
+        var schedulers = [];
+        $('#selected_schedulers').children().each(function () {
+            schedulers.push($(this).val());
+        });
         $.post(
             job_ajax_url + 'run_decision/',
             {job_id: $('#job_pk').text(), schedulers: JSON.stringify(schedulers)},

@@ -540,10 +540,17 @@ def get_resource_data(user, resource):
 
 def get_available_schedulers(user):
     schedulers = []
-    for scheduler in Scheduler.objects.filter(status=SCHEDULER_STATUS[0][0]):
+    for scheduler in Scheduler.objects.all():
+        sch_data = {
+            'pk': scheduler.pk,
+            'name': scheduler.name,
+            'available': True,
+            'auth_error': False
+        }
+        if scheduler.status != SCHEDULER_STATUS[0][0]:
+            sch_data['available'] = False
         if scheduler.need_auth:
-            if len(scheduler.scheduleruser_set.filter(user=user)) > 0:
-                schedulers.append(scheduler)
-        else:
-            schedulers.append(scheduler)
+            if len(scheduler.scheduleruser_set.filter(user=user)) == 0:
+                sch_data['auth_error'] = True
+        schedulers.append(sch_data)
     return schedulers

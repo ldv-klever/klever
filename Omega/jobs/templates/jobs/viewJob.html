@@ -164,12 +164,31 @@
                 <div class="content">
                     {% if schedulers|length %}
                         <h4 class="header">{% trans "Choose schedulers" %}</h4>
-                        {% for scheduler in schedulers %}
-                            <div class="ui checkbox">
-                                <input id="scheduler_{{ scheduler.pk }}" type="checkbox">
-                                <label for="scheduler_{{ scheduler.pk }}">{{ scheduler.name }}</label>
+                        {% for sch in schedulers %}
+                            <div class="ui grid">
+                                <div class="eight wide column">
+                                    <div class="ui checkbox {% if sch.auth_error or not sch.available %}disabled{% endif %}">
+                                        <input id="scheduler_{{ sch.pk }}" type="checkbox">
+                                        <label for="scheduler_{{ sch.pk }}">{{ sch.name }}</label>
+                                    </div>
+                                </div>
+                                {% if sch.auth_error %}
+                                    <div class="one wide column">
+                                        <i class="for_popup ui add user red icon"></i>
+                                        <div class="ui popup top left transition hidden">
+                                            <span style="white-space: nowrap">{% trans 'Needs login data' %}</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                {% if not sch.available %}
+                                    <div class="one wide column">
+                                        <i class="for_popup ui laptop red icon"></i>
+                                        <div class="ui popup top left transition hidden">
+                                            <span style="white-space: nowrap">{% trans 'Unavailable' %}</span>
+                                        </div>
+                                    </div>
+                                {% endif %}
                             </div>
-                            <br><br>
                         {% endfor %}
                     {% else %}
                         <h4 class="header">{% trans 'There are no available schedulers' %}</h4>
@@ -177,11 +196,33 @@
                 </div>
                 <div class="actions">
                     {% if schedulers|length %}
-                        <button id="decide_job_start" type="button" class="ui positive button">{% trans 'Run' %}</button>
+                        <button id="decide_job_start" type="button" class="ui positive button">{% trans 'Next' %}</button>
                         <button id="decide_job_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
                     {% else %}
                         <button id="decide_job_cancel" type="button" class="ui blue button">{% trans 'OK' %}</button>
                     {% endif %}
+                </div>
+            </div>
+            <div id="decide_job_order_popup" class="ui modal">
+                <div class="header">{% trans 'Scheduler order' %}</div>
+                <div class="content">
+                    <h4 class="header">{% trans "Choose order of schedulers (the first one in the list will have the maximum priority)" %}</h4>
+                    <div class="ui grid">
+                        <div class="five wide column">
+                            <label for="selected_schedulers"></label>
+                            <select id="selected_schedulers" style="height: 160px;width: 100%" multiple></select>
+                        </div>
+                        <div class="two wide column">
+                            <div style="margin-top: 60px;" class="ui vertical mini basic icon purple buttons">
+                                <button id="move_schedulers_up" type="button" class="ui button"><i class="arrow up icon"></i></button>
+                                <button id="move_schedulers_down" type="button" class="ui button"><i class="arrow down icon"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button id="sch_order_confirm" type="button" class="ui positive button">{% trans 'Run' %}</button>
+                    <button id="sch_order_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
                 </div>
             </div>
         {% endif %}

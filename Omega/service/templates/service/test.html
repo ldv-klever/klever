@@ -1,4 +1,8 @@
 {% extends 'base.html' %}
+
+{% block title %}
+Testing
+{% endblock %}
 {% block head_block %}
     <script src="/static/service/js/service.js"></script>
 {% endblock %}
@@ -30,6 +34,136 @@
             </div>
             <div class="two wide column right aligned">
                 <button id="add_new_scheduler_btn" class="ui purple button">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui purple segment">
+        <h2 class="header">Update tasks for scheduler</h2>
+        <div class="ui grid">
+            <div class="fourteen wide column">
+                <label for="get_tasks_sch_key"></label>
+                <div class="ui input">
+                    <input id="get_tasks_sch_key" type="text" placeholder="Scheduler key">
+                </div>
+                <br><br>
+                <div class="ui input fluid">
+                    <input type="text" placeholder="JSON string" id="get_tasks_json_tasks" value='{"tasks": {"pending": [],"processing": [],"finished": [],"error": [],"unknown": []},"task descriptions": {},"jobs": {},"users": {}}'>
+                </div>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="get_tasks_submit" class="ui purple button">Get</button>
+            </div>
+        </div>
+        <div id="get_tasks_result" class="ui green segment"></div>
+    </div>
+
+    <div class="ui purple segment">
+        <h2 class="header">Session initialisation</h2>
+        <div class="ui grid">
+            <div class="three wide column">
+                <div class="ui input fluid">
+                    <input id="init_session_job_id" type="text" placeholder="Job identifier">
+                </div>
+            </div>
+            <div class="five wide column">
+                <div class="ui input fluid">
+                    <input id="init_session_sch_names" type="text" placeholder="Scheduler names (separated by ,)">
+                </div>
+            </div>
+            <div class="three wide column">
+                <label for="init_session_priority"></label>
+                <select id="init_session_priority" class="ui dropdown fluid">
+                    {% for pr in priorities reversed %}
+                        <option value="{{ pr.0 }}">{{ pr.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="three wide column">
+                <div class="ui input fluid">
+                    <input id="init_session_tool_name" type="text" placeholder="Tool name">
+                </div>
+                <br>
+                <div class="ui input fluid">
+                    <input id="init_session_tool_version" type="text" placeholder="Tool version">
+                </div>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="init_session_submit" class="ui purple button">Init</button>
+            </div>
+        </div>
+    </div>
+    <div class="ui horizontal segments">
+        <div class="ui purple segment">
+            <h2 class="header">Close session</h2>
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <div class="ui input fluid">
+                        <input id="close_session_session_id" type="text" placeholder="Session id">
+                    </div>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="close_session_submit" class="ui purple button">Close</button>
+                </div>
+            </div>
+        </div>
+        <div class="ui purple segment">
+            <h2 class="header">Clear old sessions</h2>
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <div class="ui input fluid">
+                        <input id="clear_sessions_hours" type="text" placeholder="Age in hours">
+                    </div>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="clear_sessions_submit" class="ui purple button">Clear</button>
+                </div>
+            </div>
+        </div>
+        <div class="ui purple segment">
+            <h2 class="header">Close old sessions</h2>
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <div class="ui input fluid">
+                        <input id="close_sessions_minutes" type="text" placeholder="Age in minutes">
+                    </div>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="close_sessions_submit" class="ui purple button">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui purple segment">
+        <h2 class="header">Check old schedulers</h2>
+        <button id="check_schedulers" class="ui purple button">Check</button>
+    </div>
+
+    <div class="ui purple segment">
+        <h2 class="header">Create new task</h2>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui input fluid">
+                    <input id="create_task_session_id" type="text" placeholder="Session id">
+                </div>
+            </div>
+            <div class="three wide column">
+                <span class="ui violet button btn-file">Browse description<input id="create_task_description" type="file"></span>
+            </div>
+            <div class="three wide column">
+                <span class="ui violet button btn-file">Browse archive<input id="create_task_archive" type="file"></span>
+            </div>
+            <div class="four wide column">
+                <label for="create_task_priority"></label>
+                <select id="create_task_priority" class="ui dropdown fluid">
+                    {% for pr in priorities reversed %}
+                        <option value="{{ pr.0 }}">{{ pr.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="create_task_submit" class="ui purple button">Create</button>
             </div>
         </div>
     </div>
