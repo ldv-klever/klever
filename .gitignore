@@ -1,4 +1,5 @@
-__pycache__/*
-__pycache__
-*/.idea/workspace.xml
+__pycache__/
+dist/
+*.egg-info/
 docs/_build
+*/.idea/workspace.xml
