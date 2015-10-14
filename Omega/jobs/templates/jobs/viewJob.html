@@ -164,32 +164,84 @@
                 <div class="content">
                     {% if schedulers|length %}
                         <h4 class="header">{% trans "Choose schedulers" %}</h4>
-                        {% for sch in schedulers %}
-                            <div class="ui grid">
-                                <div class="eight wide column">
-                                    <div class="ui checkbox {% if sch.auth_error or not sch.available %}disabled{% endif %}">
-                                        <input id="scheduler_{{ sch.pk }}" type="checkbox">
-                                        <label for="scheduler_{{ sch.pk }}">{{ sch.name }}</label>
-                                    </div>
-                                </div>
-                                {% if sch.auth_error %}
-                                    <div class="one wide column">
-                                        <i class="for_popup ui add user red icon"></i>
-                                        <div class="ui popup top left transition hidden">
-                                            <span style="white-space: nowrap">{% trans 'Needs login data' %}</span>
+                        <div class="ui grid">
+                            <div class="eight wide column">
+                                <h5 class="header">{% trans 'Choose scheduler for job' %}</h5>
+                                {% for sch in schedulers %}
+                                    {% if sch.for_jobs %}
+                                        <div class="ui grid">
+                                            <div class="ten wide column">
+                                                <div class="ui radio checkbox {% if sch.auth_error or not sch.available %}disabled{% endif %}">
+                                                    <input id="job_scheduler_{{ sch.pk }}" name="job_scheduler" type="radio" value="{{ sch.pk }}">
+                                                    <label for="job_scheduler_{{ sch.pk }}">{{ sch.name }}</label>
+                                                </div>
+                                            </div>
+                                            {% if sch.auth_error %}
+                                                <div class="one wide column">
+                                                    <i class="for_popup ui add user red icon"></i>
+                                                    <div class="ui popup top left transition hidden">
+                                                        <span style="white-space: nowrap">{% trans 'Needs login data' %}</span>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                            {% if not sch.available %}
+                                                <div class="one wide column">
+                                                    <i class="for_popup ui laptop red icon"></i>
+                                                    <div class="ui popup top left transition hidden">
+                                                        <span style="white-space: nowrap">{% trans 'Unavailable' %}</span>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                            {% if not sch.auth_error and sch.available %}
+                                                <div class="one wide column">
+                                                    <i class="for_popup ui checkmark green icon"></i>
+                                                    <div class="ui popup top left transition hidden">
+                                                        <span style="white-space: nowrap">{% trans 'Ready' %}</span>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
                                         </div>
-                                    </div>
-                                {% endif %}
-                                {% if not sch.available %}
-                                    <div class="one wide column">
-                                        <i class="for_popup ui laptop red icon"></i>
-                                        <div class="ui popup top left transition hidden">
-                                            <span style="white-space: nowrap">{% trans 'Unavailable' %}</span>
-                                        </div>
-                                    </div>
-                                {% endif %}
+                                    {% endif %}
+                                {% endfor %}
                             </div>
-                        {% endfor %}
+                            <div class="eight wide column">
+                                <h5 class="header">{% trans 'Choose schedulers for tasks' %}</h5>
+                                {% for sch in schedulers %}
+                                    <div class="ui grid">
+                                        <div class="ten wide column">
+                                            <div class="ui checkbox {% if sch.auth_error or not sch.available %}disabled{% endif %}">
+                                                <input id="scheduler_{{ sch.pk }}" type="checkbox">
+                                                <label for="scheduler_{{ sch.pk }}">{{ sch.name }}</label>
+                                            </div>
+                                        </div>
+                                        {% if sch.auth_error %}
+                                            <div class="one wide column">
+                                                <i class="for_popup ui add user red icon"></i>
+                                                <div class="ui popup top left transition hidden">
+                                                    <span style="white-space: nowrap">{% trans 'Needs login data' %}</span>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {% if not sch.available %}
+                                            <div class="one wide column">
+                                                <i class="for_popup ui laptop red icon"></i>
+                                                <div class="ui popup top left transition hidden">
+                                                    <span style="white-space: nowrap">{% trans 'Unavailable' %}</span>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        {% if not sch.auth_error and sch.available %}
+                                            <div class="one wide column">
+                                                <i class="for_popup ui checkmark green icon"></i>
+                                                <div class="ui popup top left transition hidden">
+                                                    <span style="white-space: nowrap">{% trans 'Ready' %}</span>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
                     {% else %}
                         <h4 class="header">{% trans 'There are no available schedulers' %}</h4>
                     {% endif %}
@@ -227,5 +279,6 @@
             </div>
         {% endif %}
     {% endif %}
-    <span id="error___no_schedulers_selected" hidden>{% trans 'Please choose schedulers' %}</span>
+    <span id="error___no_schedulers_selected" hidden>{% trans 'Please choose schedulers for tasks' %}</span>
+    <span id="error___no_job_scheduler_selected" hidden>{% trans 'Please choose scheduler for job' %}</span>
 {% endblock %}

@@ -19,6 +19,7 @@ from reports.models import ReportComponent
 from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
 from jobs.utils import *
 from reports.models import ReportRoot
+from service.utils import RemoveJobSession
 
 
 @login_required
@@ -799,6 +800,15 @@ def run_decision(request):
             'status': False, 'error': _('The job was not found')
         })
     schedulers_ids = json.loads(request.POST.get('schedulers', '[]'))
+    try:
+        job_scheduler = Scheduler.objects.get(
+            pk=int(request.POST.get('job_scheduler', 0)),
+            for_jobs=True
+        )
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'status': False, 'error': _('The job scheduler was not found')
+        })
     if not JobAccess(request.user, job):
         return JsonResponse({
             'status': False,
@@ -827,7 +837,9 @@ def run_decision(request):
             'status': False, 'error': _('There are no available schedulers')
         })
     ReportRoot.objects.create(user=request.user, job=job,
-                              schedulers=json.dumps(schedulers))
+                              schedulers=json.dumps(schedulers),
+                              job_scheduler=job_scheduler)
+    RemoveJobSession(job)
     job.status = JOB_STATUS[1][0]
     job.save()
     return JsonResponse({'status': True})

@@ -11,12 +11,13 @@ JOBFILE_DIR = 'Files'
 
 
 class Scheduler(models.Model):
-    name = models.CharField(max_length=128)
+    name = models.CharField(max_length=128, unique=True)
     pkey = models.CharField(max_length=12, unique=True)
     status = models.CharField(max_length=12, default='HEALTHY',
                               choices=SCHEDULER_STATUS)
     need_auth = models.BooleanField(default=False)
     last_request = models.DateTimeField(auto_now=True)
+    for_jobs = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'service_scheduler'

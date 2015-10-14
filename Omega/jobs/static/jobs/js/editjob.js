@@ -779,6 +779,7 @@ function set_actions_for_versions_delete() {
 
 $(document).ready(function () {
     $('.for_popup').popup();
+    $('#job_scheduler').dropdown();
     $('#remove_job_popup').modal({transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_job_popup', 'show');
 
@@ -900,6 +901,11 @@ $(document).ready(function () {
                 schedulers.push([$(this).attr('id').replace('scheduler_', ''), $(this).next('label').text()])
             }
         });
+        var job_scheduler = $('input[name="job_scheduler"]:checked').val();
+        if (!job_scheduler) {
+            err_notify($('#error___no_job_scheduler_selected').text());
+            return false;
+        }
         if (schedulers.length <= 0) {
             err_notify($('#error___no_schedulers_selected').text());
             return false;
@@ -923,7 +929,11 @@ $(document).ready(function () {
         });
         $.post(
             job_ajax_url + 'run_decision/',
-            {job_id: $('#job_pk').text(), schedulers: JSON.stringify(schedulers)},
+            {
+                job_id: $('#job_pk').text(),
+                schedulers: JSON.stringify(schedulers),
+                job_scheduler: $('input[name="job_scheduler"]:checked').val()
+            },
             function (data) {
                 if (data.error) {
                     err_notify(data.error);
@@ -932,6 +942,8 @@ $(document).ready(function () {
                     window.location.replace('');
                 }
             }
-        );
+        ).fail(function (x) {
+                console.log(x.responseText);
+            });
     });
 });

@@ -9,23 +9,42 @@ from jobs.models import Job, Scheduler
 
 FILE_DIR = 'Service'
 
-class FileData(models.Model):
+
+class TaskFileData(models.Model):
     description = models.TextField()
-    archive_name = models.CharField(max_length=256)
-    archive = RestrictedFileField(
-        upload_to=FILE_DIR,
-        max_upload_size=104857600,
-        null=False
+    name = models.CharField(max_length=256)
+    source = RestrictedFileField(
+        upload_to=FILE_DIR, null=False,
+        max_upload_size=104857600
     )
 
     class Meta:
-        db_table = 'service_service_files'
+        db_table = 'service_task_files'
 
 
-@receiver(pre_delete, sender=FileData)
-def filedata_delete(**kwargs):
+class SolutionFileData(models.Model):
+    description = models.TextField(null=True)
+    name = models.CharField(max_length=256)
+    source = RestrictedFileField(
+        upload_to=FILE_DIR, null=False,
+        max_upload_size=104857600
+    )
+
+    class Meta:
+        db_table = 'service_solution_files'
+
+
+@receiver(pre_delete, sender=TaskFileData)
+def task_filedata_delete(**kwargs):
     file = kwargs['instance']
-    storage, path = file.archive.storage, file.archive.path
+    storage, path = file.source.storage, file.source.path
+    storage.delete(path)
+
+
+@receiver(pre_delete, sender=SolutionFileData)
+def soluition_filedata_delete(**kwargs):
+    file = kwargs['instance']
+    storage, path = file.source.storage, file.source.path
     storage.delete(path)
 
 
@@ -79,7 +98,7 @@ class VerificationTool(models.Model):
 
 
 class JobSession(models.Model):
-    job = models.ForeignKey(Job)
+    job = models.OneToOneField(Job)
     tool = models.ForeignKey(VerificationTool)
     priority = models.CharField(max_length=6, choices=PRIORITY)
     status = models.BooleanField(default=True)
@@ -105,7 +124,8 @@ class Task(models.Model):
     job_session = models.ForeignKey(JobSession)
     status = models.CharField(max_length=10, choices=TASK_STATUS,
                               default='PENDING')
-    files = models.ForeignKey(FileData, null=True)
+    files = models.OneToOneField(TaskFileData, null=True,
+                                 on_delete=models.SET_NULL)
 
     class Meta:
         db_table = 'service_task'
@@ -115,7 +135,8 @@ class TaskSolution(models.Model):
     task = models.ForeignKey(Task)
     status = models.BooleanField(default=False)
     creation = models.DateTimeField()
-    files = models.ForeignKey(FileData, null=True)
+    files = models.OneToOneField(SolutionFileData, null=True,
+                                 on_delete=models.SET_NULL)
 
     class Meta:
         db_table = 'service_solution'

@@ -25,6 +25,7 @@ class ReportRoot(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     job = models.OneToOneField(Job)
     schedulers = models.CharField(max_length=1024, default="[]")
+    job_scheduler = models.ForeignKey(Scheduler)
 
     class Meta:
         db_table = 'report_root'
