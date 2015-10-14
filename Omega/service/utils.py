@@ -759,3 +759,38 @@ class SetNodes(object):
             for_jobs=data['workload']['reserved for jobs'],
             for_tasks=data['workload']['reserved for tasks']
         )
+
+
+class UserJobs(object):
+    def __init__(self, user):
+        self.user = user
+        self.data = self.__get_jobs()
+
+    def __get_jobs(self):
+        data = []
+        for root in ReportRoot.objects.filter(user=self.user):
+            try:
+                jobsession = root.job.jobsession
+            except ObjectDoesNotExist:
+                continue
+            tasks_finished = jobsession.statistic.tasks_error + \
+                             jobsession.statistic.tasks_lost + \
+                             jobsession.statistic.tasks_finished
+            tasks_total = jobsession.statistic.tasks_total
+            progress = int(100 * tasks_finished/tasks_total)
+            data_str = {
+                'jobname': root.job.name,
+                'priority': jobsession.get_priority_display(),
+                'start_date': jobsession.start_date,
+                'finish_date': '-',
+                'tasks_finished': tasks_finished,
+                'wall_time': '-',
+                'tasks_total': tasks_total,
+                'progress': progress
+            }
+            if jobsession.finish_date is not None:
+                data_str['finish_date'] = jobsession.finish_date
+                data_str['wall_time'] = (jobsession.finish_date -
+                                         jobsession.start_date).seconds
+            data.append(data_str)
+        return data

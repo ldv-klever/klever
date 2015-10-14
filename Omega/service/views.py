@@ -3,7 +3,8 @@ import mimetypes
 from io import BytesIO
 from urllib.parse import unquote
 from django.shortcuts import render
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
+from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from jobs.utils import JobAccess
 from service.utils import *
@@ -406,6 +407,34 @@ def update_nodes(request):
     if result.error is not None:
         return JsonResponse({'error': result.error})
     return JsonResponse({})
+
+
+@login_required
+def user_jobs(request, user_id):
+    try:
+        user = User.objects.get(pk=int(user_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[904]))
+    except Exception as e:
+        print(e)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    return render(request, 'service/jobs.html', {
+        'data': UserJobs(user).data,
+        'target': user
+    })
+
+
+@login_required
+def update_user_jobs(request, user_id):
+    try:
+        user = User.objects.get(pk=int(user_id))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': "User was not found"})
+    except Exception as e:
+        print(e)
+        return JsonResponse({'error': "Unknown error"})
+    return render(request, 'service/jobs_table.html',
+                  {'data': UserJobs(user).data})
 
 
 @login_required

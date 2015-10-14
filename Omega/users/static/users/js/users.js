@@ -41,7 +41,7 @@ $(document).ready(function () {
     $('#add_scheduler_data_cancel').click(function () {
         $('#new_scheduler_data_popup').modal('hide');
     });
-    $('#new_max_priority').dropdown();
+    $('.ui.dropdown').dropdown();
     $('#remove_scheduler_login_data').click(function () {
         $.ajax({
             url: '/service/ajax/remove_sch_logindata/',
