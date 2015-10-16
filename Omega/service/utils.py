@@ -9,9 +9,6 @@ from Omega.vars import PRIORITY, SCHEDULER_STATUS, JOB_STATUS
 from reports.models import ReportRoot
 
 
-##########################################################
-# F I N I S H E D                                        #
-##########################################################
 # Case 3.1.2 (2)
 class AddScheduler(object):
     def __init__(self, name, pkey, need_auth, for_jobs):
@@ -86,7 +83,7 @@ class CheckSchedulers(object):
         self.ccc = 0
         for reportroot in scheduler.reportroot_set.all():
             try:
-                CloseSession(reportroot.job.jobsession.pk)
+                CloseSession(reportroot.job.jobsession)
                 reportroot.job.status = JOB_STATUS[4][0]
                 reportroot.job.save()
             except ObjectDoesNotExist:
@@ -111,7 +108,7 @@ def close_old_active_sessions(minutes):
     minutes_ago = current_date() - timedelta(minutes=float(minutes))
     for jobsession in JobSession.objects.filter(
             last_request__lt=minutes_ago, status=True):
-        CloseSession(jobsession.pk)
+        CloseSession(jobsession)
 
 
 # Case 3.1.1.(2)
@@ -151,14 +148,14 @@ class InitSession(object):
             operator = self.jobsession.job.reportroot.user
         except ObjectDoesNotExist:
             self.error = "Job is not solving"
-            CloseSession(self.jobsession.pk)
+            CloseSession(self.jobsession)
             return
         for sch_pk in json.loads(self.jobsession.job.reportroot.schedulers):
             try:
                 scheduler = Scheduler.objects.get(pk=int(sch_pk))
             except ObjectDoesNotExist:
                 self.error = "One of the schedulers doesn't exist"
-                CloseSession(self.jobsession.pk)
+                CloseSession(self.jobsession)
                 return
             if scheduler.need_auth:
                 try:
@@ -174,7 +171,7 @@ class InitSession(object):
             self.__create_scheduler_session(scheduler, scheduler_priority)
             scheduler_priority += 1
         if not has_available:
-            self.error = CloseSession(self.jobsession.pk).error
+            self.error = CloseSession(self.jobsession).error
             if self.error is None:
                 self.error = 'Session was closed due to ' \
                              'there are no available schedulers'
@@ -221,30 +218,20 @@ class RemoveJobSession(object):
 
 # Case 3.1.1.(8)
 class CloseSession(object):
-    def __init__(self, session_id):
+    def __init__(self, jobsession):
         self.error = None
-        try:
-            self.session_id = int(session_id)
-        except ValueError:
-            self.error = "Wrong argument: session id"
-            return
-        self.jobsession = self.__close_session()
+        self.jobsession = jobsession
+        self.__close_session()
         if self.error is None:
             self.__finish_tasks()
 
     def __close_session(self):
-        try:
-            jobsession = JobSession.objects.get(pk=self.session_id)
-        except ObjectDoesNotExist:
-            self.error = 'Session was not found'
-            return None
-        if jobsession.finish_date is not None:
+        if self.jobsession.finish_date is not None:
             self.error = 'Session is not active'
             return None
-        jobsession.finish_date = current_date()
-        jobsession.status = False
-        jobsession.save()
-        return jobsession
+        self.jobsession.finish_date = current_date()
+        self.jobsession.status = False
+        self.jobsession.save()
 
     def __finish_tasks(self):
         for task in self.jobsession.task_set.filter(
@@ -259,7 +246,7 @@ class CloseSession(object):
 
 # Case 3.1.1.(3).
 class CreateTask(object):
-    def __init__(self, session_id, description, archive, priority):
+    def __init__(self, session, description, archive, priority):
         self.error = None
         if priority not in list(x[0] for x in PRIORITY):
             self.error = "Wrong priority"
@@ -270,13 +257,9 @@ class CreateTask(object):
             print(e)
             self.error = 'Wrong description format'
             return
-        try:
-            self.jobsession = JobSession.objects.get(pk=int(session_id))
-            if not self.jobsession.status:
-                self.error = 'Session is not active'
-                return
-        except ObjectDoesNotExist:
-            self.error = 'Session was not found'
+        self.jobsession = session
+        if not self.jobsession.status:
+            self.error = 'Session is not active'
             return
         self.jobsession.save()
         if compare_priority(self.jobsession.priority, priority):
@@ -312,15 +295,11 @@ class CreateTask(object):
 
 # Case 3.1.1.(4)
 class GetTaskStatus(object):
-    def __init__(self, task_id):
+    def __init__(self, task):
         self.error = None
-        try:
-            self.task = Task.objects.get(pk=int(task_id))
-            if not self.task.job_session.status:
-                self.error = 'Session is not active'
-                return
-        except ObjectDoesNotExist:
-            self.error = 'Task was not found'
+        self.task = task
+        if not self.task.job_session.status:
+            self.error = 'Session is not active'
             return
         self.task.job_session.save()
         self.status = self.__check_task()
@@ -334,15 +313,11 @@ class GetTaskStatus(object):
 
 # Case 3.1.1. (6)
 class RemoveTask(object):
-    def __init__(self, task_id):
+    def __init__(self, task):
         self.error = None
-        try:
-            self.task = Task.objects.get(pk=int(task_id))
-            if not self.task.job_session.status:
-                self.error = _('Session is not active')
-                return
-        except ObjectDoesNotExist:
-            self.error = _('Task was not found')
+        self.task = task
+        if not self.task.job_session.status:
+            self.error = 'Session is not active'
             return
         self.task.job_session.save()
         if self.task.status in [TASK_STATUS[0][0], TASK_STATUS[1][0]]:
@@ -390,15 +365,11 @@ class GetTaskData(object):
 
 # Case 3.1.1 (7)
 class StopDecision(object):
-    def __init__(self, task_id):
+    def __init__(self, task):
         self.error = None
-        try:
-            self.task = Task.objects.get(pk=int(task_id))
-            if not self.task.job_session.status:
-                self.error = _('Session is not active')
-                return
-        except ObjectDoesNotExist:
-            self.error = _('Task was not found')
+        self.task = task
+        if not self.task.job_session.status:
+            self.error = _('Session is not active')
             return
         self.task.job_session.save()
         if self.task.status in [TASK_STATUS[0][0], TASK_STATUS[1][0]]:
@@ -635,15 +606,11 @@ class SaveSolution(object):
 
 # Case 3.1.1 (5)
 class GetSolution(object):
-    def __init__(self, task_id):
+    def __init__(self, task):
         self.error = None
-        try:
-            self.task = Task.objects.get(pk=int(task_id))
-            if not self.task.job_session.status:
-                self.error = 'Session is not active'
-                return
-        except ObjectDoesNotExist:
-            self.error = 'Task was not found'
+        self.task = task
+        if not self.task.job_session.status:
+            self.error = 'Session is not active'
             return
         self.task.job_session.save()
         if self.task.status != TASK_STATUS[4][0]:

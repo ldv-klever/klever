@@ -57,8 +57,6 @@ def init_session(request):
             'error': 'Specified identifier "{0}" is not unique'
             .format(request.POST['job id'])})
 
-    if job.status != '1':
-        return JsonResponse({'error': 'The specified job is not solving yet'})
     if not JobAccess(request.user, job).service_access():
         return JsonResponse({
             'error': 'User "{0}" has not access to job "{1}"'.format(
@@ -80,7 +78,19 @@ def close_session(request):
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'session id' not in request.POST:
         return JsonResponse({'error': 'Session identifier is not specified'})
-    result = CloseSession(session_id=request.POST.get('session id', '0'))
+    try:
+        jobsession = JobSession.objects.get(pk=int(request.POST['session id']))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Session was not found'})
+    except ValueError:
+        return JsonResponse({'error': 'Session id is not integer'})
+    if not JobAccess(request.user, jobsession.job).service_access():
+        return JsonResponse({
+            'error': 'User "{0}" has not access to job "{1}"'.format(
+                request.user, jobsession.job.identifier
+            )
+        })
+    result = CloseSession(jobsession)
     if result.error is not None:
         return JsonResponse({'error': result.error})
     return JsonResponse({})
@@ -219,8 +229,6 @@ def get_tasks(request):
 
 
 def clear_sessions(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     try:
@@ -232,8 +240,6 @@ def clear_sessions(request):
 
 
 def check_schedulers(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     try:
@@ -249,8 +255,6 @@ def check_schedulers(request):
 
 
 def close_sessions(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     try:
@@ -272,6 +276,16 @@ def create_task(request):
         return JsonResponse({'error': 'Task priority is not specified'})
     if 'description' not in request.POST:
         return JsonResponse({'error': 'Description is not specified'})
+    try:
+        jobsession = JobSession.objects.get(pk=int(request.POST['session id']))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Session was not found'})
+    if not JobAccess(request.user, jobsession.job).service_access():
+        return JsonResponse({
+            'error': 'User "{0}" has not access to job "{1}"'.format(
+                request.user, jobsession.job.identifier
+            )
+        })
     archive = None
     for f in request.FILES.getlist('file'):
         archive = f
@@ -279,7 +293,7 @@ def create_task(request):
         return JsonResponse({
             'error': 'The task archive was not got'
         })
-    result = CreateTask(request.POST['session id'], request.POST['description'],
+    result = CreateTask(jobsession, request.POST['description'],
                         archive, request.POST['priority'])
     if result.error is not None:
         return JsonResponse({'error': result.error})
@@ -294,10 +308,18 @@ def get_task_status(request):
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
     try:
-        task_id = int(request.POST['task id'])
+        task = Task.objects.get(pk=int(request.POST['task id']))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Task was not found'})
     except ValueError:
-        return JsonResponse({'error': 'Wrong task identifier'})
-    result = GetTaskStatus(task_id)
+        return JsonResponse({'error': 'Task identifier is not integer'})
+    if not JobAccess(request.user, task.job_session.job).service_access():
+        return JsonResponse({
+            'error': 'User "{0}" has not access to job "{1}"'.format(
+                request.user, task.job_session.job.identifier
+            )
+        })
+    result = GetTaskStatus(task)
     if result.error is not None:
         return JsonResponse({'error': result.error})
     return JsonResponse({'status': result.status})
@@ -308,7 +330,19 @@ def download_solution(request, task_id):
         return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'GET':
         return JsonResponse({'error': 'Just GET requests are supported'})
-    result = GetSolution(task_id)
+    try:
+        task = Task.objects.get(pk=int(task_id))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Task was not found'})
+
+    if not JobAccess(request.user, task.job_session.job).service_access():
+        return JsonResponse({
+            'error': 'User "{0}" has not access to job "{1}"'.format(
+                request.user, task.job_session.job.identifier
+            )
+        })
+
+    result = GetSolution(task)
     if result.error is not None:
         return JsonResponse({'error': result.error})
 
@@ -327,11 +361,20 @@ def remove_task(request):
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
+
     try:
-        task_id = int(request.POST['task id'])
+        task = Task.objects.get(pk=int(request.POST['task id']))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Task was not found'})
     except ValueError:
-        return JsonResponse({'error': 'Wrong task identifier'})
-    result = RemoveTask(task_id)
+        return JsonResponse({'error': 'Task identifier is not integer'})
+    if not JobAccess(request.user, task.job_session.job).service_access():
+        return JsonResponse({
+            'error': 'User "{0}" has not access to job "{1}"'.format(
+                request.user, task.job_session.job.identifier
+            )
+        })
+    result = RemoveTask(task)
     if result.error is not None:
         return JsonResponse({'error': result.error})
     return JsonResponse({})
@@ -344,11 +387,21 @@ def stop_task(request):
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
+
     try:
-        task_id = int(request.POST['task id'])
+        task = Task.objects.get(pk=int(request.POST['task id']))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Task was not found'})
     except ValueError:
-        return JsonResponse({'error': 'Wrong task identifier'})
-    result = StopDecision(task_id)
+        return JsonResponse({'error': 'Task identifier is not integer'})
+    if not JobAccess(request.user, task.job_session.job).service_access():
+        return JsonResponse({
+            'error': 'User "{0}" has not access to job "{1}"'.format(
+                request.user, task.job_session.job.identifier
+            )
+        })
+
+    result = StopDecision(task)
     if result.error is not None:
         return JsonResponse({'error': result.error})
     return JsonResponse({})
