@@ -782,7 +782,7 @@ class UserJobs(object):
             else:
                 progress = int(100 * tasks_finished/tasks_total)
             data_str = {
-                'jobname': root.job.name,
+                'job': root.job,
                 'priority': jobsession.get_priority_display(),
                 'start_date': jobsession.start_date,
                 'finish_date': '-',
