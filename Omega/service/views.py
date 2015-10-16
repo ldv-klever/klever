@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from jobs.utils import JobAccess
 from service.utils import *
+from django.utils.translation import ugettext as _, activate
 
 
 # TODO: check if user is operator where it needs
@@ -114,15 +115,17 @@ def add_scheduler(request):
 
 @login_required
 def get_scheduler_login_data(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
+        return JsonResponse({'error': _('Unknown error')})
     try:
         scheduler = Scheduler.objects.get(pk=int(request.POST.get('sch_id', 0)))
     except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Scheduler was not found'})
+        return JsonResponse({'error': _('Scheduler was not found')})
     if not scheduler.need_auth:
         return JsonResponse({
-            'error': 'This scheduler does not need authentification'
+            'error': _('This scheduler does not need authentification')
         })
     if len(scheduler.scheduleruser_set.filter(user=request.user)) > 0:
         login_data = scheduler.scheduleruser_set.filter(user=request.user)[0]
@@ -136,23 +139,25 @@ def get_scheduler_login_data(request):
 
 @login_required
 def add_scheduler_login_data(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
+        return JsonResponse({'error': _('Unknown error')})
     new_login = request.POST.get('login', '')
     new_password = request.POST.get('password', '')
     max_priority = request.POST.get('max_priority', None)
     if len(new_login) == 0 or len(new_password) == 0 \
             or all(x[0] != max_priority for x in PRIORITY):
         return JsonResponse({
-            'error': 'Login, password or max priority was not got'
+            'error': _('Login, password or max priority was not got')
         })
     try:
         scheduler = Scheduler.objects.get(pk=int(request.POST.get('sch_id', 0)))
     except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Scheduler was not found'})
+        return JsonResponse({'error': _('Scheduler was not found')})
     if not scheduler.need_auth:
         return JsonResponse({
-            'error': 'This scheduler does not need authentification'
+            'error': _('This scheduler does not need authentification')
         })
     if len(scheduler.scheduleruser_set.filter(user=request.user)) > 0:
         login_data = scheduler.scheduleruser_set.filter(user=request.user)[0]
@@ -176,15 +181,17 @@ def add_scheduler_login_data(request):
 
 @login_required
 def remove_sch_logindata(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
+        return JsonResponse({'error': _('Unknown error')})
     try:
         scheduler = Scheduler.objects.get(pk=int(request.POST.get('sch_id', 0)))
     except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Scheduler was not found'})
+        return JsonResponse({'error': _('Scheduler was not found')})
     if not scheduler.need_auth:
         return JsonResponse({
-            'error': 'This scheduler does not need authentification'
+            'error': _('This scheduler does not need authentification')
         })
     scheduler.scheduleruser_set.filter(user=request.user).delete()
     return JsonResponse({})
@@ -435,6 +442,58 @@ def update_user_jobs(request, user_id):
         return JsonResponse({'error': "Unknown error"})
     return render(request, 'service/jobs_table.html',
                   {'data': UserJobs(user).data})
+
+
+@login_required
+def scheduler_table(request, scheduler_id):
+    try:
+        scheduler = Scheduler.objects.get(pk=int(scheduler_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[905]))
+    except Exception as e:
+        print(e)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    return render(request, 'service/scheduler.html', {
+        'data': SchedulerTable(scheduler)
+    })
+
+
+@login_required
+def sessions_page(request):
+    activate(request.user.extended.language)
+    return render(request, 'service/sessions.html', {
+        'data': SessionsTable().data
+    })
+
+
+@login_required
+def scheduler_sessions(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': _('Unknown error')})
+    try:
+        jobsession = JobSession.objects.get(
+            pk=int(request.POST.get('session_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job session was not found')})
+    return render(request, 'service/schedulerSessions.html', {
+        'data': SchedulerSessionsTable(jobsession)
+    })
+
+
+@login_required
+def scheduler_job_sessions(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': _('Unknown error')})
+    try:
+        scheduler = Scheduler.objects.get(
+            pk=int(request.POST.get('scheduler_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job session was not found')})
+    return render(request, 'service/schedulerJobSessions.html', {
+        'data': SchedulerJobSessionsTable(scheduler)
+    })
 
 
 @login_required

@@ -1,0 +1,56 @@
+{% extends 'service/base.html' %}
+{% load i18n %}
+{% load tz %}
+{% block title %}{% trans 'Sessions' %}{% endblock %}
+
+{% block body_block %}
+    {% timezone user.extended.timezone %}
+        <h1 class="header">{% trans 'Sessions' %}</h1>
+        <div style="width:100%;max-width: 100%; overflow-x: auto;max-height: 350px;overflow-y: auto">
+            <table class="ui celled compact blue selectable table">
+                <thead>
+                    <tr>
+                        <th>{% trans 'Operator' %}</th>
+                        <th>{% trans 'Job' %}</th>
+                        <th class="collapsing">{% trans 'Job scheduler' %}</th>
+                        <th>{% trans 'Priority' %}</th>
+                        <th class="collapsing">{% trans 'Start date' %}</th>
+                        <th class="collapsing">{% trans 'Finish date' %}</th>
+                        <th class="collapsing">{% trans 'Solution wall time' %}</th>
+                        <th>{% trans 'Finished tasks' %}</th>
+                        <th>{% trans 'Unknown tasks' %}</th>
+                        <th>{% trans 'Error tasks' %}</th>
+                        <th>{% trans 'Total tasks' %}</th>
+                        <th class="collapsing four wide column">{% trans 'Progress' %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                        <tr>
+                            <td class="collapsing"><a href="{% url 'users:show_profile' row.session.job.reportroot.user_id %}">{{ row.session.job.reportroot.user.extended.last_name }} {{ row.session.job.reportroot.user.extended.first_name }}</a></td>
+                            <td class="collapsing"><a class="get-schedulers-table fake-link" href="#">{{ row.session.job.name }}</a><span hidden>{{ row.session.pk }}</span></td>
+                            <td class="collapsing"><a href="{% url 'service:scheduler' row.session.job.reportroot.job_scheduler_id %}">{{ row.session.job.reportroot.job_scheduler.name }}</a></td>
+                            <td class="collapsing">{{ row.session.get_priority_display }}</td>
+                            <td class="collapsing">{{ row.session.start_date }}</td>
+                            <td class="collapsing">{{ row.finish_date }}</td>
+                            <td class="collapsing">{{ row.wall_time }}</td>
+                            <td>{{ row.session.statistic.tasks_finished }}</td>
+                            <td>{{ row.session.statistic.tasks_lost }}</td>
+                            <td>{{ row.session.statistic.tasks_error }}</td>
+                            <td>{{ row.session.statistic.tasks_total }}</td>
+                            <td class="four wide column">
+                                <div style="min-width: 200px;" class="ui indicating progress {% if row.progress != 100 %}active{% endif %}" data-percent="{{ row.progress }}">
+                                    <div class="bar" style="transition-duration: 300ms; width: {{ row.progress }}%;">
+                                        <div class="progress">{{ row.progress_text }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endtimezone %}
+    <div id="schedulers_table"></div>
+    <div id="scheduler_jobs_table"></div>
+{% endblock %}

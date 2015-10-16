@@ -1,10 +1,7 @@
-{% extends 'base.html' %}
+{% extends 'service/base.html' %}
 {% load i18n %}
 
 {% block title %}{% trans 'Jobs' %}{% endblock %}
-{% block head_block %}
-    <script src="/static/service/js/service.js"></script>
-{% endblock %}
 
 {% block body_block %}
     <span class="ui header">{% trans 'Operator' %}: <a href="{% url 'users:show_profile' target.pk %}">{{ target.extended.last_name }} {{ target.extended.first_name }}</a></span>

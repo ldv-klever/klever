@@ -24,7 +24,12 @@ urlpatterns = [
     url(r'^ajax/get_scheduler_login_data/$', views.get_scheduler_login_data),
     url(r'^ajax/add_scheduler_login_data/$', views.add_scheduler_login_data),
     url(r'^ajax/remove_sch_logindata/$', views.remove_sch_logindata),
+    url(r'^ajax/update_jobs/(?P<user_id>[0-9]+)$', views.update_user_jobs),
+    url(r'^ajax/scheduler_sessions/$', views.scheduler_sessions),
+    url(r'^ajax/scheduler_job_sessions/$', views.scheduler_job_sessions),
 
     url(r'^jobs/(?P<user_id>[0-9]+)$', views.user_jobs, name='jobs'),
-    url(r'^ajax/update_jobs/(?P<user_id>[0-9]+)$', views.update_user_jobs)
+    url(r'^scheduler/(?P<scheduler_id>[0-9]+)$', views.scheduler_table,
+        name='scheduler'),
+    url(r'^sessions/$', views.sessions_page, name='sessions'),
 ]

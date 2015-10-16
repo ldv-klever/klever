@@ -739,7 +739,7 @@ class SetNodes(object):
         for config in json.loads(nodes_data):
             nodes_conf, crtd = NodesConfiguration.objects.get_or_create(
                 scheduler=self.scheduler, cpu=config['CPU model'],
-                kernels=config['CPUs'], ram=config['RAM'],
+                cores=config['CPUs'], ram=config['RAM'],
                 memory=config['disk'])
             nodes_conf.node_set.all().delete()
             for node_data in config['nodes']:
@@ -752,7 +752,7 @@ class SetNodes(object):
         Node.objects.create(
             config=conf, hostname=data['address'], status=data['status'],
             ram=data['workload']['RAM reserved'],
-            kernels=data['workload']['CPUs reserved'],
+            cores=data['workload']['CPUs reserved'],
             memory=data['workload']['disk space reserved'],
             jobs=data['workload']['jobs solving'],
             tasks=data['workload']['tasks solving'],
@@ -774,10 +774,13 @@ class UserJobs(object):
             except ObjectDoesNotExist:
                 continue
             tasks_finished = jobsession.statistic.tasks_error + \
-                             jobsession.statistic.tasks_lost + \
-                             jobsession.statistic.tasks_finished
+                jobsession.statistic.tasks_lost + \
+                jobsession.statistic.tasks_finished
             tasks_total = jobsession.statistic.tasks_total
-            progress = int(100 * tasks_finished/tasks_total)
+            if tasks_total == 0:
+                progress = 100
+            else:
+                progress = int(100 * tasks_finished/tasks_total)
             data_str = {
                 'jobname': root.job.name,
                 'priority': jobsession.get_priority_display(),
@@ -793,4 +796,142 @@ class UserJobs(object):
                 data_str['wall_time'] = (jobsession.finish_date -
                                          jobsession.start_date).seconds
             data.append(data_str)
+        return data
+
+
+class SchedulerTable(object):
+    def __init__(self, scheduler):
+        self.scheduler = scheduler
+        self.scheduler_data = self.__scheduler_data()
+        self.tools = VerificationTool.objects.all()
+        self.nodes = Node.objects.filter(config__scheduler=self.scheduler)
+
+    def __scheduler_data(self):
+        ram_total = 0
+        ram_occupied = 0
+        memory_total = 0
+        memory_occupied = 0
+        cores_total = 0
+        cores_occupied = 0
+        cores = []
+        for nodes_conf in self.scheduler.nodesconfiguration_set.all():
+            conf_cores_total = 0
+            conf_cores_occupied = 0
+            for node in nodes_conf.node_set.all():
+                ram_total += nodes_conf.ram
+                ram_occupied += node.ram
+                memory_total += nodes_conf.memory
+                memory_occupied += node.memory
+                cores_total += nodes_conf.cores
+                cores_occupied += node.cores
+                conf_cores_total += nodes_conf.cores
+                conf_cores_occupied += node.cores
+            cores.append({
+                'name': nodes_conf.cpu,
+                'value': "%s/%s" % (conf_cores_occupied, conf_cores_total)
+            })
+        data = {
+            'ram': "%s/%s" % (ram_occupied, ram_total),
+            'memory': "%s/%s" % (memory_occupied, memory_total),
+            'cores_total': "%s/%s" % (cores_occupied, cores_total),
+            'cores': cores,
+            'rowspan': 1 + len(cores)
+        }
+        return data
+
+
+class SessionsTable(object):
+    def __init__(self):
+        self.data = self.__get_data()
+
+    def __get_data(self):
+        self.ccc = 0
+        data = []
+        for session in JobSession.objects.all():
+            rowdata = {
+                'session': session,
+                'finish_date': '-',
+                'wall_time': '-'
+            }
+            if session.finish_date is not None:
+                rowdata['finish_date'] = session.finish_date
+                rowdata['wall_time'] = \
+                    (session.finish_date - session.start_date).seconds + \
+                    ' ' + _('s')
+            tasks_finished = session.statistic.tasks_error + \
+                session.statistic.tasks_lost + \
+                session.statistic.tasks_finished
+            tasks_total = session.statistic.tasks_total
+            if tasks_total == 0:
+                progress = 100
+            else:
+                progress = int(100 * tasks_finished/tasks_total)
+            rowdata['progress'] = progress
+            rowdata['progress_text'] = \
+                '%s%% (%s/%s)' % (progress, tasks_finished, tasks_total)
+            data.append(rowdata)
+        return data
+
+
+
+class SchedulerSessionsTable(object):
+    def __init__(self, jobsession):
+        self.jobsession = jobsession
+        self.data = self.__get_data()
+
+    def __get_data(self):
+        data = []
+        for session in self.jobsession.schedulersession_set.all():
+            rowdata = {
+                'session': session
+            }
+            tasks_finished = session.statistic.tasks_error + \
+                session.statistic.tasks_lost + \
+                session.statistic.tasks_finished
+            tasks_total = session.statistic.tasks_total
+            if tasks_total == 0:
+                progress = 100
+            else:
+                progress = int(100 * tasks_finished/tasks_total)
+            rowdata['progress'] = progress
+            rowdata['progress_text'] = \
+                '%s%% (%s/%s)' % (progress, tasks_finished, tasks_total)
+            data.append(rowdata)
+        return data
+
+
+class SchedulerJobSessionsTable(object):
+    def __init__(self, scheduler):
+        self.scheduler = scheduler
+        self.data = self.__get_data()
+
+    def __get_data(self):
+        data = []
+        jobsesions = []
+        for sch_session in self.scheduler.schedulersession_set.all():
+            if sch_session.session not in jobsesions:
+                jobsesions.append(sch_session.session)
+        for session in jobsesions:
+            rowdata = {
+                'session': session,
+                'finish_date': '-',
+                'wall_time': '-'
+            }
+            if session.finish_date is not None:
+                rowdata['finish_date'] = session.finish_date
+                rowdata['wall_time'] = \
+                    (session.finish_date - session.start_date).seconds + \
+                    ' ' + _('s')
+            tasks_finished = session.statistic.tasks_error + \
+                session.statistic.tasks_lost + \
+                session.statistic.tasks_finished
+            tasks_total = session.statistic.tasks_total
+            if tasks_total == 0:
+                progress = 100
+            else:
+                progress = int(100 * tasks_finished/tasks_total)
+            rowdata['progress'] = progress
+            rowdata['progress_text'] = \
+                '%s%% (%s/%s)' % (progress, tasks_finished, tasks_total)
+            data.append(rowdata)
         return data

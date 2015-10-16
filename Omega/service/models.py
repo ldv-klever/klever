@@ -66,7 +66,7 @@ class NodesConfiguration(models.Model):
     cpu = models.CharField(max_length=256)
     ram = models.PositiveIntegerField()
     memory = models.PositiveIntegerField()
-    kernels = models.PositiveSmallIntegerField()
+    cores = models.PositiveSmallIntegerField()
 
     class Meta:
         db_table = 'service_nodes_configuration'
@@ -79,7 +79,7 @@ class Node(models.Model):
     tasks = models.PositiveSmallIntegerField()  # number of solving
     jobs = models.PositiveSmallIntegerField()  # number of solving
     ram = models.PositiveIntegerField()  # in use
-    kernels = models.PositiveSmallIntegerField()  # in use
+    cores = models.PositiveSmallIntegerField()  # in use
     memory = models.FloatField()  # in use
     for_tasks = models.BooleanField()  # availability
     for_jobs = models.BooleanField()  # availability

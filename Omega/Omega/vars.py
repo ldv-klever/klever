@@ -17,7 +17,8 @@ ERRORS = {
     650: _("Saving mark failed"),
     704: _("Tag was not found"),
     804: _("Problem was not found"),
-    904: _("User was not found")
+    904: _("User was not found"),
+    905: _("Scheduler was not found")
 }
 
 JOB_CLASSES = (
