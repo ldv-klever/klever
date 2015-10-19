@@ -11,7 +11,6 @@ from service.utils import *
 from django.utils.translation import ugettext as _, activate
 
 
-# TODO: check if user is operator where it needs
 def update_tools(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -471,6 +470,7 @@ def update_nodes(request):
 
 @login_required
 def user_jobs(request, user_id):
+    activate(request.user.extended.language)
     try:
         user = User.objects.get(pk=int(user_id))
     except ObjectDoesNotExist:
@@ -486,6 +486,7 @@ def user_jobs(request, user_id):
 
 @login_required
 def update_user_jobs(request, user_id):
+    activate(request.user.extended.language)
     try:
         user = User.objects.get(pk=int(user_id))
     except ObjectDoesNotExist:
@@ -499,6 +500,7 @@ def update_user_jobs(request, user_id):
 
 @login_required
 def scheduler_table(request, scheduler_id):
+    activate(request.user.extended.language)
     try:
         scheduler = Scheduler.objects.get(pk=int(scheduler_id))
     except ObjectDoesNotExist:

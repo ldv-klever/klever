@@ -1,5 +1,4 @@
 import os
-import json
 import pytz
 import mimetypes
 from io import BytesIO
@@ -18,8 +17,6 @@ from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
 from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
 from jobs.utils import *
-from reports.models import ReportRoot
-from service.utils import RemoveJobSession
 
 
 @login_required
@@ -319,6 +316,8 @@ def edit_job(request):
 
 @login_required
 def remove_versions(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
     job_id = int(request.POST.get('job_id', 0))
@@ -347,6 +346,8 @@ def remove_versions(request):
 
 @login_required
 def get_job_versions(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'message': _('Unknown error')})
     job_id = int(request.POST.get('job_id', 0))
@@ -407,6 +408,8 @@ def copy_new_job(request):
 
 @login_required
 def save_job(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
@@ -538,6 +541,7 @@ def remove_jobs(request):
 @login_required
 def showjobdata(request):
     activate(request.user.extended.language)
+
     if request.method != 'POST':
         return HttpResponse('')
     try:
@@ -554,6 +558,8 @@ def showjobdata(request):
 
 @login_required
 def upload_file(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return HttpResponse('')
     form = FileForm(request.POST, request.FILES)
@@ -641,6 +647,8 @@ def download_lock(request):
 
 @login_required
 def check_access(request):
+    activate(request.user.extended.language)
+
     if request.method == 'POST':
         jobs = json.loads(request.POST.get('jobs', '[]'))
         for job_id in jobs:
@@ -664,6 +672,8 @@ def check_access(request):
 
 @login_required
 def upload_job(request, parent_id=None):
+    activate(request.user.extended.language)
+
     if len(parent_id) == 0:
         return JsonResponse({
             'status': False,
@@ -753,6 +763,8 @@ def decide_job(request):
 
 @login_required
 def getfilecontent(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'message': _("Unknown error")})
     try:
@@ -768,6 +780,8 @@ def getfilecontent(request):
 
 @login_required
 def stop_decision(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'error': _("Unknown error")})
     if request.user.extended.role != USER_ROLES[2][0]:
@@ -791,6 +805,8 @@ def stop_decision(request):
 
 @login_required
 def run_decision(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'status': False, 'error': _('Unknown error')})
     try:
@@ -836,10 +852,6 @@ def run_decision(request):
         return JsonResponse({
             'status': False, 'error': _('There are no available schedulers')
         })
-    ReportRoot.objects.create(user=request.user, job=job,
-                              schedulers=json.dumps(schedulers),
-                              job_scheduler=job_scheduler)
-    RemoveJobSession(job)
-    job.status = JOB_STATUS[1][0]
-    job.save()
+    start_job_decision(request.user, job, schedulers=json.dumps(schedulers),
+                       job_scheduler=job_scheduler)
     return JsonResponse({'status': True})

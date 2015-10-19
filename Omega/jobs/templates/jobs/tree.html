@@ -132,7 +132,7 @@
                                         <div class="fourteen wide column">
                                             <select class="ui dropdown" id="filter_value__change_author">
                                                 {% for u in users %}
-                                                    <option value="{{ u.pk }}"{% if u.pk == fil.value %} selected{% endif %}>{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
+                                                    <option value="{{ u.pk }}"{% if u.pk|slugify == fil.value %} selected{% endif %}>{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
                                                 {% endfor %}
                                             </select>
                                         </div>

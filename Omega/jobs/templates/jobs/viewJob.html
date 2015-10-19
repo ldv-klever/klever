@@ -11,7 +11,7 @@
 {% block body_block %}
     {% if job %}
     <div class="ui grid">
-        <div class="eight wide column">
+        <div id="view_job_1st_part" class="eight wide column">
             <div class="ui fluid mini buttons top attached">
                 {% if can_create %}<button id="copy_job_btn" class="ui violet button">{% trans 'Make copy' %}</button>{% endif %}
                 <button id="load_job_btn" class="ui olive button">{% trans 'Download' %}</button>

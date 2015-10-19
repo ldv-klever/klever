@@ -363,6 +363,8 @@ def delete_mark(request, mark_type, mark_id):
 
 @login_required
 def remove_versions(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
     mark_id = int(request.POST.get('mark_id', 0))
@@ -402,6 +404,8 @@ def remove_versions(request):
 
 @login_required
 def get_mark_versions(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'message': _('Unknown error')})
     mark_id = int(request.POST.get('mark_id', 0))

@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
 from Omega.vars import JOB_CLASSES, FORMAT
 from jobs.models import Job, File, JOBFILE_DIR
-from jobs.utils import create_job, update_job
+from jobs.utils import create_job, update_job, start_job_decision
 from reports.models import ReportComponent, ReportUnsafe, ReportSafe,\
     ReportUnknown
 from reports.UploadReport import UploadReport
@@ -466,6 +466,7 @@ class UploadJob(object):
                 job.delete()
                 return updated_job
         self.job = job
+        start_job_decision(self.user, self.job)
         if not self.__upload_reports(json.loads(jobdata['reports'])):
             self.job.delete()
             self.job = None

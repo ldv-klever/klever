@@ -198,6 +198,7 @@ def psi_signout(request):
 
 @login_required
 def save_notifications(request):
+    activate(request.user.extended.language)
     if request.method == 'POST':
         notifications = request.POST.get('notifications', '[]')
         self_ntf = json.loads(request.POST.get('self_ntf', False))

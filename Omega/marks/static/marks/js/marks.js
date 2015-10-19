@@ -269,6 +269,40 @@ function activate_tags() {
         },
         message: {
             addResult: $('#tags__add_tag').text() + ' <b>{term}</b>'
+        },
+        onChange: function(value) {
+            var last_added_tag = value.slice(-1)[0];
+            if (last_added_tag && last_added_tag.length > 15) {
+                value.pop();
+                var available_tags = [];
+                $('#tag_list').children('option').each(function () {
+                    if ($(this).val() != last_added_tag && value.indexOf($(this).val()) < 0 && $(this).val()) {
+                        available_tags.push($(this).val());
+                    }
+                });
+                $('#tag_list').parent().remove();
+                $('label[for=tag_list]').after($('<select>', {
+                    class: 'ui search selection dropdown fluid',
+                    multiple: true,
+                    id: 'tag_list'
+                }));
+                $.each(value, function (i, v) {
+                    $('#tag_list').append($('<option>', {
+                        value: v,
+                        text: v,
+                        selected: true
+                    }));
+                });
+                $.each(available_tags, function (i, v) {
+                    $('#tag_list').append($('<option>', {
+                        value: v,
+                        text: v
+                    }));
+                });
+                activate_tags();
+                err_notify($('#error__tag_is_long').text());
+            }
+            console.log($('#tag_list').val());
         }
     });
     return false;

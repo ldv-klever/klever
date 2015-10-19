@@ -3,7 +3,6 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
-from jobs.models import Job
 from marks.tables import ReportMarkTable
 from marks.models import UnsafeTag, SafeTag
 from reports.UploadReport import UploadReport
@@ -156,14 +155,12 @@ def report_list_by_verdict(request, report_id, ltype, verdict):
 
 @login_required
 def report_unknowns(request, report_id, component_id):
-    activate(request.user.extended.language)
     return report_list(request, report_id, 'unknowns',
                        component_id=component_id)
 
 
 @login_required
 def report_unknowns_by_problem(request, report_id, component_id, problem_id):
-    activate(request.user.extended.language)
     problem_id = int(problem_id)
     if problem_id == 0:
         problem = 0

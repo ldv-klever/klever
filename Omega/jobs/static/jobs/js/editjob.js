@@ -667,11 +667,19 @@ function set_actions_for_file_form() {
         if (selected) {
             var sel_type = selected[0],
                 sel_id = selected[1],
-                files_table = $('#file_tree_table');
+                files_table = $('#file_tree_table'),
+                file_title_span = $('#file_title__1__' + sel_id);
             if (sel_type != 1) {
                 err_notify($('#error__cant_replace_folder').text());
                 return;
             }
+            if (file_title_span.children('a').length > 0) {
+                $('#replaced_file_name').text(file_title_span.children('a').first().text());
+            }
+            else {
+                $('#replaced_file_name').text(file_title_span.text());
+            }
+
             var file_input = $('#replace_file_input');
             $('#replace_file_name').val('');
             file_input.replaceWith(file_input.clone(true));
@@ -780,6 +788,7 @@ function set_actions_for_versions_delete() {
 $(document).ready(function () {
     $('.for_popup').popup();
     $('#job_scheduler').dropdown();
+    $('#view_job_1st_part').find('.ui.dropdown').dropdown();
     $('#remove_job_popup').modal({transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_job_popup', 'show');
 

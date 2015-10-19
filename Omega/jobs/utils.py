@@ -1,3 +1,4 @@
+import json
 import hashlib
 from datetime import datetime
 from django.contrib.auth.models import User
@@ -8,6 +9,8 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS, SCHEDULER_STATUS
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole, Scheduler
 from users.notifications import Notify
+from reports.models import ReportRoot
+from service.utils import RemoveJobSession
 
 
 # List of available types of 'safe' column class.
@@ -560,3 +563,19 @@ def get_available_schedulers(user):
     if has_for_job:
         return schedulers
     return []
+
+
+def start_job_decision(user, job, schedulers=None, job_scheduler=None):
+    args = {
+        'user': user,
+        'job': job
+    }
+    if schedulers is not None:
+        args['schedulers'] = json.dumps(schedulers)
+    if job_scheduler is not None:
+        args['job_scheduler'] = job_scheduler
+
+    ReportRoot.objects.create(**args)
+    RemoveJobSession(job)
+    job.status = JOB_STATUS[1][0]
+    job.save()
