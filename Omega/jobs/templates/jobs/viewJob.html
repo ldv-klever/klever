@@ -256,7 +256,7 @@
                 </div>
             </div>
             <div id="decide_job_order_popup" class="ui modal">
-                <div class="header">{% trans 'Scheduler order' %}</div>
+                <div class="header">{% trans 'Scheduler order and priority' %}</div>
                 <div class="content">
                     <h4 class="header">{% trans "Choose order of schedulers (the first one in the list will have the maximum priority)" %}</h4>
                     <div class="ui grid">
@@ -270,6 +270,8 @@
                                 <button id="move_schedulers_down" type="button" class="ui button"><i class="arrow down icon"></i></button>
                             </div>
                         </div>
+                        <div class="two wide column"></div>
+                        <div class="seven wide column" id="div_select_priority"></div>
                     </div>
                 </div>
                 <div class="actions">

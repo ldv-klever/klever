@@ -9,6 +9,7 @@ from django.core.files import File as Newfile
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
+from service.utils import CloseSession
 
 
 class UploadReport(object):
@@ -23,24 +24,29 @@ class UploadReport(object):
         self.error = self.__check_data(data)
         if self.error is not None:
             print(self.error)
-            self.job.status = '5'
+            self.__set_status('5')
             return
         self.parent = None
         self.error = self.__get_parent()
         if self.error is not None:
             print(self.error)
-            self.job.status = '5'
+            self.__set_status('5')
             return
         self.root = None
         self.__get_root_report()
         if self.error is not None:
             print(self.error)
-            self.job.status = '5'
+            self.__set_status('5')
             return
         self.error = self.__upload()
         if self.error is not None:
             print(self.error)
-            self.job.status = '5'
+            self.__set_status('5')
+
+    def __set_status(self, status):
+        CloseSession(self.job)
+        self.job.status = status
+        self.job.save()
 
     def __check_data(self, data):
         if not isinstance(data, dict):
@@ -205,7 +211,7 @@ class UploadReport(object):
             if attr not in single_attrs_order:
                 single_attrs_order.insert(0, attr)
             elif self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-                self.job.status = '5'
+                self.__set_status('5')
                 print("Got double attribute: '%s' for report with "
                       "type '%s' and id '%s'" % (attr, self.data['type'],
                                                  self.data['id']))
@@ -331,12 +337,12 @@ class UploadReport(object):
             if len(ReportComponent.objects.filter(finish_date=None,
                                                   root=self.root)):
                 print("There are unfinished reports")
-                self.job.status = '5'
+                self.__set_status('5')
             elif self.job.status != '5':
                 if len(ReportUnknown.objects.filter(parent=report)) > 0:
-                    self.job.status = '4'
+                    self.__set_status('4')
                 else:
-                    self.job.status = '3'
+                    self.__set_status('3')
             self.job.save()
 
         return report

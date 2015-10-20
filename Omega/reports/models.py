@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from Omega.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
-from jobs.models import File, Job, Scheduler
+from jobs.models import File, Job
 
 LOG_DIR = 'ReportLogs'
 
@@ -24,8 +24,6 @@ class Attr(models.Model):
 class ReportRoot(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     job = models.OneToOneField(Job)
-    schedulers = models.CharField(max_length=1024, default="[]")
-    job_scheduler = models.ForeignKey(Scheduler, null=True)
 
     class Meta:
         db_table = 'report_root'

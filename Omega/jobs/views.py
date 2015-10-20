@@ -1,5 +1,6 @@
 import os
 import pytz
+import json
 import mimetypes
 from io import BytesIO
 from urllib.parse import quote
@@ -17,6 +18,8 @@ from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
 from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
 from jobs.utils import *
+from service.utils import StartJobDecision, get_available_schedulers, \
+    get_priorities, CloseSession
 
 
 @login_required
@@ -794,6 +797,7 @@ def stop_decision(request):
         return JsonResponse({'error': _("The job was not found")})
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': _("The job is not solving")})
+    CloseSession(job)
     job.status = JOB_STATUS[6][0]
     job.save()
     for report in ReportComponent.objects.filter(root__job=job):
@@ -806,52 +810,32 @@ def stop_decision(request):
 @login_required
 def run_decision(request):
     activate(request.user.extended.language)
-
     if request.method != 'POST':
         return JsonResponse({'status': False, 'error': _('Unknown error')})
-    try:
-        job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
-    except ObjectDoesNotExist:
-        return JsonResponse({
-            'status': False, 'error': _('The job was not found')
-        })
-    schedulers_ids = json.loads(request.POST.get('schedulers', '[]'))
-    try:
-        job_scheduler = Scheduler.objects.get(
-            pk=int(request.POST.get('job_scheduler', 0)),
-            for_jobs=True
-        )
-    except ObjectDoesNotExist:
-        return JsonResponse({
-            'status': False, 'error': _('The job scheduler was not found')
-        })
-    if not JobAccess(request.user, job):
-        return JsonResponse({
-            'status': False,
-            'error': _("You don't have access to start decision")
-        })
-    try:
-        job.reportroot.delete()
-    except ObjectDoesNotExist:
-        pass
-    schedulers = []
-    for sch_id in schedulers_ids:
-        try:
-            scheduler = Scheduler.objects.get(pk=int(sch_id))
-        except ObjectDoesNotExist:
-            continue
-        if scheduler.status == SCHEDULER_STATUS[0][0]:
-            if scheduler.need_auth:
-                scheduler_users = \
-                    scheduler.scheduleruser_set.filter(user=request.user)
-                if len(scheduler_users) > 0:
-                    schedulers.append(scheduler.pk)
-            else:
-                schedulers.append(scheduler.pk)
-    if len(schedulers) == 0:
-        return JsonResponse({
-            'status': False, 'error': _('There are no available schedulers')
-        })
-    start_job_decision(request.user, job, schedulers=json.dumps(schedulers),
-                       job_scheduler=job_scheduler)
-    return JsonResponse({'status': True})
+    result = StartJobDecision(
+        request.user,
+        request.POST.get('job_id', 0),
+        request.POST.get('priority', ''),
+        request.POST.get('job_scheduler', 0),
+        request.POST.get('schedulers', '[]')
+    )
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({})
+
+
+@login_required
+def get_max_prority(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    if 'schedulers' not in request.POST:
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    priorities = get_priorities(request.user,
+                                request.POST.get('schedulers', '[]'))
+    if priorities is None:
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    translated_priorities = []
+    for pr in priorities:
+        translated_priorities.append([pr[0], pr[1] + ''])
+    return JsonResponse({'priorities': json.dumps(translated_priorities)})

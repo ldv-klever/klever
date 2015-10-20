@@ -1,10 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS
+from django.contrib.auth.models import User
 from Omega.formatChecker import RestrictedFileField
-from jobs.models import Job, Scheduler
+from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS
+from jobs.models import Job
 
 
 FILE_DIR = 'Service'
@@ -48,6 +48,28 @@ def soluition_filedata_delete(**kwargs):
     storage.delete(path)
 
 
+class VerificationTool(models.Model):
+    name = models.CharField(max_length=128)
+    version = models.CharField(max_length=128)
+
+    class Meta:
+        db_table = 'service_verification_tool'
+
+
+class Scheduler(models.Model):
+    name = models.CharField(max_length=128, unique=True)
+    pkey = models.CharField(max_length=12, unique=True)
+    status = models.CharField(max_length=12, default='HEALTHY',
+                              choices=SCHEDULER_STATUS)
+    need_auth = models.BooleanField(default=False)
+    last_request = models.DateTimeField(auto_now=True)
+    for_jobs = models.BooleanField(default=False)
+    tools = models.ManyToManyField(VerificationTool)
+
+    class Meta:
+        db_table = 'service_scheduler'
+
+
 class SchedulerUser(models.Model):
     user = models.ForeignKey(User)
     scheduler = models.ForeignKey(Scheduler)
@@ -88,20 +110,10 @@ class Node(models.Model):
         db_table = 'service_node'
 
 
-class VerificationTool(models.Model):
-    name = models.CharField(max_length=128)
-    version = models.CharField(max_length=128)
-    usage = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'service_verification_tool'
-
-
 class JobSession(models.Model):
     job = models.OneToOneField(Job)
-    tool = models.ForeignKey(VerificationTool)
+    job_scheduler = models.ForeignKey(Scheduler)
     priority = models.CharField(max_length=6, choices=PRIORITY)
-    status = models.BooleanField(default=True)
     start_date = models.DateTimeField()
     last_request = models.DateTimeField(auto_now=True)
     finish_date = models.DateTimeField(null=True)

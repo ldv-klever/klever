@@ -3,24 +3,10 @@ from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from Omega.formatChecker import RestrictedFileField
-from Omega.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS,\
-    SCHEDULER_STATUS
+from Omega.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
 
 
 JOBFILE_DIR = 'Files'
-
-
-class Scheduler(models.Model):
-    name = models.CharField(max_length=128, unique=True)
-    pkey = models.CharField(max_length=12, unique=True)
-    status = models.CharField(max_length=12, default='HEALTHY',
-                              choices=SCHEDULER_STATUS)
-    need_auth = models.BooleanField(default=False)
-    last_request = models.DateTimeField(auto_now=True)
-    for_jobs = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'service_scheduler'
 
 
 class JobBase(models.Model):

@@ -927,6 +927,30 @@ $(document).ready(function () {
                 title: val[1]
             }));
         });
+        var select_prority_div = $('#div_select_priority');
+        select_prority_div.empty();
+        select_prority_div.append($('<select>', {
+            class: 'ui dropdown',
+            id: 'priority_select'
+        }));
+        $.post(
+            job_ajax_url + 'get_max_prority/',
+            {schedulers: JSON.stringify(schedulers)},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else if (data.priorities) {
+                    var priorities = JSON.parse(data.priorities);
+                    priorities.forEach(function (pr) {
+                        $('#priority_select').append($('<option>', {value: pr[0], text: pr[1]}))
+                    });
+                    $('#priority_select').dropdown();
+                }
+            }
+        ).fail(function (x) {
+                console.log(x.responseText);
+            });
         $('#decide_job_order_popup').modal('show');
         return false;
 
@@ -941,13 +965,14 @@ $(document).ready(function () {
             {
                 job_id: $('#job_pk').text(),
                 schedulers: JSON.stringify(schedulers),
-                job_scheduler: $('input[name="job_scheduler"]:checked').val()
+                job_scheduler: $('input[name="job_scheduler"]:checked').val(),
+                priority: $('#priority_select').val()
             },
             function (data) {
                 if (data.error) {
                     err_notify(data.error);
                 }
-                else if (data.status) {
+                else {
                     window.location.replace('');
                 }
             }
