@@ -78,6 +78,13 @@ class FileSystem(models.Model):
     def __str__(self):
         return self.name
 
+    def delete(self, *args, **kwargs):
+        file = self.file
+        super(FileSystem, self).delete(*args, **kwargs)
+        if len(file.filesystem_set.all()) == 0 \
+                and len(file.reportcomponent_set.all()) == 0:
+            file.delete()
+
     class Meta:
         db_table = 'file_system'
 

@@ -20,7 +20,7 @@
         {% for str in data %}
             <tr>
                 <td><a href="{% url 'jobs:job' str.job.pk %}">{{ str.job.name }}</a></td>
-                <td><a href="{% url 'service:scheduler' str.job.reportroot.job_scheduler_id %}">{{ str.job.reportroot.job_scheduler.name }}</a></td>
+                <td><a href="{% url 'service:scheduler' str.job.jobsession.job_scheduler_id %}">{{ str.job.jobsession.job_scheduler.name }}</a></td>
                 <td>{{ str.priority }}</td>
                 <td>{{ str.start_date }}</td>
                 <td>{{ str.finish_date }}</td>

@@ -94,20 +94,35 @@ class NodesConfiguration(models.Model):
         db_table = 'service_nodes_configuration'
 
 
-class Node(models.Model):
-    config = models.ForeignKey(NodesConfiguration)
-    status = models.CharField(max_length=13, choices=NODE_STATUS)
-    hostname = models.CharField(max_length=256)
+class Workload(models.Model):
     tasks = models.PositiveSmallIntegerField()  # number of solving
     jobs = models.PositiveSmallIntegerField()  # number of solving
     ram = models.PositiveIntegerField()  # in use
     cores = models.PositiveSmallIntegerField()  # in use
     memory = models.FloatField()  # in use
-    for_tasks = models.BooleanField()  # availability
-    for_jobs = models.BooleanField()  # availability
+    for_tasks = models.BooleanField()  # reserved
+    for_jobs = models.BooleanField()  # reserved
+
+    class Meta:
+        db_table = 'service_workload'
+
+
+class Node(models.Model):
+    config = models.ForeignKey(NodesConfiguration)
+    status = models.CharField(max_length=13, choices=NODE_STATUS)
+    hostname = models.CharField(max_length=256)
+    workload = models.OneToOneField(Workload, null=True,
+                                    on_delete=models.SET_NULL)
 
     class Meta:
         db_table = 'service_node'
+
+
+@receiver(pre_delete, sender=Node)
+def node_delete_signal(**kwargs):
+    node = kwargs['instance']
+    if node.workload is not None:
+        node.workload.delete()
 
 
 class JobSession(models.Model):
@@ -143,6 +158,13 @@ class Task(models.Model):
         db_table = 'service_task'
 
 
+@receiver(pre_delete, sender=Task)
+def task_delete_signal(**kwargs):
+    task = kwargs['instance']
+    if task.files is not None:
+        task.files.delete()
+
+
 class TaskSolution(models.Model):
     task = models.ForeignKey(Task)
     status = models.BooleanField(default=False)
@@ -152,6 +174,13 @@ class TaskSolution(models.Model):
 
     class Meta:
         db_table = 'service_solution'
+
+
+@receiver(pre_delete, sender=TaskSolution)
+def solution_delete_signal(**kwargs):
+    solution = kwargs['instance']
+    if solution.files is not None:
+        solution.files.delete()
 
 
 class TasksResults(models.Model):

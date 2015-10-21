@@ -1,9 +1,9 @@
 import json
 import pytz
 from datetime import datetime, timedelta
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_STATUS
 from jobs.utils import JobAccess
 from reports.models import ReportRoot
@@ -474,13 +474,13 @@ class SetNodes(object):
         except IndexError or KeyError:
             self.error = "Wrong nodes data format"
         except Exception as e:
-            print(e)
+            print("SetNodes failed: ", e)
             self.error = "Unknown error"
 
     def __read_node_data(self, nodes_data):
         self.scheduler.nodesconfiguration_set.all().delete()
         for config in json.loads(nodes_data):
-            nodes_conf, crtd = NodesConfiguration.objects.create(
+            nodes_conf = NodesConfiguration.objects.create(
                 scheduler=self.scheduler, cpu=config['CPU model'],
                 cores=config['CPUs'], ram=config['RAM'],
                 memory=config['disk'])
@@ -489,18 +489,21 @@ class SetNodes(object):
 
     def __create_node(self, conf, data):
         self.ccc = 0
-        if 'workload' not in data:
-            return
-        Node.objects.create(
-            config=conf, hostname=data['address'], status=data['status'],
-            ram=data['workload']['RAM reserved'],
-            cores=data['workload']['CPUs reserved'],
-            memory=data['workload']['disk space reserved'],
-            jobs=data['workload']['jobs solving'],
-            tasks=data['workload']['tasks solving'],
-            for_jobs=data['workload']['reserved for jobs'],
-            for_tasks=data['workload']['reserved for tasks']
+        node = Node.objects.create(
+            config=conf, hostname=data['address'], status=data['status']
         )
+        if 'workload' in data:
+            workload = Workload.objects.create(
+                ram=data['workload']['RAM reserved'],
+                cores=data['workload']['CPUs reserved'],
+                memory=data['workload']['disk space reserved'],
+                jobs=data['workload']['jobs solving'],
+                tasks=data['workload']['tasks solving'],
+                for_jobs=data['workload']['reserved for jobs'],
+                for_tasks=data['workload']['reserved for tasks']
+            )
+            node.workload = workload
+            node.save()
 
 
 # Case 3.1.2 (7)
@@ -673,7 +676,7 @@ class SchedulerTable(object):
     def __init__(self, scheduler):
         self.scheduler = scheduler
         self.scheduler_data = self.__scheduler_data()
-        self.tools = VerificationTool.objects.all()
+        self.tools = self.scheduler.tools.all()
         self.nodes = Node.objects.filter(config__scheduler=self.scheduler)
 
     def __scheduler_data(self):
@@ -688,14 +691,16 @@ class SchedulerTable(object):
             conf_cores_total = 0
             conf_cores_occupied = 0
             for node in nodes_conf.node_set.all():
+                if node.workload is None:
+                    continue
                 ram_total += nodes_conf.ram
-                ram_occupied += node.ram
                 memory_total += nodes_conf.memory
-                memory_occupied += node.memory
                 cores_total += nodes_conf.cores
-                cores_occupied += node.cores
                 conf_cores_total += nodes_conf.cores
-                conf_cores_occupied += node.cores
+                ram_occupied += node.workload.ram
+                memory_occupied += node.workload.memory
+                cores_occupied += node.workload.cores
+                conf_cores_occupied += node.workload.cores
             cores.append({
                 'name': nodes_conf.cpu,
                 'value': "%s/%s" % (conf_cores_occupied, conf_cores_total)
@@ -725,9 +730,10 @@ class SessionsTable(object):
             }
             if session.finish_date is not None:
                 rowdata['finish_date'] = session.finish_date
-                rowdata['wall_time'] = \
-                    (session.finish_date - session.start_date).seconds + \
-                    ' ' + _('s')
+                rowdata['wall_time'] = string_concat(
+                    str((session.finish_date - session.start_date).seconds),
+                    ' ', _('s'))
+
             tasks_finished = session.statistic.tasks_error + \
                 session.statistic.tasks_lost + \
                 session.statistic.tasks_finished

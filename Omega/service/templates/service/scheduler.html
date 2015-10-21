@@ -7,21 +7,23 @@
     <table class="ui compact olive table">
         <thead>
             <tr>
-                <th class="five wide column center aligned">{{ data.scheduler.name }}</th>
+                <th class="five wide column center aligned">
+                    <h3 class="header">{{ data.scheduler.name }}</h3>
+                </th>
                 <th class="five wide column center aligned">
                     {% if data.scheduler.status == 'HEALTHY' %}
-                        <span style="color:green">{% trans 'Available' %}</span>
+                        <h3 class="ui green header">{% trans 'Available' %}</h3>
                     {% elif data.scheduler.status == 'AILING' %}
-                        <span style="color:red">{% trans 'Ailing' %}</span>
+                        <h3 class="ui red header">{% trans 'Ailing' %}</h3>
                     {% elif data.scheduler.status == 'DISCONNECTED' %}
-                        <span style="color:red">{% trans 'Disconnected' %}</span>
+                        <h3 class="ui red header">{% trans 'Disconnected' %}</h3>
                     {% endif %}
                 </th>
                 <th class="six wide column center aligned">
                     {% if data.scheduler.need_auth %}
-                        <span style="color:red">{% trans 'Restricted access' %}</span>
+                        <h3 class="ui red header">{% trans 'Restricted access' %}</h3>
                     {% else %}
-                        <span style="color:green">{% trans 'Open access' %}</span>
+                        <h3 class="ui green header">{% trans 'Open access' %}</h3>
                     {% endif %}
                 </th>
             </tr>
@@ -60,6 +62,7 @@
             </table>
         </div>
         <div class="eight wide column">
+            {% if data.tools|length > 0 %}
             <table class="ui celled compact violet table selectable">
                 <thead>
                     <tr>
@@ -78,8 +81,12 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+                <h3 class="ui violet header">{% trans "There are no supported verification tools by this scheduler" %}</h3>
+            {% endif %}
         </div>
     </div>
+    {% if data.nodes|length > 0 %}
     <table class="ui celled compact orange table selectable">
         <thead>
             <tr>
@@ -97,19 +104,41 @@
         </thead>
         <tbody>
             {% for node in data.nodes %}
-                <tr>
-                    <td>{{ node.hostname }}</td>
-                    <td>{{ node.get_status_display }}</td>
-                    <td>{{ node.config.cpu }}</td>
-                    <td>{{ node.cores }}/{{ node.config.cores }}</td>
-                    <td>{{ node.ram }}/{{ node.config.ram }}</td>
-                    <td>{{ node.memory }}/{{ node.config.memory }}</td>
-                    <td>{{ node.tasks }}</td>
-                    <td>{{ node.jobs }}</td>
-                    <td>{{ node.for_tasks }}</td>
-                    <td>{{ node.for_jobs }}</td>
-                </tr>
+                {% if node.workload %}
+                    <tr>
+                        <td>{{ node.hostname }}</td>
+                        <td>{{ node.get_status_display }}</td>
+                        <td>{{ node.workload.config.cpu }}</td>
+                        <td>{{ node.workload.cores }}/{{ node.config.cores }}</td>
+                        <td>{{ node.workload.ram }}/{{ node.config.ram }}</td>
+                        <td>{{ node.workload.memory }}/{{ node.config.memory }}</td>
+                        <td>{{ node.workload.tasks }}</td>
+                        <td>{{ node.workload.jobs }}</td>
+                        <td>{{ node.workload.for_tasks }}</td>
+                        <td>{{ node.workload.for_jobs }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td>{{ node.hostname }}</td>
+                        <td>{{ node.get_status_display }}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                {% endif %}
             {% endfor %}
         </tbody>
     </table>
+    {% else %}
+        <div class="ui grid">
+            <div class="sixteen wide column center aligned">
+                <h2 class="ui orange header">{% trans "Scheduler doesn't have nodes" %}</h2>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}
