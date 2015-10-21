@@ -24,27 +24,23 @@
         </div>
         <div class="thirteen wide column">
             <h2>{% trans 'Last Activity' %}</h2>
-            {% if activity|length %}
+            {% if job_activity|length %}
                 <table class="ui selectable inverted celled table">
                     <thead>
                         <tr>
-                            <th>{% trans 'Date' %}</th>
+                            <th class="three wide">{% trans 'Date' %}</th>
                             <th>{% trans 'Action Kind' %}</th>
                             <th>{% trans 'Job Title' %}</th>
-                            <th>{% trans 'Comment' %}</th>
+                            <th class="four wide">{% trans 'Comment' %}</th>
                         </tr>
                     </thead>
                     <tbody>
-                    {% for act in activity %}
+                    {% for act in job_activity %}
                         <tr>
                             <td>
-                                {% if user_tz %}
-                                    {% timezone user_tz %}
-                                        {{ act.date }}
-                                    {% endtimezone %}
-                                {% else %}
+                                {% timezone user.extended.timezone %}
                                     {{ act.date }}
-                                {% endif %}
+                                {% endtimezone %}
                             </td>
                             {% if act.version == 1 %}
                                 <td style="color: #58bd2a">{% trans 'Creation' %}</td>
@@ -65,6 +61,52 @@
                     {% endfor %}
                     </tbody>
                 </table>
+            {% endif %}
+            {% if mark_activity|length %}
+                <div style="max-height: 500px;overflow-y: auto">
+                    <table class="ui selectable inverted celled table">
+                        <thead>
+                            <tr>
+                                <th class="three wide">{% trans 'Date' %}</th>
+                                <th>{% trans 'Action Kind' %}</th>
+                                <th>{% trans 'Mark type' %}</th>
+                                <th>{% trans 'Mark identifier' %}</th>
+                                <th class="four wide">{% trans 'Comment' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for act in mark_activity %}
+                            <tr>
+                                <td>
+                                    {% timezone user.extended.timezone %}
+                                        {{ act.date }}
+                                    {% endtimezone %}
+                                </td>
+                                {% if act.mark_version.version == 1 %}
+                                    <td style="color: #58bd2a">{% trans 'Creation' %}</td>
+                                {% else %}
+                                    <td style="color: #31e6ff">{% trans 'Modification' %}</td>
+                                {% endif %}
+                                <td>
+                                    {% if act.type == 'safe' %}
+                                        <span style="color: #58bd2a">{% trans 'Safe' %}</span>
+                                    {% elif act.type == 'unsafe' %}
+                                        <span style="color: #e88e3d">{% trans 'Unsafe' %}</span>
+                                    {% elif act.type == 'unknown' %}
+                                        <span style="color: #f57a78">{% trans 'Unknown' %}</span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="{% url 'marks:edit_mark' act.type act.mark_version.mark_id %}">{{ act.mark_version.mark.identifier }}</a></td>
+                                {% if act.comment %}
+                                    <td title="{{ act.comment }}"><small>{{ act.small_comment }}</small></td>
+                                {% else %}
+                                    <td></td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             {% endif %}
         </div>
     </div>

@@ -666,8 +666,10 @@ class UserJobs(object):
             }
             if jobsession.finish_date is not None:
                 data_str['finish_date'] = jobsession.finish_date
-                data_str['wall_time'] = (jobsession.finish_date -
-                                         jobsession.start_date).seconds
+                data_str['wall_time'] = string_concat(
+                    str((jobsession.finish_date -
+                         jobsession.start_date).seconds),
+                    _('s'))
             data.append(data_str)
         return data
 
@@ -731,8 +733,7 @@ class SessionsTable(object):
             if session.finish_date is not None:
                 rowdata['finish_date'] = session.finish_date
                 rowdata['wall_time'] = string_concat(
-                    str((session.finish_date - session.start_date).seconds),
-                    ' ', _('s'))
+                    (session.finish_date - session.start_date).seconds, _('s'))
 
             tasks_finished = session.statistic.tasks_error + \
                 session.statistic.tasks_lost + \
@@ -794,9 +795,9 @@ class SchedulerJobSessionsTable(object):
             }
             if session.finish_date is not None:
                 rowdata['finish_date'] = session.finish_date
-                rowdata['wall_time'] = \
-                    (session.finish_date - session.start_date).seconds + \
-                    ' ' + _('s')
+                rowdata['wall_time'] = string_concat(
+                    str((session.finish_date - session.start_date).seconds),
+                    _('s'))
             tasks_finished = session.statistic.tasks_error + \
                 session.statistic.tasks_lost + \
                 session.statistic.tasks_finished

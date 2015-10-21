@@ -374,6 +374,7 @@ def user_jobs(request, user_id):
     except Exception as e:
         print(e)
         return HttpResponseRedirect(reverse('error', args=[500]))
+    print(UserJobs(user).data)
     return render(request, 'service/jobs.html', {
         'data': UserJobs(user).data,
         'target': user

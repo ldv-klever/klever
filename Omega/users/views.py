@@ -148,9 +148,8 @@ def show_profile(request, user_id=None):
     if len(user_id) == 0:
         return HttpResponseRedirect(reverse('jobs:tree'))
     target = get_object_or_404(User, pk=int(user_id))
-    user_activity = target.jobhistory.all().order_by('-change_date')[:18]
-    activity = []
-    for act in user_activity:
+    job_activity = []
+    for act in target.jobhistory.all().order_by('-change_date')[:18]:
         act_comment = act.comment
         small_comment = act_comment
         if len(act_comment) > 47:
@@ -164,12 +163,48 @@ def show_profile(request, user_id=None):
         }
         if JobAccess(request.user, act.job).can_view():
             new_act['href'] = reverse('jobs:job', args=[act.job_id])
-        activity.append(new_act)
-    user_tz = request.user.extended.timezone
+        job_activity.append(new_act)
+    mark_activity = []
+    for act in target.marksafehistory.all().order_by('-change_date'):
+        act_comment = act.comment
+        small_comment = act_comment
+        if len(act_comment) > 47:
+            small_comment = act_comment[:50] + '...'
+        mark_activity.append({
+            'date': act.change_date,
+            'comment': act_comment,
+            'small_comment': small_comment,
+            'mark_version': act,
+            'type': 'safe'
+        })
+    for act in target.markunsafehistory.all().order_by('-change_date'):
+        act_comment = act.comment
+        small_comment = act_comment
+        if len(act_comment) > 47:
+            small_comment = act_comment[:50] + '...'
+        mark_activity.append({
+            'date': act.change_date,
+            'comment': act_comment,
+            'small_comment': small_comment,
+            'mark_version': act,
+            'type': 'unsafe'
+        })
+    for act in target.markunknownhistory_set.all().order_by('-change_date'):
+        act_comment = act.comment
+        small_comment = act_comment
+        if len(act_comment) > 47:
+            small_comment = act_comment[:50] + '...'
+        mark_activity.append({
+            'date': act.change_date,
+            'comment': act_comment,
+            'small_comment': small_comment,
+            'mark_version': act,
+            'type': 'unknown'
+        })
     return render(request, 'users/showProfile.html', {
         'target': target,
-        'activity': activity,
-        'user_tz': user_tz,
+        'job_activity': job_activity,
+        'mark_activity': mark_activity,
         'num_of_solving_jobs': len(ReportRoot.objects.filter(user=target))
     })
 
