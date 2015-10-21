@@ -65,13 +65,23 @@ class Resource(models.Model):
 
 
 class ReportComponent(Report):
-    computer = models.ForeignKey(Computer, related_name='+')
-    component = models.ForeignKey(Component, related_name='+')
-    resource = models.ForeignKey(Resource, related_name='cache1', null=True)
+    computer = models.ForeignKey(Computer)
+    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    resource = models.ForeignKey(Resource, null=True)
     data = models.BinaryField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
     log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
+
+    def delete(self, *args, **kwargs):
+        computer = self.computer
+        resource = self.resource
+        super(ReportComponent, self).delete(*args, **kwargs)
+        if len(computer.reportcomponent_set.all()) == 0:
+            computer.delete()
+        if len(resource.reportcomponent_set.all()) == 0 \
+                and len(resource.componentresource_set.all()) == 0:
+            resource.delete()
 
     class Meta:
         db_table = 'report_component'
@@ -97,7 +107,7 @@ class ReportSafe(Report):
 
 
 class ReportUnknown(Report):
-    component = models.ForeignKey(Component)
+    component = models.ForeignKey(Component, on_delete=models.PROTECT)
     problem_description = models.BinaryField()
 
     class Meta:
@@ -138,9 +148,15 @@ class Verdict(models.Model):
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='resources_cache')
     component = models.ForeignKey(Component, null=True, blank=True,
-                                  on_delete=models.SET_NULL,
-                                  related_name='+')
-    resource = models.ForeignKey(Resource, related_name='cache2')
+                                  on_delete=models.PROTECT)
+    resource = models.ForeignKey(Resource)
+
+    def delete(self, *args, **kwargs):
+        resource = self.resource
+        super(ComponentResource, self).delete(*args, **kwargs)
+        if len(resource.reportcomponent_set.all()) == 0 \
+                and len(resource.componentresource_set.all()) == 0:
+            resource.delete()
 
     class Meta:
         db_table = 'cache_report_component_resource'
@@ -148,7 +164,7 @@ class ComponentResource(models.Model):
 
 class ComponentUnknown(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='unknowns_cache')
-    component = models.ForeignKey(Component, related_name='+')
+    component = models.ForeignKey(Component, on_delete=models.PROTECT)
     number = models.IntegerField(default=0)
 
     class Meta:

@@ -22,6 +22,5 @@ urlpatterns = [
     url(r'^component/(?P<report_id>[0-9]+)/unknowns/(?P<component_id>[0-9]+)/'
         r'problem/(?P<problem_id>[0-9])/$', views.report_unknowns_by_problem,
         name='unknowns_problem'),
-    url(r'^upload/$', views.upload_report),
-    url(r'^clear_tables/$', views.clear_tables),
+    url(r'^upload/$', views.upload_report)
 ]

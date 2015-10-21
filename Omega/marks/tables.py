@@ -285,7 +285,7 @@ class MarkChangesTable(object):
                 href = None
                 if col == 'report':
                     val = cnt
-                    href = reverse('reports:leaf', args=['safe', report.pk])
+                    href = reverse('reports:leaf', args=['unknown', report.pk])
                 elif col == 'status':
                     val = self.__status_change()
                 elif col == 'change_kind':

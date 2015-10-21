@@ -31,4 +31,9 @@ urlpatterns = [
     url(r'^scheduler/(?P<scheduler_id>[0-9]+)$', views.scheduler_table,
         name='scheduler'),
     url(r'^sessions/$', views.sessions_page, name='sessions'),
+    url(r'^manager-tools/$', views.manager_tools, name='manager_tools'),
+    url(r'^ajax/change_component/$', views.change_component),
+    url(r'^ajax/clear_components_table/$', views.clear_components_table),
+    url(r'^ajax/delete_problem/$', views.delete_problem),
+    url(r'^ajax/clear_problems/$', views.clear_problems),
 ]

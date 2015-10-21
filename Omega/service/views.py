@@ -3,10 +3,14 @@ import mimetypes
 from io import BytesIO
 from urllib.parse import unquote
 from django.core.urlresolvers import reverse
+from django.db.models import ProtectedError
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
+from Omega.vars import USER_ROLES
+from reports.models import Component
+from marks.models import UnknownProblem
 from service.utils import *
 
 
@@ -530,3 +534,124 @@ def remove_sch_logindata(request):
 @login_required
 def test(request):
     return render(request, 'service/test.html', {'priorities': PRIORITY})
+
+
+@login_required
+def change_component(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': _('Unknown error')})
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({
+            'error': _("No access")
+        })
+    try:
+        component = Component.objects.get(
+            pk=int(request.POST.get('component_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'error': _("Component was not found")
+        })
+    action = request.POST.get('action', '')
+    if action == 'delete':
+        try:
+            component.delete()
+        except ProtectedError:
+            return JsonResponse({
+                'error': _("Component is used and can't be deleted")
+            })
+        return JsonResponse({
+            'message': _("Component was successfully deleted")
+        })
+    elif action == 'rename':
+        new_name = request.POST.get('name', '')
+        if len(new_name) == 0 or len(new_name) > 255:
+            return JsonResponse({
+                'error': _("New component name has wrong length")
+            })
+        try:
+            Component.objects.get(Q(name=new_name) & ~Q(pk=component.pk))
+            return JsonResponse({
+                'error': _("New component name is used already")
+            })
+        except ObjectDoesNotExist:
+            pass
+        component.name = new_name
+        component.save()
+        return JsonResponse({
+            'message': _("Component was successfully renamed")
+        })
+    return JsonResponse({'error': _("Unknown error")})
+
+
+@login_required
+def clear_components_table(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': _('Unknown error')})
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({
+            'error': _("No access")
+        })
+    for component in Component.objects.all():
+        try:
+            component.delete()
+        except ProtectedError:
+            pass
+    return JsonResponse({
+        'message': _("Components were cleared, please reload the page")
+    })
+
+
+@login_required
+def delete_problem(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': _('Unknown error')})
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({
+            'error': _("No access")
+        })
+    try:
+        problem = UnknownProblem.objects.get(
+            pk=int(request.POST.get('problem_id', 0)))
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'error': _("Problem was not found")
+        })
+    try:
+        problem.delete()
+    except ProtectedError:
+        return JsonResponse({
+            'error': _("Problem is used and can't be deleted")
+        })
+    return JsonResponse({
+        'message': _("Problem was successfully deleted")
+    })
+
+
+@login_required
+def clear_problems(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': _('Unknown error')})
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({
+            'error': _("No access")
+        })
+    for problem in UnknownProblem.objects.all():
+        try:
+            problem.delete()
+        except ProtectedError:
+            pass
+    return JsonResponse({
+        'message': _("Problems were cleared, please reload the page")
+    })
+
+
+@login_required
+def manager_tools(request):
+    return render(request, "service/ManagerPanel.html", {
+        'components': Component.objects.all(),
+        'problems': UnknownProblem.objects.all()
+    })

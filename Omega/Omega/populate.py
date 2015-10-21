@@ -4,6 +4,7 @@ from datetime import datetime
 from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from django.utils.translation import override
 from Omega.vars import JOB_CLASSES
 from Omega.settings import LANGUAGE_CODE
@@ -62,8 +63,10 @@ class Population(object):
             populate_jobs(manager)
 
     def __populate_functions(self):
+        func_names = []
         for func_name in [x for x, y in ConvertTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
+            func_names.append(func_name)
             description = self.__correct_description(
                 getattr(ConvertTrace, func_name).__doc__)
             func, crtd = MarkUnsafeConvert.objects.get_or_create(name=func_name)
@@ -72,9 +75,11 @@ class Population(object):
                     self.functions_updated = True
                     func.description = description
                     func.save()
-
+        MarkUnsafeConvert.objects.filter(~Q(name__in=func_names)).delete()
+        func_names = []
         for func_name in [x for x, y in CompareTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
+            func_names.append(func_name)
             description = self.__correct_description(
                 getattr(CompareTrace, func_name).__doc__
             )
@@ -84,8 +89,15 @@ class Population(object):
                     self.functions_updated = True
                     func.description = description
                     func.save()
+        MarkUnsafeCompare.objects.filter(~Q(name__in=func_names)).delete()
 
     def __extend_user(self, user, role='1'):
+        try:
+            user.extended.role = role
+            user.extended.save()
+            return
+        except ObjectDoesNotExist:
+            pass
         self.user = self.user
         extended = Extended()
         extended.first_name = 'Firstname'
@@ -97,10 +109,12 @@ class Population(object):
     def __get_manager(self):
         if self.manager_username is None:
             return None
-        managers = User.objects.filter(username=self.manager_username,
-                                       extended__role='2')
-        if len(managers) > 0:
-            return managers[0]
+        try:
+            manager = User.objects.get(username=self.manager_username)
+            self.__extend_user(manager, '2')
+            return manager
+        except ObjectDoesNotExist:
+            pass
         manager = User()
         manager.username = self.manager_username
         manager.save()

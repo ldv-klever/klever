@@ -262,7 +262,7 @@ class MarkUnknownHistory(models.Model):
 class MarkUnknownReport(models.Model):
     mark = models.ForeignKey(MarkUnknown, related_name='markreport_set')
     report = models.ForeignKey(ReportUnknown, related_name='markreport_set')
-    problem = models.ForeignKey(UnknownProblem)
+    problem = models.ForeignKey(UnknownProblem, on_delete=models.PROTECT)
 
     class Meta:
         db_table = 'cache_mark_unknown_report'
@@ -272,7 +272,8 @@ class ComponentMarkUnknownProblem(models.Model):
     report = models.ForeignKey(ReportComponent,
                                related_name='mark_unknowns_cache')
     component = models.ForeignKey(Component, related_name='+')
-    problem = models.ForeignKey(UnknownProblem, null=True, related_name='+')
+    problem = models.ForeignKey(UnknownProblem, null=True,
+                                related_name='+', on_delete=models.PROTECT)
     number = models.IntegerField(default=0)
 
     class Meta:
