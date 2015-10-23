@@ -7,7 +7,7 @@
 {% block jobs_head_block %}<script src="/static/jobs/js/jobtree.js"></script>{% endblock %}
 
 {% block body_block %}
-    <div id="jobstree-first-big-part" class="ui form violet segment">
+    <div id="jobstree-first-big-part" class="ui form violet segment" style="display: none">
         <form autocomplete="off" onsubmit="return false">
             <div class="ui styled accordion fluid">
                 <div class="title">
@@ -311,7 +311,7 @@
             <br>
             <div class="ui grid">
                 <div class="sixteen wide column center aligned">
-                    <div class="ui action input">
+                    <div class="ui small action input">
                         <select id="available_views" class="ui dropdown">
                             <option value="default">{% trans 'Default' %}</option>
                             {% for v in FF.user_views %}
@@ -337,8 +337,11 @@
     </div>
 
     <button type="button" class="ui mini violet icon basic button" id="jobstree-fullscreen-btn" style="float:right;margin-right: 10px;">
-        <i class="maximize icon"></i>
+        <i class="setting icon"></i>
     </button>
+    <div class="ui popup bottom right transition hidden">
+        <span>{% trans 'Settings' %}</span>
+    </div>
     <div class="tableScroll" id="jobtable">
         {% include 'jobs/treeTable.html' %}
     </div>

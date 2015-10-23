@@ -1,10 +1,6 @@
 {% load i18n %}
 <div class="ui form">
     <form id="edit_job_form" autocomplete="off" onsubmit="return false">
-
-        {% if job_id %}
-            <input id="job_id_input" type="hidden" value="{{ job_id }}">
-        {% endif %}
         {% if job_versions|length %}
             <label for="job_version_selector" class="purple-title">{% trans 'You can choose one of the previous versions' %}</label>
             <select id="job_version_selector" class="ui dropdown fluid">
@@ -14,6 +10,11 @@
             </select>
             <label class="purple-title">{% trans 'or change the job' %}</label>
             <br>
+        {% endif %}
+
+        {% if not job_id %}
+            <div class="ui grid">
+                <div class="seven wide column">
         {% endif %}
 
         <div class="ui violet segment">
@@ -34,6 +35,10 @@
             <label style="width: 100%;"><strong>{% trans 'Description' %}</strong></label>
             <textarea id="job_description" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
         </div>
+    {% if not job_id %}
+        </div>
+        <div class="nine wide column">
+    {% endif %}
 
         <div class="ui green segment">
             <div class="ui grid">
@@ -83,13 +88,11 @@
             </div>
         </div>
 
-        <div class="ui teal segment">
-            <div class="ui top left attached teal large label">{% trans 'Files' %}</div>
-            <div>
-                {% include 'jobs/filesTree.html' %}
+        {% include 'jobs/filesTree.html' %}
+    {% if not job_id %}
             </div>
         </div>
-
+    {% endif %}
         {% if job_id %}
             <label for="job_comment"><strong>{% trans "Change comment" %}</strong></label>
             <div class="ui input fluid">

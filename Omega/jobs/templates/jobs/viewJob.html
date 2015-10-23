@@ -12,30 +12,14 @@
     {% if job %}
     <div class="ui grid">
         <div id="view_job_1st_part" class="eight wide column">
-            <div class="ui fluid mini buttons top attached">
-                {% if can_create %}<button id="copy_job_btn" class="ui violet button">{% trans 'Make copy' %}</button>{% endif %}
-                <button id="load_job_btn" class="ui olive button">{% trans 'Download' %}</button>
-                {% if can_decide %}
-                    <button id="show_decide_job_popup" class="ui pink button">{% trans 'Run decision' %}</button>
-                {% endif %}
-                {% if user.extended.role == '2' and job.status == '1' %}
-                    <button id="stop_job_btn" class="ui orange button">{% trans 'Stop decision' %}</button>
-                {% endif %}
-                {% if can_edit %}
-                    <button id="edit_job_btn" class="ui teal button">{% trans 'Edit' %}</button>
-                    <button id="edit_versions" class="ui brown button">{% trans 'Delete versions' %}</button>
-                {% endif %}
-                {% if can_delete %}<button id="show_remove_job_popup" type="button" class="ui red button">{% trans 'Delete' %}</button>{% endif %}
-            </div>
-            <span id="job_pk" hidden>{{ job.pk }}</span>
-
-            <table class="ui selectable compact inverted violet table attached">
-                <thead>
-                    <tr>
-                        <th class="center aligned" colspan="2">{{ job.name }}</th>
-                    </tr>
-                </thead>
+            <table class="ui selectable compact inverted violet table">
                 <tbody>
+                    <tr>
+                        <th id="job_name_tr" class="center aligned" colspan="2">
+                            <i class="ui caret down large icon" style="float: right;margin-top: 8px"></i>
+                            <h3 class="header" style="margin-top: 6px;margin-bottom: 5px;">{{ job.name }}</h3>
+                        </th>
+                    </tr>
                     <tr>
                         <th class="right aligned">{% trans 'Class' %}</th>
                         <td>{{ job.get_type_display }}</td>
@@ -105,7 +89,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <th>{% trans 'Decision status' %}</th>
+                        <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
                             {% if reportdata %}
                                 <a class="
@@ -132,6 +116,22 @@
                     </tr>
                 </tbody>
             </table>
+            <span id="job_pk" hidden>{{ job.pk }}</span>
+            <div id="job_actions_menu" class="ui purple inverted popup transition vertical menu hidden">
+                {% if can_create %}<a id="copy_job_btn" class="item">{% trans 'Make copy' %}</a>{% endif %}
+                {% if can_download %}<a id="load_job_btn" class="item">{% trans 'Download' %}</a>{% endif %}
+                {% if can_decide %}
+                    <a id="show_decide_job_popup" class="item">{% trans 'Run decision' %}</a>
+                {% endif %}
+                {% if user.extended.role == '2' and job.status == '1' %}
+                    <a id="stop_job_btn" class="item">{% trans 'Stop decision' %}</a>
+                {% endif %}
+                {% if can_edit %}
+                    <a id="edit_job_btn" class="item">{% trans 'Edit' %}</a>
+                    <a id="edit_versions" class="item">{% trans 'Delete versions' %}</a>
+                {% endif %}
+                {% if can_delete %}<a id="show_remove_job_popup" class="item">{% trans 'Delete' %}</a>{% endif %}
+            </div>
             <br>
             {% if reportdata %}
                 {% include 'jobs/jobData.html' %}

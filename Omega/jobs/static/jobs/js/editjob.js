@@ -1,4 +1,4 @@
-var readable_extensions = ['', 'txt', 'json', 'conf', 'php'];
+var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i'];
 
 function isFileReadable(name) {
     var found = name.lastIndexOf('.') + 1,
@@ -145,7 +145,7 @@ function set_actions_for_edit_form () {
             comment = '',
             description = $('#job_description').val(),
             global_role = $('#job_global_roles').children('option:selected').val(),
-            user_roles = [], job_id, job_id_input = $('#job_id_input');
+            user_roles = [], job_id, job_pk = $('#job_pk');
 
         if (title.length === 0) {
             err_notify($('#error__title_required').text());
@@ -186,8 +186,8 @@ function set_actions_for_edit_form () {
             }
         });
 
-        if (job_id_input.length) {
-            job_id = job_id_input.val();
+        if (job_pk.length) {
+            job_id = job_pk.val();
         }
         $('#all_user_roles').find("select[id^='job_user_role_select__']").each(function () {
             var user_id = $(this).attr('id').replace('job_user_role_select__', ''),
@@ -220,7 +220,7 @@ function set_actions_for_edit_form () {
         $.post(
             job_ajax_url + 'editjob/',
             {
-                job_id: $("#job_id_input").val(),
+                job_id: $("#job_pk").val(),
                 version: version
             },
             function (data) {
@@ -368,9 +368,6 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
 
 function update_treegrid() {
     inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon');
-    $('input[id^="selected_filerow__"]').click(function () {
-        $('#edit_files_form').empty();
-    });
 }
 
 function selected_row() {
@@ -439,7 +436,19 @@ function set_actions_for_file_form() {
     $('.ui.checkbox').checkbox();
     var cnt = 0;
 
+    $('#edit_files_menu_activator').popup({
+        popup: $('#edit_files_menu'),
+        position: 'left center',
+        hoverable: true,
+        on: 'click',
+        delay: {
+            show: 100,
+            hide: 100
+        }
+    });
+
     $('#new_folder_modal').modal({onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
         var folder_parents = $('#new_folder_parent'),
             confirm_btn = $('#create_new_folder_btn');
         folder_parents.children('option[value!="root"]').remove();
@@ -476,6 +485,7 @@ function set_actions_for_file_form() {
 
 
     $('#new_file_modal').modal({onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
         var new_opts = get_folders(), file_parents = $('#new_file_parent'),
             file_input = $('#new_file_input'), confirm_btn = $('#save_new_file_btn');
         file_parents.children('option[value!="root"]').remove();
@@ -527,7 +537,9 @@ function set_actions_for_file_form() {
         });
     }, transition: 'fly left'}).modal('attach events', '#new_file_btn', 'show');
 
-    $('#rename_modal').modal({transition: 'fly left'});
+    $('#rename_modal').modal({transition: 'fly left', onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
+    }});
     $('#rename_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -556,7 +568,9 @@ function set_actions_for_file_form() {
         }
     });
 
-    $('#move_file_modal').modal({transition: 'fly left'});
+    $('#move_file_modal').modal({transition: 'fly left', onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
+    }});
     $('#move_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -612,7 +626,9 @@ function set_actions_for_file_form() {
         }
     });
 
-    $('#remove_object_modal').modal({transition: 'fly left'});
+    $('#remove_object_modal').modal({transition: 'fly left', onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
+    }});
     $('#remove_obj_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -661,7 +677,9 @@ function set_actions_for_file_form() {
         }
     });
 
-    $('#replace_file_modal').modal({transition: 'fly left'});
+    $('#replace_file_modal').modal({transition: 'fly left', onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
+    }});
     $('#replace_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -724,10 +742,6 @@ function set_actions_for_file_form() {
                     err_notify($('#error__nofile_selected').text());
                 }
             });
-
-            $('#clear_file_form').click(function () {
-                $('#edit_files_form').empty();
-            });
         }
         else {
             err_notify($('#error__noselected_replace').text());
@@ -789,14 +803,21 @@ $(document).ready(function () {
     $('.for_popup').popup();
     $('#job_scheduler').dropdown();
     $('#view_job_1st_part').find('.ui.dropdown').dropdown();
-    $('#remove_job_popup').modal({transition: 'fly up', autofocus: false, closable: false})
+    $('#remove_job_popup').modal({
+        transition: 'fly up', autofocus: false, closable: false, onShow: function () {
+            $('#job_name_tr').popup('hide');
+        }})
         .modal('attach events', '#show_remove_job_popup', 'show');
 
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
     });
 
-    $('#decide_job_popup').modal({autofocus: false, allowMultiple: false})
+    $('#decide_job_popup').modal({
+        autofocus: false, allowMultiple: false, onShow: function () {
+            $('#job_name_tr').popup('hide');
+        }
+    })
         .modal('attach events', '#show_decide_job_popup', 'show');
     $('#decide_job_cancel').click(function () {
         $('#decide_job_popup').modal('hide');
@@ -804,6 +825,17 @@ $(document).ready(function () {
     $('#decide_job_order_popup').modal({autofocus: false, allowMultiple: false});
     $('#sch_order_cancel').click(function () {
         $('#decide_job_order_popup').modal('hide');
+    });
+
+    $('#job_name_tr').popup({
+        popup: $('#job_actions_menu'),
+        position: 'bottom right',
+        hoverable: true,
+        offset: -6,
+        delay: {
+            show: 100,
+            hide: 100
+        }
     });
 
     if ($('#edit_job_div').length) {
@@ -855,6 +887,7 @@ $(document).ready(function () {
     });
 
     $('#load_job_btn').click(function () {
+        $('#job_name_tr').popup('hide');
         download_job($('#job_pk').text());
     });
 

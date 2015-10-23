@@ -112,8 +112,7 @@
             </div>
         </div>
         <input id="report_pk" type="hidden" value="{{ report.pk }}">
-
-        {% if report.log %}<button id="show_component_log" class="ui green button" style="float: right">{% trans 'Log' %}</button>{% endif %}
+        {% if report.log %}<br><br><button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>{% endif %}
     </div>
 
     <div class="nine wide column">
@@ -178,10 +177,18 @@
     </div>
 </div>
 
-<div id="file_content_div" class="file-view-div">
-    <button id="close_file_view" class="btn btn-danger"><span class="glyphicon glyphicon-remove"></span></button>
-    <a id="download_file_form_view" class="btn btn-success" href="{% url 'reports:log' report.pk %}"><span class="glyphicon glyphicon-download"></span></a>
-    <div class="file-view-content"></div>
+<div id="file_content_modal" class="ui small dinamic large modal">
+    <div class="content">
+        <div class="ui grid">
+            <div class="eight wide column">
+                <a class="ui icon olive button" href="{% url 'reports:log' report.pk %}"><i class="download icon"></i></a>
+            </div>
+            <div class="eight wide column right aligned">
+                <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
+            </div>
+        </div>
+        <div class="filecontent ui olive segment" id="file_content" style="height:700px;"></div>
+    </div>
 </div>
 
 {% endtimezone %}{% endblock %}

@@ -255,6 +255,7 @@ def show_job(request, job_id=None):
             'can_edit': job_access.can_edit(),
             'can_create': job_access.can_create(),
             'can_decide': job_access.can_decide(),
+            'can_download': job.status != JOB_STATUS[5][0],
             'schedulers': get_available_schedulers(request.user)
         }
     )

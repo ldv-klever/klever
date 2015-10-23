@@ -6,6 +6,7 @@ ERRORS = {
     444: _("The page was not found"),
     404: _('The job was not found'),
     400: _("You don't have an access to this job"),
+    405: _("You can't download this job"),
     450: _('Some job is downloaded right now, please try again later'),
     451: _('Wrong parameters, please reload page and try again.'),
     504: _('The report was not found'),

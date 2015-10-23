@@ -309,16 +309,17 @@ $(document).ready(function () {
         return false;
     });
 
-    $('#jobstree-fullscreen-btn').click(function () {
+    var fullscreen_btn = $('#jobstree-fullscreen-btn');
+    fullscreen_btn.popup();
+    fullscreen_btn.click(function () {
+        fullscreen_btn.popup('hide');
         var tree_1_bigpart = $('#jobstree-first-big-part');
         if (tree_1_bigpart.is(':visible')) {
             tree_1_bigpart.hide();
-            $(this).find('i').attr('class', "toggle down icon");
             $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;')
         }
         else {
             tree_1_bigpart.show();
-            $(this).find('i').attr('class', "maximize icon");
             $('#jobtable').attr('style', 'max-height: ' + small_table_height + 'px;')
         }
         return false;
