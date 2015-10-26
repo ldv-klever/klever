@@ -15,8 +15,8 @@ ERRORS = {
     602: _("You don't have an access to delete this mark"),
     605: _("You don't have an access to download this mark"),
     650: _("Saving mark failed"),
-    704: _("Tag was not found"),
-    804: _("Problem was not found")
+    704: _("The tag was not found"),
+    804: _("The problem was not found")
 }
 
 JOB_CLASSES = (

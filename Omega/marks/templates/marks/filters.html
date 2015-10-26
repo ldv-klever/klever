@@ -10,7 +10,7 @@
                 <h4 class="header">{% trans 'Columns' %}</h4>
                 <div class="ui checkbox">
                     <input type="checkbox" id="marks_filter_checkbox__num_of_links"{% if 'num_of_links' in tabledata.view.columns %} checked{% endif %}>
-                    <label for="marks_filter_checkbox__num_of_links">{% trans 'Number of associated reports' %}</label>
+                    <label for="marks_filter_checkbox__num_of_links">{% trans 'The number of associated leaf reports' %}</label>
                 </div>
                 <br>
             {% if tabledata.type != 'unknown' %}
@@ -49,7 +49,7 @@
                 {% endif %}
                 <div class="ui radio checkbox">
                     <input id="marks_enable_order__repnum" {% if tabledata.type == 'unknown' %}type="checkbox" {% else %}type="radio" {% endif %}name="marks_enable_order" value="num_of_links"{% if tabledata.view.order == 'num_of_links' %} checked{% endif %}>
-                    <label for="marks_enable_order__repnum">{% trans 'Order by number of associated leaf reports' %}</label>
+                    <label for="marks_enable_order__repnum">{% trans 'Order by the number of associated leaf reports' %}</label>
                 </div>
             </div>
             <div class="eight wide column">
