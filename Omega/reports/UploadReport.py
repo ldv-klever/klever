@@ -366,12 +366,13 @@ class UploadReport(object):
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.problem_description = self.data['problem desc'].encode('utf8')
+        report.component = self.parent.component
         report.save()
 
         self.__add_attrs(report)
         self.__collect_attrs(report)
 
-        component = self.parent.component
+        component = report.component
         parent = self.parent
         while parent is not None:
             verdict, created = Verdict.objects.get_or_create(report=parent)
@@ -389,7 +390,7 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
-
+        ConnectReportWithMarks(report)
         return report
 
     def __create_report_safe(self, identifier):
@@ -486,7 +487,7 @@ class UploadReport(object):
     def __update_parent_resources(self, report):
 
         def update_total_resources(rep):
-            res_set = rep.componentresource_set.filter(~Q(component=None))
+            res_set = rep.resources_cache.filter(~Q(component=None))
             if len(res_set) > 0:
                 new_res = Resource()
                 if rep.resource is None:
@@ -505,8 +506,7 @@ class UploadReport(object):
                                          new_res.memory)
                 new_res.save()
                 try:
-                    total_compres = rep.componentresource_set.get(
-                        component=None)
+                    total_compres = rep.resources_cache.get(component=None)
                     total_compres.resource.delete()
                 except ObjectDoesNotExist:
                     total_compres = ComponentResource()
@@ -518,10 +518,10 @@ class UploadReport(object):
         component = report.component
 
         try:
-            report.componentresource_set.get(component=component)
+            report.resources_cache.get(component=component)
         except ObjectDoesNotExist:
-            report.componentresource_set.create(component=component,
-                                                resource=report.resource)
+            report.resources_cache.create(component=component,
+                                          resource=report.resource)
 
         parent = self.parent
         while parent is not None:
@@ -530,8 +530,7 @@ class UploadReport(object):
             new_resource.cpu_time = report.resource.cpu_time
             new_resource.memory = report.resource.memory
             try:
-                compres = parent.componentresource_set.get(
-                    component=component)
+                compres = parent.resources_cache.get(component=component)
                 new_resource.wall_time += compres.resource.wall_time
                 new_resource.cpu_time += compres.resource.cpu_time
                 new_resource.memory = max(compres.resource.memory,

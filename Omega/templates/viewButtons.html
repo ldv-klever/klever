@@ -6,24 +6,30 @@ view_id (int/str),
 views(list of dictionaries: [{'name': <name>, 'id': <view_id>}, ...])
 -->
 
-<div class="form-inline">
-    <label><input id="{{ view_type }}__view_name_input" type="text" class="form-control" placeholder="{% trans 'New view name' %}"></label>
-    <button id="{{ view_type }}__save_view_btn" type="button" class="btn btn-primary">{% trans 'Save' %}</button>
-    <button id="{{ view_type }}__show_unsaved_view_btn" type="button" style="float: right;margin-right: 10px;" class="btn btn-primary">{% trans 'Show' %}</button>
+<div class="ui grid">
+    <div class="ten wide column">
+        <div class="ui small action input fluid">
+            <input id="{{ view_type }}__view_name_input" type="text" placeholder="{% trans 'New view name' %}">
+            <button id="{{ view_type }}__save_view_btn" type="button" class="ui olive button">{% trans 'Save' %}</button>
+        </div>
+    </div>
+    <div class="six wide column right aligned">
+        <button id="{{ view_type }}__show_unsaved_view_btn" type="button" class="ui violet button">{% trans 'Show' %}</button>
+    </div>
 </div>
-<hr>
+<div class="ui divider"></div>
 <label for="{{ view_type }}__available_views"></label>
-<select id="{{ view_type }}__available_views" class="form-control" style="max-width: 200px;">
+<select id="{{ view_type }}__available_views" class="ui small dropdown">
     <option value="default">{% trans 'Default' %}</option>
     {% for v in views %}
         <option title="{{ v.name }}" value="{{ v.id }}"{% if view_id == v.id %} selected{% endif %}>{{ v.name }}</option>
     {% endfor %}
 </select>
-<br>
-<div class="btn-group">
-    <button id="{{ view_type }}__show_view_btn" type="button" class="btn btn-info">{% trans 'Show' %}</button>
-    <button id="{{ view_type }}__update_view_btn" type="button" class="btn btn-primary">{% trans 'Update' %}</button>
-    <button id="{{ view_type }}__prefer_view_btn" type="button" class="btn btn-success">{% trans 'Make preferred' %}</button>
-    <button id="{{ view_type }}__remove_view_btn" type="button" class="btn btn-danger">{% trans 'Delete' %}</button>
+<br><br>
+<div class="ui small buttons">
+    <button id="{{ view_type }}__show_view_btn" type="button" class="ui teal button">{% trans 'Show' %}</button>
+    <button id="{{ view_type }}__prefer_view_btn" type="button" class="ui green button">{% trans 'Make preferred' %}</button>
+    <button id="{{ view_type }}__update_view_btn" type="button" class="ui pink button">{% trans 'Update' %}</button>
+    <button id="{{ view_type }}__remove_view_btn" type="button" class="ui orange button">{% trans 'Delete' %}</button>
 </div>
 <input class="buttons-view-type" type="hidden" value="{{ view_type }}">

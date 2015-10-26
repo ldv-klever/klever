@@ -1,0 +1,158 @@
+{% load i18n %}
+
+<div class="ui styled accordion fluid">
+    <div class="title">
+        <i class="filter icon"></i>{% trans 'Filters' %}
+    </div>
+    <div class="content">
+        <div class="ui grid">
+            <div class="eight wide column">
+                <h4 class="header">{% trans 'Columns' %}</h4>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="marks_filter_checkbox__num_of_links"{% if 'num_of_links' in tabledata.view.columns %} checked{% endif %}>
+                    <label for="marks_filter_checkbox__num_of_links">{% trans 'Number of associated reports' %}</label>
+                </div>
+                <br>
+            {% if tabledata.type != 'unknown' %}
+                <div class="ui checkbox">
+                    <input type="checkbox" id="marks_filter_checkbox__verdict"{% if 'verdict' in tabledata.view.columns %} checked{% endif %}>
+                    <label for="marks_filter_checkbox__verdict">{% trans 'Verdict' %}</label>
+                </div>
+                <br>
+            {% endif %}
+                <div class="ui checkbox">
+                    <label for="marks_filter_checkbox__status">{% trans 'Status' %}</label>
+                    <input type="checkbox" id="marks_filter_checkbox__status"{% if 'status' in tabledata.view.columns %} checked{% endif %}>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="marks_filter_checkbox__author"{% if 'author' in tabledata.view.columns %} checked{% endif %}>
+                    <label for="marks_filter_checkbox__author">{% trans 'Last change author' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="marks_filter_checkbox__format"{% if 'format' in tabledata.view.columns %} checked{% endif %}>
+                    <label for="marks_filter_checkbox__format">{% trans 'Format' %}</label>
+                </div>
+                <br>
+                <h4 class="header">{% trans 'Order' %}</h4>
+                {% if tabledata.type != 'unknown' %}
+                    <div class="ui radio checkbox">
+                        <input id="marks_enable_order__attr" type="radio" name="marks_enable_order" value="attribute"{% if tabledata.view.order and tabledata.view.order != 'num_of_links' %} checked{% endif %}>
+                        <label for="marks_enable_order__attr">{% trans 'Order by attribute' %}</label>
+                    </div>
+                    <label for="filter__attr__order"></label>
+                    <div class="ui fluid input">
+                        <input id="filter__attr__order" type="text"{% if tabledata.view.order != 'num_of_links' %} value="{{ tabledata.view.order }}"{% endif %}>
+                    </div>
+                    <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small><br>
+                {% endif %}
+                <div class="ui radio checkbox">
+                    <input id="marks_enable_order__repnum" {% if tabledata.type == 'unknown' %}type="checkbox" {% else %}type="radio" {% endif %}name="marks_enable_order" value="num_of_links"{% if tabledata.view.order == 'num_of_links' %} checked{% endif %}>
+                    <label for="marks_enable_order__repnum">{% trans 'Order by number of associated leaf reports' %}</label>
+                </div>
+            </div>
+            <div class="eight wide column">
+                <h4 class="header">{% trans 'Filters' %}</h4>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="filter__enable__status"{% if 'status' in tabledata.view.filters %} checked{% endif %}>
+                    <label for="filter__enable__status">{% trans 'Status' %}</label>
+                </div>
+                <br>
+                <div class="ui grid">
+                    <div class="seven wide column">
+                        <label for="filter__type__status"></label>
+                        <select id="filter__type__status" class="ui dropdown fluid">
+                            <option value="is"{% if tabledata.view.filters.status.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="isnot"{% if tabledata.view.filters.status.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
+                        </select>
+                    </div>
+                    <div class="nine wide column">
+                        <label for="filter__value__status"></label>
+                        <select id="filter__value__status" class="ui dropdown fluid">
+                            {% for status in statuses %}
+                                <option value="{{ status.0 }}"{% if tabledata.view.filters.status.value == status.0 %} selected{% endif %}>{{ status.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <br>
+            {% if tabledata.type != 'unknown' %}
+                <div class="ui checkbox">
+                    <input type="checkbox" id="filter__enable__verdict"{% if 'verdict' in tabledata.view.filters %} checked{% endif %}>
+                    <label for="filter__enable__verdict">{% trans 'Verdict' %}</label>
+                </div>
+                <br>
+                <div class="ui grid">
+                    <div class="seven wide column">
+                        <label for="filter__type__verdict"></label>
+                        <select id="filter__type__verdict" class="ui dropdown fluid">
+                            <option value="is"{% if tabledata.view.filters.verdict.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="isnot"{% if tabledata.view.filters.verdict.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
+                        </select>
+                    </div>
+                    <div class="nine wide column">
+                        <label for="filter__value__verdict"></label>
+                        <select id="filter__value__verdict" class="ui dropdown fluid">
+                            {% for verdict in verdicts %}
+                                <option value="{{ verdict.0 }}"{% if tabledata.view.filters.verdict.value == verdict.0 %} selected{% endif %}>{{ verdict.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            {% endif %}
+                <br>
+                <div class="ui grid">
+                    <div class="four wide column">
+                        <div class="ui checkbox">
+                            <input type="checkbox" id="filter__enable__author"{% if 'author' in tabledata.view.filters %} checked{% endif %}>
+                            <label for="filter__enable__author">{% trans 'Author' %}</label><br>
+                        </div>
+                    </div>
+                    <div class="five wide column center aligned">
+                        <h4 class="header">{% trans 'is' %}</h4>
+                    </div>
+                    <div class="seven wide column">
+                        <label for="filter__value__author"></label>
+                        <select id="filter__value__author" class="ui dropdown fluid">
+                            {% for author in authors %}
+                                <option value="{{ author.pk }}"{% if tabledata.view.filters.author.value == author.pk %} selected{% endif %}>{{ author.extended.last_name }} {{ author.extended.first_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            {% if tabledata.type != 'unknown' %}
+                <h4 class="header">{% trans 'Value of attribute' %}</h4>
+                <div class="ui fluid input">
+                    <label for="filter__attr__attr"></label>
+                    <input id="filter__attr__attr" type="text" value="{{ tabledata.view.filters.attr.attr }}">
+                </div>
+                <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
+                <br><br>
+                <div class="ui grid">
+                    <div class="six wide column">
+                        <label for="filter__attr__type"></label>
+                        <select id="filter__attr__type" class="ui dropdown fluid">
+                            <option value="iexact"{% if tabledata.view.filters.attr.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="istartswith"{% if tabledata.view.filters.attr.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                        </select>
+                    </div>
+                    <div class="ten wide column">
+                        <div class="ui input fluid">
+                            <label for="filter__attr__value"></label>
+                            <input id="filter__attr__value" type="text" value="{{ tabledata.view.filters.attr.value }}">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            </div>
+        </div>
+        <div class="ui divider"></div>
+        <div class="ui grid">
+            <div class="four wide column"></div>
+            <div class="seven wide column center aligned">
+                {% include 'viewButtons.html' with view_type=view_type view_id=tabledata.view_id views=views %}
+            </div>
+        </div>
+    </div>
+</div>

@@ -2,117 +2,56 @@
     width: 100%;
     max-width: 100%;
     overflow-x: auto;
-    max-height: 670px;
     overflow-y: auto;
-}
-
-th {
-    text-align: center;
-}
-
-.treegrid-span-obj {
-    color: indigo;
-}
-
-.btn-close-x {
-    background-color:#fd7e83;
-    border-radius: 25px;
-    -moz-border-radius: 25px;
-    -webkit-border-radius:25px;
-    border:1px solid #ef1924;
-    display:inline-block;
-    color:#ffffff;
-    font-weight:bold;
-    height:20px;
-    line-height:20px;
-    width:20px;
-    padding-left: 3px;
-}
-
-.btn-close-x:hover {
-	background-color: #e61924;
-}
-.btn-close-x:active {
-	position:relative;
-	top:1px;
-}
-
-#jobstree-fullscreen-btn {
-    float: right;
-    height: 20px;
-    width: 20px;
-    padding-top: 0;
-}
-
-.show-job-name {
-    font-style: italic;
-}
-
-#available_views {
-    max-width: 187px;
-}
-
-#new_view_name_input {
-    max-width: 200px;
-    margin-left: 20px;
-}
-
-#jobview_view_name_input {
-    width: 250px;
-    margin-left: 5px;
-}
-
-#jobview_available_views {
-    max-width: 150px;
+    max-height: 670px;
 }
 
 input[type=checkbox] {
     margin-right: 3px;
 }
 
-.col-vertical-buttons {
-    float: left;
-    width: 4%;
+.status0-link:link {
+    color: #f1ffff;
 }
-
-.dt-text {
-    padding-left: 5px;
-    -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
-    border-radius: 5px;
-    border: 1px solid #a1b0dd;
-    max-height: 450px;
-    overflow-y: auto;
-    padding-top: 10px;
-    padding-bottom: 10px;
+.status0-link:visited {
+    color: #f1ffff;
 }
-
-.glyphicon-button {
-    padding-left: 3px;
+.status1-link:link {
+    color: #cbff4d;
 }
-
-.unimportant-text {
-    color: silver;
+.status1-link:visited {
+    color: #cbff4d;
 }
-
-.modal-loading {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
-    background: rgba(255, 255, 255, .8 )
-                url('/static/images/loading.gif')
-                50% 50%
-                no-repeat;
+.status2-link:link {
+    color: #ff82ce;
 }
-
-body.loading {
-    overflow: hidden;
+.status2-link:visited {
+    color: #ff82ce;
 }
-
-body.loading .modal-loading {
-    display: block;
+.status3-link:link {
+    color: #4ce215;
+}
+.status3-link:visited {
+    color: #4ce215;
+}
+.status4-link:link {
+    color: #ef4a4a;
+}
+.status4-link:visited {
+    color: #ef4a4a;
+}
+.status5-link:link {
+    color: #ef4a4a;
+}
+.status5-link:visited {
+    color: #ef4a4a;
+}
+.status6-link:link {
+    color: #ff853d;
+}
+.status6-link:visited {
+    color: #ff853d;
+}
+.status-link:hover {
+    color: #87ffbf;
 }

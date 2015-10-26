@@ -92,16 +92,16 @@ window.download_job = function(job_id) {
             success: function (resp) {
                 if (resp.status) {
                     clearInterval(interval);
-                    $('body').removeClass("loading");
+                    $('#dimmer_of_page').removeClass('active');
                     window.location.replace(job_ajax_url + 'downloadjob/' + job_id + '/' + '?hashsum=' + resp.hash_sum);
                 }
                 else {
-                    $('body').addClass("loading");
+                    $('#dimmer_of_page').addClass('active');
                 }
             }
         });
     };
-    $('body').addClass("loading");
+    $('#dimmer_of_page').addClass('active');
     interval = setInterval(try_lock, 1000);
 };
 
@@ -229,15 +229,33 @@ window.set_actions_for_views = function(filter_type, data_collection) {
 };
 
 $(document).ready(function () {
+    $('.browse').popup({
+        inline: true,
+        hoverable: true,
+        position: 'bottom left',
+        delay: {
+            show: 300,
+            hide: 600
+        }
+    });
+    $('.ui.checkbox').checkbox();
+    $('.ui.accordion').accordion();
+
+    $('#upload_marks_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_marks_popup', 'show');
+    $('#upload_job_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_job_popup', 'show');
 
     $('#upload_marks_start').click(function () {
-        $('body').addClass("loading");
-        $('#upload_marks_popup').toggle();
         var files = $('#upload_marks_file_input')[0].files,
             data = new FormData();
+        if (files.length <= 0) {
+            err_notify($('#error__no_file_chosen').text());
+            return false;
+        }
         for (var i = 0; i < files.length; i++) {
             data.append('file', files[i]);
         }
+        $('#upload_marks_popup').modal('hide');
+        $('body').addClass("loading");
         $.ajax({
             url: marks_ajax_url + 'upload_marks/',
             type: 'POST',
@@ -274,8 +292,9 @@ $(document).ready(function () {
 
     $('#upload_marks_cancel').click(function () {
         var file_input = $('#upload_marks_file_input');
-        file_input.replaceWith(file_input.clone( true ));
+        file_input.replaceWith(file_input.clone(true));
         $('#upload_marks_filename').empty();
+        $('#upload_marks_popup').modal('hide');
     });
 
     $('#upload_marks_file_input').on('fileselect', function () {
@@ -301,19 +320,25 @@ $(document).ready(function () {
         file_input.replaceWith(file_input.clone( true ));
         $('#upload_job_parent_id').val('');
         $('#upload_job_filename').empty();
+        $('#upload_job_popup').modal('hide');
     });
 
     $('#upload_jobs_start').click(function () {
         var parent_id = $('#upload_job_parent_id').val();
-        if (parent_id.length === 0) {
+        if (parent_id.length == 0) {
             err_notify($('#error__parent_required').text());
             return false;
         }
         var files = $('#upload_job_file_input')[0].files,
             data = new FormData();
+        if (files.length <= 0) {
+            err_notify($('#error__no_file_chosen').text());
+            return false;
+        }
         for (var i = 0; i < files.length; i++) {
             data.append('file', files[i]);
         }
+        $('#upload_job_popup').modal('hide');
         $.ajax({
             url: job_ajax_url + 'upload_job/' + encodeURIComponent(parent_id) + '/',
             type: 'POST',

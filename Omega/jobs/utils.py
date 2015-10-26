@@ -112,7 +112,7 @@ class JobAccess(object):
     def can_delete(self):
         if self.job is None:
             return False
-        if len(self.job.children_set.all()) > 0:
+        if len(self.job.children.all()) > 0:
             return False
         if self.__is_manager:
             return True
@@ -125,8 +125,8 @@ class JobAccess(object):
     def __get_prop(self, user):
         if self.job is not None:
             try:
-                first_version = self.job.jobhistory_set.get(version=1)
-                last_version = self.job.jobhistory_set.get(
+                first_version = self.job.versions.get(version=1)
+                last_version = self.job.versions.get(
                     version=self.job.version)
             except ObjectDoesNotExist:
                 return
@@ -147,7 +147,7 @@ class FileData(object):
         self.__order_by_lvl()
 
     def __get_filedata(self, job):
-        for f in job.file_set.all().order_by('name'):
+        for f in job.filesystem_set.all().order_by('name'):
             file_info = {
                 'title': f.name,
                 'id': f.pk,
@@ -327,7 +327,7 @@ def role_info(job, user):
     users = []
     user_roles_data = []
     users_roles = job.userrole_set.filter(~Q(user=user))
-    job_author = job.job.jobhistory_set.get(version=1).change_author
+    job_author = job.job.versions.get(version=1).change_author
 
     for ur in users_roles:
         title = ur.user.extended.last_name + ' ' + ur.user.extended.first_name
@@ -418,11 +418,17 @@ def create_job(kwargs):
             return db_fdata.err_message
     if 'absolute_url' in kwargs:
         newjob_url = reverse('jobs:job', args=[newjob.pk])
-        Notify(newjob, 0, {
-            'absurl': kwargs['absolute_url'] + newjob_url
-        })
+        try:
+            Notify(newjob, 0, {
+                'absurl': kwargs['absolute_url'] + newjob_url
+            })
+        except Exception as e:
+            print(e)
     else:
-        Notify(newjob, 0)
+        try:
+            Notify(newjob, 0)
+        except Exception as e:
+            print(e)
     return newjob
 
 
@@ -451,9 +457,15 @@ def update_job(kwargs):
             kwargs['job'].save()
             return db_fdata.err_message
     if 'absolute_url' in kwargs:
-        Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
+        try:
+            Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
+        except Exception as e:
+            print(e)
     else:
-        Notify(kwargs['job'], 1)
+        try:
+            Notify(kwargs['job'], 1)
+        except Exception as e:
+            print(e)
     return kwargs['job']
 
 
@@ -468,7 +480,10 @@ def remove_jobs_by_id(user, job_ids):
         if not JobAccess(user, job).can_delete():
             return 400
     for job in jobs:
-        Notify(job, 2)
+        try:
+            Notify(job, 2)
+        except Exception as e:
+            print(e)
         job.delete()
     clear_files()
     return 0
@@ -480,7 +495,7 @@ def delete_versions(job, versions):
         v = int(v)
         if v != 1 and v != job.version:
             access_versions.append(v)
-    checked_versions = job.jobhistory_set.filter(version__in=access_versions)
+    checked_versions = job.versions.filter(version__in=access_versions)
     num_of_deleted = len(checked_versions)
     checked_versions.delete()
     clear_files()

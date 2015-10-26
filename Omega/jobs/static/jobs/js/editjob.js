@@ -71,40 +71,39 @@ function set_actions_for_edit_form () {
         }
     }
 
-    check_all_roles();
     check_add_user_role();
+    check_all_roles();
     set_actions_for_file_form();
+    $('.ui.dropdown').dropdown();
 
     $('#add_user_for_role').click(function () {
-        var selected_user = $('#job_available_users').children('option:selected');
+        var user_selector = $('#job_available_users'),
+            selected_user = user_selector.children('option:selected');
         if (selected_user.length === 0) {
             return false;
         }
         var user_id = selected_user.val(), user_name = selected_user.text();
         var user_role_templ = $('#template__user_role').html();
-        var new_user_role = $('<tr>', {
-            id: ('job_user_role__' + user_id)
+        var new_user_role = $('<div>', {
+            id: ('job_user_role__' + user_id),
+            class: 'ui grid segment'
         });
 
-        var tmp_tr = $('<tr>');
-        tmp_tr.append(user_role_templ);
-        tmp_tr.find("[for=job_user_role_select__]").each(function () {
+        var tmp_div = $('<div>');
+        tmp_div.append(user_role_templ);
+        tmp_div.find("[for=job_user_role_select__]").each(function () {
             var old_id = $(this).attr('for');
             $(this).attr('for', old_id + user_id);
             $(this).text(user_name);
         });
 
-        // new_user_role.append(user_role_templ);
-        tmp_tr.find("[id]").each(function () {
+        tmp_div.find("[id]").each(function () {
             var old_id = $(this).attr('id');
             $(this).attr('id', old_id + user_id);
         });
+        tmp_div.find("select[id^='job_user_role_select__']").attr('class', 'ui dropdown');
 
-        tmp_tr.children().each(function () {
-            new_user_role.append($('<td>').append($(this)));
-        });
-
-        $('#all_user_roles').append(new_user_role);
+        $('#all_user_roles').append(new_user_role.append(tmp_div.html()));
         selected_user.remove();
         $("#remove_user_role__" + user_id).click(function () {
             $('#job_available_users').append($('<option>', {
@@ -117,6 +116,12 @@ function set_actions_for_edit_form () {
 
         check_add_user_role();
         check_all_roles();
+        user_selector.dropdown('set selected', user_selector.children().first().val()).dropdown('refresh');
+        $('.ui.dropdown').each(function () {
+            if ($(this).find('select').first().attr('id') != user_selector.attr('id')) {
+                $(this).dropdown();
+            }
+        });
     });
 
     $("button[id^='remove_user_role__']").click(function () {
@@ -126,7 +131,7 @@ function set_actions_for_edit_form () {
     });
 
     $('#job_global_roles').change(function() {
-        $('#all_user_roles').find("tr[id^='job_user_role__']").each(function () {
+        $('#all_user_roles').find("div[id^='job_user_role__']").each(function () {
             var id = $(this).attr('id').replace('job_user_role__', '');
             remove_user_role_form(id);
         });
@@ -323,14 +328,14 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
     if (parent_id) {
         row_class += ' treegrid-parent-' + parent_id;
     }
-    if (type === 0) {
-        row_class += ' success'
-    }
     var new_row = $('<tr>', {
         id: 'filerow__' + type + '__' + id,
         class: row_class
     });
-    new_row.append($('<td>', {class: 'col-sm-1'}).append($('<label>').append($('<input>', {
+    if (type === 0) {
+        new_row.attr('style', 'background:#eee8b7;')
+    }
+    new_row.append($('<td>', {class: 'one wide'}).append($('<div>', {class: 'ui radio checkbox'}).append($('<input>', {
         id: 'selected_filerow__' + type + '__' + id,
         type: 'radio',
         name: 'selected_filerow',
@@ -361,26 +366,8 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
 }
 
 
-function add_new_editform(template_id) {
-    var editform = $('#edit_files_form');
-    editform.html($('#' + template_id).html());
-    editform.find("[id^='tmp___']").each(function () {
-        var new_id = $(this).attr('id').replace('tmp___', '');
-        $(this).attr('id', new_id);
-    });
-    editform.find("[for^='tmp___']").each(function () {
-        var new_id = $(this).attr('for').replace('tmp___', '');
-        $(this).attr('for', new_id);
-    });
-}
-
-
 function update_treegrid() {
-    $('.tree').treegrid({
-        treeColumn: 1,
-        expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
-        expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
-    });
+    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon');
     $('input[id^="selected_filerow__"]').click(function () {
         $('#edit_files_form').empty();
     });
@@ -396,10 +383,12 @@ function selected_row() {
 }
 
 function set_action_on_file_click () {
-    $('#file_tree_table').find('a').click(function () {
-        var file_div = $('#file_content_div'),
-            href = $(this).attr('href');
-        if (file_div.length && isFileReadable($(this).text())) {
+    $('#file_tree_table').find('a').click(function (event) {
+        var href = $(this).attr('href'), file_name = $(this).text(),
+            close_fileview_btn = $('#close_file_view'),
+            download_file_btn = $('#download_file_form_view');
+        $('#file_content_modal').modal('setting', 'transition', 'fade');
+        if (isFileReadable(file_name)) {
             event.preventDefault();
             $.ajax({
                 url: job_ajax_url + 'getfilecontent/',
@@ -410,17 +399,19 @@ function set_action_on_file_click () {
                         JSON.stringify(data);
                         err_notify(data.message);
                     } catch (e) {
-                        $('#file_content_div').find('div').text(data);
-                        file_div.show();
-                        $('body').addClass("file-view");
-                        $('#close_file_view').click(function () {
-                            $('body').removeClass("file-view");
-                            $('#file_content_div').find('div').empty();
-                            file_div.hide();
+                        close_fileview_btn.unbind();
+                        close_fileview_btn.click(function () {
+                            $('#file_content_modal').modal('hide');
+                            $('#file_content').empty();
                         });
-                        $('#download_file_form_view').click(function () {
+                        download_file_btn.unbind();
+                        download_file_btn.click(function () {
+                            $('#file_content_modal').modal('hide');
                             window.location.replace(href);
                         });
+                        $('#file_content_name').text(file_name);
+                        $('#file_content').text(data);
+                        $('#file_content_modal').modal('show');
                     }
                 }
             });
@@ -445,16 +436,22 @@ function set_actions_for_file_form() {
 
     update_treegrid();
     set_action_on_file_click();
+    $('.ui.checkbox').checkbox();
     var cnt = 0;
 
-    $('#new_folder_btn').click(function () {
-        add_new_editform('new_folder_template');
+    $('#new_folder_modal').modal({onShow: function () {
+        var folder_parents = $('#new_folder_parent'),
+            confirm_btn = $('#create_new_folder_btn');
+        folder_parents.children('option[value!="root"]').remove();
+        $('#new_folder_name').val('');
         var parent_options = get_folders();
         for (var i = 0; i < parent_options.length; i++) {
-            $('#new_folder_parent').append(parent_options[i]);
+            folder_parents.append(parent_options[i]);
         }
+        folder_parents.dropdown('set selected', folder_parents.children().first().val());
 
-        $('#create_new_folder_btn').click(function () {
+        confirm_btn.unbind('click');
+        confirm_btn.click(function () {
             var fname = $('#new_folder_name').val();
             if (check_filename(fname)) {
                 var parent_id = $('#new_folder_parent').children('option:selected').val(),
@@ -471,22 +468,72 @@ function set_actions_for_file_form() {
                     );
                 }
                 update_treegrid();
-                $('#edit_files_form').empty();
+                $('.ui.checkbox').checkbox();
+                $('#new_folder_modal').modal('hide');
             }
         });
+    }, transition: 'fly left'}).modal('attach events', '#new_folder_btn', 'show');
 
-        $('#clear_file_form').click(function () {
-            $('#edit_files_form').empty();
+
+    $('#new_file_modal').modal({onShow: function () {
+        var new_opts = get_folders(), file_parents = $('#new_file_parent'),
+            file_input = $('#new_file_input'), confirm_btn = $('#save_new_file_btn');
+        file_parents.children('option[value!="root"]').remove();
+        $('#new_file_name').val('');
+        file_input.replaceWith(file_input.clone(true));
+        for (var i = 0; i < new_opts.length; i++) {
+            file_parents.append(new_opts[i]);
+        }
+        file_parents.dropdown('set selected', file_parents.children().first().val());
+
+        $('.btn-file :file').on('fileselect', function (event, numFiles, label) {
+            $('#new_file_name').val(label);
         });
-    });
+        confirm_btn.unbind('click');
+        confirm_btn.click(function () {
+            var filename = $('#new_file_name').val(),
+                parent_id = $('#new_file_parent').children('option:selected').val(),
+                file_input = $('#new_file_input');
 
+            if (file_input.val().length > 0) {
+                if (check_filename(filename)) {
+                    var parent_row = $('#filerow__0__' + parent_id);
+                    cnt++;
+                    if (parent_row.length) {
+                        parent_row.after(
+                            new_filetable_row(1, 'newfile_' + cnt, parent_id, filename)
+                        );
+                    }
+                    else {
+                        $('#file_tree_table').append(
+                            new_filetable_row(1, 'newfile_' + cnt, null, filename)
+                        );
+                    }
+                    file_input.attr('id', 'new_file_input__newfile_' + cnt);
+                    $('#files_for_upload').append(file_input);
+                    $('#new_file_input_btn').append($('<input>', {
+                        id: 'new_file_input',
+                        type: 'file'
+                    }));
 
+                    update_treegrid();
+                    $('.ui.checkbox').checkbox();
+                    $('#new_file_modal').modal('hide');
+                }
+            }
+            else {
+                err_notify($('#error__nofile_selected').text());
+            }
+        });
+    }, transition: 'fly left'}).modal('attach events', '#new_file_btn', 'show');
+
+    $('#rename_modal').modal({transition: 'fly left'});
     $('#rename_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
-            add_new_editform('rename_template');
-            var title_span = $('#file_title__' + selected[0] + '__' + selected[1]);
-            var old_title;
+            $('#rename_modal').modal('show');
+            var title_span = $('#file_title__' + selected[0] + '__' + selected[1]),
+                confirm_btn = $('#change_name_btn'), old_title;
             if (title_span.children('a').length > 0) {
                 old_title = title_span.children('a').first().text();
             }
@@ -495,21 +542,21 @@ function set_actions_for_file_form() {
             }
             $('#object_name').val(old_title);
 
-            $('#change_name_btn').click(function () {
+            confirm_btn.unbind('click');
+            confirm_btn.click(function () {
                 var new_title = $('#object_name').val();
-                if (check_filename(new_title)) {
+                if (old_title != new_title && check_filename(new_title)) {
                     title_span.text(new_title);
-                    $('#edit_files_form').empty();
                 }
+                $('#rename_modal').modal('hide');
             });
-
-             $('#clear_file_form').click(function () {
-                $('#edit_files_form').empty();
-            });
+        }
+        else {
+            err_notify($('#error__noobj_to_rename').text());
         }
     });
 
-
+    $('#move_file_modal').modal({transition: 'fly left'});
     $('#move_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -519,7 +566,7 @@ function set_actions_for_file_form() {
                 err_notify($('#error__cant_move_dir').text());
                 return;
             }
-            add_new_editform('move_object_template');
+            $('#move_file_modal').modal('show');
             var file_title_span = $('#file_title__1__' + sel_id);
             var object_title, href = null;
             if (file_title_span.children('a').length > 0) {
@@ -529,14 +576,18 @@ function set_actions_for_file_form() {
             else {
                 object_title = file_title_span.text();
             }
-            var hash_sum = $('#file_hash_sum__1__' + sel_id).text();
+            var hash_sum = $('#file_hash_sum__1__' + sel_id).text(),
+                file_parents = $('#move_object_parent'), confirm_btn = $('#move_obj_btn');
             $('#moving_object_title').text(object_title);
+            file_parents.children('option[value!="root"]').remove();
             var new_opts = get_folders();
             for (var i = 0; i < new_opts.length; i++) {
-                $('#move_object_parent').append(new_opts[i]);
+                file_parents.append(new_opts[i]);
             }
+            file_parents.dropdown('set selected', file_parents.children().first().val());
 
-            $('#move_obj_btn').click(function () {
+            confirm_btn.unbind('click');
+            confirm_btn.click(function () {
                 var new_parent_id = $('#move_object_parent').children('option:selected').val(),
                     new_parent = $('#filerow__0__' + new_parent_id);
                 $('#filerow__1__' + sel_id).remove();
@@ -552,26 +603,27 @@ function set_actions_for_file_form() {
                 }
                 update_treegrid();
                 set_action_on_file_click();
-                $('#edit_files_form').empty();
+                $('.ui.checkbox').checkbox();
+                $('#move_file_modal').modal('hide');
             });
-
-            $('#clear_file_form').click(function () {
-                $('#edit_files_form').empty();
-            });
+        }
+        else {
+            err_notify($('#error__cant_move_file').text());
         }
     });
 
-
-    $('#remove_file_btn').click(function () {
+    $('#remove_object_modal').modal({transition: 'fly left'});
+    $('#remove_obj_btn').click(function () {
         var selected = selected_row();
         if (selected) {
-            var sel_type = selected[0],
-                sel_id = selected[1];
-            add_new_editform('remove_object_template');
-            var object_title = $('#file_title__' + sel_type + '__' + sel_id).text();
+            $('#remove_object_modal').modal('show');
+            var sel_type = selected[0], sel_id = selected[1],
+                object_title = $('#file_title__' + sel_type + '__' + sel_id).text(),
+                confirm_btn = $('#remove_object_btn');
             $('#remove_object_title').text(object_title);
 
-            $('#remove_object_btn').click(function () {
+            confirm_btn.unbind('click');
+            confirm_btn.click(function () {
                 var objects_for_delete = [];
                 var re_parent = /treegrid-parent-(\S+)\s*/;
                 var children = [];
@@ -601,63 +653,15 @@ function set_actions_for_file_form() {
                     $('#new_file_input__' + objects_for_delete[i]).remove();
                 }
                 update_treegrid();
-                $('#edit_files_form').empty();
+                $('#remove_object_modal').modal('hide');
             });
-
-            $('#clear_file_form').click(function () {
-                $('#edit_files_form').empty();
-            });
+        }
+        else {
+            err_notify($('#error__noobj_to_delete').text());
         }
     });
 
-
-    $('#new_file_btn').click(function () {
-        add_new_editform('new_file_template');
-        var new_opts = get_folders();
-        for (var i = 0; i < new_opts.length; i++) {
-            $('#new_file_parent').append(new_opts[i]);
-        }
-
-        $('.btn-file :file').on('fileselect', function (event, numFiles, label) {
-            $('#new_file_name').val(label);
-        });
-
-        $('#save_new_file_btn').click(function () {
-            var filename = $('#new_file_name').val(),
-                parent_id = $('#new_file_parent').children('option:selected').val(),
-                file_input = $('#new_file_input');
-
-            if (file_input.val().length > 0) {
-                if (check_filename(filename)) {
-                    var parent_row = $('#filerow__0__' + parent_id);
-                    cnt++;
-                    if (parent_row.length) {
-                        parent_row.after(
-                            new_filetable_row(1, 'newfile_' + cnt, parent_id, filename)
-                        );
-                    }
-                    else {
-                        $('#file_tree_table').append(
-                            new_filetable_row(1, 'newfile_' + cnt, null, filename)
-                        );
-                    }
-                    file_input.attr('id', 'new_file_input__newfile_' + cnt);
-                    $('#files_for_upload').append(file_input);
-
-                    update_treegrid();
-                    $('#edit_files_form').empty();
-                }
-            }
-            else {
-                err_notify($('#error__nofile_selected').text());
-            }
-        });
-
-        $('#clear_file_form').click(function () {
-            $('#edit_files_form').empty();
-        });
-    });
-
+    $('#replace_file_modal').modal({transition: 'fly left'});
     $('#replace_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -668,25 +672,30 @@ function set_actions_for_file_form() {
                 err_notify($('#error__cant_replace_folder').text());
                 return;
             }
-            add_new_editform('replace_file_template');
-            var new_opts = get_folders();
-            for (var i = 0; i < new_opts.length; i++) {
-                $('#new_file_parent').append(new_opts[i]);
-            }
+            var file_input = $('#replace_file_input');
+            $('#replace_file_name').val('');
+            file_input.replaceWith(file_input.clone(true));
+
+            $('#replace_file_modal').modal('show');
 
             $('.btn-file :file').on('fileselect', function (event, numFiles, label) {
-                $('#new_file_name').val(label);
+                $('#replace_file_name').val(label);
             });
-
-            $('#save_new_file_btn').click(function () {
-                var filename = $('#new_file_name').val(),
-                    file_input = $('#new_file_input');
+            var confirm_btn = $('#replace_file_confirm');
+            confirm_btn.unbind('click');
+            confirm_btn.click(function () {
+                var filename = $('#replace_file_name').val(),
+                    file_input = $('#replace_file_input');
 
                 if (file_input.val().length > 0) {
                     if (check_filename(filename)) {
                         cnt++;
                         file_input.attr('id', 'new_file_input__newfile_' + cnt);
                         $('#files_for_upload').append(file_input);
+                        $('#replace_file_input_btn').append($('<input>', {
+                            id: 'replace_file_input',
+                            type: 'file'
+                        }));
 
                         $('#file_title__1__' + sel_id).text(filename);
                         $('#file_hash_sum__1__' + sel_id).empty();
@@ -700,7 +709,7 @@ function set_actions_for_file_form() {
                             $(this).attr('class', 'treegrid-newfile_' + cnt);
                         });
                         update_treegrid();
-                        $('#edit_files_form').empty();
+                        $('#replace_file_modal').modal('hide');
                     }
                 }
                 else {
@@ -716,17 +725,31 @@ function set_actions_for_file_form() {
             err_notify($('#error__noselected_replace').text());
         }
     });
+    $('.clear-modal').click(function () {
+        $('.ui.modal').modal('hide');
+    });
 
     return false;
 }
 
 
 function set_actions_for_versions_delete() {
+    $('.ui.checkbox').checkbox();
+
+    $('#remove_versions_popup').modal({transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#show_remove_versions_modal', 'show');
     $('#cancel_edit_job_btn').click(function () {
         window.location.replace('');
     });
+    $('#reload_page__versions').click(function () {
+        window.location.replace('');
+    });
+    $('#cancel_remove_versions').click(function () {
+        $('#remove_versions_popup').modal('hide');
+    });
 
     $('#delete_versions_btn').click(function () {
+        $('#remove_versions_popup').modal('hide');
         var checked_versions = [];
         $('input[id^="checkbox_version__"]').each(function () {
             if ($(this).is(':checked')) {
@@ -737,18 +760,29 @@ function set_actions_for_versions_delete() {
             job_ajax_url + 'remove_versions/',
             {job_id: $('#job_pk').text(), versions: JSON.stringify(checked_versions)},
             function (data) {
+                var global_parent;
                 $.each(checked_versions, function (i, val) {
-                     $("#checkbox_version__" + val).parent().parent().parent().remove();
+                    var curr_checkbox = $("#checkbox_version__" + val);
+                    global_parent = curr_checkbox.parent().parent().parent();
+                    curr_checkbox.parent().parent().remove();
                 });
                 data.status === 0 ? success_notify(data.message) : err_notify(data.message);
+                if (global_parent && global_parent.children().first().children().length == 0) {
+                    $('#versions_to_delete').hide();
+                    $('#no_versions_to_delete').show();
+                }
             },
             'json'
         );
     });
 }
 
-
 $(document).ready(function () {
+    $('#remove_job_popup').modal({transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#show_remove_job_popup', 'show');
+    $('#cancel_remove_job').click(function () {
+        $('#remove_job_popup').modal('hide');
+    });
 
     if ($('#edit_job_div').length) {
         $.ajax({
@@ -757,11 +791,7 @@ $(document).ready(function () {
             type: 'POST',
             success: function (data) {
                 $('#edit_job_div').html(data);
-                $('.tree').treegrid({
-                    treeColumn: 0,
-                    expanderExpandedClass: 'treegrid-span-obj glyphicon glyphicon-folder-open',
-                    expanderCollapsedClass: 'treegrid-span-obj glyphicon glyphicon-folder-close'
-                });
+                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
                 set_action_on_file_click();
             }
         });
@@ -772,6 +802,7 @@ $(document).ready(function () {
     }
 
     $('#edit_job_btn').click(function () {
+        $('.ui.dinamic.modal').remove();
         $.post(
             job_ajax_url + 'editjob/',
             {job_id: $('#job_pk').text()},
@@ -790,6 +821,7 @@ $(document).ready(function () {
     });
 
     $('#remove_job_btn').click(function () {
+        $('#remove_job_popup').modal('hide');
         $.post(
             job_ajax_url + 'removejobs/',
             {jobs: JSON.stringify([$('#job_pk').text()])},

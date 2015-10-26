@@ -1,29 +1,37 @@
 {% load i18n %}
 
-<h3>{% trans 'Notifications' %}</h3>
-<table class="table table-bordered tree table-fixed" style="margin-bottom: 10px;; text-align: center;">
-    <thead>
-        <tr class="info"><th></th><th style="text-align: center;" colspan="{{ tdata.table.colspan }}">{{ tdata.table.head_0 }}:</th></tr>
-        <tr class="info">
-            <th></th>
-            {% for h1 in tdata.table.head_1 %}
-                <th style="text-align: center;">{{ h1 }}</th>
-            {% endfor %}
-        </tr>
-    </thead>
-    <tbody>
-    {% for rd in tdata.table.rows %}
-        <tr>
-            <th class="info col-sm-4" style="text-align: right;">{{ rd.name }}</th>
-            {% for id in rd.ids %}
-                <td><label><input type="checkbox" id="ntf__{{ id }}"{% if id in tdata.settings %} checked{% endif %}></label></td>
-            {% endfor %}
-        </tr>
-    {% endfor %}
-        <tr class="info">
-            <th style="text-align: right;"><label for="self_ntf">{{ tdata.table.footer }}</label></th>
-            <th colspan="{{ tdata.table.colspan }}"><input type="checkbox" id="self_ntf"{% if tdata.self_ntf %} checked{% endif %}></th>
-        </tr>
-    </tbody>
-</table>
-<button id="save_notifications" class="btn btn-success">{% trans 'Save' %}</button>
+<h3 class="ui header left aligned">{% trans 'Notifications' %}</h3>
+<div class="ui form">
+    <table class="ui padded celled table selectable">
+        <thead>
+            <tr><th></th><th class="center aligned" colspan="{{ tdata.table.colspan }}">{{ tdata.table.head_0 }}:</th></tr>
+            <tr>
+                <th></th>
+                {% for h1 in tdata.table.head_1 %}
+                    <th class="center aligned">{{ h1 }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for rd in tdata.table.rows %}
+            <tr class="center aligned">
+                <th class="right aligned">{{ rd.name }}</th>
+                {% for id in rd.ids %}
+                    <td>
+                        <div class="ui checkbox">
+                            <input class="hidden" type="checkbox" id="ntf__{{ id }}"{% if id in tdata.settings %} checked{% endif %}>
+                        </div>
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div class="inline field">
+        <div class="ui toggle checkbox field">
+            <input class="hidden" type="checkbox" id="self_ntf"{% if tdata.self_ntf %} checked{% endif %}>
+            <label for="self_ntf">{{ tdata.table.footer }}</label>
+        </div>
+        <button id="save_notifications" class="ui purple button">{% trans 'Save' %}</button>
+    </div>
+</div>

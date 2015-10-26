@@ -11,120 +11,109 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="">
         <meta name="author" content="">
-        <link rel="icon" href="/static/images/omega.ico">
-        <title>Omega - {% block title %}{% trans 'Sign in' %}{% endblock %}</title>
+        <link rel="icon" href="/static/images/klever.ico">
+        <title>{% block title %}{% trans 'Sign in' %}{% endblock %} | Klever</title>
         <script type="text/javascript" src="{% static "js/jquery-2.1.4.min.js" %}"></script>
-        <script type="text/javascript" src="/static/js/bootstrap.min.js"></script>
         <script type="text/javascript" src="/static/js/notify.min.js"></script>
-        <script type="text/javascript" src="/static/js/jquery.treegrid.js"></script>
+        <script type="text/javascript" src="/static/semantic/semantic.min.js"></script>
         <script type="text/javascript" src="/static/js/omega.js"></script>
-        <link href="/static/css/jquery.treegrid.css" rel="stylesheet">
-        <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+        <script type="text/javascript" src="/static/js/treetable.js"></script>
+        <link href="/static/semantic/semantic.min.css" rel="stylesheet">
         <link href="/static/css/omega.css" rel="stylesheet">
         {% block head_block %}{% endblock %}
     </head>
     <body>
-        <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-            <div class="container-fluid">
-                <div class="navbar-header">
-                    <a class="navbar-brand" href="{% url 'jobs:tree' %}">
-                        <img height="26" width="50" src="/static/images/omega.png" alt="Omega">
-                    </a>
-                    <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
-                        <span class="sr-only">{% trans 'Toggle navigation' %}</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </button>
-                </div>
-                <div class="navbar-collapse collapse">
-                    <ul class="nav navbar-nav">
-                        {% if user.is_authenticated %}
-                            <li class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                                    {% trans 'Jobs' %} <span class="caret"></span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    {% block job_menu %}<li><a href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a></li>{% endblock %}
-                                    <li><a href = "#" data-toggle="modal" data-target="#upload_job_popup">{% trans 'Upload' %}</a></li>
-                                </ul>
-                            </li>
-                            <li class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-                                    {% trans 'Marks' %} <span class="caret"></span>
-                                </a>
-                                <ul class="dropdown-menu">
-                                    <li><a href="{% url 'marks:mark_list' 'unsafe' %}">{% trans 'Unsafes' %}</a></li>
-                                    <li><a href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a></li>
-                                    <li><a href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a></li>
-                                    <li><a href="#" data-toggle="modal" data-target="#upload_marks_popup">{% trans 'Upload' %}</a></li>
-                                </ul>
-                            </li>
-                            {% if user.is_staff %}
-                                <li><a href="/admin/">{% trans 'Admin Tools' %}</a></li>
-                                <li><a href="{% url 'population' %}">{% trans 'Population' %}</a></li>
-                            {% endif %}
-                        {% endif %}
-                    </ul>
-                    <ul class="nav navbar-nav navbar-right">
-                        {% if user.is_authenticated %}
-                            <li><a href="{% url 'users:show_profile' user.pk %}">{{ user.username }}</a></li>
-                            <li><a href="{% url 'users:edit_profile' %}">{% trans 'Settings' %}</a></li>
-                            <li><a href="{% url 'users:logout' %}">{% trans 'Sign Out' %}</a></li>
-                        {% else %}
-                            <li><a href="{% url 'users:register' %}">{% trans 'Register' %}</a></li>
-                            <li><a href="{% url 'users:login' %}">{% trans 'Sign In' %}</a></li>
-                        {% endif %}
-                    </ul>
+        <div id="dimmer_of_page" class="ui dimmer">
+            <div class="ui text loader">{% trans 'Loading' %}</div>
+        </div>
+
+        <div id="page_header" class="ui fixed inverted menu">
+            <div class="item">
+                <a href="{% url 'jobs:tree' %}">
+                    <img height="30" width="105" src="/static/images/klever.png" alt="Omega">
+                </a>
+            </div>
+        {% if user.is_authenticated %}
+            <a class="browse item">{% trans 'Menu' %}<i class="dropdown icon"></i></a>
+            <div class="ui fluid inverted popup bottom left transition hidden" style="max-width: 50%;">
+                <div class="ui two column relaxed equeal height divided grid">
+                    <div class="column">
+                        <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
+                        <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
+                        <a class="item" href = "#" id="show_upload_job_popup">{% trans 'Upload' %}</a>
+                    </div>
+                    <div class="column">
+                        <h3 class="ui purple header">{% trans 'Marks' %}</h3>
+                        <a class="item" href="{% url 'marks:mark_list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
+                        <a class="item" href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a>
+                        <a class="item" href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a>
+                        <a class="item" href="#" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
+                    </div>
                 </div>
             </div>
+        {% if user.is_staff %}
+            <a class="item" href="/admin/">{% trans 'Admin Tools' %}</a>
+            <a class="item" href="{% url 'population' %}">{% trans 'Population' %}</a>
+        {% endif %}
+        {% endif %}
+            <div class="right menu">
+            {% if user.is_authenticated %}
+                <a class="item" href="{% url 'users:show_profile' user.pk %}">{{ user.username }}</a>
+                <a class="item" href="{% url 'users:edit_profile' %}">{% trans 'Settings' %}</a>
+                <a class="item" href="{% url 'users:logout' %}">{% trans 'Sign Out' %}</a>
+            {% else %}
+                <a class="item" href="{% url 'users:register' %}">{% trans 'Register' %}</a>
+                <a class="item" href="{% url 'users:login' %}">{% trans 'Sign In' %}</a>
+            {% endif %}
+            </div>
         </div>
-        <div class="container-fluid">
+        <br>
         {% block body_block %}{% endblock %}
-        </div>
-        <div class="modal-loading"></div>
-        <div id="upload_marks_popup" class="modal fade" role="dialog">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal">&times;</button>
-                        <h4 class="modal-title">{% trans 'Upload marks' %}</h4>
-                    </div>
-                    <div class="modal-body">
-                        <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_marks_file_input" type="file" multiple></span>
-                        <br>
-                        <span id="upload_marks_filename"></span>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="upload_marks_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
-                        <button id="upload_marks_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+        <div id="upload_marks_popup" class="ui modal">
+            <div class="header">{% trans 'Upload marks' %}</div>
+            <div class="content">
+                <div class="ui grid">
+                    <div class="row">
+                        <div class="four wide column right aligned">
+                            <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_marks_file_input" type="file" multiple></span>
+                        </div>
+                        <div class="twelve wide column">
+                            <span id="upload_marks_filename"></span>
+                        </div>
                     </div>
                 </div>
             </div>
+            <div class="actions">
+                <button id="upload_marks_start" type="button" class="ui positive left button">{% trans 'Upload' %}</button>
+                <button id="upload_marks_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+            </div>
         </div>
-        <div id="upload_job_popup" class="modal fade" role="dialog">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <button type="button" class="close" data-dismiss="modal">&times;</button>
-                        <h4 class="modal-title">{% trans 'Upload jobs' %}</h4>
-                    </div>
-                    <div class="modal-body">
-                        <p>{% trans "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
-                        <label><input id="upload_job_parent_id" type="text" class="form-control" placeholder="{% trans 'Identifier' %}"></label>
-                        <br>
-                        <br>
-                        <span class="btn btn-warning btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file" multiple></span>
-                        <br>
-                        <span id="upload_job_filename"></span>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="upload_jobs_start" type="button" class="btn btn-success" style="float: left;" data-dismiss="modal">{% trans 'Upload' %}</button>
-                        <button id="upload_job_cancel" type="button" class="btn btn-info" data-dismiss="modal">{% trans 'Cancel' %}</button>
+        <div id="upload_job_popup" class="ui modal">
+            <div class="header">{% trans 'Upload jobs' %}</div>
+            <div class="content">
+                <p>{% trans "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
+                <div class="ui grid">
+                    <div class="row">
+                        <div class="five wide column">
+                            <div class="ui fluid input">
+                                <input id="upload_job_parent_id" type="text" placeholder="{% trans 'Identifier' %}">
+                            </div>
+                        </div>
+                        <div class="three wide column right aligned">
+                            <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file" multiple></span>
+                        </div>
+                        <div class="eight wide column">
+                            <span id="upload_job_filename"></span>
+                        </div>
                     </div>
                 </div>
+            </div>
+            <div class="actions">
+                <button id="upload_jobs_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
+                <button id="upload_job_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
             </div>
         </div>
         <span id="error__parent_required" hidden>{% trans 'The parent identifier is required' %}</span>
+        <span id="error__no_file_chosen" hidden>{% trans 'No file chosen' %}</span>
     </body>
 </html>

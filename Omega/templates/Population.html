@@ -7,33 +7,50 @@
 {% block body_block %}
     {% if population %}
         {% if population.manager_password %}
-            <h1>{% trans 'A new Manager was created' %}</h1>
-            <p>{% trans 'Username' %}: {{ population.manager_username }}</p>
-            <p>{% trans 'Password' %}: {{ population.manager_password }}</p>
-            <p>{% trans 'Please save this data and give it to the user who will be the Manager' %}</p>
+            <div class="ui violet segment">
+                <h2 class="ui violet header">{% trans 'A new Manager was created' %}</h2>
+                <p><strong>{% trans 'Username' %}:</strong> {{ population.manager_username }}</p>
+                <p><strong>{% trans 'Password' %}:</strong> {{ population.manager_password }}</p>
+                <p style="color: #ce6f64">{% trans 'Please save this data and give it to the user who will be the Manager' %}</p>
+            </div>
         {% endif %}
         {% if population.functions_updated %}
-            <h1>{% trans 'Error traces conversion and comparison functions were updated' %}</h1>
+            <div class="ui teal segment">
+                <h2 class="ui teal header">{% trans 'Error traces conversion and comparison functions were updated' %}</h2>
+            </div>
         {% endif %}
         {% if population.jobs_updated %}
-            <h1>{% trans 'New jobs were uploaded' %}</h1>
+            <div class="ui green segment">
+                <h2 class="ui green header">{% trans 'New jobs were uploaded' %}</h2>
+            </div>
         {% endif %}
         {% if not population.something_changed %}
-            <h1>{% trans 'Nothing changed' %}</h1>
+            <h1 class="ui brown header">{% trans 'Nothing changed' %}</h1>
         {% endif %}
+        <a href="{% url 'jobs:tree' %}" class="ui green button">{% trans 'OK' %}</a>
     {% else %}
-        <h1>{% trans 'Welcome to Omega!' %}</h1>
+        <h1 class="ui violet header">{% trans 'Welcome to Omega!' %}</h1>
         {% if need_manager %}
             <h4>{% trans "Create the Manager with the specified username and jobs of all classes on behalf of that Manager" %}</h4>
         {% endif %}
-        <hr>
+        <div class="ui divider"></div>
         <form method="post">
             {% csrf_token %}
+            <div class="ui grid">
             {% if need_manager %}
-                <label for="manager_username">{% trans 'Manager username' %}</label>
-                <input id="manager_username" name="manager_username" type="text">
+                <div class="five wide column">
+                    <label for="manager_username">{% trans 'Manager username' %}</label>
+                    <div class="ui fluid input">
+                        <input id="manager_username" name="manager_username" type="text">
+                    </div>
+                </div>
+                <div class="eleven wide column">
+            {% else %}
+                <div class="sixteen wide column">
             {% endif %}
-            <button type="submit" id="populate_button" class="btn btn-success">{% trans 'Populate' %}</button>
+                <br>
+                <button type="submit" id="populate_button" class="ui green button">{% trans 'Populate' %}</button>
+            </div>
         </form>
     {% endif %}
 {% endblock %}

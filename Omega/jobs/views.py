@@ -218,7 +218,7 @@ def show_job(request, job_id=None):
         })
 
     children = []
-    for child in job.children_set.all():
+    for child in job.children.all():
         if JobAccess(request.user, child).can_view():
             job_id = child.pk
         else:
@@ -243,12 +243,12 @@ def show_job(request, job_id=None):
         request,
         'jobs/viewJob.html',
         {
-            'comment': job.jobhistory_set.get(version=job.version).comment,
+            'job': job,
+            'comment': job.versions.get(version=job.version).comment,
             'parents': parents,
             'children': children,
-            'job': job,
             'reportdata': reportdata,
-            'created_by': job.jobhistory_set.get(version=1).change_author,
+            'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),
             'can_create': job_access.can_create()
@@ -274,12 +274,12 @@ def edit_job(request):
 
     version = int(request.POST.get('version', 0))
     if version > 0:
-        job_version = job.jobhistory_set.get(version=version)
+        job_version = job.versions.get(version=version)
     else:
-        job_version = job.jobhistory_set.all().order_by('-change_date')[0]
+        job_version = job.versions.order_by('-change_date')[0]
 
     job_versions = []
-    for j in job.jobhistory_set.all().order_by('-version'):
+    for j in job.versions.order_by('-version'):
         if j.version == job.version:
             title = _("Current version")
         else:
@@ -351,7 +351,7 @@ def get_job_versions(request):
     except ObjectDoesNotExist:
         return JsonResponse({'message': _('The job was not found')})
     job_versions = []
-    for j in job.jobhistory_set.filter(
+    for j in job.versions.filter(
             ~Q(version__in=[job.version, 1])).order_by('-version'):
         job_time = j.change_date.astimezone(
             pytz.timezone(request.user.extended.timezone)
@@ -390,7 +390,7 @@ def copy_new_job(request):
         })
 
     job = get_object_or_404(Job, pk=int(request.POST.get('parent_id', 0)))
-    job_version = job.jobhistory_set.all().order_by('-change_date')[0]
+    job_version = job.versions.order_by('-change_date')[0]
 
     return render(request, 'jobs/createJob.html', {
         'parent_id': job.identifier,
@@ -543,10 +543,8 @@ def showjobdata(request):
 
     return render(request, 'jobs/showJob.html', {
         'job': job,
-        'description': job.jobhistory_set.get(version=job.version).description,
-        'filedata': FileData(
-            job.jobhistory_set.get(version=job.version)
-        ).filedata
+        'description': job.versions.get(version=job.version).description,
+        'filedata': FileData(job.versions.get(version=job.version)).filedata
     })
 
 
@@ -779,7 +777,7 @@ def stop_decision(request):
         return JsonResponse({'error': _("The job was not found")})
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': _("The job is not solving")})
-    job.status = JOB_STATUS[5][0]
+    job.status = JOB_STATUS[6][0]
     job.save()
     for report in ReportComponent.objects.filter(root__job=job):
         if report.finish_date is None:

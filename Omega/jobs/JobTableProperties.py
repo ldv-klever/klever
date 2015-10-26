@@ -7,9 +7,10 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
 from jobs.models import Job
-from marks.models import ReportSafeTag, ReportUnsafeTag
-from reports.models import Verdict, ComponentResource, ComponentUnknown,\
-    ComponentMarkUnknownProblem, ReportComponent
+from marks.models import ReportSafeTag, ReportUnsafeTag,\
+    ComponentMarkUnknownProblem
+from reports.models import Verdict, ComponentResource, ReportComponent,\
+    ComponentUnknown
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess
 
 
@@ -75,7 +76,6 @@ def get_view(user, view=None, view_id=None):
 class FilterForm(object):
 
     def __init__(self, user, view=None, view_id=None):
-        self.cnt = 1
         (self.view, self.view_id) = get_view(user, view, view_id)
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
@@ -86,7 +86,7 @@ class FilterForm(object):
         self.user_views = self.__user_views(user)
 
     def __column_title(self, column):
-        self.cnt = 1
+        self.ccc = 1
         col_parts = column.split(':')
         column_starts = []
         for i in range(0, len(col_parts)):
@@ -149,7 +149,6 @@ class FilterForm(object):
         return new_orders
 
     def __user_views(self, user):
-        self.cnt += 1
         view_data = []
         views = user.view_set.filter(type='1')
         for v in views:
@@ -193,7 +192,6 @@ class FilterForm(object):
 class TableTree(object):
 
     def __init__(self, user, view=None, view_id=None):
-        self.cnt = 1
         self.user = user
         self.columns = ['name']
         self.view = get_view(user, view, view_id)[0]
@@ -339,7 +337,6 @@ class TableTree(object):
             if job_access.can_view():
                 rowdata.append(job)
 
-        cnt = 0
         for job in rowdata:
             parent = job.parent
             row_job_data = {
@@ -368,7 +365,6 @@ class TableTree(object):
                 self.jobdata.append(row_job_data)
                 blackdata.append(parent)
                 parent = next_parent
-            cnt += 1
         self.__order_jobs()
 
     def __order_jobs(self):
@@ -764,8 +760,8 @@ class TableTree(object):
             for j in self.jobdata:
                 if j['pk'] in values_data:
                     try:
-                        first_version = j['job'].jobhistory_set.get(version=1)
-                        last_version = j['job'].jobhistory_set.get(
+                        first_version = j['job'].versions.get(version=1)
+                        last_version = j['job'].versions.get(
                             version=j['job'].version)
                     except ObjectDoesNotExist:
                         return
@@ -831,12 +827,21 @@ class TableTree(object):
                         values_data[job_pk][
                             'problem:pr_component_' + str(cmup.component_id) +
                             ':z_no_mark'
-                        ] = cmup.number
+                        ] = (
+                            cmup.number,
+                            reverse('reports:unknowns_problem',
+                                    args=[cmup.report.pk, cmup.component.pk, 0])
+                        )
                     else:
                         values_data[job_pk][
                             'problem:pr_component_' + str(cmup.component_id) +
                             ':problem_' + str(cmup.problem_id)
-                        ] = cmup.number
+                        ] = (
+                            cmup.number,
+                            reverse('reports:unknowns_problem',
+                                    args=[cmup.report.pk, cmup.component.pk,
+                                          cmup.problem_id])
+                        )
             for cu in ComponentUnknown.objects.filter(
                     report__root__job_id__in=job_pks, report__parent=None):
                 job_pk = cu.report.root.job_id

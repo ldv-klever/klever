@@ -15,6 +15,7 @@ from users.models import Notifications, Extended
 from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
+from jobs.models import Job
 from django.middleware.csrf import get_token
 from users.notifications import NotifyData
 
@@ -30,9 +31,11 @@ def user_signin(request):
                 login(request, user)
                 try:
                     Extended.objects.get(user=user)
-                    return HttpResponseRedirect(reverse('jobs:tree'))
+                    if len(Job.objects.all()) > 0:
+                        return HttpResponseRedirect(reverse('jobs:tree'))
                 except ObjectDoesNotExist:
-                    return HttpResponseRedirect(reverse('population'))
+                    pass
+                return HttpResponseRedirect(reverse('population'))
             else:
                 login_error = _("Account has been disabled")
         else:

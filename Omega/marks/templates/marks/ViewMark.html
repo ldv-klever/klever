@@ -3,83 +3,153 @@
 {% load i18n %}
 {% load tz %}
 {% block body_block %}
-    <div id="mark_attributes_table" style="overflow-x: auto">
-        <table class="table table-bordered">
-            <thead>
-                {% for column_row in AttrTable.header %}
-                    <tr class="info">
-                    {% for coldata in column_row %}
-                        <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
+    {% if markdata.type != 'unknown' %}
+        <div id="mark_attributes_table" style="overflow-x: auto">
+            <table class="ui celled compact purple table">
+                <thead>
+                    {% for column_row in AttrTable.header %}
+                        <tr class="info">
+                        {% for coldata in column_row %}
+                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
+                        {% endfor %}
+                        </tr>
                     {% endfor %}
+                </thead>
+                <tbody>
+                    <tr>{% for v in AttrTable.values %}<td class="collapsing">{{ v.1 }}</td>{%  endfor %}</tr>
+                </tbody>
+            </table>
+        </div>
+        <br>
+    {% endif %}
+    <div class="ui grid">
+        <div class="seven wide column">
+            <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button top attached">{% trans 'Download' %}</a>
+            <table class="ui selectable compact inverted violet table attached">
+                <tbody>
+                    <tr>
+                        <th class="right aligned">{% trans 'Identifier' %}</th>
+                        <td>{{ mark.identifier }}</td>
                     </tr>
-                {% endfor %}
-            </thead>
-            <tbody>
-                <tr>{% for v in AttrTable.values %}<td>{{ v.1 }}</td>{%  endfor %}</tr>
-            </tbody>
-        </table>
-    </div>
-    <hr>
-    <div class="row">
-        <div class="col-sm-5">
-            <a href="{% url 'marks:download_mark' type mark.pk %}" class="btn btn-success">{% trans 'Download' %}</a>
-            <br><br>
-            <span class="purple-title">{% trans 'Identifier' %}: </span> {{ mark.identifier }}<br>
-            <span class="purple-title">{% trans 'Format' %}: </span> {{ mark.format }}<br>
-            {% if first_version.author %}<span class="purple-title">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.extended.last_name }} {{ first_version.author.extended.first_name }}</a><br>{% endif %}
-            <span class="purple-title">{% trans 'Last change' %}</span>
-            <br>
-            {% if version.author %}
-                <span class="green-subtitle">{% trans 'Author' %}: </span><a href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.extended.last_name }} {{ version.author.extended.first_name }}</a>
-                <br>
-            {% endif %}
-            <span class="green-subtitle">{% trans 'Date' %}: </span>
-            {% timezone user.extended.timezone %}
-                {{ version.change_date|date:'d.m.y H:i:s' }}
-            {% endtimezone %}
-            {% if version.comment|length %}
-                <br>
-                <span class="green-subtitle">{% trans 'Comment' %}:</span> <small>"{{ version.comment }}"</small><br>
-            {% endif %}
-            <br>
-
-            <h4>{% trans 'Associated leaf reports' %}</h4>
+                    <tr>
+                        <th class="right aligned">{% trans 'Format' %}</th>
+                        <td>{{ mark.format }}</td>
+                    </tr>
+                    {% if first_version.author %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Author' %}</th>
+                            <td><a class="violet-link" href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.extended.last_name }} {{ first_version.author.extended.first_name }}</a></td>
+                        </tr>
+                    {% endif %}
+                    <tr>
+                        <th class="right aligned">{% trans 'Last change' %}</th>
+                        <td>
+                            {% timezone user.extended.timezone %}
+                                {{ version.change_date|date:'d.m.y H:i:s' }}
+                            {% endtimezone %}
+                            {% if version.author %}
+                                (<a class="violet-link" href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.extended.last_name }} {{ version.author.extended.first_name }}</a>)
+                            {% endif %}
+                            {% if version.comment|length %}
+                                <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ version.comment }}"</small></p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
             <div style="overflow-x: auto; max-height: 400px;">
-                {% include 'table.html' with data=reports auto=True %}
+                <table class="ui compact teal celled table" style="width:auto;">
+                    <thead>
+                        {% for column_row in reports.header %}
+                            <tr>
+                            {% for coldata in column_row %}
+                                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                            {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </thead>
+                    <tbody>
+                        {% for row_data in reports.values %}
+                            <tr>
+                                {% for v in row_data %}
+                                    <td class="collapsing">
+                                        {% if v.href %}
+                                            <a href="{{ v.href }}">{{ v.value }}</a>
+                                        {% else %}
+                                            <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {%  endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="col-sm-7">
-            <div class="row">
-                {% if markdata.type == 'unsafe' %}
-                <div class="col-sm-6">
-                <h4>{% trans 'Error traces comparison function' %}</h4>
-                    {% for f in markdata.comparison %}<strong>{% if f.selected %}{{ f.name }}{% endif %}</strong>{% endfor %}
-                    <br>
-                    <p id="compare_function_description" class="omega-text">{{ markdata.compare_desc }}</p>
-                </div>
-                {% endif %}
-                <div class="col-sm-6">
-                    <h4>{% trans 'Verdict' %}</h4>
-                    <div style="margin-left: 25px">
+        <div class="nine wide column">
+            {% if markdata.type == 'unsafe' %}
+                <div class="ui horizontal segments">
+                    <div class="ui green segment">
+                        <span class="header ui green"><small>{% trans 'Verdict' %}:</small> </span>
                         {% for v in markdata.verdicts %}
-                            {% if v.checked %}<label style="color: {{ v.color }}">{{ v.title }}</label>{% endif %}
+                            {% if v.checked %}<strong style="color: {{ v.color }}">{{ v.title }}</strong>{% endif %}
                         {% endfor %}
-                    </div>
-                {% if markdata.type == 'safe' %}
-                    </div>
-                    <div class="col-sm-6">
-                {% else %}
-                    <hr>
-                {% endif %}
-                    <h4>{% trans 'Status' %}</h4>
-                    <div style="margin-left: 25px">
+                        <div class="ui hidden divider"></div>
+                        <span class="header ui green"><small>{% trans 'Status' %}:</small> </span>
                         {% for s in markdata.statuses %}
-                            {% if s.checked %}<label style="color: {{ s.color }}">{{ s.title }}</label>{% endif %}
+                            {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
                         {% endfor %}
+                    </div>
+                    {% include 'marks/Tags.html' %}
+                </div>
+                <div class="ui teal segment">
+                    <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
+                    <div class="ui teal raised segment">
+                        <a class="ui teal ribbon label">{% for f in markdata.comparison %}{% if f.selected %}{{ f.name }}{% endif %}{% endfor %}</a>
+                        <div class="filecontent">{{ markdata.compare_desc }}</div>
                     </div>
                 </div>
-            </div>
-            {% include 'marks/Tags.html' %}
+
+            {% elif markdata.type == 'safe' %}
+                <div class="ui horizontal segments">
+                    <div class="ui green segment">
+                        <span class="header ui green"><small>{% trans 'Verdict' %}:</small> </span>
+                        {% for v in markdata.verdicts %}
+                            {% if v.checked %}<strong style="color: {{ v.color }}">{{ v.title }}</strong>{% endif %}
+                        {% endfor %}
+                        <div class="ui hidden divider"></div>
+                        <span class="header ui green"><small>{% trans 'Status' %}:</small> </span>
+                        {% for s in markdata.statuses %}
+                            {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
+                        {% endfor %}
+                    </div>
+                    {% include 'marks/Tags.html' %}
+                </div>
+            {% elif markdata.type == 'unknown' %}
+                <div class="ui horizontal segments">
+                    <div class="ui segment" style="max-width: 50%;">
+                        <div class="ui top left attached purple label">{% trans 'Function' %}</div>
+                        <div class="filecontent">{{ markdata.unknown_data.0 }}</div>
+                    </div>
+                    <div class="ui segment" style="max-width: 50%;">
+                        <div class="ui top left attached purple label">{% trans 'Problem' %}</div>
+                        <div>
+                        {% if markdata.unknown_data.2 %}
+                            <a href="{{ markdata.unknown_data.2 }}">{{ markdata.unknown_data.1 }}</a>
+                        {% else %}
+                            <span>{{ markdata.unknown_data.1 }}</span>
+                        {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% if markdata.description|length > 0 %}
+                <div class="ui blue segment">
+                    <div class="ui blue top left attached label">{% trans 'Description' %}</div>
+                    <div>{{ markdata.description|safe }}</div>
+                </div>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

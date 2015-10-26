@@ -11,11 +11,17 @@
 {% block body_block %}
     <form class="form-signin" role="form" id="login_form" method="post" action="{% url 'users:login' %}{% if request.GET %}?next={{ request.GET.next }}{% endif %}">
         {% csrf_token %}
+        <div class="ui violet segment">
         {% if login_errors %}
-            <p style="color: #ee4c21;">{{ login_errors }}</p>
+            <p style="color: #e64d44;">{{ login_errors }}</p>
         {% endif %}
-        <input class="form-control" placeholder="{% trans 'Username' %}" id="id_username" maxlength="254" name="username" type="text" required autofocus="">
-        <input class="form-control" placeholder="{% trans 'Password' %}" id="id_password" maxlength="254" name="password" type="password" required>
-        <button class="btn btn-lg btn-primary btn-block" type="submit" value="Submit">{% trans 'Sign in' %}</button>
+        <div class="ui form large">
+            <input placeholder="{% trans 'Username' %}" id="id_username" maxlength="254" name="username" type="text" required autofocus="">
+            <br><br>
+            <input placeholder="{% trans 'Password' %}" id="id_password" maxlength="254" name="password" type="password" required>
+            <br><br>
+            <button class="ui fluid large violet button" type="submit" value="Submit">{% trans 'Sign in' %}</button>
+        </div>
+        </div>
     </form>
 {% endblock %}

@@ -15,7 +15,8 @@ ERRORS = {
     602: _("You don't have an access to delete this mark"),
     605: _("You don't have an access to download this mark"),
     650: _("Saving mark failed"),
-    704: _("Tag was not found")
+    704: _("Tag was not found"),
+    804: _("Problem was not found")
 }
 
 JOB_CLASSES = (
@@ -95,7 +96,9 @@ VIEW_TYPES = {
     ('4', 'unsafes list'),
     ('5', 'safes list'),
     ('6', 'unknowns list'),
-    ('7', 'others'),
+    ('7', 'unsafe marks'),
+    ('8', 'safe marks'),
+    ('9', 'unknown marks')
 }
 
 JOB_STATUS = (
@@ -104,7 +107,8 @@ JOB_STATUS = (
     ('2', _('Stopped')),
     ('3', _('Solved')),
     ('4', _('Failed')),
-    ('5', _('Corrupted'))
+    ('5', _('Corrupted')),
+    ('6', _('Cancelled'))
 )
 
 MARK_STATUS = (
@@ -249,39 +253,72 @@ UNKNOWN_LIST_DEF_VIEW = {
     }
 }
 
-MARKS_SAFE = {
-    'columns': ['mark_num', 'verdict', 'status', 'author', 'report', 'job',
-                'format'],
-    'order': 'verdict',
+# Available filters (id [types], (example value)):
+# verdict [is, isnot] (<verdict id>)
+# status [is, isnot] (<status id>)
+# author [is] (<author id>)
+MARKS_SAFE_VIEW = {
+    'columns': ['num_of_links', 'verdict', 'status', 'author', 'format'],
+    # 'order': 'num_of_links',
     'filters': {
-        'verdict': {
-            'type': 'iexact',
-            'value': 'Unknown',
-        }
+        # 'verdict': {
+        #     'type': 'is',
+        #     'value': '0',
+        # },
+        # 'status': {
+        #     'type': 'is',
+        #     'value': '1'
+        # },
+        # 'author': {
+        #     'type': 'is',
+        #     'value': 0
+        # }
     }
 }
 
-MARKS_UNSAFE = {
-    'columns': ['mark_num', 'verdict', 'status', 'author', 'report', 'result',
-                'job', 'format'],
-    'order': 'verdict',
+# Available filters (id [types], (example value)):
+# verdict [is, isnot] (<verdict id>)
+# status [is, isnot] (<status id>)
+# author [is] (<author id>)
+MARKS_UNSAFE_VIEW = {
+    'columns': ['num_of_links', 'verdict', 'status', 'author', 'format'],
+    # 'order': 'num_of_links',
     'filters': {
-        'verdict': {
-            'type': 'iexact',
-            'value': '0',
-        },
-        'result': {
-            'type': 'gt',
-            'value': '40',
-        },
-        'status': {
-            'type': 'iexact',
-            'value': '0',
-        },
-        'author': {
-            'type': 'iexact',
-            'value': '1',
-        },
+        # 'verdict': {
+        #     'type': 'is',
+        #     'value': '2',
+        # },
+        # 'status': {
+        #     'type': 'is',
+        #     'value': '1',
+        # },
+        # 'author': {
+        #     'type': 'is',
+        #     'value': 1,
+        # },
+        # 'attr': {
+        #     'attr': 'entry point',
+        #     'type': 'istartswith',
+        #     'value': 'ldv_entry_POINT_1'
+        # }
+    }
+}
+
+# Available filters (id [types], (example value)):
+# status [is, isnot] (<status id>)
+# author [is] (<author id>)
+MARKS_UNKNOWN_VIEW = {
+    'columns': ['num_of_links', 'status', 'author', 'format'],
+    # 'order': 'num_of_links',
+    'filters': {
+        # 'status': {
+        #     'type': 'is',
+        #     'value': '0',
+        # },
+        # 'author': {
+        #     'type': 'is',
+        #     'value': 1,
+        # },
 
     }
 }

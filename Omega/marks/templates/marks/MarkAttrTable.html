@@ -1,7 +1,7 @@
-<table class="table table-bordered">
+<table class="ui celled compact purple table">
     <thead>
         {% for column_row in data.header %}
-            <tr class="info">
+            <tr>
             {% for coldata in column_row %}
                 <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
             {% endfor %}
@@ -9,12 +9,15 @@
         {% endfor %}
     </thead>
     <tbody>
-    <tr>
-        {% for v in data.values %}
-            <td>
-                <label class="text-nowrap"><input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}> {{ v.1 }}</label>
-            </td>
-        {%  endfor %}
-    </tr>
+        <tr>
+            {% for v in data.values %}
+                <td class="collapsing">
+                    <div class="ui checkbox">
+                        <label for="attr_checkbox__{{ v.0 }}">{{ v.1 }}</label>
+                        <input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}>
+                    </div>
+                </td>
+            {% endfor %}
+        </tr>
     </tbody>
 </table>

@@ -6,32 +6,35 @@
 {% block title %}{% trans 'Profile' %}{% endblock %}
 
 {% block body_block %}
-    <div class="row">
-        <div class="col-sm-3">
+    <div class="ui grid">
+        <div class="three wide column">
             <h3><cite>{{ target.extended.first_name }} {{ target.extended.last_name }}</cite></h3>
-            <ul>
+            <div class="ui list">
                 {% if target.email %}
-                    <li>{% trans 'Email' %}: <ins style="color: #a7aab4">{{ target.email }}</ins></li>
+                    <div class="item"><span style="color: #a7aab4">{% trans 'Email' %}: </span><ins style="color: #507ab4">{{ target.email }}</ins></div>
                 {% endif %}
-                <li><span style="color: #a7aab4">{% trans 'Administrator' %}:</span> {% if target.is_superuser %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</li>
-                <li><span style="color: #a7aab4">{% trans 'Role' %}:</span> {{ target.extended.get_role_display }}</li>
-                <li><span style="color: #a7aab4">{% trans 'Time zone' %}:</span> {{ target.extended.timezone }}</li>
-                <li><span style="color: #a7aab4">{% trans 'Language' %}:</span> {{ target.extended.get_language_display }}</li>
-            </ul>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Administrator' %}: </span>{% if target.is_superuser %}{% trans 'Yes' %}{% else %}{% trans 'No' %}{% endif %}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Role' %}: </span> {{ target.extended.get_role_display }}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Time zone' %}: </span> {{ target.extended.timezone }}</div>
+                <div class="item"><span style="color: #a7aab4">{% trans 'Language' %}: </span> {{ target.extended.get_language_display }}</div>
+            </div>
         </div>
-        <div class="col-sm-9">
+        <div class="thirteen wide column">
             <h2>{% trans 'Last Activity' %}</h2>
             {% if activity|length %}
-                <table class="table">
-                    <tr>
-                        <th>{% trans 'Date' %}</th>
-                        <th>{% trans 'Action Kind' %}</th>
-                        <th>{% trans 'Job Title' %}</th>
-                        <th>{% trans 'Comment' %}</th>
-                    </tr>
+                <table class="ui selectable inverted celled table">
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Date' %}</th>
+                            <th>{% trans 'Action Kind' %}</th>
+                            <th>{% trans 'Job Title' %}</th>
+                            <th>{% trans 'Comment' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                     {% for act in activity %}
                         <tr>
-                            <td class="col-sm-3">
+                            <td>
                                 {% if user_tz %}
                                     {% timezone user_tz %}
                                         {{ act.date }}
@@ -41,26 +44,25 @@
                                 {% endif %}
                             </td>
                             {% if act.version == 1 %}
-                                <td class="col-sm-1" style="color: green">{% trans 'Creation' %}</td>
+                                <td style="color: #58bd2a">{% trans 'Creation' %}</td>
                             {% else %}
-                                <td style="color: blue">{% trans 'Modification' %}</td>
+                                <td style="color: #31e6ff">{% trans 'Modification' %}</td>
                             {% endif %}
                             {% if act.href %}
-                                <td class="col-sm-4"><a href="{{ act.href }}">{{ act.job_name }}</a></td>
+                                <td><a href="{{ act.href }}">{{ act.job_name }}</a></td>
                             {% else %}
-                                <td class="col-sm-4">{{ act.job_name }}</td>
+                                <td>{{ act.job_name }}</td>
                             {% endif %}
                             {% if act.comment %}
-                                <td class="col-sm-5" title="{{ act.comment }}"><small>{{ act.small_comment }}</small></td>
+                                <td title="{{ act.comment }}"><small>{{ act.small_comment }}</small></td>
                             {% else %}
-                                <td class="col-sm-5"></td>
+                                <td></td>
                             {% endif %}
                         </tr>
                     {% endfor %}
+                    </tbody>
                 </table>
-                <hr>
             {% endif %}
-
         </div>
     </div>
 {% endblock %}
