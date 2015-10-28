@@ -24,4 +24,4 @@ class Command:
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
 
         # Execute original build command.
-        subprocess.call(tuple([self.cmd] + self.opts))
+        subprocess.call(tuple(['aspectator' if self.cmd == 'gcc' else self.cmd] + self.opts))

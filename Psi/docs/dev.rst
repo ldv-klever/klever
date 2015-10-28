@@ -33,6 +33,8 @@ Setting run/debug configuration
 #. Select Python from the list.
 #. Input *Psi* in field :guilabel:`Name`.
 #. Specify :file:`Psi/bin/psi` in field :guilabel:`Script`.
+#. Extend existing value of :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and Aspectator
+   (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
 #. Specify working directory somewhere outside the Psi repository (**work_dir**) in field :guilabel:`Working directory`.
 #. :menuselection:`OK`.
 
