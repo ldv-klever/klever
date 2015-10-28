@@ -1,6 +1,9 @@
-# TODO: try to use standard library instead since we don't need something very special.
-import requests
+import http.cookiejar
+import json
 import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
 
 class Session:
@@ -9,64 +12,82 @@ class Session:
 
         self.logger = logger
         self.name = omega['name']
-        self.session = requests.Session()
+        self.cj = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cj))
+        self.csrftoken = None
 
         # TODO: try to autentificate like with httplib2.Http().add_credentials().
         # Get CSRF token via GET request.
         self.__request('users/psi_signin/')
 
         # Sign in.
-        self.__request('users/psi_signin/', 'POST', {
+        self.__request('users/psi_signin/', {
             'username': omega['user'],
             'password': omega['passwd'],
         })
         logger.debug('Session was created')
 
-    def __request(self, path_url, method='GET', data=None, **kwargs):
+    def __request(self, path_url, data=None):
         while True:
             try:
                 url = 'http://' + self.name + '/' + path_url
 
+                # Presence of data implies POST request.
+                method = 'POST' if data else 'GET'
+
                 self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
 
                 if data:
-                    data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+                    data.update({'csrfmiddlewaretoken': self.csrftoken})
+                    resp = self.opener.open(url, urllib.parse.urlencode(data).encode('utf-8'))
+                else:
+                    resp = self.opener.open(url)
+                    # CSRF token is updated after each GET request.
+                    for cookie in self.cj:
+                        if cookie.name == 'csrftoken':
+                            self.csrftoken = cookie.value
 
-                resp = self.session.get(url, **kwargs) if method == 'GET' else self.session.post(url, data, **kwargs)
-
-                if resp.status_code != 200:
+                if resp.code != 200:
                     with open('response error.html', 'w') as fp:
                         fp.write(resp.text)
                     raise IOError(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
                                                                                                    method, url))
-                if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
-                    raise IOError(
-                        'Got error "{0}" when send "{1}" request to "{2}"'.format(resp.json()['error'], method, url))
+                if resp.headers['content-type'] == 'application/json':
+                    resp_json = json.loads(resp.read().decode('utf-8'))
+
+                    if 'error' in resp_json:
+                        raise IOError(
+                            'Got error "{0}" when send "{1}" request to "{2}"'.format(resp_json['error'], method, url))
+
+                    return resp, resp_json
 
                 return resp
-            except requests.ConnectionError as err:
-                self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
+            except urllib.error.HTTPError as err:
+                self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, err.url))
                 time.sleep(1)
 
     def decide_job(self, job, start_report_file):
         # Acquire download lock.
-        resp = self.__request('jobs/downloadlock/')
-        if 'status' not in resp.json() or 'hash_sum' not in resp.json():
-            raise IOError('Could not get download lock at "{0}"'.format(resp.request.url))
+        resp, resp_json = self.__request('jobs/downloadlock/')
+        if 'status' not in resp_json or 'hash_sum' not in resp_json:
+            raise IOError('Could not get download lock at "{0}"'.format(resp.geturl))
 
         # TODO: report is likely should be compressed.
         with open(start_report_file) as fp:
-            resp = self.__request('jobs/decide_job/', 'POST', {
+            resp = self.__request('jobs/decide_job/', {
                 'job id': job.id,
                 'job format': job.format,
                 'report': fp.read(),
-                'hash sum': resp.json()['hash_sum']
-            }, stream=True)
+                'hash sum': resp_json['hash_sum']
+            })
 
         self.logger.debug('Write job archive to "{0}'.format(job.archive))
         with open(job.archive, 'wb') as fp:
-            for chunk in resp.iter_content(1024):
+            while True:
+                chunk = resp.read(1024)
+                if not chunk:
+                    break
                 fp.write(chunk)
 
     def sign_out(self):
@@ -75,4 +96,4 @@ class Session:
 
     def upload_report(self, report):
         # TODO: report is likely should be compressed.
-        self.__request('reports/upload/', 'POST', {'report': report})
+        self.__request('reports/upload/', {'report': report})
