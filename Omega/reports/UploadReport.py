@@ -215,8 +215,11 @@ class UploadReport(object):
                 print("Got double attribute: '%s' for report with "
                       "type '%s' and id '%s'" % (attr, self.data['type'],
                                                  self.data['id']))
-        report.attr_order = json.dumps(single_attrs_order)
-        report.save()
+        for attr_name in single_attrs_order:
+            ReportAttrOrder.objects.get_or_create(
+                name=AttrName.objects.get_or_create(name=attr_name)[0],
+                report_id=report.pk
+            )
         return None
 
     def __create_report_component(self, identifier):
@@ -453,7 +456,9 @@ class UploadReport(object):
         return report
 
     def __add_attrs(self, report):
-        self.ordered_attrs = json.loads(report.attr_order)
+        self.ordered_attrs = []
+        for attr in report.attrorder.order_by('id'):
+            self.ordered_attrs.append(attr.name.name)
         if 'attrs' not in self.data:
             return
         for attr in save_attrs(self.data['attrs']):
@@ -465,8 +470,10 @@ class UploadReport(object):
     def __collect_attrs(self, report):
         parent = self.parent
         while parent is not None:
-            self.ordered_attrs = json.loads(parent.attr_order) + \
-                self.ordered_attrs
+            parent_attrs = []
+            for attr in parent.attrorder.order_by('id'):
+                parent_attrs.append(attr.name.name)
+            self.ordered_attrs = parent_attrs + self.ordered_attrs
             for p_attr in parent.attr.all():
                 if not report.attr.filter(pk=p_attr.pk).exists():
                     report.attr.add(p_attr)

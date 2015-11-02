@@ -109,8 +109,6 @@ class NewMark(object):
         mark.format = report.root.job.format
         mark.type = report.root.job.type
         mark.job = report.root.job
-        if self.type != 'unknown':
-            mark.attr_order = report.attr_order
 
         time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z").\
             encode('utf8')
@@ -140,6 +138,15 @@ class NewMark(object):
             mark.save()
         except Exception as e:
             return e
+
+        if self.type != 'unknown':
+            for attr in report.attrorder.order_by('id'):
+                if self.type == 'safe':
+                    SafeMarkAttrOrder.objects.create(
+                        name=attr.name, mark_id=mark.pk)
+                else:
+                    UnsafeMarkAttrOrder.objects.create(
+                        name=attr.name, mark_id=mark.pk)
 
         self.__update_mark(mark, tags=tags)
         if 'attrs' in args and self.type != 'unknown':
@@ -880,8 +887,17 @@ class ReadTarMark(object):
                     MarkUnsafeAttr.objects.get_or_create(**create_args)
                 else:
                     MarkSafeAttr.objects.get_or_create(**create_args)
-            mark.attr_order = json.dumps(attr_order)
-            mark.save()
+            for attr in attr_order:
+                if self.type == 'safe':
+                    SafeMarkAttrOrder.objects.create(
+                        name=AttrName.objects.get_or_create(name=attr)[0],
+                        mark_id=mark.pk
+                    )
+                else:
+                    UnsafeMarkAttrOrder.objects.create(
+                        name=AttrName.objects.get_or_create(name=attr)[0],
+                        mark_id=mark.pk
+                    )
             return None
 
     def __create_mark_from_tar(self):

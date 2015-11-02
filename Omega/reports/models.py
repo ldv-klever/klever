@@ -34,11 +34,18 @@ class Report(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
     attr = models.ManyToManyField(Attr)
-    attr_order = models.CharField(max_length=10000, default='[]')
     description = models.BinaryField(null=True)
 
     class Meta:
         db_table = 'report'
+
+
+class ReportAttrOrder(models.Model):
+    name = models.ForeignKey(AttrName)
+    report = models.ForeignKey(Report, related_name='attrorder')
+
+    class Meta:
+        db_table = 'reports_attr_order'
 
 
 class Computer(models.Model):
@@ -68,10 +75,10 @@ class ReportComponent(Report):
     computer = models.ForeignKey(Computer)
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
     resource = models.ForeignKey(Resource, null=True)
-    data = models.BinaryField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
     log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
+    data = models.BinaryField(null=True)
 
     def delete(self, *args, **kwargs):
         computer = self.computer

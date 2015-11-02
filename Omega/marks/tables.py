@@ -97,9 +97,9 @@ class MarkChangesTable(object):
         data = {}
         attr_order = []
         for report in self.changes:
-            for new_a in json.loads(report.attr_order):
-                if new_a not in attr_order:
-                    attr_order.append(new_a)
+            for new_a in report.attrorder.order_by('id'):
+                if new_a.name.name not in attr_order:
+                    attr_order.append(new_a.name.name)
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
@@ -470,9 +470,9 @@ class MarksList(object):
         data = {}
         attr_order = []
         for mark in self.marks:
-            for new_a in json.loads(mark.attr_order):
-                if new_a not in attr_order:
-                    attr_order.append(new_a)
+            for new_a in mark.attrorder.order_by('id'):
+                if new_a.name.name not in attr_order:
+                    attr_order.append(new_a.name.name)
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
                     if attr.attr.name.name not in data:
@@ -590,9 +590,10 @@ class MarkAttrTable(object):
         columns = []
         values = []
         if isinstance(self.mark_version, (MarkUnsafeHistory, MarkSafeHistory)):
-            for name in json.loads(self.mark_version.mark.attr_order):
+            for name in self.mark_version.mark.attrorder.order_by('id'):
                 try:
-                    attr = self.mark_version.attrs.get(attr__name__name=name)
+                    attr = self.mark_version.attrs.get(
+                        attr__name__name=name.name.name)
                 except ObjectDoesNotExist:
                     continue
                 columns.append(attr.attr.name.name)
@@ -600,9 +601,9 @@ class MarkAttrTable(object):
                     (attr.attr.name.name, attr.attr.value, attr.is_compare)
                 )
         elif isinstance(self.report, (ReportUnsafe, ReportSafe)):
-            for name in json.loads(self.report.attr_order):
+            for name in self.report.attrorder.order_by('id'):
                 try:
-                    attr = self.report.attr.get(name__name=name)
+                    attr = self.report.attr.get(name__name=name.name.name)
                 except ObjectDoesNotExist:
                     continue
                 columns.append(attr.name.name)
@@ -804,9 +805,9 @@ class MarkReportsTable2(object):
             report = mark_report.report
             if not JobAccess(self.user, report.root.job).can_view():
                 continue
-            for new_a in json.loads(report.attr_order):
-                if new_a not in attr_order:
-                    attr_order.append(new_a)
+            for new_a in report.attrorder.order_by('id'):
+                if new_a.name.name not in attr_order:
+                    attr_order.append(new_a.name.name)
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}

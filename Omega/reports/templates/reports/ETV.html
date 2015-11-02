@@ -1,0 +1,66 @@
+{% load i18n %}
+
+{% block reports_head_block %}
+    <script src="/static/reports/js/ETV.js"></script>
+    <script src="/static/reports/js/jquery-ui.min.js"></script>
+    <link href="/static/reports/css/ETV.css" rel="stylesheet">
+{% endblock %}
+
+<div id="etv" class="ui orange segment">
+    <div id="etv-trace">
+        <div style="margin: 10px;">
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <h3 class="header">{% trans 'Error trace' %}</h3>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="test_get_source" class="ui violet tiny button">Get source</button>
+                    <button id="etv-options-activator" class="ui orange tiny button">{% trans 'Options' %}</button>
+                </div>
+            </div>
+            <div class="ui divider"></div>
+            <div class="filecontent" id="ETV_error_trace">{{ trace|safe }}</div>
+        </div>
+    </div>
+    <div id="etv-source">
+        <div style="margin: 10px;">
+            <div class="ETVTitleBlock">
+                <h3 id="ETVSourceTitle" class="header" style="padding-bottom: 7px;">somefile.c</h3>
+            </div>
+            <div class="filecontent" id="ETV_source_code"></div>
+        </div>
+    </div>
+    <div id="etv-divider"></div>
+</div>
+
+<div id="etv-options" class="ui popup special very wide menu" style="white-space: nowrap;">
+    <div class="ui checkbox item">
+        <input id="opt__bodies" type="checkbox">
+        <label for="opt__bodies">{% trans 'Bodies' %}</label>
+    </div>
+    <div class="ui checkbox item">
+        <input id="opt__blocks" type="checkbox" checked>
+        <label for="opt__blocks">{% trans 'Blocks' %}</label>
+    </div>
+    <div class="ui checkbox item">
+        <input id="opt__bodies_no_model_func" type="checkbox">
+        <label for="opt__bodies_no_model_func">{% trans 'Function bodies without model function calls' %}</label>
+    </div>
+    <div class="ui checkbox item">
+        <input id="opt__init_func" type="checkbox">
+        <label for="opt__init_func">{% trans 'Initialization function calls' %}</label>
+    </div>
+    <div class="ui checkbox item">
+        <input id="opt__skipped_func" type="checkbox" checked>
+        <label for="opt__skipped_func">{% trans 'Skipped function calls' %}</label>
+    </div>
+    <div class="ui checkbox item">
+        <input id="opt__pram_names" type="checkbox" checked>
+        <label for="opt__pram_names">{% trans 'Formal parameter names' %}</label>
+    </div>
+    <div class="ui checkbox item">
+        <input id="opt__assumes" type="checkbox" checked>
+        <label for="opt__assumes">{% trans 'Assumes' %}</label>
+    </div>
+</div>
+

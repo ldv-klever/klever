@@ -394,6 +394,7 @@ function set_action_on_file_click () {
                 success: function (data) {
                     try {
                         JSON.stringify(data);
+                        JSON.stringify(data);
                         err_notify(data.message);
                     } catch (e) {
                         close_fileview_btn.unbind();

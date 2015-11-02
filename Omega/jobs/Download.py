@@ -352,9 +352,9 @@ class ReverseReport(object):
 
     def __get_attrs(self):
         attrs = []
-        for attr_name in json.loads(self.report.attr_order):
+        for attr_name in self.report.attrorder.order_by('id'):
             try:
-                attr = self.report.attr.get(name__name=attr_name)
+                attr = self.report.attr.get(name__name=attr_name.name.name)
             except ObjectDoesNotExist:
                 continue
             attrs.append((attr.name.name, attr.value))

@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from Omega.vars import FORMAT, JOB_CLASSES, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent,\
-    Component, ReportUnknown
+    Component, ReportUnknown, AttrName
 from jobs.models import Job
 
 
@@ -49,7 +49,6 @@ class Mark(models.Model):
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
-    attr_order = models.CharField(max_length=10000, default='[]')
     description = models.TextField(default='')
 
     def __str__(self):
@@ -78,6 +77,14 @@ class MarkSafe(Mark):
 
     class Meta:
         db_table = 'mark_safe'
+
+
+class SafeMarkAttrOrder(models.Model):
+    name = models.ForeignKey(AttrName)
+    mark = models.ForeignKey(MarkSafe, related_name='attrorder')
+
+    class Meta:
+        db_table = 'marks_safe_attr_order'
 
 
 class MarkSafeHistory(MarkHistory):
@@ -113,6 +120,14 @@ class MarkUnsafe(Mark):
 
     class Meta:
         db_table = 'mark_unsafe'
+
+
+class UnsafeMarkAttrOrder(models.Model):
+    name = models.ForeignKey(AttrName)
+    mark = models.ForeignKey(MarkUnsafe, related_name='attrorder')
+
+    class Meta:
+        db_table = 'marks_unsafe_attr_order'
 
 
 class MarkUnsafeHistory(MarkHistory):

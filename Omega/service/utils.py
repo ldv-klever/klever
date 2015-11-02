@@ -860,6 +860,7 @@ def get_priorities(user, schedulers):
         user_priorities.append(pr)
         if pr[0] in priorities:
             return user_priorities
+    return user_priorities
 
 
 class StartJobDecision(object):

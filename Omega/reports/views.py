@@ -8,8 +8,8 @@ from marks.models import UnsafeTag, SafeTag
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
-from Omega.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
 from django.utils.translation import ugettext as _, activate, string_concat
+from reports.etv import GetSource, GetETV
 
 
 @login_required
@@ -193,16 +193,24 @@ def report_leaf(request, leaf_type, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
+    template = 'reports/report_leaf.html'
+    trace = ''
+    if leaf_type == 'unsafe':
+        template = 'reports/report_unsafe.html'
+        et = GetETV()
+        if et.error is not None:
+            return HttpResponseRedirect(reverse('error', args=[500]))
+        trace = et.html_trace()
     return render(
-        request,
-        'reports/report_leaf.html',
+        request, template,
         {
             'type': leaf_type,
             'title': report.identifier.split('##')[-1],
             'report': report,
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
-            'MarkTable': ReportMarkTable(request.user, report)
+            'MarkTable': ReportMarkTable(request.user, report),
+            'trace': trace
         }
     )
 
@@ -255,3 +263,21 @@ def get_log_content(request, report_id):
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
     return HttpResponse(report.log.file.read())
+
+
+@login_required
+def get_source_code(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'report_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    # file_name = '/work/vladimir/klever/Omega/reports/dca-core.c'
+    file_name = '/work/vladimir/klever/Omega/reports/phy-msm-usb.c'
+    # file_name = '/work/vladimir/test'
+    result = GetSource(request.POST['report_id'], file_name)
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({
+        'content': result.data,
+        'name': file_name.split('/', -1)[-1]
+    })
