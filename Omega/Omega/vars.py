@@ -89,7 +89,8 @@ USER_ROLES = (
     ('0', _('No access')),
     ('1', _('Producer')),
     ('2', _('Manager')),
-    ('3', _('Expert'))
+    ('3', _('Expert')),
+    ('4', _('Service'))
 )
 
 VIEW_TYPES = {
@@ -106,12 +107,13 @@ VIEW_TYPES = {
 
 JOB_STATUS = (
     ('0', _('Not solved')),
-    ('1', _('Is solving')),
-    ('2', _('Stopped')),
-    ('3', _('Solved')),
-    ('4', _('Failed')),
-    ('5', _('Corrupted')),
-    ('6', _('Cancelled'))
+    ('1', _('Pending')),
+    ('2', _('Is solving')),
+    ('3', _('Stopped')),
+    ('4', _('Solved')),
+    ('5', _('Failed')),
+    ('6', _('Corrupted')),
+    ('7', _('Cancelled'))
 )
 
 MARK_STATUS = (
@@ -350,6 +352,11 @@ TASK_STATUS = (
     ('PENDING', _('Pending')),
     ('PROCESSING', _('Processing')),
     ('ERROR', _('Error')),
-    ('UNKNOWN', _('Unknown')),
-    ('FINISHED', _('Finished'))
+    ('FINISHED', _('Finished')),
+    ('CANCELLED', _('Cancelled'))
+)
+
+SCHEDULER_TYPE = (
+    ('0', 'Klever'),
+    ('1', 'VerifierCloud')
 )

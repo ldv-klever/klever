@@ -3,7 +3,8 @@ from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from Omega.formatChecker import RestrictedFileField
-from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS
+from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS,\
+    SCHEDULER_TYPE
 from jobs.models import Job
 
 
@@ -11,7 +12,7 @@ FILE_DIR = 'Service'
 
 
 class TaskFileData(models.Model):
-    description = models.TextField()
+    description = models.BinaryField()
     name = models.CharField(max_length=256)
     source = RestrictedFileField(
         upload_to=FILE_DIR, null=False,
@@ -19,7 +20,7 @@ class TaskFileData(models.Model):
     )
 
     class Meta:
-        db_table = 'service_task_files'
+        db_table = 'task_data'
 
 
 class SolutionFileData(models.Model):
@@ -31,7 +32,7 @@ class SolutionFileData(models.Model):
     )
 
     class Meta:
-        db_table = 'service_solution_files'
+        db_table = 'solution_data'
 
 
 @receiver(pre_delete, sender=TaskFileData)
@@ -48,26 +49,22 @@ def soluition_filedata_delete(**kwargs):
     storage.delete(path)
 
 
+class Scheduler(models.Model):
+    type = models.CharField(max_length=1, choices=SCHEDULER_TYPE)
+    status = models.CharField(max_length=12, choices=SCHEDULER_STATUS,
+                              default='HEALTHY',)
+
+    class Meta:
+        db_table = 'scheduler'
+
+
 class VerificationTool(models.Model):
+    scheduler = models.ForeignKey(Scheduler)
     name = models.CharField(max_length=128)
     version = models.CharField(max_length=128)
 
     class Meta:
-        db_table = 'service_verification_tool'
-
-
-class Scheduler(models.Model):
-    name = models.CharField(max_length=128, unique=True)
-    pkey = models.CharField(max_length=12, unique=True)
-    status = models.CharField(max_length=12, default='HEALTHY',
-                              choices=SCHEDULER_STATUS)
-    need_auth = models.BooleanField(default=False)
-    last_request = models.DateTimeField(auto_now=True)
-    for_jobs = models.BooleanField(default=False)
-    tools = models.ManyToManyField(VerificationTool)
-
-    class Meta:
-        db_table = 'service_scheduler'
+        db_table = 'verification_tool'
 
 
 class SchedulerUser(models.Model):
@@ -75,47 +72,44 @@ class SchedulerUser(models.Model):
     scheduler = models.ForeignKey(Scheduler)
     login = models.CharField(max_length=128)
     password = models.CharField(max_length=128)
-    max_priority = models.CharField(max_length=6, choices=PRIORITY,
-                                    default='LOW')
-    last_request = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'service_scheduler_user'
+        db_table = 'scheduler_user'
 
 
 class NodesConfiguration(models.Model):
     scheduler = models.ForeignKey(Scheduler)
-    cpu = models.CharField(max_length=256)
-    ram = models.PositiveIntegerField()
-    memory = models.PositiveIntegerField()
+    cpu = models.CharField(max_length=128)
     cores = models.PositiveSmallIntegerField()
+    ram = models.BigIntegerField()
+    memory = models.BigIntegerField()
 
     class Meta:
-        db_table = 'service_nodes_configuration'
+        db_table = 'nodes_configuration'
 
 
 class Workload(models.Model):
-    tasks = models.PositiveSmallIntegerField()  # number of solving
-    jobs = models.PositiveSmallIntegerField()  # number of solving
-    ram = models.PositiveIntegerField()  # in use
-    cores = models.PositiveSmallIntegerField()  # in use
-    memory = models.FloatField()  # in use
-    for_tasks = models.BooleanField()  # reserved
-    for_jobs = models.BooleanField()  # reserved
+    jobs = models.PositiveIntegerField()
+    tasks = models.PositiveIntegerField()
+    cores = models.PositiveSmallIntegerField()
+    ram = models.BigIntegerField()
+    memory = models.BigIntegerField()
+    for_tasks = models.BooleanField()
+    for_jobs = models.BooleanField()
 
     class Meta:
-        db_table = 'service_workload'
+        db_table = 'workload'
 
 
 class Node(models.Model):
     config = models.ForeignKey(NodesConfiguration)
     status = models.CharField(max_length=13, choices=NODE_STATUS)
-    hostname = models.CharField(max_length=256)
+    hostname = models.CharField(max_length=128)
     workload = models.OneToOneField(Workload, null=True,
                                     on_delete=models.SET_NULL)
 
     class Meta:
-        db_table = 'service_node'
+        db_table = 'node'
 
 
 @receiver(pre_delete, sender=Node)
@@ -125,37 +119,36 @@ def node_delete_signal(**kwargs):
         node.workload.delete()
 
 
-class JobSession(models.Model):
+class SolvingProgress(models.Model):
     job = models.OneToOneField(Job)
-    job_scheduler = models.ForeignKey(Scheduler)
     priority = models.CharField(max_length=6, choices=PRIORITY)
-    start_date = models.DateTimeField()
-    last_request = models.DateTimeField(auto_now=True)
-    finish_date = models.DateTimeField(null=True)
-
-    class Meta:
-        db_table = 'service_job_session'
-
-
-class SchedulerSession(models.Model):
     scheduler = models.ForeignKey(Scheduler)
-    session = models.ForeignKey(JobSession)
-    priority = models.PositiveSmallIntegerField()
+    start_date = models.DateTimeField()
+    finish_date = models.DateTimeField(null=True)
+    tasks_total = models.PositiveIntegerField(default=0)
+    tasks_pending = models.PositiveIntegerField(default=0)
+    tasks_processing = models.PositiveIntegerField(default=0)
+    tasks_finished = models.PositiveIntegerField(default=0)
+    tasks_error = models.PositiveIntegerField(default=0)
+    tasks_cancelled = models.PositiveIntegerField(default=0)
+    solutions = models.PositiveIntegerField(default=0)
+    error = models.CharField(max_length=1024, null=True)
+    configuration = models.BinaryField()
 
     class Meta:
-        db_table = 'service_scheduler_session'
+        db_table = 'solving_progress'
 
 
 class Task(models.Model):
-    scheduler_session = models.ForeignKey(SchedulerSession)
-    job_session = models.ForeignKey(JobSession)
     status = models.CharField(max_length=10, choices=TASK_STATUS,
                               default='PENDING')
+    error = models.CharField(max_length=1024, null=True)
     files = models.OneToOneField(TaskFileData, null=True,
                                  on_delete=models.SET_NULL)
+    progress = models.ForeignKey(SolvingProgress)
 
     class Meta:
-        db_table = 'service_task'
+        db_table = 'task'
 
 
 @receiver(pre_delete, sender=Task)
@@ -167,13 +160,11 @@ def task_delete_signal(**kwargs):
 
 class TaskSolution(models.Model):
     task = models.ForeignKey(Task)
-    status = models.BooleanField(default=False)
-    creation = models.DateTimeField()
     files = models.OneToOneField(SolutionFileData, null=True,
                                  on_delete=models.SET_NULL)
 
     class Meta:
-        db_table = 'service_solution'
+        db_table = 'solution'
 
 
 @receiver(pre_delete, sender=TaskSolution)
@@ -181,28 +172,3 @@ def solution_delete_signal(**kwargs):
     solution = kwargs['instance']
     if solution.files is not None:
         solution.files.delete()
-
-
-class TasksResults(models.Model):
-    tasks_total = models.PositiveSmallIntegerField(default=0)
-    tasks_finished = models.PositiveSmallIntegerField(default=0)
-    tasks_error = models.PositiveSmallIntegerField(default=0)
-    tasks_lost = models.PositiveSmallIntegerField(default=0)
-    solutions = models.PositiveSmallIntegerField(default=0)
-
-    class Meta:
-        abstract = True
-
-
-class JobTasksResults(TasksResults):
-    session = models.OneToOneField(JobSession, related_name='statistic')
-
-    class Meta:
-        db_table = 'cache_job_task_results'
-
-
-class SchedulerTasksResults(TasksResults):
-    session = models.OneToOneField(SchedulerSession, related_name='statistic')
-
-    class Meta:
-        db_table = 'cache_scheduler_task_results'
