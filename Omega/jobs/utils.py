@@ -77,43 +77,34 @@ class JobAccess(object):
         self.__user_role = user.extended.role
         self.__is_manager = (self.__user_role == USER_ROLES[2][0])
         self.__is_expert = (self.__user_role == USER_ROLES[3][0])
+        self.__is_service = (self.__user_role == USER_ROLES[4][0])
         self.__get_prop(user)
 
-    def service_access(self):
-        if self.job is None or self.job.status != JOB_STATUS[1][0]:
-            return False
-        if self.__is_manager or self.__is_author \
-                or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
-            return True
-        return False
+    def psi_access(self):
+        if self.job is None:
+            return self.__is_service
+        return (self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]
+                and (self.__is_manager or self.__is_service))
 
     def can_decide(self):
-        if self.job is None \
-                or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[3][0]]:
             return False
-        if self.__is_manager or self.__is_author\
-                or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
-            return True
-        return False
+        # TODO: can author decide the job?
+        return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_view(self):
         if self.job is None:
             return False
-        if self.__is_manager or self.__is_author or \
-           self.__job_role != JOB_ROLES[0][0] or self.__is_expert:
-            return True
-        return False
+        return self.__is_manager or self.__is_author or self.__job_role != JOB_ROLES[0][0] or self.__is_expert
 
     def can_create(self):
-        return self.__user_role != USER_ROLES[0][0]
+        return self.__user_role not in [USER_ROLES[0][0], USER_ROLES[4][0]]
 
     def can_edit(self):
         if self.job is None:
             return False
-        if self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and \
-                (self.__is_author or self.__is_manager):
-            return True
-        return False
+        return (self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[3][0]]
+                and (self.__is_author or self.__is_manager))
 
     def can_delete(self):
         if self.job is None:
@@ -122,11 +113,9 @@ class JobAccess(object):
             return False
         if self.__is_manager:
             return True
-        if self.job.status in [js[0] for js in JOB_STATUS[1:3]]:
+        if self.job.status in [js[0] for js in JOB_STATUS[1:4]]:
             return False
-        if self.__is_author:
-            return True
-        return False
+        return self.__is_author
 
     def __get_prop(self, user):
         if self.job is not None:

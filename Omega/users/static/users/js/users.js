@@ -1,115 +1,5 @@
 $(document).ready(function () {
-    function get_scheduler_login_data() {
-        var scheduler = $('#scheduler');
-        $('#scheduler_login_data').hide();
-        $('#remove_scheduler_login_data').hide();
-        if (scheduler.children().length > 0) {
-            $.ajax({
-                url: '/service/ajax/get_scheduler_login_data/',
-                data: {
-                    'sch_id': scheduler.val()
-                },
-                type: 'POST',
-                success: function (data) {
-                    if (data.error) {
-                        err_notify(data.error);
-                    }
-                    else if (data.login && data.password && data.max_priority) {
-                        $('#scheduler_login_data').show();
-                        $('#scheduler_login').text(data.login);
-                        $('#new_scheduler_login').val(data.login);
-                        $('#scheduler_password').text(data.password);
-                        $('#new_scheduler_password').val(data.password);
-                        $('#max_priority').text(data.max_priority);
-                        $('#add_new_scheduler_data').text($('#update_scheduler_data_btn_text').text());
-                        $('#remove_scheduler_login_data').show();
-                    }
-                    else {
-                        $('#remove_scheduler_login_data').hide();
-                        $('#add_new_scheduler_data').text($('#add_scheduler_data_btn_text').text());
-                    }
-                }
-            });
-        }
-        else {
-            $('#add_new_scheduler_data').hide();
-        }
-    }
-    get_scheduler_login_data();
-    $('#new_scheduler_data_popup').modal({transition: 'fly right', autofocus: false})
-        .modal('attach events', '#add_new_scheduler_data', 'show');
-    $('#add_scheduler_data_cancel').click(function () {
-        $('#new_scheduler_data_popup').modal('hide');
-    });
-    $('.ui.dropdown').each(function () {
-        if ($(this).attr('id') != 'scheduler') {
-            $(this).dropdown()
-        }
-    });
-    $('#remove_scheduler_login_data').click(function () {
-        $.ajax({
-            url: '/service/ajax/remove_sch_logindata/',
-            data: {
-                'sch_id': $('#scheduler').val()
-            },
-            type: 'POST',
-            success: function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                }
-                else {
-                    $('#scheduler_login_data').hide();
-                    $('#add_new_scheduler_data').text($('#add_scheduler_data_btn_text').text());
-                    $('#remove_scheduler_login_data').hide();
-                }
-            }
-        });
-    });
-
-    $('#add_scheduler_data_confirm').click(function() {
-        var new_login = $('#new_scheduler_login'),
-            new_password = $('#new_scheduler_password');
-        if (new_login.val().length <= 0) {
-            err_notify($('#new_login_scheduler_required').text());
-            new_login.focus();
-            return false;
-        }
-        else if (new_password.val().length <= 0) {
-            err_notify($('#new_password_scheduler_required').text());
-            new_password.focus();
-            return false;
-        }
-        else {
-            $('#new_scheduler_data_popup').modal('hide');
-            $.ajax({
-                url: '/service/ajax/add_scheduler_login_data/',
-                data: {
-                    sch_id: $('#scheduler').val(),
-                    login: new_login.val(),
-                    password: new_password.val(),
-                    max_priority: $('#new_max_priority').val()
-                },
-                type: 'POST',
-                success: function (data) {
-                    if (data.error) {
-                        err_notify(data.error);
-                    }
-                    else {
-                        $('#scheduler_login_data').show();
-                        $('#scheduler_login').text(new_login.val());
-                        $('#scheduler_password').text(new_password.val());
-                        $('#max_priority').text($('#new_max_priority').children(':selected').text());
-                        $('#add_new_scheduler_data').text($('#update_scheduler_data_btn_text').text());
-                        $('#remove_scheduler_login_data').show();
-                    }
-                }
-            });
-        }
-    });
-
-    $('#scheduler').dropdown({onChange: function () {
-        get_scheduler_login_data();
-    }});
+    $('.ui.dropdown').dropdown();
 
     $('#save_notifications').click(function () {
         var notifications = [], self_ntf = false;
@@ -130,5 +20,106 @@ $(document).ready(function () {
             },
             'json'
         );
+    });
+
+    $('.for_popup').popup();
+    function check_sch_u_data() {
+        var err_found = false, login = $('#scheduler_login'),
+            password = $('#scheduler_password'),
+            password_retype = $('#scheduler_password_retype'),
+            confirm = $('#add_new_sch_u');
+        if (login.val().length == 0) {
+            err_found = true;
+            $('#sch_u_login_warn').show();
+            login.parent().addClass('error');
+        }
+        else {
+            $('#sch_u_login_warn').hide();
+            login.parent().removeClass('error');
+        }
+        if (password.val().length == 0) {
+            err_found = true;
+            $('#sch_u_password_warn').show();
+            password.parent().addClass('error');
+        }
+        else {
+            $('#sch_u_password_warn').hide();
+            password.parent().removeClass('error');
+        }
+        if (password_retype.val().length == 0) {
+            err_found = true;
+            $('#sch_u_password_retype_warn').show();
+            password_retype.parent().addClass('error');
+        }
+        else {
+            $('#sch_u_password_retype_warn').hide();
+            password_retype.parent().removeClass('error');
+        }
+        if (password.val().length > 0 && password_retype.val().length > 0 && password_retype.val() != password.val()) {
+            err_found = true;
+            $('#sch_u_password_retype_warn_2').show();
+            password_retype.parent().addClass('error');
+        }
+        else {
+            $('#sch_u_password_retype_warn_2').hide();
+            password_retype.parent().removeClass('error');
+        }
+        if (err_found) {
+            if (!confirm.hasClass('disabled')) {
+                confirm.addClass('disabled');
+            }
+        }
+        else {
+            confirm.removeClass('disabled');
+        }
+        return err_found;
+    }
+    $('#scheduler_login').on('input', function () {
+        check_sch_u_data();
+    });
+    $('#scheduler_password').on('input', function () {
+        check_sch_u_data();
+    });
+    $('#scheduler_password_retype').on('input', function () {
+        check_sch_u_data();
+    });
+    $('#add_new_sch_u').click(function () {
+        $.ajax({
+                url: '/service/ajax/add_scheduler_user/',
+                data: {
+                    login: $("#scheduler_login").val(),
+                    password: $("#scheduler_password").val()
+                },
+                type: 'POST',
+                success: function (data) {
+                    if (data.error) {
+                        err_notify(data.error);
+                    }
+                    else {
+                        window.location.replace('');
+                    }
+                }
+            });
+    });
+    $('#remove_sch_u_popup').modal({
+        transition: 'fly up', autofocus: false, closable: false
+    }).modal('attach events', '#remove_sch_u', 'show');
+    $('#confirm_remove_sch_u').click(function () {
+        $.ajax({
+            url: '/service/ajax/remove_scheduler_user/',
+            data: {},
+            type: 'POST',
+            success: function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        });
+    });
+    $('#cancel_remove_sch_u').click(function () {
+        $('#remove_sch_u_popup').modal('hide');
     });
 });

@@ -12,13 +12,12 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
-from Omega.vars import LANGUAGES, PRIORITY
+from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
 from jobs.models import Job
 from django.middleware.csrf import get_token
 from users.notifications import NotifyData
-from service.models import Scheduler
 from reports.models import ReportRoot
 
 
@@ -119,11 +118,6 @@ def edit_profile(request):
         user_form = EditUserForm(instance=request.user)
         profile_form = UserExtendedForm(instance=request.user.extended)
 
-    sch_u = None
-    try:
-        sch_u = request.user.scheduleruser
-    except ObjectDoesNotExist:
-        pass
     return render(
         request,
         'users/edit-profile.html',
@@ -134,8 +128,7 @@ def edit_profile(request):
             'profile_errors': profile_form.errors,
             'user_errors': user_form.errors,
             'timezones': pytz.common_timezones,
-            'LANGUAGES': LANGUAGES,
-            'sch_u': sch_u
+            'LANGUAGES': LANGUAGES
         })
 
 

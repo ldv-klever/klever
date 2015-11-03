@@ -3,56 +3,15 @@ from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from Omega.formatChecker import RestrictedFileField
-from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS,\
-    SCHEDULER_TYPE
+from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
 from jobs.models import Job
-
 
 FILE_DIR = 'Service'
 
 
-class TaskFileData(models.Model):
-    description = models.BinaryField()
-    name = models.CharField(max_length=256)
-    source = RestrictedFileField(
-        upload_to=FILE_DIR, null=False,
-        max_upload_size=104857600
-    )
-
-    class Meta:
-        db_table = 'task_data'
-
-
-class SolutionFileData(models.Model):
-    description = models.TextField(null=True)
-    name = models.CharField(max_length=256)
-    source = RestrictedFileField(
-        upload_to=FILE_DIR, null=False,
-        max_upload_size=104857600
-    )
-
-    class Meta:
-        db_table = 'solution_data'
-
-
-@receiver(pre_delete, sender=TaskFileData)
-def task_filedata_delete(**kwargs):
-    file = kwargs['instance']
-    storage, path = file.source.storage, file.source.path
-    storage.delete(path)
-
-
-@receiver(pre_delete, sender=SolutionFileData)
-def soluition_filedata_delete(**kwargs):
-    file = kwargs['instance']
-    storage, path = file.source.storage, file.source.path
-    storage.delete(path)
-
-
 class Scheduler(models.Model):
     type = models.CharField(max_length=1, choices=SCHEDULER_TYPE)
-    status = models.CharField(max_length=12, choices=SCHEDULER_STATUS,
-                              default='AILING')
+    status = models.CharField(max_length=12, choices=SCHEDULER_STATUS, default='AILING')
 
     class Meta:
         db_table = 'scheduler'
@@ -77,7 +36,6 @@ class SchedulerUser(models.Model):
 
 
 class NodesConfiguration(models.Model):
-    scheduler = models.ForeignKey(Scheduler)
     cpu = models.CharField(max_length=128)
     cores = models.PositiveSmallIntegerField()
     ram = models.BigIntegerField()
@@ -104,8 +62,7 @@ class Node(models.Model):
     config = models.ForeignKey(NodesConfiguration)
     status = models.CharField(max_length=13, choices=NODE_STATUS)
     hostname = models.CharField(max_length=128)
-    workload = models.OneToOneField(Workload, null=True,
-                                    on_delete=models.SET_NULL)
+    workload = models.OneToOneField(Workload, null=True, on_delete=models.SET_NULL)
 
     class Meta:
         db_table = 'node'
@@ -139,12 +96,12 @@ class SolvingProgress(models.Model):
 
 
 class Task(models.Model):
-    status = models.CharField(max_length=10, choices=TASK_STATUS,
-                              default='PENDING')
-    error = models.CharField(max_length=1024, null=True)
-    files = models.OneToOneField(TaskFileData, null=True,
-                                 on_delete=models.SET_NULL)
     progress = models.ForeignKey(SolvingProgress)
+    status = models.CharField(max_length=10, choices=TASK_STATUS, default='PENDING')
+    error = models.CharField(max_length=1024, null=True)
+    description = models.BinaryField()
+    archname = models.CharField(max_length=256)  # Original name of the archive
+    archive = RestrictedFileField(upload_to=FILE_DIR, null=False, max_upload_size=104857600)
 
     class Meta:
         db_table = 'task'
@@ -153,21 +110,22 @@ class Task(models.Model):
 @receiver(pre_delete, sender=Task)
 def task_delete_signal(**kwargs):
     task = kwargs['instance']
-    if task.files is not None:
-        task.files.delete()
+    storage, path = task.archive.storage, task.archive.path
+    storage.delete(path)
 
 
-class TaskSolution(models.Model):
-    task = models.ForeignKey(Task)
-    files = models.OneToOneField(SolutionFileData, null=True,
-                                 on_delete=models.SET_NULL)
+class Solution(models.Model):
+    task = models.OneToOneField(Task)
+    description = models.BinaryField()
+    archname = models.CharField(max_length=256)  # Original name of the archive
+    archive = RestrictedFileField(upload_to=FILE_DIR, null=False, max_upload_size=104857600)
 
     class Meta:
         db_table = 'solution'
 
 
-@receiver(pre_delete, sender=TaskSolution)
-def solution_delete_signal(**kwargs):
-    solution = kwargs['instance']
-    if solution.files is not None:
-        solution.files.delete()
+@receiver(pre_delete, sender=Solution)
+def solution_delete(**kwargs):
+    file = kwargs['instance']
+    storage, path = file.archive.storage, file.archive.path
+    storage.delete(path)

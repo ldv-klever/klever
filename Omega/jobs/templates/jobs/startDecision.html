@@ -1,0 +1,17 @@
+{% extends 'jobs/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Start decision' %}{% endblock %}
+
+{% block jobs_head_block %}{% endblock %}
+
+{% block body_block %}
+    <h2>{% trans 'Start decision of' %} <a href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
+    <div class="ui segment">
+        <div class="ui grid">
+            <div class="sixteen wide column right aligned">
+                <button id="start_job_decision" class="ui button">{% trans 'Start' %}</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}

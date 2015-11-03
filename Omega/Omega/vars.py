@@ -22,6 +22,19 @@ ERRORS = {
     905: _("Scheduler was not found")
 }
 
+LANGUAGES = (
+    ('en', 'English'),
+    ('ru', 'Русский'),
+)
+
+USER_ROLES = (
+    ('0', _('No access')),
+    ('1', _('Producer')),
+    ('2', _('Manager')),
+    ('3', _('Expert')),
+    ('4', _('Service'))
+)
+
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
     ('1', _('Verification of commits in Linux kernel Git repositories')),
@@ -34,6 +47,17 @@ JOB_ROLES = (
     ('2', _('Expert')),
     ('3', _('Observer and Operator')),
     ('4', _('Expert and Operator')),
+)
+
+JOB_STATUS = (
+    ('0', _('Not solved')),
+    ('1', _('Pending')),
+    ('2', _('Is solving')),
+    ('3', _('Stopped')),
+    ('4', _('Solved')),
+    ('5', _('Failed')),
+    ('6', _('Corrupted')),
+    ('7', _('Cancelled'))
 )
 
 # Default view of the table
@@ -80,19 +104,6 @@ JOB_DEF_VIEW = {
     },
 }
 
-LANGUAGES = (
-    ('en', 'English'),
-    ('ru', 'Русский'),
-)
-
-USER_ROLES = (
-    ('0', _('No access')),
-    ('1', _('Producer')),
-    ('2', _('Manager')),
-    ('3', _('Expert')),
-    ('4', _('Service'))
-)
-
 VIEW_TYPES = {
     ('1', 'job tree'),
     ('2', 'job view'),
@@ -104,17 +115,6 @@ VIEW_TYPES = {
     ('8', 'safe marks'),
     ('9', 'unknown marks')
 }
-
-JOB_STATUS = (
-    ('0', _('Not solved')),
-    ('1', _('Pending')),
-    ('2', _('Is solving')),
-    ('3', _('Stopped')),
-    ('4', _('Solved')),
-    ('5', _('Failed')),
-    ('6', _('Corrupted')),
-    ('7', _('Cancelled'))
-)
 
 MARK_STATUS = (
     ('0', _('Unreported')),
@@ -334,6 +334,11 @@ SCHEDULER_STATUS = (
     ('DISCONNECTED', _('Disconnected'))
 )
 
+SCHEDULER_TYPE = (
+    ('0', 'Klever'),
+    ('1', 'VerifierCloud')
+)
+
 PRIORITY = (
     ('URGENT', _('Urgent')),
     ('HIGH', _('High')),
@@ -354,9 +359,4 @@ TASK_STATUS = (
     ('ERROR', _('Error')),
     ('FINISHED', _('Finished')),
     ('CANCELLED', _('Cancelled'))
-)
-
-SCHEDULER_TYPE = (
-    ('0', 'Klever'),
-    ('1', 'VerifierCloud')
 )
