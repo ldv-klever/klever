@@ -119,7 +119,11 @@ def edit_profile(request):
         user_form = EditUserForm(instance=request.user)
         profile_form = UserExtendedForm(instance=request.user.extended)
 
-    schedulers = Scheduler.objects.filter(need_auth=True)
+    sch_u = None
+    try:
+        sch_u = request.user.scheduleruser
+    except ObjectDoesNotExist:
+        pass
     return render(
         request,
         'users/edit-profile.html',
@@ -131,8 +135,7 @@ def edit_profile(request):
             'user_errors': user_form.errors,
             'timezones': pytz.common_timezones,
             'LANGUAGES': LANGUAGES,
-            'schedulers': schedulers,
-            'priorities': PRIORITY
+            'sch_u': sch_u
         })
 
 

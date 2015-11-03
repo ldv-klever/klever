@@ -818,8 +818,7 @@ $(document).ready(function () {
         autofocus: false, allowMultiple: false, onShow: function () {
             $('#job_name_tr').popup('hide');
         }
-    })
-        .modal('attach events', '#show_decide_job_popup', 'show');
+    }).modal('attach events', '#show_decide_job_popup', 'show');
     $('#decide_job_cancel').click(function () {
         $('#decide_job_popup').modal('hide');
     });

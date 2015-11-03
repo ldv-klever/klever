@@ -52,7 +52,7 @@ def soluition_filedata_delete(**kwargs):
 class Scheduler(models.Model):
     type = models.CharField(max_length=1, choices=SCHEDULER_TYPE)
     status = models.CharField(max_length=12, choices=SCHEDULER_STATUS,
-                              default='HEALTHY',)
+                              default='AILING')
 
     class Meta:
         db_table = 'scheduler'
@@ -68,8 +68,7 @@ class VerificationTool(models.Model):
 
 
 class SchedulerUser(models.Model):
-    user = models.ForeignKey(User)
-    scheduler = models.ForeignKey(Scheduler)
+    user = models.OneToOneField(User)
     login = models.CharField(max_length=128)
     password = models.CharField(max_length=128)
 
@@ -123,7 +122,7 @@ class SolvingProgress(models.Model):
     job = models.OneToOneField(Job)
     priority = models.CharField(max_length=6, choices=PRIORITY)
     scheduler = models.ForeignKey(Scheduler)
-    start_date = models.DateTimeField()
+    start_date = models.DateTimeField(null=True)
     finish_date = models.DateTimeField(null=True)
     tasks_total = models.PositiveIntegerField(default=0)
     tasks_pending = models.PositiveIntegerField(default=0)

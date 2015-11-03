@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override
-from Omega.vars import JOB_CLASSES
+from Omega.vars import JOB_CLASSES, SCHEDULER_TYPE
 from Omega.settings import LANGUAGE_CODE
 from users.models import Extended
 from jobs.utils import create_job
@@ -14,6 +14,7 @@ from jobs.models import Job
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
+from service.models import Scheduler
 
 
 def populate_jobs(user):
@@ -61,6 +62,8 @@ class Population(object):
         if len(Job.objects.all()) == 0 and isinstance(manager, User):
             self.jobs_updated = True
             populate_jobs(manager)
+        Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[0][0])
+        Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[1][0])
 
     def __populate_functions(self):
         func_names = []
