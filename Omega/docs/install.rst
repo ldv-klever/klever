@@ -32,7 +32,7 @@ Omega installation
     $ python3 manage.py migrate
     $ python3 manage.py createsuperuser
 
-.. note:: Execution of :command:`manage.py migrate` can take quite much time.
+   .. note:: Execution of :command:`manage.py migrate` can take quite much time.
 
 #. The last command will prompt you to create an Omega administrator **omega_admin** identified by a password
    **omega_admin_passwd**.
