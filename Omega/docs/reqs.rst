@@ -8,7 +8,7 @@ To run Omega you need:
   * `Django <https://www.djangoproject.com/>`_.
   * `pytz <http://pythonhosted.org/pytz/>`_.
   * `mysqlclient <https://github.com/PyMySQL/mysqlclient-python>`_ (requires Python and MySQL development headers and
-  libraries).
+    libraries).
 
 * `MySQL <https://www.mysql.com/>`_/`MariaDB <https://mariadb.org/>`_ (server).
 
