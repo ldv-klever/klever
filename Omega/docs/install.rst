@@ -37,7 +37,13 @@ Omega installation
 #. The last command will prompt you to create an Omega administrator **omega_admin** identified by a password
    **omega_admin_passwd**.
    An email address could be omitted.
+
 #. Proceed with either :ref:`dev-install` or :ref:`production-install`.
+#. Sign in at `<http://127.0.0.1:8998/>`_ with username (**omega_admin**) and password (**omega_admin_passwd**).
+#. Create a new Omega manager (**omega_manager**).
+#. Remember his/her password (**omega_manager_passwd**).
+#. Sign out and sign in on behalf of **omega_manager**.
+#. Enjoy!
 
 .. _dev-install:
 
@@ -47,12 +53,6 @@ Installation for development purposes
 #. Run a development server::
 
     $ python3 manage.py runserver 8998
-
-#. Sign in at `<http://127.0.0.1:8998/>`_ with username (**omega_admin**) and password (**omega_admin_passwd**).
-#. Create a new Omega manager (**omega_manager**).
-#. Remember his/her password (**omega_manager_passwd**).
-#. Sign out and sign in on behalf of **omega_manager**.
-#. Enjoy!
 
 .. _production-install:
 
@@ -98,20 +98,6 @@ Installation for production purposes
     $ python3.4 manage.py collectstatic
 
 #. Restart service apache2
-#. Sign in at `<http://127.0.0.1/admin/>`_ with username (**omega_user**) and password (**omega_passwd**).
-#. Create extended options (timezone - UTC - later you can change it).
-#. Open a Python shell::
-
-    $ python3.4 manage.py shell
-
-#. Execute the following commands in the Python shell::
-
-     >>> import jobs.populate
-     >>> jobs.populate.main_population('omega_user')
-     >>> quit()
-
-#. Restart service apache2
-#. Enjoy `<http://127.0.0.1/>`_!
 
 Documentation installation
 --------------------------
