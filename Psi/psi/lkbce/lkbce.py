@@ -3,6 +3,7 @@
 import os
 import re
 import shutil
+import sys
 import tarfile
 import time
 import urllib.parse
@@ -10,8 +11,6 @@ import urllib.parse
 import psi.components
 import psi.lkbce.cmds.cmds
 import psi.utils
-
-name = 'LKBCE'
 
 # We assume that CC/LD options always start with "-".
 # Some CC/LD options always require values that can be specified either together with option itself (maybe separated
@@ -28,8 +27,8 @@ _cmd_opts = {
            'opts discarding out file': ()}}
 
 
-class PsiComponent(psi.components.PsiComponentBase):
-    def launch(self):
+class LKBCE(psi.components.Component):
+    def extract_linux_kernel_build_commands(self):
         self.linux_kernel = {}
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
@@ -47,11 +46,12 @@ class PsiComponent(psi.components.PsiComponentBase):
         # self.process_all_linux_kernel_raw_build_cmds().
         with open(self.linux_kernel['raw build cmds file'], 'w'):
             pass
-        psi.components.launch_in_parrallel(self.logger,
-                                           (self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
+        self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
         if not self.conf['debug']:
             os.remove(self.linux_kernel['raw build cmds file'])
+
+    main = extract_linux_kernel_build_commands
 
     def build_linux_kernel(self):
         self.logger.info('Build Linux kernel')
@@ -59,16 +59,30 @@ class PsiComponent(psi.components.PsiComponentBase):
         # First of all collect all build commands to be executed.
         cmds = []
         if 'whole build' in self.conf['Linux kernel']:
-            cmds.append(('modules',))
+            cmds.append(('all',))
         elif 'modules' in self.conf['Linux kernel']:
-            # TODO: check that module sets aren't intersect explicitly.
+            # Check that module sets aren't intersect explicitly.
+            for i, modules1 in enumerate(self.conf['Linux kernel']['modules']):
+                for j, modules2 in enumerate(self.conf['Linux kernel']['modules']):
+                    if i != j and modules1.startswith(modules2):
+                        raise ValueError('Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
+
+            # Examine module sets.
             for modules in self.conf['Linux kernel']['modules']:
+                # Module sets ending with .ko imply individual modules.
                 if re.search(r'\.ko$', modules):
                     cmds.append((modules,))
+                # Otherwise it is directory that can contain modules.
                 else:
                     # Add "modules_prepare" target once.
                     if not cmds or cmds[0] != ('modules_prepare',):
                         cmds.insert(0, ('modules_prepare',))
+
+                    if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules)):
+                        raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules,
+                                                                                            self.linux_kernel[
+                                                                                                'work src tree']))
+
                     cmds.append(('M={0}'.format(modules), 'modules'))
         else:
             raise KeyError(
@@ -78,18 +92,19 @@ class PsiComponent(psi.components.PsiComponentBase):
             'Following build commands will be executed:\n{0}'.format('\n'.join([' '.join(cmd) for cmd in cmds])))
 
         for cmd in cmds:
-            psi.components.Component(self.logger,
-                                     tuple(['make', '-j',
-                                            psi.utils.get_parallel_threads_num(self.logger,
-                                                                               self.conf,
-                                                                               'Linux kernel build'),
-                                            '-C', self.linux_kernel['work src tree'],
-                                            'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd)),
-                                     env=dict(os.environ,
-                                              PATH='{0}:{1}'.format(os.path.join(os.path.dirname(__file__), 'cmds'),
-                                                                    os.environ['PATH']),
-                                              LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
-                                                  self.linux_kernel['raw build cmds file']))).start()
+            psi.utils.execute(self.logger,
+                              tuple(['make', '-j',
+                                     psi.utils.get_parallel_threads_num(self.logger,
+                                                                        self.conf,
+                                                                        'Linux kernel build'),
+                                     '-C', self.linux_kernel['work src tree'],
+                                     'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd)),
+                              dict(os.environ,
+                                   PATH='{0}:{1}'.format(
+                                       os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
+                                       os.environ['PATH']),
+                                   LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
+                                       self.linux_kernel['raw build cmds file'])))
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with psi.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a') as fp:
@@ -97,15 +112,25 @@ class PsiComponent(psi.components.PsiComponentBase):
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
-        psi.components.Component(self.logger, ('make', '-C', self.linux_kernel['work src tree'], 'mrproper')).start()
+        psi.utils.execute(self.logger, ('make', '-C', self.linux_kernel['work src tree'], 'mrproper'))
+
+        # In this case we need to remove intermediate files and directories that could be created during previous run.
+        if self.conf['allow local source directories use']:
+            for dirpath, dirnames, filenames in os.walk(self.linux_kernel['work src tree']):
+                for filename in filenames:
+                    if re.search(r'\.json$', filename):
+                        os.remove(os.path.join(dirpath, filename))
+                for dirname in dirnames:
+                    if re.search(r'\.task$', dirname):
+                        shutil.rmtree(os.path.join(dirpath, dirname))
 
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
-        if 'conf' in self.conf['Linux kernel']:
-            psi.components.Component(self.logger,
-                                     ('make', '-C', self.linux_kernel['work src tree'],
-                                      'ARCH={0}'.format(self.linux_kernel['arch']),
-                                      self.conf['Linux kernel']['conf'])).start()
+        if 'configuration' in self.conf['Linux kernel']:
+            psi.utils.execute(self.logger,
+                              ('make', '-C', self.linux_kernel['work src tree'],
+                               'ARCH={0}'.format(self.linux_kernel['arch']),
+                               self.conf['Linux kernel']['configuration']))
         else:
             raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
@@ -113,30 +138,31 @@ class PsiComponent(psi.components.PsiComponentBase):
         self.logger.info('Extract Linux kernel atributes')
 
         self.logger.debug('Get Linux kernel version')
-        p = psi.components.Component(self.logger,
-                                     ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'),
-                                     collect_all_stdout=True)
-        p.start()
-        self.linux_kernel['version'] = p.stdout[0]
+        stdout = psi.utils.execute(self.logger,
+                                   ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'),
+                                   collect_all_stdout=True)
+        self.linux_kernel['version'] = stdout[0]
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))
 
         self.logger.debug('Get Linux kernel architecture')
-        self.linux_kernel['arch'] = self.conf['Linux kernel'].get('arch') or self.conf['sys']['arch']
+        self.linux_kernel['arch'] = self.conf['Linux kernel'].get('architecture') or self.conf['sys']['arch']
         self.logger.debug('Linux kernel architecture is "{0}"'.format(self.linux_kernel['arch']))
 
         self.logger.debug('Get Linux kernel configuration shortcut')
-        self.linux_kernel['conf shortcut'] = self.conf['Linux kernel']['conf']
+        self.linux_kernel['conf shortcut'] = self.conf['Linux kernel']['configuration']
         self.logger.debug('Linux kernel configuration shortcut is "{0}"'.format(self.linux_kernel['conf shortcut']))
 
         self.linux_kernel['attrs'] = [
-            {'Linux kernel': [{attr: self.linux_kernel[attr]} for attr in ('version', 'arch', 'conf shortcut')]}]
+            {'Linux kernel': [{'version': self.linux_kernel['version']},
+                              {'architecture': self.linux_kernel['arch']},
+                              {'configuration': self.linux_kernel['conf shortcut']}]}]
 
     def fetch_linux_kernel_work_src_tree(self):
         self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
 
         self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel['work src tree']))
 
-        self.linux_kernel['src'] = self.conf['Linux kernel']['src']
+        self.linux_kernel['src'] = self.conf['Linux kernel']['source']
 
         o = urllib.parse.urlparse(self.linux_kernel['src'])
         if o[0] in ('http', 'https', 'ftp'):
@@ -175,12 +201,20 @@ class PsiComponent(psi.components.PsiComponentBase):
         if not linux_kernel_work_src_tree_root:
             raise ValueError('Could not find Makefile in Linux kernel source code')
 
-        # TODO: specification requires to remove everything in self.linux_kernel['work src tree'] except moved
-        # linux_kernel_work_src_tree_root.
         if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']):
             self.logger.debug(
-                'Move "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']))
-            os.rename(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree'])
+                'Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
+                                                         self.linux_kernel['work src tree']))
+            for path in os.listdir(linux_kernel_work_src_tree_root):
+                shutil.move(os.path.join(linux_kernel_work_src_tree_root, path), self.linux_kernel['work src tree'])
+            trash_dir = linux_kernel_work_src_tree_root
+            while True:
+                parent_dir = os.path.join(trash_dir, os.path.pardir)
+                if os.path.samefile(parent_dir, self.linux_kernel['work src tree']):
+                    break
+                trash_dir = parent_dir
+            self.logger.debug('Remove "{0}"'.format(trash_dir))
+            os.rmdir(trash_dir)
 
     def process_all_linux_kernel_raw_build_cmds(self):
         self.logger.info('Process all Linux kernel raw build commands')
@@ -203,7 +237,9 @@ class PsiComponent(psi.components.PsiComponentBase):
                 opts = []
                 for line in fp:
                     if line == psi.lkbce.cmds.cmds.Command.cmds_separator:
-                        if prev_line == psi.lkbce.cmds.cmds.Command.cmds_separator:
+                        # If there is no Linux kernel raw build commands just one separator will be printed by LKBCE
+                        # itself when terminating corresponding message queue.
+                        if not prev_line or prev_line == psi.lkbce.cmds.cmds.Command.cmds_separator:
                             self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
                             return
                         else:

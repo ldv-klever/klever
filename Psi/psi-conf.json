@@ -4,7 +4,7 @@
     "id": null,
     "priority": "low"
   },
-  "abstract verification tasks gen priority": "balance",
+  "AVTG priority": "balance",
   "Omega": {
     "name": "localhost:8998",
     "user": null,

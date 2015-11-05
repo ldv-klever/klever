@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# Omega documentation build configuration file, created by
+# Psi documentation build configuration file, created by
 # sphinx-quickstart on Wed Jul 29 16:08:33 2015.
 #
 # This file is execfile()d with the current directory set to its

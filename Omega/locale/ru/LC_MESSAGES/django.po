@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-09-02 15:27+0000\n"
+"POT-Creation-Date: 2015-10-26 14:04+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -34,11 +34,11 @@ msgid "The page was not found"
 msgstr "Страница не была найдена"
 
 #: Omega/vars.py:7 jobs/views.py:325 jobs/views.py:352 jobs/views.py:426
-#: jobs/views.py:514 jobs/views.py:650 jobs/views.py:779
+#: jobs/views.py:514 jobs/views.py:648 jobs/views.py:777
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
-#: Omega/vars.py:8 jobs/views.py:655
+#: Omega/vars.py:8 jobs/views.py:653
 msgid "You don't have an access to this job"
 msgstr "У Вас нет прав на данное задание"
 
@@ -56,7 +56,7 @@ msgstr ""
 msgid "The report was not found"
 msgstr "Отчет не был найден"
 
-#: Omega/vars.py:12 marks/views.py:336 marks/views.py:375
+#: Omega/vars.py:12 marks/views.py:382 marks/views.py:421
 msgid "The mark was not found"
 msgstr "Оценка не была найдена"
 
@@ -81,228 +81,237 @@ msgid "Saving mark failed"
 msgstr "Сохранение оценки провалилось"
 
 #: Omega/vars.py:18
-msgid "Tag was not found"
+msgid "The tag was not found"
 msgstr "Тег не был найден"
 
-#: Omega/vars.py:22
+#: Omega/vars.py:19
+msgid "The problem was not found"
+msgstr "Проблема не была найдена"
+
+#: Omega/vars.py:23
 msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
-#: Omega/vars.py:23
+#: Omega/vars.py:24
 msgid "Verification of commits in Linux kernel Git repositories"
 msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
-#: Omega/vars.py:24
+#: Omega/vars.py:25
 msgid "Verification of C programs"
 msgstr "Верификация Си-программ"
 
-#: Omega/vars.py:28 Omega/vars.py:85
+#: Omega/vars.py:29 Omega/vars.py:86
 msgid "No access"
 msgstr "Нет доступа"
 
-#: Omega/vars.py:29 users/notifications.py:221
+#: Omega/vars.py:30 users/notifications.py:221
 msgid "Observer"
 msgstr "Обозреватель"
 
-#: Omega/vars.py:30 Omega/vars.py:88 users/notifications.py:221
+#: Omega/vars.py:31 Omega/vars.py:89 users/notifications.py:221
 msgid "Expert"
 msgstr "Эксперт"
 
-#: Omega/vars.py:31
+#: Omega/vars.py:32
 msgid "Observer and Operator"
 msgstr "Обозреватель и оператор"
 
-#: Omega/vars.py:32
+#: Omega/vars.py:33
 msgid "Expert and Operator"
 msgstr "Эксперт и оператор"
 
-#: Omega/vars.py:86 users/notifications.py:221
+#: Omega/vars.py:87 users/notifications.py:221
 msgid "Producer"
 msgstr "Постановщик"
 
-#: Omega/vars.py:87 users/notifications.py:222
+#: Omega/vars.py:88 users/notifications.py:222
 msgid "Manager"
 msgstr "Руководитель"
 
-#: Omega/vars.py:102
+#: Omega/vars.py:105
 msgid "Not solved"
 msgstr "Не решено"
 
-#: Omega/vars.py:103
+#: Omega/vars.py:106
 msgid "Is solving"
 msgstr "Решается"
 
-#: Omega/vars.py:104
+#: Omega/vars.py:107
 msgid "Stopped"
 msgstr "Приостановлено"
 
-#: Omega/vars.py:105
+#: Omega/vars.py:108
 msgid "Solved"
 msgstr "Решено"
 
-#: Omega/vars.py:106 reports/templates/reports/ReportMain.html:56
+#: Omega/vars.py:109 reports/templates/reports/ReportMain.html:33
 msgid "Failed"
 msgstr "Провалено"
 
-#: Omega/vars.py:107
+#: Omega/vars.py:110
 msgid "Corrupted"
 msgstr "Повреждено"
 
 #: Omega/vars.py:111
+msgid "Cancelled"
+msgstr "Отменено"
+
+#: Omega/vars.py:115
 msgid "Unreported"
 msgstr "Не сообщена"
 
-#: Omega/vars.py:112
+#: Omega/vars.py:116
 msgid "Reported"
 msgstr "Сообщена"
 
-#: Omega/vars.py:113
+#: Omega/vars.py:117
 msgid "Fixed"
 msgstr "Исправлена"
 
-#: Omega/vars.py:114
+#: Omega/vars.py:118
 msgid "Rejected"
 msgstr "Отклонена"
 
-#: Omega/vars.py:118 Omega/vars.py:125 Omega/vars.py:131 Omega/vars.py:140
-#: jobs/utils.py:43 jobs/utils.py:51 reports/utils.py:31
+#: Omega/vars.py:122 Omega/vars.py:129 Omega/vars.py:135 Omega/vars.py:144
+#: jobs/utils.py:43 jobs/utils.py:51 reports/utils.py:32
 msgid "Unknown"
 msgstr "Неизвестно"
 
-#: Omega/vars.py:119 Omega/vars.py:132
+#: Omega/vars.py:123 Omega/vars.py:136
 msgid "Bug"
 msgstr "Ошибка"
 
-#: Omega/vars.py:120 Omega/vars.py:133
+#: Omega/vars.py:124 Omega/vars.py:137
 msgid "Target bug"
 msgstr "Целевая ошибка"
 
-#: Omega/vars.py:121 Omega/vars.py:134
+#: Omega/vars.py:125 Omega/vars.py:138
 msgid "False positive"
 msgstr "Ложное сообщение об ошибке"
 
-#: Omega/vars.py:126 Omega/vars.py:141 jobs/utils.py:42
+#: Omega/vars.py:130 Omega/vars.py:145 jobs/utils.py:42
 msgid "Incorrect proof"
 msgstr "Некорректное доказательство"
 
-#: Omega/vars.py:127 Omega/vars.py:142
+#: Omega/vars.py:131 Omega/vars.py:146
 msgid "Missed target bug"
 msgstr "Пропуск целевой ошибки"
 
-#: Omega/vars.py:135 Omega/vars.py:143 jobs/utils.py:44 jobs/utils.py:52
+#: Omega/vars.py:139 Omega/vars.py:147 jobs/utils.py:44 jobs/utils.py:52
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: Omega/vars.py:136 Omega/vars.py:144 jobs/JobTableProperties.py:573
-#: jobs/JobTableProperties.py:578 jobs/ViewJobData.py:184 jobs/utils.py:45
+#: Omega/vars.py:140 Omega/vars.py:148 jobs/JobTableProperties.py:569
+#: jobs/JobTableProperties.py:574 jobs/ViewJobData.py:189 jobs/utils.py:45
 #: jobs/utils.py:53
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: Omega/views.py:29 jobs/utils.py:251 jobs/utils.py:431 jobs/views.py:46
+#: Omega/views.py:29 jobs/utils.py:251 jobs/utils.py:437 jobs/views.py:46
 #: jobs/views.py:51 jobs/views.py:90 jobs/views.py:95 jobs/views.py:119
 #: jobs/views.py:127 jobs/views.py:165 jobs/views.py:169 jobs/views.py:319
 #: jobs/views.py:347 jobs/views.py:407 jobs/views.py:500 jobs/views.py:508
-#: jobs/views.py:756 jobs/views.py:760 jobs/views.py:771 marks/utils.py:742
-#: marks/utils.py:868 marks/views.py:169 marks/views.py:187 marks/views.py:200
-#: marks/views.py:320 marks/views.py:333 marks/views.py:360 marks/views.py:373
-#: users/views.py:204
+#: jobs/views.py:754 jobs/views.py:758 jobs/views.py:769 marks/utils.py:755
+#: marks/utils.py:815 marks/utils.py:957 marks/views.py:181 marks/views.py:199
+#: marks/views.py:212 marks/views.py:367 marks/views.py:378 marks/views.py:406
+#: marks/views.py:417 users/views.py:207
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
-#: jobs/Download.py:381 jobs/Download.py:403 jobs/Download.py:414
-#: jobs/Download.py:433
+#: jobs/Download.py:386 jobs/Download.py:408 jobs/Download.py:419
+#: jobs/Download.py:438
 msgid "The job archive is corrupted"
 msgstr "Архив задания поврежден"
 
-#: jobs/Download.py:405
+#: jobs/Download.py:410
 msgid "The job format is not supported"
 msgstr "Формат задания не поддерживается"
 
-#: jobs/Download.py:407
+#: jobs/Download.py:412
 msgid "The job class does not equal to the parent class"
 msgstr "Класс задания не совпадает с классом родителя"
 
-#: jobs/Download.py:467
+#: jobs/Download.py:472
 msgid "One of the reports was not uploaded"
 msgstr "Один из отчетов не был загружен на сервер"
 
-#: jobs/JobTableProperties.py:24 jobs/JobTableProperties.py:35
-#: jobs/templates/jobs/editJob.html:21 jobs/utils.py:36
+#: jobs/JobTableProperties.py:25 jobs/JobTableProperties.py:36
+#: jobs/templates/jobs/editJob.html:20 jobs/utils.py:36
 msgid "Title"
 msgstr "Название"
 
-#: jobs/JobTableProperties.py:25 jobs/JobTableProperties.py:36
-#: jobs/JobTableProperties.py:773 jobs/templates/jobs/viewJob.html:76
-#: jobs/utils.py:37 marks/tables.py:20 marks/templates/marks/EditMark.html:23
-#: marks/templates/marks/EditMark.html:27
-#: marks/templates/marks/ViewMark.html:29
-#: marks/templates/marks/ViewMark.html:33
-#: reports/templates/reports/ReportMain.html:45
+#: jobs/JobTableProperties.py:26 jobs/JobTableProperties.py:37
+#: jobs/JobTableProperties.py:769 jobs/utils.py:37 marks/tables.py:22
+#: marks/templates/marks/EditMark.html:32
+#: marks/templates/marks/EditUnknownMark.html:29
+#: marks/templates/marks/ViewMark.html:40
+#: marks/templates/marks/filters.html:109
+#: reports/templates/reports/ReportMain.html:21
 #: reports/templates/reports/report_leaf.html:14
 #: reports/templates/reports/report_list.html:12
 msgid "Author"
 msgstr "Автор"
 
-#: jobs/JobTableProperties.py:25 users/forms.py:87
+#: jobs/JobTableProperties.py:26 users/forms.py:86
 msgid "Last name"
 msgstr "Фамилия"
 
-#: jobs/JobTableProperties.py:26 jobs/templates/jobs/viewJob.html:80
-#: marks/templates/marks/EditMark.html:30
-#: marks/templates/marks/ViewMark.html:36
-#: users/templates/users/showProfile.html:27
+#: jobs/JobTableProperties.py:27 users/templates/users/showProfile.html:28
 msgid "Date"
 msgstr "Дата"
 
-#: jobs/JobTableProperties.py:27 jobs/JobTableProperties.py:38
-#: jobs/templates/jobs/viewJob.html:89 jobs/utils.py:39
+#: jobs/JobTableProperties.py:28 jobs/JobTableProperties.py:39
+#: jobs/templates/jobs/viewJob.html:105 jobs/utils.py:39
 msgid "Decision status"
 msgstr "Статус решения"
 
-#: jobs/JobTableProperties.py:37 jobs/utils.py:38
+#: jobs/JobTableProperties.py:38 jobs/utils.py:38
 msgid "Last change date"
 msgstr "Дата последнего изменения"
 
-#: jobs/JobTableProperties.py:40 jobs/templates/jobs/jobData.html:85
-#: jobs/templates/jobs/viewJobFilters.html:18
-#: jobs/templates/jobs/viewJobFilters.html:58
+#: jobs/JobTableProperties.py:41 jobs/templates/jobs/jobData.html:101
+#: jobs/templates/jobs/viewJobFilters.html:28
+#: jobs/templates/jobs/viewJobFilters.html:95
 msgid "Resources"
 msgstr "Ресурсы"
 
-#: jobs/JobTableProperties.py:40 jobs/JobTableProperties.py:41
-#: jobs/templates/jobs/viewJobFilters.html:34
-#: jobs/templates/jobs/viewJobFilters.html:61
-#: reports/templates/reports/AttrsFilters.html:11
-#: reports/templates/reports/UnknownsFilters.html:17
+#: jobs/JobTableProperties.py:41 jobs/JobTableProperties.py:42
+#: jobs/templates/jobs/viewJobFilters.html:60
+#: jobs/templates/jobs/viewJobFilters.html:101
+#: reports/templates/reports/AttrsFilters.html:8
+#: reports/templates/reports/UnknownsFilters.html:15
 msgid "Component name"
 msgstr "Название компонента"
 
-#: jobs/JobTableProperties.py:41 jobs/templates/jobs/jobData.html:41
-#: jobs/templates/jobs/viewJobFilters.html:15
-#: jobs/templates/jobs/viewJobFilters.html:24 jobs/utils.py:55
-#: templates/base.html:58
+#: jobs/JobTableProperties.py:42 jobs/templates/jobs/jobData.html:40
+#: jobs/templates/jobs/viewJobFilters.html:22
+#: jobs/templates/jobs/viewJobFilters.html:44 jobs/utils.py:55
+#: reports/views.py:116 templates/base.html:48
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
-#: jobs/JobTableProperties.py:42 jobs/templates/jobs/viewJobFilters.html:46
+#: jobs/JobTableProperties.py:43 jobs/templates/jobs/viewJobFilters.html:77
+#: marks/templates/marks/CreateMark.html:174
+#: marks/templates/marks/MarkUnknownData.html:28
 msgid "Problem name"
 msgstr "Название проблемы"
 
-#: jobs/JobTableProperties.py:43 jobs/templates/jobs/viewJob.html:35
-#: jobs/utils.py:63 marks/tables.py:23 marks/templates/marks/EditMark.html:22
-#: marks/templates/marks/ViewMark.html:28
+#: jobs/JobTableProperties.py:44 jobs/templates/jobs/viewJob.html:41
+#: jobs/utils.py:63 marks/tables.py:25 marks/templates/marks/EditMark.html:27
+#: marks/templates/marks/EditUnknownMark.html:24
+#: marks/templates/marks/ViewMark.html:35
+#: marks/templates/marks/filters.html:35
 msgid "Format"
 msgstr "Формат"
 
-#: jobs/JobTableProperties.py:579 jobs/JobTableProperties.py:593
-#: jobs/JobTableProperties.py:601 jobs/ViewJobData.py:138
-#: jobs/ViewJobData.py:195 jobs/utils.py:46 jobs/utils.py:54 jobs/utils.py:56
+#: jobs/JobTableProperties.py:575 jobs/JobTableProperties.py:589
+#: jobs/JobTableProperties.py:597 jobs/ViewJobData.py:137
+#: jobs/ViewJobData.py:202 jobs/utils.py:46 jobs/utils.py:54 jobs/utils.py:56
 #: jobs/utils.py:58
 msgid "Total"
 msgstr "Всего"
 
-#: jobs/templates/jobs/base.html:5 templates/base.html:45
+#: jobs/templates/jobs/base.html:5 templates/base.html:41
 msgid "Jobs"
 msgstr "Задания"
 
@@ -310,21 +319,29 @@ msgstr "Задания"
 msgid "Job Copying"
 msgstr "Копирование задания"
 
-#: jobs/templates/jobs/editJob.html:10 marks/templates/marks/EditMark.html:47
+#: jobs/templates/jobs/editJob.html:9 marks/templates/marks/EditMark.html:86
+#: marks/templates/marks/EditUnknownMark.html:82
 msgid "You can choose one of the previous versions"
 msgstr "Вы можете выбрать оду из предыдущих версий"
 
-#: jobs/templates/jobs/editJob.html:16
+#: jobs/templates/jobs/editJob.html:15
 msgid "or change the job"
 msgstr "или изменить задание"
 
-#: jobs/templates/jobs/editJob.html:25 jobs/templates/jobs/showJob.html:8
+#: jobs/templates/jobs/editJob.html:26 jobs/templates/jobs/showJob.html:11
 msgid "Parent identifier"
 msgstr "Идентификатор родителя"
 
-#: jobs/templates/jobs/editJob.html:33 jobs/templates/jobs/showJob.html:5
-#: reports/templates/reports/ReportMain.html:78
-#: reports/templates/reports/report_leaf.html:103
+#: jobs/templates/jobs/editJob.html:34 jobs/templates/jobs/editJob.html:35
+#: jobs/templates/jobs/showJob.html:5 marks/templates/marks/CreateMark.html:45
+#: marks/templates/marks/CreateMark.html:127
+#: marks/templates/marks/CreateMark.html:187
+#: marks/templates/marks/MarkAddData.html:52
+#: marks/templates/marks/MarkUnknownData.html:15
+#: marks/templates/marks/MarkUnknownData.html:18
+#: marks/templates/marks/ViewMark.html:149
+#: reports/templates/reports/ReportMain.html:48
+#: reports/templates/reports/report_leaf.html:111
 msgid "Description"
 msgstr "Описание"
 
@@ -332,213 +349,242 @@ msgstr "Описание"
 msgid "Role for all users"
 msgstr "Роль для всех пользователей"
 
-#: jobs/templates/jobs/editJob.html:51
+#: jobs/templates/jobs/editJob.html:52
 msgid "Add role to user"
 msgstr "Добавить роль для пользователя"
 
-#: jobs/templates/jobs/editJob.html:57 jobs/templates/jobs/filesTree.html:76
-#: jobs/templates/jobs/tree.html:50 jobs/templates/jobs/tree.html.py:63
-#: jobs/templates/jobs/tree.html:106
+#: jobs/templates/jobs/editJob.html:59 jobs/templates/jobs/filesTree.html:154
+#: jobs/templates/jobs/tree.html:98 marks/templates/marks/Tags.html:28
 msgid "Add"
 msgstr "Добавить"
 
-#: jobs/templates/jobs/editJob.html:83 jobs/templates/jobs/showJob.html:12
+#: jobs/templates/jobs/editJob.html:87 jobs/templates/jobs/showJob.html:17
 msgid "Files"
 msgstr "Файлы"
 
-#: jobs/templates/jobs/editJob.html:87
+#: jobs/templates/jobs/editJob.html:94
 msgid "Change comment"
 msgstr "Комментарий к изменению"
 
-#: jobs/templates/jobs/editJob.html:87 jobs/templates/jobs/viewJob.html:86
-#: marks/templates/marks/EditMark.html:36
-#: marks/templates/marks/EditMark.html:61
-#: marks/templates/marks/ViewMark.html:42
-#: users/templates/users/showProfile.html:30
+#: jobs/templates/jobs/editJob.html:96 jobs/templates/jobs/viewJob.html:100
+#: marks/templates/marks/EditMark.html:46
+#: marks/templates/marks/EditMark.html:106
+#: marks/templates/marks/EditUnknownMark.html:43
+#: marks/templates/marks/EditUnknownMark.html:101
+#: marks/templates/marks/ViewMark.html:54
+#: users/templates/users/showProfile.html:31
 msgid "Comment"
 msgstr "Комментарий"
 
-#: jobs/templates/jobs/editJob.html:89 jobs/templates/jobs/tree.html:294
-#: marks/templates/marks/CreateMark.html:59
-#: marks/templates/marks/CreateMark.html:101
-#: marks/templates/marks/EditMark.html:62 templates/viewButtons.html:11
-#: users/templates/users/edit-profile.html:43
-#: users/templates/users/notifications.html:29
+#: jobs/templates/jobs/editJob.html:100 jobs/templates/jobs/tree.html:307
+#: marks/templates/marks/CreateMark.html:91
+#: marks/templates/marks/CreateMark.html:147
+#: marks/templates/marks/CreateMark.html:207
+#: marks/templates/marks/EditMark.html:107
+#: marks/templates/marks/EditUnknownMark.html:102
+#: templates/viewButtons.html:13 users/templates/users/edit-profile.html:75
+#: users/templates/users/notifications.html:35
 msgid "Save"
 msgstr "Сохранить"
 
-#: jobs/templates/jobs/editJob.html:91 jobs/templates/jobs/filesTree.html:38
-#: jobs/templates/jobs/filesTree.html:46 jobs/templates/jobs/filesTree.html:56
-#: jobs/templates/jobs/filesTree.html:62 jobs/templates/jobs/filesTree.html:77
-#: jobs/templates/jobs/filesTree.html:87 jobs/templates/jobs/tree.html:321
-#: jobs/templates/jobs/viewJob.html:114
-#: jobs/templates/jobs/viewVersions.html:17
-#: jobs/templates/jobs/viewVersions.html:31
-#: marks/templates/marks/CreateMark.html:58
-#: marks/templates/marks/CreateMark.html:100
-#: marks/templates/marks/EditMark.html:79
-#: marks/templates/marks/markVersions.html:17
-#: marks/templates/marks/markVersions.html:31 templates/base.html:100
-#: templates/base.html.py:123
+#: jobs/templates/jobs/editJob.html:102 jobs/templates/jobs/filesTree.html:57
+#: jobs/templates/jobs/filesTree.html:79
+#: jobs/templates/jobs/filesTree.html:103
+#: jobs/templates/jobs/filesTree.html:117
+#: jobs/templates/jobs/filesTree.html:151
+#: jobs/templates/jobs/filesTree.html:178 jobs/templates/jobs/tree.html:358
+#: jobs/templates/jobs/viewJob.html:152
+#: jobs/templates/jobs/viewVersions.html:18
+#: jobs/templates/jobs/viewVersions.html:32
+#: marks/templates/marks/CreateMark.html:90
+#: marks/templates/marks/CreateMark.html:146
+#: marks/templates/marks/CreateMark.html:206
+#: marks/templates/marks/EditMark.html:125
+#: marks/templates/marks/EditUnknownMark.html:121
+#: marks/templates/marks/markVersions.html:18
+#: marks/templates/marks/markVersions.html:33 templates/base.html:88
+#: templates/base.html.py:113
 msgid "Cancel"
 msgstr "Отменить"
 
-#: jobs/templates/jobs/editJob.html:105 jobs/utils.py:435
-#: marks/templates/marks/EditMark.html:66
+#: jobs/templates/jobs/editJob.html:123 jobs/utils.py:441
+#: marks/templates/marks/EditMark.html:112
+#: marks/templates/marks/EditUnknownMark.html:108
 msgid "Change comment is required"
 msgstr "Требуется написать комментарий к изменению"
 
-#: jobs/templates/jobs/editJob.html:106
+#: jobs/templates/jobs/editJob.html:124
 msgid "Title is required"
 msgstr "Требуется указать название"
 
-#: jobs/templates/jobs/filesTree.html:17
+#: jobs/templates/jobs/filesTree.html:22 jobs/templates/jobs/filesTree.html:37
+#: jobs/templates/jobs/filesTree.html:67
 msgid "New folder"
 msgstr "Новая папка"
 
-#: jobs/templates/jobs/filesTree.html:18
+#: jobs/templates/jobs/filesTree.html:23
+#: jobs/templates/jobs/filesTree.html:127
 msgid "New file"
 msgstr "Новый файл"
 
-#: jobs/templates/jobs/filesTree.html:19 jobs/templates/jobs/filesTree.html:45
+#: jobs/templates/jobs/filesTree.html:24 jobs/templates/jobs/filesTree.html:82
 msgid "Rename"
 msgstr "Переименовать"
 
-#: jobs/templates/jobs/filesTree.html:20
+#: jobs/templates/jobs/filesTree.html:29
 msgid "Move file"
 msgstr "Переместить файл"
 
-#: jobs/templates/jobs/filesTree.html:21
+#: jobs/templates/jobs/filesTree.html:30
 msgid "Replace file"
 msgstr "Заменить файл"
 
-#: jobs/templates/jobs/filesTree.html:22 jobs/templates/jobs/filesTree.html:61
-#: jobs/templates/jobs/tree.html:53 jobs/templates/jobs/tree.html.py:291
-#: jobs/templates/jobs/tree.html:320 jobs/templates/jobs/viewJob.html:26
-#: jobs/templates/jobs/viewJob.html:113
-#: jobs/templates/jobs/viewVersions.html:16
-#: jobs/templates/jobs/viewVersions.html:30
+#: jobs/templates/jobs/filesTree.html:31
+#: jobs/templates/jobs/filesTree.html:120 jobs/templates/jobs/tree.html:324
+#: jobs/templates/jobs/tree.html.py:359 jobs/templates/jobs/viewJob.html:25
+#: jobs/templates/jobs/viewJob.html:153
+#: jobs/templates/jobs/viewVersions.html:17
+#: jobs/templates/jobs/viewVersions.html:33
 #: marks/templates/marks/EditMark.html:18
-#: marks/templates/marks/EditMark.html:78
-#: marks/templates/marks/markVersions.html:16
-#: marks/templates/marks/markVersions.html:30 templates/viewButtons.html:27
+#: marks/templates/marks/EditMark.html:126
+#: marks/templates/marks/EditUnknownMark.html:14
+#: marks/templates/marks/EditUnknownMark.html:122
+#: marks/templates/marks/markVersions.html:17
+#: marks/templates/marks/markVersions.html:34 templates/viewButtons.html:33
 msgid "Delete"
 msgstr "Удалить"
 
-#: jobs/templates/jobs/filesTree.html:29
+#: jobs/templates/jobs/filesTree.html:41
 msgid "Folder name"
 msgstr "Название папки"
 
-#: jobs/templates/jobs/filesTree.html:30 jobs/templates/jobs/filesTree.html:68
-#: jobs/templates/jobs/filesTree.html:83
-msgid "Name"
-msgstr "Название"
-
-#: jobs/templates/jobs/filesTree.html:32
+#: jobs/templates/jobs/filesTree.html:47
 msgid "Subfolder of"
 msgstr "Подпапка"
 
-#: jobs/templates/jobs/filesTree.html:34 jobs/templates/jobs/filesTree.html:52
-#: jobs/templates/jobs/filesTree.html:73
+#: jobs/templates/jobs/filesTree.html:49 jobs/templates/jobs/filesTree.html:95
+#: jobs/templates/jobs/filesTree.html:143
 msgid "Root"
 msgstr "Корневая папка"
 
-#: jobs/templates/jobs/filesTree.html:37
+#: jobs/templates/jobs/filesTree.html:60
 msgid "Create"
 msgstr "Создать"
 
-#: jobs/templates/jobs/filesTree.html:42
+#: jobs/templates/jobs/filesTree.html:71
 msgid "New name"
 msgstr "Новое название"
 
-#: jobs/templates/jobs/filesTree.html:50 jobs/templates/jobs/filesTree.html:55
+#: jobs/templates/jobs/filesTree.html:89
+#: jobs/templates/jobs/filesTree.html:106
 msgid "Move"
 msgstr "Переместить"
 
-#: jobs/templates/jobs/filesTree.html:50
+#: jobs/templates/jobs/filesTree.html:89
 msgid "to"
 msgstr "в"
 
-#: jobs/templates/jobs/filesTree.html:60
+#: jobs/templates/jobs/filesTree.html:113
 msgid "will be deleted. Do you want to continue?"
 msgstr "будет удален(а). Вы хотите продолжить?"
 
-#: jobs/templates/jobs/filesTree.html:66 jobs/templates/jobs/filesTree.html:81
-#: templates/base.html:94 templates/base.html.py:117
+#: jobs/templates/jobs/filesTree.html:132
+#: jobs/templates/jobs/filesTree.html:170 templates/base.html:78
+#: templates/base.html.py:103
 msgid "Browse"
 msgstr "Выбрать файл"
 
-#: jobs/templates/jobs/filesTree.html:71
+#: jobs/templates/jobs/filesTree.html:135
+#: jobs/templates/jobs/filesTree.html:168
+msgid "Name"
+msgstr "Название"
+
+#: jobs/templates/jobs/filesTree.html:141
 msgid "Upload to folder"
 msgstr "Загрузить в папку"
 
-#: jobs/templates/jobs/filesTree.html:86
+#: jobs/templates/jobs/filesTree.html:161
+#: jobs/templates/jobs/filesTree.html:181
 msgid "Replace"
 msgstr "Заменить"
 
-#: jobs/templates/jobs/filesTree.html:95
+#: jobs/templates/jobs/filesTree.html:202
 msgid "Name is required"
 msgstr "Требуется указать название"
 
-#: jobs/templates/jobs/filesTree.html:96
+#: jobs/templates/jobs/filesTree.html:203
 msgid "One of the files was not uploaded"
 msgstr "Один из файлов не был загружен на сервер"
 
-#: jobs/templates/jobs/filesTree.html:97
+#: jobs/templates/jobs/filesTree.html:204
 msgid "The folder can't be replaced with the file"
 msgstr "Папка не может быть заменена на файл"
 
-#: jobs/templates/jobs/filesTree.html:98
+#: jobs/templates/jobs/filesTree.html:205
 msgid "Choose the file you want to replace"
 msgstr "Укажите файл, который Вы хотите заменить"
 
-#: jobs/templates/jobs/filesTree.html:99
-msgid "You can't move folder"
-msgstr "Вы не можете переместить папку"
+#: jobs/templates/jobs/filesTree.html:206
+msgid "You can't move folders, please choose the file you want to move"
+msgstr ""
+"Вы не можете переместить папки, пожалуйста, укажите файл, который Вы хотите "
+"переместить"
 
-#: jobs/templates/jobs/filesTree.html:100
-msgid "Please choose the file"
+#: jobs/templates/jobs/filesTree.html:207
+msgid "Please, choose the file you want to move"
+msgstr "Пожалуйста, укажите файл, который Вы хотите переместить"
+
+#: jobs/templates/jobs/filesTree.html:208
+msgid "Please, choose the file"
 msgstr "Пожалуйста, выберете файл"
 
-#: jobs/templates/jobs/filesTree.html:101
+#: jobs/templates/jobs/filesTree.html:209
+msgid "Please, choose the file or the folder you want to rename"
+msgstr "Пожалуйста, укажите файл или папку, которую Вы хотите переименовать"
+
+#: jobs/templates/jobs/filesTree.html:210
+msgid "Please, choose the file or the folder you want to delete"
+msgstr "Пожалуйста, укажите файл или папку, которую Вы хотите удалить"
+
+#: jobs/templates/jobs/filesTree.html:211
 msgid "Names with non-ASCII characters must be less than 30 characters"
 msgstr ""
 "Названия, в которых используются не ASCII символы, должны быть меньше 30 "
 "символов"
 
-#: jobs/templates/jobs/jobData.html:7
-#: jobs/templates/jobs/viewJobFilters.html:13 jobs/utils.py:47
+#: jobs/templates/jobs/jobData.html:8
+#: jobs/templates/jobs/viewJobFilters.html:12 jobs/utils.py:47
 #: jobs/utils.py:61 reports/views.py:107 reports/views.py:111
-#: templates/base.html:57
+#: templates/base.html:47
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
-#: jobs/templates/jobs/jobData.html:23
-#: jobs/templates/jobs/viewJobFilters.html:14 jobs/utils.py:40
+#: jobs/templates/jobs/jobData.html:24
+#: jobs/templates/jobs/viewJobFilters.html:17 jobs/utils.py:40
 #: jobs/utils.py:60 reports/views.py:98 reports/views.py:102
-#: templates/base.html:59
+#: templates/base.html:49
 msgid "Safes"
 msgstr "Доказательства корректности"
 
-#: jobs/templates/jobs/jobData.html:58
-#: jobs/templates/jobs/viewJobFilters.html:19
-#: jobs/templates/jobs/viewJobFilters.html:20
-#: jobs/templates/jobs/viewJobFilters.html:73 jobs/utils.py:59
-#: marks/templates/marks/Tags.html:3
+#: jobs/templates/jobs/jobData.html:63
+#: jobs/templates/jobs/viewJobFilters.html:33
+#: jobs/templates/jobs/viewJobFilters.html:38
+#: jobs/templates/jobs/viewJobFilters.html:119 jobs/utils.py:59
+#: marks/templates/marks/Tags.html:4
 msgid "Tags"
 msgstr "Теги"
 
-#: jobs/templates/jobs/jobData.html:62
-#: jobs/templates/jobs/viewJobFilters.html:20
+#: jobs/templates/jobs/jobData.html:67
+#: jobs/templates/jobs/viewJobFilters.html:38
 msgid "Unsafe"
 msgstr "Предупреждение об ошибке"
 
-#: jobs/templates/jobs/jobData.html:72
-#: jobs/templates/jobs/viewJobFilters.html:19
+#: jobs/templates/jobs/jobData.html:82
+#: jobs/templates/jobs/viewJobFilters.html:33
 msgid "Safe"
 msgstr "Доказательство корректности"
 
-#: jobs/templates/jobs/jobData.html:101
+#: jobs/templates/jobs/jobData.html:120
 msgid ""
 "Resources (wall time, CPU time and maximum memory) are shown for each "
 "component and totally"
@@ -546,276 +592,292 @@ msgstr ""
 "Показаны ресурсы (астрономическое время, процессорное время и максимальный "
 "объем оперативной памяти) по отдельности для каждого компонента и суммарно"
 
-#: jobs/templates/jobs/tree.html:5 templates/base.html:48
+#: jobs/templates/jobs/tree.html:5 templates/base.html:42
 msgid "Jobs Tree"
 msgstr "Дерево заданий"
 
-#: jobs/templates/jobs/tree.html:10
-msgid "Compare reports"
-msgstr "Сравнить отчеты"
-
-#: jobs/templates/jobs/tree.html:11
-msgid "Delete selected jobs"
-msgstr "Удалить отмеченные задания"
-
-#: jobs/templates/jobs/tree.html:12
-msgid "Download selected jobs"
-msgstr "Загрузить отмеченные задания"
-
-#: jobs/templates/jobs/tree.html:22
+#: jobs/templates/jobs/tree.html:14 marks/templates/marks/filters.html:10
 msgid "Columns"
 msgstr "Столбцы"
 
-#: jobs/templates/jobs/tree.html:29
+#: jobs/templates/jobs/tree.html:21
 msgid "Selected columns"
 msgstr "Выбранные столбцы"
 
-#: jobs/templates/jobs/tree.html:44
+#: jobs/templates/jobs/tree.html:40
 msgid "Available columns"
 msgstr "Доступные столбцы"
 
-#: jobs/templates/jobs/tree.html:57
+#: jobs/templates/jobs/tree.html:52
 msgid "Add order by"
 msgstr "Добавить сортировку по"
 
-#: jobs/templates/jobs/tree.html:91 jobs/templates/jobs/viewJobFilters.html:7
-#: reports/templates/reports/AttrsFilters.html:7
-#: reports/templates/reports/ListFilters.html:7
-#: reports/templates/reports/UnknownsFilters.html:7
+#: jobs/templates/jobs/tree.html:86 jobs/templates/jobs/viewJobFilters.html:5
+#: marks/templates/marks/filters.html:5 marks/templates/marks/filters.html:56
+#: reports/templates/reports/AttrsFilters.html:5
+#: reports/templates/reports/ListFilters.html:5
+#: reports/templates/reports/UnknownsFilters.html:5
 msgid "Filters"
 msgstr "Фильтры"
 
-#: jobs/templates/jobs/tree.html:99
+#: jobs/templates/jobs/tree.html:92
 msgid "Add filter by"
 msgstr "Добавить фильтр по"
 
-#: jobs/templates/jobs/tree.html:118 jobs/templates/jobs/tree.html.py:183
-#: jobs/templates/jobs/tree.html:205 jobs/templates/jobs/tree.html.py:224
-#: jobs/templates/jobs/tree.html:243 jobs/templates/jobs/tree.html.py:260
-#: jobs/templates/jobs/treeTmp.html:25 jobs/templates/jobs/treeTmp.html:41
-#: jobs/templates/jobs/treeTmp.html:85 jobs/templates/jobs/treeTmp.html:106
-#: jobs/templates/jobs/treeTmp.html:124 jobs/templates/jobs/treeTmp.html:142
-#: jobs/templates/jobs/treeTmp.html:158
-#: jobs/templates/jobs/viewJobFilters.html:37
-#: jobs/templates/jobs/viewJobFilters.html:49
+#: jobs/templates/jobs/tree.html:110 jobs/templates/jobs/tree.html.py:129
+#: jobs/templates/jobs/tree.html:187 jobs/templates/jobs/tree.html.py:213
+#: jobs/templates/jobs/tree.html:236 jobs/templates/jobs/tree.html.py:259
+#: jobs/templates/jobs/tree.html:278 jobs/templates/jobs/treeTmp.html:25
+#: jobs/templates/jobs/treeTmp.html:43 jobs/templates/jobs/treeTmp.html:99
+#: jobs/templates/jobs/treeTmp.html:124 jobs/templates/jobs/treeTmp.html:146
+#: jobs/templates/jobs/treeTmp.html:168 jobs/templates/jobs/treeTmp.html:186
 #: jobs/templates/jobs/viewJobFilters.html:64
-#: jobs/templates/jobs/viewJobFilters.html:78
-#: jobs/templates/jobs/viewJobFilters.html:90
-#: reports/templates/reports/AttrsFilters.html:14
-#: reports/templates/reports/AttrsFilters.html:31
-#: reports/templates/reports/ListFilters.html:23
+#: jobs/templates/jobs/viewJobFilters.html:81
+#: jobs/templates/jobs/viewJobFilters.html:105
+#: jobs/templates/jobs/viewJobFilters.html:124
+#: jobs/templates/jobs/viewJobFilters.html:141
+#: marks/templates/marks/filters.html:66 marks/templates/marks/filters.html:90
+#: marks/templates/marks/filters.html:113
+#: marks/templates/marks/filters.html:136
+#: reports/templates/reports/AttrsFilters.html:13
+#: reports/templates/reports/AttrsFilters.html:37
+#: reports/templates/reports/ListFilters.html:26
 #: reports/templates/reports/UnknownsFilters.html:20
-#: reports/templates/reports/UnknownsFilters.html:37
+#: reports/templates/reports/UnknownsFilters.html:44
 msgid "is"
 msgstr "совпадает с"
 
-#: jobs/templates/jobs/tree.html:119 jobs/templates/jobs/tree.html.py:206
-#: jobs/templates/jobs/tree.html:225 jobs/templates/jobs/tree.html.py:244
-#: jobs/templates/jobs/treeTmp.html:26 jobs/templates/jobs/treeTmp.html:107
-#: jobs/templates/jobs/treeTmp.html:125 jobs/templates/jobs/treeTmp.html:143
-#: jobs/templates/jobs/viewJobFilters.html:38
-#: jobs/templates/jobs/viewJobFilters.html:50
+#: jobs/templates/jobs/tree.html:111 jobs/templates/jobs/tree.html.py:214
+#: jobs/templates/jobs/tree.html:237 jobs/templates/jobs/tree.html.py:260
+#: jobs/templates/jobs/treeTmp.html:26 jobs/templates/jobs/treeTmp.html:125
+#: jobs/templates/jobs/treeTmp.html:147 jobs/templates/jobs/treeTmp.html:169
 #: jobs/templates/jobs/viewJobFilters.html:65
-#: jobs/templates/jobs/viewJobFilters.html:79
-#: jobs/templates/jobs/viewJobFilters.html:91
-#: reports/templates/reports/AttrsFilters.html:15
-#: reports/templates/reports/AttrsFilters.html:32
-#: reports/templates/reports/ListFilters.html:24
+#: jobs/templates/jobs/viewJobFilters.html:82
+#: jobs/templates/jobs/viewJobFilters.html:106
+#: jobs/templates/jobs/viewJobFilters.html:125
+#: jobs/templates/jobs/viewJobFilters.html:142
+#: marks/templates/marks/filters.html:137
+#: reports/templates/reports/AttrsFilters.html:14
+#: reports/templates/reports/AttrsFilters.html:38
+#: reports/templates/reports/ListFilters.html:27
 #: reports/templates/reports/UnknownsFilters.html:21
-#: reports/templates/reports/UnknownsFilters.html:38
+#: reports/templates/reports/UnknownsFilters.html:45
 msgid "starts with"
 msgstr "начинается с"
 
-#: jobs/templates/jobs/tree.html:120 jobs/templates/jobs/tree.html.py:207
-#: jobs/templates/jobs/tree.html:226 jobs/templates/jobs/tree.html.py:245
-#: jobs/templates/jobs/treeTmp.html:27 jobs/templates/jobs/treeTmp.html:108
-#: jobs/templates/jobs/treeTmp.html:126 jobs/templates/jobs/treeTmp.html:144
-#: jobs/templates/jobs/viewJobFilters.html:39
-#: jobs/templates/jobs/viewJobFilters.html:51
+#: jobs/templates/jobs/tree.html:112 jobs/templates/jobs/tree.html.py:215
+#: jobs/templates/jobs/tree.html:238 jobs/templates/jobs/tree.html.py:261
+#: jobs/templates/jobs/treeTmp.html:27 jobs/templates/jobs/treeTmp.html:126
+#: jobs/templates/jobs/treeTmp.html:148 jobs/templates/jobs/treeTmp.html:170
 #: jobs/templates/jobs/viewJobFilters.html:66
-#: jobs/templates/jobs/viewJobFilters.html:80
-#: jobs/templates/jobs/viewJobFilters.html:92
-#: reports/templates/reports/AttrsFilters.html:16
+#: jobs/templates/jobs/viewJobFilters.html:83
+#: jobs/templates/jobs/viewJobFilters.html:107
+#: jobs/templates/jobs/viewJobFilters.html:126
+#: jobs/templates/jobs/viewJobFilters.html:143
+#: reports/templates/reports/AttrsFilters.html:15
 #: reports/templates/reports/UnknownsFilters.html:22
 msgid "contains"
 msgstr "содержит"
 
-#: jobs/templates/jobs/tree.html:156 jobs/templates/jobs/treeTmp.html:59
+#: jobs/templates/jobs/tree.html:154 jobs/templates/jobs/treeTmp.html:67
 msgid "older"
 msgstr "не ранее"
 
-#: jobs/templates/jobs/tree.html:157 jobs/templates/jobs/treeTmp.html:60
+#: jobs/templates/jobs/tree.html:155 jobs/templates/jobs/treeTmp.html:68
 msgid "younger"
 msgstr "не позднее"
 
-#: jobs/templates/jobs/tree.html:159 jobs/templates/jobs/treeTmp.html:62
+#: jobs/templates/jobs/tree.html:159 jobs/templates/jobs/treeTmp.html:72
 msgid "than"
 msgstr "чем"
 
-#: jobs/templates/jobs/tree.html:166 jobs/templates/jobs/treeTmp.html:69
+#: jobs/templates/jobs/tree.html:166 jobs/templates/jobs/treeTmp.html:79
 msgid "minutes"
 msgstr "минут"
 
-#: jobs/templates/jobs/tree.html:167 jobs/templates/jobs/treeTmp.html:70
+#: jobs/templates/jobs/tree.html:167 jobs/templates/jobs/treeTmp.html:80
 msgid "hours"
 msgstr "часов"
 
-#: jobs/templates/jobs/tree.html:168 jobs/templates/jobs/treeTmp.html:71
+#: jobs/templates/jobs/tree.html:168 jobs/templates/jobs/treeTmp.html:81
 msgid "days"
 msgstr "дней"
 
-#: jobs/templates/jobs/tree.html:169 jobs/templates/jobs/treeTmp.html:72
+#: jobs/templates/jobs/tree.html:169 jobs/templates/jobs/treeTmp.html:82
 msgid "weeks"
 msgstr "недель"
 
-#: jobs/templates/jobs/tree.html:184 jobs/templates/jobs/treeTmp.html:86
+#: jobs/templates/jobs/tree.html:188 jobs/templates/jobs/treeTmp.html:100
+#: marks/templates/marks/filters.html:67 marks/templates/marks/filters.html:91
 msgid "is not"
 msgstr "не совпадает с"
 
-#: jobs/templates/jobs/tree.html:282 jobs/views.py:97
-#: templates/viewButtons.html:17
-msgid "Default"
-msgstr "По умолчанию"
-
-#: jobs/templates/jobs/tree.html:288 jobs/templates/jobs/tree.html.py:296
-#: templates/viewButtons.html:12 templates/viewButtons.html.py:24
+#: jobs/templates/jobs/tree.html:302 jobs/templates/jobs/tree.html.py:321
+#: templates/viewButtons.html:17 templates/viewButtons.html.py:30
 msgid "Show"
 msgstr "Показать"
 
-#: jobs/templates/jobs/tree.html:289 templates/viewButtons.html:25
-msgid "Update"
-msgstr "Обновить"
-
-#: jobs/templates/jobs/tree.html:290 templates/viewButtons.html:26
-msgid "Make preferred"
-msgstr "Сделать предпочитаемым"
-
-#: jobs/templates/jobs/tree.html:293 templates/viewButtons.html:10
+#: jobs/templates/jobs/tree.html:306 templates/viewButtons.html:12
 msgid "New view name"
 msgstr "Название нового представления"
 
-#: jobs/templates/jobs/tree.html:314 jobs/templates/jobs/viewJob.html:107
-#: jobs/templates/jobs/viewVersions.html:24
-#: marks/templates/marks/EditMark.html:72
+#: jobs/templates/jobs/tree.html:316 jobs/views.py:97
+#: templates/viewButtons.html:23
+msgid "Default"
+msgstr "По умолчанию"
+
+#: jobs/templates/jobs/tree.html:322 templates/viewButtons.html:31
+msgid "Make preferred"
+msgstr "Сделать предпочитаемым"
+
+#: jobs/templates/jobs/tree.html:323 templates/viewButtons.html:32
+msgid "Update"
+msgstr "Обновить"
+
+#: jobs/templates/jobs/tree.html:334
+msgid "Compare reports"
+msgstr "Сравнить отчеты"
+
+#: jobs/templates/jobs/tree.html:335
+msgid "Delete selected jobs"
+msgstr "Удалить отмеченные задания"
+
+#: jobs/templates/jobs/tree.html:336
+msgid "Download selected jobs"
+msgstr "Загрузить отмеченные задания"
+
+#: jobs/templates/jobs/tree.html:349 jobs/templates/jobs/viewJob.html:143
+#: jobs/templates/jobs/viewVersions.html:23
+#: marks/templates/marks/EditMark.html:116
+#: marks/templates/marks/EditUnknownMark.html:112
 #: marks/templates/marks/markVersions.html:24
 msgid "Are you sure"
 msgstr "Вы уверены"
 
-#: jobs/templates/jobs/tree.html:317
+#: jobs/templates/jobs/tree.html:353
 msgid "All versions and all data of the selected jobs will be deleted"
 msgstr "Все версии и все данные отмеченных заданий будут удалены"
 
-#: jobs/templates/jobs/tree.html:327
+#: jobs/templates/jobs/tree.html:364
 msgid "Please select jobs you want to download"
 msgstr "Пожалуйста, отметьте задание, которые Вы хотите загрузить"
 
-#: jobs/templates/jobs/tree.html:328
+#: jobs/templates/jobs/tree.html:365
 msgid "Please select jobs you want to delete"
 msgstr "Пожалуйста, отметьте задания, которые Вы хотите удалить"
 
-#: jobs/templates/jobs/treeTable.html:40
+#: jobs/templates/jobs/treeTable.html:42
 msgid "All"
 msgstr "Всего"
 
-#: jobs/templates/jobs/treeTable.html:46
+#: jobs/templates/jobs/treeTable.html:48
 msgid "All for checked"
 msgstr "Всего для отмеченных"
 
-#: jobs/templates/jobs/treeTable.html:55
+#: jobs/templates/jobs/treeTable.html:57
 msgid "There are no jobs, please, populate them"
 msgstr "Заданий еще нет, пожалуйста, наполните базу данных"
 
-#: jobs/templates/jobs/viewJob.html:9 marks/tables.py:22
-#: reports/templates/reports/ReportMain.html:50
+#: jobs/templates/jobs/viewJob.html:9 marks/tables.py:24
+#: reports/templates/reports/ReportMain.html:26
 #: reports/templates/reports/report_leaf.html:19
 #: reports/templates/reports/report_list.html:15
 msgid "Job"
 msgstr "Задание"
 
-#: jobs/templates/jobs/viewJob.html:17
+#: jobs/templates/jobs/viewJob.html:16
 msgid "Make copy"
 msgstr "Создать копию"
 
-#: jobs/templates/jobs/viewJob.html:18 marks/templates/marks/EditMark.html:16
-#: marks/templates/marks/ViewMark.html:25
+#: jobs/templates/jobs/viewJob.html:17 marks/templates/marks/EditMark.html:16
+#: marks/templates/marks/EditUnknownMark.html:12
+#: marks/templates/marks/ViewMark.html:27
 msgid "Download"
 msgstr "Загрузить"
 
-#: jobs/templates/jobs/viewJob.html:20
+#: jobs/templates/jobs/viewJob.html:19
 msgid "Stop decision"
 msgstr "Остановить решение"
 
-#: jobs/templates/jobs/viewJob.html:23
+#: jobs/templates/jobs/viewJob.html:22
 msgid "Edit"
 msgstr "Редактировать"
 
-#: jobs/templates/jobs/viewJob.html:24 marks/templates/marks/EditMark.html:17
+#: jobs/templates/jobs/viewJob.html:23 marks/templates/marks/EditMark.html:17
+#: marks/templates/marks/EditUnknownMark.html:13
 msgid "Delete versions"
 msgstr "Удалить версии"
 
-#: jobs/templates/jobs/viewJob.html:33 jobs/utils.py:65
+#: jobs/templates/jobs/viewJob.html:37 jobs/utils.py:65
 msgid "Class"
 msgstr "Класс"
 
-#: jobs/templates/jobs/viewJob.html:37 jobs/utils.py:62 jobs/utils.py:66
-#: marks/templates/marks/EditMark.html:21
-#: marks/templates/marks/ViewMark.html:27 templates/base.html:114
+#: jobs/templates/jobs/viewJob.html:45 jobs/utils.py:62 jobs/utils.py:66
+#: marks/templates/marks/EditMark.html:23
+#: marks/templates/marks/EditUnknownMark.html:20
+#: marks/templates/marks/ViewMark.html:31 templates/base.html:99
 msgid "Identifier"
 msgstr "Идентификатор"
 
-#: jobs/templates/jobs/viewJob.html:39
+#: jobs/templates/jobs/viewJob.html:50
 msgid "Created by"
 msgstr "Создано"
 
-#: jobs/templates/jobs/viewJob.html:44
+#: jobs/templates/jobs/viewJob.html:56
 msgid "Parents"
 msgstr "Родители"
 
-#: jobs/templates/jobs/viewJob.html:59
-#: reports/templates/reports/ReportMain.html:123
+#: jobs/templates/jobs/viewJob.html:74
+#: reports/templates/reports/ReportMain.html:146
 msgid "Children"
 msgstr "Потомки"
 
-#: jobs/templates/jobs/viewJob.html:73 marks/templates/marks/EditMark.html:24
-#: marks/templates/marks/ViewMark.html:30
+#: jobs/templates/jobs/viewJob.html:91 marks/templates/marks/EditMark.html:37
+#: marks/templates/marks/EditUnknownMark.html:34
+#: marks/templates/marks/ViewMark.html:45
 msgid "Last change"
 msgstr "Последнее изменение"
 
-#: jobs/templates/jobs/viewJob.html:110
+#: jobs/templates/jobs/viewJob.html:147
 msgid "All versions and all data of this job will be deleted"
 msgstr "Все версии и все данные задания будут удалены"
 
-#: jobs/templates/jobs/viewJobFilters.html:27
+#: jobs/templates/jobs/viewJobFilters.html:49
 msgid "Hide problems without marks"
 msgstr "Не показывать проблемы без оценок"
 
-#: jobs/templates/jobs/viewJobFilters.html:30
-#: jobs/templates/jobs/viewJobFilters.html:59
+#: jobs/templates/jobs/viewJobFilters.html:55
+#: jobs/templates/jobs/viewJobFilters.html:98
 msgid "Hide total"
 msgstr "Не показывать суммарное количество"
 
-#: jobs/templates/jobs/viewJobFilters.html:75
+#: jobs/templates/jobs/viewJobFilters.html:120
 msgid "Safe tag"
 msgstr "Тег доказательства корректности"
 
-#: jobs/templates/jobs/viewJobFilters.html:87
+#: jobs/templates/jobs/viewJobFilters.html:137
 msgid "Unsafe tag"
 msgstr "Тег предупреждения об ошибке"
 
 #: jobs/templates/jobs/viewVersions.html:27
-#: marks/templates/marks/markVersions.html:27
+#: marks/templates/marks/markVersions.html:28
 msgid "You won't be able to restore deleted versions"
 msgstr "Вы не сможете восстановить удаляемые версии"
 
-#: jobs/templates/jobs/viewVersions.html:37
-#: marks/templates/marks/markVersions.html:37
+#: jobs/templates/jobs/viewVersions.html:39
+#: jobs/templates/jobs/viewVersions.html:43
+#: marks/templates/marks/markVersions.html:40
+#: marks/templates/marks/markVersions.html:44
 msgid "No versions to delete (you can't remove first and last versions)"
 msgstr ""
 "Нет версий, которые можно удалить (Вы не можете удалить первую и последнюю "
 "версии)"
 
-#: jobs/templates/jobs/viewVersions.html:38
-#: marks/templates/marks/markVersions.html:38 templates/error.html:12
+#: jobs/templates/jobs/viewVersions.html:40
+#: jobs/templates/jobs/viewVersions.html:44
+#: marks/templates/marks/markVersions.html:41
+#: marks/templates/marks/markVersions.html:45 templates/Population.html:30
+#: templates/error.html:12
 msgid "OK"
 msgstr "Хорошо"
 
@@ -911,7 +973,7 @@ msgstr "Требуется автор задания"
 msgid "The parent or the job class are required"
 msgstr "Требуется родитель или класс задания"
 
-#: jobs/utils.py:433
+#: jobs/utils.py:439
 msgid "Change author is required"
 msgstr "Требуется автор изменения"
 
@@ -958,7 +1020,7 @@ msgstr "Вы не можете удалить представление, кот
 msgid "The view was successfully removed"
 msgstr "Представление было успешно удалено"
 
-#: jobs/views.py:284 marks/views.py:70
+#: jobs/views.py:284 marks/views.py:72
 msgid "Current version"
 msgstr "Текущая версия"
 
@@ -966,11 +1028,11 @@ msgstr "Текущая версия"
 msgid "You don't have access to delete versions"
 msgstr "У Вас нет прав удалить версии"
 
-#: jobs/views.py:339 marks/views.py:352
+#: jobs/views.py:339 marks/views.py:398
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
-#: jobs/views.py:341 marks/views.py:354
+#: jobs/views.py:341 marks/views.py:400
 msgid "Nothing to delete"
 msgstr "Нечего удалять"
 
@@ -1002,7 +1064,7 @@ msgstr "Для этого задания не может быть установ
 msgid "The parent identifier is required for this job"
 msgstr "Для этого задания требуется идентификатор родителя"
 
-#: jobs/views.py:470 marks/views.py:214
+#: jobs/views.py:470 marks/views.py:231
 msgid "Your version is expired, please reload the page"
 msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
@@ -1022,126 +1084,159 @@ msgstr "У Вас нет прав удалить данное задание"
 msgid "You don't have an access to remove one of the selected jobs"
 msgstr "У Вас нет прав удалить одно из отмеченных заданий"
 
-#: jobs/views.py:577
+#: jobs/views.py:575
 msgid "File uploading failed"
 msgstr "Загрузка файла на сервер провалилась"
 
-#: jobs/views.py:668
+#: jobs/views.py:666
 msgid "The parent identifier was not got"
 msgstr "Не был получен идентификатор родителя"
 
-#: jobs/views.py:674
+#: jobs/views.py:672
 msgid "The parent with the specified identifier was not found"
 msgstr "Родитель с указанным идентификатором не был найден"
 
-#: jobs/views.py:680
+#: jobs/views.py:678
 msgid "Too many jobs starts with the specified identifier"
 msgstr "Слишком много заданий начинаются с указанного идентификатора"
 
-#: jobs/views.py:764
+#: jobs/views.py:762
 msgid "The file was not found"
 msgstr "Файл не был найден"
 
-#: jobs/views.py:774
+#: jobs/views.py:772
 msgid "You don't have an access to stop decision of this job"
 msgstr "У Вас нет прав остановить решение данного задания"
 
-#: jobs/views.py:781
+#: jobs/views.py:779
 msgid "The job is not solving"
 msgstr "Задание не решается"
 
-#: marks/tables.py:15
+#: marks/tables.py:17
 msgid "Change kind"
 msgstr "Тип изменения"
 
-#: marks/tables.py:16 marks/templates/marks/CreateMark.html:36
-#: marks/templates/marks/CreateMark.html:73
-#: marks/templates/marks/MarkAddData.html:17
-#: marks/templates/marks/ViewMark.html:62 reports/utils.py:16
+#: marks/tables.py:18 marks/templates/marks/CreateMark.html:57
+#: marks/templates/marks/CreateMark.html:106
+#: marks/templates/marks/MarkAddData.html:26
+#: marks/templates/marks/ViewMark.html:94
+#: marks/templates/marks/ViewMark.html:117
+#: marks/templates/marks/filters.html:19 marks/templates/marks/filters.html:83
+#: reports/utils.py:17
 msgid "Verdict"
 msgstr "Вердикт"
 
-#: marks/tables.py:17 reports/utils.py:22
+#: marks/tables.py:19 reports/utils.py:23
 msgid "Total verdict"
 msgstr "Итоговый вердикт"
 
-#: marks/tables.py:18 reports/utils.py:17
+#: marks/tables.py:20 reports/utils.py:18
 msgid "Similarity"
 msgstr "Похожесть"
 
-#: marks/tables.py:19 marks/templates/marks/CreateMark.html:45
-#: marks/templates/marks/CreateMark.html:83
-#: marks/templates/marks/MarkAddData.html:32
-#: marks/templates/marks/ViewMark.html:74
-#: reports/templates/reports/ReportMain.html:54 reports/utils.py:18
+#: marks/tables.py:21 marks/templates/marks/CreateMark.html:69
+#: marks/templates/marks/CreateMark.html:115
+#: marks/templates/marks/CreateMark.html:159
+#: marks/templates/marks/MarkAddData.html:38
+#: marks/templates/marks/MarkUnknownData.html:5
+#: marks/templates/marks/ViewMark.html:99
+#: marks/templates/marks/ViewMark.html:122
+#: marks/templates/marks/filters.html:24 marks/templates/marks/filters.html:59
+#: reports/templates/reports/ReportMain.html:30 reports/utils.py:19
 msgid "Status"
 msgstr "Статус"
 
-#: marks/tables.py:21 reports/templates/reports/base.html:5
+#: marks/tables.py:23 reports/templates/reports/base.html:5
 msgid "Report"
 msgstr "Отчет"
 
-#: marks/tables.py:25
+#: marks/tables.py:27
 msgid "Number of associated leaf reports"
 msgstr "Количество привязанных листовых отчетов"
 
-#: marks/tables.py:53
+#: marks/tables.py:28 marks/templates/marks/ViewMark.html:136
+msgid "Problem"
+msgstr "Проблема"
+
+#: marks/tables.py:56
 msgid "Changed"
 msgstr "Изменена"
 
-#: marks/tables.py:54
+#: marks/tables.py:57
 msgid "New"
 msgstr "Новая"
 
-#: marks/tables.py:55
+#: marks/tables.py:58
 msgid "Deleted"
 msgstr "Удалена"
 
-#: marks/tables.py:212 marks/tables.py:377 marks/tables.py:702
-#: marks/tables.py:811
+#: marks/tables.py:357 marks/tables.py:767 marks/tables.py:862
 msgid "Comparison failed"
 msgstr "Сравнение провалилось"
 
-#: marks/tables.py:482 reports/utils.py:297
+#: marks/tables.py:530 reports/utils.py:296
 #, python-format
 msgid "%(all)s (%(broken)s are broken)"
 msgstr "%(all)s (%(broken)s сломаны)"
 
 #: marks/templates/marks/CreateMark.html:4
-#: reports/templates/reports/report_leaf.html:74
+#: reports/templates/reports/report_leaf.html:75
 msgid "Create mark"
 msgstr "Создать оценку"
 
-#: marks/templates/marks/CreateMark.html:16
+#: marks/templates/marks/CreateMark.html:18
 msgid "Error traces conversion function"
 msgstr "Функция преобразования трасс ошибок"
 
-#: marks/templates/marks/CreateMark.html:26
-#: marks/templates/marks/MarkAddData.html:6
-#: marks/templates/marks/ViewMark.html:55
+#: marks/templates/marks/CreateMark.html:31
+#: marks/templates/marks/MarkAddData.html:5
+#: marks/templates/marks/ViewMark.html:107
 msgid "Error traces comparison function"
 msgstr "Функция сравнения трасс ошибок"
 
-#: marks/templates/marks/CreateMark.html:56
-#: marks/templates/marks/CreateMark.html:98
-#: marks/templates/marks/EditMark.html:59
+#: marks/templates/marks/CreateMark.html:86
+#: marks/templates/marks/CreateMark.html:142
+#: marks/templates/marks/CreateMark.html:202
+#: marks/templates/marks/EditMark.html:100
+#: marks/templates/marks/EditUnknownMark.html:95
 msgid "Editable"
 msgstr "Возможно ли редактирование"
 
-#: marks/templates/marks/EditMark.html:40
-#: marks/templates/marks/ViewMark.html:46
+#: marks/templates/marks/CreateMark.html:169
+#: marks/templates/marks/MarkUnknownData.html:23
+#: marks/templates/marks/ViewMark.html:132
+msgid "Regular expression"
+msgstr "Регулярное выражение"
+
+#: marks/templates/marks/CreateMark.html:179
+#: marks/templates/marks/MarkUnknownData.html:33
+msgid "Link to description"
+msgstr "Ссылка на описание"
+
+#: marks/templates/marks/CreateMark.html:209
+msgid "The regular expression is required"
+msgstr "Требуется регулярное выражение"
+
+#: marks/templates/marks/CreateMark.html:210
+msgid "The problem name is required"
+msgstr "Требуется название проблемы"
+
+#: marks/templates/marks/EditMark.html:53
+#: marks/templates/marks/EditUnknownMark.html:50
+#: marks/templates/marks/ViewMark.html:60
 msgid "Associated leaf reports"
 msgstr "Привязанные листовые отчеты"
 
-#: marks/templates/marks/EditMark.html:75
+#: marks/templates/marks/EditMark.html:120
+#: marks/templates/marks/EditUnknownMark.html:116
 msgid "All versions and all data of this mark will be deleted"
 msgstr "Все версии и все данные оценки будут удалены"
 
-#: marks/templates/marks/MarkList.html:4 templates/base.html:54
+#: marks/templates/marks/MarkList.html:4 templates/base.html:46
 msgid "Marks"
 msgstr "Оценки"
 
-#: marks/templates/marks/MarkList.html:12
+#: marks/templates/marks/MarkList.html:40
 msgid "There are no marks of the given type yet"
 msgstr "Оценок данного типа еще нет"
 
@@ -1157,139 +1252,157 @@ msgstr "Изменения привязки оценок к листовым о�
 msgid "Continue editing"
 msgstr "Продолжить редактирование"
 
-#: marks/templates/marks/Tags.html:5
-msgid "After entering press 'Enter'"
-msgstr "После ввода нажмите 'Ввод'"
+#: marks/templates/marks/Tags.html:8
+msgid "Enter tag"
+msgstr "Введите тег"
 
 #: marks/templates/marks/Tags.html:18
 msgid "No tags to display"
 msgstr "Теги отсутствуют"
 
-#: marks/templates/marks/Tags.html:19
-msgid "Enter tag"
-msgstr "Введите тег"
-
-#: marks/templates/marks/base.html:5 reports/utils.py:15
+#: marks/templates/marks/base.html:5 reports/utils.py:16
 msgid "Mark"
 msgstr "Оценка"
 
-#: marks/utils.py:711 marks/views.py:177
-msgid "The error traces comparison function was not found"
-msgstr "Функция сравнения трасс ошибок не была найдена"
+#: marks/templates/marks/filters.html:13
+msgid "The number of associated leaf reports"
+msgstr "Количество привязанных листовых отчетов"
 
-#: marks/utils.py:715
-msgid "The mark format is not supported"
-msgstr "Формат оценки не поддерживается"
+#: marks/templates/marks/filters.html:30
+msgid "Last change author"
+msgstr "Автор последнего изменения"
 
-#: marks/utils.py:783 marks/utils.py:786
-msgid "The attributes have wrong format"
-msgstr "Формат атрибутов некорректный"
+#: marks/templates/marks/filters.html:38
+msgid "Order"
+msgstr "Порядок"
 
-#: marks/utils.py:834 marks/utils.py:845 marks/utils.py:847
-msgid "The mark archive is corrupted"
-msgstr "Архив оценки поврежден"
-
-#: marks/utils.py:838
-msgid "The mark archive is corrupted: the pattern error trace is not found"
-msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
-
-#: marks/views.py:184
-msgid "The error traces conversion function was not found"
-msgstr "Функция преобразования трасс ошибок не была найдена"
-
-#: marks/views.py:218 marks/views.py:341
-msgid "You don't have an access to edit this mark"
-msgstr "У Вас нет прав редактировать данную оценку"
-
-#: marks/views.py:234
-msgid "Unsafe marks"
-msgstr "Оценки предупреждений об ошибках"
-
-#: marks/views.py:235
-msgid "Safe marks"
-msgstr "Оценки доказательств корректности"
-
-#: marks/views.py:236
-msgid "Unknown marks"
-msgstr "Оценки проблем в компонентах"
-
-#: marks/views.py:276
-msgid "You don't have access to create new marks"
-msgstr "У Вас нет прав создавать новые оценки"
-
-#: reports/templates/reports/AttrsFilters.html:23
-#: reports/templates/reports/ListFilters.html:16
-#: reports/templates/reports/UnknownsFilters.html:29
-msgid "Value of attribute"
-msgstr "Значение атрибута"
-
-#: reports/templates/reports/AttrsFilters.html:26
-#: reports/templates/reports/ListFilters.html:14
-#: reports/templates/reports/ListFilters.html:19
-#: reports/templates/reports/UnknownsFilters.html:14
-#: reports/templates/reports/UnknownsFilters.html:32
-msgid "Enter the full name of the attribute, e.g."
-msgstr "Введите полное название атрибута, например,"
-
-#: reports/templates/reports/ListFilters.html:11
-#: reports/templates/reports/UnknownsFilters.html:11
+#: marks/templates/marks/filters.html:42
+#: reports/templates/reports/ListFilters.html:8
+#: reports/templates/reports/UnknownsFilters.html:8
 msgid "Order by attribute"
 msgstr "Упорядочить по атрибуту"
 
-#: reports/templates/reports/ReportMain.html:17
-msgid "__Last request date"
-msgstr ""
+#: marks/templates/marks/filters.html:48
+#: marks/templates/marks/filters.html:130
+#: reports/templates/reports/AttrsFilters.html:31
+#: reports/templates/reports/ListFilters.html:13
+#: reports/templates/reports/ListFilters.html:20
+#: reports/templates/reports/UnknownsFilters.html:13
+#: reports/templates/reports/UnknownsFilters.html:38
+msgid "Enter the full name of the attribute, e.g."
+msgstr "Введите полное название атрибута, например,"
 
-#: reports/templates/reports/ReportMain.html:21
-#: reports/templates/reports/ReportMain.html:31
-msgid "Start date"
-msgstr "Дата начала работы"
+#: marks/templates/marks/filters.html:52
+msgid "Order by the number of associated leaf reports"
+msgstr "Упорядочить по количеству привязанных листовых отчетов"
 
-#: reports/templates/reports/ReportMain.html:23
-msgid "Finish date"
-msgstr "Дата завершение работы"
+#: marks/templates/marks/filters.html:125
+#: reports/templates/reports/AttrsFilters.html:26
+#: reports/templates/reports/ListFilters.html:15
+#: reports/templates/reports/UnknownsFilters.html:33
+msgid "Value of attribute"
+msgstr "Значение атрибута"
 
-#: reports/templates/reports/ReportMain.html:25
-msgid "Duration"
-msgstr "Продолжительность"
+#: marks/utils.py:774 marks/views.py:189
+msgid "The error traces comparison function was not found"
+msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: reports/templates/reports/ReportMain.html:28
-msgid "Creation date"
-msgstr "Дата создания"
+#: marks/utils.py:778
+msgid "The mark format is not supported"
+msgstr "Формат оценки не поддерживается"
+
+#: marks/utils.py:865 marks/utils.py:868
+msgid "The attributes have wrong format"
+msgstr "Формат атрибутов некорректный"
+
+#: marks/utils.py:908 marks/utils.py:917 marks/utils.py:922 marks/utils.py:925
+#: marks/utils.py:930 marks/utils.py:935 marks/utils.py:937 marks/utils.py:940
+#: marks/utils.py:943
+msgid "The mark archive is corrupted"
+msgstr "Архив оценки поврежден"
+
+#: marks/utils.py:927
+msgid "The mark archive is corrupted: the pattern error trace is not found"
+msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
+
+#: marks/views.py:196
+msgid "The error traces conversion function was not found"
+msgstr "Функция преобразования трасс ошибок не была найдена"
+
+#: marks/views.py:235 marks/views.py:387
+msgid "You don't have an access to edit this mark"
+msgstr "У Вас нет прав редактировать данную оценку"
+
+#: marks/views.py:260
+msgid "Unsafe marks"
+msgstr "Оценки предупреждений об ошибках"
+
+#: marks/views.py:261
+msgid "Safe marks"
+msgstr "Оценки доказательств корректности"
+
+#: marks/views.py:262
+msgid "Unknown marks"
+msgstr "Оценки проблем в компонентах"
+
+#: marks/views.py:323
+msgid "You don't have access to create new marks"
+msgstr "У Вас нет прав создавать новые оценки"
 
 #: reports/templates/reports/ReportMain.html:35
-msgid "Wall time"
-msgstr "Астрономическое время"
-
-#: reports/templates/reports/ReportMain.html:36
-msgid "CPU time"
-msgstr "Процессорное время"
-
-#: reports/templates/reports/ReportMain.html:37
-msgid "Maximum memory size"
-msgstr "Максимальный объем оперативной памяти"
-
-#: reports/templates/reports/ReportMain.html:42
-msgid "Log"
-msgstr "Лог"
-
-#: reports/templates/reports/ReportMain.html:58
 msgid "In progress"
 msgstr "Выполняется"
 
-#: reports/templates/reports/ReportMain.html:60
+#: reports/templates/reports/ReportMain.html:37
 msgid "Finished"
 msgstr "Завершился"
 
-#: reports/templates/reports/ReportMain.html:64
+#: reports/templates/reports/ReportMain.html:42
 msgid "Computer"
 msgstr "Компьютер"
 
-#: reports/templates/reports/ReportMain.html:82
+#: reports/templates/reports/ReportMain.html:58
 msgid "Attributes"
 msgstr "Атрибуты"
 
-#: reports/templates/reports/ReportMain.html:151
+#: reports/templates/reports/ReportMain.html:84
+msgid "__Last request date"
+msgstr ""
+
+#: reports/templates/reports/ReportMain.html:88
+#: reports/templates/reports/ReportMain.html:98
+msgid "Start date"
+msgstr "Дата начала работы"
+
+#: reports/templates/reports/ReportMain.html:90
+msgid "Finish date"
+msgstr "Дата завершение работы"
+
+#: reports/templates/reports/ReportMain.html:92
+msgid "Duration"
+msgstr "Продолжительность"
+
+#: reports/templates/reports/ReportMain.html:95
+msgid "Creation date"
+msgstr "Дата создания"
+
+#: reports/templates/reports/ReportMain.html:102
+msgid "Wall time"
+msgstr "Астрономическое время"
+
+#: reports/templates/reports/ReportMain.html:103
+msgid "CPU time"
+msgstr "Процессорное время"
+
+#: reports/templates/reports/ReportMain.html:104
+msgid "Maximum memory size"
+msgstr "Максимальный объем оперативной памяти"
+
+#: reports/templates/reports/ReportMain.html:118
+msgid "Log"
+msgstr "Лог"
+
+#: reports/templates/reports/ReportMain.html:175
 msgid "Statistics on component and its children"
 msgstr "Статистика по компоненту и его потомкам"
 
@@ -1297,11 +1410,11 @@ msgstr "Статистика по компоненту и его потомка�
 msgid "Associated marks"
 msgstr "Привязанные оценки"
 
-#: reports/utils.py:20
+#: reports/utils.py:21
 msgid "Component"
 msgstr "Компонент"
 
-#: reports/utils.py:21
+#: reports/utils.py:22
 msgid "Number of associated marks"
 msgstr "Количество привязанных оценок"
 
@@ -1317,46 +1430,46 @@ msgstr "Все предупрeждения об ошибках"
 msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
-#: templates/Population.html:5 templates/base.html:65
+#: templates/Population.html:5 templates/base.html:56
 msgid "Population"
 msgstr "Наполнение базы данных"
 
-#: templates/Population.html:10
+#: templates/Population.html:11
 msgid "A new Manager was created"
 msgstr "Был создан новый Руководитель"
 
-#: templates/Population.html:11 users/templates/users/login.html:17
+#: templates/Population.html:12 users/templates/users/login.html:19
 msgid "Username"
 msgstr "Имя пользователя"
 
-#: templates/Population.html:12 users/forms.py:19
-#: users/templates/users/login.html:18
+#: templates/Population.html:13 users/forms.py:19
+#: users/templates/users/login.html:21
 msgid "Password"
 msgstr "Пароль"
 
-#: templates/Population.html:13
+#: templates/Population.html:14
 msgid "Please save this data and give it to the user who will be the Manager"
 msgstr ""
 "Пожалуйста, сохранить эти данные и передайте их пользователю, который будет "
 "Руководителем"
 
-#: templates/Population.html:16
+#: templates/Population.html:19
 msgid "Error traces conversion and comparison functions were updated"
 msgstr "Были обновлены функции преобразования и сравнения трасс ошибок"
 
-#: templates/Population.html:19
+#: templates/Population.html:24
 msgid "New jobs were uploaded"
 msgstr "Были загружены новые задания"
 
-#: templates/Population.html:22
+#: templates/Population.html:28
 msgid "Nothing changed"
 msgstr "Ничего не изменилось"
 
-#: templates/Population.html:25
+#: templates/Population.html:32
 msgid "Welcome to Omega!"
 msgstr "Добро пожаловать!"
 
-#: templates/Population.html:27
+#: templates/Population.html:34
 msgid ""
 "Create the Manager with the specified username and jobs of all classes on "
 "behalf of that Manager"
@@ -1364,58 +1477,62 @@ msgstr ""
 "Создать Руководителя с указанным именем и задания всех классов от имени "
 "данного Руководителя"
 
-#: templates/Population.html:33
+#: templates/Population.html:42
 msgid "Manager username"
 msgstr "Имя Руководителя"
 
-#: templates/Population.html:36
+#: templates/Population.html:52
 msgid "Populate"
 msgstr "Наполнить базу данных"
 
 #: templates/base.html:15 users/templates/users/login.html:5
-#: users/templates/users/login.html:19
+#: users/templates/users/login.html:23
 msgid "Sign in"
 msgstr "Войти"
 
-#: templates/base.html:34
-msgid "Toggle navigation"
-msgstr "Переключить управление"
+#: templates/base.html:27
+msgid "Loading"
+msgstr "Загрузка"
 
-#: templates/base.html:49 templates/base.html.py:60 templates/base.html:99
-#: templates/base.html.py:122
+#: templates/base.html:37
+msgid "Menu"
+msgstr "Меню"
+
+#: templates/base.html:43 templates/base.html.py:50 templates/base.html:87
+#: templates/base.html.py:112
 msgid "Upload"
 msgstr "Загрузить на сервер"
 
-#: templates/base.html:64
+#: templates/base.html:55
 msgid "Admin Tools"
 msgstr "Панель администатора"
 
-#: templates/base.html:72 users/templates/users/edit-profile.html:9
-#: users/templates/users/edit-profile.html:17
+#: templates/base.html:62 users/templates/users/edit-profile.html:9
+#: users/templates/users/edit-profile.html:18
 msgid "Settings"
 msgstr "Настройки"
 
-#: templates/base.html:73
+#: templates/base.html:63
 msgid "Sign Out"
 msgstr "Выйти"
 
-#: templates/base.html:75 users/templates/users/register.html:42
+#: templates/base.html:65 users/templates/users/register.html:83
 msgid "Register"
 msgstr "Регистрация"
 
-#: templates/base.html:76
+#: templates/base.html:66
 msgid "Sign In"
 msgstr "Войти"
 
-#: templates/base.html:91
+#: templates/base.html:73
 msgid "Upload marks"
 msgstr "Загрузить оценки на сервер"
 
-#: templates/base.html:110
+#: templates/base.html:92
 msgid "Upload jobs"
 msgstr "Загрузить задания на сервер"
 
-#: templates/base.html:113
+#: templates/base.html:94
 msgid ""
 "Set parent identifier (keep in mind that job class will be inherited from "
 "parent). All file or folder names with non-ASCII characters will be "
@@ -1425,9 +1542,13 @@ msgstr ""
 "от родителя). Все названия файлов и папок, в которых используются не ASCII "
 "символы, будут обрезаны до 30 символов."
 
-#: templates/base.html:128
+#: templates/base.html:116
 msgid "The parent identifier is required"
 msgstr "Требуется идентификатор родителя"
+
+#: templates/base.html:117
+msgid "No file is chosen"
+msgstr "Не выбран ни один файл"
 
 #: templates/error.html:5
 msgid "Error"
@@ -1449,19 +1570,19 @@ msgstr "Новый пароль"
 msgid "Passwords don't match"
 msgstr "Пароли не совпадают"
 
-#: users/forms.py:86
+#: users/forms.py:85
 msgid "Accuracy"
 msgstr "Точность"
 
-#: users/forms.py:88
+#: users/forms.py:87
 msgid "First name"
 msgstr "Имя"
 
-#: users/forms.py:89 users/templates/users/showProfile.html:19
+#: users/forms.py:88 users/templates/users/showProfile.html:19
 msgid "Language"
 msgstr "Язык"
 
-#: users/forms.py:90
+#: users/forms.py:89
 msgid "Data format"
 msgstr "Формат данных"
 
@@ -1501,19 +1622,19 @@ msgstr "Обнаружено новое предупреждение об оши
 msgid "New unknown was found"
 msgstr "Обнаружена новая проблема в компоненте"
 
-#: users/notifications.py:20 users/notifications.py:40
+#: users/notifications.py:20 users/notifications.py:41
 msgid "Mark was associated with leaf report"
 msgstr "Оценка были привязана к листовому отчету"
 
-#: users/notifications.py:21 users/notifications.py:41
+#: users/notifications.py:21 users/notifications.py:42
 msgid "New mark was created"
 msgstr "Создана новая оценка"
 
-#: users/notifications.py:22 users/notifications.py:42
+#: users/notifications.py:22 users/notifications.py:43
 msgid "Mark was changed"
 msgstr "Оценка была изменена"
 
-#: users/notifications.py:23 users/notifications.py:43
+#: users/notifications.py:23 users/notifications.py:44
 msgid "Mark was deleted"
 msgstr "Оценка была удалена"
 
@@ -1535,35 +1656,35 @@ msgstr ""
 "Пользователь %(user)s изменил задание <a href=\"%(url)s\">%(id)s</a>: "
 "%(comm)s"
 
-#: users/notifications.py:33
+#: users/notifications.py:34
 #, python-format
 msgid "The job with identifier %(id)s was changed by %(user)s: %(comm)s"
 msgstr ""
 "Пользователь %(user)s изменил задание с идентификатором %(id)s: %(comm)s"
 
-#: users/notifications.py:35
+#: users/notifications.py:36
 #, python-format
 msgid "The job with identifier %(id)s was deleted by %(user)s"
 msgstr "Пользователь %(user)s удалил задание с идентификатором %(id)s"
 
-#: users/notifications.py:36
+#: users/notifications.py:37
 #, python-format
 msgid "Started decision of the job with identifier %(id)s"
 msgstr "Началось решение заданиея с идентификатором %(id)s"
 
-#: users/notifications.py:37
+#: users/notifications.py:38
 #, python-format
 msgid "Finished decision of the job with identifier %(id)s"
 msgstr "Завершилось решение заданиея с идентификатором %(id)s"
 
-#: users/notifications.py:38
+#: users/notifications.py:39
 #, python-format
 msgid "Found the new unsafe for the job with identifier %(id)s"
 msgstr ""
 "Обнаружено новое предупреждение об ошибке для задания с идентификатором "
 "%(id)s"
 
-#: users/notifications.py:39
+#: users/notifications.py:40
 #, python-format
 msgid "Found the new unknown for the job with identifier %(id)s"
 msgstr ""
@@ -1625,8 +1746,8 @@ msgstr "Я"
 msgid "Notify about my changes"
 msgstr "Уведомлять о моих изменениях"
 
-#: users/templates/users/edit-profile.html:34
-#: users/templates/users/register.html:33
+#: users/templates/users/edit-profile.html:65
+#: users/templates/users/register.html:73
 #: users/templates/users/showProfile.html:18
 msgid "Time zone"
 msgstr "Часовой пояс"
@@ -1663,30 +1784,30 @@ msgstr "Роль"
 msgid "Last Activity"
 msgstr "Последние действия"
 
-#: users/templates/users/showProfile.html:28
+#: users/templates/users/showProfile.html:29
 msgid "Action Kind"
 msgstr "Вид действия"
 
-#: users/templates/users/showProfile.html:29
+#: users/templates/users/showProfile.html:30
 msgid "Job Title"
 msgstr "Название задания"
 
-#: users/templates/users/showProfile.html:44
+#: users/templates/users/showProfile.html:47
 msgid "Creation"
 msgstr "Создание"
 
-#: users/templates/users/showProfile.html:46
+#: users/templates/users/showProfile.html:49
 msgid "Modification"
 msgstr "Изменение"
 
-#: users/views.py:37
+#: users/views.py:40
 msgid "Account has been disabled"
 msgstr "Учетная запись заблокирована"
 
-#: users/views.py:39
+#: users/views.py:42
 msgid "Incorrect username or password"
 msgstr "Неправильное имя пользователя или пароль"
 
-#: users/views.py:203
+#: users/views.py:206
 msgid "Saved"
 msgstr "Сохранено"

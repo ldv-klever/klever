@@ -6,45 +6,49 @@ import re
 import resource
 import subprocess
 import sys
+import threading
 import time
+import queue
+
+_callback_kinds = ('before', 'instead', 'after')
 
 
-# Based on http://blog.gocept.com/2013/07/15/reliable-file-updates-with-python/.
+# Based on https://pypi.python.org/pypi/filelock/.
 class LockedOpen(object):
-    def __init__(self, name, *args, **kwargs):
-        self.name = name
+    def __init__(self, file, *args, **kwargs):
+        self.file = file
         self.args = args
         self.kwargs = kwargs
 
-        self.fp = None
+        self.lock_file = '{0}.lock'.format(self.file)
+        self.lock_file_descriptor = None
+        self.file_descriptor = None
 
     def __enter__(self):
-        fp = open(self.name, *self.args, **self.kwargs)
-
+        # Ensure that specified file is opened exclusively.
         while True:
-            fcntl.flock(fp, fcntl.LOCK_EX)
-
-            fp_new = open(self.name, *self.args, **self.kwargs)
-
-            # Other process didn't modify file between we open and lock it. So we can safely use created file stream.
-            if os.path.sameopenfile(fp.fileno(), fp_new.fileno()):
-                fp_new.close()
-                break
-            # Otherwise we need to reopen file.
+            self.lock_file_descriptor = os.open(self.lock_file, os.O_RDWR | os.O_CREAT | os.O_TRUNC)
+            try:
+                fcntl.flock(self.lock_file_descriptor, fcntl.LOCK_EX)
+            except (IOError, OSError):
+                os.close(self.lock_file_descriptor)
+                continue
             else:
-                fp.close()
-                fp = fp_new
-
-        self.fp = fp
-
-        return fp
+                self.file_descriptor = open(self.file, *self.args, **self.kwargs)
+                return self.file_descriptor
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.fp.flush()
-        self.fp.close()
+        self.file_descriptor.flush()
+        self.file_descriptor.close()
+        fcntl.flock(self.lock_file_descriptor, fcntl.LOCK_UN)
+        os.close(self.lock_file_descriptor)
+        try:
+            os.remove(self.lock_file)
+        except OSError:
+            pass
 
 
-def count_consumed_resources(logger, start_time):
+def count_consumed_resources(logger, start_time, include_child_resources=False, child_resources=None):
     """
     Count resources (wall time, CPU time and maximum memory size) consumed by the process without its childred.
     Note that launching under PyCharm gives its maximum memory size rather than the process one.
@@ -52,15 +56,109 @@ def count_consumed_resources(logger, start_time):
     """
     logger.debug('Count consumed resources')
 
+    assert not (include_child_resources and child_resources), \
+        'Do not calculate resources of process with children and simultaneosly provide resources of children'
+
     utime, stime, maxrss = resource.getrusage(resource.RUSAGE_SELF)[0:3]
-    resources = {'wall time': round(100 * (time.time() - start_time)),
-                 'CPU time': round(100 * (utime + stime)),
+
+    # Take into account children resources if necessary.
+    if include_child_resources:
+        utime_children, stime_children, maxrss_children = resource.getrusage(resource.RUSAGE_CHILDREN)[0:3]
+        utime += utime_children
+        stime += stime_children
+        maxrss = max(maxrss, maxrss_children)
+    elif child_resources:
+        for child in child_resources:
+            # CPU time is sum of utime and stime, so add it just one time.
+            utime += child_resources[child]['CPU time'] / 1000
+            maxrss = max(maxrss, child_resources[child]['max mem size'] / 1000)
+            # Wall time of children is included in wall time of their parent.
+
+    resources = {'wall time': round(1000 * (time.time() - start_time)),
+                 'CPU time': round(1000 * (utime + stime)),
                  'max mem size': 1000 * maxrss}
 
     logger.debug('Consumed the following resources:\n%s',
                  '\n'.join(['    {0} - {1}'.format(res, resources[res]) for res in sorted(resources)]))
 
     return resources
+
+
+class CommandError(ChildProcessError):
+    pass
+
+
+class StreamQueue:
+    def __init__(self, stream, stream_name, collect_all_output=False):
+        self.stream = stream
+        self.stream_name = stream_name
+        self.collect_all_output = collect_all_output
+        self.queue = queue.Queue()
+        self.finished = False
+        self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
+        self.output = []
+
+    def get(self):
+        try:
+            return self.queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def join(self):
+        self.thread.join()
+
+    def start(self):
+        self.thread.start()
+
+    def __put_lines_from_stream_to_queue(self):
+        # This will put lines from stream to queue until stream will be closed. For instance it will happen when
+        # execution of command will be completed.
+        for line in self.stream:
+            line = line.decode('utf8').rstrip()
+            self.queue.put(line)
+            if self.collect_all_output:
+                self.output.append(line)
+
+        # Nothing will be put to queue from now.
+        self.finished = True
+
+
+def execute(logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
+    logger.debug('Execute "{0}"'.format(cmd))
+
+    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
+
+    for stream_q in (out_q, err_q):
+        stream_q.start()
+
+    # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds.
+    while not out_q.finished or not err_q.finished:
+        time.sleep(timeout)
+
+        for stream_q in (out_q, err_q):
+            output = []
+            while True:
+                line = stream_q.get()
+                if line is None:
+                    break
+                output.append(line)
+            if output:
+                m = '"{0}" outputted to {1}:\n{2}'.format(cmd[0], stream_q.stream_name, '\n'.join(output))
+                if stream_q is out_q:
+                    logger.debug(m)
+                else:
+                    logger.warning(m)
+
+    for stream_q in (out_q, err_q):
+        stream_q.join()
+
+    if p.poll():
+        logger.error('"{0}" exitted with "{1}"'.format(cmd[0], p.poll()))
+        raise CommandError('"{0}" failed'.format(cmd[0]))
+
+    return out_q.output
 
 
 def find_file_or_dir(logger, root_id, file_or_dir):
@@ -87,24 +185,36 @@ def is_src_tree_root(filenames):
     return False
 
 
-def get_comp_desc(logger):
-    """
-    Return a given computer description (a node name, a CPU model, a number of CPUs, a memory size, a Linux kernel
-    version and an architecture).
-    :param logger: a logger for printing debug messages.
-    """
-    logger.info('Get computer description')
+def get_component_callbacks(logger, components, components_conf):
+    logger.info('Get callbacks for components "{0}"'.format([component.__name__ for component in components]))
 
-    return [{entity_name_cmd[0]: get_entity_val(logger,
-                                                entity_name_cmd[1] if entity_name_cmd[1] else entity_name_cmd[0],
-                                                entity_name_cmd[2])} for entity_name_cmd in
-            [['node name', '', 'uname -n'],
-             ['CPU model', '', 'cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"'],
-             ['CPUs num', 'number of CPUs', 'cat /proc/cpuinfo | grep processor | wc -l'],
-             ['mem size', 'memory size',
-              'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'],
-             ['Linux kernel version', '', 'uname -r'],
-             ['arch', 'architecture', 'uname -m']]]
+    # At the beginning there is no callbacks of any kind.
+    callbacks = {kind: {} for kind in _callback_kinds}
+
+    for component in components:
+        module = sys.modules[component.__module__]
+        for attr in dir(module):
+            for kind in _callback_kinds:
+                match = re.search(r'^{0}_(.+)$'.format(kind), attr)
+                if match:
+                    event = match.groups()[0]
+                    if event not in callbacks[kind]:
+                        callbacks[kind][event] = []
+                    callbacks[kind][event].append((component.__name__, getattr(module, attr)))
+
+            # This special function implies that component has subcomponents for which callbacks should be get as well
+            # using this function.
+            if attr == 'get_subcomponent_callbacks':
+                subcomponents_callbacks = getattr(module, attr)(components_conf, logger)
+
+                # Merge subcomponent callbacks into component ones.
+                for kind in _callback_kinds:
+                    for event in subcomponents_callbacks[kind]:
+                        if event not in callbacks[kind]:
+                            callbacks[kind][event] = []
+                        callbacks[kind][event].extend(subcomponents_callbacks[kind][event])
+
+    return callbacks
 
 
 def get_entity_val(logger, name, cmd):
@@ -234,41 +344,27 @@ def get_parallel_threads_num(logger, conf, action):
     return str(parallel_threads_num)
 
 
-def invoke_callbacks(func, logger=None, components=None, context=None, args=None):
-    action = re.sub(r'^_*', '', func.__name__)
-    before_action = 'before_{0}'.format(action)
-    after_action = 'after_{0}'.format(action)
+def invoke_callbacks(event, args=None):
+    name = event.__name__
+    logger = event.__self__.logger
+    callbacks = event.__self__.callbacks
+    context = event.__self__
+    ret = None
 
-    if '__self__' in dir(func):
-        logger = func.__self__.logger
-        components = func.__self__.components
-        callbacks_context = func.__self__
-    else:
-        callbacks_context = context
+    for kind in _callback_kinds:
+        # Invoke callbacks if so.
+        if name in callbacks[kind]:
+            for component, callback in callbacks[kind][name]:
+                logger.debug('Invoke {0} callback of component "{1}" for "{2}"'.format(kind, component, name))
+                ret = callback(context)
+        # Invoke event itself.
+        elif kind == 'instead':
+            if args:
+                ret = event(*args)
+            else:
+                ret = event()
 
-    # Invoke all before actions.
-    for component in components:
-        if hasattr(component, before_action):
-            logger.debug('Invoke before callback of {0} for "{1}"'.format(component.name, action))
-            getattr(component, before_action)(callbacks_context)
-
-    # Invoke function itself.
-    if context and args:
-        ret = func(context, *args)
-    elif context:
-        ret = func(context)
-    elif args:
-        ret = func(*args)
-    else:
-        ret = func()
-
-    # Invoke all after actions.
-    for component in components:
-        if hasattr(component, after_action):
-            logger.debug('Invoke after callback of {0} for "{1}"'.format(component.name, action))
-            getattr(component, after_action)(callbacks_context)
-
-    # Return what function returned.
+    # Return what event or instead/after callbacks returned.
     return ret
 
 
