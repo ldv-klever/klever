@@ -17,6 +17,10 @@ To run a production server you additionally need:
 * `python3-dev <https://packages.debian.org/sid/python3-dev>`_.
 * `libmysqlclient-dev <https://packages.debian.org/ru/sid/libmysqlclient-dev>`_.
 
+To translate Omega (i.e. to execute :command:`manage.py compilemessages`) you additionally need:
+
+* `gettext <https://www.gnu.org/software/gettext/>`_.
+
 To build this documentation you need:
 
 * `Python 3.4.x <https://www.python.org/>`_.
