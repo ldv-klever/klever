@@ -6,24 +6,37 @@ Installation
 Omega installation
 ------------------
 
-#. Create a new MySQL user (**mysql_user**) identified by a password (**mysql_passwd**).
-#. Create a new MySQL database (**mysql_db**) with character set utf8 and grant full access on all its tables to **mysql_user**.
+#. Create a new MySQL/MariaDB user (**db_user**) identified by a password (**db_user_passwd**)::
+
+    MariaDB [(none)]> CREATE USER `db_user`@`localhost` IDENTIFIED BY 'db_user_passwd';
+
+#. Create a new MySQL/MariaDB database (**db_name**) with character set utf8 and grant full access on all its tables to
+   **db_user**::
+
+    MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8;
+    MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
+    MariaDB [(none)]> FLUSH PRIVILEGES;
+
 #. Create :file:`Omega/Omega/db.cnf`::
 
     [client]
-    database = mysql_db
-    user = mysql_user
-    password = mysql_passwd
+    database = db_name
+    user = db_user
+    password = db_user_passwd
     default-character-set = utf8
 
 #. Execute the following manage.py tasks::
 
-    $ python3.4 manage.py compilemessages
-    $ python3.4 manage.py makemigrations users jobs reports marks
-    $ python3.4 manage.py migrate
-    $ python3.4 manage.py createsuperuser
+    $ python3 manage.py compilemessages
+    $ python3 manage.py makemigrations users jobs reports marks
+    $ python3 manage.py migrate
+    $ python3 manage.py createsuperuser
 
-#. With last command you will create **omega_user** identified by a password **omega_passwd**.
+.. note:: Execution of :command:`manage.py migrate` can take quite much time.
+
+#. The last command will prompt you to create an Omega administrator **omega_admin** identified by a password
+   **omega_admin_passwd**.
+   An email address could be omitted.
 #. Proceed with either :ref:`dev-install` or :ref:`production-install`.
 
 .. _dev-install:
