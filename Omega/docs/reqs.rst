@@ -13,8 +13,7 @@ To run Omega you need:
 
 To run a production server you additionally need:
 
-* `apache2 <http://httpd.apache.org/>`_.
-* `libapache2-mod-wsgi-py3 <https://packages.debian.org/wheezy/httpd/libapache2-mod-wsgi-py3>`_.
+* `apache2 <http://httpd.apache.org/>`_ and its module `mod_wsgi <https://code.google.com/p/modwsgi/>`_.
 
 To translate Omega (i.e. to execute :command:`manage.py compilemessages`) you additionally need:
 
