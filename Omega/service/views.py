@@ -1,7 +1,6 @@
 import os
 import mimetypes
 from io import BytesIO
-from urllib.parse import unquote
 from django.core.urlresolvers import reverse
 from django.db.models import ProtectedError
 from django.contrib.auth.decorators import login_required
@@ -14,116 +13,37 @@ from marks.models import UnknownProblem
 from service.utils import *
 
 
-# Case 3.1.1 (8)
-def close_session(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Just POST requests are supported'})
-    if 'job id' not in request.POST:
-        return JsonResponse({'error': 'Job identifier is not specified'})
-    try:
-        job = Job.objects.get(identifier=request.POST['job id'])
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Job was not found'})
-    if not JobAccess(request.user, job).service_access():
-        return JsonResponse({
-            'error': 'User "{0}" has not access to job "{1}"'.format(
-                request.user, job.identifier
-            )
-        })
-    result = CloseSession(job)
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
-    return JsonResponse({})
-
-
-# Case 3.1.2 (2)
-def add_scheduler(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
-    scheduler_name = request.POST.get('scheduler name', '')
-    scheduler_key = request.POST.get('scheduler key', '')
-    need_auth = request.POST.get('need auth', None)
-    for_jobs = request.POST.get('for jobs', None)
-    if need_auth is None:
-        return JsonResponse({'error': '"need auth" is required'})
-    if for_jobs is None:
-        return JsonResponse({'error': '"for jobs" is required'})
-    try:
-        need_auth = bool(int(need_auth))
-    except ValueError:
-        return JsonResponse({'error': 'Wrong argument - "need auth"'})
-    try:
-        for_jobs = bool(int(for_jobs))
-    except ValueError:
-        return JsonResponse({'error': 'Wrong argument - "for jobs"'})
-    result = AddScheduler(scheduler_name, scheduler_key, need_auth, for_jobs)
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
-    return JsonResponse({})
-
-
-# Case 3.1.2 (3)
+# Case 3.2(2) DONE
 def get_tasks(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
-    sch_key = request.POST.get('scheduler key', '')
-    if len(sch_key) == 0 or len(sch_key) > 12:
-        return JsonResponse({
-            'error': 'Scheduler key is required or has wrong length'
-        })
-    try:
-        scheduler = Scheduler.objects.get(pkey=sch_key)
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Scheduler was not found'})
-    result = GetTasks(scheduler, request.POST.get('tasks list', '{}'))
+    if 'scheduler' not in request.POST or request.POST['scheduler'] not in [x[0][1] for x in SCHEDULER_TYPE]:
+        return JsonResponse({'error': 'The scheduler is not specified or is not supported'})
+    if 'tasks data' not in request.POST:
+        return JsonResponse({'error': 'Tasks data is required'})
+    result = GetTasks(request.POST['scheduler'], request.POST['tasks data'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
-    return JsonResponse({'tasks list': result.data})
+    return JsonResponse({'tasks data': result.data})
 
 
-# Case 3.1.3 (2)
-def clear_sessions(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
-    try:
-        num_of_hours = float(request.POST.get('hours', ''))
-    except ValueError:
-        return JsonResponse({'error': 'Wrong parameter - "hours"'})
-    delete_old_sessions(num_of_hours)
-    return JsonResponse({})
-
-
-# Case 3.1.3 (1)
+# Case 3.3(2) DONE
 def check_schedulers(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
-    try:
-        minutes = float(request.POST.get('waiting time', ''))
-    except ValueError:
-        return JsonResponse({'error': 'Wrong argument: "waiting time"'})
-    try:
-        statuses = json.loads(request.POST.get('statuses', ''))
-    except ValueError:
-        return JsonResponse({'error': 'Wrong argument: "statuses"'})
-    CheckSchedulers(minutes, statuses)
-    return JsonResponse({})
-
-
-# Case 3.1.3 (3)
-def close_sessions(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
-    try:
-        num_of_minutes = float(request.POST.get('minutes', ''))
-    except ValueError:
-        return JsonResponse({'error': 'Wrong parameter - "minutes"'})
-    close_old_active_sessions(num_of_minutes)
+    if 'statuses' not in request.POST:
+        return JsonResponse({'error': 'Statuses were not got'})
+    result = CheckSchedulers(request.POST['statuses'])
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
 
 
@@ -131,6 +51,8 @@ def close_sessions(request):
 def create_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'job id' not in request.POST:
@@ -139,8 +61,6 @@ def create_task(request):
         return JsonResponse({'error': 'Task priority is not specified'})
     if 'description' not in request.POST:
         return JsonResponse({'error': 'Task description is not specified'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
-        return JsonResponse({'error': 'No access'})
     archive = None
     for f in request.FILES.getlist('file'):
         archive = f
@@ -159,12 +79,12 @@ def create_task(request):
 def get_task_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
-        return JsonResponse({'error': 'No access'})
     result = GetTaskStatus(request.POST['task id'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
@@ -175,18 +95,16 @@ def get_task_status(request):
 def download_solution(request, task_id):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Just GET requests are supported'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Just GET requests are supported'})
 
-    result = GetSolution(request.POST['task id'])
+    result = GetSolution(task_id)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
-
-    if result.task.status == TASK_STATUS[2][0] and result.task.error is not None:
+    if result.task.status == TASK_STATUS[3][0]:
         return JsonResponse({'task error': result.task.error})
-
     new_file = BytesIO(result.solution.archive.read())
     mimetype = mimetypes.guess_type(os.path.basename(result.solution.archname))[0]
     response = HttpResponse(new_file.read(), content_type=mimetype)
@@ -198,12 +116,12 @@ def download_solution(request, task_id):
 def remove_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
-        return JsonResponse({'error': 'No access'})
 
     result = RemoveTask(request.POST['task id'])
     if result.error is not None:
@@ -215,12 +133,12 @@ def remove_task(request):
 def stop_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
-        return JsonResponse({'error': 'No access'})
     result = StopTaskDecision(request.POST['task id'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
@@ -231,6 +149,8 @@ def stop_task(request):
 def download_task(request, task_id):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'GET':
         return JsonResponse({'error': 'Just GET requests are supported'})
     result = GetTaskData(task_id)
@@ -244,16 +164,19 @@ def download_task(request, task_id):
     return response
 
 
-# Case 3.2(4)
+# Case 3.2(4) DONE
 def create_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
     if 'description' not in request.POST:
         return JsonResponse({'error': 'Description is not specified'})
+
     archive = None
     for f in request.FILES.getlist('file'):
         archive = f
@@ -269,10 +192,13 @@ def create_solution(request):
 def update_nodes(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'nodes data' not in request.POST:
         return JsonResponse({'error': 'Nodes data is not specified'})
+
     result = SetNodes(request.POST['nodes data'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
@@ -283,6 +209,8 @@ def update_nodes(request):
 def update_tools(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'tools data' not in request.POST:

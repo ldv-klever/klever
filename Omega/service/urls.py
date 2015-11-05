@@ -4,11 +4,7 @@ from service import views
 
 urlpatterns = [
     url(r'^test/$', views.test),
-    url(r'^close_session/$', views.close_session),
-    url(r'^add_scheduler/$', views.add_scheduler),
-    url(r'^clear_sessions/$', views.clear_sessions),
     url(r'^check_schedulers/$', views.check_schedulers),
-    url(r'^close_sessions/$', views.close_sessions),
     url(r'^get_tasks/$', views.get_tasks),
     url(r'^create_task/$', views.create_task),
     url(r'^update_tools/$', views.update_tools),

@@ -3,7 +3,7 @@ from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from Omega.formatChecker import RestrictedFileField
-from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
+from Omega.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE, PROGRESS_STATUS
 from jobs.models import Job
 
 FILE_DIR = 'Service'
@@ -77,6 +77,7 @@ def node_delete_signal(**kwargs):
 
 class SolvingProgress(models.Model):
     job = models.OneToOneField(Job)
+    status = models.CharField(max_length=1, choices=PROGRESS_STATUS, default='0')
     priority = models.CharField(max_length=6, choices=PRIORITY)
     scheduler = models.ForeignKey(Scheduler)
     start_date = models.DateTimeField(null=True)
@@ -90,6 +91,7 @@ class SolvingProgress(models.Model):
     solutions = models.PositiveIntegerField(default=0)
     error = models.CharField(max_length=1024, null=True)
     configuration = models.BinaryField()
+    restrictions = models.BinaryField()
 
     class Meta:
         db_table = 'solving_progress'

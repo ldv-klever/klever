@@ -6,11 +6,11 @@ from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from django.core.files import File as Newfile
-from Omega.vars import JOB_STATUS
+from Omega.vars import JOB_STATUS, PROGRESS_STATUS
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
-from service.utils import CloseSession
+from service.utils import FinishJobSolving
 
 
 class UploadReport(object):
@@ -21,29 +21,27 @@ class UploadReport(object):
         self.ordered_attrs = []
         self.error = self.__check_data(data)
         if self.error is not None:
-            print(self.error)
-            if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-                self.__set_status(JOB_STATUS[6][0])
+            self.__set_status(JOB_STATUS[5][0])
             return
         self.parent = None
         self.error = self.__get_parent()
         if self.error is not None:
-            print(self.error)
-            self.__set_status(JOB_STATUS[6][0])
+            self.__set_status(JOB_STATUS[5][0])
             return
         self.root = None
         self.__get_root_report()
         if self.error is not None:
-            print(self.error)
-            self.__set_status(JOB_STATUS[6][0])
+            self.__set_status(JOB_STATUS[5][0])
             return
         self.error = self.__upload()
         if self.error is not None:
-            print(self.error)
-            self.__set_status(JOB_STATUS[6][0])
+            self.__set_status(JOB_STATUS[5][0])
 
     def __set_status(self, status):
-        CloseSession(self.job)
+        result = FinishJobSolving(self.job)
+        if result.error is not None:
+            print(result.error)
+            status = JOB_STATUS[5][0]
         self.job.status = status
         self.job.save()
 
@@ -66,11 +64,11 @@ class UploadReport(object):
 
         if data['type'] == 'start':
             if data['id'] == '/':
-                if self.job.status != JOB_STATUS[1][0]:
-                    return 'The job is not pending'
-                self.__set_status(JOB_STATUS[2][0])
                 try:
+                    if self.job.solvingprogress.status != PROGRESS_STATUS[0][0]:
+                        return 'The job solving progress has wrong status'
                     self.job.solvingprogress.start_date = pytz.timezone('UTC').localize(datetime.now())
+                    self.job.solvingprogress.status = PROGRESS_STATUS[1][0]
                     self.job.solvingprogress.save()
                 except ObjectDoesNotExist:
                     return 'The job solving was not successfully initialized'
@@ -82,8 +80,6 @@ class UploadReport(object):
                 except KeyError as e:
                     return "Property '%s' is required." % e
             else:
-                if self.job.status != JOB_STATUS[2][0]:
-                    return 'The job is not solving'
                 try:
                     self.data.update({
                         'parent id': data['parent id'],
@@ -220,7 +216,7 @@ class UploadReport(object):
             if attr not in single_attrs_order:
                 single_attrs_order.insert(0, attr)
             elif self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-                self.__set_status(JOB_STATUS[6][0])
+                self.__set_status(JOB_STATUS[5][0])
                 print("Got double attribute: '%s' for report with "
                       "type '%s' and id '%s'" % (attr, self.data['type'],
                                                  self.data['id']))
@@ -349,21 +345,12 @@ class UploadReport(object):
             if len(ReportComponent.objects.filter(finish_date=None,
                                                   root=self.root)):
                 print("There are unfinished reports")
-                self.__set_status(JOB_STATUS[6][0])
-            elif self.job.status != JOB_STATUS[6][0]:
+                self.__set_status(JOB_STATUS[5][0])
+            elif self.job.status != JOB_STATUS[5][0]:
                 if len(ReportUnknown.objects.filter(parent=report)) > 0:
-                    self.__set_status(JOB_STATUS[5][0])
-                else:
-                    try:
-                        self.job.solvingprogress.finish_date = pytz.timezone('UTC').localize(datetime.now())
-                        self.job.solvingprogress.save()
-                        self.job.solvingprogress.task_set.all().delete()
-                    except ObjectDoesNotExist:
-                        print("The job solving progress was not found")
-                        self.__set_status(JOB_STATUS[6][0])
                     self.__set_status(JOB_STATUS[4][0])
-            self.job.save()
-
+                else:
+                    self.__set_status(JOB_STATUS[3][0])
         return report
 
     def __create_report_unknown(self, identifier):

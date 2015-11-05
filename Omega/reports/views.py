@@ -223,6 +223,11 @@ def upload_report(request):
         job = Job.objects.get(pk=int(request.session['job_id']))
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'The job was not found'})
+    if not JobAccess(request.user, job).psi_access():
+        return JsonResponse({
+            'error': "User '%s' don't have access to upload report for job '%s'" %
+                     (request.user.username, job.identifier)
+        })
 
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
     if err is not None:

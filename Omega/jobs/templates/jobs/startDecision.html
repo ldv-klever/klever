@@ -3,15 +3,101 @@
 
 {% block title %}{% trans 'Start decision' %}{% endblock %}
 
-{% block jobs_head_block %}{% endblock %}
+{% block jobs_head_block %}
+    <script src="/static/jobs/js/startjob.js"></script>
+{% endblock %}
 
 {% block body_block %}
-    <h2>{% trans 'Start decision of' %} <a href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
-    <div class="ui segment">
+    <h2>{% trans 'Start decision of' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
+    <div class="ui violet segment">
+    {% if data.error %}
+        <h3 class="ui red header">{{ data.error }}</h3>
+    {% else %}
+        {% if data.job_sch_err %}
+            <h4 class="ui red header">{{ data.job_sch_err }}</h4>
+        {% endif %}
+        <input type="hidden" id="job_pk" value="{{ job.pk }}">
         <div class="ui grid">
-            <div class="sixteen wide column right aligned">
-                <button id="start_job_decision" class="ui button">{% trans 'Start' %}</button>
+            <div class="five wide column">
+                <h4 class="ui header">{% trans 'Scheduler' %}</h4>
+                <label for="scheduler">{% trans 'Select scheduler for tasks' %}</label>
+                <select id="scheduler" class="ui dropdown fluid">
+                    {% for sch in data.schedulers %}
+                        <option value="{{ sch.0 }}">{{ sch.1 }}</option>
+                    {% endfor %}
+                </select>
+                <div class="ui divider need-auth"></div>
+                <div class="need-auth">
+                    <label for="priority">{% trans 'Select prority of tasks' %}</label>
+                    <select id="priority" class="ui dropdown fluid normal-dropdown">
+                        {% for p in data.priorities %}
+                            <option value="{{ p.0 }}">{{ p.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% if data.need_auth %}
+                <div id="new_sch_u" class="five wide column" style="display: none">
+                    <div class="ui green segment">
+                        {% include 'users/schedulerUser.html' %}
+                    </div>
+                </div>
+            {% endif %}
+            <div class="five wide column need-auth">
+                <h4 class="ui header">{% trans 'Restrictions for PSI' %}</h4>
+                <label for="max_ram">{% trans 'Max RAM memory (Gb)' %}</label>
+                <div class="ui input fluid">
+                    <input id="max_ram" type="number" value="{{ data.restrictions.max_ram }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                </div>
+                <br>
+                <label for="max_cpus">{% trans 'Max CPU number' %}</label>
+                <div class="ui input fluid">
+                    <input id="max_cpus" type="number" value="{{ data.restrictions.max_cpus }}" pattern="[0-9]+">
+                </div>
+                <br>
+                <label for="max_disk">{% trans 'Max disk memory (Gb)' %}</label>
+                <div class="ui input fluid">
+                    <input id="max_disk" type="number" value="{{ data.restrictions.max_disk }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                </div>
             </div>
         </div>
+        <div class="ui divider need-auth"></div>
+        <div class="ui grid need-auth">
+            <div class="five wide column">
+                <h4 class="ui header">{% trans 'PSI configuration' %}</h4>
+                <label for="gen_priority">{% trans 'Abstract verification tasks gen priority' %}</label>
+                <select id="gen_priority" class="ui dropdown fluid normal-dropdown">
+                    {% for p in data.gen_priorities %}
+                        <option value="{{ p.0 }}">{{ p.1 }}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <label for="parallelism">{% trans 'Linux kernel build parallelism' %}</label>
+                <div class="ui input fluid">
+                    <input id="parallelism" type="number" value="{{ data.parallelism }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                </div>
+            </div>
+            <div class="eleven wide column">
+                <br><br>
+                <label for="console_log_formatter">{% trans 'Console log formatter' %}</label>
+                <div class="ui input fluid">
+                    <input id="console_log_formatter" type="text" value="{{ data.logging.console }}">
+                </div>
+                <br>
+                <label for="file_log_formatter">{% trans 'File log formatter' %}</label>
+                <div class="ui input fluid">
+                    <input id="file_log_formatter" type="text" value="{{ data.logging.file }}">
+                </div>
+            </div>
+        </div>
+        <div class="ui grid need-auth">
+            <div class="sixteen wide column right aligned">
+                <input id="job_pk" type="hidden" value="{{ job.pk }}">
+                <button id="start_job_decision" class="ui violet button">{% trans 'Start' %}</button>
+            </div>
+        </div>
+    {% endif %}
     </div>
+    <span id="sch_u_saved" hidden>{% trans 'Schdeuler user was successfully saved. You can change it on edit profile page.' %}</span>
+    <span id="fields_required" hidden>{% trans 'Please check configuration, all fields are required' %}</span>
 {% endblock %}

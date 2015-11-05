@@ -18,7 +18,7 @@ from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
 from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
 from jobs.utils import *
-from service.utils import StartJobDecision, CloseSession
+from service.utils import StartJobDecision, StartDecisionData, StopDecision
 
 
 @login_required
@@ -254,9 +254,8 @@ def show_job(request, job_id=None):
             'can_edit': job_access.can_edit(),
             'can_create': job_access.can_create(),
             'can_decide': job_access.can_decide(),
-            'can_download': job.status != JOB_STATUS[6][0],
-            'can_stop': (request.user.extended.role == USER_ROLES[2][0]
-                         and job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]])
+            'can_download': job.status != JOB_STATUS[5][0],
+            'can_stop': job_access.can_stop()
         }
     )
 
@@ -738,7 +737,7 @@ def decide_job(request):
             'error': 'Specified identifier "{0}" is not unique'
             .format(request.POST['job id'])})
 
-    if not JobAccess(request.user, job).service_access2():
+    if not JobAccess(request.user, job).psi_access():
         return JsonResponse({
             'error': 'User "{0}" has not access to decide job "{1}"'.format(
                 request.user, job.identifier
@@ -796,11 +795,11 @@ def stop_decision(request):
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _("The job was not found")})
-    if job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-        return JsonResponse({'error': _("The job is not pending or solving")})
-    CloseSession(job)
-    job.status = JOB_STATUS[7][0]
-    job.save()
+    if not JobAccess(request.user, job).can_stop():
+        return JsonResponse({'error': _("You don't have access to stop this job")})
+    result = StopDecision(job)
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
     for report in ReportComponent.objects.filter(root__job=job):
         if report.finish_date is None:
             report.finish_date = pytz.timezone('UTC').localize(datetime.now())
@@ -813,13 +812,9 @@ def run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'status': False, 'error': _('Unknown error')})
-    result = StartJobDecision(
-        request.user,
-        request.POST.get('job_id', 0),
-        request.POST.get('priority', ''),
-        request.POST.get('job_scheduler', 0),
-        request.POST.get('schedulers', '[]')
-    )
+    if 'data' not in request.POST:
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    result = StartJobDecision(request.user, request.POST['data'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
@@ -832,5 +827,6 @@ def prepare_decision(request, job_id):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[404]))
     return render(request, 'jobs/startDecision.html', {
-        'job': job
+        'job': job,
+        'data': StartDecisionData(request.user)
     })

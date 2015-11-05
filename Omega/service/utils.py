@@ -1,13 +1,51 @@
 import json
 import pytz
-from datetime import datetime, timedelta
+from datetime import datetime
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
-from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_STATUS
 from jobs.utils import JobAccess
 from reports.models import ReportRoot
 from service.models import *
+
+DEF_PSI_RESTRICTIONS = {
+    'max_ram': 16.0,
+    'max_cpus': 8,
+    'max_disk': 4.0,
+}
+
+GEN_PRIORITY = [
+    ('balance', _('Balance')),
+    ('other', _('Other'))
+]
+
+PSI_LOGGING = {
+    'console': "%(name)s %(levelname)5s> %(message)s",
+    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+}
+
+PSI_CONFIG = '''{
+    "work dir": "psi-work-dir",
+    "job": {
+        "id": null,
+        "priority": "low"
+    },
+    "abstract verification tasks gen priority": "balance",
+    "Omega": {
+        "name": "localhost:8998",
+        "user": null,
+        "passwd": null
+    },
+    "debug": false,
+    "allow local source directories use": false,
+    "logging": {
+        "formatters": null,
+        "loggers": null
+    },
+    "parallelism": {
+        "Linux kernel build": 1.0
+    }
+}'''
 
 
 # Case 3.1(3) DONE
@@ -16,9 +54,6 @@ class CreateTask(object):
         self.error = None
         self.job = self.__get_job(job_id)
         if self.error is not None:
-            return
-        if self.job.status != JOB_STATUS[2][0]:
-            self.error = 'The job is not solving'
             return
         if priority not in list(x[0] for x in PRIORITY):
             self.error = "Wrong priority"
@@ -34,6 +69,9 @@ class CreateTask(object):
         except ObjectDoesNotExist:
             self.error = 'Solving progress of the job was not found'
             return
+        if self.progress.status != PROGRESS_STATUS[1][0]:
+            self.error = "The job's solving progress status is not 'PROCESSING'"
+            return
         if self.progress.scheduler.status == SCHEDULER_STATUS[2][0]:
             self.error = 'The scheduler for tasks is disconnected'
             return
@@ -48,10 +86,10 @@ class CreateTask(object):
         try:
             return Job.objects.get(identifier__startswith=job_id)
         except ObjectDoesNotExist:
-            self.error = 'Job with the specified identifier "{0}" was not found'.format(job_id)
+            self.error = 'Job with the specified identifier "%s" was not found' % job_id
             return
         except MultipleObjectsReturned:
-            self.error = 'Specified identifier "{0}" is not unique'.format(job_id)
+            self.error = 'Specified identifier "%s" is not unique' % job_id
             return
 
     def __create_task(self, description, archive):
@@ -75,8 +113,8 @@ class GetTaskStatus(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if not self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = 'The job is not solving'
+        if self.task.progress.status != PROGRESS_STATUS[1][0]:
+            self.error = "The job's solving progress status is not 'PROCESSING'"
             return
         self.status = self.task.status
 
@@ -93,23 +131,22 @@ class GetSolution(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if not self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = 'The job is not solving'
-            return
-        if self.task.status not in [TASK_STATUS[2][0], TASK_STATUS[3][0]]:
-            self.error = 'The task is not finished'
+        if self.task.progress.status != PROGRESS_STATUS[1][0]:
+            self.error = "The job's solving progress status is not 'PROCESSING'"
             return
         if self.task.status == TASK_STATUS[3][0]:
             if self.task.error is None:
                 self.error = "The task was finished with error but doesn't have its description"
-                return
-        self.solution = self.__get_solution()
+        elif self.task.status == TASK_STATUS[2][0]:
+            self.solution = self.__get_solution()
+        else:
+            self.error = 'The task is not finished'
 
     def __get_solution(self):
         try:
             solution = self.task.solution
         except ObjectDoesNotExist:
-            self.error = "The solution doesn't exist"
+            self.error = "The solution of the finished task doesn't exist"
             return None
         return solution
 
@@ -126,22 +163,22 @@ class RemoveTask(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if not self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = 'The job is not solving'
-            return
-        if self.task.status not in [TASK_STATUS[2][0], TASK_STATUS[3][0]]:
-            self.error = 'The task is not finished'
+        if self.task.progress.status != PROGRESS_STATUS[1][0]:
+            self.error = "The job's solving progress status is not 'PROCESSING'"
             return
         if self.task.status == TASK_STATUS[3][0]:
             if self.task.error is None:
                 self.error = "The task was finished with error but doesn't have its description"
                 return
-        else:
+        elif self.task.status == TASK_STATUS[2][0]:
             try:
                 self.task.solution
             except ObjectDoesNotExist:
                 self.error = "The solution of the finished task doesn't exist"
                 return
+        else:
+            self.error = 'The task is not finished'
+            return
         self.task.delete()
 
 
@@ -157,8 +194,8 @@ class StopTaskDecision(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if not self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = 'The job is not solving'
+        if self.task.progress.status != PROGRESS_STATUS[1][0]:
+            self.error = "The job's solving progress status is not 'PROCESSING'"
             return
         if self.task.status == TASK_STATUS[0][0]:
             if self.task.progress.tasks_pending > 0:
@@ -174,12 +211,66 @@ class StopTaskDecision(object):
         self.task.delete()
 
 
-# Case 3.2(2)
-class GetTasks(object):
-    def __init__(self, scheduler, tasks):
+# Case 3.1(8)
+class FinishJobSolving(object):
+    def __init__(self, job):
         self.error = None
-        self.scheduler = scheduler
-        self.scheduler.save()
+        try:
+            self.progress = job.solvingprogress
+        except ObjectDoesNotExist:
+            self.error = "The job doesn't have solving progress"
+            return
+        if self.progress.status != PROGRESS_STATUS[1][0]:
+            self.error = "The job's solving progress status is not 'PROCESSING'"
+            return
+        for task in job.solvingprogress.task_set.filter(status__in=[TASK_STATUS[2][0], TASK_STATUS[3][0]]):
+            RemoveTask(task.pk)
+        self.progress.finish_date = current_date()
+        self.progress.save()
+
+
+# Case 3.4(6) DONE
+class StopDecision(object):
+    def __init__(self, job):
+        self.error = None
+        self.job = job
+        try:
+            self.progress = self.job.solvingprogress
+        except ObjectDoesNotExist:
+            self.error = _('Job solving progress does not exists')
+            return
+        if self.progress.status not in [PROGRESS_STATUS[0][0], PROGRESS_STATUS[1][0]]:
+            self.error = _("The job's solving progress has wrong status")
+            return
+        self.__clear_tasks()
+        if self.error is not None:
+            return
+        self.job.status = JOB_STATUS[6][0]
+        self.job.save()
+
+    def __clear_tasks(self):
+        for task in self.progress.task_set.all():
+            if task.status == TASK_STATUS[1][0]:
+                self.progress.tasks_processing -= 1
+                self.progress.tasks_cancelled += 1
+            elif task.status == TASK_STATUS[0][0]:
+                self.progress.tasks_pending -= 1
+                self.progress.tasks_cancelled += 1
+            task.delete()
+        self.progress.finish_date = current_date()
+        self.progress.error = "The job was cancelled"
+        self.progress.status = PROGRESS_STATUS[4][0]
+        self.progress.save()
+
+
+# Case 3.2(2) DONE
+class GetTasks(object):
+    def __init__(self, sch_type, tasks):
+        self.error = None
+        self.scheduler = self.__get_scheduler(sch_type)
+        if self.error is not None:
+            return
+        self.data = {}
         try:
             self.data = self.__get_tasks(tasks)
         except KeyError or IndexError:
@@ -188,161 +279,223 @@ class GetTasks(object):
             print(e)
             self.error = "Unknown error"
 
+    def __get_scheduler(self, sch_type):
+        type_map = {}
+        for st in SCHEDULER_TYPE:
+            type_map[st[1]] = st[0]
+        try:
+            return Scheduler.objects.get(type=type_map[sch_type])
+        except ObjectDoesNotExist:
+            self.error = "Scheduler was not found, check its type"
+
     def __get_tasks(self, data):
         data = json.loads(data)
+        new_data = {
+            'tasks': {
+                'pending': [],
+                'processing': [],
+                'error': [],
+                'finished': []
+            },
+            'task errors': {},
+            'task descriptions': {},
+            'task solutions': {},
+            'jobs': {
+                'pending': [],
+                'processing': [],
+                'error': [],
+                'finished': [],
+                'cancelled': []
+            },
+            'job errors': {},
+            'Job configurations': {}
+        }
         status_map = {
             'pending': TASK_STATUS[0][0],
             'processing': TASK_STATUS[1][0],
-            'finished': TASK_STATUS[4][0],
             'error': TASK_STATUS[2][0],
-            'unknown': TASK_STATUS[3][0]
+            'finished': TASK_STATUS[3][0],
+            'cancelled': TASK_STATUS[4][0]
         }
         all_tasks = {
             'pending': [],
             'processing': [],
-            'finished': [],
             'error': [],
-            'unknown': []
-        }
-        new_list = {
-            'pending': [],
-            'processing': [],
             'finished': [],
-            'error': [],
-            'unknown': []
+            'cancelled': []
         }
         found_ids = []
-        for task in Task.objects.filter(
-                scheduler_session__scheduler=self.scheduler):
+        for task in Task.objects.filter(progress__scheduler=self.scheduler):
             found_ids.append(task.pk)
             for status in status_map:
                 if status_map[status] == task.status:
                     all_tasks[status].append(task)
         for task in all_tasks['pending']:
             if task.pk in data['tasks']['pending']:
-                new_list['pending'].append(task.pk)
+                new_data['tasks']['pending'].append(task.pk)
+                new_data = self.__add_description(task, new_data)
+                new_data = self.__add_solution(task, new_data)
             elif task.pk in data['tasks']['processing']:
                 task.status = status_map['processing']
                 task.save()
-                new_list['processing'].append(task.pk)
+                if task.progress.tasks_pending > 0:
+                    task.progress.tasks_pending -= 1
+                task.progress.tasks_processing += 1
+                task.progress.save()
+                new_data['tasks']['processing'].append(task.pk)
+                new_data = self.__add_description(task, new_data)
+                new_data = self.__add_solution(task, new_data)
             elif task.pk in data['tasks']['finished']:
                 task.status = status_map['finished']
                 task.save()
-                new_list['finished'].append(task.pk)
-                self.__update_solutions(task)
+                if task.progress.tasks_pending > 0:
+                    task.progress.tasks_pending -= 1
+                task.progress.tasks_finished += 1
+                task.progress.save()
             elif task.pk in data['tasks']['error']:
                 task.status = status_map['error']
+                if task.pk in data['task errors']:
+                    task.error = data['task errors'][task.pk]
+                else:
+                    task.error = "The scheduler hasn't given error description"
                 task.save()
-                new_list['error'].append(task.pk)
-            elif task.pk in data['tasks']['unknown']:
-                task.status = status_map['unknown']
-                task.save()
-                new_list['unknown'].append(task.pk)
+                if task.progress.tasks_pending > 0:
+                    task.progress.tasks_pending -= 1
+                task.progress.tasks_error += 1
             else:
-                new_list['pending'].append(task.pk)
-            data = self.__add_description(task, data)
+                new_data['tasks']['pending'].append(task.pk)
+                new_data = self.__add_description(task, new_data)
+                new_data = self.__add_solution(task, new_data)
         for task in all_tasks['processing']:
-            if task.pk in data['tasks']['processing']:
-                new_list['processing'].append(task.pk)
+            if task.pk in data['tasks']['pending']:
+                task.status = status_map['pending']
+                task.save()
+                if task.progress.tasks_processing > 0:
+                    task.progress.tasks_processing -= 1
+                task.progress.tasks_pending += 1
+                task.progress.save()
+                new_data['tasks']['processing'].append(task.pk)
+                new_data = self.__add_solution(task, new_data)
+            elif task.pk in data['tasks']['processing']:
+                new_data['tasks']['processing'].append(task.pk)
+                new_data = self.__add_solution(task, new_data)
             elif task.pk in data['tasks']['finished']:
                 task.status = status_map['finished']
                 task.save()
-                new_list['finished'].append(task.pk)
-                self.__update_solutions(task)
+                if task.progress.tasks_processing > 0:
+                    task.progress.tasks_processing -= 1
+                task.progress.tasks_finished += 1
+                task.progress.save()
             elif task.pk in data['tasks']['error']:
                 task.status = status_map['error']
+                if task.pk in data['task errors']:
+                    task.error = data['task errors'][task.pk]
+                else:
+                    task.error = "The scheduler hasn't given error description"
                 task.save()
-                new_list['error'].append(task.pk)
-            elif task.pk in data['tasks']['unknown']:
-                task.status = status_map['unknown']
-                task.save()
-                new_list['unknown'].append(task.pk)
-            elif task.pk not in data['tasks']['pending']:
-                new_list['processing'].append(task.pk)
-            data = self.__add_description(task, data)
+                if task.progress.tasks_processing > 0:
+                    task.progress.tasks_processing -= 1
+                task.progress.tasks_error += 1
+            else:
+                new_data['tasks']['processing'].append(task.pk)
+                new_data = self.__add_solution(task, new_data)
         for task in all_tasks['error']:
             if task.pk in data['tasks']['pending']:
-                new_list['error'].append(task.pk)
+                self.error = "The task '%s' with status 'ERROR' has become 'PENDING'" % task.pk
+                return None
             elif task.pk in data['tasks']['processing']:
-                new_list['error'].append(task.pk)
-        for task in all_tasks['unknown']:
+                self.error = "The task '%s' with status 'ERROR' has become 'PROCESSING'" % task.pk
+                return None
+            elif task.pk in data['tasks']['error']:
+                self.error = "The task '%s' with status 'ERROR' has become 'ERROR'" % task.pk
+                return None
+            elif task.pk in data['tasks']['finished']:
+                self.error = "The task '%s' with status 'ERROR' has become 'FINISHED'" % task.pk
+                return None
+        for task in all_tasks['finished']:
             if task.pk in data['tasks']['pending']:
-                new_list['unknown'].append(task.pk)
+                self.error = "The task '%s' with status 'FINISHED' has become 'PENDING'" % task.pk
+                return None
             elif task.pk in data['tasks']['processing']:
-                new_list['unknown'].append(task.pk)
-        for task_id in data['tasks']['pending']:
-            if task_id not in found_ids:
-                new_list['unknown'].append(task_id)
-        for task_id in data['tasks']['processing']:
-            if task_id not in found_ids:
-                new_list['unknown'].append(task_id)
-        data['tasks'] = new_list
-        for root in ReportRoot.objects.filter(job_scheduler=self.scheduler):
-            data = self.__add_job_descripion(root, data)
+                self.error = "The task '%s' with status 'FINISHED' has become 'PROCESSING'" % task.pk
+                return None
+            elif task.pk in data['tasks']['error']:
+                self.error = "The task '%s' with status 'FINISHED' has become 'ERROR'" % task.pk
+                return None
+            elif task.pk in data['tasks']['finished']:
+                self.error = "The task '%s' with status 'FINISHED' has become 'FINISHED'" % task.pk
+                return None
+        for task in all_tasks['cancelled']:
+            if task.pk in data['tasks']['pending']:
+                self.error = "The task '%s' with status 'CANCELLED' has become 'PENDING'" % task.pk
+                return None
+            elif task.pk in data['tasks']['processing']:
+                self.error = "The task '%s' with status 'CANCELLED' has become 'PROCESSING'" % task.pk
+                return None
+            elif task.pk in data['tasks']['error']:
+                self.error = "The task '%s' with status 'CANCELLED' has become 'ERROR'" % task.pk
+                return None
+            elif task.pk in data['tasks']['finished']:
+                self.error = "The task '%s' with status 'CANCELLED' has become 'FINISHED'" % task.pk
+                return None
+            elif task.pk in data['tasks']['cancelled']:
+                self.error = "The task '%s' with status 'CANCELLED' has become 'CANCELLED'" % task.pk
+                return None
+
+        if self.scheduler.type == SCHEDULER_TYPE[0][0]:
+            for progress in self.scheduler.solvingprogress_set.all():
+                if progress.status == PROGRESS_STATUS[0][0]:
+                    new_data['jobs']['pending'].append(progress.job.identifier)
+                    new_data['Job configurations'][progress.job.identifier] = \
+                        progress.configuration.decode('utf8')
+                    if progress.job.identifier in new_data['jobs']['error']:
+                        progress.status = PROGRESS_STATUS[3][0]
+                        if progress.job.identifier in data['job errors']:
+                            progress.error = data['job errors'][progress.job.identifier]
+                        else:
+                            progress.error = "The scheduler hasn't given an error description"
+                        progress.save()
+                elif progress.status == PROGRESS_STATUS[1][0]:
+                    new_data['jobs']['processing'].append(progress.job.identifier)
+                    if progress.job.identifier in new_data['jobs']['finished']:
+                        progress.status = PROGRESS_STATUS[2][0]
+                        progress.save()
+                    elif progress.job.identifier in new_data['jobs']['error']:
+                        progress.status = PROGRESS_STATUS[3][0]
+                        if progress.job.identifier in data['job errors']:
+                            progress.error = data['job errors'][progress.job.identifier]
+                        else:
+                            progress.error = "The scheduler hasn't given an error description"
+                        progress.save()
+                elif progress.status == PROGRESS_STATUS[4][0]:
+                    new_data['jobs']['cancelled'].append(progress.job.identifier)
         try:
-            return json.dumps(data)
+            return json.dumps(new_data)
         except ValueError:
             self.error = "Can't dump json data"
             return None
 
-    def __add_solutions(self, task_id, data):
-        self.ccc = 0
-        data['solutions'][task_id] = []
-        for solution in Solution.objects.filter(task_id=task_id):
-            data['solutions'][task_id].append(
-                json.loads(solution.files.description)
-            )
-        return data
-
-    def __add_job_descripion(self, root, data):
-        self.ccc = 0
-        if root.job.identifier in data['jobs']:
-            return data
-        data['jobs'] = {
-            root.job.identifier: {'schedulers': []}
-        }
-        for sch_id in json.loads(root.schedulers):
-            try:
-                scheduler = Scheduler.objects.get(pk=int(sch_id))
-            except ObjectDoesNotExist:
-                continue
-            data['jobs'][root.job.identifier]['schedulers']\
-                .append(scheduler.name)
-        return data
-
-    def __update_solutions(self, task):
-        self.ccc = 0
-        solutions = task.tasksolution_set.order_by('-creation')
-        if len(solutions) >= 1:
-            solutions[0].status = True
-            solutions[0].save()
-            for solution in solutions[1:]:
-                solution.files.delete()
-                solution.delete()
-
     def __add_description(self, task, data):
         self.ccc = 0
-        operator = task.job_session.job.reportroot.user
         data['task descriptions'][task.pk] = {
-            'user': operator.username,
-            'description': json.loads(task.files.description)
+            'description': json.loads(task.description.decode('utf8'))
         }
-        if task.scheduler_session.scheduler.need_auth:
-            if operator.username in data['users']:
-                return data
+        if task.progress.scheduler.type == SCHEDULER_TYPE[0][0]:
             try:
-                scheduler_user = task.scheduler_session.scheduler\
-                    .scheduleruser_set.get(user=operator)
+                operator = task.progress.job.reportroot.user.scheduleruser
             except ObjectDoesNotExist:
                 return data
-            except MultipleObjectsReturned:
-                scheduler_user = task.scheduler_session.scheduler.scheduleruser_set\
-                    .filter(user=operator)[0]
-            data['users'][operator.username] = {
-                'login': scheduler_user.login,
-                'password': scheduler_user.password
-            }
-        data = self.__add_solutions(task.pk, data)
+            data['task descriptions'][task.pk]['scheduler user name'] = operator.scheduleruser.login
+            data['task descriptions'][task.pk]['scheduler user password'] = operator.scheduleruser.password
+        return data
+
+    def __add_solution(self, task, data):
+        self.ccc = 0
+        try:
+            solution = task.solution
+        except ObjectDoesNotExist:
+            return data
+        data['task solutions'][task.pk] = json.loads(solution.description.decode('utf8'))
         return data
 
 
@@ -358,12 +511,11 @@ class GetTaskData(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if not self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = 'The job is not solving'
+        if self.task.progress.status != PROGRESS_STATUS[1][0]:
+            self.error = "The job's solving progress status is not 'PROCESSING'"
             return
         if self.task.status not in [TASK_STATUS[0][0], TASK_STATUS[1][0]]:
             self.error = 'The task status is wrong'
-            return
 
 
 # Case 3.2(4) DONE
@@ -378,8 +530,8 @@ class SaveSolution(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if not self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = 'The job is not solving'
+        if self.task.progress.status != PROGRESS_STATUS[1][0]:
+            self.error = "The job's solving progress status is not 'PROCESSING'"
             return
         self.__create_solution(description, archive)
 
@@ -464,55 +616,54 @@ class UpdateTools(object):
                                             name=tool['tool'], version=tool['version'])
 
 
-# Case 3.1.3 (1)
+# Case 3.3(2) DONE
 class CheckSchedulers(object):
-    def __init__(self, minutes, statuses):
-        self.statuses = statuses
-        self.__check_by_time(minutes)
-        self.__check_by_status()
+    def __init__(self, statuses):
+        self.error = None
+        try:
+            self.statuses = json.loads(statuses)
+        except ValueError:
+            self.error = "Incorrect format of statuses"
+        self.__update_statuses()
 
-    def __check_by_time(self, minutes):
-        max_waiting = current_date() - timedelta(minutes=float(minutes))
-        for scheduler in Scheduler.objects.filter(
-                Q(last_request__lt=max_waiting) &
-                ~Q(name__in=list(self.statuses))):
-            self.__close_sessions(scheduler)
-            scheduler.status = SCHEDULER_STATUS[2][0]
-            scheduler.save()
-
-    def __check_by_status(self):
-        for sch_name in self.statuses:
+    def __update_statuses(self):
+        sch_type_map = {}
+        for sch_type in SCHEDULER_TYPE:
+            sch_type_map[sch_type[1]] = sch_type[0]
+        for sch_type in self.statuses:
             try:
-                scheduler = Scheduler.objects.get(name=sch_name)
+                scheduler = Scheduler.objects.get(type=sch_type_map[sch_type])
             except ObjectDoesNotExist:
+                self.error = "Scheduler was not found"
+                return
+            if self.statuses[sch_type] not in list(x[0] for x in SCHEDULER_STATUS):
+                self.error = "Scheduler status is wrong"
+                return
+            if scheduler.status == self.statuses[sch_type]:
                 continue
-            if self.statuses[sch_name] != SCHEDULER_STATUS[0][0]:
-                self.__clear_tasks(sch_name)
-                self.__close_sessions(scheduler)
-            if self.statuses[sch_name] in list(x[0] for x in SCHEDULER_STATUS) \
-                    and scheduler.status != self.statuses[sch_name]:
-                scheduler.status = self.statuses[sch_name]
-                scheduler.save()
+            if self.statuses[sch_type] == SCHEDULER_STATUS[2][0]:
+                self.__finish_tasks(scheduler)
 
-    def __clear_tasks(self, sch_name):
+    def __finish_tasks(self, scheduler):
         self.ccc = 0
-        for task in Task.objects.filter(
-                scheduler_session__scheduler__name=sch_name):
-            if task.status in [TASK_STATUS[0][0], TASK_STATUS[1][0]]:
-                task.files.delete()
-                task.status = TASK_STATUS[3][0]
+        for progress in scheduler.solvingprogress_set.filter(status=PROGRESS_STATUS[1][0], finish_date=None):
+            for task in progress.task_set.filter(status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]]):
+                if task.status == TASK_STATUS[0][0]:
+                    progress.tasks_pending -= 1
+                else:
+                    progress.tasks_processing -= 1
+                progress.tasks_error += 1
+                task.error = "Task was finished with error due to scheduler is disconnected"
                 task.save()
-                for solution in task.tasksolution_set.all():
-                    solution.files.delete()
+            if scheduler.type == SCHEDULER_TYPE[1][0]:
+                progress.finish_date = current_date()
+                progress.error = "Klever scheduler was disconnected"
+                progress.status = PROGRESS_STATUS[3][0]
+                # TODO: corrupted or failed (5 or 4)?
+                progress.job.status = JOB_STATUS[5][0]
+                progress.job.save()
+            progress.save()
 
-    def __close_sessions(self, scheduler):
-        self.ccc = 0
-        for reportroot in scheduler.reportroot_set.all():
-            try:
-                reportroot.job.status = JOB_STATUS[4][0]
-                reportroot.job.save()
-            except ObjectDoesNotExist:
-                continue
 
 def compare_priority(priority1, priority2):
     cnt = 0
@@ -527,13 +678,6 @@ def compare_priority(priority1, priority2):
     if not isinstance(priority2, int):
         priority2 = 0
     return priority1 > priority2
-
-
-def remove_task(task):
-    task.files.delete()
-    for solution in task.tasksolution_set.all():
-        solution.files.delete()
-    task.delete()
 
 
 def current_date():
@@ -719,75 +863,36 @@ class SchedulerJobSessionsTable(object):
         return data
 
 
-def get_available_schedulers(user):
-    schedulers = []
-    has_for_job = False
-    for scheduler in Scheduler.objects.all():
-        sch_data = {
-            'pk': scheduler.pk,
-            'name': scheduler.name,
-            'available': True,
-            'auth_error': False,
-            'for_jobs': scheduler.for_jobs
-        }
-        if scheduler.for_jobs:
-            has_for_job = True
-        if scheduler.status != SCHEDULER_STATUS[0][0]:
-            sch_data['available'] = False
-        if scheduler.need_auth:
-            if len(scheduler.scheduleruser_set.filter(user=user)) == 0:
-                sch_data['auth_error'] = True
-        schedulers.append(sch_data)
-    if has_for_job:
-        return schedulers
-    return []
-
-
-def get_priorities(user, schedulers):
-    try:
-        scheduler_ids = json.loads(schedulers)
-    except Exception as e:
-        print(e)
-        return None
-    priorities = []
-    for sch_id in scheduler_ids:
-        try:
-            scheduler = Scheduler.objects.get(pk=int(sch_id[0]))
-        except ObjectDoesNotExist:
-            continue
-        if scheduler.need_auth:
-            try:
-                priorities.append(scheduler.scheduleruser_set
-                                  .filter(user=user)[0].max_priority)
-            except IndexError:
-                continue
-    user_priorities = []
-    for pr in reversed(PRIORITY):
-        user_priorities.append(pr)
-        if pr[0] in priorities:
-            return user_priorities
-    return user_priorities
-
-
+# Case 3.4(5) DONE
 class StartJobDecision(object):
-    def __init__(self, user, job_id, priority, job_sch_id, schedulers):
+    def __init__(self, user, data):
         self.error = None
-        if not isinstance(user, User) \
-                or priority not in [pr[0] for pr in PRIORITY]:
+        self.operator = user
+        try:
+            self.data = json.loads(data)
+        except ValueError:
             self.error = _('Unknown error')
             return
-        self.operator = user
-        self.priority = priority
-        self.job_scheduler = self.__get_scheduler(job_sch_id)
+        self.job = self.__get_job()
         if self.error is not None:
             return
-        self.job = self.__get_job(job_id)
+        try:
+            self.psidata = self.__get_psi_data()
+        except ValueError or KeyError:
+            self.error = _('Unknown error')
+            return
+        try:
+            self.restrictions = self.__get_restrictions()
+        except ValueError or KeyError:
+            self.error = _('Unknown error')
+            return
+        self.job_scheduler = self.__get_scheduler()
         if self.error is not None:
             return
-        self.jobsession = self.__create_job_session()
+        self.__check_schedulers()
         if self.error is not None:
             return
-        self.__check_schedulers(schedulers)
+        self.progress = self.__create_solving_progress()
         if self.error is not None:
             return
         try:
@@ -798,19 +903,65 @@ class StartJobDecision(object):
         self.job.status = JOB_STATUS[1][0]
         self.job.save()
 
-    def __get_scheduler(self, sch_id):
+    def __get_psi_data(self):
+        conf = json.loads(PSI_CONFIG)
         try:
-            return Scheduler.objects.get(pk=int(sch_id))
+            job = Job.objects.get(pk=int(self.data['job_id']))
+        except ObjectDoesNotExist:
+            self.error = _("Job was not found")
+            return None
+        conf['job']['id'] = job.identifier
+        conf['job']['priority'] = self.data['priority']
+        conf['abstract verification tasks gen priority'] = self.data['gen_priority']
+        conf['logging']['formatters'] = [
+            {
+                'name': 'brief',
+                'value': self.data['console_log_formatter']
+            },
+            {
+                'name': 'detailed',
+                'value': self.data['file_log_formatter']
+            }
+        ]
+        conf['logging']['loggers'] = [{
+            "name": "default",
+            "handlers": [
+                {
+                    "name": "console",
+                    "level": "INFO",
+                    "formatter": "brief"
+                },
+                {
+                    "name": "file",
+                    "level": "DEBUG",
+                    "formatter": "detailed"
+                }
+            ]
+        }]
+        try:
+            parallelism = int(self.data['parallelism'])
+        except ValueError:
+            parallelism = float(self.data['parallelism'])
+        conf['parallelism']['Linux kernel build'] = parallelism
+        return json.dumps(conf)
+
+    def __get_restrictions(self):
+        return json.dumps({
+            'max cpu number': int(self.data['max_cpus']),
+            'max disk memory': float(self.data['max_disk']),
+            'max ram memory': float(self.data['max_ram'])
+        })
+
+    def __get_scheduler(self):
+        try:
+            return Scheduler.objects.get(type=self.data['scheduler'])
         except ObjectDoesNotExist:
             self.error = _('Scheduler was not found')
             return
-        except ValueError:
-            self.error = _('Unknown error')
-            return
 
-    def __get_job(self, job_id):
+    def __get_job(self):
         try:
-            job = Job.objects.get(pk=int(job_id))
+            job = Job.objects.get(pk=int(self.data['job_id']))
         except ObjectDoesNotExist:
             self.error = _('Job was not found')
             return
@@ -822,93 +973,60 @@ class StartJobDecision(object):
             return
         return job
 
-    def __create_job_session(self):
+    def __create_solving_progress(self):
         try:
-            jobsession = SolvingProgress.objects.get(job=self.job)
-            if jobsession.finish_date is None:
-                self.error = _("The job has opened session")
-                return None
-            for task in jobsession.task_set.all():
-                remove_task(task)
-            jobsession.delete()
+            self.job.solvingprogress.delete()
         except ObjectDoesNotExist:
             pass
-        jobsession = SolvingProgress.objects.create(
-            job=self.job, start_date=current_date(), priority=self.priority,
-            job_scheduler=self.job_scheduler
+        return SolvingProgress.objects.create(
+            job=self.job, start_date=current_date(),
+            priority=self.data['priority'],
+            scheduler=self.job_scheduler,
+            configuration=self.psidata.encode('utf8'),
+            restrictions=self.restrictions.encode('utf8')
         )
-        JobTasksResults.objects.create(session=jobsession)
-        return jobsession
-
-    def __check_schedulers(self, schedulers):
-        has_available = False
-        scheduler_priority = 0
-        try:
-            schedulers = json.loads(schedulers)
-        except Exception as e:
-            print(e)
-            self.error = _("Unknown error")
-            return
-        for sch_pk in schedulers:
-            scheduler = self.__get_scheduler(sch_pk)
-            if self.error is not None:
-                return
-            if scheduler.need_auth:
-                try:
-                    scheduler_user = scheduler.scheduleruser_set.filter(
-                        user=self.operator)[0]
-                except IndexError:
-                    continue
-                if compare_priority(scheduler_user.max_priority,
-                                    self.priority):
-                    continue
-            if scheduler.status == SCHEDULER_STATUS[0][0]:
-                has_available = True
-            self.__create_scheduler_session(scheduler, scheduler_priority)
-            scheduler_priority += 1
-        if not has_available:
-            self.error = CloseSession(self.jobsession.job).error
-            if self.error is None:
-                self.error = _('Session was closed due to '
-                               'there are no available schedulers')
-
-    def __create_scheduler_session(self, scheduler, priority):
-        scheduler_session = SchedulerSession.objects.create(
-            priority=priority, scheduler=scheduler, session=self.jobsession
-        )
-        SchedulerTasksResults.objects.create(session=scheduler_session)
-
-
-class StartDecision(object):
-    def __init__(self, user, job, data):
-        self.job_sch_err = None
-        self.data = data
 
     def __check_schedulers(self):
         try:
             klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
         except ObjectDoesNotExist:
-            return _('Unknown error')
-        try:
-            cloud_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[1][0])
-        except ObjectDoesNotExist:
-            return _('Unknown error')
-        if klever_sch.status == SCHEDULER_STATUS[1][0]:
-            self.job_sch_err = _("Klever scheduler is ailing")
-        elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            return _("Klever scheduler is disconnected")
-        if self.data['task_sch'] == cloud_sch.type:
-            if klever_sch.status == SCHEDULER_STATUS[1][0]:
-                self.job_sch_err = _("Klever scheduler is ailing")
-            elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-                return _("Klever scheduler is disconnected")
+            self.error = _('Unknown error')
+            return
+        if klever_sch.status == SCHEDULER_STATUS[2][0]:
+            self.error = _('Klever scheduler is disconnected')
+            return
+        if self.job_scheduler.type == SCHEDULER_TYPE[1][0]:
+            if self.job_scheduler.status == SCHEDULER_STATUS[2][0]:
+                self.error = _('VerifierCloud scheduler is disconnected')
+                return
+            try:
+                self.operator.scheduleruser
+            except ObjectDoesNotExist:
+                self.error = _("You don't have login and password for VefifierCloud scheduler")
+                return
 
 
+# Case 3.4(5) DONE
 class StartDecisionData(object):
-    def __init__(self, job):
+    def __init__(self, user):
         self.error = None
         self.schedulers = []
         self.job_sch_err = None
+        self.error = self.__get_schedulers()
+        if self.error is not None:
+            return
+        self.priorities = list(reversed(PRIORITY))
+
+        self.need_auth = False
+        try:
+            user.scheduleruser
+        except ObjectDoesNotExist:
+            self.need_auth = True
+
+        self.restrictions = DEF_PSI_RESTRICTIONS
+        self.gen_priorities = GEN_PRIORITY
+        self.parallelism = str(1.0)
+        self.logging = PSI_LOGGING
 
     def __get_schedulers(self):
         try:
