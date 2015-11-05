@@ -1,7 +1,7 @@
-from Cloud.gatexchange import Session
+from Cloud.scheduler.requests import Session
 
 
-class Gateway(Session):
+class Server(Session):
     """Exchange with gateway via net."""
 
     def auth(self, user, password):

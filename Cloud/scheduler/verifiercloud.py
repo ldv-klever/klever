@@ -4,7 +4,7 @@ import sys
 import shutil
 import logging
 import Cloud.scheduler as scheduler
-import Cloud.utils.executils as executils
+import Cloud.client.executils as executils
 
 
 class Run:
@@ -68,7 +68,7 @@ class Run:
         self.sourcefiles = [os.path.join(work_dir, file) for file in self.description["files"]]
 
 
-class Verifiercloud(scheduler.TaskScheduler):
+class Scheduler(scheduler.SchedulerExchange):
     """
     Implement scheduler which is based on VerifierCloud web-interface cloud. Scheduler forwards task to the remote
     VerifierCloud and fetch results from there.
@@ -81,11 +81,11 @@ class Verifiercloud(scheduler.TaskScheduler):
 
         # Perform sanity checks before initializing scheduler
         if "require authorization" not in self.conf or not self.conf["require authorization"]:
-            raise ValueError("Provide 'require authorization' configuration property always as True for VerifierCloud")
+            raise ValueError("Provide 'Scheduler''require authorization' configuration property always as True for VerifierCloud")
         if "VerifierCloud user name" not in self.conf:
-            raise KeyError("Provide 'VerifierCloud user name' to login at VerifierCloud within the configuration")
+            raise KeyError("Provide 'Scheduler''VerifierCloud user name' to login at VerifierCloud within the configuration")
         if "VerifierCloud password" not in self.conf:
-            raise KeyError("Provide 'VerifierCloud password' to login at VerifierCloud within the configuration")
+            raise KeyError("Provide 'Scheduler''VerifierCloud password' to login at VerifierCloud within the configuration")
 
         # TODO: Investigate which sources are necessary and which are optional
         # Add path to benchexec directory
@@ -102,7 +102,7 @@ class Verifiercloud(scheduler.TaskScheduler):
         self.wi = WebInterface(self.conf["Web Interface address"], "{}:{}".format(self.conf["VerifierCloud user name"],
                                                                                   self.conf["VerifierCloud password"]))
 
-        return super(Verifiercloud, self).launch()
+        return super(Scheduler, self).launch()
 
     def _prepare_task(self, identifier):
         """
@@ -221,7 +221,7 @@ class Verifiercloud(scheduler.TaskScheduler):
         :param identifier: Verification task ID.
         """
         logging.debug("Cancel task {}".format(identifier))
-        super(Verifiercloud, self)._cancel_task(identifier)
+        super(Scheduler, self)._cancel_task(identifier)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
 

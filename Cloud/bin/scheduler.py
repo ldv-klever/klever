@@ -4,11 +4,12 @@ import os
 import json
 import logging.config
 import shutil
-import Cloud.gatexchange.testgenerator as testgenerator
-import Cloud.gatexchange.gateway as gateway
-import Cloud.scheduler.shoal as shoal
-import Cloud.scheduler.verifiercloud as verifiercloud
 
+import Cloud.scheduler.requests.testgenerator as testgenerator
+import Cloud.scheduler.requests.omega as omega
+import Cloud.scheduler.docker as docker
+import Cloud.scheduler.native as native
+import Cloud.scheduler.verifiercloud as verifiercloud
 
 def get_gateway(conf, work_dir):
     """
@@ -19,26 +20,28 @@ def get_gateway(conf, work_dir):
     """
     if "test generator as gateway" in conf and \
             conf["test generator as gateway"]:
-        return testgenerator.Taskgenerator(conf, work_dir)
+        return testgenerator.Server(conf, work_dir)
     else:
-        return gateway.Gateway(conf, work_dir)
+        return omega.Server(conf, work_dir)
 
 
-def get_scheduler(conf, work_dir, gw):
+def get_scheduler(conf, work_dir, session):
     """
     Check which scheduler to run according to conf dictionary.
     :param conf: Configuration dictionary.
     :param work_dir: Path to the working directory.
-    :param gw: Verification gateway object.
+    :param session: Verification gateway object.
     :return: Return object of implementation of abstract class TaskScheduler.
     """
     if conf["type"] == "verifiercloud":
-        return verifiercloud.Verifiercloud(conf, work_dir, gw)
-    elif conf["type"] == "shoal":
-        return shoal.Shoal(conf, work_dir, gw)
+        return verifiercloud.Scheduler(conf, work_dir, session)
+    elif conf["type"] == "docker":
+        return docker.Scheduler(conf, work_dir, session)
+    elif conf["type"] == "native":
+        return native.Scheduler(conf, work_dir, session)
     else:
         raise ValueError("Scheduler type is not given in the configuration (scheduler->type) or it is not supported "
-                         "(supported are 'shoal' and 'verifiercloud')")
+                         "(supported are 'native', 'docker' or 'verifiercloud')")
 
 
 def main():
@@ -46,11 +49,11 @@ def main():
 
     # Parse configuration
     parser = argparse.ArgumentParser(description='Start cloud scheduler according to the provided configuration.')
-    parser.add_argument('conf', metavar="CONF", help='Path to the cloud configuration file.')
+    parser.add_argument('config', metavar="CONF", help='Path to the cloud configuration file.')
     args = parser.parse_args()
 
     # Read configuration from file.
-    with open(args.conf) as fp:
+    with open(args.config) as fp:
         conf = json.load(fp)
 
     # TODO: Do we need use version of the scheduler further?
@@ -69,9 +72,9 @@ def main():
     # Start logging
     logging.config.dictConfig(conf["common"]['logging'])
 
-    gw = get_gateway(conf["verification gateway"], conf["common"]["work dir"] + "/gateway/")
-    scheduler = get_scheduler(conf["scheduler"], conf["common"]["work dir"] + "/scheduler/", gw)
-    scheduler.launch()
+    session = get_gateway(conf["verification gateway"], conf["common"]["work dir"] + "/gateway/")
+    scheduler_impl = get_scheduler(conf["scheduler"], conf["common"]["work dir"] + "/scheduler/", session)
+    scheduler_impl.launch()
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

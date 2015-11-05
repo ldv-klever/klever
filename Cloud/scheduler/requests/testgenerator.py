@@ -4,13 +4,13 @@ import shutil
 import os
 import json
 
-import Cloud.gatexchange as gatexchange
+import Cloud.scheduler.requests as requests
 import Cloud.utils as utils
 
 task_description_filename = "verification task desc.json"
 
 
-class Taskgenerator(gatexchange.Session):
+class Server(requests.Session):
     """Start exchange with verification gate."""
 
     pending = []

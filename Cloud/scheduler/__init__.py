@@ -6,7 +6,7 @@ import shutil
 import time
 
 
-class TaskScheduler(metaclass=abc.ABCMeta):
+class SchedulerExchange(metaclass=abc.ABCMeta):
     """Class provide general scheduler API."""
 
     __tasks = {}
