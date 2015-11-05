@@ -10,38 +10,29 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     """Class provide general scheduler API."""
 
     __tasks = {}
+    __jobs = {}
     __nodes = None
     __tools = None
     __iteration_timeout = 1
 
-    def __init__(self, conf, work_dir, gw):
+    def __init__(self, conf, work_dir, server):
         """
         Get configuration and prepare working directory.
         :param conf: Dictionary with relevant configuration.
         :param work_dir: PAth to the working directory.
-        :param gw: Verification gateway object.
+        :param server: Session object.
         """
         self.conf = conf
         self.work_dir = work_dir
-        self.gw = gw
+        self.server = server
 
         # Check configuration completeness
         logging.debug("Check whether configuration contains all necessary data")
-        if "user" not in self.conf:
-            raise KeyError("Please provide scheduler username 'user' to authorize at verification gateway")
-        elif "password" not in self.conf:
-            raise KeyError("Please provide scheduler password 'password' to authorize at verification gateway")
-        elif "task timeout" not in self.conf:
-            raise KeyError("Please provide 'task timeout' within the configuration in seconds")
-        elif "tools and nodes update period" not in self.conf:
-            raise KeyError("Please provide 'tools and nodes update period' configuration option in seconds")
-        elif "require login" not in conf:
-            logging.warning("Suppose that users may not provide login")
-            conf["require login"] = True
+        if "tools and nodes update period" not in self.conf:
+            raise KeyError("Please provide 'scheduler''tools and nodes update period' configuration option in seconds")
 
-        # Initialize gateway interaction
-        gw.auth(self.conf["user"], self.conf["password"])
-        gw.register(self.conf["name"], self.conf["require login"])
+        # Initialize interaction
+        server.register(self.scheduler_type())
 
         # Clean working directory
         if os.path.isdir(work_dir):
@@ -54,89 +45,108 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
         logging.info("Scheduler initialization has been successful")
 
+    @abc.abstractproperty
+    def scheduler_type(self):
+        """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
+        return "Klever"
+
     @abc.abstractmethod
     def launch(self):
         """Start scheduler loop."""
-        logging.info("Start monitoring tools and nodes")
-        executor = concurrent.futures.ThreadPoolExecutor(2)
-        nodes_future = executor.submit(self._nodes, int(self.conf["tools and nodes update period"]))
-        tools_future = executor.submit(self._tools, int(self.conf["tools and nodes update period"]))
-
-        logging.info("Start monitoring verification tasks")
+        logging.info("Start scheduler loop")
         try:
             while True:
+                # Prepare scheduler state
                 logging.info("Start scheduling iteration with statuses exchange with the verification gateway")
-                pending_tasks = [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                                 self.__tasks[task_id]["status"] == "PENDING"]
-                processing_tasks = [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                                    self.__tasks[task_id]["status"] == "PROCESSING"]
-                finished_tasks = [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                                  self.__tasks[task_id]["status"] == "FINISHED"]
-                unknown_tasks = [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                                 self.__tasks[task_id]["status"] == "UNKNOWN"]
-                error_tasks = [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                               self.__tasks[task_id]["status"] == "ERROR"]
                 scheduler_state = {
                     "tasks": {
-                        "pending": pending_tasks,
-                        "processing": processing_tasks,
-                        "finished": finished_tasks,
-                        "unknown": unknown_tasks,
-                        "error": error_tasks
-                    }
+                        "pending": [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
+                                 self.__tasks[task_id]["status"] == "PENDING"],
+                        "processing": [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
+                                    self.__tasks[task_id]["status"] == "PROCESSING"],
+                        "finished": [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
+                                  self.__tasks[task_id]["status"] == "FINISHED"],
+                        "error": [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
+                               self.__tasks[task_id]["status"] == "ERROR"]
+                    },
+                    "jobs": {
+                        "pending": [job_id for job_id in self.__tasks if "status" in self.__tasks[job_id] and
+                                 self.__jobs[job_id]["status"] == "PENDING"],
+                        "processing": [job_id for job_id in self.__tasks if "status" in self.__tasks[job_id] and
+                                 self.__jobs[job_id]["status"] == "PROCESSING"],
+                        "finished": [job_id for job_id in self.__tasks if "status" in self.__tasks[job_id] and
+                                 self.__jobs[job_id]["status"] == "FINISHED"],
+                        "error": [job_id for job_id in self.__tasks if "status" in self.__tasks[job_id] and
+                                 self.__jobs[job_id]["status"] == "ERROR"]
+                    },
+                    "task errors": {},
+                    "job errors": {}
                 }
-                logging.info("Scheduler has {} pending, {} processing, {} finished, {} unknown and {} error tasks".
-                             format(len(pending_tasks), len(processing_tasks), len(finished_tasks), len(unknown_tasks),
-                                    len(error_tasks)))
-                gateway_state = self.gw.exchange_tasks(scheduler_state)
+                logging.info("Scheduler has {} pending, {} processing, {} finished and {} error tasks".
+                             format(len(scheduler_state["tasks"]["pending"]),
+                                    len(scheduler_state["tasks"]["processing"]),
+                                    len(scheduler_state["tasks"]["finished"]),
+                                    len(scheduler_state["tasks"]["error"])))
+                logging.info("Scheduler has {} pending, {} processing, {} finished and {} error jobs".
+                             format(len(scheduler_state["jobs"]["pending"]),
+                                    len(scheduler_state["jobs"]["processing"]),
+                                    len(scheduler_state["jobs"]["finished"]),
+                                    len(scheduler_state["jobs"]["error"])))
 
-                # Start solution of new tasks
-                logging.debug("Determine new tasks to solve")
-                new_tasks = set(gateway_state["tasks"]["pending"]) - set(pending_tasks + processing_tasks)
-                # TODO: Implement gradual tasks submissions
-                for task in new_tasks:
-                    if self.conf["require authorization"]:
-                        user = gateway_state["users"][gateway_state["task descriptions"][task]["user"]]["user"]
-                        password = gateway_state["users"][gateway_state["task descriptions"][task]["user"]]["password"]
-                    else:
-                        user = None
-                        password = None
+                logging.debug("Add task error descriptions")
+                for id in scheduler_state["tasks"]["error"]:
+                    scheduler_state["task errors"][id] = self.__tasks[id]["error"]
 
-                    self._prepare_task(task)
-                    try:
-                        future = self._solve_task(task, gateway_state["task descriptions"][task]["description"], user,
-                                                  password)
-                        self.__tasks[task] = {
-                            "future": future,
-                            "status": "PROCESSING"
-                        }
-                    except Exception as err:
-                        logging.error("Cannot submit task {}: {}".format(task, err))
-                        self.__tasks[task] = {
-                            "status": "ERROR"
-                        }
-                logging.info("Total {} tasks have been started".format(len(new_tasks)))
+                logging.debug("Add job error descriptions")
+                for id in scheduler_state["jobs"]["error"]:
+                    scheduler_state["task errors"][id] = self.__jobs[id]["error"]
 
-                # Flushing tasks
-                logging.debug("Flush submitted tasks if necessary")
-                self._flush()
+                # Submit scheduler state and receive server state
+                server_state = self.server.exchange_tasks(scheduler_state)
 
-                # Remove finished tasks before updating statuses
-                logging.debug("Remove tasks with statuses FINISHED, ERROR or UNKNOWN")
-                deleted = [task_id for task_id in set(finished_tasks + unknown_tasks + error_tasks)]
+                # Remove finished or error tasks
+                logging.debug("Remove tasks with statuses FINISHED and ERROR")
+                deleted = set(scheduler_state["tasks"]["finished"] + scheduler_state["tasks"]["error"])
                 for task_id in deleted:
                     del self.__tasks[task_id]
                 logging.info("Total {} tasks has been deleted".format(len(deleted)))
 
+                # Remove finished or error jobs
+                logging.debug("Remove jobs with statuses FINISHED and ERROR")
+                deleted = set(scheduler_state["jobs"]["finished"] + scheduler_state["jobs"]["error"])
+                for job_id in deleted:
+                    del self.__tasks[job_id]
+                logging.info("Total {} jobs has been deleted".format(len(deleted)))
+
                 # Cancel tasks
-                logging.debug("Stop solution of cancelled tasks")
-                cancel_tasks = set(pending_tasks + processing_tasks) - set(gateway_state["tasks"]["pending"] +
-                                                                           gateway_state["tasks"]["processing"])
+                cancel_tasks = [task_id for task_id in set(scheduler_state["tasks"]["pending"] +
+                                                           scheduler_state["tasks"]["processing"]) if task_id not in
+                                set(server_state["tasks"]["pending"] + scheduler_state["tasks"]["processing"])]
                 for task in cancel_tasks:
                     self.__tasks[task]["future"].cancel()
-                    self.__tasks[task]["status"] = "UNKNOWN"
                     self._cancel_task(task)
+                    del self.__tasks[task]
                 logging.info("Total {} tasks have been cancelled".format(len(cancel_tasks)))
+
+                # Cancel jobs
+                cancelled_jobs = [job_id for job_id in set(scheduler_state["jobs"]["pending"] +
+                                                         scheduler_state["jobs"]["processing"]) if job_id not in
+                                server_state["jobs"]["cancelled"]]
+                for job in cancelled_jobs:
+                    self.__tasks[job]["future"].cancel()
+                    self._cancel_task(job)
+                    del self.__tasks[job]
+                logging.info("Total {} jobs have been cancelled".format(len(cancelled_jobs)))
+
+                # Add new pending tasks
+                new_tasks = [task_id for task_id in server_state["tasks"]["pending"] if task_id not in self.__tasks]
+                for task in new_tasks:
+                    self.__tasks[task] = {"status": "PENDING"}
+                    
+                # Add new pending jobs
+                new_jobs = [job_id for job_id in server_state["jobs"]["pending"] if job_id not in self.__jobs]
+                for job in new_jobs:
+                    self.__jobs[job] = {"status": "PENDING"}
 
                 # Wait there until all threads are terminated
                 if "debug each iteration" in self.conf and self.conf["debug each iteration"]:
@@ -167,17 +177,43 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
                 # Check nodes and tools healthy
                 logging.debug("Check nodes and tools threads healthiness")
-                if not nodes_future.running():
-                    raise nodes_future.exception()
-                elif not tools_future.running():
-                    raise tools_future.exception()
+                # TODO: Submit nodes and verification tools statuses
+
+                # Start solution of new tasks
+                logging.debug("Determine tasks to solve")
+                # TODO: Implement gradual tasks submissions
+
+                for task in [task_id for task_id in self.__tasks if self.__tasks[task_id]["status"] == "PENDING"]:
+                    if self.conf["require authorization"]:
+                        user = server_state["users"][server_state["task descriptions"][task]["user"]]["user"]
+                        password = server_state["users"][server_state["task descriptions"][task]["user"]]["password"]
+                    else:
+                        user = None
+                        password = None
+
+                    self._prepare_task(task)
+                    try:
+                        future = self._solve_task(task, server_state["task descriptions"][task]["description"], user,
+                                                  password)
+                        self.__tasks[task] = {
+                            "future": future,
+                            "status": "PROCESSING"
+                        }
+                    except Exception as err:
+                        logging.error("Cannot submit task {}: {}".format(task, err))
+                        self.__tasks[task] = {
+                            "status": "ERROR"
+                        }
+                logging.info("Total {} tasks have been started".format(len(new_tasks)))
+
+                # Flushing tasks
+                logging.debug("Flush submitted tasks if necessary")
+                self._flush()
 
                 logging.debug("Scheduler iteration has finished")
                 time.sleep(self.__iteration_timeout)
         except KeyboardInterrupt:
             logging.error("Scheduler execution is interrupted, cancel all running threads")
-            nodes_future.cancel()
-            tools_future.cancel()
             self._terminate()
 
     @abc.abstractmethod

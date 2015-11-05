@@ -104,6 +104,14 @@ class Scheduler(scheduler.SchedulerExchange):
 
         return super(Scheduler, self).launch()
 
+    def scheduler_type(self):
+        """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
+        return "Klever"
+
+    def scheduler_state(self):
+        """Return statuses of tasks and jobs and error messages of failed ones."""
+        return {}
+
     def _prepare_task(self, identifier):
         """
         Prepare working directory before starting solution.
@@ -118,7 +126,7 @@ class Scheduler(scheduler.SchedulerExchange):
         # Pull the task from the Verification gateway
         archive = os.path.join(task_work_dir, "task.tar.gz")
         logging.debug("Pull from the verification gateway archive {}".format(archive))
-        self.gw.pull_task(identifier, archive)
+        self.server.pull_task(identifier, archive)
         logging.debug("Unpack archive {} to {}".format(archive, task_data_dir))
         shutil.unpack_archive(archive, task_data_dir)
 
@@ -207,7 +215,7 @@ class Scheduler(scheduler.SchedulerExchange):
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
                                                                                                      identifier))
-        self.gw.push_solution(identifier, solution_archive)
+        self.server.push_solution(identifier, solution_archive)
 
         # Remove task directory
         shutil.rmtree(task_work_dir)
@@ -245,7 +253,7 @@ class Scheduler(scheduler.SchedulerExchange):
         nodes = {}
         while True:
             logging.debug("Send nodes info to the verification gateway")
-            self.gw.submit_nodes(nodes)
+            self.server.submit_nodes(nodes)
             time.sleep(period)
 
     def _tools(self, period):
@@ -258,7 +266,7 @@ class Scheduler(scheduler.SchedulerExchange):
         while True:
             logging.debug("Send tools info to the verification gateway")
             # TODO: Implement collecting of working revisions
-            self.gw.submit_tools([])
+            self.server.submit_tools([])
             time.sleep(period)
 
 

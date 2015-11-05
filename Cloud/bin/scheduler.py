@@ -11,6 +11,7 @@ import Cloud.scheduler.docker as docker
 import Cloud.scheduler.native as native
 import Cloud.scheduler.verifiercloud as verifiercloud
 
+
 def get_gateway(conf, work_dir):
     """
     Check which implementation of Session object to choose to get tasks
@@ -18,6 +19,11 @@ def get_gateway(conf, work_dir):
     :param work_dir: Path to the working directory.
     :return: Return object of the implementation of Session abstract class.
     """
+    #if "user" not in conf:
+    #    raise KeyError("Please provide scheduler username 'Omega''user' to authorize at verification gateway")
+    #elif "password" not in conf:
+    #    raise KeyError("Please provide scheduler password 'Omega''passwd' to authorize at verification gateway")
+
     if "test generator as gateway" in conf and \
             conf["test generator as gateway"]:
         return testgenerator.Server(conf, work_dir)
@@ -72,7 +78,7 @@ def main():
     # Start logging
     logging.config.dictConfig(conf["common"]['logging'])
 
-    session = get_gateway(conf["verification gateway"], conf["common"]["work dir"] + "/gateway/")
+    session = get_gateway(conf["Omega"], conf["common"]["work dir"] + "/requests/")
     scheduler_impl = get_scheduler(conf["scheduler"], conf["common"]["work dir"] + "/scheduler/", session)
     scheduler_impl.launch()
 
