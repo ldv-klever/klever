@@ -9,8 +9,7 @@ To run Omega you need:
   * `pytz <http://pythonhosted.org/pytz/>`_.
   * `mysqlclient <https://github.com/PyMySQL/mysqlclient-python>`_ (requires Python and MySQL development headers and libraries).
 
-* `mysql-server <https://www.mysql.com/>`_.
-* `mysql-client <https://www.mysql.com/>`_.
+* `MySQL <https://www.mysql.com/>`_/`MariaDB <https://mariadb.org/>`_ (server).
 
 To run a production server you additionally need:
 
