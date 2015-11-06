@@ -130,6 +130,30 @@ class LKVOG(psi.components.Component):
                         self.module['name'], verification_obj_desc_file))
                 with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+
+        elif strategy == "multimodule":
+            #TODO write real multimodule, not separate module
+            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
+            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
+
+            self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
+            self.verification_obj_desc['grps'] = [
+                {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
+            self.logger.debug(
+                'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
+
+            self.verification_obj_desc['deps'] = {self.module['name']: ["module1", "module2"]}
+            self.logger.debug(
+                'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
+
+            if self.conf['debug']:
+                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+                self.logger.debug(
+                    'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
+                        self.module['name'], verification_obj_desc_file))
+                with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
+                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+
         else:
             raise NotImplementedError(
                 'Linux kernel verification object generation strategy "{0}" is not supported'.format(strategy))

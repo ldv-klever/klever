@@ -106,9 +106,37 @@ class LKBCE(psi.components.Component):
                                    LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
                                        self.linux_kernel['raw build cmds file'])))
 
+         #TODO external module
+        if 'whole build' in self.conf['Linux kernel']:
+            #Install modules
+            self.linux_kernel['modules install'] = self.conf['root id'] + '/linux-modules'
+            os.mkdir(self.linux_kernel['modules install'])
+            psi.utils.execute(self.logger,
+                                     tuple(['make', '-C', self.linux_kernel['work src tree'],
+                                            'INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install']),
+                                     dict(os.environ,
+                                              PATH='{0}:{1}'.format(
+                                                  os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
+                                                  os.environ['PATH']),
+                                              LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
+                                                  self.linux_kernel['raw build cmds file'])))
+            #Extract mod deps
+            self.extract_all_linux_kernel_mod_deps()
+
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with psi.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a') as fp:
             fp.write(psi.lkbce.cmds.cmds.Command.cmds_separator)
+
+    def extract_all_linux_kernel_mod_deps(self):
+        if 'whole build' in self.conf['Linux kernel']:
+            with open(self.linux_kernel['modules install'] + "/lib/modules/" + self.linux_kernel['version'] + "/modules.dep", 'r') as fp:
+                for line in fp:
+                    l = line.split(':')
+                    if len(l) == 2:
+                        module = re.sub('^kernel/', '', line.split(':')[0])
+                        deps = [re.sub('^kernel/', '', dep) for dep in line.split(':')[1][1:-1].split(' ')]
+                        self.linux_kernel['modules deps'][module] = deps
+
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
