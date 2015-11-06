@@ -28,7 +28,7 @@ Omega installation
 #. Execute the following manage.py tasks::
 
     $ python3 manage.py compilemessages
-    $ python3 manage.py makemigrations users jobs reports marks
+    $ python3 manage.py makemigrations users jobs reports marks service
     $ python3 manage.py migrate
     $ python3 manage.py createsuperuser
 
@@ -84,10 +84,10 @@ Installation for production purposes
     </Location>
 
 #. Copy Omega to :file:`/var/www/`
-#. Create path: :file:`/var/www/Omega/media/JobFiles` and make www-data owner of the new folders.
+#. Create path: :file:`/var/www/Omega/media/` and make www-data owner of the new folder.
 #. Edit :file:`Omega/Omega/settings.py`::
-    #. Comment lines: 26, 30, 95, 129
-    #. Uncomment lines: 28, 32, 96-99, 131 and update it::
+    #. Comment lines: 26, 30, 94, 127
+    #. Uncomment lines: 28, 32, 95-98, 129 and update it::
 
         'NAME': '**mysql_db**',
         'USER': '**mysql_user**',

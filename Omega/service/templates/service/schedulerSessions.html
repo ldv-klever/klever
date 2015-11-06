@@ -1,0 +1,47 @@
+{% load i18n %}
+{% load tz %}
+{% timezone user.extended.timezone %}
+    <div class="ui divider"></div>
+    <div class="ui grid">
+        <div class="seven wide column">
+            <span class="header ui violet">{% trans 'Job' %}: <a href="{% url 'jobs:job' data.jobsession.job_id %}">{{ data.jobsession.job.name }}</a></span>
+        </div>
+        <div class="seven wide column">
+            <span class="header ui violet">{% trans 'Operator' %}: <a href="{% url 'users:show_profile' data.jobsession.job.reportroot.user_id %}">{{ data.jobsession.job.reportroot.user.extended.last_name }} {{ data.jobsession.job.reportroot.user.extended.first_name }}</a></span>
+        </div>
+    </div>
+    <div style="width:100%;max-width: 100%; overflow-x: auto;max-height: 350px;overflow-y: auto">
+        <table class="ui celled compact olive selectable table">
+            <thead>
+                <tr>
+                    <th>{% trans 'Scheduler' %}</th>
+                    <th>{% trans 'Finished tasks' %}</th>
+                    <th>{% trans 'Unknown tasks' %}</th>
+                    <th>{% trans 'Error tasks' %}</th>
+                    <th>{% trans 'Total tasks' %}</th>
+                    <th>{% trans 'Progress' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data.data %}
+                    <tr>
+                        <td class="collapsing">
+                            <a class="get-jobs-table fake-link" href="#">{{ row.session.scheduler.name }}</a><span hidden>{{ row.session.scheduler.pk }}</span>
+                        </td>
+                        <td>{{ row.session.statistic.tasks_finished }}</td>
+                        <td>{{ row.session.statistic.tasks_lost }}</td>
+                        <td>{{ row.session.statistic.tasks_error }}</td>
+                        <td>{{ row.session.statistic.tasks_total }}</td>
+                        <td>
+                            <div style="min-width: 200px;" class="ui indicating progress {% if row.progress != 100 %}active{% endif %}" data-percent="{{ row.progress }}">
+                                <div class="bar" style="transition-duration: 300ms; width: {{ row.progress }}%;">
+                                    <div class="progress">{{ row.progress_text }}</div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endtimezone %}

@@ -242,7 +242,7 @@ $(document).ready(function () {
     $('.ui.accordion').accordion();
 
     $('#upload_marks_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_marks_popup', 'show');
-    $('#upload_job_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_job_popup', 'show');
+    $('#upload_job_popup').modal({transition: 'vertical flip'}).modal('attach events', '#show_upload_job_popup', 'show');
 
     $('#upload_marks_start').click(function () {
         var files = $('#upload_marks_file_input')[0].files,
@@ -255,7 +255,7 @@ $(document).ready(function () {
             data.append('file', files[i]);
         }
         $('#upload_marks_popup').modal('hide');
-        $('body').addClass("loading");
+        $('#dimmer_of_page').addClass('active');
         $.ajax({
             url: marks_ajax_url + 'upload_marks/',
             type: 'POST',
@@ -264,12 +264,11 @@ $(document).ready(function () {
             contentType: false,
             processData: false,
             mimeType: 'multipart/form-data',
-            async: false,
             xhr: function() {
                 return $.ajaxSettings.xhr();
             },
             success: function (data) {
-                $('body').removeClass("loading");
+                $('#dimmer_of_page').removeClass('active');
                 if (data.status) {
                     if (data.mark_id.length && data.mark_type.length) {
                         window.location.replace("/marks/" + data.mark_type + "/edit/" + data.mark_id + "/")
@@ -339,6 +338,7 @@ $(document).ready(function () {
             data.append('file', files[i]);
         }
         $('#upload_job_popup').modal('hide');
+        $('#dimmer_of_page').addClass('active');
         $.ajax({
             url: job_ajax_url + 'upload_job/' + encodeURIComponent(parent_id) + '/',
             type: 'POST',
@@ -347,11 +347,11 @@ $(document).ready(function () {
             contentType: false,
             processData: false,
             mimeType: 'multipart/form-data',
-            async: false,
             xhr: function() {
                 return $.ajaxSettings.xhr();
             },
             success: function (data) {
+                $('#dimmer_of_page').removeClass('active');
                 if (data.status) {
                     window.location.replace('')
                 }
@@ -368,5 +368,6 @@ $(document).ready(function () {
                 }
             }
         });
+        return false;
     });
 });

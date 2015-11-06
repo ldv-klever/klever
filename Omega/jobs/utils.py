@@ -79,14 +79,20 @@ class JobAccess(object):
         self.__is_expert = (self.__user_role == USER_ROLES[3][0])
         self.__get_prop(user)
 
-    def can_download_for_deciding(self):
-        if self.job is None:
+    def service_access(self):
+        if self.job is None or self.job.status != JOB_STATUS[1][0]:
             return False
-        if self.job.status in [js[0] for js in JOB_STATUS[1:2]]:
-            return False
-        if self.__is_manager or self.__is_author:
+        if self.__is_manager or self.__is_author \
+                or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
             return True
-        if self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
+        return False
+
+    def can_decide(self):
+        if self.job is None \
+                or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+            return False
+        if self.__is_manager or self.__is_author\
+                or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
             return True
         return False
 

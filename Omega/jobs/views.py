@@ -1,6 +1,6 @@
 import os
-import json
 import pytz
+import json
 import mimetypes
 from io import BytesIO
 from urllib.parse import quote
@@ -18,6 +18,8 @@ from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
 from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
 from jobs.utils import *
+from service.utils import StartJobDecision, get_available_schedulers, \
+    get_priorities, CloseSession
 
 
 @login_required
@@ -251,7 +253,9 @@ def show_job(request, job_id=None):
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),
-            'can_create': job_access.can_create()
+            'can_create': job_access.can_create(),
+            'can_decide': job_access.can_decide(),
+            'schedulers': get_available_schedulers(request.user)
         }
     )
 
@@ -315,6 +319,8 @@ def edit_job(request):
 
 @login_required
 def remove_versions(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
     job_id = int(request.POST.get('job_id', 0))
@@ -343,6 +349,8 @@ def remove_versions(request):
 
 @login_required
 def get_job_versions(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'message': _('Unknown error')})
     job_id = int(request.POST.get('job_id', 0))
@@ -403,6 +411,8 @@ def copy_new_job(request):
 
 @login_required
 def save_job(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
@@ -534,6 +544,7 @@ def remove_jobs(request):
 @login_required
 def showjobdata(request):
     activate(request.user.extended.language)
+
     if request.method != 'POST':
         return HttpResponse('')
     try:
@@ -550,6 +561,8 @@ def showjobdata(request):
 
 @login_required
 def upload_file(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return HttpResponse('')
     form = FileForm(request.POST, request.FILES)
@@ -637,6 +650,8 @@ def download_lock(request):
 
 @login_required
 def check_access(request):
+    activate(request.user.extended.language)
+
     if request.method == 'POST':
         jobs = json.loads(request.POST.get('jobs', '[]'))
         for job_id in jobs:
@@ -660,6 +675,8 @@ def check_access(request):
 
 @login_required
 def upload_job(request, parent_id=None):
+    activate(request.user.extended.language)
+
     if len(parent_id) == 0:
         return JsonResponse({
             'status': False,
@@ -720,7 +737,7 @@ def decide_job(request):
             'error': 'Specified identifier "{0}" is not unique'
             .format(request.POST['job id'])})
 
-    if not JobAccess(request.user, job).can_download_for_deciding():
+    if not JobAccess(request.user, job).service_access():
         return JsonResponse({
             'error': 'User "{0}" has not access to job "{1}"'.format(
                 request.user, job.identifier
@@ -735,10 +752,9 @@ def decide_job(request):
         })
 
     jobtar.memory.seek(0)
-    error = UploadReport(request.user, job,
-                         json.loads(request.POST.get('report', '{}'))).error
-    if error is not None:
-        return JsonResponse({'error': error})
+    err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
+    if err is not None:
+        return JsonResponse({'error': err})
 
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = 'attachment; filename={0}'.format(
@@ -750,6 +766,8 @@ def decide_job(request):
 
 @login_required
 def getfilecontent(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'message': _("Unknown error")})
     try:
@@ -765,6 +783,8 @@ def getfilecontent(request):
 
 @login_required
 def stop_decision(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'error': _("Unknown error")})
     if request.user.extended.role != USER_ROLES[2][0]:
@@ -777,6 +797,7 @@ def stop_decision(request):
         return JsonResponse({'error': _("The job was not found")})
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': _("The job is not solving")})
+    CloseSession(job)
     job.status = JOB_STATUS[6][0]
     job.save()
     for report in ReportComponent.objects.filter(root__job=job):
@@ -784,3 +805,37 @@ def stop_decision(request):
             report.finish_date = pytz.timezone('UTC').localize(datetime.now())
             report.save()
     return JsonResponse({'status': True})
+
+
+@login_required
+def run_decision(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    result = StartJobDecision(
+        request.user,
+        request.POST.get('job_id', 0),
+        request.POST.get('priority', ''),
+        request.POST.get('job_scheduler', 0),
+        request.POST.get('schedulers', '[]')
+    )
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({})
+
+
+@login_required
+def get_max_prority(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    if 'schedulers' not in request.POST:
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    priorities = get_priorities(request.user,
+                                request.POST.get('schedulers', '[]'))
+    if priorities is None:
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    translated_priorities = []
+    for pr in priorities:
+        translated_priorities.append([pr[0], pr[1] + ''])
+    return JsonResponse({'priorities': json.dumps(translated_priorities)})
