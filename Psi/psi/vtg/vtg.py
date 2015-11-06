@@ -1,37 +1,36 @@
 #!/usr/bin/python3
 
+import multiprocessing
 import os
 import random
 
 import psi.components
 import psi.utils
 
-name = 'VTG'
+
+def before_launch_all_components(context):
+    context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
 
 
-class PsiComponent(psi.components.PsiComponentBase):
-    def launch(self):
-        # TODO: delete following stub code after all.
+def after_extract_common_prj_attrs(context):
+    context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
+
+
+class VTG(psi.components.Component):
+    def generate_verification_tasks(self):
+        self.common_prj_attrs = {}
+        self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,
-                          'attrs': [
-                              {"Linux kernel": [
-                                  {"version": "3.5.0"},
-                                  {"arch": "x86_64"},
-                                  {"conf shortcut": "allmodconfig"}
-                              ]},
-                              {'Linux kernel verification objs gen strategy': [
-                                  {'name': 'separate module'},
-                                  {'opts': [{'name1': 'value1'}, {'name2': 'value2'}]}
-                              ]}
-                          ]},
+                          'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
                          self.conf['root id'])
 
+        # TODO: delete following stub code after all.
         # Start and finish "WRAPPER". Upload safes, unsafes and unknowns in the middle.
         for i, verification_obj in enumerate(('drivers/usb/core/usbcore.ko', 'drivers/usb/usb-commmon.ko')):
-            for j, rule_spec in enumerate(('mutex', 'spin lock')):
+            for j, rule_spec in enumerate(('linux:mutex', 'linux:spin lock')):
                 # As expected "WRAPPER11" isn't started at all since DEG11 has failed.
                 if i == 1 and j == 1:
                     continue
@@ -45,7 +44,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                 psi.utils.report(self.logger,
                                  'start',
                                  {'id': id,
-                                  'attrs': [{'verification obj': verification_obj}, {'rule spec': rule_spec}],
+                                  'attrs': [{'verification object': verification_obj},
+                                            {'rule specification': rule_spec}],
                                   'name': 'WRAPPER',
                                   'parent id': 'VTG'},
                                  self.mqs['report files'],
@@ -57,7 +57,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                 # task: UNSAFE + UNSAFE + UNKNOWN.
                 if j == 0:
                     for k, bug_kind in enumerate(
-                            ('linux:one thread:double acquisition', 'linux:one thread:unreleased at exit')):
+                            ('one thread:double acquisition', 'one thread:unreleased at exit')):
                         if k == 0:
                             psi.utils.report(self.logger,
                                              'safe',
@@ -73,7 +73,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unsafe',
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
-                                              'error trace': 'It does not matter...'},
+                                              'error trace': 'Error trace 1'},
                                              self.mqs['report files'],
                                              self.conf['root id'])
                         else:
@@ -82,7 +82,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unsafe1',
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
-                                              'error trace': 'It does not matter...'},
+                                              'error trace': 'Error trace 2'},
                                              self.mqs['report files'],
                                              self.conf['root id'],
                                              '1')
@@ -91,7 +91,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unsafe2',
                                               'parent id': id,
                                               'attrs': [{'bug kind': bug_kind}],
-                                              'error trace': 'It does not matter...'},
+                                              'error trace': 'Error trace 2'},
                                              self.mqs['report files'],
                                              self.conf['root id'],
                                              '2')
@@ -115,8 +115,8 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unsafe',
                                               'parent id': id,
                                               'attrs': [{'entry point': entry_point},
-                                                        {'bug kind': 'linux:one thread:double acquisition'}],
-                                              'error trace': 'It does not matter...'},
+                                                        {'bug kind': 'one thread:double acquisition'}],
+                                              'error trace': 'Error trace 3'},
                                              self.mqs['report files'],
                                              self.conf['root id'])
                         else:
@@ -125,7 +125,7 @@ class PsiComponent(psi.components.PsiComponentBase):
                                              {'id': 'unknown',
                                               'parent id': id,
                                               'attrs': [{'entry point': entry_point},
-                                                        {'bug kind': 'linux:one thread:double acquisition'}],
+                                                        {'bug kind': 'one thread:double acquisition'}],
                                               'problem desc': 'Fatal error!'},
                                              self.mqs['report files'],
                                              self.conf['root id'])
@@ -142,3 +142,12 @@ class PsiComponent(psi.components.PsiComponentBase):
                                  self.conf['root id'])
 
                 os.chdir(os.pardir)
+
+    main = generate_verification_tasks
+
+    def extract_common_prj_attrs(self):
+        self.logger.info('Extract common project atributes')
+
+        self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
+
+        self.mqs['VTG common prj attrs'].close()

@@ -14,7 +14,7 @@ config = {
     'packages': ['Psi'],
     'scripts': [],
     'name': 'Psi',
-    'requires': ['requests'],
+    'requires': [],
 }
 
 setup(**config)
