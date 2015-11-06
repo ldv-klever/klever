@@ -198,10 +198,11 @@ def report_leaf(request, leaf_type, report_id):
     trace = ''
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        et = GetETV()
-        if et.error is not None:
-            return HttpResponseRedirect(reverse('error', args=[500]))
-        trace = et.html_trace()
+        if 2 == 1:
+            et = GetETV()
+            if et.error is not None:
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            trace = et.html_trace()
     return render(
         request, template,
         {
@@ -279,6 +280,10 @@ def get_log_content(request, report_id):
 
 @login_required
 def get_source_code(request):
+    return JsonResponse({
+        'content': 'It does not matter',
+        'name': 'name'
+    })
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     if 'report_id' not in request.POST:

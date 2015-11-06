@@ -110,7 +110,8 @@ $(document).ready(function () {
             max_disk = $('#max_disk').val(),
             parallelism = $('#parallelism').val(),
             console_log_formatter = $('#console_log_formatter').val(),
-            file_log_formatter = $('#file_log_formatter').val();
+            file_log_formatter = $('#file_log_formatter').val(),
+            debug = false, allowlocaldir = false;
         if (!max_ram || !max_cpus || !max_disk || !parallelism || !console_log_formatter || !file_log_formatter) {
             err_notify($('#fields_required').text());
         }
@@ -121,6 +122,14 @@ $(document).ready(function () {
             data['parallelism'] = parallelism;
             data['console_log_formatter'] = console_log_formatter;
             data['file_log_formatter'] = file_log_formatter;
+            if ($('#debug_checkbox').is(':checked')) {
+                debug = true;
+            }
+            if ($('#allow_localdir_checkbox').is(':checked')) {
+                allowlocaldir = true;
+            }
+            data['debug'] = debug;
+            data['allow_local_dir'] = allowlocaldir;
             $.ajax({
                 url: '/jobs/ajax/run_decision/',
                 data: {data: JSON.stringify(data)},

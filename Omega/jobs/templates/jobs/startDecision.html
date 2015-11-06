@@ -28,7 +28,7 @@
                 </select>
                 <div class="ui divider need-auth"></div>
                 <div class="need-auth">
-                    <label for="priority">{% trans 'Select prority of tasks' %}</label>
+                    <label for="priority">{% trans 'Select prority of job' %}</label>
                     <select id="priority" class="ui dropdown fluid normal-dropdown">
                         {% for p in data.priorities %}
                             <option value="{{ p.0 }}">{{ p.1 }}</option>
@@ -65,7 +65,7 @@
         <div class="ui grid need-auth">
             <div class="five wide column">
                 <h4 class="ui header">{% trans 'PSI configuration' %}</h4>
-                <label for="gen_priority">{% trans 'Abstract verification tasks gen priority' %}</label>
+                <label for="gen_priority">{% trans 'AVTG priority' %}</label>
                 <select id="gen_priority" class="ui dropdown fluid normal-dropdown">
                     {% for p in data.gen_priorities %}
                         <option value="{{ p.0 }}">{{ p.1 }}</option>
@@ -91,7 +91,19 @@
             </div>
         </div>
         <div class="ui grid need-auth">
-            <div class="sixteen wide column right aligned">
+            <div class="five wide column">
+                <div class="ui toggle checkbox">
+                    <input id="debug_checkbox" type="checkbox">
+                    <label for="debug_checkbox">{% trans 'Debug' %}</label>
+                </div>
+            </div>
+            <div class="eight wide column">
+                <div class="ui toggle checkbox">
+                    <input id="allow_localdir_checkbox" type="checkbox">
+                    <label for="allow_localdir_checkbox">{% trans 'Allow local source directories use' %}</label>
+                </div>
+            </div>
+            <div class="three wide column right aligned">
                 <input id="job_pk" type="hidden" value="{{ job.pk }}">
                 <button id="start_job_decision" class="ui violet button">{% trans 'Start' %}</button>
             </div>

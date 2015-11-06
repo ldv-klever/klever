@@ -9,9 +9,9 @@ from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
 
 DEF_PSI_RESTRICTIONS = {
-    'max_ram': 16.0,
-    'max_cpus': 8,
-    'max_disk': 4.0,
+    'max_ram': 2.0,
+    'max_cpus': 2,
+    'max_disk': 100.0,
 }
 
 GEN_PRIORITY = [
@@ -958,6 +958,8 @@ class StartJobDecision(object):
             return None
         conf['job']['id'] = job.identifier
         conf['job']['priority'] = self.data['priority']
+        conf['debug'] = self.data['debug']
+        conf['allow local source directories use'] = self.data['allow_local_dir']
         conf['abstract verification tasks gen priority'] = self.data['gen_priority']
         conf['logging']['formatters'] = [
             {
