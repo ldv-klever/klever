@@ -68,6 +68,18 @@ body {
     color: #fff16c;
 }
 
+.fake-link:hover {
+    color: #ffbbfa;
+}
+
+.fake-link:link {
+    color: #c231b9;
+}
+
+.fake-link:visited {
+    color: #c231b9;
+}
+
 .violet-link:hover {
     color: #87ffbf;
 }

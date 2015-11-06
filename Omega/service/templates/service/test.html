@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+
+{% block title %}Testing{% endblock %}
+
+{% block head_block %}
+    <script src="/static/service/js/test.js"></script>
+{% endblock %}
+
+{% block body_block %}
+    <h1 class="header">Testing cloud</h1>
+    <div class="ui horizontal segments">
+        <div class="ui purple segment">
+            <h2 class="header">Add new scheduler</h2>
+            <div class="ui grid">
+                <div class="six wide column">
+                    <div class="ui fluid input">
+                        <input id="new_scheduler_name" type="text" placeholder="Scheduler name">
+                    </div>
+                    <br>
+                    <div class="ui fluid input">
+                        <input id="new_scheduler_key" maxlength="12" type="text" placeholder="Scheduler key">
+                    </div>
+                </div>
+                <div class="five wide column">
+                    <label for="new_scheduler_need_auth">Need auth?</label><br>
+                    <select id="new_scheduler_need_auth" class="ui dropdown fluid">
+                        <option value="0">No</option>
+                        <option value="1">Yes</option>
+                    </select>
+                    <br><br>
+                    <div class="ui toggle checkbox">
+                        <input id="new_scheduler_for_jobs" type="checkbox">
+                        <label for="new_scheduler_for_jobs">For jobs?</label>
+                    </div>
+                </div>
+                <div class="four wide column right aligned">
+                    <button id="add_new_scheduler_btn" class="ui purple button">Add</button>
+                </div>
+            </div>
+        </div>
+        <div class="ui purple segment">
+            <h2 class="header">Check old schedulers</h2>
+            <div class="ui grid">
+                <div class="twelve wide column">
+                    <div class="ui input fluid">
+                        <input id="check_sch_time" placeholder="Waiting time (minutes)" type="text">
+                    </div>
+                    <br>
+                    <div class="ui input fluid">
+                        <input id="check_sch_statuses" placeholder="JSON statuses" type="text" value='{"Scheduler": "HEALTHY"}'>
+                    </div>
+                </div>
+                <div class="four wide column right aligned">
+                    <button id="check_schedulers" class="ui purple button">Check</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui purple segment">
+        <h2 class="header">Update tasks for scheduler</h2>
+        <div class="ui grid">
+            <div class="fourteen wide column">
+                <label for="get_tasks_sch_key"></label>
+                <div class="ui input">
+                    <input id="get_tasks_sch_key" type="text" placeholder="Scheduler key" value="kj2hkj5h2jk5">
+                </div>
+                <br><br>
+                <div class="ui input fluid">
+                    <input type="text" placeholder="JSON string" id="get_tasks_json_tasks" value='{"tasks": {"pending": [],"processing": [],"finished": [],"error": [],"unknown": []},"solutions": {},"task descriptions": {},"jobs": {},"users": {}}'>
+                </div>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="get_tasks_submit" class="ui purple button">Get</button>
+            </div>
+        </div>
+        <div id="get_tasks_result" class="ui green segment"></div>
+    </div>
+
+    <div class="ui purple segment">
+        <h2 class="header">Session initialisation</h2>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui input fluid">
+                    <input id="init_session_job_id" type="text" placeholder="Job identifier" value="93a6742597fa82b58afe2b5b">
+                </div>
+            </div>
+            <div class="three wide column">
+                <label for="init_session_priority"></label>
+                <select id="init_session_priority" class="ui dropdown fluid">
+                    {% for pr in priorities reversed %}
+                        <option value="{{ pr.0 }}">{{ pr.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="three wide column">
+                <div class="ui input fluid">
+                    <input id="init_session_tool_name" type="text" placeholder="Tool name" value="BLAST">
+                </div>
+            </div>
+            <div class="three wide column">
+                <div class="ui input fluid">
+                    <input id="init_session_tool_version" type="text" placeholder="Tool version" value="1.1.1">
+                </div>
+            </div>
+            <div class="three wide column right aligned">
+                <button id="init_session_submit" class="ui purple button">Init</button>
+            </div>
+        </div>
+    </div>
+    <div class="ui horizontal segments">
+        <div class="ui purple segment">
+            <h2 class="header">Close session</h2>
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <div class="ui input fluid">
+                        <input id="close_session_session_id" type="text" placeholder="Session id">
+                    </div>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="close_session_submit" class="ui purple button">Close</button>
+                </div>
+            </div>
+        </div>
+        <div class="ui purple segment">
+            <h2 class="header">Clear old sessions</h2>
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <div class="ui input fluid">
+                        <input id="clear_sessions_hours" type="text" placeholder="Age in hours">
+                    </div>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="clear_sessions_submit" class="ui purple button">Clear</button>
+                </div>
+            </div>
+        </div>
+        <div class="ui purple segment">
+            <h2 class="header">Close old sessions</h2>
+            <div class="ui grid">
+                <div class="eight wide column">
+                    <div class="ui input fluid">
+                        <input id="close_sessions_minutes" type="text" placeholder="Age in minutes">
+                    </div>
+                </div>
+                <div class="eight wide column right aligned">
+                    <button id="close_sessions_submit" class="ui purple button">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui purple segment">
+        <h2 class="header">Create new task</h2>
+        <div class="ui grid">
+            <div class="two wide column">
+                <div class="ui input fluid">
+                    <input id="create_task_session_id" type="text" placeholder="Session id">
+                </div>
+            </div>
+            <div class="five wide column">
+                <div class="ui input fluid">
+                    <input id="create_task_description" type="text" placeholder="Description" value='{"description":"of","the":"task"}'>
+                </div>
+            </div>
+            <div class="three wide column">
+                <span class="ui violet button btn-file">Browse<input id="create_task_archive" type="file"></span>
+            </div>
+            <div class="four wide column">
+                <label for="create_task_priority"></label>
+                <select id="create_task_priority" class="ui dropdown fluid">
+                    {% for pr in priorities reversed %}
+                        <option value="{{ pr.0 }}">{{ pr.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="create_task_submit" class="ui purple button">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ui purple segment">
+        <h2 class="header">Update tools</h2>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui input fluid">
+                    <input id="update_tools_schkey" type="text" placeholder="Scheduler key">
+                </div>
+            </div>
+            <div class="ten wide column">
+                <div class="ui input fluid">
+                    <input id="update_tools_data" type="text" placeholder="Tools data" value='[{"tool":"CPAchecker","version":"1.2.3.111"}]'>
+                </div>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="update_tools_submit" class="ui purple button">Update</button>
+            </div>
+        </div>
+    </div>
+    <div class="ui purple segment">
+        <h2 class="header">Task</h2>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui small input fluid">
+                    <input id="task_id" type="text" placeholder="Task id">
+                </div>
+            </div>
+            <div class="twelve wide column right aligned">
+                <div class="ui tiny buttons">
+                    <button id="get_task_status_submit" class="ui green button">Get status</button>
+                    <button id="remove_task_submit" class="ui red button">Remove</button>
+                    <button id="stop_task_submit" class="ui orange button">Stop decision</button>
+                    <button id="get_task_solution_submit" class="ui olive button">Download solution</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ui purple segment">
+        <h2 class="header">Download task</h2>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui input fluid">
+                    <input id="download_task_schkey" type="text" placeholder="Scheduler key" value="kj2hkj5h2jk5">
+                </div>
+            </div>
+            <div class="four wide column">
+                <div class="ui input">
+                    <input id="download_task_task_id" type="text" placeholder="Task id">
+                </div>
+            </div>
+            <div class="eight wide column right aligned">
+                <button id="get_task_submit" class="ui purple button">Download</button>
+            </div>
+        </div>
+    </div>
+    <div class="ui purple segment">
+        <h2 class="header">Create solution</h2>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui input fluid">
+                    <input id="create_solution_schkey" type="text" placeholder="Scheduler key" value="kj2hkj5h2jk5">
+                </div>
+            </div>
+            <div class="three wide column">
+                <div class="ui input fluid">
+                    <input id="create_solution_task_id" type="text" placeholder="Task id">
+                </div>
+            </div>
+            <div class="four wide column">
+                <div class="ui input fluid">
+                    <input id="create_solution_description" type="text" placeholder="Description">
+                </div>
+            </div>
+            <div class="three wide column">
+                <span class="ui violet button btn-file">Browse<input id="create_solution_archive" type="file"></span>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="create_solution_submit" class="ui purple button">Create</button>
+            </div>
+        </div>
+    </div>
+    <div class="ui purple segment">
+        <h2 class="header">Update nodes</h2>
+        <div class="ui grid">
+            <div class="three wide column">
+                <div class="ui input fluid">
+                    <input id="update_nodes_schkey" type="text" placeholder="Scheduler key" value="kj2hkj5h2jk5">
+                </div>
+            </div>
+            <div class="eleven wide column">
+                <div class="ui input fluid">
+                    <input id="update_nodes_data" type="text" placeholder="Data" value='[{"CPU model": 2500,"CPUs": 8,"RAM": 16,"disk": 300,"nodes": [{"address": "viro.intra.ispras.ru","status": "HEALTHY","workload": {"CPUs reserved": 4,"RAM reserved": 8,"disk space reserved": 200,"tasks solving": 2,"jobs solving": 2,"reserved for jobs": true,"reserved for tasks": true}},{"address": "cox.intra.ispras.ru","status": "USER_OCCUPIED"}]},{"CPU model": 2700,"CPUs": 12,"RAM": 12,"disk": 500,"nodes": [{"address": "morten.intra.ispras.ru","status": "AILING","workload": {"CPUs reserved": 6,"RAM reserved": 7,"disk space reserved": 200,"tasks solving": 2,"jobs solving": 2,"reserved for jobs": false,"reserved for tasks": true}},{"address": "kent.intra.ispras.ru","status": "HEALTHY","workload": {"CPUs reserved": 6,"RAM reserved": 7,"disk space reserved": 200,"tasks solving": 55,"jobs solving": 1,"reserved for jobs": false,"reserved for tasks": true}}]}]'>
+                </div>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="update_nodes_submit" class="ui purple button">Update</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}

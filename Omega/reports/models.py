@@ -1,8 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
-from jobs.models import ReportRoot
 from Omega.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
-from jobs.models import File
+from jobs.models import File, Job
 
 LOG_DIR = 'ReportLogs'
 
@@ -20,6 +19,14 @@ class Attr(models.Model):
 
     class Meta:
         db_table = 'attr'
+
+
+class ReportRoot(models.Model):
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    job = models.OneToOneField(Job)
+
+    class Meta:
+        db_table = 'report_root'
 
 
 class Report(models.Model):

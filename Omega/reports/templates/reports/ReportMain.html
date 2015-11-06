@@ -81,8 +81,6 @@
         <div id="timeinfo_popup" class="ui popup">
             <div class="header">{{ report.component.name }}</div>
             <div class="content" style="white-space:nowrap;">
-                <!--span class="purple-subtitle">{% trans '__Last request date' %}: </span--> {{ report.root.last_request_date|date:"d.m.y H:i:s"|date:"" }}
-                <!--br-->
                 {% if duration != None %}
                     {% if duration %}
                         <span class="purple-subtitle">{% trans 'Start date' %}: </span> {{ report.start_date|date:"d.m.y H:i:s" }}

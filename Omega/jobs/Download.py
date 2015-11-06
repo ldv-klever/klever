@@ -10,11 +10,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
-from Omega.vars import JOB_CLASSES, FORMAT
+from Omega.vars import JOB_CLASSES, FORMAT, JOB_STATUS
 from jobs.models import Job, File, JOBFILE_DIR
 from jobs.utils import create_job, update_job
 from reports.models import ReportComponent, ReportUnsafe, ReportSafe,\
-    ReportUnknown
+    ReportUnknown, ReportRoot
 from reports.UploadReport import UploadReport
 
 DOWNLOAD_LOCKFILE = 'download.lock'
@@ -466,6 +466,9 @@ class UploadJob(object):
                 job.delete()
                 return updated_job
         self.job = job
+        ReportRoot.objects.create(user=self.user, job=self.job)
+        self.job.status = JOB_STATUS[1][0]
+        self.job.save()
         if not self.__upload_reports(json.loads(jobdata['reports'])):
             self.job.delete()
             self.job = None
@@ -476,7 +479,7 @@ class UploadJob(object):
 
     def __upload_reports(self, reports):
         for report in reports:
-            error = UploadReport(self.user, self.job, report).error
+            error = UploadReport(self.job, report).error
             if error is not None:
                 print(error)
                 return False

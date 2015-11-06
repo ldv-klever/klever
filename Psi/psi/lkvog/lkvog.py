@@ -19,7 +19,7 @@ def before_launch_all_components(context):
 def after_extract_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
-def after_extract_all_linux_kernel_mod_deps(context):
+def after_build_linux_kernel(context):
     context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
 
 
@@ -63,6 +63,7 @@ class LKVOG(psi.components.Component):
         self.module = {}
         self.all_modules = {}
         self.verification_obj_desc = {}
+        self.checked_modules = []
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         psi.utils.invoke_callbacks(self.extract_common_prj_attrs)
@@ -140,11 +141,11 @@ class LKVOG(psi.components.Component):
             #Only modules without childrens
 
             #Wait for module dependencies
-            if self.module_deps == None:
-                self.module_deps = self.mqs['Linux kernel module deps'].get()
+            if 'Module deps' not in self.conf['Linux kernel']:
+                self.conf['Linux kernel']['Module deps'] = self.mqs['Linux kernel module deps'].get()
 
-            if self.module['name'] not in list(self.module_deps.values())\
-                    and self.module['name'] in self.module_deps:
+            if self.module['name'] not in list(self.conf['Linux kernel']['Module deps'].values())\
+                    and self.module['name'] in self.conf['Linux kernel']['Module deps']:
                 #Does not approach
                 return
 
@@ -207,11 +208,10 @@ class LKVOG(psi.components.Component):
 
 
             #Wait for module dependencies
-            if self.module_deps == None:
-                self.module_deps = self.mqs['Linux kernel module deps'].get()
+            if 'Module deps' not in self.conf['Linux kernel']:
+                self.conf['Linux kernel']['Module deps'] = self.mqs['Linux kernel module deps'].get()
 
-            if self.checked_modules == None:
-                self.checked_modules = []
+            self.checked_modules = []
 
             if self.module['name'] in self.checked_modules:
                 #Already checked
@@ -220,24 +220,27 @@ class LKVOG(psi.components.Component):
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
+            self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
+
             self.verification_obj_desc['grps'] = [
                 {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
 
-            deps = self.module_deps[self.module['name']]
-
             self.checked_modules.append(self.module['name'])
-            queue = self.module['name']
+            queue = [self.module]
             while queue:
-                module_name = queue.pop(0)
-                deps = list(
-                    filter(lambda x : x not in self.checked_modules, self.module_deps[module_name]))
+                module = {}
+                module['name'] = queue.pop(0)
+                #print(self.conf['Linux kernel']['Module deps'])
+                filt = filter((lambda x : x not in self.checked_modules), self.conf['Linux kernel']['Module deps'].get([module['name']], []))
+                deps = list(filt)
                 for module in deps:
 
                     self.checked_modules.append(module['name'])
+                    module['cc full desc files'] = self.__find_cc_full_desc_files(module['name'])
 
-                    self.verification_obj_desc['grps'].append({'id': module, 'cc full desc files': module['cc full desc files']})
+                    self.verification_obj_desc['grps'].append({'id': module['name'], 'cc full desc files': module['cc full desc files']})
 
-                self.verification_obj_desc['deps'].append({module_name : deps})
+                self.verification_obj_desc['deps'].append({module['name'] : deps})
                 queue.extend(deps)
 
             self.logger.debug(

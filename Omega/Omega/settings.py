@@ -44,6 +44,7 @@ INSTALLED_APPS = (
     'jobs',
     'marks',
     'reports',
+    'service'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -90,11 +91,7 @@ WSGI_APPLICATION = 'Omega.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {'read_default_file': 'Omega/db.cnf'},
-        # 'NAME': 'Omega',
-        # 'USER': 'root',
-        # 'PASSWORD': '<password>',
-        # 'HOST': 'localhost',
+        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'Omega/db.cnf')},
     }
 }
 

@@ -24,7 +24,7 @@
     </head>
     <body>
         <div id="dimmer_of_page" class="ui dimmer">
-            <div class="ui text loader">{% trans 'Loading' %}</div>
+            <div class="ui text loader">{% trans 'Please wait' %}</div>
         </div>
 
         <div id="page_header" class="ui fixed inverted menu">
@@ -40,6 +40,7 @@
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
                         <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
+                        <a class="item" href = "{% url 'service:sessions' %}">{% trans 'Sessions' %}</a>
                         <a class="item" href = "#" id="show_upload_job_popup">{% trans 'Upload' %}</a>
                     </div>
                     <div class="column">
