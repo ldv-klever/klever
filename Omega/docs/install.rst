@@ -85,13 +85,10 @@ Installation for production purposes
 
 #. Copy Omega to :file:`/var/www/`
 #. Create path: :file:`/var/www/Omega/media/` and make www-data owner of the new folder.
-#. Edit :file:`Omega/Omega/settings.py`::
-    #. Comment lines: 26, 30, 94, 127
-    #. Uncomment lines: 28, 32, 95-98, 129 and update it::
+#. Edit :file:`Omega/Omega/settings.py`:
 
-        'NAME': '**mysql_db**',
-        'USER': '**mysql_user**',
-        'PASSWORD': '**mysql_passwd**',
+   * Comment lines: 26, 30, 123.
+   * Uncomment lines: 28, 32, 125.
 
 #. Execute the following manage.py task::
 
