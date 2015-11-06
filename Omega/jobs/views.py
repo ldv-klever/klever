@@ -747,6 +747,9 @@ def decide_job(request):
                 request.user, job.identifier
             )
         })
+    if job.status != JOB_STATUS[1][0]:
+        return JsonResponse({'error': 'Only pending jobs can be decided'})
+
     jobtar = PSIDownloadJob(job, request.POST['hash sum'])
     if jobtar.error is not None:
         return JsonResponse({
@@ -754,6 +757,8 @@ def decide_job(request):
                 job.identifier
             )
         })
+    job.status = JOB_STATUS[2][0]
+    job.save()
 
     jobtar.memory.seek(0)
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error

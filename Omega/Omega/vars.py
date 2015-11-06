@@ -51,12 +51,13 @@ JOB_ROLES = (
 
 JOB_STATUS = (
     ('0', _('Not solved')),
-    ('1', _('Is solving')),
-    ('2', _('Stopped')),
+    ('1', _('Pending')),
+    ('2', _('Is solving')),
     ('3', _('Solved')),
     ('4', _('Failed')),
     ('5', _('Corrupted')),
     ('6', _('Cancelled'))
+    # ('7', _('Stopped'))
 )
 
 # Default view of the table
@@ -358,12 +359,4 @@ TASK_STATUS = (
     ('ERROR', _('Error')),
     ('FINISHED', _('Finished')),
     ('CANCELLED', _('Cancelled'))
-)
-
-PROGRESS_STATUS = (
-    ('0', _('Pending')),
-    ('1', _('Processing')),
-    ('2', _('Finished')),
-    ('3', _('Error')),
-    ('4', _('Cancelled'))
 )

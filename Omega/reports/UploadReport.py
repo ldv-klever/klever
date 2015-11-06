@@ -6,11 +6,11 @@ from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from django.core.files import File as Newfile
-from Omega.vars import JOB_STATUS, PROGRESS_STATUS
+from Omega.vars import JOB_STATUS
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
-from service.utils import FinishJobSolving
+from service.utils import PSIFinishDecision, PSIStartDecision
 
 
 class UploadReport(object):
@@ -21,29 +21,24 @@ class UploadReport(object):
         self.ordered_attrs = []
         self.error = self.__check_data(data)
         if self.error is not None:
-            self.__set_status(JOB_STATUS[5][0])
+            self.__job_failed(self.error)
             return
         self.parent = None
         self.error = self.__get_parent()
         if self.error is not None:
-            self.__set_status(JOB_STATUS[5][0])
+            self.__job_failed(self.error)
             return
         self.root = None
         self.__get_root_report()
         if self.error is not None:
-            self.__set_status(JOB_STATUS[5][0])
+            self.__job_failed(self.error)
             return
         self.error = self.__upload()
         if self.error is not None:
-            self.__set_status(JOB_STATUS[5][0])
+            self.__job_failed(self.error)
 
-    def __set_status(self, status):
-        result = FinishJobSolving(self.job)
-        if result.error is not None:
-            print(result.error)
-            status = JOB_STATUS[5][0]
-        self.job.status = status
-        self.job.save()
+    def __job_failed(self, error=None):
+        PSIFinishDecision(self.job, error)
 
     def __check_data(self, data):
         if not isinstance(data, dict):
@@ -64,14 +59,9 @@ class UploadReport(object):
 
         if data['type'] == 'start':
             if data['id'] == '/':
-                try:
-                    if self.job.solvingprogress.status != PROGRESS_STATUS[0][0]:
-                        return 'The job solving progress has wrong status'
-                    self.job.solvingprogress.start_date = pytz.timezone('UTC').localize(datetime.now())
-                    self.job.solvingprogress.status = PROGRESS_STATUS[1][0]
-                    self.job.solvingprogress.save()
-                except ObjectDoesNotExist:
-                    return 'The job solving was not successfully initialized'
+                result = PSIStartDecision(self.job)
+                if result.error is not None:
+                    return result.error
                 try:
                     self.data.update({
                         'attrs': data['attrs'],
@@ -216,10 +206,9 @@ class UploadReport(object):
             if attr not in single_attrs_order:
                 single_attrs_order.insert(0, attr)
             elif self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-                self.__set_status(JOB_STATUS[5][0])
-                print("Got double attribute: '%s' for report with "
-                      "type '%s' and id '%s'" % (attr, self.data['type'],
-                                                 self.data['id']))
+                self.__job_failed("Got double attribute: '%s' for report"
+                                  " with type '%s' and id '%s'" %
+                                  (attr, self.data['type'], self.data['id']))
         for attr_name in single_attrs_order:
             ReportAttrOrder.objects.get_or_create(
                 name=AttrName.objects.get_or_create(name=attr_name)[0],
@@ -344,13 +333,11 @@ class UploadReport(object):
         if self.data['id'] == '/':
             if len(ReportComponent.objects.filter(finish_date=None,
                                                   root=self.root)):
-                print("There are unfinished reports")
-                self.__set_status(JOB_STATUS[5][0])
+                self.__job_failed("There are unfinished reports")
             elif self.job.status != JOB_STATUS[5][0]:
-                if len(ReportUnknown.objects.filter(parent=report)) > 0:
-                    self.__set_status(JOB_STATUS[4][0])
-                else:
-                    self.__set_status(JOB_STATUS[3][0])
+                PSIFinishDecision(self.job)
+                # if len(ReportUnknown.objects.filter(parent=report)) > 0:
+                # self.__set_status(JOB_STATUS[4][0])
         return report
 
     def __create_report_unknown(self, identifier):

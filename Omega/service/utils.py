@@ -5,7 +5,7 @@ from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_STATUS
 from jobs.utils import JobAccess
-from reports.models import ReportRoot
+from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
 
 DEF_PSI_RESTRICTIONS = {
@@ -69,8 +69,8 @@ class ScheduleTask(object):
         except ObjectDoesNotExist:
             self.error = 'Solving progress of the job was not found'
             return
-        if self.progress.status != PROGRESS_STATUS[1][0]:
-            self.error = "The job's solving progress status is not 'PROCESSING'"
+        if self.progress.job.status != JOB_STATUS[2][0]:
+            self.error = "The job is not processing"
             return
         if self.progress.scheduler.status == SCHEDULER_STATUS[2][0]:
             self.error = 'The scheduler for tasks is disconnected'
@@ -113,8 +113,8 @@ class GetTaskStatus(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if self.task.progress.status != PROGRESS_STATUS[1][0]:
-            self.error = "The job's solving progress status is not 'PROCESSING'"
+        if self.task.progress.job.status != JOB_STATUS[2][0]:
+            self.error = "The job is not processing"
             return
         self.status = self.task.status
 
@@ -131,8 +131,8 @@ class GetSolution(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if self.task.progress.status != PROGRESS_STATUS[1][0]:
-            self.error = "The job's solving progress status is not 'PROCESSING'"
+        if self.task.progress.job.status != JOB_STATUS[2][0]:
+            self.error = "The job is not processing"
             return
         if self.task.status == TASK_STATUS[3][0]:
             if self.task.error is None:
@@ -163,8 +163,8 @@ class RemoveTask(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if self.task.progress.status != PROGRESS_STATUS[1][0]:
-            self.error = "The job's solving progress status is not 'PROCESSING'"
+        if self.task.progress.job.status != JOB_STATUS[2][0]:
+            self.error = "The job is not processing"
             return
         if self.task.status == TASK_STATUS[3][0]:
             if self.task.error is None:
@@ -194,8 +194,8 @@ class CancelTask(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if self.task.progress.status != PROGRESS_STATUS[1][0]:
-            self.error = "The job's solving progress status is not 'PROCESSING'"
+        if self.task.progress.job.status != JOB_STATUS[2][0]:
+            self.error = "The job is not processing"
             return
         if self.task.status == TASK_STATUS[0][0]:
             if self.task.progress.tasks_pending > 0:
@@ -212,21 +212,54 @@ class CancelTask(object):
 
 
 # Case 3.1(8)
-class FinishJobSolving(object):
-    def __init__(self, job):
+class PSIFinishDecision(object):
+    def __init__(self, job, error=None):
         self.error = None
         try:
             self.progress = job.solvingprogress
         except ObjectDoesNotExist:
             self.error = "The job doesn't have solving progress"
+            job.status = JOB_STATUS[5][0]
+            job.save()
             return
-        if self.progress.status != PROGRESS_STATUS[1][0]:
-            self.error = "The job's solving progress status is not 'PROCESSING'"
-            return
-        for task in job.solvingprogress.task_set.filter(status__in=[TASK_STATUS[2][0], TASK_STATUS[3][0]]):
+        self.error = None
+        for task in job.solvingprogress.task_set.all():
+            if task.status not in [TASK_STATUS[2][0], TASK_STATUS[3][0]]:
+                self.error = 'There are unfinished tasks'
             RemoveTask(task.pk)
         self.progress.finish_date = current_date()
+        if error is not None:
+            self.progress.error = error
+            job.status = JOB_STATUS[5][0]
+            job.save()
+        elif self.error is not None:
+            self.progress.error = self.error
+            job.status = JOB_STATUS[5][0]
+            job.save()
         self.progress.save()
+
+
+# Case 3.1(2)
+class PSIStartDecision(object):
+    def __init__(self, job):
+        self.error = None
+        self.job = job
+        self.__start()
+
+    def __start(self):
+        try:
+            progress = self.job.solvingprogress
+        except ObjectDoesNotExist:
+            self.error = 'Solving progress was not found'
+            return
+        if progress.start_date is not None:
+            self.error = 'Solving progress already has start date'
+            return
+        elif progress.finish_date is not None:
+            self.error = 'Solving progress already has finish date'
+            return
+        progress.start_date = current_date()
+        progress.save()
 
 
 # Case 3.4(6) DONE
@@ -239,8 +272,8 @@ class StopDecision(object):
         except ObjectDoesNotExist:
             self.error = _('Job solving progress does not exists')
             return
-        if self.progress.status not in [PROGRESS_STATUS[0][0], PROGRESS_STATUS[1][0]]:
-            self.error = _("The job's solving progress has wrong status")
+        if self.progress.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+            self.error = _("Only pending and processing jobs can be stopped")
             return
         self.__clear_tasks()
         if self.error is not None:
@@ -259,7 +292,6 @@ class StopDecision(object):
             task.delete()
         self.progress.finish_date = current_date()
         self.progress.error = "The job was cancelled"
-        self.progress.status = PROGRESS_STATUS[4][0]
         self.progress.save()
 
 
@@ -444,30 +476,46 @@ class GetTasks(object):
 
         if self.scheduler.type == SCHEDULER_TYPE[0][0]:
             for progress in self.scheduler.solvingprogress_set.all():
-                if progress.status == PROGRESS_STATUS[0][0]:
-                    new_data['jobs']['pending'].append(progress.job.identifier)
+                if progress.job.status == JOB_STATUS[1][0]:
                     new_data['Job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
-                    if progress.job.identifier in new_data['jobs']['error']:
-                        progress.status = PROGRESS_STATUS[3][0]
+                    if progress.job.identifier in data['jobs']['error']:
+                        progress.job.status = JOB_STATUS[4][0]
+                        progress.job.save()
                         if progress.job.identifier in data['job errors']:
                             progress.error = data['job errors'][progress.job.identifier]
                         else:
                             progress.error = "The scheduler hasn't given an error description"
                         progress.save()
-                elif progress.status == PROGRESS_STATUS[1][0]:
-                    new_data['jobs']['processing'].append(progress.job.identifier)
-                    if progress.job.identifier in new_data['jobs']['finished']:
-                        progress.status = PROGRESS_STATUS[2][0]
-                        progress.save()
-                    elif progress.job.identifier in new_data['jobs']['error']:
-                        progress.status = PROGRESS_STATUS[3][0]
+                    else:
+                        new_data['jobs']['pending'].append(progress.job.identifier)
+                elif progress.job.status == JOB_STATUS[2][0]:
+                    if progress.job.identifier in data['jobs']['finished']:
+                        try:
+                            if len(ReportUnknown.objects.filter(
+                                    parent=Report.objects.get(
+                                        parent=None, root=progress.job.reportroot
+                                    )
+                            )) > 0:
+                                progress.job.status = JOB_STATUS[5][0]
+                                progress.job.save()
+                            else:
+                                progress.job.status = JOB_STATUS[3][0]
+                                progress.job.save()
+                        except ObjectDoesNotExist:
+                            progress.job.status = JOB_STATUS[5][0]
+                            progress.job.save()
+                    elif progress.job.identifier in data['jobs']['error']:
+                        progress.job.status = JOB_STATUS[4][0]
+                        progress.job.save()
                         if progress.job.identifier in data['job errors']:
                             progress.error = data['job errors'][progress.job.identifier]
                         else:
                             progress.error = "The scheduler hasn't given an error description"
                         progress.save()
-                elif progress.status == PROGRESS_STATUS[4][0]:
+                    else:
+                        new_data['jobs']['processing'].append(progress.job.identifier)
+                elif progress.job.status == JOB_STATUS[6][0]:
                     new_data['jobs']['cancelled'].append(progress.job.identifier)
         try:
             return json.dumps(new_data)
@@ -511,8 +559,8 @@ class GetTaskData(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if self.task.progress.status != PROGRESS_STATUS[1][0]:
-            self.error = "The job's solving progress status is not 'PROCESSING'"
+        if self.task.progress.job.status != JOB_STATUS[2][0]:
+            self.error = "The job is not processing"
             return
         if self.task.status not in [TASK_STATUS[0][0], TASK_STATUS[1][0]]:
             self.error = 'The task status is wrong'
@@ -530,8 +578,8 @@ class SaveSolution(object):
         except ValueError:
             self.error = 'Incorrect task id (integer needed)'
             return
-        if self.task.progress.status != PROGRESS_STATUS[1][0]:
-            self.error = "The job's solving progress status is not 'PROCESSING'"
+        if self.task.progress.job.status != JOB_STATUS[2][0]:
+            self.error = "The job is not processing"
             return
         self.__create_solution(description, archive)
 
@@ -646,7 +694,7 @@ class SetSchedulersStatus(object):
 
     def __finish_tasks(self, scheduler):
         self.ccc = 0
-        for progress in scheduler.solvingprogress_set.filter(status=PROGRESS_STATUS[1][0], finish_date=None):
+        for progress in scheduler.solvingprogress_set.filter(job__status=JOB_STATUS[2][0], finish_date=None):
             for task in progress.task_set.filter(status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]]):
                 if task.status == TASK_STATUS[0][0]:
                     progress.tasks_pending -= 1
@@ -658,9 +706,7 @@ class SetSchedulersStatus(object):
             if scheduler.type == SCHEDULER_TYPE[1][0]:
                 progress.finish_date = current_date()
                 progress.error = "Klever scheduler was disconnected"
-                progress.status = PROGRESS_STATUS[3][0]
-                # TODO: corrupted or failed (5 or 4)?
-                progress.job.status = JOB_STATUS[5][0]
+                progress.job.status = JOB_STATUS[4][0]
                 progress.job.save()
             progress.save()
 

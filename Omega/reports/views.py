@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
+from Omega.vars import JOB_STATUS
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -229,6 +230,10 @@ def upload_report(request):
         return JsonResponse({
             'error': "User '%s' don't have access to upload report for job '%s'" %
                      (request.user.username, job.identifier)
+        })
+    if job.status != JOB_STATUS[2][0]:
+        return JsonResponse({
+            'error': 'Reports can be uploaded only for processing jobs'
         })
 
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error

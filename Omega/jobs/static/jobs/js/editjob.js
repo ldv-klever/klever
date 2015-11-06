@@ -187,7 +187,7 @@ function set_actions_for_edit_form () {
         });
 
         if (job_pk.length) {
-            job_id = job_pk.val();
+            job_id = job_pk.text();
         }
         $('#all_user_roles').find("select[id^='job_user_role_select__']").each(function () {
             var user_id = $(this).attr('id').replace('job_user_role_select__', ''),
@@ -212,7 +212,9 @@ function set_actions_for_edit_form () {
                 data.status === 0 ? window.location.replace('/jobs/' + data.job_id + '/'):err_notify(data.message);
             },
             "json"
-        );
+        ).fail(function (x) {
+                console.log(x.responseText);
+            });
     });
 
     $('#job_version_selector').change(function () {

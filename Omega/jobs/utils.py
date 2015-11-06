@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
-from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS, PROGRESS_STATUS
+from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
 
@@ -89,7 +89,7 @@ class JobAccess(object):
     def psi_access(self):
         if self.job is None:
             return False
-        return self.job.status == JOB_STATUS[1][0] and (self.__is_manager or self.__is_service)
+        return self.__is_manager or self.__is_service
 
     def can_decide(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
@@ -114,7 +114,8 @@ class JobAccess(object):
     def can_stop(self):
         if self.job is None:
             return False
-        if self.job.status == JOB_STATUS[1][0] and (self.__is_operator or self.__is_manager):
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] \
+                and (self.__is_operator or self.__is_manager):
             return True
         return False
 
@@ -123,11 +124,11 @@ class JobAccess(object):
             return False
         if len(self.job.children.all()) > 0:
             return False
-        if self.__is_manager:
+        if self.__is_manager and self.job.status == JOB_STATUS[3]:
             return True
-        if self.job.status in [js[0] for js in JOB_STATUS[1:3]]:
+        if self.job.status in [js[0] for js in JOB_STATUS[1:2]]:
             return False
-        return self.__is_author
+        return self.__is_author or self.__is_manager
 
     def __get_prop(self, user):
         if self.job is not None:
