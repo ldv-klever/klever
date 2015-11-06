@@ -90,7 +90,6 @@ class LKBCE(psi.components.Component):
 
         self.logger.debug(
             'Following build commands will be executed:\n{0}'.format('\n'.join([' '.join(cmd) for cmd in cmds])))
-
         for cmd in cmds:
             psi.utils.execute(self.logger,
                               tuple(['make', '-j',
@@ -129,13 +128,18 @@ class LKBCE(psi.components.Component):
 
     def extract_all_linux_kernel_mod_deps(self):
         if 'whole build' in self.conf['Linux kernel']:
-            with open(self.linux_kernel['modules install'] + "/lib/modules/" + self.linux_kernel['version'] + "/modules.dep", 'r') as fp:
+            self.linxe_kernel['module deps'] = {}
+            path = self.linux_kernel['modules install'] + "/lib/modules/" + self.linux_kernel['version'] + "/modules.dep"
+            if not os.path.exists(path):
+                path = "/home/alexey/kernel/modules/lib/modules/4.0.0-rc1/modules.dep"
+            with open(path, 'r') as fp:
                 for line in fp:
                     l = line.split(':')
                     if len(l) == 2:
                         module = re.sub('^kernel/', '', line.split(':')[0])
                         deps = [re.sub('^kernel/', '', dep) for dep in line.split(':')[1][1:-1].split(' ')]
-                        self.linux_kernel['modules deps'][module] = deps
+                        self.linux_kernel['module deps'][module] = deps
+            self.conf['Linux kernel']['module deps'] = self.linux_kernel['module deps']
 
 
     def clean_linux_kernel_work_src_tree(self):

@@ -13,10 +13,14 @@ import psi.utils
 def before_launch_all_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
     context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
+    context.mqs['Linux kernel module deps'] = multiprocessing.Queue()
 
 
 def after_extract_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
+
+def after_extract_all_linux_kernel_mod_deps(context):
+    context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
 
 
 def after_process_linux_kernel_raw_build_cmd(context):
@@ -131,12 +135,24 @@ class LKVOG(psi.components.Component):
                 with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
-        elif strategy == "multimodule":
-            #TODO write real multimodule, not separate module
+        #TODO: These strategies very similar
+        elif strategy == "tree":
+            #Only modules without childrens
+
+            #Wait for module dependencies
+            if self.module_deps == None:
+                self.module_deps = self.mqs['Linux kernel module deps'].get()
+
+            if self.module['name'] not in list(self.module_deps.values())\
+                    and self.module['name'] in self.module_deps:
+                #Does not approach
+                return
+
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
             self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
+
             self.verification_obj_desc['grps'] = [
                 {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
             self.logger.debug(
@@ -153,6 +169,90 @@ class LKVOG(psi.components.Component):
                         self.module['name'], verification_obj_desc_file))
                 with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+
+        elif strategy == "reduced":
+            #Only modules without parents
+
+            #Wait for module dependencies
+            if self.module_deps == None:
+                self.module_deps = self.mqs['Linux kernel module deps'].get()
+
+            if self.module['name'] not in self.module_deps:
+                #Does not approach
+                return
+
+            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
+            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
+
+            self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
+
+            self.verification_obj_desc['grps'] = [
+                {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
+            self.logger.debug(
+                'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
+
+            self.verification_obj_desc['deps'] = {self.module['name']: ["module1", "module2"]}
+            self.logger.debug(
+                'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
+
+            if self.conf['debug']:
+                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+                self.logger.debug(
+                    'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
+                        self.module['name'], verification_obj_desc_file))
+                with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
+                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+
+        elif strategy == "cluster":
+
+
+            #Wait for module dependencies
+            if self.module_deps == None:
+                self.module_deps = self.mqs['Linux kernel module deps'].get()
+
+            if self.checked_modules == None:
+                self.checked_modules = []
+
+            if self.module['name'] in self.checked_modules:
+                #Already checked
+                return
+
+            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
+            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
+
+            self.verification_obj_desc['grps'] = [
+                {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
+
+            deps = self.module_deps[self.module['name']]
+
+            self.checked_modules.append(self.module['name'])
+            queue = self.module['name']
+            while queue:
+                module_name = queue.pop(0)
+                deps = list(
+                    filter(lambda x : x not in self.checked_modules, self.module_deps[module_name]))
+                for module in deps:
+
+                    self.checked_modules.append(module['name'])
+
+                    self.verification_obj_desc['grps'].append({'id': module, 'cc full desc files': module['cc full desc files']})
+
+                self.verification_obj_desc['deps'].append({module_name : deps})
+                queue.extend(deps)
+
+            self.logger.debug(
+                'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
+            self.logger.debug(
+                'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
+
+            if self.conf['debug']:
+                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+                self.logger.debug(
+                    'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
+                        self.module['name'], verification_obj_desc_file))
+                with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
+                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+
 
         else:
             raise NotImplementedError(
