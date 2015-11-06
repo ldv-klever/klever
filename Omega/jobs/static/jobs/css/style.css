@@ -29,16 +29,16 @@ input[type=checkbox] {
     color: #cbff4d;
 }
 .status3-link:link {
-    color: #ff82ce;
+    color: #4ce215;
 }
 .status3-link:visited {
-    color: #ff82ce;
+    color: #4ce215;
 }
 .status4-link:link {
-    color: #4ce215;
+    color: #ff82ce;
 }
 .status4-link:visited {
-    color: #4ce215;
+    color: #ff82ce;
 }
 .status5-link:link {
     color: #ef4a4a;

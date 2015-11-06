@@ -272,7 +272,7 @@ class StopDecision(object):
         except ObjectDoesNotExist:
             self.error = _('Job solving progress does not exists')
             return
-        if self.progress.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             self.error = _("Only pending and processing jobs can be stopped")
             return
         self.__clear_tasks()
@@ -1025,8 +1025,7 @@ class StartJobDecision(object):
         except ObjectDoesNotExist:
             pass
         return SolvingProgress.objects.create(
-            job=self.job, start_date=current_date(),
-            priority=self.data['priority'],
+            job=self.job, priority=self.data['priority'],
             scheduler=self.job_scheduler,
             configuration=self.psidata.encode('utf8'),
             restrictions=self.restrictions.encode('utf8')

@@ -908,6 +908,8 @@ $(document).ready(function () {
                     window.location.replace('');
                 }
             }
-        );
+        ).fail(function (x) {
+                console.log(x.responseText);
+            });
     });
 });
