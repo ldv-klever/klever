@@ -49,20 +49,20 @@ PSI_CONFIG = '''{
 
 
 # Case 3.1(3) DONE
-class CreateTask(object):
-    def __init__(self, job_id, description, archive, priority):
+class ScheduleTask(object):
+    def __init__(self, job_id, description, archive):
         self.error = None
         self.job = self.__get_job(job_id)
         if self.error is not None:
             return
-        if priority not in list(x[0] for x in PRIORITY):
-            self.error = "Wrong priority"
-            return
         try:
-            json.loads(description)
+            priority = json.loads(description)['priority']
         except Exception as e:
             print(e)
             self.error = 'Wrong description format'
+            return
+        if priority not in list(x[0] for x in PRIORITY):
+            self.error = "Wrong priority"
             return
         try:
             self.progress = self.job.solvingprogress
@@ -183,7 +183,7 @@ class RemoveTask(object):
 
 
 # Case 3.1(7) DONE
-class StopTaskDecision(object):
+class CancelTask(object):
     def __init__(self, task_id):
         self.error = None
         try:
@@ -447,7 +447,7 @@ class GetTasks(object):
                 if progress.status == PROGRESS_STATUS[0][0]:
                     new_data['jobs']['pending'].append(progress.job.identifier)
                     new_data['Job configurations'][progress.job.identifier] = \
-                        progress.configuration.decode('utf8')
+                        json.loads(progress.configuration.decode('utf8'))
                     if progress.job.identifier in new_data['jobs']['error']:
                         progress.status = PROGRESS_STATUS[3][0]
                         if progress.job.identifier in data['job errors']:
@@ -617,7 +617,7 @@ class UpdateTools(object):
 
 
 # Case 3.3(2) DONE
-class CheckSchedulers(object):
+class SetSchedulersStatus(object):
     def __init__(self, statuses):
         self.error = None
         try:

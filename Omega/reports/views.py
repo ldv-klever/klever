@@ -219,8 +219,10 @@ def report_leaf(request, leaf_type, report_id):
 def upload_report(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Get request is not supported'})
+    if 'job id' not in request.session:
+        return JsonResponse({'error': 'The job id was not found in session'})
     try:
-        job = Job.objects.get(pk=int(request.session['job_id']))
+        job = Job.objects.get(pk=int(request.session['job id']))
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'The job was not found'})
     if not JobAccess(request.user, job).psi_access():

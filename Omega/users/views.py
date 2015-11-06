@@ -209,9 +209,16 @@ def psi_signin(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+        for p in request.POST:
+            if p not in ['username', 'password'] and not p.startswith('csrf'):
+                request.session[p] = request.POST[p]
         user = authenticate(username=username, password=password)
         if user is not None:
             if user.is_active:
+                try:
+                    Extended.objects.get(user=user)
+                except ObjectDoesNotExist:
+                    return JsonResponse({'error': 'User does not have extended data'})
                 login(request, user)
                 return HttpResponse('')
             else:

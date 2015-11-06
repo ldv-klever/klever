@@ -724,10 +724,14 @@ def decide_job(request):
     if 'hash sum' not in request.POST:
         return JsonResponse({'error': 'Hash sum is not specified'})
 
+    # TODO: uncomment
+    # if 'job id' not in request.session:
+        # return JsonResponse({'error': "Session does not have job id"})
     try:
         job = Job.objects.get(identifier__startswith=request.POST['job id'],
                               format=int(request.POST['job format']))
-        request.session['job_id'] = job.id
+        # TODO: remove
+        request.session['job id'] = job.id
     except ObjectDoesNotExist:
         return JsonResponse({
             'error': 'Job with the specified identifier "{0}" was not found'

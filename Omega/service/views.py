@@ -14,25 +14,29 @@ from service.utils import *
 
 
 # Case 3.2(2) DONE
-def get_tasks(request):
+def get_jobs_and_tasks(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
+    if 'scheduler' not in request.session:
+        return JsonResponse({'error': 'The scheduler was not found in session'})
+    if request.session['scheduler'] not in [x[1] for x in SCHEDULER_TYPE]:
+        return JsonResponse({
+            'error': "The scheduler '%s' is not supported" % request.session['scheduler']
+        })
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
-    if 'scheduler' not in request.POST or request.POST['scheduler'] not in [x[0][1] for x in SCHEDULER_TYPE]:
-        return JsonResponse({'error': 'The scheduler is not specified or is not supported'})
-    if 'tasks data' not in request.POST:
+    if 'jobs and tasks status' not in request.POST:
         return JsonResponse({'error': 'Tasks data is required'})
-    result = GetTasks(request.POST['scheduler'], request.POST['tasks data'])
+    result = GetTasks(request.session['scheduler'], request.POST['jobs and tasks status'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
-    return JsonResponse({'tasks data': result.data})
+    return JsonResponse({'jobs and tasks status': result.data})
 
 
 # Case 3.3(2) DONE
-def check_schedulers(request):
+def set_schedulers_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
@@ -41,24 +45,22 @@ def check_schedulers(request):
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'statuses' not in request.POST:
         return JsonResponse({'error': 'Statuses were not got'})
-    result = CheckSchedulers(request.POST['statuses'])
+    result = SetSchedulersStatus(request.POST['statuses'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
 
 
 # Case 3.1(3) DONE
-def create_task(request):
+def schedule_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
+    if 'job_id' not in request.session:
+        return JsonResponse({'error': 'Session does not have job identifier'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
-    if 'job id' not in request.POST:
-        return JsonResponse({'error': 'Job identifier is not specified'})
-    if 'priority' not in request.POST:
-        return JsonResponse({'error': 'Task priority is not specified'})
     if 'description' not in request.POST:
         return JsonResponse({'error': 'Task description is not specified'})
     archive = None
@@ -68,8 +70,7 @@ def create_task(request):
         return JsonResponse({
             'error': 'The task archive was not got'
         })
-    result = CreateTask(request.POST['job id'], request.POST['description'],
-                        archive, request.POST['priority'])
+    result = ScheduleTask(request.session['job_id'], request.POST['description'], archive)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({'task id': result.task_id})
@@ -88,7 +89,7 @@ def get_task_status(request):
     result = GetTaskStatus(request.POST['task id'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
-    return JsonResponse({'status': result.status})
+    return JsonResponse({'task status': result.status})
 
 
 # Case 3.1(5) DONE
@@ -130,7 +131,7 @@ def remove_task(request):
 
 
 # Case 3.1(7) DONE
-def stop_task(request):
+def cancel_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
@@ -139,7 +140,7 @@ def stop_task(request):
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
-    result = StopTaskDecision(request.POST['task id'])
+    result = CancelTask(request.POST['task id'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
@@ -165,7 +166,7 @@ def download_task(request, task_id):
 
 
 # Case 3.2(4) DONE
-def create_solution(request):
+def upload_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
@@ -211,14 +212,17 @@ def update_tools(request):
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
+    if 'scheduler' not in request.session:
+        return JsonResponse({'error': 'The scheduler was not found in session'})
+    if request.session['scheduler'] not in [x[1] for x in SCHEDULER_TYPE]:
+        return JsonResponse({
+            'error': "The scheduler '%s' is not supported" % request.session['scheduler']
+        })
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'tools data' not in request.POST:
         return JsonResponse({'error': 'Tools data is not specified'})
-    if 'scheduler' not in request.POST \
-            or request.POST['scheduler'] not in [x[0][1] for x in SCHEDULER_TYPE]:
-        return JsonResponse({'error': 'Scheduler is not specified or is not supported'})
-    result = UpdateTools(request.POST['scheduler'], request.POST['tools data'])
+    result = UpdateTools(request.session['scheduler'], request.POST['tools data'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
