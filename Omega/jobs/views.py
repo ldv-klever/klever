@@ -254,7 +254,7 @@ def show_job(request, job_id=None):
             'can_edit': job_access.can_edit(),
             'can_create': job_access.can_create(),
             'can_decide': job_access.can_decide(),
-            'can_download': job.status != JOB_STATUS[5][0],
+            'can_download': job.status not in [JOB_STATUS[5][0], JOB_STATUS[6][0]],
             'can_stop': job_access.can_stop()
         }
     )
