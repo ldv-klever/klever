@@ -80,12 +80,12 @@ class Scheduler(scheduler.SchedulerExchange):
         """Start scheduler loop."""
 
         # Perform sanity checks before initializing scheduler
-        if "require authorization" not in self.conf or not self.conf["require authorization"]:
-            raise ValueError("Provide 'Scheduler''require authorization' configuration property always as True for VerifierCloud")
-        if "VerifierCloud user name" not in self.conf:
-            raise KeyError("Provide 'Scheduler''VerifierCloud user name' to login at VerifierCloud within the configuration")
-        if "VerifierCloud password" not in self.conf:
-            raise KeyError("Provide 'Scheduler''VerifierCloud password' to login at VerifierCloud within the configuration")
+        if "web-interface address" not in self.conf or not self.conf["web-interface address"]:
+            raise KeyError("Provide VerifierCloud address via configuration property 'scheduler''Web-interface address'")
+        if "scheduler user name" not in self.conf:
+            raise KeyError("Provide configuration property 'scheduler''scheduler user name'")
+        if "scheduler password" not in self.conf:
+            raise KeyError("Provide configuration property 'scheduler''scheduler password'")
 
         # TODO: Investigate which sources are necessary and which are optional
         # Add path to benchexec directory
@@ -99,14 +99,14 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Add to PATH location {0}".format(cpa_loc))
         sys.path.append(cpa_loc)
         from webclient import WebInterface
-        self.wi = WebInterface(self.conf["Web Interface address"], "{}:{}".format(self.conf["VerifierCloud user name"],
-                                                                                  self.conf["VerifierCloud password"]))
+        self.wi = WebInterface(self.conf["web-interface address"], "{}:{}".format(self.conf["scheduler user name"],
+                                                                                  self.conf["scheduler password"]))
 
         return super(Scheduler, self).launch()
 
     def scheduler_type(self):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
-        return "Klever"
+        return "VerifierCloud"
 
     def scheduler_state(self):
         """Return statuses of tasks and jobs and error messages of failed ones."""
@@ -172,7 +172,7 @@ class Scheduler(scheduler.SchedulerExchange):
         """
         Process result and send results to the verification gateway.
         :param identifier:
-        :return: Status of the task after solution: FINISHED, UNKNOWN or ERROR.
+        :return: Status of the task after solution: FINISHED or ERROR.
         """
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         solution_file = os.path.join(task_work_dir, "solution.zip")
@@ -196,15 +196,11 @@ class Scheduler(scheduler.SchedulerExchange):
         solution_description = os.path.join(task_solution_dir, "verification task decision result.json")
         logging.debug("Get solution description from {}".format(solution_description))
         try:
-            solution_identifier = executils.extract_description(task_solution_dir, solution_description)
-        except (OSError, ValueError) as err:
-            logging.warning("Cannot process results for the task {} because of {}".format(identifier, err))
-
-            # Remove task directory
-            shutil.rmtree(task_work_dir)
-
-            return "UNKNOWN"
-        logging.debug("Successfully extracted solution {} for task {}".format(solution_identifier, identifier))
+            solution_identifier, solution_description = executils.extract_description(task_solution_dir, solution_description)
+            logging.debug("Successfully extracted solution {} for task {}".format(solution_identifier, identifier))
+        except Exception as err:
+            logging.warning("Cannot extract results from a solution: {}".format(err))
+            raise err
 
         # Make archive
         solution_archive = os.path.join(task_work_dir, "solution")
@@ -215,7 +211,7 @@ class Scheduler(scheduler.SchedulerExchange):
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
                                                                                                      identifier))
-        self.server.push_solution(identifier, solution_archive)
+        self.server.submit_solution(identifier, solution_archive, solution_description)
 
         # Remove task directory
         shutil.rmtree(task_work_dir)

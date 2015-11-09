@@ -8,10 +8,10 @@ class Server(Session):
         """Using login and password try to proceed with authorization on the Verification Gateway server."""
         # TODO: Implement authorization at verification gateway.
 
-    def register(self, name, require_login=False):
+    def register(self, scheduler_type, require_login=False):
         """
         Send unique ID to the Verification Gateway with the other properties to enable receiving tasks.
-        :param name: Scheduler name.
+        :param scheduler_type: Scheduler scheduler_type.
         :param require_login: Flag indicating whether or not user should authorize to send tasks.
         """
         # TODO: Implement unique key generation
@@ -46,7 +46,7 @@ class Server(Session):
 
         # TODO: Return path to description and path to the sources
 
-    def push_solution(self, identifier, description, archive):
+    def submit_solution(self, identifier, description, archive):
         """
         Send archive and description of an obtained from VerifierCloud solution to the verification gateway.
 

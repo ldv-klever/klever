@@ -61,48 +61,47 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 scheduler_state = {
                     "tasks": {
                         "pending": [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                                 self.__tasks[task_id]["status"] == "PENDING"],
+                                    self.__tasks[task_id]["status"] == "PENDING"],
                         "processing": [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                                    self.__tasks[task_id]["status"] == "PROCESSING"],
+                                       self.__tasks[task_id]["status"] == "PROCESSING"],
                         "finished": [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                                  self.__tasks[task_id]["status"] == "FINISHED"],
+                                     self.__tasks[task_id]["status"] == "FINISHED"],
                         "error": [task_id for task_id in self.__tasks if "status" in self.__tasks[task_id] and
-                               self.__tasks[task_id]["status"] == "ERROR"]
+                                  self.__tasks[task_id]["status"] == "ERROR"]
                     },
-                    "jobs": {
-                        "pending": [job_id for job_id in self.__tasks if "status" in self.__tasks[job_id] and
-                                 self.__jobs[job_id]["status"] == "PENDING"],
-                        "processing": [job_id for job_id in self.__tasks if "status" in self.__tasks[job_id] and
-                                 self.__jobs[job_id]["status"] == "PROCESSING"],
-                        "finished": [job_id for job_id in self.__tasks if "status" in self.__tasks[job_id] and
-                                 self.__jobs[job_id]["status"] == "FINISHED"],
-                        "error": [job_id for job_id in self.__tasks if "status" in self.__tasks[job_id] and
-                                 self.__jobs[job_id]["status"] == "ERROR"]
-                    },
-                    "task errors": {},
-                    "job errors": {}
                 }
                 logging.info("Scheduler has {} pending, {} processing, {} finished and {} error tasks".
                              format(len(scheduler_state["tasks"]["pending"]),
                                     len(scheduler_state["tasks"]["processing"]),
                                     len(scheduler_state["tasks"]["finished"]),
                                     len(scheduler_state["tasks"]["error"])))
-                logging.info("Scheduler has {} pending, {} processing, {} finished and {} error jobs".
-                             format(len(scheduler_state["jobs"]["pending"]),
-                                    len(scheduler_state["jobs"]["processing"]),
-                                    len(scheduler_state["jobs"]["finished"]),
-                                    len(scheduler_state["jobs"]["error"])))
+                #logging.info("Scheduler has {} pending, {} processing, {} finished and {} error jobs".
+                #             format(len(scheduler_state["jobs"]["pending"]),
+                #                    len(scheduler_state["jobs"]["processing"]),
+                #                    len(scheduler_state["jobs"]["finished"]),
+                #                    len(scheduler_state["jobs"]["error"])))
 
-                logging.debug("Add task error descriptions")
-                for id in scheduler_state["tasks"]["error"]:
-                    scheduler_state["task errors"][id] = self.__tasks[id]["error"]
+                logging.debug("Add task {} error descriptions".format(len(scheduler_state["tasks"]["error"])))
+                if len(scheduler_state["tasks"]["error"]):
+                    scheduler_state["task errors"] = {}
+                for task_id in scheduler_state["tasks"]["error"]:
+                    scheduler_state["task errors"][task_id] = self.__tasks[task_id]["error"]
 
-                logging.debug("Add job error descriptions")
-                for id in scheduler_state["jobs"]["error"]:
-                    scheduler_state["task errors"][id] = self.__jobs[id]["error"]
+                #logging.debug("Add job error descriptions")
+                #for id in scheduler_state["jobs"]["error"]:
+                #    scheduler_state["task errors"][id] = self.__jobs[id]["error"]
 
                 # Submit scheduler state and receive server state
                 server_state = self.server.exchange_tasks(scheduler_state)
+
+                # Add PENDING tasks
+                for task_id in [task_id for task_id in server_state["tasks"]["pending"] if task_id not in self.__tasks]:
+                    self.__tasks[task_id] = {
+                        "status": "PENDING",
+                        "description": server_state["task descriptions"][task_id]["description"],
+                        "user": server_state["task descriptions"][task_id]["scheduler user name"],
+                        "password": server_state["task descriptions"][task_id]["scheduler password"],
+                    }
 
                 # Remove finished or error tasks
                 logging.debug("Remove tasks with statuses FINISHED and ERROR")
@@ -112,41 +111,36 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 logging.info("Total {} tasks has been deleted".format(len(deleted)))
 
                 # Remove finished or error jobs
-                logging.debug("Remove jobs with statuses FINISHED and ERROR")
-                deleted = set(scheduler_state["jobs"]["finished"] + scheduler_state["jobs"]["error"])
-                for job_id in deleted:
-                    del self.__tasks[job_id]
-                logging.info("Total {} jobs has been deleted".format(len(deleted)))
+                #logging.debug("Remove jobs with statuses FINISHED and ERROR")
+                #deleted = set(scheduler_state["jobs"]["finished"] + scheduler_state["jobs"]["error"])
+                #for job_id in deleted:
+                #    del self.__tasks[job_id]
+                #logging.info("Total {} jobs has been deleted".format(len(deleted)))
 
                 # Cancel tasks
                 cancel_tasks = [task_id for task_id in set(scheduler_state["tasks"]["pending"] +
                                                            scheduler_state["tasks"]["processing"]) if task_id not in
                                 set(server_state["tasks"]["pending"] + scheduler_state["tasks"]["processing"])]
-                for task in cancel_tasks:
-                    self.__tasks[task]["future"].cancel()
-                    self._cancel_task(task)
-                    del self.__tasks[task]
+                for task_id in cancel_tasks:
+                    self.__tasks[task_id]["future"].cancel()
+                    self._cancel_task(task_id)
+                    del self.__tasks[task_id]
                 logging.info("Total {} tasks have been cancelled".format(len(cancel_tasks)))
 
                 # Cancel jobs
-                cancelled_jobs = [job_id for job_id in set(scheduler_state["jobs"]["pending"] +
-                                                         scheduler_state["jobs"]["processing"]) if job_id not in
-                                server_state["jobs"]["cancelled"]]
-                for job in cancelled_jobs:
-                    self.__tasks[job]["future"].cancel()
-                    self._cancel_task(job)
-                    del self.__tasks[job]
-                logging.info("Total {} jobs have been cancelled".format(len(cancelled_jobs)))
+                #cancelled_jobs = [job_id for job_id in set(scheduler_state["jobs"]["pending"] +
+                #                                         scheduler_state["jobs"]["processing"]) if job_id not in
+                #                server_state["jobs"]["cancelled"]]
+                #for job in cancelled_jobs:
+                #    self.__tasks[job]["future"].cancel()
+                #    self._cancel_task(job)
+                #    del self.__tasks[job]
+                #logging.info("Total {} jobs have been cancelled".format(len(cancelled_jobs)))
 
-                # Add new pending tasks
-                new_tasks = [task_id for task_id in server_state["tasks"]["pending"] if task_id not in self.__tasks]
-                for task in new_tasks:
-                    self.__tasks[task] = {"status": "PENDING"}
-                    
                 # Add new pending jobs
-                new_jobs = [job_id for job_id in server_state["jobs"]["pending"] if job_id not in self.__jobs]
-                for job in new_jobs:
-                    self.__jobs[job] = {"status": "PENDING"}
+                #new_jobs = [job_id for job_id in server_state["jobs"]["pending"] if job_id not in self.__jobs]
+                #for job in new_jobs:
+                #    self.__jobs[job] = {"status": "PENDING"}
 
                 # Wait there until all threads are terminated
                 if "debug each iteration" in self.conf and self.conf["debug each iteration"]:
@@ -161,50 +155,58 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         concurrent.futures.wait(wait_list, timeout=self.conf["iteration timeout"],
                                                 return_when="ALL_COMPLETED")
 
-                # Update statuses
-                for task in [task for task in self.__tasks if self.__tasks[task]["status"] == "PROCESSING" and
-                             self.__tasks[task]["future"].done()]:
-                    try:
-                        data = self.__tasks[task]["future"].result()
-                        status = self._process_result(task, data)
-                    except Exception as exc:
-                        self._terminate()
-                        raise RuntimeError("Failed to process task {}: {}".format(task, exc))
+                if self.scheduler_type() == "VerifierCloud":
+                    # Update statuses
+                    for task_id in [task for task in self.__tasks if self.__tasks[task]["status"] == "PROCESSING" and
+                                 self.__tasks[task]["future"].done()]:
+                        try:
+                            data = self.__tasks[task_id]["future"].result()
+                            self.__tasks[task_id]["status"] = self._process_result(task_id, data)
+                        except Exception as err:
+                            logging.error("Cannot process results of task {}: {}".format(task_id, err))
+                            self.__tasks[task_id]["status"] = "ERROR"
+                            self.__tasks[task_id]["error"] = err
 
-                    if status not in ["FINISHED", "UNKNOWN", "ERROR"]:
-                        raise ValueError("Cannot get solution status after termination for task {}".format(task))
-                    self.__tasks[task]["status"] = status
-
-                # Check nodes and tools healthy
-                logging.debug("Check nodes and tools threads healthiness")
-                # TODO: Submit nodes and verification tools statuses
-
-                # Start solution of new tasks
-                logging.debug("Determine tasks to solve")
-                # TODO: Implement gradual tasks submissions
-
-                for task in [task_id for task_id in self.__tasks if self.__tasks[task_id]["status"] == "PENDING"]:
-                    if self.conf["require authorization"]:
-                        user = server_state["users"][server_state["task descriptions"][task]["user"]]["user"]
-                        password = server_state["users"][server_state["task descriptions"][task]["user"]]["password"]
+                    # Regulate number of solving tasks
+                    pending = [task_id for task_id in self.__tasks if self.__tasks[task_id]["status"] == "PENDING"]
+                    if "max concurrent tasks" in self.conf and self.conf["max concurrent tasks"]:
+                        processing = [task_id for task_id in self.__tasks
+                                      if self.__tasks[task_id]["status"] == "PROCESSING"]
+                        if len(processing) < self.conf["max concurrent tasks"]:
+                            diff = self.conf["max concurrent tasks"] - len(processing)
+                            if diff <= len(pending):
+                                new = pending[0:diff]
+                            else:
+                                new = pending
+                        else:
+                            new = []
                     else:
-                        user = None
-                        password = None
+                        new = pending
 
-                    self._prepare_task(task)
-                    try:
-                        future = self._solve_task(task, server_state["task descriptions"][task]["description"], user,
-                                                  password)
-                        self.__tasks[task] = {
-                            "future": future,
-                            "status": "PROCESSING"
-                        }
-                    except Exception as err:
-                        logging.error("Cannot submit task {}: {}".format(task, err))
-                        self.__tasks[task] = {
-                            "status": "ERROR"
-                        }
-                logging.info("Total {} tasks have been started".format(len(new_tasks)))
+                    for task_id in new:
+                        if self.__tasks[task_id]["status"] != "PENDING":
+                            raise RuntimeError("Attempt to submit tasks with non-pending status: {}".format(task_id))
+                        self._prepare_task(task_id)
+                        try:
+                            future = self._solve_task(task_id,
+                                                      self.__tasks[task_id]["description"],
+                                                      self.__tasks[task_id]["user"],
+                                                      self.__tasks[task_id]["password"])
+                            logging.info("Submitted task {}".format(task_id))
+                            self.__tasks[task_id]["status"] = "PROCESSING"
+                            self.__tasks[task_id]["future"] = future
+                        except Exception as err:
+                            logging.error("Cannot submit task {}: {}".format(task_id, err))
+                            self.__tasks[task_id]["status"] = "ERROR"
+                            self.__tasks[task_id]["error"] = err
+                else:
+                    # Check nodes and tools healthy
+                    logging.debug("Check nodes and tools threads healthiness")
+                    # TODO: Submit nodes and verification tools statuses
+
+                    # Start solution of new tasks
+                    logging.debug("Determine tasks to solve")
+                    # TODO: Implement gradual tasks submissions
 
                 # Flushing tasks
                 logging.debug("Flush submitted tasks if necessary")

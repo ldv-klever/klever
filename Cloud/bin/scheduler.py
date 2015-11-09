@@ -24,11 +24,10 @@ def get_gateway(conf, work_dir):
     #elif "password" not in conf:
     #    raise KeyError("Please provide scheduler password 'Omega''passwd' to authorize at verification gateway")
 
-    if "test generator as gateway" in conf and \
-            conf["test generator as gateway"]:
-        return testgenerator.Server(conf, work_dir)
+    if "debug with testgenerator" in conf["scheduler"]:
+        return testgenerator.Server(conf["testgenerator"], work_dir)
     else:
-        return omega.Server(conf, work_dir)
+        return omega.Server(conf["Omega"], work_dir)
 
 
 def get_scheduler(conf, work_dir, session):
@@ -65,7 +64,13 @@ def main():
     # TODO: Do we need use version of the scheduler further?
     # TODO: Do we need any checks of exclusive execution?
 
+    # Check common configuration
+    if "common" not in conf:
+        raise KeyError("Provide configuration property 'common' as an JSON-object")
+
     # Prepare working directory
+    if "work dir" not in conf["common"]:
+        raise KeyError("Provide configuration property 'common''work dir'")
     if "keep work dir" in conf["common"] and conf["common"]["keep work dir"]:
         logging.info("Keep working directory from the previous run")
     else:
@@ -75,10 +80,20 @@ def main():
     logging.debug("Create working dir: {0}".format(conf["common"]['work dir']))
     os.makedirs(conf["common"]['work dir'], exist_ok=True)
 
+    # Go to the workdir to avoid creating files elsewhere
+    os.chdir(conf["common"]['work dir'])
+
     # Start logging
+    if "logging" not in conf["common"]:
+        raise KeyError("Provide configuration property 'common''logging' according to Python logging specs")
     logging.config.dictConfig(conf["common"]['logging'])
 
-    session = get_gateway(conf["Omega"], conf["common"]["work dir"] + "/requests/")
+    if "scheduler" not in conf:
+        raise KeyError("Provide configuration property 'scheduler' as an JSON-object")
+    if "Omega" not in conf:
+        raise KeyError("Provide configuration property 'scheduler' as an JSON-object")
+
+    session = get_gateway(conf, conf["common"]["work dir"] + "/requests/")
     scheduler_impl = get_scheduler(conf["scheduler"], conf["common"]["work dir"] + "/scheduler/", session)
     scheduler_impl.launch()
 

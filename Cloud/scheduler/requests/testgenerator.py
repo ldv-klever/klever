@@ -13,10 +13,14 @@ task_description_filename = "verification task desc.json"
 class Server(requests.Session):
     """Start exchange with verification gate."""
 
-    pending = []
     tasks = {}
     tools = {}
     nodes = {}
+    pending_cnt = 0
+    processing_cnt = 0
+    error_cnt = 0
+    finished_cnt = 0
+
     work_dir = ""
     solution_dir = ""
 
@@ -45,7 +49,7 @@ class Server(requests.Session):
                 "description file": description_file,
                 "description": description
             }
-            self.pending.append(identifier)
+            self.pending_cnt += 1
 
     def __make_tasks(self, work_dir, location, base_description):
         """
@@ -97,34 +101,27 @@ class Server(requests.Session):
                 "description file": description_file,
                 "description": description
             }
-            self.pending.append(task_id)
+            self.pending_cnt += 1
 
     def auth(self, user, password):
         """
         Using login and password try to proceed with authorization on the
         Verification Gateway server.
-        :param user: Scheduler user user.
-        :param password: Scheduler user password
+        :param user: Scheduler user.
+        :param password: Scheduler password
         :return:
         """
         logging.info("Skip user step step.")
 
-    def register(self, name, require_login=False):
+    def register(self, scheduler_type):
         """
         Send unique ID to the Verification Gateway with the other properties to
         enable receiving tasks.
-        :param name: Scheduler name.
-        :param require_login: Flag indicating whether or not user should
+        :param scheduler_type: Scheduler scheduler type.
         authorize to send tasks.
         """
         logging.info("Initialize test generator")
 
-        if "user" not in self.conf:
-            raise KeyError("Provide gateway username within 'user' attribute in configuration")
-        if not {"gate user name", "VerifierCloud user name", "VerifierCloud password"}.\
-                issubset(self.conf["user"].keys()):
-            raise KeyError("Provide 'gate user name', 'VerifierCloud user name' and 'VerifierCloud password' "
-                           "credentials within the configuration")
         if "exchange task number" not in self.conf:
             self.conf["exchange task number"] = 10
         logging.debug("Exchange rate is {} tasks per request".format(self.conf["exchange task number"]))
@@ -165,85 +162,87 @@ class Server(requests.Session):
         Get list with tasks and their statuses and update own information about
         them. After that return new portion of tasks with user information and
         descriptions.
-        :param tasks: Get dictionary with task statuses in the Scheduler.
+        :param tasks: Get dictionary with scheduler task statuses.
         :return: Return dictionary with new tasks, descriptions and users.
         """
         logging.info("Start updating statuses according to received task list")
-        new_report = {
+        report = {
             "tasks": {
                 "pending": [],
                 "processing": [],
                 "error": [],
-                "unknown": [],
                 "finished": []
             },
             "task descriptions": {},
-            "users": {}
         }
 
-        # First update failed or finished tasks
-        finished_tasks = [tsk for tsk in tasks["tasks"]["finished"] if tsk in self.tasks and self.tasks[tsk]["status"]
-                          in ["PENDING", "PROCESSING"]]
-        for task in finished_tasks:
-            self.tasks[task]["status"] = "FINISHED"
-        logging.debug("Mark {} finished tasks".format(str(len(finished_tasks))))
+        logging.debug("Update statuses in testgenerator")
+        # Update PENDING -> ERROR
+        for task_id in [task_id for task_id in tasks["tasks"]["error"] if self.tasks[task_id]["status"] == "PENDING"]:
+            self.tasks[task_id]["status"] = "ERROR"
+            self.tasks[task_id]["error message"] = tasks["task errors"][task_id]
+            self.pending_cnt -= 1
+            self.error_cnt += 1
 
-        # Update failed tasks
-        unknown_tasks = [tsk for tsk in tasks["tasks"]["unknown"] if tsk in self.tasks and self.tasks[tsk]["status"]
-                         in ["PENDING", "PROCESSING"]]
-        for task in finished_tasks:
-            self.tasks[task]["status"] = "UNKNOWN"
-        logging.debug("Mark {} unknown tasks".format(str(len(unknown_tasks))))
+        # Update PROCESSING -> ERROR
+        for task_id in [task_id for task_id in tasks["tasks"]["error"] if self.tasks[task_id]["status"] == "PROCESSING"]:
+            self.tasks[task_id]["status"] = "ERROR"
+            self.tasks[task_id]["error"] = tasks["task errors"][task_id]
+            self.processing_cnt -= 1
+            self.error_cnt += 1
 
-        # Update error tasks
-        error_tasks = [tsk for tsk in tasks["tasks"]["error"] if tsk in self.tasks and self.tasks[tsk]["status"]
-                       in ["PENDING", "PROCESSING"]]
-        for task in finished_tasks:
-            self.tasks[task]["status"] = "ERROR"
-        logging.debug("Mark {} error tasks".format(str(len(error_tasks))))
+        # Update PENDING -> PROCESSING
+        for task_id in [task_id for task_id in tasks["tasks"]["processing"]
+                        if self.tasks[task_id]["status"] == "PENDING"]:
+            self.tasks[task_id]["status"] = "PROCESSING"
+            self.pending_cnt -= 1
+            self.processing_cnt += 1
 
-        # Update processing tasks
-        to_processing = [tsk for tsk in tasks["tasks"]["processing"] if self.tasks[tsk]["status"] == "PENDING"]
-        logging.debug("Mark {} processing tasks".format(str(len(to_processing))))
-        for task in to_processing:
-            self.tasks[task]["status"] = "PROCESSING"
+        # Update PROCESSING -> PENDING
+        for task_id in [task_id for task_id in tasks["tasks"]["pending"]
+                        if self.tasks[task_id]["status"] == "PROCESSING"]:
+            self.tasks[task_id]["status"] = "PROCESSING"
+            self.processing_cnt -= 1
+            self.pending_cnt += 1
 
-        # Get tasks which should be canceled
-        cancel_err = [tsk for tsk in (tasks["tasks"]["processing"] + tasks["tasks"]["pending"])
-                      if self.tasks[tsk]["status"] in ["UNKNOWN", "ERROR"]]
-        logging.debug("Cancel {} tasks".format(str(len(cancel_err))))
-        new_report["tasks"]["unknown"] = cancel_err
+        # Update PENDING -> FINISHED
+        for task_id in [task_id for task_id in tasks["tasks"]["finished"]
+                        if self.tasks[task_id]["status"] == "PENDING"]:
+            self.tasks[task_id]["status"] = "FINISHED"
+            self.pending_cnt -= 1
+            self.finished_cnt += 1
 
-        # Remove tasks from pending
-        logging.debug("Remove from pending error, unknown and finished tasks")
-        self.pending = set(self.pending) - set(error_tasks + finished_tasks + unknown_tasks + to_processing)
+            if "solution" not in self.tasks[task_id] or not self.tasks[task_id]["solution"]:
+                raise RuntimeError("Solution is required before FINISHED status can be assigned: {}".format(task_id))
 
-        # Add new tasks
-        if len(self.pending) < self.conf["exchange task number"] or self.conf["exchange task number"] == 0:
-            new_pending = list(self.pending)
-        else:
-            new_pending = list(self.pending)[:self.conf["exchange task number"]]
-        old_pending = [tsk for tsk in tasks["tasks"]["pending"] if self.tasks[tsk]["status"] == "PENDING"]
-        for task in new_pending:
-            new_report["task descriptions"][task] = {
-                "description": self.tasks[task]["description"],
-                "user": self.conf["user"]["gate user name"]
-            }
-        logging.debug("Add {} new pending tasks and {} old ones".format(len(new_pending), len(old_pending)))
-        new_report["tasks"]["pending"] = new_pending + old_pending
+        # Update PROCESSING -> FINISHED
+        for task_id in [task_id for task_id in tasks["tasks"]["finished"]
+                        if self.tasks[task_id]["status"] == "PROCESSING"]:
+            self.tasks[task_id]["status"] = "FINISHED"
+            self.processing_cnt -= 1
+            self.finished_cnt += 1
 
-        # Add processing tasks
-        whole_proc = [tsk for tsk in self.tasks if self.tasks[tsk]["status"] == "PROCESSING"]
-        logging.debug("Add {} processing tasks".format(str(len(whole_proc))))
-        new_report["tasks"]["processing"] = whole_proc
+            if "solution" not in self.tasks[task_id] or not self.tasks[task_id]["solution"]:
+                raise RuntimeError("Solution is required before FINISHED status can be assigned: {}".format(task_id))
 
-        # Add user credentials
-        new_report["users"][self.conf["user"]["gate user name"]] = {
-            "user": self.conf["user"]["VerifierCloud user name"],
-            "password": self.conf["user"]["VerifierCloud password"]
-        }
+        logging.debug("Generate new status report for scheduler")
+        report["tasks"]["pending"] = [task_id for task_id in self.tasks if self.tasks[task_id]["status"] == "PENDING"]
+        report["tasks"]["processing"] = [task_id for task_id in self.tasks
+                                         if self.tasks[task_id]["status"] == "PROCESSING"]
+        report["task solutions"] = [self.tasks[task_id]["solution"] for task_id in self.tasks
+                                       if (self.tasks[task_id]["status"] == "PENDING" or
+                                           self.tasks[task_id]["status"] == "PROCESSING") and
+                                       "solution descriptions" in self.tasks[task_id]]
 
-        return new_report
+        for task_id in [task_id for task_id in self.tasks if self.tasks[task_id]["status"] == "PENDING"]:
+            report["task descriptions"][task_id] = { "description": self.tasks[task_id]["description"] }
+            if "scheduler user name" in self.conf and self.conf["scheduler user name"]:
+                report["task descriptions"][task_id]["scheduler user name"] = self.conf["scheduler user name"]
+                report["task descriptions"][task_id]["scheduler password"] = self.conf["scheduler password"]
+
+        logging.debug("PENDING: {}, PROCESSING: {}, ERROR: {}, FINISHED: {}".
+                      format(self.pending_cnt, self.processing_cnt, self.error_cnt, self.finished_cnt))
+        return report
 
     def pull_task(self, identifier, archive):
         """
@@ -254,7 +253,7 @@ class Server(requests.Session):
         logging.debug("Copy task from {} to {}".format(self.tasks[identifier]["data"], archive))
         shutil.copyfile(self.tasks[identifier]["data"], archive)
 
-    def push_solution(self, identifier, archive, description=None):
+    def submit_solution(self, identifier, archive, description):
         """
         Send archive and description of an obtained from VerifierCloud solution
          to the verification gateway.
@@ -262,16 +261,14 @@ class Server(requests.Session):
         :param archive: Path to the zip archive to send.
         :param description: JSON string to send.
         """
-        if self.tasks[identifier]["status"] not in ["FINISHED", "ERROR", "UNKNOWN"]:
+        if self.tasks[identifier]["status"] in ["PENDING", "PROCESSING"]:
             data_file = os.path.join(self.solution_dir, "{}.tar.gz".format(identifier))
             logging.debug("Copy the solution {} to {}".format(archive, data_file))
             shutil.copyfile(archive, data_file)
 
             logging.debug("Save solution result for the task {}".format(identifier))
-            self.tasks[identifier]["solution"] = {
-                "data": data_file,
-                "description": description
-            }
+            self.tasks[identifier]["solution"] = description
+            self.tasks[identifier]["result"] = data_file
         else:
             raise RuntimeError("Trying to push solution for {0} which has been already processed".format(identifier))
 

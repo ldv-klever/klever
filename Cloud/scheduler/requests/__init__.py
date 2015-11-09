@@ -28,11 +28,10 @@ class Session(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def register(self, name, require_login=False):
+    def register(self, scheduler_type):
         """
         Send unique ID to the Verification Gateway with the other properties to enable receiving tasks.
-        :param name: Scheduler name.
-        :param require_login: Flag indicating whether or not user should authorize to send tasks.
+        :param scheduler_type: Scheduler type.
         """
         return
 
@@ -56,7 +55,7 @@ class Session(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def push_solution(self, identifier, description, archive):
+    def submit_solution(self, identifier, description, archive):
         """
         Send archive and description of an obtained from VerifierCloud solution to the verification gateway.
 

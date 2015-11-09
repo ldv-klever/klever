@@ -120,6 +120,6 @@ def extract_description(solution_dir, description_file):
     with open(description_file, "w") as df:
         df.write(json.dumps(description, sort_keys=True, indent=4))
 
-    return identifier
+    return identifier, description
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
