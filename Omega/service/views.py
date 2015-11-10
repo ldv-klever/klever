@@ -259,7 +259,7 @@ def change_component(request):
                 'error': _("The component is used and can't be deleted")
             })
         return JsonResponse({
-            'message': _("The component was successfully deleted, please, reload the page")
+            'message': _("The component was successfully deleted, please reload the page")
         })
     elif action == 'rename':
         new_name = request.POST.get('name', '')
@@ -297,7 +297,7 @@ def clear_components_table(request):
         except ProtectedError:
             pass
     return JsonResponse({
-        'message': _("All unused components were deleted, please, reload the page")
+        'message': _("All unused components were deleted, please reload the page")
     })
 
 
@@ -324,7 +324,7 @@ def delete_problem(request):
             'error': _("The problem is used and can't be deleted")
         })
     return JsonResponse({
-        'message': _("The problem was successfully deleted, please, reload the page")
+        'message': _("The problem was successfully deleted, please reload the page")
     })
 
 
@@ -343,7 +343,7 @@ def clear_problems(request):
         except ProtectedError:
             pass
     return JsonResponse({
-        'message': _("All unused problems were deleted, please, reload the page")
+        'message': _("All unused problems were deleted, please reload the page")
     })
 
 

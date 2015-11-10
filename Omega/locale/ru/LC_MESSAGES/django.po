@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-10 16:48+0000\n"
+"POT-Creation-Date: 2015-11-10 17:25+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -40,7 +40,7 @@ msgid "You don't have an access to this job"
 msgstr "У Вас нет прав на данное задание"
 
 #: Omega/vars.py:8
-msgid "You specified wrong parameters, please, reload the page and try again"
+msgid "You specified wrong parameters, please reload the page and try again"
 msgstr ""
 "Вы указали Некорректные параметры, пожалуйста, обновите страницу и "
 "попробуйте еще раз"
@@ -204,17 +204,17 @@ msgstr "Нет оценок"
 
 #: Omega/vars.py:326 Omega/vars.py:345
 msgid "Healthy"
-msgstr ""
+msgstr "Здоровый"
 
 #: Omega/vars.py:327 Omega/vars.py:346
 #: service/templates/service/scheduler.html:20
 msgid "Ailing"
-msgstr ""
+msgstr "Нездоровый"
 
 #: Omega/vars.py:328 Omega/vars.py:347
 #: service/templates/service/scheduler.html:22
 msgid "Disconnected"
-msgstr ""
+msgstr "Отключенный"
 
 #: Omega/vars.py:337
 msgid "Urgent"
@@ -234,15 +234,11 @@ msgstr "Незанятый"
 
 #: Omega/vars.py:344
 msgid "User occupied"
-msgstr ""
+msgstr "Занятый пользователем"
 
 #: Omega/vars.py:352
 msgid "Processing"
-msgstr ""
-
-#: Omega/vars.py:353 reports/templates/reports/ReportMain.html:37
-msgid "Finished"
-msgstr "Завершился"
+msgstr "Решается"
 
 #: Omega/vars.py:354 templates/error.html:5
 msgid "Error"
@@ -601,19 +597,19 @@ msgstr ""
 "переместить"
 
 #: jobs/templates/jobs/filesTree.html:207
-msgid "Please, choose the file you want to move"
+msgid "Please choose the file you want to move"
 msgstr "Пожалуйста, укажите файл, который Вы хотите переместить"
 
 #: jobs/templates/jobs/filesTree.html:208
-msgid "Please, choose the file"
+msgid "Please choose the file"
 msgstr "Пожалуйста, выберете файл"
 
 #: jobs/templates/jobs/filesTree.html:209
-msgid "Please, choose the file or the folder you want to rename"
+msgid "Please choose the file or the folder you want to rename"
 msgstr "Пожалуйста, укажите файл или папку, которую Вы хотите переименовать"
 
 #: jobs/templates/jobs/filesTree.html:210
-msgid "Please, choose the file or the folder you want to delete"
+msgid "Please choose the file or the folder you want to delete"
 msgstr "Пожалуйста, укажите файл или папку, которую Вы хотите удалить"
 
 #: jobs/templates/jobs/filesTree.html:211
@@ -947,7 +943,7 @@ msgid "All for checked"
 msgstr "Всего для отмеченных"
 
 #: jobs/templates/jobs/treeTable.html:57
-msgid "There are no jobs, please, populate them"
+msgid "There are no jobs, please populate them"
 msgstr "Заданий еще нет, пожалуйста, наполните базу данных"
 
 #: jobs/templates/jobs/viewJob.html:9 marks/tables.py:24
@@ -1098,15 +1094,15 @@ msgstr "Ваша роль"
 #: service/templates/service/schedulerJobSessions.html:16
 #: service/templates/service/sessions.html:16
 msgid "Priority"
-msgstr ""
+msgstr "Приоритет"
 
 #: jobs/utils.py:69
-msgid "Date of start"
-msgstr ""
+msgid "Decision start date"
+msgstr "Дата начала решения"
 
 #: jobs/utils.py:70
-msgid "Date of finish"
-msgstr ""
+msgid "Decision finish date"
+msgstr "Дата завершения решения"
 
 #: jobs/utils.py:71 service/templates/service/jobs_table.html:13
 #: service/templates/service/schedulerJobSessions.html:19
@@ -1123,42 +1119,34 @@ msgstr "Оператор"
 
 #: jobs/utils.py:73
 msgid "Pending tasks"
-msgstr ""
+msgstr "Ожидающие задачи"
 
 #: jobs/utils.py:74
 msgid "Processing tasks"
-msgstr ""
+msgstr "Решающиеся задачи"
 
 #: jobs/utils.py:75 service/templates/service/schedulerJobSessions.html:20
 #: service/templates/service/schedulerSessions.html:18
 #: service/templates/service/sessions.html:20
-#, fuzzy
-#| msgid "Finished"
 msgid "Finished tasks"
-msgstr "Завершился"
+msgstr "Решенные задачи"
 
 #: jobs/utils.py:76 service/templates/service/schedulerJobSessions.html:22
 #: service/templates/service/schedulerSessions.html:20
 #: service/templates/service/sessions.html:22
-#, fuzzy
-#| msgid "Error"
 msgid "Error tasks"
-msgstr "Ошибка"
+msgstr "Проваленные задачи"
 
 #: jobs/utils.py:77
-#, fuzzy
-#| msgid "Cancelled"
 msgid "Cancelled tasks"
-msgstr "Отменено"
+msgstr "Отмененные задачи"
 
 #: jobs/utils.py:78 service/templates/service/jobs_table.html:15
 #: service/templates/service/schedulerJobSessions.html:23
 #: service/templates/service/schedulerSessions.html:21
 #: service/templates/service/sessions.html:23
-#, fuzzy
-#| msgid "Total"
 msgid "Total tasks"
-msgstr "Всего"
+msgstr "Всего задач"
 
 #: jobs/utils.py:79
 #, fuzzy
@@ -1681,6 +1669,11 @@ msgstr ""
 msgid "In progress"
 msgstr "Выполняется"
 
+#: reports/templates/reports/ReportMain.html:37
+msgctxt "component status"
+msgid "Finished"
+msgstr "Завершился"
+
 #: reports/templates/reports/ReportMain.html:42
 msgid "Computer"
 msgstr "Компьютер"
@@ -1986,7 +1979,7 @@ msgid "The component is used and can't be deleted"
 msgstr "Компонент используется и не может быть удален"
 
 #: service/views.py:262
-msgid "The component was successfully deleted, please, reload the page"
+msgid "The component was successfully deleted, please reload the page"
 msgstr "Компонент был успешно удален, пожалуйста, обновите страницу"
 
 #: service/views.py:268
@@ -2002,7 +1995,7 @@ msgid "The component was successfully renamed"
 msgstr "Компонент был успешно переименован"
 
 #: service/views.py:300
-msgid "All unused components were deleted, please, reload the page"
+msgid "All unused components were deleted, please reload the page"
 msgstr ""
 "Все неиспользуемые компоненты были удалены, пожалуйста, обновите страницу"
 
@@ -2011,11 +2004,11 @@ msgid "The problem is used and can't be deleted"
 msgstr "Проблема используется и не может быть удалена"
 
 #: service/views.py:327
-msgid "The problem was successfully deleted, please, reload the page"
+msgid "The problem was successfully deleted, please reload the page"
 msgstr "Проблема была успешно удалена, пожалуйста, обновите страницу"
 
 #: service/views.py:346
-msgid "All unused problems were deleted, please, reload the page"
+msgid "All unused problems were deleted, please reload the page"
 msgstr ""
 "Все неиспользуемые проблемы были удалены, пожалуйста, обновите страницу"
 
@@ -2437,22 +2430,3 @@ msgstr "Оценка проблем в компонентах"
 #: users/views.py:299
 msgid "Saved"
 msgstr "Сохранено"
-
-#~ msgid "The regular expression is required"
-#~ msgstr "Требуется регулярное выражение"
-
-#~ msgid "Regular expression"
-#~ msgstr "Регулярное выражение"
-
-#, fuzzy
-#~| msgid "The job was not found"
-#~ msgid "Job was not found"
-#~ msgstr "Задание не было найдено"
-
-#, fuzzy
-#~| msgid "You don't have access to delete versions"
-#~ msgid "You don't have access to start decision"
-#~ msgstr "У Вас нет прав удалить версии"
-
-#~ msgid "Console log formatter"
-#~ msgstr "Форматер консольного лога"

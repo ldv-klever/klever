@@ -1,11 +1,11 @@
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
 FORMAT = 1
 
 ERRORS = {
     404: _('The job was not found'),
     400: _("You don't have an access to this job"),
-    451: _('You specified wrong parameters, please, reload the page and try again'),
+    451: _('You specified wrong parameters, please reload the page and try again'),
     504: _('The report was not found'),
     604: _("The mark was not found"),
     600: _("You don't have an access to this mark"),
@@ -350,7 +350,7 @@ NODE_STATUS = (
 TASK_STATUS = (
     ('PENDING', _('Pending')),
     ('PROCESSING', _('Processing')),
-    ('FINISHED', _('Finished')),
+    ('FINISHED', __('task status', 'Finished')),
     ('ERROR', _('Error')),
     ('CANCELLED', _('Cancelled'))
 )

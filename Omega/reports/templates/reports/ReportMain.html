@@ -34,7 +34,7 @@
                     {% elif status == 1 %}
                         <span style="color: #a4e9eb">{% trans 'In progress' %}</span>
                     {% elif status == 2 %}
-                        <span style="color: #4ce215">{% trans 'Finished' %}</span>
+                        <span style="color: #4ce215">{% trans 'Finished' context 'component status' %}</span>
                     {% endif %}
                     </td>
                 </tr>
