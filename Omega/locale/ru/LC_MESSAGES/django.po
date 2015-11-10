@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-10 13:03+0000\n"
+"POT-Creation-Date: 2015-11-10 15:06+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,248 +29,221 @@ msgstr ""
 "Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - "
 "{1})"
 
-#: Omega/vars.py:6
-msgid "The page was not found"
-msgstr "Страница не была найдена"
-
-#: Omega/vars.py:7 jobs/views.py:331 jobs/views.py:360 jobs/views.py:436
+#: Omega/vars.py:6 jobs/views.py:331 jobs/views.py:360 jobs/views.py:436
 #: jobs/views.py:524 jobs/views.py:817
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
-#: Omega/vars.py:8
+#: Omega/vars.py:7
 msgid "You don't have an access to this job"
 msgstr "У Вас нет прав на данное задание"
 
+#: Omega/vars.py:8
+msgid "You specified wrong parameters, please, reload the page and try again"
+msgstr ""
+"Вы указали Некорректные параметры, пожалуйста, обновите страницу и "
+"попробуйте еще раз"
+
 #: Omega/vars.py:9
-#, fuzzy
-#| msgid "You don't have an access to this job"
-msgid "You can't download this job"
-msgstr "У Вас нет прав на данное задание"
-
-#: Omega/vars.py:10
-msgid "Some job is downloaded right now, please try again later"
-msgstr ""
-"Сейчас загружается некоторое задание, пожалуйста, попробуйте снова позже"
-
-#: Omega/vars.py:11
-msgid "Wrong parameters, please reload page and try again."
-msgstr ""
-"Некорректные параметры, пожалуйста, обновите страницу и попробуйте еще раз"
-
-#: Omega/vars.py:12
 msgid "The report was not found"
 msgstr "Отчет не был найден"
 
-#: Omega/vars.py:13 marks/views.py:384 marks/views.py:425
+#: Omega/vars.py:10 marks/views.py:384 marks/views.py:425
 msgid "The mark was not found"
 msgstr "Оценка не была найдена"
 
-#: Omega/vars.py:14
+#: Omega/vars.py:11
 msgid "You don't have an access to this mark"
 msgstr "У Вас нет прав на данную оценку"
 
-#: Omega/vars.py:15
+#: Omega/vars.py:12
 msgid "You don't have an access to create new marks"
 msgstr "У Вас нет прав создавать новые оценки"
 
-#: Omega/vars.py:16
+#: Omega/vars.py:13
 msgid "You don't have an access to delete this mark"
 msgstr "У Вас нет прав удалить данную оценку"
 
-#: Omega/vars.py:17
-msgid "You don't have an access to download this mark"
-msgstr "У Вас нет прав загрузить данную оценку"
-
-#: Omega/vars.py:18
+#: Omega/vars.py:14
 msgid "Saving the mark failed"
 msgstr "Сохранение оценки провалилось"
 
-#: Omega/vars.py:19
+#: Omega/vars.py:15
 msgid "The tag was not found"
 msgstr "Тег не был найден"
 
-#: Omega/vars.py:20
+#: Omega/vars.py:16 service/views.py:318
 msgid "The problem was not found"
 msgstr "Проблема не была найдена"
 
-#: Omega/vars.py:21
-msgid "The user was not found"
-msgstr "Пользователь не был найден"
-
-#: Omega/vars.py:22
-msgid "The scheduler was not found"
-msgstr "Планировщик не был найден"
-
-#: Omega/vars.py:31 Omega/vars.py:45
+#: Omega/vars.py:25 Omega/vars.py:39
 #: service/templates/service/ManagerPanel.html:10 service/views.py:244
 #: service/views.py:292 service/views.py:311 service/views.py:338
 msgid "No access"
 msgstr "Нет доступа"
 
-#: Omega/vars.py:32 users/notifications.py:221
+#: Omega/vars.py:26 users/notifications.py:221
 msgid "Producer"
 msgstr "Постановщик"
 
-#: Omega/vars.py:33 users/notifications.py:222
+#: Omega/vars.py:27 users/notifications.py:222
 msgid "Manager"
 msgstr "Руководитель"
 
-#: Omega/vars.py:34 Omega/vars.py:47 users/notifications.py:221
+#: Omega/vars.py:28 Omega/vars.py:41 users/notifications.py:221
 msgid "Expert"
 msgstr "Эксперт"
 
-#: Omega/vars.py:35
+#: Omega/vars.py:29
 msgid "Service"
 msgstr ""
 
-#: Omega/vars.py:39
+#: Omega/vars.py:33
 msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
-#: Omega/vars.py:40
+#: Omega/vars.py:34
 msgid "Verification of commits in Linux kernel Git repositories"
 msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
-#: Omega/vars.py:41
+#: Omega/vars.py:35
 msgid "Verification of C programs"
 msgstr "Верификация Си-программ"
 
-#: Omega/vars.py:46 users/notifications.py:221
+#: Omega/vars.py:40 users/notifications.py:221
 msgid "Observer"
 msgstr "Обозреватель"
 
-#: Omega/vars.py:48
+#: Omega/vars.py:42
 msgid "Observer and Operator"
 msgstr "Обозреватель и оператор"
 
-#: Omega/vars.py:49
+#: Omega/vars.py:43
 msgid "Expert and Operator"
 msgstr "Эксперт и оператор"
 
-#: Omega/vars.py:53
+#: Omega/vars.py:47
 msgid "Not solved"
 msgstr "Не решено"
 
-#: Omega/vars.py:54 Omega/vars.py:357
+#: Omega/vars.py:48 Omega/vars.py:351
 msgid "Pending"
 msgstr ""
 
-#: Omega/vars.py:55
+#: Omega/vars.py:49
 msgid "Is solving"
 msgstr "Решается"
 
-#: Omega/vars.py:56
+#: Omega/vars.py:50
 msgid "Solved"
 msgstr "Решено"
 
-#: Omega/vars.py:57 reports/templates/reports/ReportMain.html:33
+#: Omega/vars.py:51 reports/templates/reports/ReportMain.html:33
 msgid "Failed"
 msgstr "Провалено"
 
-#: Omega/vars.py:58
+#: Omega/vars.py:52
 msgid "Corrupted"
 msgstr "Повреждено"
 
-#: Omega/vars.py:59 Omega/vars.py:361
+#: Omega/vars.py:53 Omega/vars.py:355
 msgid "Cancelled"
 msgstr "Отменено"
 
-#: Omega/vars.py:120
+#: Omega/vars.py:114
 msgid "Unreported"
 msgstr "Не сообщена"
 
-#: Omega/vars.py:121
+#: Omega/vars.py:115
 msgid "Reported"
 msgstr "Сообщена"
 
-#: Omega/vars.py:122
+#: Omega/vars.py:116
 msgid "Fixed"
 msgstr "Исправлена"
 
-#: Omega/vars.py:123
+#: Omega/vars.py:117
 msgid "Rejected"
 msgstr "Отклонена"
 
-#: Omega/vars.py:127 Omega/vars.py:134 Omega/vars.py:140 Omega/vars.py:149
+#: Omega/vars.py:121 Omega/vars.py:128 Omega/vars.py:134 Omega/vars.py:143
 #: jobs/utils.py:43 jobs/utils.py:51 reports/utils.py:32
-#: users/templates/users/showProfile.html:93
 msgid "Unknown"
 msgstr "Неизвестно"
 
-#: Omega/vars.py:128 Omega/vars.py:141
+#: Omega/vars.py:122 Omega/vars.py:135
 msgid "Bug"
 msgstr "Ошибка"
 
-#: Omega/vars.py:129 Omega/vars.py:142
+#: Omega/vars.py:123 Omega/vars.py:136
 msgid "Target bug"
 msgstr "Целевая ошибка"
 
-#: Omega/vars.py:130 Omega/vars.py:143
+#: Omega/vars.py:124 Omega/vars.py:137
 msgid "False positive"
 msgstr "Ложное сообщение об ошибке"
 
-#: Omega/vars.py:135 Omega/vars.py:150 jobs/utils.py:42
+#: Omega/vars.py:129 Omega/vars.py:144 jobs/utils.py:42
 msgid "Incorrect proof"
 msgstr "Некорректное доказательство"
 
-#: Omega/vars.py:136 Omega/vars.py:151
+#: Omega/vars.py:130 Omega/vars.py:145
 msgid "Missed target bug"
 msgstr "Пропуск целевой ошибки"
 
-#: Omega/vars.py:144 Omega/vars.py:152 jobs/utils.py:44 jobs/utils.py:52
+#: Omega/vars.py:138 Omega/vars.py:146 jobs/utils.py:44 jobs/utils.py:52
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: Omega/vars.py:145 Omega/vars.py:153 jobs/JobTableProperties.py:578
+#: Omega/vars.py:139 Omega/vars.py:147 jobs/JobTableProperties.py:578
 #: jobs/JobTableProperties.py:583 jobs/ViewJobData.py:189 jobs/utils.py:45
 #: jobs/utils.py:53
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: Omega/vars.py:332 Omega/vars.py:351
+#: Omega/vars.py:326 Omega/vars.py:345
 msgid "Healthy"
 msgstr ""
 
-#: Omega/vars.py:333 Omega/vars.py:352
+#: Omega/vars.py:327 Omega/vars.py:346
 #: service/templates/service/scheduler.html:20
 msgid "Ailing"
 msgstr ""
 
-#: Omega/vars.py:334 Omega/vars.py:353
+#: Omega/vars.py:328 Omega/vars.py:347
 #: service/templates/service/scheduler.html:22
 msgid "Disconnected"
 msgstr ""
 
-#: Omega/vars.py:343
+#: Omega/vars.py:337
 msgid "Urgent"
 msgstr ""
 
-#: Omega/vars.py:344
+#: Omega/vars.py:338
 msgid "High"
 msgstr ""
 
-#: Omega/vars.py:345
+#: Omega/vars.py:339
 msgid "Low"
 msgstr "Низкий"
 
-#: Omega/vars.py:346
+#: Omega/vars.py:340
 msgid "Idle"
 msgstr ""
 
-#: Omega/vars.py:350
+#: Omega/vars.py:344
 msgid "User occupied"
 msgstr ""
 
-#: Omega/vars.py:358
+#: Omega/vars.py:352
 msgid "Processing"
 msgstr ""
 
-#: Omega/vars.py:359 reports/templates/reports/ReportMain.html:37
+#: Omega/vars.py:353 reports/templates/reports/ReportMain.html:37
 msgid "Finished"
 msgstr "Завершился"
 
-#: Omega/vars.py:360 templates/error.html:5
+#: Omega/vars.py:354 templates/error.html:5
 msgid "Error"
 msgstr "Ошибка"
 
@@ -282,11 +255,11 @@ msgstr "Ошибка"
 #: jobs/views.py:834 jobs/views.py:836 marks/utils.py:762 marks/utils.py:822
 #: marks/utils.py:973 marks/views.py:181 marks/views.py:199 marks/views.py:212
 #: marks/views.py:369 marks/views.py:380 marks/views.py:410 marks/views.py:421
-#: reports/etv.py:278 service/utils.py:856 service/utils.py:864
-#: service/utils.py:945 service/utils.py:967 service/utils.py:1009
-#: service/utils.py:1013 service/views.py:241 service/views.py:282
+#: reports/etv.py:278 service/utils.py:869 service/utils.py:877
+#: service/utils.py:958 service/utils.py:980 service/utils.py:1022
+#: service/utils.py:1026 service/views.py:241 service/views.py:282
 #: service/views.py:289 service/views.py:308 service/views.py:335
-#: users/views.py:267
+#: users/views.py:300
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
@@ -334,7 +307,6 @@ msgid "Last name"
 msgstr "Фамилия"
 
 #: jobs/JobTableProperties.py:29 users/templates/users/showProfile.html:28
-#: users/templates/users/showProfile.html:67
 msgid "Date"
 msgstr "Дата"
 
@@ -464,8 +436,6 @@ msgstr "Комментарий к изменению"
 #: marks/templates/marks/EditUnknownMark.html:43
 #: marks/templates/marks/EditUnknownMark.html:101
 #: marks/templates/marks/ViewMark.html:54
-#: users/templates/users/showProfile.html:31
-#: users/templates/users/showProfile.html:71
 msgid "Comment"
 msgstr "Комментарий"
 
@@ -677,13 +647,11 @@ msgstr "Теги"
 
 #: jobs/templates/jobs/jobData.html:67
 #: jobs/templates/jobs/viewJobFilters.html:38
-#: users/templates/users/showProfile.html:91
 msgid "Unsafe"
 msgstr "Предупреждение об ошибке"
 
 #: jobs/templates/jobs/jobData.html:82
 #: jobs/templates/jobs/viewJobFilters.html:33
-#: users/templates/users/showProfile.html:89
 msgid "Safe"
 msgstr "Доказательство корректности"
 
@@ -732,6 +700,13 @@ msgstr "Гбайт"
 #: jobs/templates/jobs/startDecision.html:48
 #: jobs/templates/jobs/startDecision.html:53
 #: jobs/templates/jobs/startDecision.html:58
+#: marks/templates/marks/filters.html:48
+#: marks/templates/marks/filters.html:130
+#: reports/templates/reports/AttrsFilters.html:31
+#: reports/templates/reports/ListFilters.html:13
+#: reports/templates/reports/ListFilters.html:20
+#: reports/templates/reports/UnknownsFilters.html:13
+#: reports/templates/reports/UnknownsFilters.html:38
 msgid "e.g."
 msgstr "например,"
 
@@ -985,7 +960,7 @@ msgstr "Заданий еще нет, пожалуйста, наполните �
 #: service/templates/service/jobs_table.html:8
 #: service/templates/service/schedulerJobSessions.html:15
 #: service/templates/service/schedulerSessions.html:7
-#: service/templates/service/sessions.html:14
+#: service/templates/service/sessions.html:14 users/views.py:181
 msgid "Job"
 msgstr "Задание"
 
@@ -1578,8 +1553,8 @@ msgstr "Упорядочить по атрибуту"
 #: reports/templates/reports/ListFilters.html:20
 #: reports/templates/reports/UnknownsFilters.html:13
 #: reports/templates/reports/UnknownsFilters.html:38
-msgid "Enter the full name of the attribute, e.g."
-msgstr "Введите полное название атрибута, например,"
+msgid "Enter the full name of the attribute"
+msgstr "Введите полное название атрибута"
 
 #: marks/templates/marks/filters.html:52
 msgid "Order by the number of associated leaf reports"
@@ -1767,38 +1742,28 @@ msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
 #: service/templates/service/ManagerPanel.html:15
-#, fuzzy
-#| msgid "Component"
 msgid "Components"
-msgstr "Компонент"
+msgstr "Компоненты"
 
 #: service/templates/service/ManagerPanel.html:28
 msgid "Delete all unused components"
-msgstr ""
+msgstr "Удалить все неиспользуемые компоненты"
 
 #: service/templates/service/ManagerPanel.html:30
-#, fuzzy
-#| msgid "There are no marks of the given type yet"
 msgid "There are no components yet"
-msgstr "Оценок данного типа еще нет"
+msgstr "Компонентов еще нет"
 
 #: service/templates/service/ManagerPanel.html:36
-#, fuzzy
-#| msgid "Unknown error"
-msgid "Unknown problems"
-msgstr "Неизвестная ошибка"
+msgid "Problems"
+msgstr "Проблемы"
 
 #: service/templates/service/ManagerPanel.html:49
-#, fuzzy
-#| msgid "Delete selected jobs"
 msgid "Delete all unused problems"
-msgstr "Удалить отмеченные задания"
+msgstr "Удалить все неиспользуемые проблемы"
 
 #: service/templates/service/ManagerPanel.html:51
-#, fuzzy
-#| msgid "There are no marks of the given type yet"
-msgid "There are no unknown problems yet"
-msgstr "Оценок данного типа еще нет"
+msgid "There are no problems yet"
+msgstr "Проблем еще нет"
 
 #: service/templates/service/jobs.html:10
 msgid "Update automatically"
@@ -1988,97 +1953,81 @@ msgstr ""
 msgid "Only pending and processing jobs can be stopped"
 msgstr ""
 
-#: service/utils.py:888 service/utils.py:942
+#: service/utils.py:901 service/utils.py:955
 #, fuzzy
 #| msgid "The job was not found"
 msgid "Job was not found"
 msgstr "Задание не было найдено"
 
-#: service/utils.py:935
+#: service/utils.py:948
 #, fuzzy
 #| msgid "The file was not found"
 msgid "Scheduler was not found"
 msgstr "Файл не был найден"
 
-#: service/utils.py:948
+#: service/utils.py:961
 #, fuzzy
 #| msgid "You don't have access to delete versions"
 msgid "You don't have access to start decision"
 msgstr "У Вас нет прав удалить версии"
 
-#: service/utils.py:970 service/utils.py:1017
+#: service/utils.py:983 service/utils.py:1030
 msgid "Klever scheduler is disconnected"
 msgstr ""
 
-#: service/utils.py:974
+#: service/utils.py:987
 msgid "VerifierCloud scheduler is disconnected"
 msgstr ""
 
-#: service/utils.py:979
+#: service/utils.py:992
 msgid "You don't have login and password for VefifierCloud scheduler"
 msgstr ""
 
-#: service/utils.py:1015
+#: service/utils.py:1028
 msgid "Klever scheduler is ailing"
 msgstr ""
 
 #: service/views.py:251
-#, fuzzy
-#| msgid "The job parent was not found"
-msgid "Component was not found"
-msgstr "Родитель задания не был найден"
+msgid "The component was not found"
+msgstr "Компонент не был найден"
 
 #: service/views.py:259
-msgid "Component is used and can't be deleted"
-msgstr ""
+msgid "The component is used and can't be deleted"
+msgstr "Компонент используется и не может быть удален"
 
 #: service/views.py:262
-#, fuzzy
-#| msgid "The view was successfully removed"
-msgid "Component was successfully deleted"
-msgstr "Представление было успешно удалено"
+msgid "The component was successfully deleted, please, reload the page"
+msgstr "Компонент был успешно удален, пожалуйста, обновите страницу"
 
 #: service/views.py:268
-msgid "New component name has wrong length"
-msgstr ""
+msgid "The component name should be greater than 0 and less than 256 symbols"
+msgstr "Название компонента должно быть больше 0 и меньше 256 символов"
 
 #: service/views.py:273
-msgid "New component name is used already"
-msgstr ""
+msgid "The specified component name is used already"
+msgstr "Указанное название компонента уже используется"
 
 #: service/views.py:280
-#, fuzzy
-#| msgid "The view was successfully removed"
-msgid "Component was successfully renamed"
-msgstr "Представление было успешно удалено"
+msgid "The component was successfully renamed"
+msgstr "Компонент был успешно переименован"
 
 #: service/views.py:300
-#, fuzzy
-#| msgid "Your version is expired, please reload the page"
-msgid "Components were cleared, please reload the page"
-msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
-
-#: service/views.py:318
-#, fuzzy
-#| msgid "The problem was not found"
-msgid "Problem was not found"
-msgstr "Проблема не была найдена"
+msgid "All unused components were deleted, please, reload the page"
+msgstr ""
+"Все неиспользуемые компоненты были удалены, пожалуйста, обновите страницу"
 
 #: service/views.py:324
-msgid "Problem is used and can't be deleted"
-msgstr ""
+msgid "The problem is used and can't be deleted"
+msgstr "Проблема используется и не может быть удалена"
 
 #: service/views.py:327
-#, fuzzy
-#| msgid "The view was successfully removed"
-msgid "Problem was successfully deleted"
-msgstr "Представление было успешно удалено"
+msgid "The problem was successfully deleted, please, reload the page"
+msgstr "Проблема была успешно удалена, пожалуйста, обновите страницу"
 
 #: service/views.py:346
-#, fuzzy
-#| msgid "Your version is expired, please reload the page"
-msgid "Problems were cleared, please reload the page"
-msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
+msgid "All unused problems were deleted, please, reload the page"
+msgstr ""
+"Все неиспользуемые проблемы были удалены, пожалуйста, обновите страницу"
 
 #: templates/Population.html:5 templates/base.html:57
 msgid "Population"
@@ -2152,7 +2101,7 @@ msgstr "Меню"
 
 #: templates/base.html:43
 msgid "Schedulers"
-msgstr ""
+msgstr "Планировщики"
 
 #: templates/base.html:44 templates/base.html.py:51 templates/base.html:91
 #: templates/base.html.py:116
@@ -2292,12 +2241,12 @@ msgstr "Оценка была удалена"
 
 #: users/notifications.py:28
 #, python-format
-msgid "The job <a href=\"%(url)s\">%(id)s</a> was created by %(user)s."
+msgid "The job <a href=\"%(url)s\">%(id)s</a> was created by %(user)s"
 msgstr "Пользователь %(user)s создал задание <a href=\"%(url)s\">%(id)s</a>"
 
 #: users/notifications.py:29
 #, python-format
-msgid "The job with identifier %(id)s was created by %(user)s."
+msgid "The job with identifier %(id)s was created by %(user)s"
 msgstr "Пользователь %(user)s создал задание с идентификатором %(id)s"
 
 #: users/notifications.py:32
@@ -2401,7 +2350,7 @@ msgid "Time zone"
 msgstr "Часовой пояс"
 
 #: users/templates/users/edit-profile.html:73
-msgid "VerifierCloud credentials"
+msgid "VerifierCloud Credentials"
 msgstr "Идентификационная информация для VerifierCloud"
 
 #: users/templates/users/notifications.html:3
@@ -2415,12 +2364,12 @@ msgstr "Регистрация"
 #: users/templates/users/schedulerUser.html:16
 #: users/templates/users/schedulerUser.html:34
 #: users/templates/users/schedulerUser.html:52
-msgid "Required"
-msgstr ""
+msgid "This field is required"
+msgstr "Обязательное поле"
 
 #: users/templates/users/schedulerUser.html:60
-msgid "Scheduler user will be deleted"
-msgstr ""
+msgid "The VerifierCloud credentials will be deleted"
+msgstr "Идентификационная информация для VerifierCloud будет удалена"
 
 #: users/templates/users/showProfile.html:6
 msgid "Profile"
@@ -2447,35 +2396,20 @@ msgid "Last Activity"
 msgstr "Последние действия"
 
 #: users/templates/users/showProfile.html:29
-#: users/templates/users/showProfile.html:68
 msgid "Action Kind"
 msgstr "Вид действия"
 
 #: users/templates/users/showProfile.html:30
-msgid "Job Title"
-msgstr "Название задания"
+msgid "Object Type"
+msgstr "Тип объекта"
 
-#: users/templates/users/showProfile.html:43
-#: users/templates/users/showProfile.html:83
-msgid "Creation"
-msgstr "Создание"
+#: users/templates/users/showProfile.html:31
+msgid "Object Link"
+msgstr "Ссылка на объект"
 
-#: users/templates/users/showProfile.html:45
-#: users/templates/users/showProfile.html:85
-msgid "Modification"
-msgstr "Изменение"
-
-#: users/templates/users/showProfile.html:69
-#, fuzzy
-#| msgid "Mark"
-msgid "Mark type"
-msgstr "Оценка"
-
-#: users/templates/users/showProfile.html:70
-#, fuzzy
-#| msgid "Parent identifier"
-msgid "Mark identifier"
-msgstr "Идентификатор родителя"
+#: users/templates/users/showProfile.html:32
+msgid "Change Comment"
+msgstr "Комментарий к изменению"
 
 #: users/views.py:41
 msgid "Account has been disabled"
@@ -2485,19 +2419,41 @@ msgstr "Учетная запись заблокирована"
 msgid "Incorrect username or password"
 msgstr "Неправильное имя пользователя или пароль"
 
-#: users/views.py:266
+#: users/views.py:170 users/views.py:193 users/views.py:214 users/views.py:235
+msgid "Creation"
+msgstr "Создание"
+
+#: users/views.py:173 users/views.py:196 users/views.py:217 users/views.py:238
+msgid "Modification"
+msgstr "Изменение"
+
+#: users/views.py:204
+msgid "Safes mark"
+msgstr "Оценка доказательств корректности"
+
+#: users/views.py:225
+msgid "Unsafes mark"
+msgstr "Оценка предупреждений об ошибках"
+
+#: users/views.py:246
+msgid "Unknowns mark"
+msgstr "Оценка проблем в компонентах"
+
+#: users/views.py:299
 msgid "Saved"
 msgstr "Сохранено"
 
 #, fuzzy
-#~| msgid "Maximum memory size"
-#~ msgid "Maximum RAM memory"
-#~ msgstr "Максимальный объем оперативной памяти"
+#~| msgid "Your version is expired, please reload the page"
+#~ msgid "Problems were cleared, please reload the page"
+#~ msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
 #, fuzzy
-#~| msgid "Stop decision"
-#~ msgid "Run decision"
-#~ msgstr "Остановить решение"
+#~| msgid "Unknown error"
+#~ msgid "Unknown problems"
+#~ msgstr "Неизвестная ошибка"
 
-#~ msgid "AVTG priority"
-#~ msgstr "Приоритет генерации абстрактных верификационных задач"
+#, fuzzy
+#~| msgid "The problem was not found"
+#~ msgid "Problem was not found"
+#~ msgstr "Проблема не была найдена"

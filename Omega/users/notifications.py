@@ -25,8 +25,8 @@ SUBJECTS = {
 
 MESSAGES = {
     0: [
-        _('The job <a href="%(url)s">%(id)s</a> was created by %(user)s.'),
-        _('The job with identifier %(id)s was created by %(user)s.')
+        _('The job <a href="%(url)s">%(id)s</a> was created by %(user)s'),
+        _('The job with identifier %(id)s was created by %(user)s')
     ],
     1: [
         _('The job <a href="%(url)s">%(id)s</a> was changed by '

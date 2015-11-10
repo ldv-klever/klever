@@ -13,7 +13,7 @@
         <br>
         <i id="sch_u_login_warn" class="for_popup ui warning red big icon" style="display: none"></i>
         <div class="ui popup top left transition hidden">
-            <span style="white-space: nowrap">{% trans 'Required' %}</span>
+            <span style="white-space: nowrap">{% trans 'This field is required' %}</span>
         </div>
     </div>
 </div>
@@ -31,7 +31,7 @@
         <br>
         <i id="sch_u_password_warn" class="for_popup ui warning red big icon" style="display: none"></i>
         <div class="ui popup top left transition hidden">
-            <span style="white-space: nowrap">{% trans 'Required' %}</span>
+            <span style="white-space: nowrap">{% trans 'This field is required' %}</span>
         </div>
     </div>
 </div>
@@ -49,7 +49,7 @@
         <br>
         <i id="sch_u_password_retype_warn" class="for_popup ui warning red big icon" style="display: none"></i>
         <div class="ui popup top left transition hidden">
-            <span style="white-space: nowrap">{% trans 'Required' %}</span>
+            <span style="white-space: nowrap">{% trans 'This field is required' %}</span>
         </div>
         <i id="sch_u_password_retype_warn_2" class="for_popup ui warning red big icon" style="display: none"></i>
         <div class="ui popup top left transition hidden">
@@ -57,4 +57,4 @@
         </div>
     </div>
 </div>
-{% if user.scheduleruser %}<h5 id="sch_user_delete_warn" class="ui red header" style="display: none">{% trans 'Scheduler user will be deleted' %}</h5>{% endif %}
+{% if user.scheduleruser %}<h5 id="sch_user_delete_warn" class="ui red header" style="display: none">{% trans 'The VerifierCloud credentials will be deleted' %}</h5>{% endif %}

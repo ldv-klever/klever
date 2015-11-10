@@ -201,7 +201,7 @@ def show_profile(request, user_id=None):
             'small_comment': small_comment,
             'act_type': act_type,
             'act_color': act_color,
-            'obj_type': _('Safe mark'),
+            'obj_type': _('Safes mark'),
             'obj_link': act.mark.identifier,
             'href': reverse('marks:edit_mark', args=['safe', act.mark_id]),
         })
@@ -222,7 +222,7 @@ def show_profile(request, user_id=None):
             'small_comment': small_comment,
             'act_type': act_type,
             'act_color': act_color,
-            'obj_type': _('Unsafe mark'),
+            'obj_type': _('Unsafes mark'),
             'obj_link': act.mark.identifier,
             'href': reverse('marks:edit_mark', args=['unsafe', act.mark_id])
         })
@@ -243,7 +243,7 @@ def show_profile(request, user_id=None):
             'small_comment': small_comment,
             'act_type': act_type,
             'act_color': act_color,
-            'obj_type': _('Unknown mark'),
+            'obj_type': _('Unknowns mark'),
             'obj_link': act.mark.identifier,
             'href': reverse('marks:edit_mark', args=['unknown', act.mark_id])
         })

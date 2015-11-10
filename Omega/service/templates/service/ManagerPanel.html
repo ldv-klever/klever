@@ -33,7 +33,7 @@
             </div>
             <div class="five wide column">
                 <div class="ui violet segment">
-                    <h3 class="header">{% trans 'Unknown problems' %}</h3>
+                    <h3 class="header">{% trans 'Problems' %}</h3>
                     {% if problems|length > 0 %}
                         <div style="height: 340px; overflow-y: auto">
                             <table class="ui compact table">
@@ -48,7 +48,7 @@
                         <br>
                         <button id="clear_all_problems" class="ui red button">{% trans 'Delete all unused problems' %}</button>
                     {% else %}
-                        <h4>{% trans 'There are no unknown problems yet' %}</h4>
+                        <h4>{% trans 'There are no problems yet' %}</h4>
                     {% endif %}
                 </div>
             </div>

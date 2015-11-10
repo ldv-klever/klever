@@ -248,7 +248,7 @@ def change_component(request):
             pk=int(request.POST.get('component_id', 0)))
     except ObjectDoesNotExist:
         return JsonResponse({
-            'error': _("Component was not found")
+            'error': _("The component was not found")
         })
     action = request.POST.get('action', '')
     if action == 'delete':
@@ -256,28 +256,28 @@ def change_component(request):
             component.delete()
         except ProtectedError:
             return JsonResponse({
-                'error': _("Component is used and can't be deleted")
+                'error': _("The component is used and can't be deleted")
             })
         return JsonResponse({
-            'message': _("Component was successfully deleted")
+            'message': _("The component was successfully deleted, please, reload the page")
         })
     elif action == 'rename':
         new_name = request.POST.get('name', '')
         if len(new_name) == 0 or len(new_name) > 255:
             return JsonResponse({
-                'error': _("New component name has wrong length")
+                'error': _("The component name should be greater than 0 and less than 256 symbols")
             })
         try:
             Component.objects.get(Q(name=new_name) & ~Q(pk=component.pk))
             return JsonResponse({
-                'error': _("New component name is used already")
+                'error': _("The specified component name is used already")
             })
         except ObjectDoesNotExist:
             pass
         component.name = new_name
         component.save()
         return JsonResponse({
-            'message': _("Component was successfully renamed")
+            'message': _("The component was successfully renamed")
         })
     return JsonResponse({'error': _("Unknown error")})
 
@@ -297,7 +297,7 @@ def clear_components_table(request):
         except ProtectedError:
             pass
     return JsonResponse({
-        'message': _("Components were cleared, please reload the page")
+        'message': _("All unused components were deleted, please, reload the page")
     })
 
 
@@ -315,16 +315,16 @@ def delete_problem(request):
             pk=int(request.POST.get('problem_id', 0)))
     except ObjectDoesNotExist:
         return JsonResponse({
-            'error': _("Problem was not found")
+            'error': _("The problem was not found")
         })
     try:
         problem.delete()
     except ProtectedError:
         return JsonResponse({
-            'error': _("Problem is used and can't be deleted")
+            'error': _("The problem is used and can't be deleted")
         })
     return JsonResponse({
-        'message': _("Problem was successfully deleted")
+        'message': _("The problem was successfully deleted, please, reload the page")
     })
 
 
@@ -343,7 +343,7 @@ def clear_problems(request):
         except ProtectedError:
             pass
     return JsonResponse({
-        'message': _("Problems were cleared, please reload the page")
+        'message': _("All unused problems were deleted, please, reload the page")
     })
 
 

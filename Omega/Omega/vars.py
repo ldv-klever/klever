@@ -5,7 +5,7 @@ FORMAT = 1
 ERRORS = {
     404: _('The job was not found'),
     400: _("You don't have an access to this job"),
-    451: _('Wrong parameters, please reload page and try again.'),
+    451: _('You specified wrong parameters, please, reload the page and try again'),
     504: _('The report was not found'),
     604: _("The mark was not found"),
     600: _("You don't have an access to this mark"),
