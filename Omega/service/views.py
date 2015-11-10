@@ -263,9 +263,9 @@ def change_component(request):
         })
     elif action == 'rename':
         new_name = request.POST.get('name', '')
-        if len(new_name) == 0 or len(new_name) > 255:
+        if len(new_name) == 0 or len(new_name) > 15:
             return JsonResponse({
-                'error': _("The component name should be greater than 0 and less than 256 symbols")
+                'error': _("The component name should be greater than 0 and less than 16 symbols")
             })
         try:
             Component.objects.get(Q(name=new_name) & ~Q(pk=component.pk))

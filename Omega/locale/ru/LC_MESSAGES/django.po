@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-10 15:53+0000\n"
+"POT-Creation-Date: 2015-11-10 16:19+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1990,8 +1990,8 @@ msgid "The component was successfully deleted, please, reload the page"
 msgstr "Компонент был успешно удален, пожалуйста, обновите страницу"
 
 #: service/views.py:268
-msgid "The component name should be greater than 0 and less than 256 symbols"
-msgstr "Название компонента должно быть больше 0 и меньше 256 символов"
+msgid "The component name should be greater than 0 and less than 16 symbols"
+msgstr "Название компонента должно быть больше 0 и меньше 16 символов"
 
 #: service/views.py:273
 msgid "The specified component name is used already"
