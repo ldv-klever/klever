@@ -7,7 +7,7 @@ from jobs.models import Job
 
 
 class UnknownProblem(models.Model):
-    name = models.CharField(max_length=1023)
+    name = models.CharField(max_length=15)
 
     class Meta:
         db_table = 'cache_mark_unknown_problem'

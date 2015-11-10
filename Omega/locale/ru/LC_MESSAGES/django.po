@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-10 16:19+0000\n"
+"POT-Creation-Date: 2015-11-10 16:48+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -358,8 +358,6 @@ msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
 #: jobs/JobTableProperties.py:47 jobs/templates/jobs/viewJobFilters.html:77
-#: marks/templates/marks/CreateMark.html:174
-#: marks/templates/marks/MarkUnknownData.html:28
 msgid "Problem name"
 msgstr "Название проблемы"
 
@@ -1411,7 +1409,9 @@ msgstr "Отчет"
 msgid "Number of associated leaf reports"
 msgstr "Количество привязанных листовых отчетов"
 
-#: marks/tables.py:28 marks/templates/marks/ViewMark.html:136
+#: marks/tables.py:28 marks/templates/marks/CreateMark.html:174
+#: marks/templates/marks/MarkUnknownData.html:28
+#: marks/templates/marks/ViewMark.html:136
 msgid "Problem"
 msgstr "Проблема"
 
@@ -1463,21 +1463,21 @@ msgstr "Возможно ли редактирование"
 #: marks/templates/marks/CreateMark.html:169
 #: marks/templates/marks/MarkUnknownData.html:23
 #: marks/templates/marks/ViewMark.html:132
-msgid "Regular expression"
-msgstr "Регулярное выражение"
+msgid "Pattern"
+msgstr "Шаблон"
 
 #: marks/templates/marks/CreateMark.html:179
 #: marks/templates/marks/MarkUnknownData.html:33
-msgid "Link to description"
-msgstr "Ссылка на описание"
+msgid "Link to detailed description"
+msgstr "Ссылка на детальное описание"
 
 #: marks/templates/marks/CreateMark.html:209
-msgid "The regular expression is required"
-msgstr "Требуется регулярное выражение"
+msgid "The pattern is required"
+msgstr "Требуется шаблон"
 
 #: marks/templates/marks/CreateMark.html:210
-msgid "The problem name is required"
-msgstr "Требуется название проблемы"
+msgid "The problem is required"
+msgstr "Требуется проблема"
 
 #: marks/templates/marks/EditMark.html:53
 #: marks/templates/marks/EditUnknownMark.html:50
@@ -2437,6 +2437,12 @@ msgstr "Оценка проблем в компонентах"
 #: users/views.py:299
 msgid "Saved"
 msgstr "Сохранено"
+
+#~ msgid "The regular expression is required"
+#~ msgstr "Требуется регулярное выражение"
+
+#~ msgid "Regular expression"
+#~ msgstr "Регулярное выражение"
 
 #, fuzzy
 #~| msgid "The job was not found"
