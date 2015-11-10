@@ -20,6 +20,7 @@ urlpatterns = [
     url(r'^download_task/(?P<task_id>[0-9]+)/$', views.download_task),
     url(r'^update_nodes/$', views.update_nodes),
     url(r'^schedulers/$', views.schedulers_info, name='schedulers'),
+    url(r'^ajax/add_scheduler_user/$', views.add_scheduler_user),
 
     url(r'^manager-tools/$', views.manager_tools, name='manager_tools'),
     url(r'^ajax/change_component/$', views.change_component),

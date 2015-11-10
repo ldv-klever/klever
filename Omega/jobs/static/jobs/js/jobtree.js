@@ -79,15 +79,16 @@ function add_new_order() {
             new_item.find('label[for="' + old_id + '"]').attr('for', old_id + sel_value);
         });
         available_orders.children('option[value=' + sel_value + ']').remove();
-        available_orders.dropdown('set selected', available_orders.children().first().val());
         check_order_form();
     }
     return false;
 }
 
 function check_order_form() {
-    if ($('#available_orders').children('option').length > 0) {
+    var available_orders = $('#available_orders');
+    if (available_orders.children('option').length > 0) {
         $('#available_orders_form').show();
+        available_orders.dropdown('set selected', available_orders.children().first().val());
     }
     else {
         $('#available_orders_form').hide();
@@ -95,8 +96,16 @@ function check_order_form() {
 }
 
 function check_filters_form() {
-    var filters_form = $('#available_filters_form');
-    $('#available_filters').children('option').length ? filters_form.show() : filters_form.hide();
+    var filters_form = $('#available_filters_form'), available_filters = $('#available_filters');
+    if (available_filters.children('option').length > 0) {
+        filters_form.show();
+        available_filters.dropdown('set selected', available_filters.children().first().val());
+        available_filters.next().next().text(available_filters.children().first().text());
+    }
+    else {
+        filters_form.hide();
+    }
+    $('.ui.checkbox').checkbox();
 }
 
 function delete_selected_order() {
@@ -183,10 +192,18 @@ function getFilters() {
             }
         }
         else if (filter_name === 'status') {
-            filter_data = {
-                type: $('#filter_type__' + filter_name ).children("option:selected").val(),
-                value: $('#filter_value__' + filter_name).children("option:selected").val()
-            };
+            var statuses = [];
+            $('#filter_value__' + filter_name).find('input').each(function () {
+                if ($(this).is(':checked')) {
+                    statuses.push($(this).val());
+                }
+            });
+            if (statuses.length > 0) {
+                filter_data = {
+                    type: 'list',
+                    value: statuses
+                }
+            }
         }
         else if (filter_name === 'resource_component') {
             filter_value = $('#filter_value__' + filter_name).val();
@@ -223,6 +240,12 @@ function getFilters() {
                     value: filter_value
                 };
             }
+        }
+        else if (filter_name === 'priority') {
+            filter_data = {
+                type: $('#filter_type__' + filter_name).val(),
+                value: $('#filter_value__' + filter_name).val()
+            };
         }
         if (filter_data) {
             filters[filter_name] = filter_data;
@@ -287,7 +310,7 @@ $(document).ready(function () {
     var max_table_height = $(window).height() - 100,
         small_table_height = $(window).height() - 300;
     inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon');
-    $('#jobtable').attr('style', 'max-height: ' + small_table_height + 'px;');
+    $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;');
     check_order_form();
     check_filters_form();
     fill_all_values();
@@ -338,17 +361,18 @@ $(document).ready(function () {
             id: ("filter_form__" + filter_name)
         }).append(filter_template);
         new_filter_element.find('[id^="temp___"]').each(function () {
-            // var new_id = $(this).attr('id').replace('temp___', '');
             $(this).attr('id', $(this).attr('id').replace('temp___', ''));
             if ($(this).attr('id') === ('filter_title__' + filter_name)) {
                 $(this).text(selected_filter.text());
             }
         });
+        new_filter_element.find('label[for^="temp___"]').each(function () {
+            $(this).attr('for', $(this).attr('for').replace('temp___', ''));
+        });
         $('#selected_filters_list').append(new_filter_element);
         $('#remove__filter__' + filter_name).click(remove_filter_form);
         selected_filter.remove();
-        $('.ui.dropdown').dropdown();
-        available_filters.dropdown('set selected', available_filters.children().first().val());
+        $('.filter-dropdown').dropdown();
         check_filters_form();
         return false;
     });

@@ -101,9 +101,6 @@
                     </tr>
                 </tbody>
             </table>
-            <span class="italic" style="color: silver">*{% trans 'Reserved' %}/{% trans 'Available' %}</span>
-            <br>
-            <span class="italic" style="color: silver">**{% trans 'Reserved' %}/{% trans 'Available' %}, {% trans 'GB' %}</span>
         </div>
         <div class="six wide column">
             {% for conf in data.conf_data %}
@@ -185,4 +182,7 @@
             </div>
         </div>
     {% endif %}
+    <span class="italic" style="color: silver">*{% trans 'Reserved' %}/{% trans 'Available' %}</span>
+    <br>
+    <span class="italic" style="color: silver">**{% trans 'Reserved' %}/{% trans 'Available' %}, {% trans 'GB' %}</span>
 {% endblock %}

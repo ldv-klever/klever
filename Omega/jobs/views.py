@@ -9,7 +9,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
 from django.core.exceptions import MultipleObjectsReturned
-from Omega.vars import VIEW_TYPES
+from Omega.vars import VIEW_TYPES, PRIORITY
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
@@ -34,6 +34,7 @@ def tree_view(request):
         'FF': FilterForm(*tree_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
+        'priorities': reversed(PRIORITY),
         'can_create': JobAccess(request.user).can_create(),
         'TableData': TableTree(*tree_args)
     })
@@ -820,10 +821,6 @@ def stop_decision(request):
     result = StopDecision(job)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
-    for report in ReportComponent.objects.filter(root__job=job):
-        if report.finish_date is None:
-            report.finish_date = pytz.timezone('UTC').localize(datetime.now())
-            report.save()
     return JsonResponse({'status': True})
 
 

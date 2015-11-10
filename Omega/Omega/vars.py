@@ -65,7 +65,7 @@ JOB_DEF_VIEW = {
     # name [iexact, istartswith, icontains] (<any text>)
     # change_author [is] (<id in the table>)
     # change_date [younger, older] (weeks|days|hours|minutes: <number>)
-    # status [is, isnot] (<status identifier>)
+    # status ([status identifiers])
     # resource:component [iexact, istartswith, icontains] (<any text>)
     # problem:component [iexact, istartswith, icontains] (<any text>)
     # problem:problem [iexact, istartswith, icontains] (<any text>)

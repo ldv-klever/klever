@@ -227,12 +227,14 @@ def set_schedulers_status(request):
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
 
+
 @login_required
 def schedulers_info(request):
     return render(request, 'service/scheduler.html', {
         'schedulers': Scheduler.objects.all(),
         'data': NodesData()
     })
+
 
 @login_required
 def change_component(request):
@@ -399,4 +401,24 @@ def process_job(request):
         return JsonResponse({'error': 'Job is not PENDING'})
     job.status = JOB_STATUS[2][0]
     job.save()
+    return JsonResponse({})
+
+
+@login_required
+def add_scheduler_user(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': _('Unknown error')})
+    if 'login' not in request.POST or len(request.POST['login']) == 0:
+        return JsonResponse({'error': _('Wrong login')})
+    if 'password' not in request.POST or len(request.POST['password']) == 0:
+        return JsonResponse({'error': _('Wrong password')})
+    try:
+        sch_u = request.user.scheduleruser
+    except ObjectDoesNotExist:
+        sch_u = SchedulerUser()
+        sch_u.user = request.user
+    sch_u.login = request.POST['login']
+    sch_u.password = request.POST['password']
+    sch_u.save()
     return JsonResponse({})

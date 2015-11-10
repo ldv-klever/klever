@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
-from Omega.vars import JOB_DEF_VIEW, USER_ROLES, JOB_STATUS
+from Omega.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
 from jobs.models import Job
 from marks.models import ReportSafeTag, ReportUnsafeTag,\
     ComponentMarkUnknownProblem
@@ -34,7 +34,7 @@ ORDER_TITLES = {
 
 ALL_FILTERS = ['name', 'change_author', 'change_date', 'status',
                'resource_component', 'problem_component', 'problem_problem',
-               'format']
+               'format', 'priority']
 
 FILTER_TITLES = {
     'name': _('Title'),
@@ -45,7 +45,8 @@ FILTER_TITLES = {
         _('Resources'), '/', _('Component name')),
     'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
-    'format': _('Format')
+    'format': _('Format'),
+    'priority': _('Priority')
 }
 
 
@@ -454,26 +455,38 @@ class TableTree(object):
                     return {'change_date__gt': limit_time}
             return {}
 
-        def status_filter(fdata):
-            if fdata['type'] == 'is':
-                return {'status': fdata['value']}
-            elif fdata['type'] == 'isnot':
-                return {
-                    'status__in': [
-                        s[0] for s in JOB_STATUS if s[0] != fdata['value']
-                        ]
-                }
+        def priority_filter(fdata):
+            if fdata['type'] == 'e':
+                return {'solvingprogress__priority': fdata['value']}
+            elif fdata['type'] == 'me':
+                priorities = []
+                for pr in PRIORITY:
+                    priorities.append(pr[0])
+                    if pr[0] == fdata['value']:
+                        return {'solvingprogress__priority__in': priorities}
+            elif fdata['type'] == 'le':
+                priorities = []
+                for pr in reversed(PRIORITY):
+                    priorities.append(pr[0])
+                    if pr[0] == fdata['value']:
+                        return {'solvingprogress__priority__in': priorities}
             return {}
+
         format_filter = lambda fdata: {
             'format': fdata['value']
         } if fdata['type'] == 'is' else {}
+
+        status_filter = lambda fdata: {
+            'status__in': fdata['value']
+        }
 
         action = {
             'name': name_filter,
             'change_author': author_filter,
             'change_date': date_filter,
             'status': status_filter,
-            'format': format_filter
+            'format': format_filter,
+            'priority': priority_filter
         }
 
         filters = {}
