@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-10 15:06+0000\n"
+"POT-Creation-Date: 2015-11-10 15:35+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,7 +30,8 @@ msgstr ""
 "{1})"
 
 #: Omega/vars.py:6 jobs/views.py:331 jobs/views.py:360 jobs/views.py:436
-#: jobs/views.py:524 jobs/views.py:817
+#: jobs/views.py:524 jobs/views.py:817 service/utils.py:901
+#: service/utils.py:955
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
@@ -128,7 +129,7 @@ msgstr "Не решено"
 
 #: Omega/vars.py:48 Omega/vars.py:351
 msgid "Pending"
-msgstr ""
+msgstr "Ожидает"
 
 #: Omega/vars.py:49
 msgid "Is solving"
@@ -217,11 +218,11 @@ msgstr ""
 
 #: Omega/vars.py:337
 msgid "Urgent"
-msgstr ""
+msgstr "Срочный"
 
 #: Omega/vars.py:338
 msgid "High"
-msgstr ""
+msgstr "Высокий"
 
 #: Omega/vars.py:339
 msgid "Low"
@@ -229,7 +230,7 @@ msgstr "Низкий"
 
 #: Omega/vars.py:340
 msgid "Idle"
-msgstr ""
+msgstr "Незанятый"
 
 #: Omega/vars.py:344
 msgid "User occupied"
@@ -669,37 +670,30 @@ msgid "Start decision of job"
 msgstr "Начать решение задания"
 
 #: jobs/templates/jobs/startDecision.html:22
-#: service/templates/service/scheduler.html:4
-#: service/templates/service/schedulerJobSessions.html:7
-#: service/templates/service/schedulerSessions.html:17
-msgid "Scheduler"
-msgstr ""
+msgid "Tasks scheduler"
+msgstr "Планировщик задач"
 
-#: jobs/templates/jobs/startDecision.html:23
-msgid "Select scheduler for tasks"
-msgstr ""
+#: jobs/templates/jobs/startDecision.html:30
+msgid "Job priority"
+msgstr "Приоритет задания"
 
-#: jobs/templates/jobs/startDecision.html:31
-msgid "Select prority of job"
-msgstr ""
-
-#: jobs/templates/jobs/startDecision.html:47
+#: jobs/templates/jobs/startDecision.html:46
 msgid "Restrictions for Psi"
 msgstr "Ограничения для Psi"
 
-#: jobs/templates/jobs/startDecision.html:48
+#: jobs/templates/jobs/startDecision.html:47
 #: reports/templates/reports/ReportMain.html:102
 msgid "Maximum memory size"
 msgstr "Максимальный объем оперативной памяти"
 
-#: jobs/templates/jobs/startDecision.html:48
-#: jobs/templates/jobs/startDecision.html:58 jobs/utils.py:345
+#: jobs/templates/jobs/startDecision.html:47
+#: jobs/templates/jobs/startDecision.html:57 jobs/utils.py:345
 msgid "GiB"
 msgstr "Гбайт"
 
-#: jobs/templates/jobs/startDecision.html:48
-#: jobs/templates/jobs/startDecision.html:53
-#: jobs/templates/jobs/startDecision.html:58
+#: jobs/templates/jobs/startDecision.html:47
+#: jobs/templates/jobs/startDecision.html:52
+#: jobs/templates/jobs/startDecision.html:57
 #: marks/templates/marks/filters.html:48
 #: marks/templates/marks/filters.html:130
 #: reports/templates/reports/AttrsFilters.html:31
@@ -710,55 +704,63 @@ msgstr "Гбайт"
 msgid "e.g."
 msgstr "например,"
 
-#: jobs/templates/jobs/startDecision.html:53
+#: jobs/templates/jobs/startDecision.html:52
 msgid "Maximum CPUs number"
 msgstr "Максимальное количество ядер"
 
-#: jobs/templates/jobs/startDecision.html:58
+#: jobs/templates/jobs/startDecision.html:57
 msgid "Maximum disk space"
 msgstr "Максимальный объем дискового пространства"
 
-#: jobs/templates/jobs/startDecision.html:67
+#: jobs/templates/jobs/startDecision.html:66
 msgid "Psi configuration"
-msgstr "Конфигурация PSI"
+msgstr "Конфигурация Psi"
 
-#: jobs/templates/jobs/startDecision.html:68
-msgid "Abstract verification tasks generation priority"
-msgstr "Приоритет генерации абстрактных верификационных задач"
+#: jobs/templates/jobs/startDecision.html:67
+msgid "Abstract tasks generation priority"
+msgstr "Приоритет генерации абстрактных задач"
 
-#: jobs/templates/jobs/startDecision.html:75
-msgid "Linux kernel build parallelism"
-msgstr ""
+#: jobs/templates/jobs/startDecision.html:73
+msgid "Parallelism"
+msgstr "Параллелизм"
 
-#: jobs/templates/jobs/startDecision.html:82
-msgid "Console log formatter"
-msgstr "Форматер консольного лога"
+#: jobs/templates/jobs/startDecision.html:74
+msgid "Linux kernel build"
+msgstr "Сборка ядра Linux"
 
-#: jobs/templates/jobs/startDecision.html:87
-msgid "Log file formatter"
-msgstr "Форматер файла лога"
+#: jobs/templates/jobs/startDecision.html:80
+msgid "Log Formatters"
+msgstr "Форматтеры логов"
 
-#: jobs/templates/jobs/startDecision.html:97
+#: jobs/templates/jobs/startDecision.html:81
+msgid "Console"
+msgstr "Консоль"
+
+#: jobs/templates/jobs/startDecision.html:86
+msgid "File"
+msgstr "Файл"
+
+#: jobs/templates/jobs/startDecision.html:96
 msgid "Debug"
 msgstr "Отладка"
 
-#: jobs/templates/jobs/startDecision.html:103
-msgid "Allow local source directories use"
-msgstr ""
+#: jobs/templates/jobs/startDecision.html:102
+msgid "Allow use of local source directories"
+msgstr "Разрешить использовать локальные директории с исходным кодом"
 
-#: jobs/templates/jobs/startDecision.html:108
+#: jobs/templates/jobs/startDecision.html:107
 msgid "Start"
 msgstr "Начать"
 
-#: jobs/templates/jobs/startDecision.html:113
+#: jobs/templates/jobs/startDecision.html:112
 msgid ""
 "Schdeuler user was successfully saved. You can change it on edit profile "
 "page."
 msgstr ""
 
-#: jobs/templates/jobs/startDecision.html:114
-msgid "Please check configuration, all fields are required"
-msgstr ""
+#: jobs/templates/jobs/startDecision.html:113
+msgid "All fields are required"
+msgstr "Требуется заполнить все поля"
 
 #: jobs/templates/jobs/tree.html:5 templates/base.html:42
 msgid "Jobs Tree"
@@ -1346,10 +1348,8 @@ msgid "File uploading failed"
 msgstr "Загрузка файла на сервер провалилась"
 
 #: jobs/views.py:668
-#, fuzzy
-#| msgid "You don't have an access to remove one of the selected jobs"
 msgid "You don't have an access to download one of the selected jobs"
-msgstr "У Вас нет прав удалить одно из отмеченных заданий"
+msgstr "У Вас нет прав загрузить одно из отмеченных заданий"
 
 #: jobs/views.py:687
 msgid "The parent identifier was not got"
@@ -1791,6 +1791,12 @@ msgstr "Завершился"
 msgid "Progress"
 msgstr "Выполняется"
 
+#: service/templates/service/scheduler.html:4
+#: service/templates/service/schedulerJobSessions.html:7
+#: service/templates/service/schedulerSessions.html:17
+msgid "Scheduler"
+msgstr ""
+
 #: service/templates/service/scheduler.html:18
 #: service/templates/service/scheduler.html:104
 #: service/templates/service/scheduler.html:106
@@ -1930,20 +1936,16 @@ msgid "Sessions"
 msgstr "Версия"
 
 #: service/utils.py:18
-#, fuzzy
-#| msgid "Cancel"
 msgid "Balance"
-msgstr "Отменить"
+msgstr "Баланс"
 
 #: service/utils.py:19
-msgid "Rule spec"
-msgstr ""
+msgid "Rule specification"
+msgstr "Спецификация правил"
 
 #: service/utils.py:20
-#, fuzzy
-#| msgid "Verification of C programs"
 msgid "Verification object"
-msgstr "Верификация Си-программ"
+msgstr "Верификационный объект"
 
 #: service/utils.py:295
 msgid "Job solving progress does not exists"
@@ -1951,25 +1953,15 @@ msgstr ""
 
 #: service/utils.py:298
 msgid "Only pending and processing jobs can be stopped"
-msgstr ""
-
-#: service/utils.py:901 service/utils.py:955
-#, fuzzy
-#| msgid "The job was not found"
-msgid "Job was not found"
-msgstr "Задание не было найдено"
+msgstr "Только ожидающие и решающиеся задания могут быть остановлены"
 
 #: service/utils.py:948
-#, fuzzy
-#| msgid "The file was not found"
-msgid "Scheduler was not found"
-msgstr "Файл не был найден"
+msgid "The scheduler was not found"
+msgstr "Планировщик не был найден"
 
 #: service/utils.py:961
-#, fuzzy
-#| msgid "You don't have access to delete versions"
-msgid "You don't have access to start decision"
-msgstr "У Вас нет прав удалить версии"
+msgid "You don't have an access to start decision of this job"
+msgstr "У Вас нет прав начать решение данного задания"
 
 #: service/utils.py:983 service/utils.py:1030
 msgid "Klever scheduler is disconnected"
@@ -2444,16 +2436,14 @@ msgid "Saved"
 msgstr "Сохранено"
 
 #, fuzzy
-#~| msgid "Your version is expired, please reload the page"
-#~ msgid "Problems were cleared, please reload the page"
-#~ msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
+#~| msgid "The job was not found"
+#~ msgid "Job was not found"
+#~ msgstr "Задание не было найдено"
 
 #, fuzzy
-#~| msgid "Unknown error"
-#~ msgid "Unknown problems"
-#~ msgstr "Неизвестная ошибка"
+#~| msgid "You don't have access to delete versions"
+#~ msgid "You don't have access to start decision"
+#~ msgstr "У Вас нет прав удалить версии"
 
-#, fuzzy
-#~| msgid "The problem was not found"
-#~ msgid "Problem was not found"
-#~ msgstr "Проблема не была найдена"
+#~ msgid "Console log formatter"
+#~ msgstr "Форматер консольного лога"

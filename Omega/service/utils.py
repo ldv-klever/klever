@@ -16,7 +16,7 @@ DEF_PSI_RESTRICTIONS = {
 
 GEN_PRIORITY = [
     ('balance', _('Balance')),
-    ('rule spec', _('Rule spec')),
+    ('rule spec', _('Rule specification')),
     ('verification obj', _('Verification object')),
 ]
 
@@ -898,7 +898,7 @@ class StartJobDecision(object):
         try:
             job = Job.objects.get(pk=int(self.data['job_id']))
         except ObjectDoesNotExist:
-            self.error = _("Job was not found")
+            self.error = _("The job was not found")
             return None
         conf['id'] = job.identifier
         conf['priority'] = self.data['priority']
@@ -945,20 +945,20 @@ class StartJobDecision(object):
         try:
             return Scheduler.objects.get(type=self.data['scheduler'])
         except ObjectDoesNotExist:
-            self.error = _('Scheduler was not found')
+            self.error = _('The scheduler was not found')
             return
 
     def __get_job(self):
         try:
             job = Job.objects.get(pk=int(self.data['job_id']))
         except ObjectDoesNotExist:
-            self.error = _('Job was not found')
+            self.error = _('The job was not found')
             return
         except ValueError:
             self.error = _('Unknown error')
             return
         if not JobAccess(self.operator, job).can_decide():
-            self.error = _("You don't have access to start decision")
+            self.error = _("You don't have an access to start decision of this job")
             return
         return job
 

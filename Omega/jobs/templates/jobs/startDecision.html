@@ -19,16 +19,15 @@
         <input type="hidden" id="job_pk" value="{{ job.pk }}">
         <div class="ui grid">
             <div class="five wide column">
-                <h4 class="ui header">{% trans 'Scheduler' %}</h4>
-                <label for="scheduler">{% trans 'Select scheduler for tasks' %}</label>
+                <label for="scheduler">{% trans 'Tasks scheduler' %}</label>
                 <select id="scheduler" class="ui dropdown fluid">
                     {% for sch in data.schedulers %}
                         <option value="{{ sch.0 }}">{{ sch.1 }}</option>
                     {% endfor %}
                 </select>
-                <div class="ui divider need-auth"></div>
+                <br>
                 <div class="need-auth">
-                    <label for="priority">{% trans 'Select prority of job' %}</label>
+                    <label for="priority">{% trans 'Job priority' %}</label>
                     <select id="priority" class="ui dropdown fluid normal-dropdown">
                         {% for p in data.priorities %}
                             <option value="{{ p.0 }}">{{ p.1 }}</option>
@@ -65,26 +64,26 @@
         <div class="ui grid need-auth">
             <div class="five wide column">
                 <h4 class="ui header">{% trans 'Psi configuration' %}</h4>
-                <label for="gen_priority">{% trans 'Abstract verification tasks generation priority' %}</label>
+                <label for="gen_priority">{% trans 'Abstract tasks generation priority' %}</label>
                 <select id="gen_priority" class="ui dropdown fluid normal-dropdown">
                     {% for p in data.gen_priorities %}
                         <option value="{{ p.0 }}">{{ p.1 }}</option>
                     {% endfor %}
                 </select>
-                <br>
-                <label for="parallelism">{% trans 'Linux kernel build parallelism' %}</label>
+                <h5 class="ui header">{% trans 'Parallelism' %}</h5>
+                <label for="parallelism">{% trans 'Linux kernel build' %}</label>
                 <div class="ui input fluid">
                     <input id="parallelism" type="text" value="{{ data.parallelism }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
             </div>
             <div class="eleven wide column">
-                <br><br>
-                <label for="console_log_formatter">{% trans 'Console log formatter' %}</label>
+                <h5 class="ui header">{% trans 'Log Formatters' %}</h5>
+                <label for="console_log_formatter">{% trans 'Console' %}</label>
                 <div class="ui input fluid">
                     <input id="console_log_formatter" type="text" value="{{ data.logging.console }}">
                 </div>
                 <br>
-                <label for="file_log_formatter">{% trans 'Log file formatter' %}</label>
+                <label for="file_log_formatter">{% trans 'File' %}</label>
                 <div class="ui input fluid">
                     <input id="file_log_formatter" type="text" value="{{ data.logging.file }}">
                 </div>
@@ -100,7 +99,7 @@
             <div class="eight wide column">
                 <div class="ui toggle checkbox">
                     <input id="allow_localdir_checkbox" type="checkbox">
-                    <label for="allow_localdir_checkbox">{% trans 'Allow local source directories use' %}</label>
+                    <label for="allow_localdir_checkbox">{% trans 'Allow use of local source directories' %}</label>
                 </div>
             </div>
             <div class="three wide column right aligned">
@@ -111,5 +110,5 @@
     {% endif %}
     </div>
     <span id="sch_u_saved" hidden>{% trans 'Schdeuler user was successfully saved. You can change it on edit profile page.' %}</span>
-    <span id="fields_required" hidden>{% trans 'Please check configuration, all fields are required' %}</span>
+    <span id="fields_required" hidden>{% trans 'All fields are required' %}</span>
 {% endblock %}
