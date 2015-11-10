@@ -254,7 +254,7 @@ def show_job(request, job_id=None):
             'can_edit': job_access.can_edit(),
             'can_create': job_access.can_create(),
             'can_decide': job_access.can_decide(),
-            'can_download': job.status not in [JOB_STATUS[5][0], JOB_STATUS[6][0]],
+            'can_download': job_access.can_download(),
             'can_stop': job_access.can_stop()
         }
     )
@@ -616,7 +616,7 @@ def download_job(request, job_id):
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[404]))
-    if not JobAccess(request.user, job).can_view():
+    if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
     back_url = quote(reverse('jobs:job', args=[job_id]))
@@ -660,17 +660,21 @@ def check_access(request):
             except ObjectDoesNotExist:
                 return JsonResponse({
                     'status': False,
-                    'message': _('The job was not found')
+                    'message': _('One of the selected jobs was not found')
                 })
-            if not JobAccess(request.user, job).can_view():
+            if not JobAccess(request.user, job).can_download():
                 return JsonResponse({
                     'status': False,
-                    'message': _("You don't have an access to this job")
+                    'message': _("You don't have an access to download one of the selected jobs")
                 })
         return JsonResponse({
             'status': True,
             'message': ''
         })
+    return JsonResponse({
+        'status': False,
+        'message': _('Unknown error')
+    })
 
 
 @login_required

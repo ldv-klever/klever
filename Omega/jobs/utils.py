@@ -143,6 +143,9 @@ class JobAccess(object):
             return False
         return self.__is_author or self.__is_manager
 
+    def can_download(self):
+        return not (self.job is None or self.job.status in [JOB_STATUS[5][0], JOB_STATUS[6][0]])
+
     def __get_prop(self, user):
         if self.job is not None:
             try:
@@ -444,12 +447,12 @@ def create_job(kwargs):
                 'absurl': kwargs['absolute_url'] + newjob_url
             })
         except Exception as e:
-            print(e)
+            print("Can't notify users: ", e)
     else:
         try:
             Notify(newjob, 0)
         except Exception as e:
-            print(e)
+            print("Can't notify users: ", e)
     return newjob
 
 
@@ -481,12 +484,12 @@ def update_job(kwargs):
         try:
             Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
         except Exception as e:
-            print(e)
+            print("Can't notify users: ", e)
     else:
         try:
             Notify(kwargs['job'], 1)
         except Exception as e:
-            print(e)
+            print("Can't notify users: ", e)
     return kwargs['job']
 
 
@@ -504,7 +507,7 @@ def remove_jobs_by_id(user, job_ids):
         try:
             Notify(job, 2)
         except Exception as e:
-            print(e)
+            print("Can't notify users: ", e)
         job.delete()
     clear_files()
     return 0
