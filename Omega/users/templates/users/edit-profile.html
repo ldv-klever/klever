@@ -35,8 +35,6 @@
                         <label>{{ user_form.email.label }}</label>
                         {{ user_form.email }}
                     </div>
-                </div>
-                <div class="five wide column">
                     <div class="field">
                         <label>{{ profile_form.first_name.label }}</label>
                         {{ profile_form.first_name }}
@@ -48,7 +46,7 @@
                         <br>{{ profile_form.errors.last_name }}
                     </div>
                 </div>
-                <div class="four wide column">
+                <div class="five wide column">
                     <div class="field">
                         <label>{{ profile_form.accuracy.label }}</label>
                         {{ profile_form.accuracy }}
@@ -71,22 +69,18 @@
                         </select>
                     </div>
                 </div>
+                <div class="six wide column">
+                    <h3 class="header">{% trans 'VerifierCloud login info' %}</h3>
+                    {% include 'users/schedulerUser.html' %}
+                </div>
             </div>
             <div class="ui divider"></div>
-            <input type="submit" class="ui olive button" style="float: right;" name="submit" value="{% trans 'Save' %}">
+            <input id="submit_settings" type="submit" class="ui olive button" style="float: right;" name="submit" value="{% trans 'Save' %}">
             <br><br>
         </form>
     </div>
     <div class="ui purple segment right aligned">
         {% include 'users/notifications.html' %}
-    </div>
-    <div class="ui green segment">
-        <h3 class="header">{% trans 'VerifierCloud login info' %}</h3>
-        <div class="ui grid">
-            <div class="five wide column">
-                {% include 'users/schedulerUser.html' %}
-            </div>
-        </div>
     </div>
     <br><br>
 {% endblock %}

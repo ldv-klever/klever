@@ -45,17 +45,17 @@
             {% endif %}
             <div class="five wide column need-auth">
                 <h4 class="ui header">{% trans 'Restrictions for PSI' %}</h4>
-                <label for="max_ram">{% trans 'Max RAM memory (Gb)' %}</label>
+                <label for="max_ram">{% trans 'Max RAM memory (Gb)' %}, {% trans 'example' %}: 2.0</label>
                 <div class="ui input fluid">
                     <input id="max_ram" type="number" value="{{ data.restrictions.max_ram }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
                 <br>
-                <label for="max_cpus">{% trans 'Max CPU number' %}</label>
+                <label for="max_cpus">{% trans 'Max CPU number' %}, {% trans 'example' %}: 2</label>
                 <div class="ui input fluid">
                     <input id="max_cpus" type="number" value="{{ data.restrictions.max_cpus }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Max disk memory (Gb)' %}</label>
+                <label for="max_disk">{% trans 'Max disk memory (Gb)' %}, {% trans 'example' %}: 100.0</label>
                 <div class="ui input fluid">
                     <input id="max_disk" type="number" value="{{ data.restrictions.max_disk }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
@@ -74,7 +74,7 @@
                 <br>
                 <label for="parallelism">{% trans 'Linux kernel build parallelism' %}</label>
                 <div class="ui input fluid">
-                    <input id="parallelism" type="number" value="{{ data.parallelism }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                    <input id="parallelism" type="text" value="{{ data.parallelism }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
             </div>
             <div class="eleven wide column">

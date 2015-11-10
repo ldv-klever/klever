@@ -17,9 +17,6 @@
                 <div class="item"><span style="color: #a7aab4">{% trans 'Role' %}: </span> {{ target.extended.get_role_display }}</div>
                 <div class="item"><span style="color: #a7aab4">{% trans 'Time zone' %}: </span> {{ target.extended.timezone }}</div>
                 <div class="item"><span style="color: #a7aab4">{% trans 'Language' %}: </span> {{ target.extended.get_language_display }}</div>
-            {% if num_of_solving_jobs %}
-                <div class="item"><span style="color: #a7aab4">{% trans 'Number of solving jobs' %}: </span> <a href="{% url 'service:jobs' target.pk %}">{{ num_of_solving_jobs }}</a></div>
-            {% endif %}
             </div>
         </div>
         <div class="thirteen wide column">

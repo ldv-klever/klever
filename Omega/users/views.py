@@ -18,7 +18,7 @@ from jobs.utils import JobAccess
 from jobs.models import Job
 from django.middleware.csrf import get_token
 from users.notifications import NotifyData
-from reports.models import ReportRoot
+from service.models import SchedulerUser
 
 
 def user_signin(request):
@@ -109,6 +109,22 @@ def edit_profile(request):
             if user_tz:
                 profile.timezone = user_tz
             profile.save()
+            print(user.pk, user.extended.first_name)
+            if 'sch_login' in request.POST and 'sch_password' in request.POST:
+                if len(request.POST['sch_login']) > 0 and len(request.POST['sch_password']) > 0:
+                    try:
+                        sch_user = SchedulerUser.objects.get(user=request.user)
+                    except ObjectDoesNotExist:
+                        sch_user = SchedulerUser()
+                        sch_user.user = request.user
+                    sch_user.login = request.POST['sch_login']
+                    sch_user.password = request.POST['sch_password']
+                    sch_user.save()
+                elif len(request.POST['sch_login']) == 0:
+                    try:
+                        request.user.scheduleruser.delete()
+                    except ObjectDoesNotExist:
+                        pass
 
             if do_redirect:
                 return HttpResponseRedirect(reverse('users:login'))
@@ -200,8 +216,7 @@ def show_profile(request, user_id=None):
     return render(request, 'users/showProfile.html', {
         'target': target,
         'job_activity': job_activity,
-        'mark_activity': mark_activity,
-        'num_of_solving_jobs': len(ReportRoot.objects.filter(user=target))
+        'mark_activity': mark_activity
     })
 
 

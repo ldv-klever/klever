@@ -356,7 +356,7 @@ NODE_STATUS = (
 TASK_STATUS = (
     ('PENDING', _('Pending')),
     ('PROCESSING', _('Processing')),
-    ('ERROR', _('Error')),
     ('FINISHED', _('Finished')),
+    ('ERROR', _('Error')),
     ('CANCELLED', _('Cancelled'))
 )

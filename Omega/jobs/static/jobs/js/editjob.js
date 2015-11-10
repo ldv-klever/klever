@@ -187,7 +187,7 @@ function set_actions_for_edit_form () {
         });
 
         if (job_pk.length) {
-            job_id = job_pk.text();
+            job_id = job_pk.val();
         }
         $('#all_user_roles').find("select[id^='job_user_role_select__']").each(function () {
             var user_id = $(this).attr('id').replace('job_user_role_select__', ''),
@@ -212,9 +212,7 @@ function set_actions_for_edit_form () {
                 data.status === 0 ? window.location.replace('/jobs/' + data.job_id + '/'):err_notify(data.message);
             },
             "json"
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
+        );
     });
 
     $('#job_version_selector').change(function () {
@@ -783,7 +781,7 @@ function set_actions_for_versions_delete() {
         });
         $.post(
             job_ajax_url + 'remove_versions/',
-            {job_id: $('#job_pk').text(), versions: JSON.stringify(checked_versions)},
+            {job_id: $('#job_pk').val(), versions: JSON.stringify(checked_versions)},
             function (data) {
                 var global_parent;
                 $.each(checked_versions, function (i, val) {
@@ -830,7 +828,7 @@ $(document).ready(function () {
     if ($('#edit_job_div').length) {
         $.ajax({
             url: job_ajax_url + 'showjobdata/',
-            data: {job_id: $('#job_pk').text()},
+            data: {job_id: $('#job_pk').val()},
             type: 'POST',
             success: function (data) {
                 $('#edit_job_div').html(data);
@@ -848,7 +846,7 @@ $(document).ready(function () {
         $('.ui.dinamic.modal').remove();
         $.post(
             job_ajax_url + 'editjob/',
-            {job_id: $('#job_pk').text()},
+            {job_id: $('#job_pk').val()},
             function (data) {
                 $('#edit_job_div').html(data);
                 set_actions_for_edit_form();
@@ -860,14 +858,14 @@ $(document).ready(function () {
     });
 
     $("#copy_job_btn").click(function () {
-        $.redirectPost(job_ajax_url + 'create/', {parent_id: $('#job_pk').text()});
+        $.redirectPost(job_ajax_url + 'create/', {parent_id: $('#job_pk').val()});
     });
 
     $('#remove_job_btn').click(function () {
         $('#remove_job_popup').modal('hide');
         $.post(
             job_ajax_url + 'removejobs/',
-            {jobs: JSON.stringify([$('#job_pk').text()])},
+            {jobs: JSON.stringify([$('#job_pk').val()])},
             function (data) {
                 data.status === 0 ? window.location.replace('/jobs/') : err_notify(data.message);
             },
@@ -877,13 +875,13 @@ $(document).ready(function () {
 
     $('#load_job_btn').click(function () {
         $('#job_name_tr').popup('hide');
-        download_job($('#job_pk').text());
+        download_job($('#job_pk').val());
     });
 
     $('#edit_versions').click(function () {
         $.post(
             job_ajax_url + 'getversions/',
-            {job_id: $('#job_pk').text()},
+            {job_id: $('#job_pk').val()},
             function (data) {
                 try {
                     JSON.stringify(data);
@@ -899,7 +897,7 @@ $(document).ready(function () {
     $('#stop_job_btn').click(function () {
         $.post(
             job_ajax_url + 'stop_decision/',
-            {job_id: $('#job_pk').text()},
+            {job_id: $('#job_pk').val()},
             function (data) {
                 if (data.error) {
                     err_notify(data.error);
@@ -908,8 +906,6 @@ $(document).ready(function () {
                     window.location.replace('');
                 }
             }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
+        );
     });
 });

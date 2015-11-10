@@ -9,14 +9,15 @@ from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
 
 DEF_PSI_RESTRICTIONS = {
-    'max_ram': 2.0,
-    'max_cpus': 2,
-    'max_disk': 100.0,
+    'max_ram': '2.0',
+    'max_cpus': '2',
+    'max_disk': '100.0',
 }
 
 GEN_PRIORITY = [
     ('balance', _('Balance')),
-    ('other', _('Other'))
+    ('rule spec', _('Rule spec')),
+    ('verification obj', _('Verification object')),
 ]
 
 PSI_LOGGING = {
@@ -26,11 +27,17 @@ PSI_LOGGING = {
 
 PSI_CONFIG = '''{
     "work dir": "psi-work-dir",
-    "job": {
-        "id": null,
-        "priority": "low"
+    "id": null,
+    "priority": "IDLE",
+    "resource limits": {
+        "wall time": null,
+        "CPU time": null,
+        "max mem size": null,
+        "CPUs": null,
+        "max result size": null,
+        "CPU model": null
     },
-    "abstract verification tasks gen priority": "balance",
+    "AVTG priority": "balance",
     "Omega": {
         "name": "localhost:8998",
         "user": null,
@@ -42,8 +49,11 @@ PSI_CONFIG = '''{
         "formatters": null,
         "loggers": null
     },
-    "parallelism": {
-        "Linux kernel build": 1.0
+    "parallel": {
+        "Linux kernel build": 1.0,
+        "verification objs gen": 2,
+        "AVTG": 2,
+        "verification tasks gen": 2
     }
 }'''
 
@@ -98,6 +108,10 @@ class ScheduleTask(object):
         self.progress.tasks_total += 1
         self.progress.tasks_pending += 1
         self.progress.save()
+        new_description = json.loads(task.description.decode('utf8'))
+        new_description['id'] = task.pk
+        task.description = json.dumps(new_description).encode('utf8')
+        task.save()
         return task.pk
 
 
@@ -179,7 +193,11 @@ class RemoveTask(object):
         else:
             self.error = 'The task is not finished'
             return
-        self.task.delete()
+        try:
+            self.task.delete()
+        except Exception as e:
+            print(e)
+            self.error = 'Task was not deleted, error occured'
 
 
 # Case 3.1(7) DONE
@@ -206,9 +224,13 @@ class CancelTask(object):
         else:
             self.error = 'The task status is wrong'
             return
-        self.task.progress.tasks_cancelled += 1
-        self.task.progress.save()
-        self.task.delete()
+        try:
+            self.task.delete()
+            self.task.progress.tasks_cancelled += 1
+            self.task.progress.save()
+        except Exception as e:
+            print(e)
+            self.error = 'Task was not deleted, error occured'
 
 
 # Case 3.1(8)
@@ -289,7 +311,10 @@ class StopDecision(object):
             elif task.status == TASK_STATUS[0][0]:
                 self.progress.tasks_pending -= 1
                 self.progress.tasks_cancelled += 1
-            task.delete()
+            try:
+                task.delete()
+            except Exception as e:
+                print(e)
         self.progress.finish_date = current_date()
         self.progress.error = "The job was cancelled"
         self.progress.save()
@@ -345,8 +370,8 @@ class GetTasks(object):
         status_map = {
             'pending': TASK_STATUS[0][0],
             'processing': TASK_STATUS[1][0],
-            'error': TASK_STATUS[2][0],
-            'finished': TASK_STATUS[3][0],
+            'finished': TASK_STATUS[2][0],
+            'error': TASK_STATUS[3][0],
             'cancelled': TASK_STATUS[4][0]
         }
         all_tasks = {
@@ -386,14 +411,15 @@ class GetTasks(object):
                 task.progress.save()
             elif task.pk in data['tasks']['error']:
                 task.status = status_map['error']
-                if task.pk in data['task errors']:
-                    task.error = data['task errors'][task.pk]
+                if str(task.pk) in data['task errors']:
+                    task.error = data['task errors'][str(task.pk)]
                 else:
                     task.error = "The scheduler hasn't given error description"
                 task.save()
                 if task.progress.tasks_pending > 0:
                     task.progress.tasks_pending -= 1
                 task.progress.tasks_error += 1
+                task.progress.save()
             else:
                 new_data['tasks']['pending'].append(task.pk)
                 new_data = self.__add_description(task, new_data)
@@ -420,14 +446,15 @@ class GetTasks(object):
                 task.progress.save()
             elif task.pk in data['tasks']['error']:
                 task.status = status_map['error']
-                if task.pk in data['task errors']:
-                    task.error = data['task errors'][task.pk]
+                if str(task.pk) in data['task errors']:
+                    task.error = data['task errors'][str(task.pk)]
                 else:
                     task.error = "The scheduler hasn't given error description"
                 task.save()
                 if task.progress.tasks_processing > 0:
                     task.progress.tasks_processing -= 1
                 task.progress.tasks_error += 1
+                task.progress.save()
             else:
                 new_data['tasks']['processing'].append(task.pk)
                 new_data = self.__add_solution(task, new_data)
@@ -475,7 +502,7 @@ class GetTasks(object):
                 return None
 
         if self.scheduler.type == SCHEDULER_TYPE[0][0]:
-            for progress in self.scheduler.solvingprogress_set.all():
+            for progress in SolvingProgress.objects.all():
                 if progress.job.status == JOB_STATUS[1][0]:
                     new_data['Job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
@@ -591,7 +618,7 @@ class SaveSolution(object):
         except ObjectDoesNotExist:
             pass
         Solution.objects.create(
-            task=self.task, description=description,
+            task=self.task, description=description.encode('utf8'),
             archive=archive, archname=archive.name
         )
         self.task.progress.solutions += 1
@@ -619,13 +646,13 @@ class SetNodes(object):
                 cpu=config['CPU model'], cores=config['CPU number'],
                 ram=config['RAM memory'], memory=config['disk memory']
             )
-            for node_data in config['nodes']:
-                self.__create_node(nodes_conf, node_data)
+            for hostname in config['nodes']:
+                self.__create_node(nodes_conf, hostname, config['nodes'][hostname])
 
-    def __create_node(self, conf, data):
+    def __create_node(self, conf, hostname, data):
         self.ccc = 0
         node = Node.objects.create(
-            config=conf, hostname=data['address'], status=data['status']
+            config=conf, hostname=hostname, status=data['status']
         )
         if 'workload' in data:
             node.workload = Workload.objects.create(
@@ -644,6 +671,9 @@ class SetNodes(object):
 class UpdateTools(object):
     def __init__(self, sch_type, tools_data):
         self.error = None
+        for sch in SCHEDULER_TYPE:
+            if sch[1] == sch_type:
+                sch_type = sch[0]
         try:
             self.scheduler = Scheduler.objects.get(type=sch_type)
         except ObjectDoesNotExist:
@@ -658,10 +688,9 @@ class UpdateTools(object):
             self.error = "Unknown error"
 
     def __read_tools_data(self, data):
+        VerificationTool.objects.filter(scheduler=self.scheduler).delete()
         for tool in json.loads(data):
-            VerificationTool.objects.filter(scheduler=self.scheduler).delete()
-            VerificationTool.objects.create(scheduler=self.scheduler,
-                                            name=tool['tool'], version=tool['version'])
+            VerificationTool.objects.create(scheduler=self.scheduler, name=tool['tool'], version=tool['version'])
 
 
 # Case 3.3(2) DONE
@@ -691,6 +720,8 @@ class SetSchedulersStatus(object):
                 continue
             if self.statuses[sch_type] == SCHEDULER_STATUS[2][0]:
                 self.__finish_tasks(scheduler)
+            scheduler.status = self.statuses[sch_type]
+            scheduler.save()
 
     def __finish_tasks(self, scheduler):
         self.ccc = 0
@@ -703,7 +734,7 @@ class SetSchedulersStatus(object):
                 progress.tasks_error += 1
                 task.error = "Task was finished with error due to scheduler is disconnected"
                 task.save()
-            if scheduler.type == SCHEDULER_TYPE[1][0]:
+            if scheduler.type == SCHEDULER_TYPE[0][0]:
                 progress.finish_date = current_date()
                 progress.error = "Klever scheduler was disconnected"
                 progress.job.status = JOB_STATUS[4][0]
@@ -730,183 +761,88 @@ def current_date():
     return pytz.timezone('UTC').localize(datetime.now())
 
 
-class UserJobs(object):
-    def __init__(self, user):
-        self.user = user
-        self.data = self.__get_jobs()
-
-    def __get_jobs(self):
-        data = []
-        for root in ReportRoot.objects.filter(user=self.user):
-            try:
-                jobsession = root.job.jobsession
-            except ObjectDoesNotExist:
-                continue
-            tasks_finished = jobsession.statistic.tasks_error + \
-                jobsession.statistic.tasks_lost + \
-                jobsession.statistic.tasks_finished
-            tasks_total = jobsession.statistic.tasks_total
-            if tasks_total == 0:
-                progress = 100
-            else:
-                progress = int(100 * tasks_finished/tasks_total)
-            data_str = {
-                'job': root.job,
-                'priority': jobsession.get_priority_display(),
-                'start_date': jobsession.start_date,
-                'finish_date': '-',
-                'tasks_finished': tasks_finished,
-                'wall_time': '-',
-                'tasks_total': tasks_total,
-                'progress': progress
-            }
-            if jobsession.finish_date is not None:
-                data_str['finish_date'] = jobsession.finish_date
-                data_str['wall_time'] = string_concat(
-                    str((jobsession.finish_date -
-                         jobsession.start_date).seconds),
-                    _('s'))
-            data.append(data_str)
-        return data
-
-
-class SchedulerTable(object):
-    def __init__(self, scheduler):
-        self.scheduler = scheduler
-        self.scheduler_data = self.__scheduler_data()
-        self.tools = self.scheduler.tools.all()
-        self.nodes = Node.objects.filter(config__scheduler=self.scheduler)
-
-    def __scheduler_data(self):
-        ram_total = 0
-        ram_occupied = 0
-        memory_total = 0
-        memory_occupied = 0
-        cores_total = 0
-        cores_occupied = 0
-        cores = []
-        for nodes_conf in self.scheduler.nodesconfiguration_set.all():
-            conf_cores_total = 0
-            conf_cores_occupied = 0
-            for node in nodes_conf.node_set.all():
-                if node.workload is None:
-                    continue
-                ram_total += nodes_conf.ram
-                memory_total += nodes_conf.memory
-                cores_total += nodes_conf.cores
-                conf_cores_total += nodes_conf.cores
-                ram_occupied += node.workload.ram
-                memory_occupied += node.workload.memory
-                cores_occupied += node.workload.cores
-                conf_cores_occupied += node.workload.cores
-            cores.append({
-                'name': nodes_conf.cpu,
-                'value': "%s/%s" % (conf_cores_occupied, conf_cores_total)
-            })
-        data = {
-            'ram': "%s/%s" % (ram_occupied, ram_total),
-            'memory': "%s/%s" % (memory_occupied, memory_total),
-            'cores_total': "%s/%s" % (cores_occupied, cores_total),
-            'cores': cores,
-            'rowspan': 1 + len(cores)
-        }
-        return data
-
-
-class SessionsTable(object):
+class NodesData(object):
     def __init__(self):
-        self.data = self.__get_data()
+        self.conf_data = []
+        self.total_data = {
+            'cores': {0: 0, 1: 0},
+            'ram': {0: 0, 1: 0},
+            'memory': {0: 0, 1: 0},
+            'jobs': 0,
+            'tasks': 0
+        }
+        self.nodes = []
+        self.__get_data()
 
     def __get_data(self):
-        self.ccc = 0
-        data = []
-        for session in SolvingProgress.objects.all():
-            rowdata = {
-                'session': session,
-                'finish_date': '-',
-                'wall_time': '-'
+        for conf in NodesConfiguration.objects.all():
+            conf_data = {
+                'id': conf.pk,
+                'conf': {
+                    'ram': int(conf.ram / 10**9),
+                    'cores': conf.cores,
+                    'memory': int(conf.memory / 10**9),
+                    'num_of_nodes': len(conf.node_set.all())
+                },
+                'cpu': conf.cpu,
+                'cores': {0: 0, 1: 0},
+                'ram': {0: 0, 1: 0},
+                'memory': {0: 0, 1: 0},
+                'jobs': 0,
+                'tasks': 0
             }
-            if session.finish_date is not None:
-                rowdata['finish_date'] = session.finish_date
-                rowdata['wall_time'] = string_concat(
-                    (session.finish_date - session.start_date).seconds, _('s'))
-
-            tasks_finished = session.statistic.tasks_error + \
-                session.statistic.tasks_lost + \
-                session.statistic.tasks_finished
-            tasks_total = session.statistic.tasks_total
-            if tasks_total == 0:
-                progress = 100
-            else:
-                progress = int(100 * tasks_finished/tasks_total)
-            rowdata['progress'] = progress
-            rowdata['progress_text'] = \
-                '%s%% (%s/%s)' % (progress, tasks_finished, tasks_total)
-            data.append(rowdata)
-        return data
-
-
-class SchedulerSessionsTable(object):
-    def __init__(self, jobsession):
-        self.jobsession = jobsession
-        self.data = self.__get_data()
-
-    def __get_data(self):
-        data = []
-        for session in self.jobsession.schedulersession_set.all():
-            rowdata = {
-                'session': session
-            }
-            tasks_finished = session.statistic.tasks_error + \
-                session.statistic.tasks_lost + \
-                session.statistic.tasks_finished
-            tasks_total = session.statistic.tasks_total
-            if tasks_total == 0:
-                progress = 100
-            else:
-                progress = int(100 * tasks_finished/tasks_total)
-            rowdata['progress'] = progress
-            rowdata['progress_text'] = \
-                '%s%% (%s/%s)' % (progress, tasks_finished, tasks_total)
-            data.append(rowdata)
-        return data
-
-
-class SchedulerJobSessionsTable(object):
-    def __init__(self, scheduler):
-        self.scheduler = scheduler
-        self.data = self.__get_data()
-
-    def __get_data(self):
-        data = []
-        jobsesions = []
-        for sch_session in self.scheduler.schedulersession_set.all():
-            if sch_session.session not in jobsesions:
-                jobsesions.append(sch_session.session)
-        for session in jobsesions:
-            rowdata = {
-                'session': session,
-                'finish_date': '-',
-                'wall_time': '-'
-            }
-            if session.finish_date is not None:
-                rowdata['finish_date'] = session.finish_date
-                rowdata['wall_time'] = string_concat(
-                    str((session.finish_date - session.start_date).seconds),
-                    _('s'))
-            tasks_finished = session.statistic.tasks_error + \
-                session.statistic.tasks_lost + \
-                session.statistic.tasks_finished
-            tasks_total = session.statistic.tasks_total
-            if tasks_total == 0:
-                progress = 100
-            else:
-                progress = int(100 * tasks_finished/tasks_total)
-            rowdata['progress'] = progress
-            rowdata['progress_text'] = \
-                '%s%% (%s/%s)' % (progress, tasks_finished, tasks_total)
-            data.append(rowdata)
-        return data
+            for node in conf.node_set.all():
+                node_data = {
+                    'conf_id': conf.pk,
+                    'hostname': node.hostname,
+                    'status': node.get_status_display(),
+                    'cpu': conf.cpu,
+                    'cores': '-',
+                    'ram': '-',
+                    'memory': '-',
+                    'tasks': '-',
+                    'jobs': '-',
+                    'for_tasks': '-',
+                    'for_jobs': '-'
+                }
+                if node.workload is not None:
+                    conf_data['cores'][0] += node.workload.cores
+                    conf_data['cores'][1] += conf.cores
+                    conf_data['ram'][0] += node.workload.ram
+                    conf_data['ram'][1] += conf.ram
+                    conf_data['memory'][0] += node.workload.memory
+                    conf_data['memory'][1] += conf.memory
+                    conf_data['cores'][0] += node.workload.cores
+                    conf_data['cores'][1] += conf.cores
+                    node_data.update({
+                        'cores': "%s/%s" % (node.workload.cores, conf.cores),
+                        'ram': "%s/%s" % (int(node.workload.ram / 10**9),
+                                          int(conf.ram / 10**9)),
+                        'memory': "%s/%s" % (int(node.workload.memory / 10**9),
+                                             int(conf.memory / 10**9)),
+                        'tasks': node.workload.tasks,
+                        'jobs': node.workload.jobs,
+                        'for_jobs': node.workload.for_jobs,
+                        'for_tasks': node.workload.for_tasks,
+                    })
+                self.nodes.append(node_data)
+            self.total_data['cores'] = (self.total_data['cores'][0] + conf_data['cores'][0],
+                                        self.total_data['cores'][1] + conf_data['cores'][1])
+            self.total_data['ram'] = (self.total_data['ram'][0] + conf_data['ram'][0],
+                                      self.total_data['ram'][1] + conf_data['ram'][1])
+            self.total_data['memory'] = (self.total_data['memory'][0] + conf_data['memory'][0],
+                                         self.total_data['memory'][1] + conf_data['memory'][1])
+            conf_data['cores'] = "%s/%s" % (conf_data['cores'][0], conf_data['cores'][1])
+            conf_data['ram'] = "%s/%s" % (int(conf_data['ram'][0] / 10**9),
+                                          int(conf_data['ram'][1] / 10**9))
+            conf_data['memory'] = "%s/%s" % (int(conf_data['memory'][0] / 10**9),
+                                             int(conf_data['memory'][1] / 10**9))
+            self.conf_data.append(conf_data)
+        self.total_data['cores'] = "%s/%s" % (self.total_data['cores'][0], self.total_data['cores'][1])
+        self.total_data['ram'] = "%s/%s" % (int(self.total_data['ram'][0] / 10**9),
+                                            int(self.total_data['ram'][1] / 10**9))
+        self.total_data['memory'] = "%s/%s" % (int(self.total_data['memory'][0] / 10**9),
+                                               int(self.total_data['memory'][1] / 10**9))
 
 
 # Case 3.4(5) DONE
@@ -924,11 +860,6 @@ class StartJobDecision(object):
             return
         try:
             self.psidata = self.__get_psi_data()
-        except ValueError or KeyError:
-            self.error = _('Unknown error')
-            return
-        try:
-            self.restrictions = self.__get_restrictions()
         except ValueError or KeyError:
             self.error = _('Unknown error')
             return
@@ -956,11 +887,11 @@ class StartJobDecision(object):
         except ObjectDoesNotExist:
             self.error = _("Job was not found")
             return None
-        conf['job']['id'] = job.identifier
-        conf['job']['priority'] = self.data['priority']
+        conf['id'] = job.identifier
+        conf['priority'] = self.data['priority']
         conf['debug'] = self.data['debug']
         conf['allow local source directories use'] = self.data['allow_local_dir']
-        conf['abstract verification tasks gen priority'] = self.data['gen_priority']
+        conf['AVTG priority'] = self.data['gen_priority']
         conf['logging']['formatters'] = [
             {
                 'name': 'brief',
@@ -990,15 +921,12 @@ class StartJobDecision(object):
             parallelism = int(self.data['parallelism'])
         except ValueError:
             parallelism = float(self.data['parallelism'])
-        conf['parallelism']['Linux kernel build'] = parallelism
+        conf['parallel']['Linux kernel build'] = parallelism
+        conf['resource limits']['CPUs'] = int(self.data['max_cpus'])
+        conf['resource limits']['CPUs'] = int(self.data['max_cpus'])
+        conf['resource limits']['max mem size'] = int(float(self.data['max_ram']) * 10**9)
+        conf['resource limits']['max result size'] = int(float(self.data['max_disk']) * 10**9)
         return json.dumps(conf)
-
-    def __get_restrictions(self):
-        return json.dumps({
-            'max cpu number': int(self.data['max_cpus']),
-            'max disk memory': float(self.data['max_disk']),
-            'max ram memory': float(self.data['max_ram'])
-        })
 
     def __get_scheduler(self):
         try:
@@ -1029,8 +957,7 @@ class StartJobDecision(object):
         return SolvingProgress.objects.create(
             job=self.job, priority=self.data['priority'],
             scheduler=self.job_scheduler,
-            configuration=self.psidata.encode('utf8'),
-            restrictions=self.restrictions.encode('utf8')
+            configuration=self.psidata.encode('utf8')
         )
 
     def __check_schedulers(self):

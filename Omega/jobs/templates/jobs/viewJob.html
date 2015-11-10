@@ -118,7 +118,7 @@
                     </tr>
                 </tbody>
             </table>
-            <span id="job_pk" hidden>{{ job.pk }}</span>
+            <input type="hidden" id="job_pk" value="{{ job.pk }}">
             <div id="job_actions_menu" class="ui purple inverted popup transition vertical menu hidden">
                 {% if can_create %}<a id="copy_job_btn" class="item">{% trans 'Make copy' %}</a>{% endif %}
                 {% if can_download %}<a id="load_job_btn" class="item">{% trans 'Download' %}</a>{% endif %}

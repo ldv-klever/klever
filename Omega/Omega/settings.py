@@ -106,6 +106,7 @@ LANGUAGES = (
 LOCALE_PATHS = (
     os.path.join(BASE_DIR,  'locale'),
 )
+DEFAULT_LANGUAGE = 'en'
 
 TIME_ZONE = 'UTC'
 

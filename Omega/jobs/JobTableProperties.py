@@ -11,21 +11,25 @@ from marks.models import ReportSafeTag, ReportUnsafeTag,\
     ComponentMarkUnknownProblem
 from reports.models import Verdict, ComponentResource, ReportComponent,\
     ComponentUnknown
-from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess
+from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 
 
 ORDERS = [
     ('name', 'name'),
     ('change_author__extended__last_name', 'author'),
     ('change_date', 'date'),
-    ('status', 'status')
+    ('status', 'status'),
+    ('solvingprogress__start_date', 'start_date'),
+    ('solvingprogress__finish_date', 'finish_date')
 ]
 
 ORDER_TITLES = {
     'name':  _('Title'),
     'author': string_concat(_('Author'), '/', _('Last name')),
     'date': _('Date'),
-    'status': _('Decision status')
+    'status': _('Decision status'),
+    'start_date': _('Start date'),
+    'finish_date': _('Finish date')
 }
 
 ALL_FILTERS = ['name', 'change_author', 'change_date', 'status',
@@ -53,7 +57,10 @@ def all_user_columns():
     for safe in SAFES:
         columns.append("safe:%s" % safe)
     columns.extend(['problem', 'resource', 'tag', 'tag:safe', 'tag:unsafe',
-                    'identifier', 'format', 'version', 'type', 'parent_id'])
+                    'identifier', 'format', 'version', 'type', 'parent_id',
+                    'priority', 'start_date', 'finish_date', 'solution_wall_time',
+                    'operator', 'tasks_pending', 'tasks_processing', 'tasks_finished',
+                    'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress'])
     return columns
 
 
@@ -304,7 +311,9 @@ class TableTree(object):
         for col in self.header[0]:
             if col['column'] in ['name', 'author', 'date', 'status', '',
                                  'resource', 'format', 'version', 'type',
-                                 'identifier', 'parent_id', 'role']:
+                                 'identifier', 'parent_id', 'role',
+                                 'priority', 'start_date', 'finish_date',
+                                 'solution_wall_time', 'operator', 'progress']:
                 foot_length += col['columns']
             else:
                 return foot_length
@@ -646,6 +655,49 @@ class TableTree(object):
 
         job_pks = [job['pk'] for job in self.jobdata]
 
+        def collect_progress_data():
+            for j in self.jobdata:
+                if j['pk'] in values_data:
+                    try:
+                        progress = j['job'].solvingprogress
+                    except ObjectDoesNotExist:
+                        continue
+                    values_data[j['pk']].update({
+                        'priority': progress.get_priority_display(),
+                        'tasks_total': progress.tasks_total,
+                        'tasks_cancelled': progress.tasks_cancelled,
+                        'tasks_error': progress.tasks_error,
+                        'tasks_finished': progress.tasks_finished,
+                        'tasks_processing': progress.tasks_processing,
+                        'tasks_pending': progress.tasks_pending,
+                        'solutions': progress.solutions
+                    })
+                    if progress.tasks_total == 0:
+                        values_data[j['pk']]['progress'] = '0%'
+                    else:
+                        finished_tasks = progress.tasks_cancelled + progress.tasks_error + progress.tasks_finished
+                        values_data[j['pk']]['progress'] = "%.0f%% (%s/%s)" % (
+                            100 * (finished_tasks / progress.tasks_total),
+                            finished_tasks,
+                            progress.tasks_total
+                        )
+                    if progress.start_date is not None:
+                        values_data[j['pk']]['start_date'] = progress.start_date
+                        if progress.finish_date is not None:
+                            values_data[j['pk']]['finish_date'] = progress.finish_date
+                            values_data[j['pk']]['solution_wall_time'] = get_user_time(
+                                self.user,
+                                int((progress.finish_date - progress.start_date).total_seconds() * 1000)
+                            )
+                    try:
+                        values_data[j['pk']]['operator'] = (
+                            j['job'].reportroot.user.extended.last_name +
+                            ' ' + j['job'].reportroot.user.extended.first_name,
+                            reverse('users:show_profile', args=[j['job'].reportroot.user.pk])
+                        )
+                    except ObjectDoesNotExist:
+                        pass
+
         def collect_authors():
             for j in self.jobdata:
                 if j['pk'] in values_data:
@@ -874,6 +926,8 @@ class TableTree(object):
             collect_unsafe_tags()
         if 'role' in self.columns:
             collect_roles()
+        if 'priority' in self.columns:
+            collect_progress_data()
 
         table_rows = []
         for job in self.jobdata:

@@ -1,5 +1,7 @@
-var do_not_count = ['resource', 'format', 'version', 'type', 'identifier',
-    'parent_id', 'name', 'author', 'date', 'status'];
+var do_not_count = [
+    'name', 'author', 'date', 'status', '', 'resource', 'format', 'version', 'type', 'identifier', 'progress',
+    'parent_id', 'role', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
+];
 
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
@@ -492,7 +494,7 @@ $(document).ready(function () {
         $('#remove_jobs_popup').modal('hide');
     });
 
-    $('#download_selected_jobs').click(function () {
+    $('#download_selected_jobs').click(function (event) {
         event.preventDefault();
         $('#jobs_actions_menu').popup('hide');
         var job_ids = [];

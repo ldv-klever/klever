@@ -715,8 +715,15 @@ def decide_job(request):
         return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
+
+    # TODO: remove
     if 'job id' not in request.POST:
-        return JsonResponse({'error': 'Job identifier is not specified'})
+        if 'job_id' not in request.session:
+            return JsonResponse({'error': 'Job identifier is not specified'})
+        job_id = request.session['job_id']
+    else:
+        job_id = request.POST['job id']
+
     if 'job format' not in request.POST:
         return JsonResponse({'error': 'Job format is not specified'})
     if 'report' not in request.POST:
@@ -728,7 +735,7 @@ def decide_job(request):
     # if 'job id' not in request.session:
         # return JsonResponse({'error': "Session does not have job id"})
     try:
-        job = Job.objects.get(identifier__startswith=request.POST['job id'],
+        job = Job.objects.get(identifier__startswith=job_id,
                               format=int(request.POST['job format']))
         # TODO: remove
         request.session['job id'] = job.id

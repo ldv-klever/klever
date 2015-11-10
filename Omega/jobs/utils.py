@@ -65,6 +65,19 @@ TITLES = {
     'type': _('Class'),
     'parent_id': string_concat(_('Parent'), '/', _('Identifier')),
     'role': _('Your role'),
+    'priority': _('Priority'),
+    'start_date': _('Date of start'),
+    'finish_date': _('Date of finish'),
+    'solution_wall_time': _('Solution wall time'),
+    'operator': _('Operator'),
+    'tasks_pending': _('Pending tasks'),
+    'tasks_processing': _('Processing tasks'),
+    'tasks_finished': _('Finished tasks'),
+    'tasks_error': _('Error tasks'),
+    'tasks_cancelled': _('Cancelled tasks'),
+    'tasks_total': _('Total tasks'),
+    'progress': _('Solving progress'),
+    'solutions': _('Number of solutions')
 }
 
 
@@ -538,3 +551,11 @@ def get_resource_data(user, resource):
         cpu = convert_time(cpu, accuracy)
         mem = convert_memory(mem, accuracy)
     return [wall, cpu, mem]
+
+
+def get_user_time(user, milliseconds):
+    accuracy = user.extended.accuracy
+    converted = int(milliseconds)
+    if user.extended.data_format == 'hum':
+        converted = convert_time(converted, accuracy)
+    return converted

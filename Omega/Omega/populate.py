@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override
 from Omega.vars import JOB_CLASSES, SCHEDULER_TYPE
-from Omega.settings import LANGUAGE_CODE
+from Omega.settings import DEFAULT_LANGUAGE
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
@@ -30,7 +30,7 @@ def populate_jobs(user):
         'global_role': '1',
     }
     for i in range(len(JOB_CLASSES)):
-        with override(LANGUAGE_CODE):
+        with override(DEFAULT_LANGUAGE):
             args['name'] = JOB_CLASSES[i][1]
             args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
         args['pk'] = i + 1

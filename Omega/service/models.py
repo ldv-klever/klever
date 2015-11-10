@@ -90,7 +90,6 @@ class SolvingProgress(models.Model):
     solutions = models.PositiveIntegerField(default=0)
     error = models.CharField(max_length=1024, null=True)
     configuration = models.BinaryField()
-    restrictions = models.BinaryField()
 
     class Meta:
         db_table = 'solving_progress'

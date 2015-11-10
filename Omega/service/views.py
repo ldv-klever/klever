@@ -1,54 +1,16 @@
 import os
 import mimetypes
 from io import BytesIO
-from django.core.urlresolvers import reverse
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import USER_ROLES
 from reports.models import Component
 from marks.models import UnknownProblem
 from service.utils import *
-
-
-# Case 3.2(2) DONE
-def get_jobs_and_tasks(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
-        return JsonResponse({'error': 'No access'})
-    if 'scheduler' not in request.session:
-        return JsonResponse({'error': 'The scheduler was not found in session'})
-    if request.session['scheduler'] not in [x[1] for x in SCHEDULER_TYPE]:
-        return JsonResponse({
-            'error': "The scheduler '%s' is not supported" % request.session['scheduler']
-        })
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
-    if 'jobs and tasks status' not in request.POST:
-        return JsonResponse({'error': 'Tasks data is required'})
-    result = GetTasks(request.session['scheduler'], request.POST['jobs and tasks status'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
-    return JsonResponse({'jobs and tasks status': result.data})
-
-
-# Case 3.3(2) DONE
-def set_schedulers_status(request):
-    if not request.user.is_authenticated():
-        return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
-        return JsonResponse({'error': 'No access'})
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST requests are supported'})
-    if 'statuses' not in request.POST:
-        return JsonResponse({'error': 'Statuses were not got'})
-    result = SetSchedulersStatus(request.POST['statuses'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
-    return JsonResponse({})
+from service.test import *
 
 
 # Case 3.1(3) DONE
@@ -146,6 +108,28 @@ def cancel_task(request):
     return JsonResponse({})
 
 
+# Case 3.2(2) DONE
+def get_jobs_and_tasks(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
+    if 'scheduler' not in request.session:
+        return JsonResponse({'error': 'The scheduler was not found in session'})
+    if request.session['scheduler'] not in [x[1] for x in SCHEDULER_TYPE]:
+        return JsonResponse({
+            'error': "The scheduler '%s' is not supported" % request.session['scheduler']
+        })
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    if 'jobs and tasks status' not in request.POST:
+        return JsonResponse({'error': 'Tasks data is required'})
+    result = GetTasks(request.session['scheduler'], request.POST['jobs and tasks status'])
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({'jobs and tasks status': result.data})
+
+
 # Case 3.2(3) DONE
 def download_task(request, task_id):
     if not request.user.is_authenticated():
@@ -228,127 +212,27 @@ def update_tools(request):
     return JsonResponse({})
 
 
-@login_required
-def user_jobs(request, user_id):
-    activate(request.user.extended.language)
-    try:
-        user = User.objects.get(pk=int(user_id))
-    except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[904]))
-    except Exception as e:
-        print(e)
-        return HttpResponseRedirect(reverse('error', args=[500]))
-    print(UserJobs(user).data)
-    return render(request, 'service/jobs.html', {
-        'data': UserJobs(user).data,
-        'target': user
-    })
-
+# Case 3.3(2) DONE
+def set_schedulers_status(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': 'No access'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    if 'statuses' not in request.POST:
+        return JsonResponse({'error': 'Statuses were not got'})
+    result = SetSchedulersStatus(request.POST['statuses'])
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({})
 
 @login_required
-def update_user_jobs(request, user_id):
-    activate(request.user.extended.language)
-    try:
-        user = User.objects.get(pk=int(user_id))
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': "User was not found"})
-    except Exception as e:
-        print(e)
-        return JsonResponse({'error': "Unknown error"})
-    return render(request, 'service/jobs_table.html',
-                  {'data': UserJobs(user).data})
-
-
-@login_required
-def scheduler_table(request, scheduler_id):
-    activate(request.user.extended.language)
-    try:
-        scheduler = Scheduler.objects.get(pk=int(scheduler_id))
-    except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[905]))
-    except Exception as e:
-        print(e)
-        return HttpResponseRedirect(reverse('error', args=[500]))
+def schedulers_info(request):
     return render(request, 'service/scheduler.html', {
-        'data': SchedulerTable(scheduler)
+        'schedulers': Scheduler.objects.all(),
+        'data': NodesData()
     })
-
-
-@login_required
-def sessions_page(request):
-    activate(request.user.extended.language)
-    return render(request, 'service/sessions.html', {
-        'data': SessionsTable().data
-    })
-
-
-@login_required
-def scheduler_sessions(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
-    try:
-        jobsession = JobSession.objects.get(
-            pk=int(request.POST.get('session_id', 0)))
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _('The job session was not found')})
-    return render(request, 'service/schedulerSessions.html', {
-        'data': SchedulerSessionsTable(jobsession)
-    })
-
-
-@login_required
-def scheduler_job_sessions(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
-    try:
-        scheduler = Scheduler.objects.get(
-            pk=int(request.POST.get('scheduler_id', 0)))
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _('The job session was not found')})
-    return render(request, 'service/schedulerJobSessions.html', {
-        'data': SchedulerJobSessionsTable(scheduler)
-    })
-
-
-@login_required
-def add_scheduler_user(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
-    new_login = request.POST.get('login', '')
-    new_password = request.POST.get('password', '')
-    if len(new_login) == 0 or len(new_password) == 0:
-        return JsonResponse({'error': _('Unknown error')})
-    try:
-        sch_u = request.user.scheduleruser
-    except ObjectDoesNotExist:
-        sch_u = SchedulerUser()
-        sch_u.user = request.user
-    sch_u.login = new_login
-    sch_u.password = new_password
-    sch_u.save()
-    return JsonResponse({})
-
-
-@login_required
-def remove_scheduler_user(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
-    try:
-        sch_u = request.user.scheduleruser
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': _("Scheduler user doesn't exists")})
-    sch_u.delete()
-    return JsonResponse({})
-
-
-@login_required
-def test(request):
-    return render(request, 'service/test.html', {'priorities': PRIORITY})
-
 
 @login_required
 def change_component(request):
@@ -469,3 +353,50 @@ def manager_tools(request):
         'components': Component.objects.all(),
         'problems': UnknownProblem.objects.all()
     })
+
+
+@login_required
+def test(request):
+    return render(request, 'service/test.html', {
+        'priorities': PRIORITY,
+        'jobs': Job.objects.filter(~Q(solvingprogress=None)),
+        'schedulers': Scheduler.objects.all(),
+        'defvals': {
+            'task_description': '{"priority": "LOW"}',
+            'sch_json': json.dumps(TEST_JSON),
+            'solution_description': "{}",
+            'nodes_data': json.dumps(TEST_NODES_DATA),
+            'tools_data': json.dumps(TEST_TOOLS_DATA),
+        },
+        'curr_scheduler': request.session.get('scheduler', None),
+        'curr_job_id': request.session.get('job_id', None)
+    })
+
+
+@login_required
+def fill_session(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    for v in request.POST:
+        request.session[v] = request.POST[v]
+    return JsonResponse({})
+
+
+@login_required
+def process_job(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    for v in request.POST:
+        request.session[v] = request.POST[v]
+    if 'job_id' not in request.POST:
+        return JsonResponse({'error': 'Job identifier is not specified'})
+    try:
+        job = Job.objects.get(identifier=request.session.get('job_id', 'null'))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Job was not found'})
+
+    if job.status != JOB_STATUS[1][0]:
+        return JsonResponse({'error': 'Job is not PENDING'})
+    job.status = JOB_STATUS[2][0]
+    job.save()
+    return JsonResponse({})

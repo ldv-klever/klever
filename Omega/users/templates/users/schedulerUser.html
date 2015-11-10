@@ -2,9 +2,11 @@
 
 <div class="ui grid">
     <div class="eleven wide column">
-        <label for="scheduler_login">{% trans 'Login' %}</label>
-        <div class="ui input fluid">
-            <input id="scheduler_login" type="text" value="{{ user.scheduleruser.login }}">
+        <div class="field">
+            <label for="scheduler_login">{% trans 'Scheduler login' %}</label>
+            <div class="ui input fluid">
+                <input id="scheduler_login" name="sch_login" type="text" value="{{ user.scheduleruser.login }}">
+            </div>
         </div>
     </div>
     <div class="five wide column">
@@ -18,9 +20,11 @@
 <br>
 <div class="ui grid">
     <div class="eleven wide column">
-        <label for="scheduler_password">{% trans 'Password' %}</label>
-        <div class="ui input fluid">
-            <input id="scheduler_password" type="password">
+        <div class="field">
+            <label for="scheduler_password">{% trans 'Scheduler password' %}</label>
+            <div class="ui input fluid">
+                <input id="scheduler_password" name="sch_password" type="password">
+            </div>
         </div>
     </div>
     <div class="five wide column">
@@ -34,9 +38,11 @@
 <br>
 <div class="ui grid">
     <div class="eleven wide column">
-        <label for="scheduler_password_retype">{% trans 'Confirm password' %}</label>
-        <div class="ui input fluid">
-            <input id="scheduler_password_retype" type="password">
+        <div class="field">
+            <label for="scheduler_password_retype">{% trans 'Confirm scheduler password' %}</label>
+            <div class="ui input fluid">
+                <input id="scheduler_password_retype" type="password">
+            </div>
         </div>
     </div>
     <div class="five wide column">
@@ -51,32 +57,4 @@
         </div>
     </div>
 </div>
-<br>
-<div class="ui grid">
-    <div class="eleven wide column right aligned">
-        <div class="ui buttons">
-            <button id="add_new_sch_u" class="ui green button disabled">{% trans 'Save' %}</button>
-            {% if user.scheduleruser %}<button id="remove_sch_u" class="ui red button">{% trans 'Delete' %}</button>{% endif %}
-        </div>
-    </div>
-</div>
-
-{% if user.scheduleruser %}
-    <div id="remove_sch_u_popup" class="ui basic modal">
-        <div class="ui icon header">
-            <i class="warning sign icon"></i>
-            {% trans 'Are you sure' %}?
-        </div>
-        <div class="content">
-            <div class="ui center aligned grid">
-                <p>{% trans 'You will not be able to restore login information' %}!</p>
-            </div>
-        </div>
-        <div class="actions">
-            <div class="ui center aligned grid">
-                <button id="cancel_remove_sch_u" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                <button id="confirm_remove_sch_u" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
-            </div>
-        </div>
-    </div>
-{% endif %}
+{% if user.scheduleruser %}<h5 id="sch_user_delete_warn" class="ui red header" style="display: none">{% trans 'Scheduler user will be deleted' %}</h5>{% endif %}
