@@ -98,10 +98,14 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 for task_id in [task_id for task_id in server_state["tasks"]["pending"] if task_id not in self.__tasks]:
                     self.__tasks[task_id] = {
                         "status": "PENDING",
-                        "description": server_state["task descriptions"][task_id]["description"],
-                        "user": server_state["task descriptions"][task_id]["scheduler user name"],
-                        "password": server_state["task descriptions"][task_id]["scheduler password"],
+                        "description": server_state["task descriptions"][task_id]["description"]
                     }
+                    if self.scheduler_type() == "VerifierCloud":
+                        self.__tasks[task_id]["user"] = \
+                            server_state["task descriptions"][task_id]["scheduler user name"]
+                        self.__tasks[task_id]["password"] = \
+                            server_state["task descriptions"][task_id]["scheduler password"]
+
 
                 # Remove finished or error tasks
                 logging.debug("Remove tasks with statuses FINISHED and ERROR")

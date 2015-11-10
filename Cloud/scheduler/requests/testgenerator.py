@@ -83,7 +83,7 @@ class Server(requests.Session):
             description = base_description.copy()
             description["id"] = task_id
             description["files"] = [source]
-            json_description = json.dumps(description)
+            json_description = json.dumps(description, sort_keys=True, indent=4)
             description_file = os.path.join(task_dir, task_description_filename)
             with open(description_file, "w") as fh:
                 fh.write(json_description)
@@ -240,7 +240,7 @@ class Server(requests.Session):
                 report["task descriptions"][task_id]["scheduler user name"] = self.conf["scheduler user name"]
                 report["task descriptions"][task_id]["scheduler password"] = self.conf["scheduler password"]
 
-        logging.debug("PENDING: {}, PROCESSING: {}, ERROR: {}, FINISHED: {}".
+        logging.debug("Test-generator state: PENDING: {}, PROCESSING: {}, ERROR: {}, FINISHED: {}".
                       format(self.pending_cnt, self.processing_cnt, self.error_cnt, self.finished_cnt))
         return report
 
@@ -279,7 +279,7 @@ class Server(requests.Session):
         :param nodes: String with JSON nodes description.
         """
         self.nodes = nodes
-        node_desc = json.dumps(nodes)
+        node_desc = json.dumps(nodes, sort_keys=True, indent=4)
         with open(os.path.join(self.work_dir, "nodes.json"), "w") as fh:
             fh.write(node_desc)
 
@@ -290,7 +290,7 @@ class Server(requests.Session):
         :param tools: String with JSON verification tools description.
         """
         self.tools = tools
-        tool_desc = json.dumps(tools)
+        tool_desc = json.dumps(tools, sort_keys=True, indent=4)
         with open(os.path.join(self.work_dir, "tools.json"), "w") as fh:
             fh.write(tool_desc)
 
