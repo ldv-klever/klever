@@ -133,20 +133,20 @@ class ReportComponentLeaf(models.Model):
 
 class Verdict(models.Model):
     report = models.OneToOneField(ReportComponent)
-    unsafe = models.IntegerField(default=0)
-    unsafe_bug = models.IntegerField(default=0)
-    unsafe_target_bug = models.IntegerField(default=0)
-    unsafe_false_positive = models.IntegerField(default=0)
-    unsafe_unknown = models.IntegerField(default=0)
-    unsafe_unassociated = models.IntegerField(default=0)
-    unsafe_inconclusive = models.IntegerField(default=0)
-    safe = models.IntegerField(default=0)
-    safe_missed_bug = models.IntegerField(default=0)
-    safe_incorrect_proof = models.IntegerField(default=0)
-    safe_unknown = models.IntegerField(default=0)
-    safe_unassociated = models.IntegerField(default=0)
-    safe_inconclusive = models.IntegerField(default=0)
-    unknown = models.IntegerField(default=0)
+    unsafe = models.PositiveIntegerField(default=0)
+    unsafe_bug = models.PositiveIntegerField(default=0)
+    unsafe_target_bug = models.PositiveIntegerField(default=0)
+    unsafe_false_positive = models.PositiveIntegerField(default=0)
+    unsafe_unknown = models.PositiveIntegerField(default=0)
+    unsafe_unassociated = models.PositiveIntegerField(default=0)
+    unsafe_inconclusive = models.PositiveIntegerField(default=0)
+    safe = models.PositiveIntegerField(default=0)
+    safe_missed_bug = models.PositiveIntegerField(default=0)
+    safe_incorrect_proof = models.PositiveIntegerField(default=0)
+    safe_unknown = models.PositiveIntegerField(default=0)
+    safe_unassociated = models.PositiveIntegerField(default=0)
+    safe_inconclusive = models.PositiveIntegerField(default=0)
+    unknown = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = "cache_report_verdict"
@@ -172,7 +172,7 @@ class ComponentResource(models.Model):
 class ComponentUnknown(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='unknowns_cache')
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
-    number = models.IntegerField(default=0)
+    number = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'cache_report_component_unknown'

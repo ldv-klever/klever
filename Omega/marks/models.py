@@ -289,7 +289,7 @@ class ComponentMarkUnknownProblem(models.Model):
     component = models.ForeignKey(Component, related_name='+')
     problem = models.ForeignKey(UnknownProblem, null=True,
                                 related_name='+', on_delete=models.PROTECT)
-    number = models.IntegerField(default=0)
+    number = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'cache_report_component_mark_unknown_problem'

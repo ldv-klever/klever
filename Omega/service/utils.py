@@ -330,6 +330,9 @@ class GetTasks(object):
         self.data = {}
         try:
             self.data = self.__get_tasks(tasks)
+            if self.error is not None:
+                # TODO: notify admin with email
+                print(self.error)
         except KeyError or IndexError:
             self.error = 'Wrong task data format'
         except Exception as e:
@@ -405,6 +408,11 @@ class GetTasks(object):
             elif task.pk in data['tasks']['finished']:
                 task.status = status_map['finished']
                 task.save()
+                try:
+                    task.solution
+                except ObjectDoesNotExist:
+                    # TODO: notify admin with email
+                    print("Solution was not found for the pending->finished task with id '%s'" % task.pk)
                 if task.progress.tasks_pending > 0:
                     task.progress.tasks_pending -= 1
                 task.progress.tasks_finished += 1
@@ -440,6 +448,11 @@ class GetTasks(object):
             elif task.pk in data['tasks']['finished']:
                 task.status = status_map['finished']
                 task.save()
+                try:
+                    task.solution
+                except ObjectDoesNotExist:
+                    # TODO: notify admin with email
+                    print("Solution was not found for the processing->finished task with id '%s'" % task.pk)
                 if task.progress.tasks_processing > 0:
                     task.progress.tasks_processing -= 1
                 task.progress.tasks_finished += 1

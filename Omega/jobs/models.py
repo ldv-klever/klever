@@ -47,6 +47,7 @@ class JobHistory(JobBase):
         db_table = 'jobhistory'
 
 
+# When you add this model to any other, check delete() method for all uses of File
 class File(models.Model):
     hash_sum = models.CharField(max_length=255)
     file = RestrictedFileField(
