@@ -1,14 +1,14 @@
 {% extends 'jobs/base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans 'Start decision' %}{% endblock %}
+{% block title %}{% trans 'Start decision of job' %}{% endblock %}
 
 {% block jobs_head_block %}
     <script src="/static/jobs/js/startjob.js"></script>
 {% endblock %}
 
 {% block body_block %}
-    <h2>{% trans 'Start decision of' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
+    <h2>{% trans 'Start decision of job' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
     <div class="ui violet segment">
     {% if data.error %}
         <h3 class="ui red header">{{ data.error }}</h3>
@@ -55,7 +55,7 @@
                     <input id="max_cpus" type="number" value="{{ data.restrictions.max_cpus }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Max disk memory (Gb)' %}, {% trans 'example' %}: 100.0</label>
+                <label for="max_disk">{% trans 'Maximum disk space' %} ( {% trans 'GiB' %} ), {% trans 'example' %}: 100.0</label>
                 <div class="ui input fluid">
                     <input id="max_disk" type="number" value="{{ data.restrictions.max_disk }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
@@ -64,8 +64,8 @@
         <div class="ui divider need-auth"></div>
         <div class="ui grid need-auth">
             <div class="five wide column">
-                <h4 class="ui header">{% trans 'PSI configuration' %}</h4>
-                <label for="gen_priority">{% trans 'AVTG priority' %}</label>
+                <h4 class="ui header">{% trans 'Psi configuration' %}</h4>
+                <label for="gen_priority">{% trans 'Abstract verification tasks generation priority' %}</label>
                 <select id="gen_priority" class="ui dropdown fluid normal-dropdown">
                     {% for p in data.gen_priorities %}
                         <option value="{{ p.0 }}">{{ p.1 }}</option>
@@ -84,7 +84,7 @@
                     <input id="console_log_formatter" type="text" value="{{ data.logging.console }}">
                 </div>
                 <br>
-                <label for="file_log_formatter">{% trans 'File log formatter' %}</label>
+                <label for="file_log_formatter">{% trans 'Log file formatter' %}</label>
                 <div class="ui input fluid">
                     <input id="file_log_formatter" type="text" value="{{ data.logging.file }}">
                 </div>

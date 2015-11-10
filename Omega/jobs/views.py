@@ -816,7 +816,7 @@ def stop_decision(request):
     except ObjectDoesNotExist:
         return JsonResponse({'error': _("The job was not found")})
     if not JobAccess(request.user, job).can_stop():
-        return JsonResponse({'error': _("You don't have access to stop this job")})
+        return JsonResponse({'error': _("You don't have an access to stop decision of this job")})
     result = StopDecision(job)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
