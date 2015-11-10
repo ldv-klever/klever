@@ -160,63 +160,96 @@ def show_profile(request, user_id=None):
     if len(user_id) == 0:
         return HttpResponseRedirect(reverse('jobs:tree'))
     target = get_object_or_404(User, pk=int(user_id))
-    job_activity = []
-    for act in target.jobhistory.all().order_by('-change_date')[:18]:
+    activity = []
+    for act in target.jobhistory.all().order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
         if len(act_comment) > 47:
             small_comment = act_comment[:50] + '...'
+        if act.version == 1:
+            act_type = _('Creation')
+            act_color = '#58bd2a'
+        else:
+            act_type = _('Modification')
+            act_color = '#31e6ff'
         new_act = {
             'date': act.change_date,
             'comment': act_comment,
             'small_comment': small_comment,
-            'version': act.version,
-            'job_name': act.name
+            'act_type': act_type,
+            'act_color': act_color,
+            'obj_type': _('Job'),
+            'obj_link': act.name
         }
         if JobAccess(request.user, act.job).can_view():
             new_act['href'] = reverse('jobs:job', args=[act.job_id])
-        job_activity.append(new_act)
-    mark_activity = []
-    for act in target.marksafehistory.all().order_by('-change_date'):
+        activity.append(new_act)
+    for act in target.marksafehistory.all().order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
         if len(act_comment) > 47:
             small_comment = act_comment[:50] + '...'
-        mark_activity.append({
+        if act.version == 1:
+            act_type = _('Creation')
+            act_color = '#58bd2a'
+        else:
+            act_type = _('Modification')
+            act_color = '#31e6ff'
+        activity.append({
             'date': act.change_date,
             'comment': act_comment,
             'small_comment': small_comment,
-            'mark_version': act,
-            'type': 'safe'
+            'act_type': act_type,
+            'act_color': act_color,
+            'obj_type': _('Safe mark'),
+            'obj_link': act.mark.identifier,
+            'href': reverse('marks:edit_mark', args=['safe', act.mark_id]),
         })
-    for act in target.markunsafehistory.all().order_by('-change_date'):
+    for act in target.markunsafehistory.all().order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
         if len(act_comment) > 47:
             small_comment = act_comment[:50] + '...'
-        mark_activity.append({
+        if act.version == 1:
+            act_type = _('Creation')
+            act_color = '#58bd2a'
+        else:
+            act_type = _('Modification')
+            act_color = '#31e6ff'
+        activity.append({
             'date': act.change_date,
             'comment': act_comment,
             'small_comment': small_comment,
-            'mark_version': act,
-            'type': 'unsafe'
+            'act_type': act_type,
+            'act_color': act_color,
+            'obj_type': _('Unsafe mark'),
+            'obj_link': act.mark.identifier,
+            'href': reverse('marks:edit_mark', args=['unsafe', act.mark_id])
         })
-    for act in target.markunknownhistory_set.all().order_by('-change_date'):
+    for act in target.markunknownhistory_set.all().order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
         if len(act_comment) > 47:
             small_comment = act_comment[:50] + '...'
-        mark_activity.append({
+        if act.version == 1:
+            act_type = _('Creation')
+            act_color = '#58bd2a'
+        else:
+            act_type = _('Modification')
+            act_color = '#31e6ff'
+        activity.append({
             'date': act.change_date,
             'comment': act_comment,
             'small_comment': small_comment,
-            'mark_version': act,
-            'type': 'unknown'
+            'act_type': act_type,
+            'act_color': act_color,
+            'obj_type': _('Unknown mark'),
+            'obj_link': act.mark.identifier,
+            'href': reverse('marks:edit_mark', args=['unknown', act.mark_id])
         })
     return render(request, 'users/showProfile.html', {
         'target': target,
-        'job_activity': job_activity,
-        'mark_activity': mark_activity
+        'activity': list(reversed(sorted(activity, key=lambda x: x['date'])))[:50],
     })
 
 

@@ -3,23 +3,17 @@ from django.utils.translation import ugettext_lazy as _
 FORMAT = 1
 
 ERRORS = {
-    444: _("The page was not found"),
     404: _('The job was not found'),
     400: _("You don't have an access to this job"),
-    405: _("You can't download this job"),
-    450: _('Some job is downloaded right now, please try again later'),
     451: _('Wrong parameters, please reload page and try again.'),
     504: _('The report was not found'),
     604: _("The mark was not found"),
     600: _("You don't have an access to this mark"),
     601: _("You don't have an access to create new marks"),
     602: _("You don't have an access to delete this mark"),
-    605: _("You don't have an access to download this mark"),
     650: _("Saving the mark failed"),
     704: _("The tag was not found"),
-    804: _("The problem was not found"),
-    904: _("The user was not found"),
-    905: _("The scheduler was not found")
+    804: _("The problem was not found")
 }
 
 LANGUAGES = (
