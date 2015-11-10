@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-10 15:35+0000\n"
+"POT-Creation-Date: 2015-11-10 15:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -782,11 +782,7 @@ msgstr "Доступные столбцы"
 msgid "Add order by"
 msgstr "Добавить сортировку по"
 
-#: jobs/templates/jobs/tree.html:86 jobs/templates/jobs/viewJobFilters.html:5
-#: marks/templates/marks/filters.html:5 marks/templates/marks/filters.html:56
-#: reports/templates/reports/AttrsFilters.html:5
-#: reports/templates/reports/ListFilters.html:5
-#: reports/templates/reports/UnknownsFilters.html:5
+#: jobs/templates/jobs/tree.html:86 marks/templates/marks/filters.html:56
 msgid "Filters"
 msgstr "Фильтры"
 
@@ -916,11 +912,13 @@ msgstr "Удалить отмеченные задания"
 msgid "Download selected jobs"
 msgstr "Загрузить отмеченные задания"
 
-#: jobs/templates/jobs/tree.html:343 templates/base.html:66
-#: users/templates/users/edit-profile.html:9
-#: users/templates/users/edit-profile.html:19
-msgid "Settings"
-msgstr "Настройки"
+#: jobs/templates/jobs/tree.html:343 jobs/templates/jobs/viewJobFilters.html:5
+#: marks/templates/marks/filters.html:5
+#: reports/templates/reports/AttrsFilters.html:5
+#: reports/templates/reports/ListFilters.html:5
+#: reports/templates/reports/UnknownsFilters.html:5
+msgid "View"
+msgstr "Представление"
 
 #: jobs/templates/jobs/tree.html:352 jobs/templates/jobs/viewJob.html:148
 #: jobs/templates/jobs/viewVersions.html:23
@@ -2107,6 +2105,11 @@ msgstr "Панель администатора"
 #: templates/base.html:60
 msgid "Manager Tools"
 msgstr "Панель руководителя"
+
+#: templates/base.html:66 users/templates/users/edit-profile.html:9
+#: users/templates/users/edit-profile.html:19
+msgid "Settings"
+msgstr "Настройки"
 
 #: templates/base.html:67
 msgid "Sign Out"
