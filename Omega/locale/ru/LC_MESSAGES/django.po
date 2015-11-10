@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-10 12:51+0000\n"
+"POT-Creation-Date: 2015-11-10 13:03+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -34,11 +34,11 @@ msgid "The page was not found"
 msgstr "Страница не была найдена"
 
 #: Omega/vars.py:7 jobs/views.py:331 jobs/views.py:360 jobs/views.py:436
-#: jobs/views.py:524 jobs/views.py:663 jobs/views.py:813
+#: jobs/views.py:524 jobs/views.py:817
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
-#: Omega/vars.py:8 jobs/views.py:668
+#: Omega/vars.py:8
 msgid "You don't have an access to this job"
 msgstr "У Вас нет прав на данное задание"
 
@@ -274,39 +274,40 @@ msgstr "Завершился"
 msgid "Error"
 msgstr "Ошибка"
 
-#: Omega/views.py:29 jobs/utils.py:272 jobs/utils.py:458 jobs/views.py:47
+#: Omega/views.py:29 jobs/utils.py:275 jobs/utils.py:461 jobs/views.py:47
 #: jobs/views.py:52 jobs/views.py:91 jobs/views.py:96 jobs/views.py:120
 #: jobs/views.py:128 jobs/views.py:166 jobs/views.py:170 jobs/views.py:325
 #: jobs/views.py:355 jobs/views.py:417 jobs/views.py:510 jobs/views.py:518
-#: jobs/views.py:788 jobs/views.py:792 jobs/views.py:805 jobs/views.py:830
-#: jobs/views.py:832 marks/utils.py:762 marks/utils.py:822 marks/utils.py:973
-#: marks/views.py:181 marks/views.py:199 marks/views.py:212 marks/views.py:369
-#: marks/views.py:380 marks/views.py:410 marks/views.py:421 reports/etv.py:278
-#: service/utils.py:856 service/utils.py:864 service/utils.py:945
-#: service/utils.py:967 service/utils.py:1009 service/utils.py:1013
-#: service/views.py:241 service/views.py:282 service/views.py:289
-#: service/views.py:308 service/views.py:335 users/views.py:267
+#: jobs/views.py:676 jobs/views.py:792 jobs/views.py:796 jobs/views.py:809
+#: jobs/views.py:834 jobs/views.py:836 marks/utils.py:762 marks/utils.py:822
+#: marks/utils.py:973 marks/views.py:181 marks/views.py:199 marks/views.py:212
+#: marks/views.py:369 marks/views.py:380 marks/views.py:410 marks/views.py:421
+#: reports/etv.py:278 service/utils.py:856 service/utils.py:864
+#: service/utils.py:945 service/utils.py:967 service/utils.py:1009
+#: service/utils.py:1013 service/views.py:241 service/views.py:282
+#: service/views.py:289 service/views.py:308 service/views.py:335
+#: users/views.py:267
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
-#: jobs/Download.py:163
+#: jobs/Download.py:164
 msgid "Can't download job now"
 msgstr ""
 
-#: jobs/Download.py:386 jobs/Download.py:408 jobs/Download.py:419
-#: jobs/Download.py:438
+#: jobs/Download.py:387 jobs/Download.py:409 jobs/Download.py:420
+#: jobs/Download.py:439
 msgid "The job archive is corrupted"
 msgstr "Архив задания поврежден"
 
-#: jobs/Download.py:410
+#: jobs/Download.py:411
 msgid "The job format is not supported"
 msgstr "Формат задания не поддерживается"
 
-#: jobs/Download.py:412
+#: jobs/Download.py:413
 msgid "The job class does not equal to the parent class"
 msgstr "Класс задания не совпадает с классом родителя"
 
-#: jobs/Download.py:475
+#: jobs/Download.py:479
 msgid "One of the reports was not uploaded"
 msgstr "Один из отчетов не был загружен на сервер"
 
@@ -499,7 +500,7 @@ msgstr "Сохранить"
 msgid "Cancel"
 msgstr "Отменить"
 
-#: jobs/templates/jobs/editJob.html:126 jobs/utils.py:462
+#: jobs/templates/jobs/editJob.html:126 jobs/utils.py:465
 #: marks/templates/marks/EditMark.html:112
 #: marks/templates/marks/EditUnknownMark.html:108
 msgid "Change comment is required"
@@ -715,30 +716,32 @@ msgid "Select prority of job"
 msgstr ""
 
 #: jobs/templates/jobs/startDecision.html:47
-msgid "Restrictions for PSI"
-msgstr ""
+msgid "Restrictions for Psi"
+msgstr "Ограничения для Psi"
 
 #: jobs/templates/jobs/startDecision.html:48
-msgid "Max RAM memory (Gb)"
-msgstr ""
+#: reports/templates/reports/ReportMain.html:102
+msgid "Maximum memory size"
+msgstr "Максимальный объем оперативной памяти"
+
+#: jobs/templates/jobs/startDecision.html:48
+#: jobs/templates/jobs/startDecision.html:58 jobs/utils.py:345
+msgid "GiB"
+msgstr "Гбайт"
 
 #: jobs/templates/jobs/startDecision.html:48
 #: jobs/templates/jobs/startDecision.html:53
 #: jobs/templates/jobs/startDecision.html:58
-msgid "example"
-msgstr ""
+msgid "e.g."
+msgstr "например,"
 
 #: jobs/templates/jobs/startDecision.html:53
-msgid "Max CPU number"
-msgstr ""
+msgid "Maximum CPUs number"
+msgstr "Максимальное количество ядер"
 
 #: jobs/templates/jobs/startDecision.html:58
 msgid "Maximum disk space"
 msgstr "Максимальный объем дискового пространства"
-
-#: jobs/templates/jobs/startDecision.html:58 jobs/utils.py:342
-msgid "GiB"
-msgstr "Гбайт"
 
 #: jobs/templates/jobs/startDecision.html:67
 msgid "Psi configuration"
@@ -1196,63 +1199,63 @@ msgstr "Выполняется"
 msgid "Number of solutions"
 msgstr "Количество привязанных оценок"
 
-#: jobs/utils.py:243 jobs/utils.py:247
+#: jobs/utils.py:246 jobs/utils.py:250
 msgid "Saving folder failed"
 msgstr "Сохранение папки провалилось"
 
-#: jobs/utils.py:255 jobs/utils.py:289
+#: jobs/utils.py:258 jobs/utils.py:292
 msgid "The file was not uploaded"
 msgstr "Файл не был загружен на сервер"
 
-#: jobs/utils.py:283
+#: jobs/utils.py:286
 msgid "You can't specify an empty name"
 msgstr "Вы не можете указать пустое имя"
 
-#: jobs/utils.py:291
+#: jobs/utils.py:294
 msgid "You can't use the same names in one folder"
 msgstr "Вы не можете использовать одни и те же имена в одной папке"
 
-#: jobs/utils.py:316
+#: jobs/utils.py:319
 msgid "ms"
 msgstr "мс"
 
-#: jobs/utils.py:320
+#: jobs/utils.py:323
 msgid "s"
 msgstr "с"
 
-#: jobs/utils.py:324
+#: jobs/utils.py:327
 msgid "min"
 msgstr "мин"
 
-#: jobs/utils.py:325
+#: jobs/utils.py:328
 msgid "h"
 msgstr "ч"
 
-#: jobs/utils.py:333
+#: jobs/utils.py:336
 msgid "B"
 msgstr "Б"
 
-#: jobs/utils.py:337
+#: jobs/utils.py:340
 msgid "KiB"
 msgstr "Кбайт"
 
-#: jobs/utils.py:341
+#: jobs/utils.py:344
 msgid "MiB"
 msgstr "Мбайт"
 
-#: jobs/utils.py:408
+#: jobs/utils.py:411
 msgid "Job title is required"
 msgstr "Требуется название задания"
 
-#: jobs/utils.py:410
+#: jobs/utils.py:413
 msgid "Job author is required"
 msgstr "Требуется автор задания"
 
-#: jobs/utils.py:420
+#: jobs/utils.py:423
 msgid "The parent or the job class are required"
 msgstr "Требуется родитель или класс задания"
 
-#: jobs/utils.py:460
+#: jobs/utils.py:463
 msgid "Change author is required"
 msgstr "Требуется автор изменения"
 
@@ -1351,7 +1354,7 @@ msgstr "Ваша версия устарела, пожалуйста, обнов
 msgid "You don't have an access to create new jobs"
 msgstr "У Вас нет прав создавать новые задания"
 
-#: jobs/views.py:528
+#: jobs/views.py:528 jobs/views.py:663
 msgid "One of the selected jobs was not found"
 msgstr "Одно из отмеченных заданий не было найдено"
 
@@ -1367,27 +1370,29 @@ msgstr "У Вас нет прав удалить одно из отмеченн�
 msgid "File uploading failed"
 msgstr "Загрузка файла на сервер провалилась"
 
-#: jobs/views.py:683
+#: jobs/views.py:668
+#, fuzzy
+#| msgid "You don't have an access to remove one of the selected jobs"
+msgid "You don't have an access to download one of the selected jobs"
+msgstr "У Вас нет прав удалить одно из отмеченных заданий"
+
+#: jobs/views.py:687
 msgid "The parent identifier was not got"
 msgstr "Не был получен идентификатор родителя"
 
-#: jobs/views.py:689
+#: jobs/views.py:693
 msgid "The parent with the specified identifier was not found"
 msgstr "Родитель с указанным идентификатором не был найден"
 
-#: jobs/views.py:695
+#: jobs/views.py:699
 msgid "Too many jobs starts with the specified identifier"
 msgstr "Слишком много заданий начинаются с указанного идентификатора"
 
-#: jobs/views.py:796
+#: jobs/views.py:800
 msgid "The file was not found"
 msgstr "Файл не был найден"
 
-#: jobs/views.py:808
-msgid "You don't have an access to stop decision of this job"
-msgstr "У Вас нет прав остановить решение данного задания"
-
-#: jobs/views.py:815
+#: jobs/views.py:812 jobs/views.py:819
 msgid "You don't have an access to stop decision of this job"
 msgstr "У Вас нет прав остановить решение данного задания"
 
@@ -1727,10 +1732,6 @@ msgstr "Астрономическое время"
 #: reports/templates/reports/ReportMain.html:101
 msgid "CPU time"
 msgstr "Процессорное время"
-
-#: reports/templates/reports/ReportMain.html:102
-msgid "Maximum memory size"
-msgstr "Максимальный объем оперативной памяти"
 
 #: reports/templates/reports/ReportMain.html:115
 msgid "Log"
@@ -2487,6 +2488,11 @@ msgstr "Неправильное имя пользователя или паро
 #: users/views.py:266
 msgid "Saved"
 msgstr "Сохранено"
+
+#, fuzzy
+#~| msgid "Maximum memory size"
+#~ msgid "Maximum RAM memory"
+#~ msgstr "Максимальный объем оперативной памяти"
 
 #, fuzzy
 #~| msgid "Stop decision"
