@@ -57,7 +57,7 @@
             <a class="item" href="{% url 'population' %}">{% trans 'Population' %}</a>
         {% endif %}
             {% if user.extended and user.extended.role == '2' %}
-                <a class="item" href="{% url 'service:manager_tools' %}">{% trans 'Manager Tools' %}</a>
+                <a class="item" href="{% url 'tools:manager' %}">{% trans 'Manager Tools' %}</a>
             {% endif %}
         {% endif %}
             <div class="right menu">

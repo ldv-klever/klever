@@ -44,7 +44,8 @@ INSTALLED_APPS = (
     'jobs',
     'marks',
     'reports',
-    'service'
+    'service',
+    'tools'
 )
 
 MIDDLEWARE_CLASSES = (

@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block head_block %}
-    <script src="/static/service/js/for-manager.js"></script>
+    <script src="/static/tools/js/manager.js"></script>
 {% endblock %}
 
 {% block body_block %}
@@ -16,12 +16,14 @@
                     {% if components|length > 0 %}
                         <div style="height: 340px; overflow-y: auto">
                             {% for component in components %}
-                                <div class="ui action input fluid">
-                                    <input id="component_name_input__{{ component.pk }}" type="text" placeholder="{% trans 'Component name' %}" value="{{ component.name }}">
-                                    <button id="rename_component_btn__{{ component.pk }}" class="ui teal button">{% trans 'Rename' %}</button>
-                                    <button id="delete_component_btn__{{ component.pk }}"class="ui red button">{% trans 'Delete' %}</button>
+                                <div id="component__{{ component.pk }}">
+                                    <div class="ui action input fluid">
+                                        <input id="component_name_input__{{ component.pk }}" type="text" placeholder="{% trans 'Component name' %}" value="{{ component.name }}">
+                                        <button id="rename_component_btn__{{ component.pk }}" class="ui teal button">{% trans 'Rename' %}</button>
+                                        <button id="delete_component_btn__{{ component.pk }}"class="ui red button">{% trans 'Delete' %}</button>
+                                    </div>
+                                    <br>
                                 </div>
-                                <br>
                             {% endfor %}
                         </div>
                         <br>
@@ -38,7 +40,7 @@
                         <div style="height: 340px; overflow-y: auto">
                             <table class="ui compact table">
                             {% for problem in problems %}
-                                <tr>
+                                <tr id="problem__{{ problem.pk }}">
                                     <th class="eleven wide column">{{ problem.name }}</th>
                                     <td class="five wide column"><button id="delete_problem_btn__{{ problem.pk }}"class="ui red small button">{% trans 'Delete' %}</button></td>
                                 </tr>

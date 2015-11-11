@@ -20,12 +20,5 @@ urlpatterns = [
     url(r'^download_task/(?P<task_id>[0-9]+)/$', views.download_task),
     url(r'^update_nodes/$', views.update_nodes),
     url(r'^schedulers/$', views.schedulers_info, name='schedulers'),
-    url(r'^ajax/add_scheduler_user/$', views.add_scheduler_user),
-
-    url(r'^manager-tools/$', views.manager_tools, name='manager_tools'),
-    url(r'^ajax/change_component/$', views.change_component),
-    url(r'^ajax/clear_components_table/$', views.clear_components_table),
-    url(r'^ajax/delete_problem/$', views.delete_problem),
-    url(r'^ajax/clear_problems/$', views.clear_problems),
-
+    url(r'^ajax/add_scheduler_user/$', views.add_scheduler_user)
 ]
