@@ -4,7 +4,7 @@ from service import views
 
 urlpatterns = [
     # TESTS
-    url(r'^test/$', views.test),
+    url(r'^test/$', views.test, name='test'),
     url(r'^ajax/fill_session/$', views.fill_session),
     url(r'^ajax/process_job/$', views.process_job),
 

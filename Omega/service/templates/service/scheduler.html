@@ -1,25 +1,34 @@
 {% extends 'service/base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans 'Scheduler' %}{% endblock %}
+{% block title %}{% trans 'Schedulers' %}{% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
         <div class="seven wide column">
             <table class="ui compact teal table">
                 <thead>
+                    <tr>
+                        <th class="center aligned" style="background-color: #ccece3">
+                            <h3 class="italic ui header">{% trans 'Scheduler' %}</h3>
+                        </th>
+                        <th class="center aligned" style="background-color: #ccece3">
+                            <h3 class="italic ui header">{% trans 'Status' %}</h3>
+                        </th>
+                        <th style="background-color: #ccece3"></th>
+                    </tr>
                 {% for sch in schedulers %}
                     <tr>
                         <th class="five wide column center aligned">
-                            <h3 class="header"><a id="show_tools_{{ sch.type }}" href="#">{{ sch.get_type_display }}</a></h3>
+                            <h4 class="header"><a id="show_tools_{{ sch.type }}" href="#">{{ sch.get_type_display }}</a></h4>
                         </th>
                         <th class="five wide column center aligned">
                             {% if sch.status == 'HEALTHY' %}
-                                <h3 class="ui green header">{% trans 'Available' %}</h3>
+                                <h4 class="ui green header">{% trans 'Healthy' %}</h4>
                             {% elif sch.status == 'AILING' %}
-                                <h3 class="ui red header">{% trans 'Ailing' %}</h3>
+                                <h4 class="ui red header">{% trans 'Ailing' %}</h4>
                             {% elif sch.status == 'DISCONNECTED' %}
-                                <h3 class="ui red header">{% trans 'Disconnected' %}</h3>
+                                <h4 class="ui red header">{% trans 'Disconnected' %}</h4>
                             {% endif %}
                         </th>
                         <th class="one wide column right aligned"><i id="tools_arrow_{{ sch.type }}" class="ui arrow right icon" style="display: none"></i></th>
@@ -62,7 +71,7 @@
         </div>
     </div>
 
-
+    <h2 class="ui violet header">{% trans 'Klever nodes' %}</h2>
     <div class="ui grid">
         <div class="ten wide column">
             <table class="ui celled compact violet table selectable">
@@ -176,11 +185,7 @@
         </tbody>
     </table>
     {% else %}
-        <div class="ui grid">
-            <div class="sixteen wide column center aligned">
-                <h2 class="ui orange header">{% trans "Scheduler doesn't have nodes" %}</h2>
-            </div>
-        </div>
+        <h3 class="ui orange header">{% trans "Klever scheduler doesn't have nodes" %}</h3>
     {% endif %}
     <span class="italic" style="color: silver">*{% trans 'Reserved' %}/{% trans 'Available' %}</span>
     <br>
