@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import os
 import json
-import requests
+import consul
 
 
 def main():
@@ -10,17 +10,11 @@ def main():
         node_conf = json.load(fh)
 
     # Submit content
-    try:
-        result = requests.put("http://localhost:8500/v1/kv/states/{}".format(node_conf["node name"]),
-                              json.dumps(node_conf))
-    except Exception as err:
-        print("Catched exception: {}".format(err))
+    c = consul.Consul()
+    ret = c.kv.put("states/{}".format(node_conf["node name"]), json.dumps(node_conf))
+    if not ret:
+        print("Submission failed")
         exit(2)
-
-    if result.status_code == requests.codes.ok:
-        exit(0)
-    else:
-        exit(1)
 
 if __name__ == '__main__':
     main()
