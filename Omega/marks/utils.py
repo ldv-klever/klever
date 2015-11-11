@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from Omega.vars import USER_ROLES, JOB_ROLES
+from Omega.utils import print_err
 from marks.models import *
 from reports.models import ReportComponent, Attr, AttrName
 from marks.ConvertTrace import ConvertTrace
@@ -350,7 +351,7 @@ class ConnectReportWithMarks(object):
                     mark.error_trace.decode('utf8'),
                     self.report.error_trace.decode('utf8'))
                 if compare.error is not None:
-                    print(compare.error)
+                    print_err(compare.error)
                     compare_failed = True
                 if compare.result > 0 or compare_failed:
                     MarkUnsafeReport.objects.create(
@@ -433,7 +434,7 @@ class ConnectMarkWithReports(object):
                     self.mark.error_trace.decode('utf8'),
                     unsafe.error_trace.decode('utf8'))
                 if compare.error is not None:
-                    print(compare.error)
+                    print_err(compare.error)
                     compare_failed = True
                 if compare.result > 0 or compare_failed:
                     MarkUnsafeReport.objects.create(
@@ -818,7 +819,7 @@ class ReadTarMark(object):
             try:
                 mark.save()
             except Exception as e:
-                print(e)
+                print_err(e)
                 return _("Unknown error")
 
             self.__update_mark(mark, tags=tags)

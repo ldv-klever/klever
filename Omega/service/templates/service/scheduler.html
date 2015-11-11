@@ -71,13 +71,13 @@
         </div>
     </div>
 
-    <h2 class="ui violet header">{% trans 'Klever nodes' %}</h2>
+    <h2 class="ui violet header">{% trans 'Klever nodes summary' %}</h2>
     <div class="ui grid">
         <div class="ten wide column">
             <table class="ui celled compact violet table selectable">
                 <thead>
                     <tr>
-                        <th></th>
+                        <th>{% trans 'Nodes configuration' %}</th>
                         <th>{% trans 'CPU cores' %}*</th>
                         <th>{% trans 'RAM memory' %}**</th>
                         <th>{% trans 'Disk memory' %}**</th>
@@ -89,7 +89,7 @@
                     {% for conf in data.conf_data %}
                         <tr class="nodes-configuration">
                             <th class="right aligned">
-                                <h4 class="header italic"><a id="show_nodes_{{ conf.id }}" href="#">{% trans 'CPU' %}: {{ conf.cpu }}</a></h4>
+                                <h4 class="header italic"><a id="show_nodes_{{ conf.id }}" href="#">{{ conf.cnt }}</a></h4>
                             </th>
                             <td>{{ conf.cores }}</td>
                             <td>{{ conf.ram }}</td>
@@ -136,6 +136,7 @@
         </div>
     </div>
     {% if data.nodes|length > 0 %}
+    <h2 class="ui orange header">{% trans 'Nodes' %}</h2>
     <table class="ui celled compact orange table selectable">
         <thead>
             <tr>
@@ -154,7 +155,7 @@
         <tbody>
             {% for node in data.nodes %}
                 <tr class="node-of-conf-{{ node.conf_id }}">
-                    <td>{{ node.hostname }}</td>
+                    <td><a id="show_node_conf__{{ node.conf_id }}" href="#">{{ node.hostname }}</a></td>
                     <td>{{ node.status }}</td>
                     <td>{{ node.cpu }}</td>
                     <td>{{ node.cores }}</td>

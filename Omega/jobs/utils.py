@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from Omega.utils import print_err
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
 
@@ -447,12 +448,12 @@ def create_job(kwargs):
                 'absurl': kwargs['absolute_url'] + newjob_url
             })
         except Exception as e:
-            print("Can't notify users: ", e)
+            print_err("Can't notify users: %s" % e)
     else:
         try:
             Notify(newjob, 0)
         except Exception as e:
-            print("Can't notify users: ", e)
+            print_err("Can't notify users: %s" % e)
     return newjob
 
 
@@ -484,12 +485,12 @@ def update_job(kwargs):
         try:
             Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
         except Exception as e:
-            print("Can't notify users: ", e)
+            print_err("Can't notify users: %s" % e)
     else:
         try:
             Notify(kwargs['job'], 1)
         except Exception as e:
-            print("Can't notify users: ", e)
+            print_err("Can't notify users: %s" % e)
     return kwargs['job']
 
 
@@ -507,7 +508,7 @@ def remove_jobs_by_id(user, job_ids):
         try:
             Notify(job, 2)
         except Exception as e:
-            print("Can't notify users: ", e)
+            print_err("Can't notify users: %s" % e)
         job.delete()
     clear_files()
     return 0

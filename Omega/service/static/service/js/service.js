@@ -33,4 +33,14 @@ $(document).ready(function () {
         $('.nodes-configuration').removeClass('active-tr');
         $('[id^="conf_info_"]').hide();
     });
+
+    $('a[id^="show_node_conf__"]').click(function (event) {
+        event.preventDefault();
+        var conf_id = $(this).attr('id').replace('show_node_conf__', '');
+        $('[class^="node-of-conf-"]').removeClass('active-tr');
+        $('.nodes-configuration').removeClass('active-tr');
+        $('[id^="conf_info_"]').hide();
+        $(this).parent().parent().parent().addClass('active-tr');
+        $('#show_nodes_' + conf_id).parent().parent().parent().addClass('active-tr');
+    });
 });

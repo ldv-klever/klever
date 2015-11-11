@@ -11,6 +11,7 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
 from Omega.vars import JOB_CLASSES, FORMAT, JOB_STATUS, PRIORITY
+from Omega.utils import print_err
 from jobs.models import Job, File, JOBFILE_DIR
 from jobs.utils import create_job, update_job
 from reports.models import ReportComponent, ReportUnsafe, ReportSafe,\
@@ -383,7 +384,7 @@ class UploadJob(object):
                 try:
                     jobdata = json.loads(file_obj.read().decode('utf-8'))
                 except Exception as e:
-                    print(e)
+                    print_err(e)
                     return _("The job archive is corrupted")
             elif file_name.startswith(JOBFILE_DIR):
                 if f.isreg():
@@ -486,6 +487,6 @@ class UploadJob(object):
         for report in reports:
             error = UploadReport(self.job, report).error
             if error is not None:
-                print(error)
+                print_err(error)
                 return False
         return True

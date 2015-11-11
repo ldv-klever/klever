@@ -3,6 +3,7 @@ import pygraphml as gml
 import xml.etree.ElementTree as Et
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+from Omega.utils import print_err
 from reports.models import ReportUnsafe
 
 TAB_LENGTH = 4
@@ -77,7 +78,7 @@ class GetETV(object):
             try:
                 return Et.parse(file).getroot()
             except Exception as e:
-                print(e)
+                print_err(e)
                 self.error = _('Wrong error trace file format')
                 return None
 
@@ -119,7 +120,7 @@ class GetETV(object):
         try:
             self.g = parser.parse(file)
         except Exception as e:
-            print(e)
+            print_err(e)
             self.error = _('Wrong error trace file format')
 
     def __get_traces(self, node):

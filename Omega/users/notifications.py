@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, activate
 from Omega.vars import JOB_ROLES, USER_ROLES
+from Omega.utils import print_err
 from jobs.models import Job
 
 
@@ -67,7 +68,7 @@ class Notify(object):
                     try:
                         s.send_message(message)
                     except Exception as e:
-                        print("ERROR:", e)
+                        print_err("send_message() error: %s" % e)
         s.quit()
 
 

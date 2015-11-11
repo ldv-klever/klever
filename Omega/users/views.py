@@ -109,7 +109,6 @@ def edit_profile(request):
             if user_tz:
                 profile.timezone = user_tz
             profile.save()
-            print(user.pk, user.extended.first_name)
             if 'sch_login' in request.POST and 'sch_password' in request.POST:
                 if len(request.POST['sch_login']) > 0 and len(request.POST['sch_password']) > 0:
                     try:
