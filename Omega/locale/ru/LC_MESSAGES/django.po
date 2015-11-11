@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-11 12:41+0000\n"
+"POT-Creation-Date: 2015-11-11 13:04+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -756,9 +756,11 @@ msgstr "Начать"
 
 #: jobs/templates/jobs/startDecision.html:114
 msgid ""
-"Schdeuler user was successfully saved. You can change it on edit profile "
-"page."
+"VerifierCloud credentials were successfully saved (you can change them in "
+"your settings)"
 msgstr ""
+"Идентификационная информация для VerifierCloud была успешно сохранена (Вы "
+"можете изменить ее в Ваших настройках)"
 
 #: jobs/templates/jobs/startDecision.html:115
 msgid "All fields are required"
