@@ -36,7 +36,7 @@ class Session(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def exchange_tasks(self, tasks):
+    def exchange(self, tasks):
         """
         Send to the verification gateway JSON set of solving/solved tasks and get new set back.
 

@@ -21,25 +21,25 @@ def prepare_node_info(node_info):
     # Check required data
     if "CPU number" not in result:
         raise KeyError("Provide configuration property 'node configuration''CPU number'")
-    if "reserved RAM memory" not in result:
-        raise KeyError("Provide configuration property 'node configuration''reserved RAM memory'")
-    if "reserved disk memory" not in result:
-        raise KeyError("Provide configuration property 'node configuration''reserved disk memory'")
+    if "available RAM memory" not in result:
+        raise KeyError("Provide configuration property 'node configuration''available RAM memory'")
+    if "available disk memory" not in result:
+        raise KeyError("Provide configuration property 'node configuration''available disk memory'")
     if "available for jobs" not in result:
         raise KeyError("Provide configuration property 'node configuration''available for jobs'")
     if "available for tasks" not in result:
         raise KeyError("Provide configuration property 'node configuration''available for tasks'")
 
     # Check feasibility of limits
-    if result["reserved RAM memory"] > result["RAM memory"]:
+    if result["available RAM memory"] > result["RAM memory"]:
         raise ValueError("Node has {} bytes of RAM memory but {} is attempted to reserve".
-                         format(result["RAM memory"], result["reserved RAM memory"]))
-    if result["reserved disk memory"] > result["disk memory"]:
+                         format(result["RAM memory"], result["available RAM memory"]))
+    if result["available disk memory"] > result["disk memory"]:
         raise ValueError("Node has {} bytes of disk memory but {} is attempted to reserve".
-                         format(result["disk memory"], result["reserved disk memory"]))
-    if result["reserved CPU number"] >= result["CPU number"]:
+                         format(result["disk memory"], result["available disk memory"]))
+    if result["available CPU number"] >= result["CPU number"]:
         raise ValueError("Node has {} CPU cores but {} is attempted to reserve".
-                         format(result["CPU number"], result["reserved CPU number"]))
+                         format(result["CPU number"], result["available CPU number"]))
 
     return result
 

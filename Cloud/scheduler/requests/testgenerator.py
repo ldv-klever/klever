@@ -3,6 +3,7 @@ import logging
 import shutil
 import os
 import json
+import random
 
 import Cloud.scheduler.requests as requests
 import Cloud.utils as utils
@@ -83,6 +84,7 @@ class Server(requests.Session):
             description = base_description.copy()
             description["id"] = task_id
             description["files"] = [source]
+            description["priority"] = random.choice(self.conf["priority options"])
             json_description = json.dumps(description, sort_keys=True, indent=4)
             description_file = os.path.join(task_dir, task_description_filename)
             with open(description_file, "w") as fh:
@@ -157,7 +159,7 @@ class Server(requests.Session):
         logging.info("Make directory for solutions {0}".format(task_work_dir))
         os.makedirs(self.solution_dir, exist_ok=True)
 
-    def exchange_tasks(self, tasks):
+    def exchange(self, tasks):
         """
         Get list with tasks and their statuses and update own information about
         them. After that return new portion of tasks with user information and
@@ -168,6 +170,12 @@ class Server(requests.Session):
         logging.info("Start updating statuses according to received task list")
         report = {
             "tasks": {
+                "pending": [],
+                "processing": [],
+                "error": [],
+                "finished": []
+            },
+            "jobs": {
                 "pending": [],
                 "processing": [],
                 "error": [],

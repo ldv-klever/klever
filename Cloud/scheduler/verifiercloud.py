@@ -10,8 +10,6 @@ import Cloud.client.executils as executils
 class Run:
     """Class represents VerifierCloud task to solve"""
 
-    futures = {}
-
     def __init__(self, work_dir, description, user, password):
         """
         Initialize Run object.
@@ -81,20 +79,19 @@ class Scheduler(scheduler.SchedulerExchange):
 
         # Perform sanity checks before initializing scheduler
         if "web-interface address" not in self.conf or not self.conf["web-interface address"]:
-            raise KeyError("Provide VerifierCloud address via configuration property 'scheduler''Web-interface address'")
+            raise KeyError("Provide VerifierCloud address within configuration property "
+                           "'scheduler''Web-interface address'")
         if "scheduler user name" not in self.conf:
             raise KeyError("Provide configuration property 'scheduler''scheduler user name'")
         if "scheduler password" not in self.conf:
             raise KeyError("Provide configuration property 'scheduler''scheduler password'")
 
-        # TODO: Investigate which sources are necessary and which are optional
         # Add path to benchexec directory
         bexec_loc = self.conf["BenchExec location"]
         logging.debug("Add to PATH location {0}".format(bexec_loc))
         sys.path.append(bexec_loc)
-        import benchexec
 
-        # Add path to CPAchcker scripts directory
+        # Add path to CPAchecker scripts directory
         cpa_loc = os.path.join(self.conf["CPAchecker location"], "scripts", "benchmark")
         logging.debug("Add to PATH location {0}".format(cpa_loc))
         sys.path.append(cpa_loc)
@@ -108,14 +105,33 @@ class Scheduler(scheduler.SchedulerExchange):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "VerifierCloud"
 
-    def scheduler_state(self):
-        """Return statuses of tasks and jobs and error messages of failed ones."""
-        return {}
+    def _schedule(self, pending, processing, sorter):
+        """
+        Get list of new tasks which can be launched during current scheduler iteration.
+        :param pending: List with all pending tasks.
+        :param processing: List with currently ongoing tasks.
+        :param sorter: Function which can by used for sorting tasks according to their priorities.
+        :return: List with identifiers of pending tasks to launch.
+        """
+        if "max concurrent tasks" in self.conf and self.conf["max concurrent tasks"]:
+            if len(processing) < self.conf["max concurrent tasks"]:
+                diff = self.conf["max concurrent tasks"] - len(processing)
+                if diff <= len(pending):
+                    new = pending[0:diff]
+                else:
+                    new = pending
+            else:
+                new = []
+        else:
+            new = pending
 
-    def _prepare_task(self, identifier):
+        return new
+
+    def _prepare_task(self, identifier, description=None):
         """
         Prepare working directory before starting solution.
         :param identifier: Verification task identifier.
+        :param description: Dictionary with task description.
         """
         # Prepare working directory
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
@@ -129,6 +145,15 @@ class Scheduler(scheduler.SchedulerExchange):
         self.server.pull_task(identifier, archive)
         logging.debug("Unpack archive {} to {}".format(archive, task_data_dir))
         shutil.unpack_archive(archive, task_data_dir)
+
+    def _prepare_job(self, identifier, configuration):
+        """
+        Prepare working directory before starting solution.
+        :param identifier: Verification task identifier.
+        :param configuration: Job configuration.
+        """
+        # Cannot be called
+        pass
 
     def _solve_task(self, identifier, description, user, password):
         """
@@ -164,11 +189,21 @@ class Scheduler(scheduler.SchedulerExchange):
                               svn_branch=branch,
                               svn_revision=revision)
 
+    def _solve_job(self, configuration):
+        """
+        Solve given verification task.
+        :param identifier: Job identifier.
+        :param configuration: Job configuration.
+        :return: Return Future object.
+        """
+        # Cannot be called
+        pass
+
     def _flush(self):
         """Start solution explicitly of all recently submitted tasks."""
         self.wi.flush_runs()
 
-    def _process_result(self, identifier, result):
+    def _process_task_result(self, identifier, result):
         """
         Process result and send results to the verification gateway.
         :param identifier:
@@ -196,7 +231,8 @@ class Scheduler(scheduler.SchedulerExchange):
         solution_description = os.path.join(task_solution_dir, "verification task decision result.json")
         logging.debug("Get solution description from {}".format(solution_description))
         try:
-            solution_identifier, solution_description = executils.extract_description(task_solution_dir, solution_description)
+            solution_identifier, solution_description = \
+                executils.extract_description(task_solution_dir, solution_description)
             logging.debug("Successfully extracted solution {} for task {}".format(solution_identifier, identifier))
         except Exception as err:
             logging.warning("Cannot extract results from a solution: {}".format(err))
@@ -219,6 +255,15 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
+    def _process_job_result(self, identifier, result):
+        """
+        Process result and send results to the server.
+        :param identifier:
+        :return: Status of the task after solution: FINISHED or ERROR.
+        """
+        # Cannot be called
+        pass
+
     def _cancel_task(self, identifier):
         """
         Stop task solution.
@@ -229,6 +274,14 @@ class Scheduler(scheduler.SchedulerExchange):
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
 
+    def _cancel_job(self, identifier):
+        """
+        Stop task solution.
+        :param identifier: Verification task ID.
+        """
+        # Cannot be called
+        pass
+
     def _terminate(self):
         """
         Abort solution of all running tasks and any other actions before
@@ -237,33 +290,21 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.info("Terminate all runs")
         return self.wi.shutdown()
 
-    def _nodes(self, period):
+    def _update_nodes(self):
         """
-        Update time to time statuses and configurations of available nodes and
-        push it to the verification gate.
-        :param period: Time in seconds between each update request.
-        :return: Dictionary with configurations and statuses of nodes.
+        Update statuses and configurations of available nodes.
+        :return: Return True if nothing has changes
         """
-        # TODO: Parse CPAchecker master status page and provide data given
-        # with the page
-        nodes = {}
-        while True:
-            logging.debug("Send nodes info to the verification gateway")
-            self.server.submit_nodes(nodes)
-            time.sleep(period)
+        return super(Scheduler, self)._update_nodes()
 
-    def _tools(self, period):
+    def _update_tools(self):
         """
-        Generate time to time dictionary with verification tools available and
+        Generate dictionary with verification tools available and
         push it to the verification gate.
-        :param period: Time in seconds between each update request.
         :return: Dictionary with available verification tools.
         """
-        while True:
-            logging.debug("Send tools info to the verification gateway")
-            # TODO: Implement collecting of working revisions
-            self.server.submit_tools([])
-            time.sleep(period)
+        # TODO: Implement proper revisions sending
+        return super(Scheduler, self)._udate_tools()
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
