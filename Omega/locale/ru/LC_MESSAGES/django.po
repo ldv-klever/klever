@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-12 14:24+0000\n"
+"POT-Creation-Date: 2015-11-12 15:14+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,8 +30,8 @@ msgstr ""
 "{1})"
 
 #: Omega/vars.py:6 jobs/views.py:332 jobs/views.py:361 jobs/views.py:437
-#: jobs/views.py:525 jobs/views.py:818 service/utils.py:903
-#: service/utils.py:957
+#: jobs/views.py:525 jobs/views.py:818 service/utils.py:904
+#: service/utils.py:958
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
@@ -96,8 +96,8 @@ msgid "Expert"
 msgstr "Эксперт"
 
 #: Omega/vars.py:29
-msgid "Service"
-msgstr "Служба"
+msgid "Service user"
+msgstr "Служебный пользователь"
 
 #: Omega/vars.py:33
 msgid "Verification of Linux kernel modules"
@@ -245,7 +245,7 @@ msgstr "Решается"
 msgid "Error"
 msgstr "Ошибка"
 
-#: Omega/views.py:29 jobs/utils.py:276 jobs/utils.py:462 jobs/views.py:48
+#: Omega/views.py:30 jobs/utils.py:276 jobs/utils.py:462 jobs/views.py:48
 #: jobs/views.py:53 jobs/views.py:92 jobs/views.py:97 jobs/views.py:121
 #: jobs/views.py:129 jobs/views.py:167 jobs/views.py:171 jobs/views.py:326
 #: jobs/views.py:356 jobs/views.py:418 jobs/views.py:511 jobs/views.py:519
@@ -253,9 +253,9 @@ msgstr "Ошибка"
 #: jobs/views.py:831 jobs/views.py:833 marks/utils.py:763 marks/utils.py:823
 #: marks/utils.py:974 marks/views.py:182 marks/views.py:200 marks/views.py:213
 #: marks/views.py:370 marks/views.py:381 marks/views.py:411 marks/views.py:422
-#: reports/etv.py:279 service/utils.py:871 service/utils.py:879
-#: service/utils.py:960 service/utils.py:982 service/utils.py:1024
-#: service/utils.py:1028 service/views.py:288 tools/views.py:16
+#: reports/etv.py:279 service/utils.py:872 service/utils.py:880
+#: service/utils.py:961 service/utils.py:983 service/utils.py:1025
+#: service/utils.py:1029 service/views.py:288 tools/views.py:16
 #: tools/views.py:57 tools/views.py:64 tools/views.py:83 tools/views.py:110
 #: users/views.py:299
 msgid "Unknown error"
@@ -315,16 +315,10 @@ msgstr "Статус решения"
 
 #: jobs/JobTableProperties.py:31 reports/templates/reports/ReportMain.html:86
 #: reports/templates/reports/ReportMain.html:96
-#: service/templates/service/jobs_table.html:11
-#: service/templates/service/schedulerJobSessions.html:17
-#: service/templates/service/sessions.html:17
 msgid "Start date"
 msgstr "Дата начала работы"
 
 #: jobs/JobTableProperties.py:32 reports/templates/reports/ReportMain.html:88
-#: service/templates/service/jobs_table.html:12
-#: service/templates/service/schedulerJobSessions.html:18
-#: service/templates/service/sessions.html:18
 msgid "Finish date"
 msgstr "Дата завершение работы"
 
@@ -367,9 +361,6 @@ msgid "Format"
 msgstr "Формат"
 
 #: jobs/JobTableProperties.py:49 jobs/utils.py:69
-#: service/templates/service/jobs_table.html:10
-#: service/templates/service/schedulerJobSessions.html:16
-#: service/templates/service/sessions.html:16
 msgid "Priority"
 msgstr "Приоритет"
 
@@ -380,8 +371,7 @@ msgstr "Приоритет"
 msgid "Total"
 msgstr "Всего"
 
-#: jobs/templates/jobs/base.html:5 service/templates/service/jobs.html:4
-#: templates/base.html:41
+#: jobs/templates/jobs/base.html:5 templates/base.html:41
 msgid "Jobs"
 msgstr "Задания"
 
@@ -969,11 +959,7 @@ msgstr ""
 #: reports/templates/reports/ReportMain.html:26
 #: reports/templates/reports/report_leaf.html:19
 #: reports/templates/reports/report_list.html:15
-#: reports/templates/reports/report_unsafe.html:20
-#: service/templates/service/jobs_table.html:8
-#: service/templates/service/schedulerJobSessions.html:15
-#: service/templates/service/schedulerSessions.html:7
-#: service/templates/service/sessions.html:14 users/views.py:180
+#: reports/templates/reports/report_unsafe.html:20 users/views.py:180
 msgid "Job"
 msgstr "Задание"
 
@@ -1072,7 +1058,7 @@ msgstr ""
 #: jobs/templates/jobs/viewVersions.html:40
 #: jobs/templates/jobs/viewVersions.html:44
 #: marks/templates/marks/markVersions.html:41
-#: marks/templates/marks/markVersions.html:45 templates/Population.html:30
+#: marks/templates/marks/markVersions.html:45 templates/Population.html:45
 #: templates/error.html:12
 msgid "OK"
 msgstr "Хорошо"
@@ -1117,16 +1103,11 @@ msgstr "Дата начала решения"
 msgid "Decision finish date"
 msgstr "Дата завершения решения"
 
-#: jobs/utils.py:72 service/templates/service/jobs_table.html:13
-#: service/templates/service/schedulerJobSessions.html:19
-#: service/templates/service/sessions.html:19
+#: jobs/utils.py:72
 msgid "Solution wall time"
 msgstr ""
 
-#: jobs/utils.py:73 service/templates/service/jobs.html:7
-#: service/templates/service/schedulerJobSessions.html:14
-#: service/templates/service/schedulerSessions.html:10
-#: service/templates/service/sessions.html:13 users/notifications.py:222
+#: jobs/utils.py:73 users/notifications.py:222
 msgid "Operator"
 msgstr "Оператор"
 
@@ -1138,15 +1119,11 @@ msgstr "Ожидающие задачи"
 msgid "Processing tasks"
 msgstr "Решающиеся задачи"
 
-#: jobs/utils.py:76 service/templates/service/schedulerJobSessions.html:20
-#: service/templates/service/schedulerSessions.html:18
-#: service/templates/service/sessions.html:20
+#: jobs/utils.py:76
 msgid "Finished tasks"
 msgstr "Решенные задачи"
 
-#: jobs/utils.py:77 service/templates/service/schedulerJobSessions.html:22
-#: service/templates/service/schedulerSessions.html:20
-#: service/templates/service/sessions.html:22
+#: jobs/utils.py:77
 msgid "Error tasks"
 msgstr "Проваленные задачи"
 
@@ -1154,10 +1131,7 @@ msgstr "Проваленные задачи"
 msgid "Cancelled tasks"
 msgstr "Отмененные задачи"
 
-#: jobs/utils.py:79 service/templates/service/jobs_table.html:15
-#: service/templates/service/schedulerJobSessions.html:23
-#: service/templates/service/schedulerSessions.html:21
-#: service/templates/service/sessions.html:23
+#: jobs/utils.py:79
 msgid "Total tasks"
 msgstr "Всего задач"
 
@@ -1751,39 +1725,11 @@ msgstr "Все предупрeждения об ошибках"
 msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
-#: service/templates/service/jobs.html:10
-msgid "Update automatically"
-msgstr ""
-
-#: service/templates/service/jobs_table.html:9
-#: service/templates/service/sessions.html:15
-#, fuzzy
-#| msgid "Job was changed"
-msgid "Job scheduler"
-msgstr "Задание было изменено"
-
-#: service/templates/service/jobs_table.html:14
-#, fuzzy
-#| msgid "Finished"
-msgid "Tasks finished"
-msgstr "Завершился"
-
-#: service/templates/service/jobs_table.html:16
-#: service/templates/service/schedulerJobSessions.html:24
-#: service/templates/service/schedulerSessions.html:22
-#: service/templates/service/sessions.html:24
-#, fuzzy
-#| msgid "In progress"
-msgid "Progress"
-msgstr "Выполняется"
-
 #: service/templates/service/scheduler.html:4 templates/base.html:43
 msgid "Schedulers"
 msgstr "Планировщики"
 
 #: service/templates/service/scheduler.html:13
-#: service/templates/service/schedulerJobSessions.html:7
-#: service/templates/service/schedulerSessions.html:17
 msgid "Scheduler"
 msgstr "Планировщик"
 
@@ -1875,21 +1821,6 @@ msgstr "Зарезервировано"
 msgid "Available"
 msgstr "Доступно"
 
-#: service/templates/service/schedulerJobSessions.html:21
-#: service/templates/service/schedulerSessions.html:19
-#: service/templates/service/sessions.html:21
-#, fuzzy
-#| msgid "Unknown marks"
-msgid "Unknown tasks"
-msgstr "Оценки проблем в компонентах"
-
-#: service/templates/service/sessions.html:4
-#: service/templates/service/sessions.html:8
-#, fuzzy
-#| msgid "Version"
-msgid "Sessions"
-msgstr "Версия"
-
 #: service/utils.py:19
 msgid "Balance"
 msgstr "Баланс"
@@ -1910,27 +1841,27 @@ msgstr ""
 msgid "Only pending and processing jobs can be stopped"
 msgstr "Только ожидающие и решающиеся задания могут быть остановлены"
 
-#: service/utils.py:950
+#: service/utils.py:951
 msgid "The scheduler was not found"
 msgstr "Планировщик не был найден"
 
-#: service/utils.py:963
+#: service/utils.py:964
 msgid "You don't have an access to start decision of this job"
 msgstr "У Вас нет прав начать решение данного задания"
 
-#: service/utils.py:985 service/utils.py:1032
+#: service/utils.py:986 service/utils.py:1033
 msgid "Klever scheduler is disconnected"
 msgstr ""
 
-#: service/utils.py:989
+#: service/utils.py:990
 msgid "VerifierCloud scheduler is disconnected"
 msgstr ""
 
-#: service/utils.py:994
+#: service/utils.py:995
 msgid "You don't have login and password for VefifierCloud scheduler"
 msgstr ""
 
-#: service/utils.py:1030
+#: service/utils.py:1031
 msgid "Klever scheduler is ailing"
 msgstr ""
 
@@ -1948,44 +1879,54 @@ msgstr "Новый пароль"
 msgid "Population"
 msgstr "Наполнение базы данных"
 
-#: templates/Population.html:11
+#: templates/Population.html:13
 msgid "A new Manager was created"
 msgstr "Был создан новый Руководитель"
 
-#: templates/Population.html:12 users/templates/users/login.html:19
+#: templates/Population.html:14 templates/Population.html.py:24
+#: users/templates/users/login.html:19
 #: users/templates/users/schedulerUser.html:6
 msgid "Username"
 msgstr "Имя пользователя"
 
-#: templates/Population.html:13 users/forms.py:19
-#: users/templates/users/login.html:21
+#: templates/Population.html:15 templates/Population.html.py:25
+#: users/forms.py:19 users/templates/users/login.html:21
 #: users/templates/users/schedulerUser.html:24
 msgid "Password"
 msgstr "Пароль"
 
-#: templates/Population.html:14
+#: templates/Population.html:16
 msgid "Please save this data and give it to the user who will be the Manager"
 msgstr ""
 "Пожалуйста, сохранить эти данные и передайте их пользователю, который будет "
 "Руководителем"
 
-#: templates/Population.html:19
+#: templates/Population.html:23
+msgid "A new service user was created"
+msgstr "Был создан новый служебный пользователь"
+
+#: templates/Population.html:26
+msgid "Please save this data and give it to the service user"
+msgstr ""
+"Пожалуйста, сохранить эти данные и передайте их служебному пользователю"
+
+#: templates/Population.html:34
 msgid "Error traces conversion and comparison functions were updated"
 msgstr "Были обновлены функции преобразования и сравнения трасс ошибок"
 
-#: templates/Population.html:24
+#: templates/Population.html:39
 msgid "New jobs were uploaded"
 msgstr "Были загружены новые задания"
 
-#: templates/Population.html:28
+#: templates/Population.html:43
 msgid "Nothing changed"
 msgstr "Ничего не изменилось"
 
-#: templates/Population.html:32
+#: templates/Population.html:47
 msgid "Welcome to Omega!"
 msgstr "Добро пожаловать!"
 
-#: templates/Population.html:34
+#: templates/Population.html:54
 msgid ""
 "Create the Manager with the specified username and jobs of all classes on "
 "behalf of that Manager"
@@ -1993,11 +1934,19 @@ msgstr ""
 "Создать Руководителя с указанным именем и задания всех классов от имени "
 "данного Руководителя"
 
-#: templates/Population.html:42
+#: templates/Population.html:56
 msgid "Manager username"
 msgstr "Имя Руководителя"
 
-#: templates/Population.html:52
+#: templates/Population.html:64
+msgid "Create the service user with the specified username"
+msgstr "Создать служебного пользователя с указанным именем"
+
+#: templates/Population.html:66
+msgid "Service username"
+msgstr "Имя служебного пользователя"
+
+#: templates/Population.html:73
 msgid "Populate"
 msgstr "Наполнить базу данных"
 
@@ -2424,3 +2373,8 @@ msgstr "Оценка проблем в компонентах"
 #: users/views.py:298
 msgid "Saved"
 msgstr "Сохранено"
+
+#, fuzzy
+#~| msgid "Please wait"
+#~ msgid "Please save this data"
+#~ msgstr "Пожалуйста, подождите"

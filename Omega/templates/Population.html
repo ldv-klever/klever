@@ -20,10 +20,10 @@
             {% if population.service_password %}
                 <div class="eight wide column">
                     <div class="ui violet segment">
-                        <h2 class="ui violet header">{% trans 'A new Service user was created' %}</h2>
+                        <h2 class="ui violet header">{% trans 'A new service user was created' %}</h2>
                         <p><strong>{% trans 'Username' %}:</strong> {{ population.service_username }}</p>
                         <p><strong>{% trans 'Password' %}:</strong> {{ population.service_password }}</p>
-                        <p style="color: #ce6f64">{% trans 'Please save this data' %}</p>
+                        <p style="color: #ce6f64">{% trans 'Please save this data and give it to the service user' %}</p>
                     </div>
                 </div>
             {% endif %}
@@ -61,7 +61,7 @@
             {% if need_service %}
                 <div class="seven wide column">
                     <div class="ui teal segment">
-                        <h5 class="ui teal header">{% trans "Create the Service user with the specified username" %}</h5>
+                        <h5 class="ui teal header">{% trans "Create the service user with the specified username" %}</h5>
                         <div class="ui input">
                             <input id="service_username" name="service_username" type="text" placeholder="{% trans 'Service username' %}">
                         </div>
