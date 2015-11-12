@@ -1,5 +1,59 @@
-import os
 import subprocess
+import logging
+import argparse
+import os
+import json
+import shutil
+
+
+def common_initialization(tool):
+    """
+    Start execution of the corresponding cloud tool.
+
+    :param tool: Tool name string.
+    :return: Configuration dictionary.
+    """
+
+    # Parse configuration
+    parser = argparse.ArgumentParser(description='Start cloud {} according to the provided configuration.'.
+                                     format(tool))
+    parser.add_argument('config', metavar="CONF", help='Path to the cloud configuration file.')
+    args = parser.parse_args()
+
+    # Read configuration from file.
+    with open(args.config) as fp:
+        conf = json.load(fp)
+
+    # TODO: Do we need use version of the scheduler further?
+    # TODO: Do we need any checks of exclusive execution?
+
+    # Check common configuration
+    if "common" not in conf:
+        raise KeyError("Provide configuration property 'common' as an JSON-object")
+
+    # Prepare working directory
+    if "work dir" not in conf["common"]:
+        raise KeyError("Provide configuration property 'common''work dir'")
+    if "keep work dir" in conf["common"] and conf["common"]["keep work dir"]:
+        logging.info("Keep working directory from the previous run")
+    else:
+        logging.debug("Clean working dir: {0}".format(conf["common"]['work dir']))
+        shutil.rmtree(conf["common"]['work dir'], True)
+
+    logging.debug("Create working dir: {0}".format(conf["common"]['work dir']))
+    os.makedirs(conf["common"]['work dir'], exist_ok=True)
+
+    # Go to the working directory to avoid creating files elsewhere
+    os.chdir(conf["common"]['work dir'])
+
+    # Start logging
+    if "logging" not in conf["common"]:
+        raise KeyError("Provide configuration property 'common''logging' according to Python logging specs")
+    logging.config.dictConfig(conf["common"]['logging'])
+
+    return conf
+
+
 def split_archive_name(path):
     """
     Split archive name into file name and extension. The difference with is.path.splitext is that this function can

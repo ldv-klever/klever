@@ -3,7 +3,7 @@ import os
 
 
 def main():
-    expect_file = os.path.join("node configuration.json")
+    expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
     print("Looking for a file {}".format(expect_file))
     if os.path.isfile(expect_file):
         exit(0)

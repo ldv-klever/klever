@@ -93,6 +93,9 @@ def main():
     if "Omega" not in conf:
         raise KeyError("Provide configuration property 'scheduler' as an JSON-object")
 
+    while True:
+        a = 1
+
     session = get_gateway(conf, conf["common"]["work dir"] + "/requests/")
     scheduler_impl = get_scheduler(conf["scheduler"], conf["common"]["work dir"] + "/scheduler/", session)
     scheduler_impl.launch()
