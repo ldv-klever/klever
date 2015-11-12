@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-12 13:30+0000\n"
+"POT-Creation-Date: 2015-11-12 14:08+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1165,16 +1165,12 @@ msgid "Total tasks"
 msgstr "Всего задач"
 
 #: jobs/utils.py:80
-#, fuzzy
-#| msgid "In progress"
-msgid "Solving progress"
-msgstr "Выполняется"
+msgid "Progress of job decision"
+msgstr "Прогресс решения задания"
 
 #: jobs/utils.py:81
-#, fuzzy
-#| msgid "Number of associated marks"
-msgid "Number of solutions"
-msgstr "Количество привязанных оценок"
+msgid "Number of task decisions"
+msgstr "Количество решений задач"
 
 #: jobs/utils.py:247 jobs/utils.py:251
 msgid "Saving folder failed"
@@ -2114,10 +2110,8 @@ msgid "The component is used and can't be deleted"
 msgstr "Компонент используется и не может быть удален"
 
 #: tools/views.py:37
-#, fuzzy
-#| msgid "The component was successfully renamed"
 msgid "The component was successfully deleted"
-msgstr "Компонент был успешно переименован"
+msgstr "Компонент был успешно удален"
 
 #: tools/views.py:43
 msgid "The component name should be greater than 0 and less than 16 symbols"
@@ -2141,10 +2135,8 @@ msgid "The problem is used and can't be deleted"
 msgstr "Проблема используется и не может быть удалена"
 
 #: tools/views.py:102
-#, fuzzy
-#| msgid "The component was successfully renamed"
 msgid "The problem was successfully deleted"
-msgstr "Компонент был успешно переименован"
+msgstr "Проблема была успешно удалена"
 
 #: tools/views.py:121
 msgid "All unused problems were deleted, please reload the page"
@@ -2425,51 +2417,17 @@ msgid "Modification"
 msgstr "Изменение"
 
 #: users/views.py:203
-#, fuzzy
-#| msgid "Safe marks"
-msgid "Safe mark"
-msgstr "Оценки доказательств корректности"
+msgid "Safes mark"
+msgstr "Оценка доказательств корректности"
 
 #: users/views.py:224
-#, fuzzy
-#| msgid "Unsafe marks"
-msgid "Unsafe mark"
-msgstr "Оценки предупреждений об ошибках"
+msgid "Unsafes mark"
+msgstr "Оценка предупреждений об ошибках"
 
 #: users/views.py:245
-#, fuzzy
-#| msgid "Unknown marks"
-msgid "Unknown mark"
-msgstr "Оценки проблем в компонентах"
+msgid "Unknowns mark"
+msgstr "Оценка проблем в компонентах"
 
 #: users/views.py:298
 msgid "Saved"
 msgstr "Сохранено"
-
-#, fuzzy
-#~| msgid "Folder name"
-#~ msgid "Node hostname"
-#~ msgstr "Название папки"
-
-#, fuzzy
-#~| msgid "GiB"
-#~ msgid "GB"
-#~ msgstr "Гбайт"
-
-#~ msgid "The component was successfully deleted, please reload the page"
-#~ msgstr "Компонент был успешно удален, пожалуйста, обновите страницу"
-
-#~ msgid "The problem was successfully deleted, please reload the page"
-#~ msgstr "Проблема была успешно удалена, пожалуйста, обновите страницу"
-
-#~ msgid "Safes mark"
-#~ msgstr "Оценка доказательств корректности"
-
-#~ msgid "Unsafes mark"
-#~ msgstr "Оценка предупреждений об ошибках"
-
-#~ msgid "Unknowns mark"
-#~ msgstr "Оценка проблем в компонентах"
-
-#~ msgid "Tool"
-#~ msgstr "Инструмент"

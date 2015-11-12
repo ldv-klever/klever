@@ -77,8 +77,8 @@ TITLES = {
     'tasks_error': _('Error tasks'),
     'tasks_cancelled': _('Cancelled tasks'),
     'tasks_total': _('Total tasks'),
-    'progress': _('Solving progress'),
-    'solutions': _('Number of solutions')
+    'progress': _('Progress of job decision'),
+    'solutions': _('Number of task decisions')
 }
 
 
