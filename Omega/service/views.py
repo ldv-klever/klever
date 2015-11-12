@@ -11,13 +11,13 @@ from service.utils import *
 from service.test import *
 
 
-# Case 3.1(3) DONE
+# Case 3.1(3)
 def schedule_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
-    if 'job_id' not in request.session:
+    if 'job id' not in request.session:
         return JsonResponse({'error': 'Session does not have job identifier'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
@@ -30,13 +30,13 @@ def schedule_task(request):
         return JsonResponse({
             'error': 'The task archive was not got'
         })
-    result = ScheduleTask(request.session['job_id'], request.POST['description'], archive)
+    result = ScheduleTask(request.session['job id'], request.POST['description'], archive)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({'task id': result.task_id})
 
 
-# Case 3.1(4) DONE
+# Case 3.1(4)
 def get_task_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -52,7 +52,7 @@ def get_task_status(request):
     return JsonResponse({'task status': result.status})
 
 
-# Case 3.1(5) DONE
+# Case 3.1(5)
 def download_solution(request, task_id):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -73,7 +73,7 @@ def download_solution(request, task_id):
     return response
 
 
-# Case 3.1(6) DONE
+# Case 3.1(6)
 def remove_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -90,7 +90,7 @@ def remove_task(request):
     return JsonResponse({})
 
 
-# Case 3.1(7) DONE
+# Case 3.1(7)
 def cancel_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -106,7 +106,7 @@ def cancel_task(request):
     return JsonResponse({})
 
 
-# Case 3.2(2) DONE
+# Case 3.2(2)
 def get_jobs_and_tasks(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -128,7 +128,7 @@ def get_jobs_and_tasks(request):
     return JsonResponse({'jobs and tasks status': result.data})
 
 
-# Case 3.2(3) DONE
+# Case 3.2(3)
 def download_task(request, task_id):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -147,7 +147,7 @@ def download_task(request, task_id):
     return response
 
 
-# Case 3.2(4) DONE
+# Case 3.2(4)
 def upload_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -171,7 +171,7 @@ def upload_solution(request):
     return JsonResponse({})
 
 
-# Case 3.2(5) DONE
+# Case 3.2(5)
 def update_nodes(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -188,7 +188,7 @@ def update_nodes(request):
     return JsonResponse({})
 
 
-# Case 3.2(6) DONE
+# Case 3.2(6)
 def update_tools(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -210,7 +210,7 @@ def update_tools(request):
     return JsonResponse({})
 
 
-# Case 3.3(2) DONE
+# Case 3.3(2)
 def set_schedulers_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -248,7 +248,7 @@ def test(request):
             'tools_data': json.dumps(TEST_TOOLS_DATA),
         },
         'curr_scheduler': request.session.get('scheduler', None),
-        'curr_job_id': request.session.get('job_id', None)
+        'curr_job_id': request.session.get('job id', None)
     })
 
 
@@ -267,10 +267,10 @@ def process_job(request):
         return JsonResponse({'error': 'Only POST requests are supported'})
     for v in request.POST:
         request.session[v] = request.POST[v]
-    if 'job_id' not in request.POST:
+    if 'job id' not in request.POST:
         return JsonResponse({'error': 'Job identifier is not specified'})
     try:
-        job = Job.objects.get(identifier=request.session.get('job_id', 'null'))
+        job = Job.objects.get(identifier=request.session.get('job id', 'null'))
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Job was not found'})
 

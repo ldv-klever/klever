@@ -520,6 +520,29 @@ $(document).ready(function () {
 
     $('#download_selected_jobs').click(function (event) {
         event.preventDefault();
+        $('#dimmer_of_page').addClass('active');
+
+        function download(href) {
+            var interval = null;
+            function fake_request() {
+                clearInterval(interval);
+                $.ajax({
+                    method: 'post',
+                    url: '/ajax/fake/',
+                    data: {},
+                    dataType: 'json',
+                    success: function () {
+                        console.log(href);
+                        window.location.replace(href);
+                        $('#dimmer_of_page').removeClass('active');
+                        return false;
+                    }
+                });
+            }
+            interval = setInterval(fake_request, 1);
+            return false;
+        }
+
         $('#jobs_actions_menu').popup('hide');
         var job_ids = [];
         $('input[id^="job_checkbox__"]:checked').each(function () {
@@ -528,7 +551,7 @@ $(document).ready(function () {
         if (job_ids.length) {
             if (check_jobs_access(job_ids)) {
                 for (var i = 0; i < job_ids.length; i++) {
-                    download_job(job_ids[i]);
+                    download(job_ajax_url + 'downloadjob/' + job_ids[i]);
                 }
             }
         }

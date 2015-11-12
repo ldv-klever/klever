@@ -5,7 +5,7 @@ $(document).ready(function () {
         $.ajax({
             url: '/service/ajax/process_job/',
             data: {
-                'job_id': $('#job_selector').val()
+                'job id': $('#job_selector').val()
             },
             type: 'POST',
             success: function (data) {

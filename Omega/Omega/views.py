@@ -2,8 +2,10 @@ from django.utils.translation import ugettext as _, activate
 from urllib.parse import unquote
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from Omega.populate import Population
 from Omega.vars import ERRORS, USER_ROLES
+from Omega.utils import unparallel
 from users.models import Extended
 
 
@@ -32,6 +34,7 @@ def omega_error(request, err_code=0, user_message=None):
     return render(request, 'error.html', {'message': message, 'back': back})
 
 
+@unparallel
 @login_required
 def population(request):
     if request.method == 'POST':
@@ -47,3 +50,10 @@ def population(request):
         'need_manager': (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0),
         'need_service': (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0),
     })
+
+
+def fake_request(request):
+    import time
+    import random
+    time.sleep(random.random())
+    return JsonResponse({})
