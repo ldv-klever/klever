@@ -8,7 +8,7 @@ import Cloud.scheduler as scheduler
 import Cloud.client.executils as executils
 import requests
 import json
-import consul
+import consulate
 import re
 
 class Scheduler(scheduler.SchedulerExchange):
@@ -107,6 +107,14 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Make directory for the task to solve {0}".format(task_work_dir))
         os.makedirs(task_work_dir, exist_ok=True)
 
+    def _prepare_job(self, identifier, configuration):
+        """
+        Prepare working directory before starting solution.
+        :param identifier: Verification task identifier.
+        :param configuration: Job configuration.
+        """
+        return
+
     def _solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
@@ -140,6 +148,15 @@ class Scheduler(scheduler.SchedulerExchange):
                               user_pwd=run.user_pwd,
                               svn_branch=branch,
                               svn_revision=revision)
+
+    def _solve_job(self, configuration):
+        """
+        Solve given verification task.
+        :param identifier: Job identifier.
+        :param configuration: Job configuration.
+        :return: Return Future object.
+        """
+        return
 
     def _flush(self):
         """Start solution explicitly of all recently submitted tasks."""
@@ -197,6 +214,14 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
+    def _process_job_result(self, identifier, result):
+        """
+        Process result and send results to the server.
+        :param identifier:
+        :return: Status of the task after solution: FINISHED or ERROR.
+        """
+        return
+
     def _cancel_task(self, identifier):
         """
         Stop task solution.
@@ -206,6 +231,18 @@ class Scheduler(scheduler.SchedulerExchange):
         super(Scheduler, self)._cancel_task(identifier)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
+
+    def _cancel_job(self, identifier):
+        """
+        Stop task solution.
+        :param identifier: Verification task ID.
+        """
+        if identifier in self.__jobs and "future" in self.__jobs[identifier] \
+                and not self.__jobs[identifier]["future"].done():
+            logging.debug("Cancel job '{}'".format(identifier))
+            self.__jobs[identifier]["future"].cancel()
+        else:
+            logging.debug("Job '{}' is not running, so it cannot be canceled".format(identifier))
 
     def _terminate(self):
         """
@@ -233,11 +270,9 @@ class Scheduler(scheduler.SchedulerExchange):
 
         # Fetch node configuration
         url = self.__kv_url + "/v1/kv/states/" + self.__node_name
-        c = consul.Consul()
-        index, data = c.kv.get("states/" + self.__node_name)
-        regex = re.compile("b\'(.*)\'")
-        pure_string = regex.match(str(data["Value"])).group(1)
-        node_status = json.loads(pure_string)
+        session = consulate.Consul()
+        string = session.kv["states/" + self.__node_name]
+        node_status = json.loads(string)
 
         # Fill available resources
         if self.__cpu_model != node_status["CPU model"] or \

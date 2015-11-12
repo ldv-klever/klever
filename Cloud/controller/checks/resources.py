@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import os
 import json
-import consul
+import consulate
 
 
 def main():
@@ -10,11 +10,9 @@ def main():
         node_conf = json.load(fh)
 
     # Submit content
-    c = consul.Consul()
-    ret = c.kv.put("states/{}".format(node_conf["node name"]), json.dumps(node_conf))
-    if not ret:
-        print("Submission failed")
-        exit(2)
+    session = consulate.Consul()
+    session.kv["states/{}".format(node_conf["node name"])] = json.dumps(node_conf)
+    exit(0)
 
 if __name__ == '__main__':
     main()
