@@ -40,8 +40,8 @@ Omega installation
 
 #. Proceed with either :ref:`dev-install` or :ref:`production-install`.
 #. Sign in at `<http://127.0.0.1:8998/>`_ with username (**omega_admin**) and password (**omega_admin_passwd**).
-#. Create a new Omega manager (**omega_manager**).
-#. Remember his/her password (**omega_manager_passwd**).
+#. Create a new Omega Manager (**omega_manager**) and a new service user (**omega_service_user**).
+#. Remember their passwords (**omega_manager_passwd** and **omega_service_user_passwd** respectively).
 #. Sign out and sign in on behalf of **omega_manager**.
 #. Enjoy!
 
