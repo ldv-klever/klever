@@ -9,7 +9,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
 from django.core.exceptions import MultipleObjectsReturned
-from Omega.vars import VIEW_TYPES
+from Omega.vars import VIEW_TYPES, PRIORITY
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
@@ -18,8 +18,7 @@ from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
 from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
 from jobs.utils import *
-from service.utils import StartJobDecision, get_available_schedulers, \
-    get_priorities, CloseSession
+from service.utils import StartJobDecision, StartDecisionData, StopDecision
 
 
 @login_required
@@ -35,6 +34,7 @@ def tree_view(request):
         'FF': FilterForm(*tree_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
+        'priorities': reversed(PRIORITY),
         'can_create': JobAccess(request.user).can_create(),
         'TableData': TableTree(*tree_args)
     })
@@ -246,7 +246,7 @@ def show_job(request, job_id=None):
         'jobs/viewJob.html',
         {
             'job': job,
-            'comment': job.versions.get(version=job.version).comment,
+            'last_version': job.versions.get(version=job.version),
             'parents': parents,
             'children': children,
             'reportdata': reportdata,
@@ -255,7 +255,8 @@ def show_job(request, job_id=None):
             'can_edit': job_access.can_edit(),
             'can_create': job_access.can_create(),
             'can_decide': job_access.can_decide(),
-            'schedulers': get_available_schedulers(request.user)
+            'can_download': job_access.can_download(),
+            'can_stop': job_access.can_stop()
         }
     )
 
@@ -616,7 +617,7 @@ def download_job(request, job_id):
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[404]))
-    if not JobAccess(request.user, job).can_view():
+    if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
     back_url = quote(reverse('jobs:job', args=[job_id]))
@@ -660,17 +661,21 @@ def check_access(request):
             except ObjectDoesNotExist:
                 return JsonResponse({
                     'status': False,
-                    'message': _('The job was not found')
+                    'message': _('One of the selected jobs was not found')
                 })
-            if not JobAccess(request.user, job).can_view():
+            if not JobAccess(request.user, job).can_download():
                 return JsonResponse({
                     'status': False,
-                    'message': _("You don't have an access to this job")
+                    'message': _("You don't have an access to download one of the selected jobs")
                 })
         return JsonResponse({
             'status': True,
             'message': ''
         })
+    return JsonResponse({
+        'status': False,
+        'message': _('Unknown error')
+    })
 
 
 @login_required
@@ -715,8 +720,15 @@ def decide_job(request):
         return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
+
+    # TODO: remove
     if 'job id' not in request.POST:
-        return JsonResponse({'error': 'Job identifier is not specified'})
+        if 'job_id' not in request.session:
+            return JsonResponse({'error': 'Job identifier is not specified'})
+        job_id = request.session['job_id']
+    else:
+        job_id = request.POST['job id']
+
     if 'job format' not in request.POST:
         return JsonResponse({'error': 'Job format is not specified'})
     if 'report' not in request.POST:
@@ -724,10 +736,14 @@ def decide_job(request):
     if 'hash sum' not in request.POST:
         return JsonResponse({'error': 'Hash sum is not specified'})
 
+    # TODO: uncomment
+    # if 'job id' not in request.session:
+        # return JsonResponse({'error': "Session does not have job id"})
     try:
-        job = Job.objects.get(identifier__startswith=request.POST['job id'],
+        job = Job.objects.get(identifier__startswith=job_id,
                               format=int(request.POST['job format']))
-        request.session['job_id'] = job.id
+        # TODO: remove
+        request.session['job id'] = job.id
     except ObjectDoesNotExist:
         return JsonResponse({
             'error': 'Job with the specified identifier "{0}" was not found'
@@ -737,12 +753,15 @@ def decide_job(request):
             'error': 'Specified identifier "{0}" is not unique'
             .format(request.POST['job id'])})
 
-    if not JobAccess(request.user, job).service_access():
+    if not JobAccess(request.user, job).psi_access():
         return JsonResponse({
-            'error': 'User "{0}" has not access to job "{1}"'.format(
+            'error': 'User "{0}" has not access to decide job "{1}"'.format(
                 request.user, job.identifier
             )
         })
+    if job.status != JOB_STATUS[1][0]:
+        return JsonResponse({'error': 'Only pending jobs can be decided'})
+
     jobtar = PSIDownloadJob(job, request.POST['hash sum'])
     if jobtar.error is not None:
         return JsonResponse({
@@ -750,6 +769,8 @@ def decide_job(request):
                 job.identifier
             )
         })
+    job.status = JOB_STATUS[2][0]
+    job.save()
 
     jobtar.memory.seek(0)
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
@@ -795,15 +816,11 @@ def stop_decision(request):
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _("The job was not found")})
-    if job.status != JOB_STATUS[1][0]:
-        return JsonResponse({'error': _("The job is not solving")})
-    CloseSession(job)
-    job.status = JOB_STATUS[6][0]
-    job.save()
-    for report in ReportComponent.objects.filter(root__job=job):
-        if report.finish_date is None:
-            report.finish_date = pytz.timezone('UTC').localize(datetime.now())
-            report.save()
+    if not JobAccess(request.user, job).can_stop():
+        return JsonResponse({'error': _("You don't have an access to stop decision of this job")})
+    result = StopDecision(job)
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
     return JsonResponse({'status': True})
 
 
@@ -812,30 +829,21 @@ def run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'status': False, 'error': _('Unknown error')})
-    result = StartJobDecision(
-        request.user,
-        request.POST.get('job_id', 0),
-        request.POST.get('priority', ''),
-        request.POST.get('job_scheduler', 0),
-        request.POST.get('schedulers', '[]')
-    )
+    if 'data' not in request.POST:
+        return JsonResponse({'status': False, 'error': _('Unknown error')})
+    result = StartJobDecision(request.user, request.POST['data'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
 
 
 @login_required
-def get_max_prority(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'status': False, 'error': _('Unknown error')})
-    if 'schedulers' not in request.POST:
-        return JsonResponse({'status': False, 'error': _('Unknown error')})
-    priorities = get_priorities(request.user,
-                                request.POST.get('schedulers', '[]'))
-    if priorities is None:
-        return JsonResponse({'status': False, 'error': _('Unknown error')})
-    translated_priorities = []
-    for pr in priorities:
-        translated_priorities.append([pr[0], pr[1] + ''])
-    return JsonResponse({'priorities': json.dumps(translated_priorities)})
+def prepare_decision(request, job_id):
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[404]))
+    return render(request, 'jobs/startDecision.html', {
+        'job': job,
+        'data': StartDecisionData(request.user)
+    })

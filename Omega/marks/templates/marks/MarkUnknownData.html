@@ -20,17 +20,17 @@
     </div>
 </div>
 <div class="ui purple segment">
-    <label for="unknown_function" class="purple-title">{% trans 'Regular expression' %}</label>
+    <label for="unknown_function" class="purple-title">{% trans 'Pattern' %}</label>
     <div class="ui input fluid">
         <input id="unknown_function" type="text" value="{{ markdata.unknown_data.0 }}">
     </div>
     <br>
-    <label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem name' %}</label>
+    <label for="unknown_problem_pattern" class="purple-title">{% trans 'Problem' %}</label>
     <div class="ui input fluid">
         <input id="unknown_problem_pattern" type="text" value="{{ markdata.unknown_data.1 }}">
     </div>
     <br>
-    <label for="unknown_link" class="purple-title">{% trans 'Link to description' %}</label>
+    <label for="unknown_link" class="purple-title">{% trans 'Link to detailed description' %}</label>
     <div class="ui input fluid">
         <input id="unknown_link" type="url" {% if markdata.unknown_data.2 %}value="{{ markdata.unknown_data.2 }}"{% endif %}>
     </div>

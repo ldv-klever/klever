@@ -1,0 +1,79 @@
+#ETV_source_code {
+    height: 90%;
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 10%;
+    line-height: normal;
+    font-size: 12px;
+    border-top: 1px solid #ca8f1d;
+}
+#ETV_error_trace {
+    height: 90%;
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 10%;
+    line-height: normal;
+    font-size: 12px;
+    border-top: 1px solid #ca8f1d;
+}
+
+#ETVTitleBlock {
+    height: 10%;
+}
+
+#etv {
+    width: 99%;
+    height: 550px;
+    position: relative;
+}
+#etv-trace, #etv-source, #etv-divider {
+    position: absolute;
+    top: 0;
+    height: 100%;
+}
+#etv-trace {
+    left: 0;
+    width: 40%;
+    background-color: #fff8e9;
+}
+#etv-source {
+    right: 0;
+    width: 59.7%;
+    background-color: #fff8e9;
+}
+#etv-divider {
+    left: 40%;
+    width: 0.3%;
+    background-color: #f2711c;
+    cursor: move;
+}
+
+.ETVSrcC {
+    color: #b1b4b7;
+}
+
+.ETVSrcN {
+    color: #68e8e6;
+}
+
+.ETVSrcL {
+    background-color: #f3ecd2;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.ETVSrcT {
+    color: #20d467;
+}
+
+.ETVSrcI {
+    color: #1f984c;
+    font-weight: bold;
+}
+
+.ETVSrcO {
+    color: #291fbf;
+    font-weight: bold;
+}

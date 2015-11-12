@@ -10,12 +10,14 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
-from Omega.vars import JOB_CLASSES, FORMAT, JOB_STATUS
+from Omega.vars import JOB_CLASSES, FORMAT, JOB_STATUS, PRIORITY
+from Omega.utils import print_err
 from jobs.models import Job, File, JOBFILE_DIR
 from jobs.utils import create_job, update_job
 from reports.models import ReportComponent, ReportUnsafe, ReportSafe,\
     ReportUnknown, ReportRoot
 from reports.UploadReport import UploadReport
+from service.models import SolvingProgress, Scheduler
 
 DOWNLOAD_LOCKFILE = 'download.lock'
 
@@ -160,7 +162,7 @@ class DownloadJob(object):
             self.__create_tar(job)
             locker.unlock()
         else:
-            self.error = "Can't download job now"
+            self.error = _("Can't download job now")
 
     def __create_tar(self, job):
 
@@ -352,9 +354,9 @@ class ReverseReport(object):
 
     def __get_attrs(self):
         attrs = []
-        for attr_name in json.loads(self.report.attr_order):
+        for attr_name in self.report.attrorder.order_by('id'):
             try:
-                attr = self.report.attr.get(name__name=attr_name)
+                attr = self.report.attr.get(name__name=attr_name.name.name)
             except ObjectDoesNotExist:
                 continue
             attrs.append((attr.name.name, attr.value))
@@ -382,7 +384,7 @@ class UploadJob(object):
                 try:
                     jobdata = json.loads(file_obj.read().decode('utf-8'))
                 except Exception as e:
-                    print(e)
+                    print_err(e)
                     return _("The job archive is corrupted")
             elif file_name.startswith(JOBFILE_DIR):
                 if f.isreg():
@@ -467,6 +469,9 @@ class UploadJob(object):
                 return updated_job
         self.job = job
         ReportRoot.objects.create(user=self.user, job=self.job)
+        SolvingProgress.objects.create(job=self.job, priority=PRIORITY[3][0],
+                                       scheduler=Scheduler.objects.all()[0],
+                                       configuration='{}'.encode('utf8'))
         self.job.status = JOB_STATUS[1][0]
         self.job.save()
         if not self.__upload_reports(json.loads(jobdata['reports'])):
@@ -475,12 +480,13 @@ class UploadJob(object):
             return _("One of the reports was not uploaded")
         self.job.status = jobdata['status']
         self.job.save()
+        self.job.solvingprogress.delete()
         return None
 
     def __upload_reports(self, reports):
         for report in reports:
             error = UploadReport(self.job, report).error
             if error is not None:
-                print(error)
+                print_err(error)
                 return False
         return True

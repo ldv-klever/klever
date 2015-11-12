@@ -21,7 +21,7 @@
         <h4 class="header" id="temp___filter_title__name"></h4>
         <div class="ui grid">
             <div class="six wide column field">
-                <select id="temp___filter_type__name" class="ui dropdown">
+                <select id="temp___filter_type__name" class="ui dropdown filter-dropdown">
                     <option value="iexact">{% trans 'is' %}</option>
                     <option value="istartswith">{% trans 'starts with' %}</option>
                     <option value="icontains">{% trans 'contains' %}</option>
@@ -30,7 +30,7 @@
             <div class="eight wide column field">
                 <input id="temp___filter_value__name" type="text">
             </div>
-            <div class="two wide column field">
+            <div class="two wide column right aligned">
                 <button id="temp___remove__filter__name" class="ui icon red basic button">
                     <i class="remove icon"></i>
                 </button>
@@ -44,13 +44,13 @@
         <input type="hidden" value="is" id="temp___filter_type__change_author">
         <div class="ui grid">
             <div class="fourteen wide column">
-                <select class="ui dropdown" id="temp___filter_value__change_author">
+                <select class="ui dropdown filter-dropdown" id="temp___filter_value__change_author">
                     {% for u in users %}
                         <option value="{{ u.pk }}">{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="two wide column">
+            <div class="two wide column right aligned">
                 <button id="temp___remove__filter__change_author" class="ui icon red basic button">
                     <i class="remove icon"></i>
                 </button>
@@ -63,26 +63,26 @@
         <h4 class="header" id="temp___filter_title__change_date"></h4>
         <div class="ui grid">
             <div class="four wide column">
-                <select id="temp___filter_type__change_date" class="ui dropdown">
+                <select id="temp___filter_type__change_date" class="ui dropdown filter-dropdown">
                     <option value="older">{% trans 'older' %}</option>
                     <option value="younger">{% trans 'younger' %}</option>
                 </select>
             </div>
-            <div class="two wide column">
+            <div class="two wide column center aligned">
                 <h4>{% trans 'than' %}</h4>
             </div>
             <div class="three wide column">
                 <input id="temp___filter_value_1__change_date" type="number" min="0">
             </div>
             <div class="five wide column">
-                <select id="temp___filter_value_0__change_date" class="ui dropdown">
+                <select id="temp___filter_value_0__change_date" class="ui dropdown filter-dropdown">
                     <option value="minutes">{% trans 'minutes' %}</option>
                     <option value="hours">{% trans 'hours' %}</option>
                     <option value="days">{% trans 'days' %}</option>
                     <option value="weeks">{% trans 'weeks' %}</option>
                 </select>
             </div>
-            <div class="two wide column">
+            <div class="two wide column right aligned">
                 <button id="temp___remove__filter__change_date" class="ui icon red basic button">
                     <i class="remove icon"></i>
                 </button>
@@ -94,20 +94,17 @@
     <div class="ui purple segment">
         <h4 class="header" id="temp___filter_title__status"></h4>
         <div class="ui grid">
-            <div class="six wide column">
-                <select id="temp___filter_type__status" class="ui dropdown">
-                    <option value="is">{% trans 'is' %}</option>
-                    <option value="isnot">{% trans 'is not' %}</option>
-                </select>
-            </div>
-            <div class="eight wide column">
-                <select id="temp___filter_value__status" class="ui dropdown">
+            <div class="fourteen wide column">
+                <div id="temp___filter_value__status">
                     {% for status in statuses %}
-                        <option value="{{ status.0 }}">{{ status.1 }}</option>
+                        <div class="ui checkbox" style="margin-right: 30px;margin-top: 10px;">
+                            <input id="temp___filter_value__status__{{ status.0 }}" type="checkbox" value="{{ status.0 }}">
+                            <label for="temp___filter_value__status__{{ status.0 }}">{{ status.1 }}</label>
+                        </div>
                     {% endfor %}
-                </select>
+                </div>
             </div>
-            <div class="two wide column">
+            <div class="two wide column right aligned">
                 <button id="temp___remove__filter__status" class="ui icon red basic button">
                     <i class="remove icon"></i>
                 </button>
@@ -120,7 +117,7 @@
         <h4 class="header" id="temp___filter_title__resource_component"></h4>
         <div class="ui grid">
             <div class="six wide column">
-                <select id="temp___filter_type__resource_component" class="ui dropdown">
+                <select id="temp___filter_type__resource_component" class="ui dropdown filter-dropdown">
                     <option value="iexact">{% trans 'is' %}</option>
                     <option value="istartswith">{% trans 'starts with' %}</option>
                     <option value="icontains">{% trans 'contains' %}</option>
@@ -129,7 +126,7 @@
             <div class="eight wide column">
                 <input id="temp___filter_value__resource_component" type="text">
             </div>
-            <div class="two wide column">
+            <div class="two wide column right aligned">
                 <button id="temp___remove__filter__resource_component" class="ui icon red basic button">
                     <i class="remove icon"></i>
                 </button>
@@ -142,7 +139,7 @@
         <h4 class="header" id="temp___filter_title__problem_component"></h4>
         <div class="ui grid">
             <div class="six wide column">
-                <select id="temp___filter_type__problem_component" class="ui dropdown">
+                <select id="temp___filter_type__problem_component" class="ui dropdown filter-dropdown">
                     <option value="iexact">{% trans 'is' %}</option>
                     <option value="istartswith">{% trans 'starts with' %}</option>
                     <option value="icontains">{% trans 'contains' %}</option>
@@ -151,7 +148,7 @@
             <div class="eight wide column">
                 <input id="temp___filter_value__problem_component" type="text">
             </div>
-            <div class="two wide column">
+            <div class="two wide column right aligned">
                 <button id="temp___remove__filter__problem_component" class="ui icon red basic button">
                     <i class="remove icon"></i>
                 </button>
@@ -164,7 +161,7 @@
         <h4 class="header" id="temp___filter_title__problem_problem"></h4>
         <div class="ui grid">
             <div class="six wide column">
-                <select id="temp___filter_type__problem_problem" class="ui dropdown">
+                <select id="temp___filter_type__problem_problem" class="ui dropdown filter-dropdown">
                     <option value="iexact">{% trans 'is' %}</option>
                     <option value="istartswith">{% trans 'starts with' %}</option>
                     <option value="icontains">{% trans 'contains' %}</option>
@@ -173,7 +170,7 @@
             <div class="eight wide column">
                 <input id="temp___filter_value__problem_problem" type="text">
             </div>
-            <div class="two wide column">
+            <div class="two wide column right aligned">
                 <button id="temp___remove__filter__problem_problem" class="ui icon red basic button">
                     <i class="remove icon"></i>
                 </button>
@@ -190,8 +187,36 @@
                 <input id="temp___filter_value__format" type="text">
             </div>
             <div class="eleven wide column"></div>
-            <div class="two wide column">
+            <div class="two wide column right aligned">
                 <button id="temp___remove__filter__format" class="ui icon red basic button">
+                    <i class="remove icon"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="filter_form_template__priority" hidden>
+    <div class="ui purple segment">
+        <h4 class="header" id="temp___filter_title__priority"></h4>
+        <div class="ui grid">
+            <div class="seven wide column">
+                <label for="temp___filter_type__priority"></label>
+                <select id="temp___filter_type__priority" class="ui dropdown filter-dropdown">
+                    <option value="le">{% trans 'Less or equals than' %}</option>
+                    <option value="e">{% trans 'Equals' %}</option>
+                    <option value="me">{% trans 'More or equals than' %}</option>
+                </select>
+            </div>
+            <div class="seven wide column">
+                <label for="temp___filter_value__priority"></label>
+                <select id="temp___filter_value__priority" class="ui dropdown filter-dropdown">
+                    {% for pr in priorities %}
+                        <option value="{{ pr.0 }}">{{ pr.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="two wide column right aligned">
+                <button id="temp___remove__filter__priority" class="ui icon red basic button">
                     <i class="remove icon"></i>
                 </button>
             </div>

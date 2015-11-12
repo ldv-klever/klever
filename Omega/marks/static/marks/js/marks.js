@@ -274,13 +274,13 @@ function activate_tags() {
             var last_added_tag = value.slice(-1)[0];
             if (last_added_tag && last_added_tag.length > 15) {
                 value.pop();
-                var available_tags = [];
-                $('#tag_list').children('option').each(function () {
+                var available_tags = [], taglist = $('#tag_list');
+                taglist.children('option').each(function () {
                     if ($(this).val() != last_added_tag && value.indexOf($(this).val()) < 0 && $(this).val()) {
                         available_tags.push($(this).val());
                     }
                 });
-                $('#tag_list').parent().remove();
+                taglist.parent().remove();
                 $('label[for=tag_list]').after($('<select>', {
                     class: 'ui search selection dropdown fluid',
                     multiple: true,
@@ -302,7 +302,6 @@ function activate_tags() {
                 activate_tags();
                 err_notify($('#error__tag_is_long').text());
             }
-            console.log($('#tag_list').val());
         }
     });
     return false;

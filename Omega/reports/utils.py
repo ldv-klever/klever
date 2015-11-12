@@ -158,9 +158,9 @@ class ReportTable(object):
     def __self_data(self):
         columns = []
         values = []
-        for name in json.loads(self.report.attr_order):
+        for name in self.report.attrorder.order_by('id'):
             try:
-                attr = self.report.attr.get(name__name=name)
+                attr = self.report.attr.get(name__name=name.name.name)
             except ObjectDoesNotExist:
                 continue
             columns.append(attr.name.name)
@@ -179,9 +179,9 @@ class ReportTable(object):
                 ] = self.view['filters']['component']['value']
         attr_order = []
         for report in ReportComponent.objects.filter(**component_filters):
-            for new_a in json.loads(report.attr_order):
-                if new_a not in attr_order:
-                    attr_order.append(new_a)
+            for new_a in report.attrorder.order_by('id'):
+                if new_a.name.name not in attr_order:
+                    attr_order.append(new_a.name.name)
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
@@ -241,9 +241,9 @@ class ReportTable(object):
             report = getattr(leaf, list_types[self.type])
             if not self.__has_tag(report):
                 continue
-            for new_a in json.loads(report.attr_order):
-                if new_a not in attr_order:
-                    attr_order.append(new_a)
+            for new_a in report.attrorder.order_by('id'):
+                if new_a.name.name not in attr_order:
+                    attr_order.append(new_a.name.name)
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}
@@ -367,9 +367,9 @@ class ReportTable(object):
         attr_order = []
         for leaf in self.report.leaves.filter(~Q(unknown=None)):
             report = leaf.unknown
-            for new_a in json.loads(report.attr_order):
-                if new_a not in attr_order:
-                    attr_order.append(new_a)
+            for new_a in report.attrorder.order_by('id'):
+                if new_a.name.name not in attr_order:
+                    attr_order.append(new_a.name.name)
             if self.component_id is not None and \
                     report.component_id != int(self.component_id):
                 continue

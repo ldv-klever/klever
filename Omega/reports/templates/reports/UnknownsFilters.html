@@ -2,7 +2,7 @@
 
 <div class="ui styled accordion fluid">
     <div class="title">
-        <i class="filter icon"></i>{% trans 'Filters' %}
+        <i class="filter icon"></i>{% trans 'View' %}
     </div>
     <div class="content ui small form">
         <h5 class="header">{% trans 'Order by attribute' %}</h5>
@@ -10,7 +10,7 @@
         <div class="fluid">
             <input id="filter__attr__order" type="text" value="{{ view.order }}">
         </div>
-        <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
+        <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i></small>
         <div class="ui divider"></div>
         <h5 class="header">{% trans 'Component name' %}</h5>
         <div class="ui grid">
@@ -35,7 +35,7 @@
         <div class="fluid">
             <input id="filter__attr__attr_name" type="text" value="{{ view.filters.attr.attr }}">
         </div>
-        <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
+        <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i></small>
         <br><br>
         <div class="ui grid">
             <div class="six wide column">

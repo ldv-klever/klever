@@ -12,30 +12,14 @@
     {% if job %}
     <div class="ui grid">
         <div id="view_job_1st_part" class="eight wide column">
-            <div class="ui fluid mini buttons top attached">
-                {% if can_create %}<button id="copy_job_btn" class="ui violet button">{% trans 'Make copy' %}</button>{% endif %}
-                <button id="load_job_btn" class="ui olive button">{% trans 'Download' %}</button>
-                {% if can_decide %}
-                    <button id="show_decide_job_popup" class="ui pink button">{% trans 'Run decision' %}</button>
-                {% endif %}
-                {% if user.extended.role == '2' and job.status == '1' %}
-                    <button id="stop_job_btn" class="ui orange button">{% trans 'Stop decision' %}</button>
-                {% endif %}
-                {% if can_edit %}
-                    <button id="edit_job_btn" class="ui teal button">{% trans 'Edit' %}</button>
-                    <button id="edit_versions" class="ui brown button">{% trans 'Delete versions' %}</button>
-                {% endif %}
-                {% if can_delete %}<button id="show_remove_job_popup" type="button" class="ui red button">{% trans 'Delete' %}</button>{% endif %}
-            </div>
-            <span id="job_pk" hidden>{{ job.pk }}</span>
-
-            <table class="ui selectable compact inverted violet table attached">
-                <thead>
-                    <tr>
-                        <th class="center aligned" colspan="2">{{ job.name }}</th>
-                    </tr>
-                </thead>
+            <table class="ui selectable compact inverted violet table">
                 <tbody>
+                    <tr>
+                        <th id="job_name_tr" class="center aligned" colspan="2">
+                            <i class="ui caret down large icon" style="float: right;margin-top: 8px"></i>
+                            <h3 class="header" style="margin-top: 6px;margin-bottom: 5px;">{{ job.name }}</h3>
+                        </th>
+                    </tr>
                     <tr>
                         <th class="right aligned">{% trans 'Class' %}</th>
                         <td>{{ job.get_type_display }}</td>
@@ -94,18 +78,18 @@
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
                             {% timezone user.extended.timezone %}
-                                {{ job.change_date|date:'d.m.y H:i:s' }}
+                                {{ last_version.change_date|date:'d.m.y H:i:s' }}
                             {% endtimezone %}
-                            {% if job.change_author %}
-                                (<a class="violet-link" href="{% url 'users:show_profile' job.change_author.pk %}">{{ job.change_author.extended.last_name }} {{ job.change_author.extended.first_name }}</a>)
+                            {% if last_version.change_author %}
+                                (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)
                             {% endif %}
-                            {% if comment|length %}
-                                <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ comment }}"</small></p>
+                            {% if last_version.comment|length %}
+                                <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ last_version.comment }}"</small></p>
                             {% endif %}
                         </td>
                     </tr>
                     <tr>
-                        <th>{% trans 'Decision status' %}</th>
+                        <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
                             {% if reportdata %}
                                 <a class="
@@ -123,6 +107,8 @@
                                     status-link status5-link
                                 {% elif job.status == '6' %}
                                     status-link status6-link
+                                {% elif job.status == '7' %}
+                                    status-link status7-link
                                 {% endif %}
                                 " href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
                             {% else %}
@@ -132,6 +118,22 @@
                     </tr>
                 </tbody>
             </table>
+            <input type="hidden" id="job_pk" value="{{ job.pk }}">
+            <div id="job_actions_menu" class="ui purple inverted popup transition vertical menu hidden">
+                {% if can_create %}<a id="copy_job_btn" class="item">{% trans 'Make copy' %}</a>{% endif %}
+                {% if can_download %}<a id="load_job_btn" class="item">{% trans 'Download' %}</a>{% endif %}
+                {% if can_decide %}
+                    <a class="item" href="{% url 'jobs:prepare_run' job.pk %}">{% trans 'Start decision' %}</a>
+                {% endif %}
+                {% if can_stop %}
+                    <a id="stop_job_btn" class="item">{% trans 'Stop decision' %}</a>
+                {% endif %}
+                {% if can_edit %}
+                    <a id="edit_job_btn" class="item">{% trans 'Edit' %}</a>
+                    <a id="edit_versions" class="item">{% trans 'Delete versions' %}</a>
+                {% endif %}
+                {% if can_delete %}<a id="show_remove_job_popup" class="item">{% trans 'Delete' %}</a>{% endif %}
+            </div>
             <br>
             {% if reportdata %}
                 {% include 'jobs/jobData.html' %}
@@ -158,129 +160,5 @@
                 </div>
             </div>
         {% endif %}
-        {% if can_decide %}
-             <div id="decide_job_popup" class="ui modal">
-                <div class="header">{% trans 'Decide job' %}</div>
-                <div class="content">
-                    {% if schedulers|length %}
-                        <h4 class="header">{% trans "Choose schedulers" %}</h4>
-                        <div class="ui grid">
-                            <div class="eight wide column">
-                                <h5 class="header">{% trans 'Choose scheduler for job' %}</h5>
-                                {% for sch in schedulers %}
-                                    {% if sch.for_jobs %}
-                                        <div class="ui grid">
-                                            <div class="ten wide column">
-                                                <div class="ui radio checkbox {% if sch.auth_error or not sch.available %}disabled{% endif %}">
-                                                    <input id="job_scheduler_{{ sch.pk }}" name="job_scheduler" type="radio" value="{{ sch.pk }}">
-                                                    <label for="job_scheduler_{{ sch.pk }}">{{ sch.name }}</label>
-                                                </div>
-                                            </div>
-                                            {% if sch.auth_error %}
-                                                <div class="one wide column">
-                                                    <i class="for_popup ui add user red icon"></i>
-                                                    <div class="ui popup top left transition hidden">
-                                                        <span style="white-space: nowrap">{% trans 'Needs login data' %}</span>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                            {% if not sch.available %}
-                                                <div class="one wide column">
-                                                    <i class="for_popup ui laptop red icon"></i>
-                                                    <div class="ui popup top left transition hidden">
-                                                        <span style="white-space: nowrap">{% trans 'Unavailable' %}</span>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                            {% if not sch.auth_error and sch.available %}
-                                                <div class="one wide column">
-                                                    <i class="for_popup ui checkmark green icon"></i>
-                                                    <div class="ui popup top left transition hidden">
-                                                        <span style="white-space: nowrap">{% trans 'Ready' %}</span>
-                                                    </div>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                            <div class="eight wide column">
-                                <h5 class="header">{% trans 'Choose schedulers for tasks' %}</h5>
-                                {% for sch in schedulers %}
-                                    <div class="ui grid">
-                                        <div class="ten wide column">
-                                            <div class="ui checkbox {% if sch.auth_error or not sch.available %}disabled{% endif %}">
-                                                <input id="scheduler_{{ sch.pk }}" type="checkbox">
-                                                <label for="scheduler_{{ sch.pk }}">{{ sch.name }}</label>
-                                            </div>
-                                        </div>
-                                        {% if sch.auth_error %}
-                                            <div class="one wide column">
-                                                <i class="for_popup ui add user red icon"></i>
-                                                <div class="ui popup top left transition hidden">
-                                                    <span style="white-space: nowrap">{% trans 'Needs login data' %}</span>
-                                                </div>
-                                            </div>
-                                        {% endif %}
-                                        {% if not sch.available %}
-                                            <div class="one wide column">
-                                                <i class="for_popup ui laptop red icon"></i>
-                                                <div class="ui popup top left transition hidden">
-                                                    <span style="white-space: nowrap">{% trans 'Unavailable' %}</span>
-                                                </div>
-                                            </div>
-                                        {% endif %}
-                                        {% if not sch.auth_error and sch.available %}
-                                            <div class="one wide column">
-                                                <i class="for_popup ui checkmark green icon"></i>
-                                                <div class="ui popup top left transition hidden">
-                                                    <span style="white-space: nowrap">{% trans 'Ready' %}</span>
-                                                </div>
-                                            </div>
-                                        {% endif %}
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% else %}
-                        <h4 class="header">{% trans 'There are no available schedulers' %}</h4>
-                    {% endif %}
-                </div>
-                <div class="actions">
-                    {% if schedulers|length %}
-                        <button id="decide_job_start" type="button" class="ui positive button">{% trans 'Next' %}</button>
-                        <button id="decide_job_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
-                    {% else %}
-                        <button id="decide_job_cancel" type="button" class="ui blue button">{% trans 'OK' %}</button>
-                    {% endif %}
-                </div>
-            </div>
-            <div id="decide_job_order_popup" class="ui modal">
-                <div class="header">{% trans 'Scheduler order and priority' %}</div>
-                <div class="content">
-                    <h4 class="header">{% trans "Choose order of schedulers (the first one in the list will have the maximum priority)" %}</h4>
-                    <div class="ui grid">
-                        <div class="five wide column">
-                            <label for="selected_schedulers"></label>
-                            <select id="selected_schedulers" style="height: 160px;width: 100%" multiple></select>
-                        </div>
-                        <div class="two wide column">
-                            <div style="margin-top: 60px;" class="ui vertical mini basic icon purple buttons">
-                                <button id="move_schedulers_up" type="button" class="ui button"><i class="arrow up icon"></i></button>
-                                <button id="move_schedulers_down" type="button" class="ui button"><i class="arrow down icon"></i></button>
-                            </div>
-                        </div>
-                        <div class="two wide column"></div>
-                        <div class="seven wide column" id="div_select_priority"></div>
-                    </div>
-                </div>
-                <div class="actions">
-                    <button id="sch_order_confirm" type="button" class="ui positive button">{% trans 'Run' %}</button>
-                    <button id="sch_order_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
-                </div>
-            </div>
-        {% endif %}
     {% endif %}
-    <span id="error___no_schedulers_selected" hidden>{% trans 'Please choose schedulers for tasks' %}</span>
-    <span id="error___no_job_scheduler_selected" hidden>{% trans 'Please choose scheduler for job' %}</span>
 {% endblock %}

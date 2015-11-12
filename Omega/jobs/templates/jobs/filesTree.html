@@ -1,37 +1,37 @@
 {% load i18n %}
 
-<table id="file_tree_table" class="ui compact teal table tree attached">
-    <tbody>
-    {% for f in filedata %}
-        <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}"{% if f.type == 0 %} style="background: #a3edef;"{% endif %}>
-            <td class="one wide right aligned">
-                <div class="ui radio checkbox">
-                    <label for="selected_filerow__{{ f.type }}__{{ f.id }}"></label>
-                    <input id="selected_filerow__{{ f.type }}__{{ f.id }}" type="radio" name="selected_filerow" value="{{ f.type }}__{{ f.id }}">
-                </div>
-            </td>
-            <td>
-                <span id="file_title__{{ f.type }}__{{ f.id }}">{% if f.type == 1 %}<a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>{% else %}{{ f.title }}{% endif %}</span>
-                {% if f.type == 1 %}<span id="file_hash_sum__{{ f.type }}__{{ f.id }}" hidden>{{ f.hash_sum }}</span>{% endif %}
-            </td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
-<div class="ui tiny buttons bottom attached fluid">
-    <button id="new_folder_btn" type="button" class="ui brown button">{% trans 'New folder' %}</button>
-    <button id="new_file_btn" type="button" class="ui olive button">{% trans 'New file' %}</button>
-    <button id="rename_file_btn" type="button" class="ui pink button">{% trans 'Rename' %}</button>
-{% if job_id %}
-</div>
-<div class="ui tiny buttons bottom attached fluid">
-{% endif %}
-    <button id="move_file_btn" type="button" class="ui blue button">{% trans 'Move file' %}</button>
-    <button id="replace_file_btn" type="button" class="ui orange button">{% trans 'Replace file' %}</button>
-    <button id="remove_obj_btn" type="button" class="ui red button">{% trans 'Delete' %}</button>
+<div class="ui teal segment">
+    <div>
+        <a id="edit_files_menu_activator" class="ui top left attached teal large active label"><i class="caret left icon"></i> {% trans 'Files' %}</a>
+        <table id="file_tree_table" class="ui compact teal table tree">
+            <tbody>
+            {% for f in filedata %}
+                <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}"{% if f.type == 0 %} style="background: #a3edef;"{% endif %}>
+                    <td class="one wide right aligned">
+                        <div class="ui radio checkbox">
+                            <label for="selected_filerow__{{ f.type }}__{{ f.id }}"></label>
+                            <input id="selected_filerow__{{ f.type }}__{{ f.id }}" type="radio" name="selected_filerow" value="{{ f.type }}__{{ f.id }}">
+                        </div>
+                    </td>
+                    <td>
+                        <span id="file_title__{{ f.type }}__{{ f.id }}">{% if f.type == 1 %}<a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>{% else %}{{ f.title }}{% endif %}</span>
+                        {% if f.type == 1 %}<span id="file_hash_sum__{{ f.type }}__{{ f.id }}" hidden>{{ f.hash_sum }}</span>{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div id="edit_files_menu" class="ui teal inverted popup transition vertical menu hidden">
+            <a id="new_folder_btn" class="item">{% trans 'New folder' %}</a>
+            <a id="new_file_btn" class="item">{% trans 'New file' %}</a>
+            <a id="rename_file_btn" class="item">{% trans 'Rename' %}</a>
+            <a id="move_file_btn" class="item">{% trans 'Move file' %}</a>
+            <a id="replace_file_btn" class="item">{% trans 'Replace file' %}</a>
+            <a id="remove_obj_btn" class="item">{% trans 'Delete' %}</a>
+        </div>
+    </div>
 </div>
 <div id="files_for_upload" hidden></div>
-<div id="edit_files_form"></div>
 
 <div id="new_folder_modal" class="ui small dinamic modal">
     <div class="ui header">{% trans 'New folder' %}</div>
@@ -204,8 +204,8 @@
 <span id="error__cant_replace_folder" hidden>{% trans "The folder can't be replaced with the file" %}</span>
 <span id="error__noselected_replace" hidden>{% trans "Choose the file you want to replace" %}</span>
 <span id="error__cant_move_dir" hidden>{% trans "You can't move folders, please choose the file you want to move" %}</span>
-<span id="error__cant_move_file" hidden>{% trans "Please, choose the file you want to move" %}</span>
-<span id="error__nofile_selected" hidden>{% trans "Please, choose the file" %}</span>
-<span id="error__noobj_to_rename" hidden>{% trans "Please, choose the file or the folder you want to rename" %}</span>
-<span id="error__noobj_to_delete" hidden>{% trans "Please, choose the file or the folder you want to delete" %}</span>
+<span id="error__cant_move_file" hidden>{% trans "Please choose the file you want to move" %}</span>
+<span id="error__nofile_selected" hidden>{% trans "Please choose the file" %}</span>
+<span id="error__noobj_to_rename" hidden>{% trans "Please choose the file or the folder you want to rename" %}</span>
+<span id="error__noobj_to_delete" hidden>{% trans "Please choose the file or the folder you want to delete" %}</span>
 <span id="error__filename_not_ascii" hidden>{% trans "Names with non-ASCII characters must be less than 30 characters" %}</span>

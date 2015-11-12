@@ -34,11 +34,18 @@ class Report(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
     attr = models.ManyToManyField(Attr)
-    attr_order = models.CharField(max_length=10000, default='[]')
     description = models.BinaryField(null=True)
 
     class Meta:
         db_table = 'report'
+
+
+class ReportAttrOrder(models.Model):
+    name = models.ForeignKey(AttrName)
+    report = models.ForeignKey(Report, related_name='attrorder')
+
+    class Meta:
+        db_table = 'reports_attr_order'
 
 
 class Computer(models.Model):
@@ -49,7 +56,7 @@ class Computer(models.Model):
 
 
 class Component(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=15, unique=True)
 
     class Meta:
         db_table = 'component'
@@ -65,13 +72,23 @@ class Resource(models.Model):
 
 
 class ReportComponent(Report):
-    computer = models.ForeignKey(Computer, related_name='+')
-    component = models.ForeignKey(Component, related_name='+')
-    resource = models.ForeignKey(Resource, related_name='cache1', null=True)
-    data = models.BinaryField(null=True)
+    computer = models.ForeignKey(Computer)
+    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    resource = models.ForeignKey(Resource, null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
     log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
+    data = models.BinaryField(null=True)
+
+    def delete(self, *args, **kwargs):
+        computer = self.computer
+        resource = self.resource
+        super(ReportComponent, self).delete(*args, **kwargs)
+        if len(computer.reportcomponent_set.all()) == 0:
+            computer.delete()
+        if len(resource.reportcomponent_set.all()) == 0 \
+                and len(resource.componentresource_set.all()) == 0:
+            resource.delete()
 
     class Meta:
         db_table = 'report_component'
@@ -97,7 +114,7 @@ class ReportSafe(Report):
 
 
 class ReportUnknown(Report):
-    component = models.ForeignKey(Component)
+    component = models.ForeignKey(Component, on_delete=models.PROTECT)
     problem_description = models.BinaryField()
 
     class Meta:
@@ -116,20 +133,20 @@ class ReportComponentLeaf(models.Model):
 
 class Verdict(models.Model):
     report = models.OneToOneField(ReportComponent)
-    unsafe = models.IntegerField(default=0)
-    unsafe_bug = models.IntegerField(default=0)
-    unsafe_target_bug = models.IntegerField(default=0)
-    unsafe_false_positive = models.IntegerField(default=0)
-    unsafe_unknown = models.IntegerField(default=0)
-    unsafe_unassociated = models.IntegerField(default=0)
-    unsafe_inconclusive = models.IntegerField(default=0)
-    safe = models.IntegerField(default=0)
-    safe_missed_bug = models.IntegerField(default=0)
-    safe_incorrect_proof = models.IntegerField(default=0)
-    safe_unknown = models.IntegerField(default=0)
-    safe_unassociated = models.IntegerField(default=0)
-    safe_inconclusive = models.IntegerField(default=0)
-    unknown = models.IntegerField(default=0)
+    unsafe = models.PositiveIntegerField(default=0)
+    unsafe_bug = models.PositiveIntegerField(default=0)
+    unsafe_target_bug = models.PositiveIntegerField(default=0)
+    unsafe_false_positive = models.PositiveIntegerField(default=0)
+    unsafe_unknown = models.PositiveIntegerField(default=0)
+    unsafe_unassociated = models.PositiveIntegerField(default=0)
+    unsafe_inconclusive = models.PositiveIntegerField(default=0)
+    safe = models.PositiveIntegerField(default=0)
+    safe_missed_bug = models.PositiveIntegerField(default=0)
+    safe_incorrect_proof = models.PositiveIntegerField(default=0)
+    safe_unknown = models.PositiveIntegerField(default=0)
+    safe_unassociated = models.PositiveIntegerField(default=0)
+    safe_inconclusive = models.PositiveIntegerField(default=0)
+    unknown = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = "cache_report_verdict"
@@ -138,9 +155,15 @@ class Verdict(models.Model):
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='resources_cache')
     component = models.ForeignKey(Component, null=True, blank=True,
-                                  on_delete=models.SET_NULL,
-                                  related_name='+')
-    resource = models.ForeignKey(Resource, related_name='cache2')
+                                  on_delete=models.PROTECT)
+    resource = models.ForeignKey(Resource)
+
+    def delete(self, *args, **kwargs):
+        resource = self.resource
+        super(ComponentResource, self).delete(*args, **kwargs)
+        if len(resource.reportcomponent_set.all()) == 0 \
+                and len(resource.componentresource_set.all()) == 0:
+            resource.delete()
 
     class Meta:
         db_table = 'cache_report_component_resource'
@@ -148,8 +171,8 @@ class ComponentResource(models.Model):
 
 class ComponentUnknown(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='unknowns_cache')
-    component = models.ForeignKey(Component, related_name='+')
-    number = models.IntegerField(default=0)
+    component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    number = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'cache_report_component_unknown'

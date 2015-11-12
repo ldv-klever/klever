@@ -17,9 +17,6 @@
                 <div class="item"><span style="color: #a7aab4">{% trans 'Role' %}: </span> {{ target.extended.get_role_display }}</div>
                 <div class="item"><span style="color: #a7aab4">{% trans 'Time zone' %}: </span> {{ target.extended.timezone }}</div>
                 <div class="item"><span style="color: #a7aab4">{% trans 'Language' %}: </span> {{ target.extended.get_language_display }}</div>
-            {% if num_of_solving_jobs %}
-                <div class="item"><span style="color: #a7aab4">{% trans 'Number of solving jobs' %}: </span> <a href="{% url 'service:jobs' target.pk %}">{{ num_of_solving_jobs }}</a></div>
-            {% endif %}
             </div>
         </div>
         <div class="thirteen wide column">
@@ -28,33 +25,27 @@
                 <table class="ui selectable inverted celled table">
                     <thead>
                         <tr>
-                            <th>{% trans 'Date' %}</th>
+                            <th class="three wide">{% trans 'Date' %}</th>
                             <th>{% trans 'Action Kind' %}</th>
-                            <th>{% trans 'Job Title' %}</th>
-                            <th>{% trans 'Comment' %}</th>
+                            <th>{% trans 'Object Type' %}</th>
+                            <th>{% trans 'Object Link' %}</th>
+                            <th class="four wide">{% trans 'Change Comment' %}</th>
                         </tr>
                     </thead>
                     <tbody>
                     {% for act in activity %}
                         <tr>
                             <td>
-                                {% if user_tz %}
-                                    {% timezone user_tz %}
-                                        {{ act.date }}
-                                    {% endtimezone %}
-                                {% else %}
+                                {% timezone user.extended.timezone %}
                                     {{ act.date }}
-                                {% endif %}
+                                {% endtimezone %}
                             </td>
-                            {% if act.version == 1 %}
-                                <td style="color: #58bd2a">{% trans 'Creation' %}</td>
-                            {% else %}
-                                <td style="color: #31e6ff">{% trans 'Modification' %}</td>
-                            {% endif %}
+                            <td style="color:{{ act.act_color }}">{{ act.act_type }}</td>
+                            <td>{{ act.obj_type }}</td>
                             {% if act.href %}
-                                <td><a href="{{ act.href }}">{{ act.job_name }}</a></td>
+                                <td><a href="{{ act.href }}">{{ act.obj_link }}</a></td>
                             {% else %}
-                                <td>{{ act.job_name }}</td>
+                                <td>{{ act.obj_link }}</td>
                             {% endif %}
                             {% if act.comment %}
                                 <td title="{{ act.comment }}"><small>{{ act.small_comment }}</small></td>

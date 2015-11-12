@@ -10,6 +10,7 @@ from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import USER_ROLES
+from Omega.utils import print_err
 from users.models import View
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess,\
     TagsInfo, DeleteMark
@@ -164,7 +165,7 @@ def save_mark(request):
 
     mark = NewMark(inst, request.user, savedata['data_type'], savedata)
     if mark.error is not None:
-        print(mark.error)
+        print_err(mark.error)
         return HttpResponseRedirect(reverse('error', args=[650]))
     return render(request, 'marks/SaveMarkResult.html', {
         'mark_type': mark.type,

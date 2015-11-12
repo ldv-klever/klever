@@ -1,4 +1,4 @@
-var readable_extensions = ['', 'txt', 'json', 'conf', 'php'];
+var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i'];
 
 function isFileReadable(name) {
     var found = name.lastIndexOf('.') + 1,
@@ -145,7 +145,7 @@ function set_actions_for_edit_form () {
             comment = '',
             description = $('#job_description').val(),
             global_role = $('#job_global_roles').children('option:selected').val(),
-            user_roles = [], job_id, job_id_input = $('#job_id_input');
+            user_roles = [], job_id, job_pk = $('#job_pk');
 
         if (title.length === 0) {
             err_notify($('#error__title_required').text());
@@ -186,8 +186,8 @@ function set_actions_for_edit_form () {
             }
         });
 
-        if (job_id_input.length) {
-            job_id = job_id_input.val();
+        if (job_pk.length) {
+            job_id = job_pk.val();
         }
         $('#all_user_roles').find("select[id^='job_user_role_select__']").each(function () {
             var user_id = $(this).attr('id').replace('job_user_role_select__', ''),
@@ -220,7 +220,7 @@ function set_actions_for_edit_form () {
         $.post(
             job_ajax_url + 'editjob/',
             {
-                job_id: $("#job_id_input").val(),
+                job_id: $("#job_pk").val(),
                 version: version
             },
             function (data) {
@@ -368,9 +368,6 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
 
 function update_treegrid() {
     inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon');
-    $('input[id^="selected_filerow__"]').click(function () {
-        $('#edit_files_form').empty();
-    });
 }
 
 function selected_row() {
@@ -396,6 +393,7 @@ function set_action_on_file_click () {
                 type: 'POST',
                 success: function (data) {
                     try {
+                        JSON.stringify(data);
                         JSON.stringify(data);
                         err_notify(data.message);
                     } catch (e) {
@@ -439,7 +437,19 @@ function set_actions_for_file_form() {
     $('.ui.checkbox').checkbox();
     var cnt = 0;
 
+    $('#edit_files_menu_activator').popup({
+        popup: $('#edit_files_menu'),
+        position: 'left center',
+        hoverable: true,
+        on: 'click',
+        delay: {
+            show: 100,
+            hide: 100
+        }
+    });
+
     $('#new_folder_modal').modal({onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
         var folder_parents = $('#new_folder_parent'),
             confirm_btn = $('#create_new_folder_btn');
         folder_parents.children('option[value!="root"]').remove();
@@ -476,6 +486,7 @@ function set_actions_for_file_form() {
 
 
     $('#new_file_modal').modal({onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
         var new_opts = get_folders(), file_parents = $('#new_file_parent'),
             file_input = $('#new_file_input'), confirm_btn = $('#save_new_file_btn');
         file_parents.children('option[value!="root"]').remove();
@@ -527,7 +538,9 @@ function set_actions_for_file_form() {
         });
     }, transition: 'fly left'}).modal('attach events', '#new_file_btn', 'show');
 
-    $('#rename_modal').modal({transition: 'fly left'});
+    $('#rename_modal').modal({transition: 'fly left', onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
+    }});
     $('#rename_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -556,7 +569,9 @@ function set_actions_for_file_form() {
         }
     });
 
-    $('#move_file_modal').modal({transition: 'fly left'});
+    $('#move_file_modal').modal({transition: 'fly left', onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
+    }});
     $('#move_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -612,7 +627,9 @@ function set_actions_for_file_form() {
         }
     });
 
-    $('#remove_object_modal').modal({transition: 'fly left'});
+    $('#remove_object_modal').modal({transition: 'fly left', onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
+    }});
     $('#remove_obj_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -661,7 +678,9 @@ function set_actions_for_file_form() {
         }
     });
 
-    $('#replace_file_modal').modal({transition: 'fly left'});
+    $('#replace_file_modal').modal({transition: 'fly left', onShow: function () {
+        $('#edit_files_menu_activator').popup('hide');
+    }});
     $('#replace_file_btn').click(function () {
         var selected = selected_row();
         if (selected) {
@@ -724,10 +743,6 @@ function set_actions_for_file_form() {
                     err_notify($('#error__nofile_selected').text());
                 }
             });
-
-            $('#clear_file_form').click(function () {
-                $('#edit_files_form').empty();
-            });
         }
         else {
             err_notify($('#error__noselected_replace').text());
@@ -766,7 +781,7 @@ function set_actions_for_versions_delete() {
         });
         $.post(
             job_ajax_url + 'remove_versions/',
-            {job_id: $('#job_pk').text(), versions: JSON.stringify(checked_versions)},
+            {job_id: $('#job_pk').val(), versions: JSON.stringify(checked_versions)},
             function (data) {
                 var global_parent;
                 $.each(checked_versions, function (i, val) {
@@ -789,27 +804,31 @@ $(document).ready(function () {
     $('.for_popup').popup();
     $('#job_scheduler').dropdown();
     $('#view_job_1st_part').find('.ui.dropdown').dropdown();
-    $('#remove_job_popup').modal({transition: 'fly up', autofocus: false, closable: false})
+    $('#remove_job_popup').modal({
+        transition: 'fly up', autofocus: false, closable: false, onShow: function () {
+            $('#job_name_tr').popup('hide');
+        }})
         .modal('attach events', '#show_remove_job_popup', 'show');
 
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
     });
 
-    $('#decide_job_popup').modal({autofocus: false, allowMultiple: false})
-        .modal('attach events', '#show_decide_job_popup', 'show');
-    $('#decide_job_cancel').click(function () {
-        $('#decide_job_popup').modal('hide');
-    });
-    $('#decide_job_order_popup').modal({autofocus: false, allowMultiple: false});
-    $('#sch_order_cancel').click(function () {
-        $('#decide_job_order_popup').modal('hide');
+    $('#job_name_tr').popup({
+        popup: $('#job_actions_menu'),
+        position: 'bottom right',
+        hoverable: true,
+        offset: -6,
+        delay: {
+            show: 100,
+            hide: 100
+        }
     });
 
     if ($('#edit_job_div').length) {
         $.ajax({
             url: job_ajax_url + 'showjobdata/',
-            data: {job_id: $('#job_pk').text()},
+            data: {job_id: $('#job_pk').val()},
             type: 'POST',
             success: function (data) {
                 $('#edit_job_div').html(data);
@@ -827,7 +846,7 @@ $(document).ready(function () {
         $('.ui.dinamic.modal').remove();
         $.post(
             job_ajax_url + 'editjob/',
-            {job_id: $('#job_pk').text()},
+            {job_id: $('#job_pk').val()},
             function (data) {
                 $('#edit_job_div').html(data);
                 set_actions_for_edit_form();
@@ -839,14 +858,14 @@ $(document).ready(function () {
     });
 
     $("#copy_job_btn").click(function () {
-        $.redirectPost(job_ajax_url + 'create/', {parent_id: $('#job_pk').text()});
+        $.redirectPost(job_ajax_url + 'create/', {parent_id: $('#job_pk').val()});
     });
 
     $('#remove_job_btn').click(function () {
         $('#remove_job_popup').modal('hide');
         $.post(
             job_ajax_url + 'removejobs/',
-            {jobs: JSON.stringify([$('#job_pk').text()])},
+            {jobs: JSON.stringify([$('#job_pk').val()])},
             function (data) {
                 data.status === 0 ? window.location.replace('/jobs/') : err_notify(data.message);
             },
@@ -855,13 +874,14 @@ $(document).ready(function () {
     });
 
     $('#load_job_btn').click(function () {
-        download_job($('#job_pk').text());
+        $('#job_name_tr').popup('hide');
+        download_job($('#job_pk').val());
     });
 
     $('#edit_versions').click(function () {
         $.post(
             job_ajax_url + 'getversions/',
-            {job_id: $('#job_pk').text()},
+            {job_id: $('#job_pk').val()},
             function (data) {
                 try {
                     JSON.stringify(data);
@@ -877,7 +897,7 @@ $(document).ready(function () {
     $('#stop_job_btn').click(function () {
         $.post(
             job_ajax_url + 'stop_decision/',
-            {job_id: $('#job_pk').text()},
+            {job_id: $('#job_pk').val()},
             function (data) {
                 if (data.error) {
                     err_notify(data.error);
@@ -887,97 +907,5 @@ $(document).ready(function () {
                 }
             }
         );
-    });
-
-    $('#move_schedulers_up').click(function () {
-        var $op = $('#selected_schedulers').children('option:selected');
-        if ($op.length) {
-            $op.first().prev().before($op);
-        }
-    });
-
-    $('#move_schedulers_down').click(function () {
-        var $op = $('#selected_schedulers').children('option:selected');
-        if ($op.length) {
-            $op.last().next().after($op);
-        }
-    });
-
-    $('#decide_job_start').click(function () {
-        var schedulers = [];
-        $('input[id^="scheduler_"]').each(function () {
-            if ($(this).is(':checked')) {
-                schedulers.push([$(this).attr('id').replace('scheduler_', ''), $(this).next('label').text()])
-            }
-        });
-        var job_scheduler = $('input[name="job_scheduler"]:checked').val();
-        if (!job_scheduler) {
-            err_notify($('#error___no_job_scheduler_selected').text());
-            return false;
-        }
-        if (schedulers.length <= 0) {
-            err_notify($('#error___no_schedulers_selected').text());
-            return false;
-        }
-        $('#selected_schedulers').empty();
-        $.each(schedulers, function(i, val) {
-            $('#selected_schedulers').append($('<option>', {
-                value: val[0],
-                text: val[1],
-                title: val[1]
-            }));
-        });
-        var select_prority_div = $('#div_select_priority');
-        select_prority_div.empty();
-        select_prority_div.append($('<select>', {
-            class: 'ui dropdown',
-            id: 'priority_select'
-        }));
-        $.post(
-            job_ajax_url + 'get_max_prority/',
-            {schedulers: JSON.stringify(schedulers)},
-            function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                }
-                else if (data.priorities) {
-                    var priorities = JSON.parse(data.priorities);
-                    priorities.forEach(function (pr) {
-                        $('#priority_select').append($('<option>', {value: pr[0], text: pr[1]}))
-                    });
-                    $('#priority_select').dropdown();
-                }
-            }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
-        $('#decide_job_order_popup').modal('show');
-        return false;
-
-    });
-    $('#sch_order_confirm').click(function () {
-        var schedulers = [];
-        $('#selected_schedulers').children().each(function () {
-            schedulers.push($(this).val());
-        });
-        $.post(
-            job_ajax_url + 'run_decision/',
-            {
-                job_id: $('#job_pk').text(),
-                schedulers: JSON.stringify(schedulers),
-                job_scheduler: $('input[name="job_scheduler"]:checked').val(),
-                priority: $('#priority_select').val()
-            },
-            function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                }
-                else {
-                    window.location.replace('');
-                }
-            }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
     });
 });
