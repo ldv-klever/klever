@@ -96,6 +96,29 @@ Installation for production purposes
 
 #. Restart service apache2
 
+Omega update
+------------
+
+#. Execute the following manage.py tasks::
+
+    $ python3 manage.py compilemessages
+    $ python3 manage.py makemigrations users jobs reports marks service
+    $ python3 manage.py migrate
+
+#. If some of previous commands failed it is recommended to do the following steps.
+#. Remove previously created migrations::
+
+    find ./ -name "migrations" | xargs -n1 rm -rf
+
+#. Recreate the MySQL/MariaDB database::
+
+    MariaDB [(none)]> DROP DATABASE `db_name`;
+    MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8;
+
+#. Repeat all steps of normal installation starting from execution of manage.py tasks and excluding steps specific for
+   development/production.
+#. TODO: how to update production server?
+
 Documentation installation
 --------------------------
 
