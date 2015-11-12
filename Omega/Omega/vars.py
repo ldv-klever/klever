@@ -26,7 +26,7 @@ USER_ROLES = (
     ('1', _('Producer')),
     ('2', _('Manager')),
     ('3', _('Expert')),
-    ('4', _('Service'))
+    ('4', _('Service user'))
 )
 
 JOB_CLASSES = (
