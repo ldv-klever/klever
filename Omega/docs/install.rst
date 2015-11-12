@@ -96,8 +96,8 @@ Installation for production purposes
 
 #. Restart service apache2
 
-Omega update
-------------
+Update for development purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Execute the following manage.py tasks::
 
@@ -115,8 +115,12 @@ Omega update
     MariaDB [(none)]> DROP DATABASE `db_name`;
     MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8;
 
-#. Repeat all steps of normal installation starting from execution of manage.py tasks and excluding steps specific for
-   development/production.
+#. Repeat all steps of normal installation starting from execution of manage.py tasks (rerunning of the server might be
+   not required).
+
+Update for production purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 #. TODO: how to update production server?
 
 Documentation installation
