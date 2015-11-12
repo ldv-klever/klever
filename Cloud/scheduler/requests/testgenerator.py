@@ -11,7 +11,7 @@ import Cloud.utils as utils
 task_description_filename = "verification task desc.json"
 
 
-class Server(requests.Session):
+class Server(requests.Server):
     """Start exchange with verification gate."""
 
     tasks = {}

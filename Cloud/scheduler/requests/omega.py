@@ -1,22 +1,23 @@
-from Cloud.scheduler.requests import Session
+import requests
+import time
+import logging
+import Cloud.scheduler.requests as requests
+import Cloud.utils.omega as omega
 
 
-class Server(Session):
+class Server(requests.Server):
     """Exchange with gateway via net."""
 
-    def auth(self, user, password):
-        """Using login and password try to proceed with authorization on the Verification Gateway server."""
-        # TODO: Implement authorization at verification gateway.
+    session = None
 
-    def register(self, scheduler_type, require_login=False):
+    def register(self, scheduler_type):
         """
         Send unique ID to the Verification Gateway with the other properties to enable receiving tasks.
         :param scheduler_type: Scheduler scheduler_type.
         :param require_login: Flag indicating whether or not user should authorize to send tasks.
         """
-        # TODO: Implement unique key generation
-
-        # TODO: Implement registration of the scheduler at verification gateway
+        # Create session
+        self.session = omega.Session(self.conf["name"], self.conf["user"], self.conf["password"], scheduler_type)
 
     def exchange(self, tasks):
         """
@@ -25,10 +26,8 @@ class Server(Session):
         :param tasks: String with JSON task set inside.
         :return: String with JSON task set received from the verification Gateway.
         """
-        # TODO: Implement exchange of lists of tasks with verification gateway
-
-        # TODO: Return new set of tasks
-        return tasks
+        data = {"jobs and tasks status": tasks}
+        return self.session.json_exchange("get_jobs_and_tasks/", data)
 
     def pull_task(self, identifier, description, archive):
         """
@@ -38,13 +37,8 @@ class Server(Session):
         :param description: Path to the description JSON file to save.
         :param archive: Path to the zip archive to save.
         """
-        # TODO: Prepare directory with the description and for files
+        pass
 
-        # TODO: Receive JSON description and archive from the verification gateway and save them to the directory.
-
-        # TODO: Unpack archive and remove it.
-
-        # TODO: Return path to description and path to the sources
 
     def submit_solution(self, identifier, description, archive):
         """
@@ -54,20 +48,20 @@ class Server(Session):
         :param description: Path to the JSON file to send.
         :param archive: Path to the zip archive to send.
         """
-        # TODO: Send archive and JSON description to the verification gateway.
+        pass
 
     def submit_nodes(self, nodes):
         """
         Send string with JSON description of nodes available for verification in VerifierCloud.
         :param nodes: String with JSON nodes description.
         """
-        # TODO: Send JSON with node data to the verification gateway.
+        pass
 
     def submit_tools(self, tools):
         """
         Send string with JSON description of verification tools available for verification in VerifierCloud.
         :param tools: String with JSON verification tools description.
         """
-        # TODO: Send JSON with verifiers to the verification gateway.
+        pass
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -1,8 +1,7 @@
 import abc
-import uuid
 
 
-class Session(metaclass=abc.ABCMeta):
+class Server(metaclass=abc.ABCMeta):
     """Start exchange with verification gate."""
 
     def __init__(self, conf, work_dir):
@@ -15,17 +14,6 @@ class Session(metaclass=abc.ABCMeta):
         """
         self.conf = conf
         self.work_dir = work_dir
-        self._key = str(uuid.uuid4())
-
-    @abc.abstractmethod
-    def auth(self, user, password):
-        """
-        Using login and password try to proceed with authorization on the Verification Gateway server.
-        :param user: Scheduler user user.
-        :param password: Scheduler user password
-        :return:
-        """
-        return
 
     @abc.abstractmethod
     def register(self, scheduler_type):

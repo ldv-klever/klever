@@ -3,7 +3,7 @@ import Cloud.scheduler as scheduler
 import Cloud.utils as utils
 
 if __name__ == "__main__":
-    conf = utils.common_initialization("Klever scheduler")
+    conf = utils.common_initialization("VerifierCloud scheduler")
 
     if "scheduler" not in conf:
         raise KeyError("Provide configuration property 'scheduler' as an JSON-object")

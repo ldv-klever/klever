@@ -5,6 +5,49 @@ import os
 import shutil
 import time
 
+import Cloud.scheduler.requests.testgenerator as testgenerator
+import Cloud.scheduler.requests.omega as omega
+import Cloud.scheduler.native as native
+import Cloud.scheduler.verifiercloud as verifiercloud
+import Cloud.scheduler.docker as docker
+
+
+def get_gateway(conf, work_dir):
+    """
+    Check which implementation of Session object to choose to get tasks
+    :param conf: Configuration dictionary.
+    :param work_dir: Path to the working directory.
+    :return: Return object of the implementation of Session abstract class.
+    """
+    #if "user" not in conf:
+    #    raise KeyError("Please provide scheduler username 'Omega''user' to authorize at verification gateway")
+    #elif "password" not in conf:
+    #    raise KeyError("Please provide scheduler password 'Omega''passwd' to authorize at verification gateway")
+
+    if "debug with testgenerator" in conf["scheduler"]:
+        return testgenerator.Server(conf["testgenerator"], work_dir)
+    else:
+        return omega.Server(conf["Omega"], work_dir)
+
+
+def get_scheduler(conf, work_dir, session):
+    """
+    Check which scheduler to run according to conf dictionary.
+    :param conf: Configuration dictionary.
+    :param work_dir: Path to the working directory.
+    :param session: Verification gateway object.
+    :return: Return object of implementation of abstract class TaskScheduler.
+    """
+    if conf["type"] == "verifiercloud":
+        return verifiercloud.Scheduler(conf, work_dir, session)
+    elif conf["type"] == "docker":
+        return docker.Scheduler(conf, work_dir, session)
+    elif conf["type"] == "native":
+        return native.Scheduler(conf, work_dir, session)
+    else:
+        raise ValueError("Scheduler type is not given in the configuration (scheduler->type) or it is not supported "
+                         "(supported are 'native', 'docker' or 'verifiercloud')")
+
 
 class SchedulerExchange(metaclass=abc.ABCMeta):
     """Class provide general scheduler API."""
