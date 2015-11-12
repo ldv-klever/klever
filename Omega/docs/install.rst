@@ -126,7 +126,7 @@ Update for production purposes
 Documentation installation
 --------------------------
 
-#. Execute the following command::
+#. Execute the following command (it should be executed each time when documentation might be changed)::
 
     $ make -C docs html
 
