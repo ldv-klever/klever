@@ -392,21 +392,21 @@ class GetTasks(object):
                 if status_map[status] == task.status:
                     all_tasks[status].append(task)
         for task in all_tasks['pending']:
-            if task.pk in data['tasks']['pending']:
-                new_data['tasks']['pending'].append(task.pk)
+            if str(task.pk) in data['tasks']['pending']:
+                new_data['tasks']['pending'].append(str(task.pk))
                 new_data = self.__add_description(task, new_data)
                 new_data = self.__add_solution(task, new_data)
-            elif task.pk in data['tasks']['processing']:
+            elif str(task.pk) in data['tasks']['processing']:
                 task.status = status_map['processing']
                 task.save()
                 if task.progress.tasks_pending > 0:
                     task.progress.tasks_pending -= 1
                 task.progress.tasks_processing += 1
                 task.progress.save()
-                new_data['tasks']['processing'].append(task.pk)
+                new_data['tasks']['processing'].append(str(task.pk))
                 new_data = self.__add_description(task, new_data)
                 new_data = self.__add_solution(task, new_data)
-            elif task.pk in data['tasks']['finished']:
+            elif str(task.pk) in data['tasks']['finished']:
                 task.status = status_map['finished']
                 task.save()
                 try:
@@ -418,7 +418,7 @@ class GetTasks(object):
                     task.progress.tasks_pending -= 1
                 task.progress.tasks_finished += 1
                 task.progress.save()
-            elif task.pk in data['tasks']['error']:
+            elif str(task.pk) in data['tasks']['error']:
                 task.status = status_map['error']
                 if str(task.pk) in data['task errors']:
                     task.error = data['task errors'][str(task.pk)]
@@ -430,23 +430,23 @@ class GetTasks(object):
                 task.progress.tasks_error += 1
                 task.progress.save()
             else:
-                new_data['tasks']['pending'].append(task.pk)
+                new_data['tasks']['pending'].append(str(task.pk))
                 new_data = self.__add_description(task, new_data)
                 new_data = self.__add_solution(task, new_data)
         for task in all_tasks['processing']:
-            if task.pk in data['tasks']['pending']:
+            if str(task.pk) in data['tasks']['pending']:
                 task.status = status_map['pending']
                 task.save()
                 if task.progress.tasks_processing > 0:
                     task.progress.tasks_processing -= 1
                 task.progress.tasks_pending += 1
                 task.progress.save()
-                new_data['tasks']['processing'].append(task.pk)
+                new_data['tasks']['processing'].append(str(task.pk))
                 new_data = self.__add_solution(task, new_data)
-            elif task.pk in data['tasks']['processing']:
-                new_data['tasks']['processing'].append(task.pk)
+            elif str(task.pk) in data['tasks']['processing']:
+                new_data['tasks']['processing'].append(str(task.pk))
                 new_data = self.__add_solution(task, new_data)
-            elif task.pk in data['tasks']['finished']:
+            elif str(task.pk) in data['tasks']['finished']:
                 task.status = status_map['finished']
                 task.save()
                 try:
@@ -458,7 +458,7 @@ class GetTasks(object):
                     task.progress.tasks_processing -= 1
                 task.progress.tasks_finished += 1
                 task.progress.save()
-            elif task.pk in data['tasks']['error']:
+            elif str(task.pk) in data['tasks']['error']:
                 task.status = status_map['error']
                 if str(task.pk) in data['task errors']:
                     task.error = data['task errors'][str(task.pk)]
@@ -470,48 +470,48 @@ class GetTasks(object):
                 task.progress.tasks_error += 1
                 task.progress.save()
             else:
-                new_data['tasks']['processing'].append(task.pk)
+                new_data['tasks']['processing'].append(str(task.pk))
                 new_data = self.__add_solution(task, new_data)
         for task in all_tasks['error']:
-            if task.pk in data['tasks']['pending']:
+            if str(task.pk) in data['tasks']['pending']:
                 self.error = "The task '%s' with status 'ERROR' has become 'PENDING'" % task.pk
                 return None
-            elif task.pk in data['tasks']['processing']:
+            elif str(task.pk) in data['tasks']['processing']:
                 self.error = "The task '%s' with status 'ERROR' has become 'PROCESSING'" % task.pk
                 return None
-            elif task.pk in data['tasks']['error']:
+            elif str(task.pk) in data['tasks']['error']:
                 self.error = "The task '%s' with status 'ERROR' has become 'ERROR'" % task.pk
                 return None
-            elif task.pk in data['tasks']['finished']:
+            elif str(task.pk) in data['tasks']['finished']:
                 self.error = "The task '%s' with status 'ERROR' has become 'FINISHED'" % task.pk
                 return None
         for task in all_tasks['finished']:
-            if task.pk in data['tasks']['pending']:
+            if str(task.pk) in data['tasks']['pending']:
                 self.error = "The task '%s' with status 'FINISHED' has become 'PENDING'" % task.pk
                 return None
-            elif task.pk in data['tasks']['processing']:
+            elif str(task.pk) in data['tasks']['processing']:
                 self.error = "The task '%s' with status 'FINISHED' has become 'PROCESSING'" % task.pk
                 return None
-            elif task.pk in data['tasks']['error']:
+            elif str(task.pk) in data['tasks']['error']:
                 self.error = "The task '%s' with status 'FINISHED' has become 'ERROR'" % task.pk
                 return None
-            elif task.pk in data['tasks']['finished']:
+            elif str(task.pk) in data['tasks']['finished']:
                 self.error = "The task '%s' with status 'FINISHED' has become 'FINISHED'" % task.pk
                 return None
         for task in all_tasks['cancelled']:
-            if task.pk in data['tasks']['pending']:
+            if str(task.pk) in data['tasks']['pending']:
                 self.error = "The task '%s' with status 'CANCELLED' has become 'PENDING'" % task.pk
                 return None
-            elif task.pk in data['tasks']['processing']:
+            elif str(task.pk) in data['tasks']['processing']:
                 self.error = "The task '%s' with status 'CANCELLED' has become 'PROCESSING'" % task.pk
                 return None
-            elif task.pk in data['tasks']['error']:
+            elif str(task.pk) in data['tasks']['error']:
                 self.error = "The task '%s' with status 'CANCELLED' has become 'ERROR'" % task.pk
                 return None
-            elif task.pk in data['tasks']['finished']:
+            elif str(task.pk) in data['tasks']['finished']:
                 self.error = "The task '%s' with status 'CANCELLED' has become 'FINISHED'" % task.pk
                 return None
-            elif task.pk in data['tasks']['cancelled']:
+            elif str(task.pk) in data['tasks']['cancelled']:
                 self.error = "The task '%s' with status 'CANCELLED' has become 'CANCELLED'" % task.pk
                 return None
 
@@ -566,16 +566,16 @@ class GetTasks(object):
 
     def __add_description(self, task, data):
         self.ccc = 0
-        data['task descriptions'][task.pk] = {
+        data['task descriptions'][str(task.pk)] = {
             'description': json.loads(task.description.decode('utf8'))
         }
         if task.progress.scheduler.type == SCHEDULER_TYPE[0][0]:
             try:
-                operator = task.progress.job.reportroot.user.scheduleruser
+                operator = task.progress.job.reportroot.user
             except ObjectDoesNotExist:
                 return data
-            data['task descriptions'][task.pk]['scheduler user name'] = operator.scheduleruser.login
-            data['task descriptions'][task.pk]['scheduler user password'] = operator.scheduleruser.password
+            data['task descriptions'][str(task.pk)]['scheduler user name'] = operator.scheduleruser.login
+            data['task descriptions'][str(task.pk)]['scheduler user password'] = operator.scheduleruser.password
         return data
 
     def __add_solution(self, task, data):
@@ -584,7 +584,7 @@ class GetTasks(object):
             solution = task.solution
         except ObjectDoesNotExist:
             return data
-        data['task solutions'][task.pk] = json.loads(solution.description.decode('utf8'))
+        data['task solutions'][str(task.pk)] = json.loads(solution.description.decode('utf8'))
         return data
 
 
@@ -715,6 +715,7 @@ class SetSchedulersStatus(object):
             self.statuses = json.loads(statuses)
         except ValueError:
             self.error = "Incorrect format of statuses"
+            return
         self.__update_statuses()
 
     def __update_statuses(self):
