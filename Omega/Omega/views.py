@@ -3,8 +3,9 @@ from urllib.parse import unquote
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from Omega.populate import Population
-from Omega.vars import ERRORS
+from Omega.vars import ERRORS, USER_ROLES
 from users.models import Extended
+
 
 def omega_error(request, err_code=0, user_message=None):
     if request.user.is_authenticated():
@@ -37,8 +38,12 @@ def population(request):
         manager_username = request.POST.get('manager_username', None)
         if not(isinstance(manager_username, str) and len(manager_username) > 0):
             manager_username = None
-        popul = Population(request.user, manager_username)
+        service_username = request.POST.get('service_username', None)
+        if not(isinstance(service_username, str) and len(service_username) > 0):
+            service_username = None
+        popul = Population(request.user, manager_username, service_username)
         return render(request, 'Population.html', {'population': popul})
     return render(request, 'Population.html', {
-        'need_manager': (len(Extended.objects.filter(role='2')) == 0)
+        'need_manager': (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0),
+        'need_service': (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0),
     })

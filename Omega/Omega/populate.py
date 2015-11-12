@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override
-from Omega.vars import JOB_CLASSES, SCHEDULER_TYPE
+from Omega.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES
 from Omega.settings import DEFAULT_LANGUAGE
 from users.models import Extended
 from jobs.utils import create_job
@@ -41,16 +41,17 @@ def populate_jobs(user):
 
 class Population(object):
 
-    def __init__(self, user, username=None):
+    def __init__(self, user, manager=None, service=None):
         self.user = user
         self.jobs_updated = False
         self.functions_updated = False
         self.manager_password = None
-        self.manager_username = username
+        self.service_password = None
+        self.manager_username = manager
+        self.service_username = service
         self.__population()
-        self.something_changed = (self.functions_updated or
-                                  self.manager_password is not None
-                                  or self.jobs_updated)
+        self.something_changed = (self.functions_updated or self.manager_password is not None
+                                  or self.jobs_updated or self.service_password)
 
     def __population(self):
         try:
@@ -58,6 +59,7 @@ class Population(object):
         except ObjectDoesNotExist:
             self.__extend_user(self.user)
         manager = self.__get_manager()
+        self.__get_service_user()
         self.__populate_functions()
         if len(Job.objects.all()) == 0 and isinstance(manager, User):
             self.jobs_updated = True
@@ -94,7 +96,7 @@ class Population(object):
                     func.save()
         MarkUnsafeCompare.objects.filter(~Q(name__in=func_names)).delete()
 
-    def __extend_user(self, user, role='1'):
+    def __extend_user(self, user, role=USER_ROLES[1][0]):
         try:
             user.extended.role = role
             user.extended.save()
@@ -114,7 +116,7 @@ class Population(object):
             return None
         try:
             manager = User.objects.get(username=self.manager_username)
-            self.__extend_user(manager, '2')
+            self.__extend_user(manager, USER_ROLES[2][0])
             return manager
         except ObjectDoesNotExist:
             pass
@@ -126,7 +128,7 @@ class Population(object):
         password = hashlib.md5(time_encoded).hexdigest()[:8]
         manager.set_password(password)
         manager.save()
-        self.__extend_user(manager, '2')
+        self.__extend_user(manager, USER_ROLES[2][0])
         self.manager_password = password
         return manager
 
@@ -138,3 +140,24 @@ class Population(object):
             if len(s) > 0 and len(s.split()) > 0:
                 new_descr_strs.append(s)
         return '\n'.join(new_descr_strs)
+
+    def __get_service_user(self):
+        if self.service_username is None:
+            return None
+        try:
+            service = User.objects.get(username=self.service_username)
+            self.__extend_user(service, USER_ROLES[4][0])
+            return service
+        except ObjectDoesNotExist:
+            pass
+        service = User()
+        service.username = self.service_username
+        service.save()
+        time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z")\
+            .encode('utf8')
+        password = hashlib.md5(time_encoded).hexdigest()[:8]
+        service.set_password(password)
+        service.save()
+        self.__extend_user(service, USER_ROLES[4][0])
+        self.service_password = password
+        return service
