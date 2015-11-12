@@ -162,7 +162,7 @@ class DownloadJob(object):
             self.__create_tar(job)
             locker.unlock()
         else:
-            self.error = _("Can't download job now")
+            self.error = _("You can't download the job now")
 
     def __create_tar(self, job):
 

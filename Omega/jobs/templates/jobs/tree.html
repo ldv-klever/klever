@@ -308,9 +308,9 @@
                                         <div class="seven wide column">
                                             <label for="filter_type__priority"></label>
                                             <select id="filter_type__priority" class="ui dropdown">
-                                                <option value="le"{% if fil.type == 'le' %} selected{% endif %}>{% trans 'Less or equals than' %}</option>
-                                                <option value="e"{% if fil.type == 'e' %} selected{% endif %}>{% trans 'Equals' %}</option>
-                                                <option value="me"{% if fil.type == 'me' %} selected{% endif %}>{% trans 'More or equals than' %}</option>
+                                                <option value="le"{% if fil.type == 'le' %} selected{% endif %}>{% trans 'not greater than' %}</option>
+                                                <option value="e"{% if fil.type == 'e' %} selected{% endif %}>{% trans 'is' %}</option>
+                                                <option value="me"{% if fil.type == 'me' %} selected{% endif %}>{% trans 'not less than' %}</option>
                                             </select>
                                         </div>
                                         <div class="seven wide column">

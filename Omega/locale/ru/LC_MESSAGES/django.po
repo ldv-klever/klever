@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-12 14:08+0000\n"
+"POT-Creation-Date: 2015-11-12 14:24+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -97,7 +97,7 @@ msgstr "Эксперт"
 
 #: Omega/vars.py:29
 msgid "Service"
-msgstr ""
+msgstr "Служба"
 
 #: Omega/vars.py:33
 msgid "Verification of Linux kernel modules"
@@ -262,8 +262,8 @@ msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
 #: jobs/Download.py:165
-msgid "Can't download job now"
-msgstr ""
+msgid "You can't download the job now"
+msgstr "Вы не можете загрузить задание сейчас"
 
 #: jobs/Download.py:388 jobs/Download.py:410 jobs/Download.py:421
 #: jobs/Download.py:440
@@ -801,9 +801,10 @@ msgstr "Добавить фильтр по"
 #: jobs/templates/jobs/tree.html:111 jobs/templates/jobs/tree.html.py:131
 #: jobs/templates/jobs/tree.html:217 jobs/templates/jobs/tree.html.py:242
 #: jobs/templates/jobs/tree.html:267 jobs/templates/jobs/tree.html.py:287
-#: jobs/templates/jobs/treeTmp.html:25 jobs/templates/jobs/treeTmp.html:43
-#: jobs/templates/jobs/treeTmp.html:121 jobs/templates/jobs/treeTmp.html:143
-#: jobs/templates/jobs/treeTmp.html:165 jobs/templates/jobs/treeTmp.html:183
+#: jobs/templates/jobs/tree.html:312 jobs/templates/jobs/treeTmp.html:25
+#: jobs/templates/jobs/treeTmp.html:43 jobs/templates/jobs/treeTmp.html:121
+#: jobs/templates/jobs/treeTmp.html:143 jobs/templates/jobs/treeTmp.html:165
+#: jobs/templates/jobs/treeTmp.html:183 jobs/templates/jobs/treeTmp.html:206
 #: jobs/templates/jobs/viewJobFilters.html:64
 #: jobs/templates/jobs/viewJobFilters.html:81
 #: jobs/templates/jobs/viewJobFilters.html:105
@@ -881,16 +882,12 @@ msgid "weeks"
 msgstr "недель"
 
 #: jobs/templates/jobs/tree.html:311 jobs/templates/jobs/treeTmp.html:205
-msgid "Less or equals than"
-msgstr ""
-
-#: jobs/templates/jobs/tree.html:312 jobs/templates/jobs/treeTmp.html:206
-msgid "Equals"
-msgstr ""
+msgid "not greater than"
+msgstr "не больше чем"
 
 #: jobs/templates/jobs/tree.html:313 jobs/templates/jobs/treeTmp.html:207
-msgid "More or equals than"
-msgstr ""
+msgid "not less than"
+msgstr "не меньше чем"
 
 #: jobs/templates/jobs/tree.html:341 jobs/templates/jobs/tree.html.py:361
 #: templates/viewButtons.html:17 templates/viewButtons.html.py:30
@@ -1525,8 +1522,8 @@ msgid "No tags to display"
 msgstr "Теги отсутствуют"
 
 #: marks/templates/marks/Tags.html:30
-msgid "Tag can't be more than 15 characters"
-msgstr ""
+msgid "Tags can't be more than 15 characters"
+msgstr "Теги не могут быть больше 15 символов"
 
 #: marks/templates/marks/base.html:5 reports/utils.py:16
 msgid "Mark"
@@ -2011,7 +2008,7 @@ msgstr "Войти"
 
 #: templates/base.html:27
 msgid "Please wait"
-msgstr ""
+msgstr "Пожалуйста, подождите"
 
 #: templates/base.html:37
 msgid "Menu"
@@ -2096,10 +2093,6 @@ msgstr "Удалить все неиспользуемые проблемы"
 #: tools/templates/tools/ManagerPanel.html:53
 msgid "There are no problems yet"
 msgstr "Проблем еще нет"
-
-#: tools/templates/tools/ManagerPanel.html:59
-msgid "Test service requests"
-msgstr ""
 
 #: tools/views.py:26
 msgid "The component was not found"
