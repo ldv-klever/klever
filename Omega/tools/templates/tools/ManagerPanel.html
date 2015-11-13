@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block head_block %}
+    <script src="/static/tools/js/manager.js"></script>
+{% endblock %}
+
+{% block body_block %}
+    {% if user.extended.role != '2' %}
+        <h1>{% trans 'No access' %}</h1>
+    {% else %}
+        <div class="ui grid">
+            <div class="six wide column">
+                <div class="ui violet segment">
+                    <h3 class="header">{% trans 'Components' %}</h3>
+                    {% if components|length > 0 %}
+                        <div style="height: 340px; overflow-y: auto">
+                            {% for component in components %}
+                                <div id="component__{{ component.pk }}">
+                                    <div class="ui action input fluid">
+                                        <input id="component_name_input__{{ component.pk }}" type="text" placeholder="{% trans 'Component name' %}" value="{{ component.name }}">
+                                        <button id="rename_component_btn__{{ component.pk }}" class="ui teal button">{% trans 'Rename' %}</button>
+                                        <button id="delete_component_btn__{{ component.pk }}"class="ui red button">{% trans 'Delete' %}</button>
+                                    </div>
+                                    <br>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <br>
+                        <button id="clear_all_components" class="ui red button">{% trans 'Delete all unused components' %}</button>
+                    {% else %}
+                        <h4>{% trans 'There are no components yet' %}</h4>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="five wide column">
+                <div class="ui violet segment">
+                    <h3 class="header">{% trans 'Problems' %}</h3>
+                    {% if problems|length > 0 %}
+                        <div style="height: 340px; overflow-y: auto">
+                            <table class="ui compact table">
+                            {% for problem in problems %}
+                                <tr id="problem__{{ problem.pk }}">
+                                    <th class="eleven wide column">{{ problem.name }}</th>
+                                    <td class="five wide column"><button id="delete_problem_btn__{{ problem.pk }}"class="ui red small button">{% trans 'Delete' %}</button></td>
+                                </tr>
+                            {% endfor %}
+                            </table>
+                        </div>
+                        <br>
+                        <button id="clear_all_problems" class="ui red button">{% trans 'Delete all unused problems' %}</button>
+                    {% else %}
+                        <h4>{% trans 'There are no problems yet' %}</h4>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <br><br>
+        <a class="ui violet button" href="{% url 'service:test' %}">Test service requests</a>
+    {% endif %}
+{% endblock %}

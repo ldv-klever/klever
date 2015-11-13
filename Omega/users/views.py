@@ -12,14 +12,13 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
-from Omega.vars import LANGUAGES, PRIORITY
+from Omega.vars import LANGUAGES
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
 from jobs.models import Job
 from django.middleware.csrf import get_token
 from users.notifications import NotifyData
-from service.models import Scheduler
-from reports.models import ReportRoot
+from service.models import SchedulerUser
 
 
 def user_signin(request):
@@ -110,6 +109,21 @@ def edit_profile(request):
             if user_tz:
                 profile.timezone = user_tz
             profile.save()
+            if 'sch_login' in request.POST and 'sch_password' in request.POST:
+                if len(request.POST['sch_login']) > 0 and len(request.POST['sch_password']) > 0:
+                    try:
+                        sch_user = SchedulerUser.objects.get(user=request.user)
+                    except ObjectDoesNotExist:
+                        sch_user = SchedulerUser()
+                        sch_user.user = request.user
+                    sch_user.login = request.POST['sch_login']
+                    sch_user.password = request.POST['sch_password']
+                    sch_user.save()
+                elif len(request.POST['sch_login']) == 0:
+                    try:
+                        request.user.scheduleruser.delete()
+                    except ObjectDoesNotExist:
+                        pass
 
             if do_redirect:
                 return HttpResponseRedirect(reverse('users:login'))
@@ -119,7 +133,6 @@ def edit_profile(request):
         user_form = EditUserForm(instance=request.user)
         profile_form = UserExtendedForm(instance=request.user.extended)
 
-    schedulers = Scheduler.objects.filter(need_auth=True)
     return render(
         request,
         'users/edit-profile.html',
@@ -130,9 +143,7 @@ def edit_profile(request):
             'profile_errors': profile_form.errors,
             'user_errors': user_form.errors,
             'timezones': pytz.common_timezones,
-            'LANGUAGES': LANGUAGES,
-            'schedulers': schedulers,
-            'priorities': PRIORITY
+            'LANGUAGES': LANGUAGES
         })
 
 
@@ -148,29 +159,96 @@ def show_profile(request, user_id=None):
     if len(user_id) == 0:
         return HttpResponseRedirect(reverse('jobs:tree'))
     target = get_object_or_404(User, pk=int(user_id))
-    user_activity = target.jobhistory.all().order_by('-change_date')[:18]
     activity = []
-    for act in user_activity:
+    for act in target.jobhistory.all().order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
         if len(act_comment) > 47:
             small_comment = act_comment[:50] + '...'
+        if act.version == 1:
+            act_type = _('Creation')
+            act_color = '#58bd2a'
+        else:
+            act_type = _('Modification')
+            act_color = '#31e6ff'
         new_act = {
             'date': act.change_date,
             'comment': act_comment,
             'small_comment': small_comment,
-            'version': act.version,
-            'job_name': act.name
+            'act_type': act_type,
+            'act_color': act_color,
+            'obj_type': _('Job'),
+            'obj_link': act.name
         }
         if JobAccess(request.user, act.job).can_view():
             new_act['href'] = reverse('jobs:job', args=[act.job_id])
         activity.append(new_act)
-    user_tz = request.user.extended.timezone
+    for act in target.marksafehistory.all().order_by('-change_date')[:30]:
+        act_comment = act.comment
+        small_comment = act_comment
+        if len(act_comment) > 47:
+            small_comment = act_comment[:50] + '...'
+        if act.version == 1:
+            act_type = _('Creation')
+            act_color = '#58bd2a'
+        else:
+            act_type = _('Modification')
+            act_color = '#31e6ff'
+        activity.append({
+            'date': act.change_date,
+            'comment': act_comment,
+            'small_comment': small_comment,
+            'act_type': act_type,
+            'act_color': act_color,
+            'obj_type': _('Safes mark'),
+            'obj_link': act.mark.identifier,
+            'href': reverse('marks:edit_mark', args=['safe', act.mark_id]),
+        })
+    for act in target.markunsafehistory.all().order_by('-change_date')[:30]:
+        act_comment = act.comment
+        small_comment = act_comment
+        if len(act_comment) > 47:
+            small_comment = act_comment[:50] + '...'
+        if act.version == 1:
+            act_type = _('Creation')
+            act_color = '#58bd2a'
+        else:
+            act_type = _('Modification')
+            act_color = '#31e6ff'
+        activity.append({
+            'date': act.change_date,
+            'comment': act_comment,
+            'small_comment': small_comment,
+            'act_type': act_type,
+            'act_color': act_color,
+            'obj_type': _('Unsafes mark'),
+            'obj_link': act.mark.identifier,
+            'href': reverse('marks:edit_mark', args=['unsafe', act.mark_id])
+        })
+    for act in target.markunknownhistory_set.all().order_by('-change_date')[:30]:
+        act_comment = act.comment
+        small_comment = act_comment
+        if len(act_comment) > 47:
+            small_comment = act_comment[:50] + '...'
+        if act.version == 1:
+            act_type = _('Creation')
+            act_color = '#58bd2a'
+        else:
+            act_type = _('Modification')
+            act_color = '#31e6ff'
+        activity.append({
+            'date': act.change_date,
+            'comment': act_comment,
+            'small_comment': small_comment,
+            'act_type': act_type,
+            'act_color': act_color,
+            'obj_type': _('Unknowns mark'),
+            'obj_link': act.mark.identifier,
+            'href': reverse('marks:edit_mark', args=['unknown', act.mark_id])
+        })
     return render(request, 'users/showProfile.html', {
         'target': target,
-        'activity': activity,
-        'user_tz': user_tz,
-        'num_of_solving_jobs': len(ReportRoot.objects.filter(user=target))
+        'activity': list(reversed(sorted(activity, key=lambda x: x['date'])))[:50],
     })
 
 
@@ -178,9 +256,16 @@ def psi_signin(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+        for p in request.POST:
+            if p not in ['username', 'password'] and not p.startswith('csrf'):
+                request.session[p] = request.POST[p]
         user = authenticate(username=username, password=password)
         if user is not None:
             if user.is_active:
+                try:
+                    Extended.objects.get(user=user)
+                except ObjectDoesNotExist:
+                    return JsonResponse({'error': 'User does not have extended data'})
                 login(request, user)
                 return HttpResponse('')
             else:

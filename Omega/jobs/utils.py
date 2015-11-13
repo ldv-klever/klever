@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from Omega.utils import print_err
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
 
@@ -65,6 +66,19 @@ TITLES = {
     'type': _('Class'),
     'parent_id': string_concat(_('Parent'), '/', _('Identifier')),
     'role': _('Your role'),
+    'priority': _('Priority'),
+    'start_date': _('Decision start date'),
+    'finish_date': _('Decision finish date'),
+    'solution_wall_time': _('Solution wall time'),
+    'operator': _('Operator'),
+    'tasks_pending': _('Pending tasks'),
+    'tasks_processing': _('Processing tasks'),
+    'tasks_finished': _('Finished tasks'),
+    'tasks_error': _('Error tasks'),
+    'tasks_cancelled': _('Cancelled tasks'),
+    'tasks_total': _('Total tasks'),
+    'progress': _('Progress of job decision'),
+    'solutions': _('Number of task decisions')
 }
 
 
@@ -77,41 +91,45 @@ class JobAccess(object):
         self.__user_role = user.extended.role
         self.__is_manager = (self.__user_role == USER_ROLES[2][0])
         self.__is_expert = (self.__user_role == USER_ROLES[3][0])
+        self.__is_service = (self.__user_role == USER_ROLES[4][0])
+        self.__is_operator = False
+        try:
+            if self.job is not None:
+                self.__is_operator = (user == self.job.reportroot.user)
+        except ObjectDoesNotExist:
+            pass
         self.__get_prop(user)
 
-    def service_access(self):
-        if self.job is None or self.job.status != JOB_STATUS[1][0]:
+    def psi_access(self):
+        if self.job is None:
             return False
-        if self.__is_manager or self.__is_author \
-                or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
-            return True
-        return False
+        return self.__is_manager or self.__is_service
 
     def can_decide(self):
-        if self.job is None \
-                or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
-        if self.__is_manager or self.__is_author\
-                or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]:
-            return True
-        return False
+        # TODO: can author decide the job?
+        return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_view(self):
         if self.job is None:
             return False
-        if self.__is_manager or self.__is_author or \
-           self.__job_role != JOB_ROLES[0][0] or self.__is_expert:
-            return True
-        return False
+        return self.__is_manager or self.__is_author or self.__job_role != JOB_ROLES[0][0] or self.__is_expert
 
     def can_create(self):
-        return self.__user_role != USER_ROLES[0][0]
+        return self.__user_role not in [USER_ROLES[0][0], USER_ROLES[4][0]]
 
     def can_edit(self):
         if self.job is None:
             return False
-        if self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and \
-                (self.__is_author or self.__is_manager):
+        return (self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]
+                and (self.__is_author or self.__is_manager))
+
+    def can_stop(self):
+        if self.job is None:
+            return False
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] \
+                and (self.__is_operator or self.__is_manager):
             return True
         return False
 
@@ -120,13 +138,14 @@ class JobAccess(object):
             return False
         if len(self.job.children.all()) > 0:
             return False
-        if self.__is_manager:
+        if self.__is_manager and self.job.status == JOB_STATUS[3]:
             return True
-        if self.job.status in [js[0] for js in JOB_STATUS[1:3]]:
+        if self.job.status in [js[0] for js in JOB_STATUS[1:2]]:
             return False
-        if self.__is_author:
-            return True
-        return False
+        return self.__is_author or self.__is_manager
+
+    def can_download(self):
+        return not (self.job is None or self.job.status in [JOB_STATUS[5][0], JOB_STATUS[6][0]])
 
     def __get_prop(self, user):
         if self.job is not None:
@@ -429,12 +448,12 @@ def create_job(kwargs):
                 'absurl': kwargs['absolute_url'] + newjob_url
             })
         except Exception as e:
-            print(e)
+            print_err("Can't notify users: %s" % e)
     else:
         try:
             Notify(newjob, 0)
         except Exception as e:
-            print(e)
+            print_err("Can't notify users: %s" % e)
     return newjob
 
 
@@ -466,12 +485,12 @@ def update_job(kwargs):
         try:
             Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
         except Exception as e:
-            print(e)
+            print_err("Can't notify users: %s" % e)
     else:
         try:
             Notify(kwargs['job'], 1)
         except Exception as e:
-            print(e)
+            print_err("Can't notify users: %s" % e)
     return kwargs['job']
 
 
@@ -489,7 +508,7 @@ def remove_jobs_by_id(user, job_ids):
         try:
             Notify(job, 2)
         except Exception as e:
-            print(e)
+            print_err("Can't notify users: %s" % e)
         job.delete()
     clear_files()
     return 0
@@ -536,3 +555,11 @@ def get_resource_data(user, resource):
         cpu = convert_time(cpu, accuracy)
         mem = convert_memory(mem, accuracy)
     return [wall, cpu, mem]
+
+
+def get_user_time(user, milliseconds):
+    accuracy = user.extended.accuracy
+    converted = int(milliseconds)
+    if user.extended.data_format == 'hum':
+        converted = convert_time(converted, accuracy)
+    return converted

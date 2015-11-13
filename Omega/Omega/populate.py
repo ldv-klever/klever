@@ -4,15 +4,17 @@ from datetime import datetime
 from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from django.utils.translation import override
-from Omega.vars import JOB_CLASSES
-from Omega.settings import LANGUAGE_CODE
+from Omega.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES
+from Omega.settings import DEFAULT_LANGUAGE
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
+from service.models import Scheduler
 
 
 def populate_jobs(user):
@@ -28,7 +30,7 @@ def populate_jobs(user):
         'global_role': '1',
     }
     for i in range(len(JOB_CLASSES)):
-        with override(LANGUAGE_CODE):
+        with override(DEFAULT_LANGUAGE):
             args['name'] = JOB_CLASSES[i][1]
             args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
         args['pk'] = i + 1
@@ -39,16 +41,17 @@ def populate_jobs(user):
 
 class Population(object):
 
-    def __init__(self, user, username=None):
+    def __init__(self, user, manager=None, service=None):
         self.user = user
         self.jobs_updated = False
         self.functions_updated = False
         self.manager_password = None
-        self.manager_username = username
+        self.service_password = None
+        self.manager_username = manager
+        self.service_username = service
         self.__population()
-        self.something_changed = (self.functions_updated or
-                                  self.manager_password is not None
-                                  or self.jobs_updated)
+        self.something_changed = (self.functions_updated or self.manager_password is not None
+                                  or self.jobs_updated or self.service_password)
 
     def __population(self):
         try:
@@ -56,14 +59,19 @@ class Population(object):
         except ObjectDoesNotExist:
             self.__extend_user(self.user)
         manager = self.__get_manager()
+        self.__get_service_user()
         self.__populate_functions()
         if len(Job.objects.all()) == 0 and isinstance(manager, User):
             self.jobs_updated = True
             populate_jobs(manager)
+        Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[0][0])
+        Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[1][0])
 
     def __populate_functions(self):
+        func_names = []
         for func_name in [x for x, y in ConvertTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
+            func_names.append(func_name)
             description = self.__correct_description(
                 getattr(ConvertTrace, func_name).__doc__)
             func, crtd = MarkUnsafeConvert.objects.get_or_create(name=func_name)
@@ -72,9 +80,11 @@ class Population(object):
                     self.functions_updated = True
                     func.description = description
                     func.save()
-
+        MarkUnsafeConvert.objects.filter(~Q(name__in=func_names)).delete()
+        func_names = []
         for func_name in [x for x, y in CompareTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
+            func_names.append(func_name)
             description = self.__correct_description(
                 getattr(CompareTrace, func_name).__doc__
             )
@@ -84,8 +94,15 @@ class Population(object):
                     self.functions_updated = True
                     func.description = description
                     func.save()
+        MarkUnsafeCompare.objects.filter(~Q(name__in=func_names)).delete()
 
-    def __extend_user(self, user, role='1'):
+    def __extend_user(self, user, role=USER_ROLES[1][0]):
+        try:
+            user.extended.role = role
+            user.extended.save()
+            return
+        except ObjectDoesNotExist:
+            pass
         self.user = self.user
         extended = Extended()
         extended.first_name = 'Firstname'
@@ -97,10 +114,12 @@ class Population(object):
     def __get_manager(self):
         if self.manager_username is None:
             return None
-        managers = User.objects.filter(username=self.manager_username,
-                                       extended__role='2')
-        if len(managers) > 0:
-            return managers[0]
+        try:
+            manager = User.objects.get(username=self.manager_username)
+            self.__extend_user(manager, USER_ROLES[2][0])
+            return manager
+        except ObjectDoesNotExist:
+            pass
         manager = User()
         manager.username = self.manager_username
         manager.save()
@@ -109,7 +128,7 @@ class Population(object):
         password = hashlib.md5(time_encoded).hexdigest()[:8]
         manager.set_password(password)
         manager.save()
-        self.__extend_user(manager, '2')
+        self.__extend_user(manager, USER_ROLES[2][0])
         self.manager_password = password
         return manager
 
@@ -121,3 +140,24 @@ class Population(object):
             if len(s) > 0 and len(s.split()) > 0:
                 new_descr_strs.append(s)
         return '\n'.join(new_descr_strs)
+
+    def __get_service_user(self):
+        if self.service_username is None:
+            return None
+        try:
+            service = User.objects.get(username=self.service_username)
+            self.__extend_user(service, USER_ROLES[4][0])
+            return service
+        except ObjectDoesNotExist:
+            pass
+        service = User()
+        service.username = self.service_username
+        service.save()
+        time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z")\
+            .encode('utf8')
+        password = hashlib.md5(time_encoded).hexdigest()[:8]
+        service.set_password(password)
+        service.save()
+        self.__extend_user(service, USER_ROLES[4][0])
+        self.service_password = password
+        return service

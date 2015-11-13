@@ -23,5 +23,6 @@ urlpatterns = [
         r'problem/(?P<problem_id>[0-9])/$', views.report_unknowns_by_problem,
         name='unknowns_problem'),
     url(r'^upload/$', views.upload_report),
-    url(r'^clear_tables/$', views.clear_tables),
+
+    url(r'^ajax/get_source/$', views.get_source_code)
 ]

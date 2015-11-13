@@ -29,7 +29,7 @@ class Extended(models.Model):
 class View(models.Model):
     author = models.ForeignKey(User)
     type = models.CharField(max_length=1, choices=VIEW_TYPES, default='1')
-    name = models.CharField(max_length=255, blank=True)
+    name = models.CharField(max_length=255)
     view = models.TextField()
 
     def __str__(self):

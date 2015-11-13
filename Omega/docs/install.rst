@@ -40,8 +40,8 @@ Omega installation
 
 #. Proceed with either :ref:`dev-install` or :ref:`production-install`.
 #. Sign in at `<http://127.0.0.1:8998/>`_ with username (**omega_admin**) and password (**omega_admin_passwd**).
-#. Create a new Omega manager (**omega_manager**).
-#. Remember his/her password (**omega_manager_passwd**).
+#. Create a new Omega Manager (**omega_manager**) and a new service user (**omega_service_user**).
+#. Remember their passwords (**omega_manager_passwd** and **omega_service_user_passwd** respectively).
 #. Sign out and sign in on behalf of **omega_manager**.
 #. Enjoy!
 
@@ -96,10 +96,37 @@ Installation for production purposes
 
 #. Restart service apache2
 
+Update for development purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. Execute the following manage.py tasks::
+
+    $ python3 manage.py compilemessages
+    $ python3 manage.py makemigrations users jobs reports marks service
+    $ python3 manage.py migrate
+
+#. If some of previous commands failed it is recommended to do the following steps.
+#. Remove previously created migrations::
+
+    find ./ -name "migrations" | xargs -n1 rm -rf
+
+#. Recreate the MySQL/MariaDB database::
+
+    MariaDB [(none)]> DROP DATABASE `db_name`;
+    MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8;
+
+#. Repeat all steps of normal installation starting from execution of manage.py tasks (rerunning of the server might be
+   not required).
+
+Update for production purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. TODO: how to update production server?
+
 Documentation installation
 --------------------------
 
-#. Execute the following command::
+#. Execute the following command (it should be executed each time when documentation might be changed)::
 
     $ make -C docs html
 

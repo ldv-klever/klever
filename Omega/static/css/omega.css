@@ -29,8 +29,7 @@ body {
 .filecontent {
     white-space: pre;
     font-family: monospace;
-    overflow-y: auto;
-    overflow-x: auto;
+    overflow: auto;
 }
 
 .btn-file {

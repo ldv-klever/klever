@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
+from Omega.vars import JOB_STATUS
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -8,8 +9,8 @@ from marks.models import UnsafeTag, SafeTag
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
-from Omega.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
 from django.utils.translation import ugettext as _, activate, string_concat
+from reports.etv import GetSource, GetETV
 
 
 @login_required
@@ -193,16 +194,25 @@ def report_leaf(request, leaf_type, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
+    template = 'reports/report_leaf.html'
+    trace = ''
+    if leaf_type == 'unsafe':
+        template = 'reports/report_unsafe.html'
+        if 2 == 1:
+            et = GetETV()
+            if et.error is not None:
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            trace = et.html_trace()
     return render(
-        request,
-        'reports/report_leaf.html',
+        request, template,
         {
             'type': leaf_type,
             'title': report.identifier.split('##')[-1],
             'report': report,
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
-            'MarkTable': ReportMarkTable(request.user, report)
+            'MarkTable': ReportMarkTable(request.user, report),
+            'trace': trace
         }
     )
 
@@ -211,55 +221,26 @@ def report_leaf(request, leaf_type, report_id):
 def upload_report(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Get request is not supported'})
+    if 'job id' not in request.session:
+        return JsonResponse({'error': 'The job id was not found in session'})
     try:
-        job = Job.objects.get(pk=int(request.session['job_id']))
+        job = Job.objects.get(pk=int(request.session['job id']))
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'The job was not found'})
+    if not JobAccess(request.user, job).psi_access():
+        return JsonResponse({
+            'error': "User '%s' don't have access to upload report for job '%s'" %
+                     (request.user.username, job.identifier)
+        })
+    if job.status != JOB_STATUS[2][0]:
+        return JsonResponse({
+            'error': 'Reports can be uploaded only for processing jobs'
+        })
 
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
     if err is not None:
         return JsonResponse({'error': err})
     return JsonResponse({})
-
-
-@login_required
-def clear_tables(request):
-    cnt1 = 0
-    for res in Resource.objects.all():
-        if len(res.resource_report_set.all()) == \
-                len(res.resource_cache_set.all()) == 0:
-            cnt1 += 1
-            res.delete()
-    deleted1 = []
-    for component in Component.objects.all():
-        if len(component.component_reports.all()) == \
-                len(component.component_cache1_set.all()) == \
-                len(component.component_cache2_set.all()) == \
-                len(component.component_cache3_set.all()) == 0:
-            deleted1.append(component.name)
-            component.delete()
-
-    deleted2 = []
-    for computer in Computer.objects.all():
-        if len(computer.computer_reports.all()) == 0:
-            deleted2.append(computer.description)
-            computer.delete()
-    response = ''
-    if cnt1 > 0:
-        response += '<h3>Number of deleted resources: %s </h1>' % str(cnt1)
-    if len(deleted1) > 0:
-        response += '<h3>Deleted components:</h3><ul>'
-        for d in deleted1:
-            response += "<li>%s</li>" % str(d)
-        response += '</ul>'
-    if len(deleted2) > 0:
-        response += '<h3>Deleted computers:</h3><ul>'
-        for d in deleted2:
-            response += "<li>%s</li>" % str(d)
-        response += '</ul>'
-    if len(response) == 0:
-        response = '<h3>Tables are already cleared.</h3>'
-    return HttpResponse(response)
 
 
 @login_required
@@ -295,3 +276,25 @@ def get_log_content(request, report_id):
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
     return HttpResponse(report.log.file.read())
+
+
+@login_required
+def get_source_code(request):
+    return JsonResponse({
+        'content': 'It does not matter',
+        'name': 'name'
+    })
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'report_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    # file_name = '/work/vladimir/klever/Omega/reports/dca-core.c'
+    file_name = '/work/vladimir/klever/Omega/reports/phy-msm-usb.c'
+    # file_name = '/work/vladimir/test'
+    result = GetSource(request.POST['report_id'], file_name)
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({
+        'content': result.data,
+        'name': file_name.split('/', -1)[-1]
+    })

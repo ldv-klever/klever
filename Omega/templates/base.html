@@ -40,15 +40,15 @@
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
                         <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
-                        <a class="item" href = "{% url 'service:sessions' %}">{% trans 'Sessions' %}</a>
-                        <a class="item" href = "#" id="show_upload_job_popup">{% trans 'Upload' %}</a>
+                        <a class="item" href="{% url 'service:schedulers' %}">{% trans 'Schedulers' %}</a>
+                        <a class="item" id="show_upload_job_popup">{% trans 'Upload' %}</a>
                     </div>
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Marks' %}</h3>
                         <a class="item" href="{% url 'marks:mark_list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
                         <a class="item" href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a>
                         <a class="item" href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a>
-                        <a class="item" href="#" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
+                        <a class="item" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
                     </div>
                 </div>
             </div>
@@ -56,6 +56,9 @@
             <a class="item" href="/admin/">{% trans 'Admin Tools' %}</a>
             <a class="item" href="{% url 'population' %}">{% trans 'Population' %}</a>
         {% endif %}
+            {% if user.extended and user.extended.role == '2' %}
+                <a class="item" href="{% url 'tools:manager' %}">{% trans 'Manager Tools' %}</a>
+            {% endif %}
         {% endif %}
             <div class="right menu">
             {% if user.is_authenticated %}

@@ -2,7 +2,7 @@
 
 <div class="ui styled accordion fluid">
     <div class="title">
-        <i class="filter icon"></i>{% trans 'Filters' %}
+        <i class="filter icon"></i>{% trans 'View' %}
     </div>
     <div class="content">
         <div class="ui grid">
@@ -45,7 +45,7 @@
                     <div class="ui fluid input">
                         <input id="filter__attr__order" type="text"{% if tabledata.view.order != 'num_of_links' %} value="{{ tabledata.view.order }}"{% endif %}>
                     </div>
-                    <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small><br>
+                    <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i></small><br>
                 {% endif %}
                 <div class="ui radio checkbox">
                     <input id="marks_enable_order__repnum" {% if tabledata.type == 'unknown' %}type="checkbox" {% else %}type="radio" {% endif %}name="marks_enable_order" value="num_of_links"{% if tabledata.view.order == 'num_of_links' %} checked{% endif %}>
@@ -127,7 +127,7 @@
                     <label for="filter__attr__attr"></label>
                     <input id="filter__attr__attr" type="text" value="{{ tabledata.view.filters.attr.attr }}">
                 </div>
-                <small style="color: #656565">{% trans 'Enter the full name of the attribute, e.g.' %} <i>Linux kernel:version</i></small>
+                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i></small>
                 <br><br>
                 <div class="ui grid">
                     <div class="six wide column">

@@ -7,6 +7,7 @@ urlpatterns = [
     url(r'^(?P<job_id>[0-9]+)/$', views.show_job, name='job'),
     url(r'^downloadfile/(?P<file_id>[0-9]+)/$', views.download_file,
         name='download_file'),
+    url(r'^prepare_run/(?P<job_id>[0-9]+)/$', views.prepare_decision, name='prepare_run'),
 
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),
@@ -20,7 +21,6 @@ urlpatterns = [
     url(r'^ajax/showjobdata/$', views.showjobdata),
     url(r'^ajax/upload_file/$', views.upload_file),
     url(r'^ajax/downloadjob/(?P<job_id>[0-9]+)/$', views.download_job),
-    url(r'^ajax/downloadlock/$', views.download_lock),
     url(r'^ajax/check_access/$', views.check_access),
     url(r'^ajax/upload_job/(?P<parent_id>.*)/$', views.upload_job),
     url(r'^ajax/getfilecontent/$', views.getfilecontent),
@@ -28,10 +28,7 @@ urlpatterns = [
     url(r'^ajax/remove_versions/$', views.remove_versions),
     url(r'^ajax/stop_decision/$', views.stop_decision),
     url(r'^ajax/run_decision/$', views.run_decision),
-    url(r'^ajax/get_max_prority/$', views.get_max_prority),
-
 
     # For psi
-    url(r'^downloadlock/$', views.download_lock),
     url(r'^decide_job/$', views.decide_job),
 ]

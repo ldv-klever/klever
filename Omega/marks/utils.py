@@ -8,6 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from Omega.vars import USER_ROLES, JOB_ROLES
+from Omega.utils import print_err
 from marks.models import *
 from reports.models import ReportComponent, Attr, AttrName
 from marks.ConvertTrace import ConvertTrace
@@ -109,8 +110,6 @@ class NewMark(object):
         mark.format = report.root.job.format
         mark.type = report.root.job.type
         mark.job = report.root.job
-        if self.type != 'unknown':
-            mark.attr_order = report.attr_order
 
         time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z").\
             encode('utf8')
@@ -140,6 +139,15 @@ class NewMark(object):
             mark.save()
         except Exception as e:
             return e
+
+        if self.type != 'unknown':
+            for attr in report.attrorder.order_by('id'):
+                if self.type == 'safe':
+                    SafeMarkAttrOrder.objects.create(
+                        name=attr.name, mark_id=mark.pk)
+                else:
+                    UnsafeMarkAttrOrder.objects.create(
+                        name=attr.name, mark_id=mark.pk)
 
         self.__update_mark(mark, tags=tags)
         if 'attrs' in args and self.type != 'unknown':
@@ -343,7 +351,7 @@ class ConnectReportWithMarks(object):
                     mark.error_trace.decode('utf8'),
                     self.report.error_trace.decode('utf8'))
                 if compare.error is not None:
-                    print(compare.error)
+                    print_err(compare.error)
                     compare_failed = True
                 if compare.result > 0 or compare_failed:
                     MarkUnsafeReport.objects.create(
@@ -426,7 +434,7 @@ class ConnectMarkWithReports(object):
                     self.mark.error_trace.decode('utf8'),
                     unsafe.error_trace.decode('utf8'))
                 if compare.error is not None:
-                    print(compare.error)
+                    print_err(compare.error)
                     compare_failed = True
                 if compare.result > 0 or compare_failed:
                     MarkUnsafeReport.objects.create(
@@ -811,7 +819,7 @@ class ReadTarMark(object):
             try:
                 mark.save()
             except Exception as e:
-                print(e)
+                print_err(e)
                 return _("Unknown error")
 
             self.__update_mark(mark, tags=tags)
@@ -880,8 +888,17 @@ class ReadTarMark(object):
                     MarkUnsafeAttr.objects.get_or_create(**create_args)
                 else:
                     MarkSafeAttr.objects.get_or_create(**create_args)
-            mark.attr_order = json.dumps(attr_order)
-            mark.save()
+            for attr in attr_order:
+                if self.type == 'safe':
+                    SafeMarkAttrOrder.objects.create(
+                        name=AttrName.objects.get_or_create(name=attr)[0],
+                        mark_id=mark.pk
+                    )
+                else:
+                    UnsafeMarkAttrOrder.objects.create(
+                        name=AttrName.objects.get_or_create(name=attr)[0],
+                        mark_id=mark.pk
+                    )
             return None
 
     def __create_mark_from_tar(self):

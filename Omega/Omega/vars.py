@@ -1,25 +1,33 @@
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
 FORMAT = 1
 
 ERRORS = {
-    444: _("The page was not found"),
     404: _('The job was not found'),
     400: _("You don't have an access to this job"),
-    450: _('Some job is downloaded right now, please try again later'),
-    451: _('Wrong parameters, please reload page and try again.'),
+    451: _('You specified wrong parameters, please reload the page and try again'),
     504: _('The report was not found'),
     604: _("The mark was not found"),
     600: _("You don't have an access to this mark"),
     601: _("You don't have an access to create new marks"),
     602: _("You don't have an access to delete this mark"),
-    605: _("You don't have an access to download this mark"),
-    650: _("Saving mark failed"),
-    704: _("Tag was not found"),
-    804: _("Problem was not found"),
-    904: _("User was not found"),
-    905: _("Scheduler was not found")
+    650: _("Saving the mark failed"),
+    704: _("The tag was not found"),
+    804: _("The problem was not found")
 }
+
+LANGUAGES = (
+    ('en', 'English'),
+    ('ru', 'Русский'),
+)
+
+USER_ROLES = (
+    ('0', _('No access')),
+    ('1', _('Producer')),
+    ('2', _('Manager')),
+    ('3', _('Expert')),
+    ('4', _('Service user'))
+)
 
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
@@ -35,6 +43,17 @@ JOB_ROLES = (
     ('4', _('Expert and Operator')),
 )
 
+JOB_STATUS = (
+    ('0', _('Not solved')),
+    ('1', _('Pending')),
+    ('2', _('Is solving')),
+    ('3', _('Solved')),
+    ('4', _('Failed')),
+    ('5', _('Corrupted')),
+    ('6', _('Cancelled'))
+    # ('7', _('Stopped'))
+)
+
 # Default view of the table
 JOB_DEF_VIEW = {
     'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe', 'problem',
@@ -46,7 +65,7 @@ JOB_DEF_VIEW = {
     # name [iexact, istartswith, icontains] (<any text>)
     # change_author [is] (<id in the table>)
     # change_date [younger, older] (weeks|days|hours|minutes: <number>)
-    # status [is, isnot] (<status identifier>)
+    # status ([status identifiers])
     # resource:component [iexact, istartswith, icontains] (<any text>)
     # problem:component [iexact, istartswith, icontains] (<any text>)
     # problem:problem [iexact, istartswith, icontains] (<any text>)
@@ -79,18 +98,6 @@ JOB_DEF_VIEW = {
     },
 }
 
-LANGUAGES = (
-    ('en', 'English'),
-    ('ru', 'Русский'),
-)
-
-USER_ROLES = (
-    ('0', _('No access')),
-    ('1', _('Producer')),
-    ('2', _('Manager')),
-    ('3', _('Expert'))
-)
-
 VIEW_TYPES = {
     ('1', 'job tree'),
     ('2', 'job view'),
@@ -102,16 +109,6 @@ VIEW_TYPES = {
     ('8', 'safe marks'),
     ('9', 'unknown marks')
 }
-
-JOB_STATUS = (
-    ('0', _('Not solved')),
-    ('1', _('Is solving')),
-    ('2', _('Stopped')),
-    ('3', _('Solved')),
-    ('4', _('Failed')),
-    ('5', _('Corrupted')),
-    ('6', _('Cancelled'))
-)
 
 MARK_STATUS = (
     ('0', _('Unreported')),
@@ -331,6 +328,11 @@ SCHEDULER_STATUS = (
     ('DISCONNECTED', _('Disconnected'))
 )
 
+SCHEDULER_TYPE = (
+    ('0', 'Klever'),
+    ('1', 'VerifierCloud')
+)
+
 PRIORITY = (
     ('URGENT', _('Urgent')),
     ('HIGH', _('High')),
@@ -348,7 +350,7 @@ NODE_STATUS = (
 TASK_STATUS = (
     ('PENDING', _('Pending')),
     ('PROCESSING', _('Processing')),
+    ('FINISHED', __('task status', 'Finished')),
     ('ERROR', _('Error')),
-    ('UNKNOWN', _('Unknown')),
-    ('FINISHED', _('Finished'))
+    ('CANCELLED', _('Cancelled'))
 )

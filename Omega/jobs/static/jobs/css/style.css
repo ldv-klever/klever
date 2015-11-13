@@ -17,16 +17,16 @@ input[type=checkbox] {
     color: #f1ffff;
 }
 .status1-link:link {
-    color: #cbff4d;
+    color: #dfffd6;
 }
 .status1-link:visited {
-    color: #cbff4d;
+    color: #dfffd6;
 }
 .status2-link:link {
-    color: #ff82ce;
+    color: #cbff4d;
 }
 .status2-link:visited {
-    color: #ff82ce;
+    color: #cbff4d;
 }
 .status3-link:link {
     color: #4ce215;
@@ -35,10 +35,10 @@ input[type=checkbox] {
     color: #4ce215;
 }
 .status4-link:link {
-    color: #ef4a4a;
+    color: #ff82ce;
 }
 .status4-link:visited {
-    color: #ef4a4a;
+    color: #ff82ce;
 }
 .status5-link:link {
     color: #ef4a4a;
@@ -47,9 +47,15 @@ input[type=checkbox] {
     color: #ef4a4a;
 }
 .status6-link:link {
-    color: #ff853d;
+    color: #ef4a4a;
 }
 .status6-link:visited {
+    color: #ef4a4a;
+}
+.status7-link:link {
+    color: #ff853d;
+}
+.status7-link:visited {
     color: #ff853d;
 }
 .status-link:hover {

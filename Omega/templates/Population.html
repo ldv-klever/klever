@@ -6,14 +6,29 @@
 
 {% block body_block %}
     {% if population %}
-        {% if population.manager_password %}
-            <div class="ui violet segment">
-                <h2 class="ui violet header">{% trans 'A new Manager was created' %}</h2>
-                <p><strong>{% trans 'Username' %}:</strong> {{ population.manager_username }}</p>
-                <p><strong>{% trans 'Password' %}:</strong> {{ population.manager_password }}</p>
-                <p style="color: #ce6f64">{% trans 'Please save this data and give it to the user who will be the Manager' %}</p>
-            </div>
-        {% endif %}
+        <div class="ui grid">
+            {% if population.manager_password %}
+                <div class="eight wide column">
+                    <div class="ui violet segment">
+                        <h2 class="ui violet header">{% trans 'A new Manager was created' %}</h2>
+                        <p><strong>{% trans 'Username' %}:</strong> {{ population.manager_username }}</p>
+                        <p><strong>{% trans 'Password' %}:</strong> {{ population.manager_password }}</p>
+                        <p style="color: #ce6f64">{% trans 'Please save this data and give it to the user who will be the Manager' %}</p>
+                    </div>
+                </div>
+            {% endif %}
+            {% if population.service_password %}
+                <div class="eight wide column">
+                    <div class="ui violet segment">
+                        <h2 class="ui violet header">{% trans 'A new service user was created' %}</h2>
+                        <p><strong>{% trans 'Username' %}:</strong> {{ population.service_username }}</p>
+                        <p><strong>{% trans 'Password' %}:</strong> {{ population.service_password }}</p>
+                        <p style="color: #ce6f64">{% trans 'Please save this data and give it to the service user' %}</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
         {% if population.functions_updated %}
             <div class="ui teal segment">
                 <h2 class="ui teal header">{% trans 'Error traces conversion and comparison functions were updated' %}</h2>
@@ -30,27 +45,32 @@
         <a href="{% url 'jobs:tree' %}" class="ui green button">{% trans 'OK' %}</a>
     {% else %}
         <h1 class="ui violet header">{% trans 'Welcome to Omega!' %}</h1>
-        {% if need_manager %}
-            <h4>{% trans "Create the Manager with the specified username and jobs of all classes on behalf of that Manager" %}</h4>
-        {% endif %}
-        <div class="ui divider"></div>
         <form method="post">
             {% csrf_token %}
             <div class="ui grid">
             {% if need_manager %}
-                <div class="five wide column">
-                    <label for="manager_username">{% trans 'Manager username' %}</label>
-                    <div class="ui fluid input">
-                        <input id="manager_username" name="manager_username" type="text">
+                <div class="nine wide column">
+                    <div class="ui orange segment">
+                        <h5 class="ui orange header">{% trans "Create the Manager with the specified username and jobs of all classes on behalf of that Manager" %}</h5>
+                        <div class="ui input">
+                            <input id="manager_username" name="manager_username" type="text" placeholder="{% trans 'Manager username' %}">
+                        </div>
                     </div>
                 </div>
-                <div class="eleven wide column">
-            {% else %}
-                <div class="sixteen wide column">
             {% endif %}
-                <br>
-                <button type="submit" id="populate_button" class="ui green button">{% trans 'Populate' %}</button>
+            {% if need_service %}
+                <div class="seven wide column">
+                    <div class="ui teal segment">
+                        <h5 class="ui teal header">{% trans "Create the service user with the specified username" %}</h5>
+                        <div class="ui input">
+                            <input id="service_username" name="service_username" type="text" placeholder="{% trans 'Service username' %}">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
             </div>
+            <br><br>
+            <button type="submit" id="populate_button" class="ui green button">{% trans 'Populate' %}</button>
         </form>
     {% endif %}
 {% endblock %}

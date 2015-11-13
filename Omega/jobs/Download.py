@@ -10,100 +10,24 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
-from Omega.vars import JOB_CLASSES, FORMAT, JOB_STATUS
+from Omega.vars import JOB_CLASSES, FORMAT, JOB_STATUS, PRIORITY
+from Omega.utils import print_err
 from jobs.models import Job, File, JOBFILE_DIR
 from jobs.utils import create_job, update_job
 from reports.models import ReportComponent, ReportUnsafe, ReportSafe,\
     ReportUnknown, ReportRoot
 from reports.UploadReport import UploadReport
+from service.models import SolvingProgress, Scheduler
 
 DOWNLOAD_LOCKFILE = 'download.lock'
 
 
-class DownloadLock(object):
-    def __init__(self, hash_sum=None, user=None):
-        self.user = user
-        self.hash_sum = hash_sum
-        self.lockfile = DOWNLOAD_LOCKFILE
-        self.__prepare_lockfile()
-        self.locked = False
-        if self.hash_sum is not None:
-            self.locked = self.__second_lock()
-        elif isinstance(self.user, User):
-            self.locked = self.__first_lock()
-
-    def __first_lock(self):
-        f = open(self.lockfile, 'r')
-        line = f.readline()
-        f.close()
-        curr_time = (datetime.now() - datetime(2000, 1, 1)).total_seconds()
-        if line == 'unlocked':
-            self.__update_hash_sum()
-            if self.hash_sum:
-                f = open(self.lockfile, 'w')
-                f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
-                f.close()
-                return True
-        elif line.startswith('locked#'):
-            line_lock_time = float(line.split('#')[1])
-            if (curr_time - line_lock_time) > 10:
-                self.__update_hash_sum()
-                if self.hash_sum:
-                    f = open(self.lockfile, 'w')
-                    f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
-                    f.close()
-                    return True
-        return False
-
-    def __update_hash_sum(self):
-        if self.user:
-            hash_data = (
-                '%s%s' % (self.user.extended.pk, datetime.now().isoformat())
-            ).encode('utf8')
-            self.hash_sum = hashlib.md5(hash_data).hexdigest()
-
-    def __second_lock(self):
-        f = open(self.lockfile, 'r')
-        line = f.readline()
-        f.close()
-        line_data = line.split('#')
-        if len(line_data) == 3 and line_data[0] == 'locked':
-            if self.hash_sum == line_data[2]:
-                f = open(self.lockfile, 'w')
-                f.write('doublelocked')
-                f.close()
-                return True
-        return False
-
-    def unlock(self):
-        f = open(self.lockfile, 'r')
-        status = f.readline()
-        f.close()
-        if status == 'unlocked':
-            return
-        f = open(self.lockfile, 'w')
-        f.write('unlocked')
-        f.close()
-
-    def __prepare_lockfile(self):
-        self.lockfile = os.path.join(settings.MEDIA_ROOT, self.lockfile)
-        if not os.path.isfile(self.lockfile):
-            f = open(self.lockfile, 'w')
-            f.write('unlocked')
-            f.close()
-
-
 class PSIDownloadJob(object):
-    def __init__(self, job, hash_sum):
+    def __init__(self, job):
         self.error = None
         self.tarname = ''
         self.memory = BytesIO()
-        locker = DownloadLock(hash_sum)
-        if locker.locked:
-            self.__create_tar(job)
-            locker.unlock()
-        else:
-            self.error = "Can't download job now"
+        self.__create_tar(job)
 
     def __create_tar(self, job):
         last_version = job.versions.get(version=job.version)
@@ -151,16 +75,11 @@ class PSIDownloadJob(object):
 
 class DownloadJob(object):
 
-    def __init__(self, job, hash_sum):
+    def __init__(self, job):
         self.tarname = ''
         self.memory = BytesIO()
         self.error = None
-        locker = DownloadLock(hash_sum)
-        if locker.locked:
-            self.__create_tar(job)
-            locker.unlock()
-        else:
-            self.error = "Can't download job now"
+        self.__create_tar(job)
 
     def __create_tar(self, job):
 
@@ -352,9 +271,9 @@ class ReverseReport(object):
 
     def __get_attrs(self):
         attrs = []
-        for attr_name in json.loads(self.report.attr_order):
+        for attr_name in self.report.attrorder.order_by('id'):
             try:
-                attr = self.report.attr.get(name__name=attr_name)
+                attr = self.report.attr.get(name__name=attr_name.name.name)
             except ObjectDoesNotExist:
                 continue
             attrs.append((attr.name.name, attr.value))
@@ -382,7 +301,7 @@ class UploadJob(object):
                 try:
                     jobdata = json.loads(file_obj.read().decode('utf-8'))
                 except Exception as e:
-                    print(e)
+                    print_err(e)
                     return _("The job archive is corrupted")
             elif file_name.startswith(JOBFILE_DIR):
                 if f.isreg():
@@ -467,6 +386,9 @@ class UploadJob(object):
                 return updated_job
         self.job = job
         ReportRoot.objects.create(user=self.user, job=self.job)
+        SolvingProgress.objects.create(job=self.job, priority=PRIORITY[3][0],
+                                       scheduler=Scheduler.objects.all()[0],
+                                       configuration='{}'.encode('utf8'))
         self.job.status = JOB_STATUS[1][0]
         self.job.save()
         if not self.__upload_reports(json.loads(jobdata['reports'])):
@@ -475,12 +397,13 @@ class UploadJob(object):
             return _("One of the reports was not uploaded")
         self.job.status = jobdata['status']
         self.job.save()
+        self.job.solvingprogress.delete()
         return None
 
     def __upload_reports(self, reports):
         for report in reports:
             error = UploadReport(self.job, report).error
             if error is not None:
-                print(error)
+                print_err(error)
                 return False
         return True

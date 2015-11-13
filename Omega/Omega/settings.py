@@ -44,7 +44,8 @@ INSTALLED_APPS = (
     'jobs',
     'marks',
     'reports',
-    'service'
+    'service',
+    'tools'
 )
 
 MIDDLEWARE_CLASSES = (
@@ -106,6 +107,7 @@ LANGUAGES = (
 LOCALE_PATHS = (
     os.path.join(BASE_DIR,  'locale'),
 )
+DEFAULT_LANGUAGE = 'en'
 
 TIME_ZONE = 'UTC'
 
