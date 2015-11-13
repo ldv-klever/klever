@@ -53,13 +53,6 @@ def solve_job(conf):
     return result
 
 
-def execute_run(self, args, output_filename, stdin=None,
-               hardtimelimit=None, softtimelimit=None, walltimelimit=None,
-               cores=None, memlimit=None, memory_nodes=None,
-               environments={}, workingDir=None, maxLogfileSize=None):
-    return
-
-
 def split_archive_name(path):
     """
     Split archive name into file name and extension. The difference with is.path.splitext is that this function can
