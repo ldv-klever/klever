@@ -42,7 +42,7 @@ FILTER_TITLES = {
     'change_date': _('Last change date'),
     'status': _('Decision status'),
     'resource_component': string_concat(
-        _('Resources'), '/', _('Component name')),
+        _('Consumed resources'), '/', _('Component name')),
     'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
     'format': _('Format'),
