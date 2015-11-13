@@ -1,3 +1,5 @@
+import pygraphviz as pgv
+
 class Module:
     def __init__(self, id):
         self.id = id
@@ -49,12 +51,13 @@ class Cluster:
             task = rest_list.pop(0)
 
             # Trying to add all children
-            children = task['hash'][task['root']].keys()
+            children = list(task['hash'].get(task['root'], {}).keys())
             while children and task['size'] < size:
                 # Add child to group
                 child = children.pop(0)
                 task['modules'].append(child)
-                if child in task['hash'] and task['hash'][child] > 0:
+                task['size'] += 1
+                if child in task['hash'] and len(task['hash'][child]) > 0:
                     new_task = {'root': child,
                                 'hash': task['hash'],
                                 'size': 1,
@@ -66,7 +69,7 @@ class Cluster:
                 new_hash = {}
                 exclude = {x: 1 for x in task['modules']}
                 for module in task['hash'].keys():
-                    if module != task['root']:
+                    if module == task['root']:
                         for child in task['hash'][module]:
                             if child not in exclude:
                                 new_hash.setdefault(module, {})
@@ -114,8 +117,8 @@ class Cluster:
 
             # Add edges
             for obj in modules.values():
-                for predecessor in hash[obj.id].keys():
-                    if predecessor in hash[obj.id]:
+                for predecessor in hash.get(obj.id, {}).keys():
+                    if predecessor in modules:
                         obj.add_predecessor(modules[predecessor])
             # If root was shifted down during calculation - use original one
             if ('origin' in task):
@@ -126,3 +129,14 @@ class Cluster:
             ret.append(cluster)
 
         return ret
+
+    def draw(self, path):
+        graph = pgv.AGraph(directd=True)
+        modules = [self.root]
+        while modules:
+            module = modules.pop(0)
+            graph.add_node(module.id)
+            for successor in module.successors:
+                graph.add_edge([successor.id, module.id])
+            modules.extend(module.predecessors)
+        graph.draw(path, 'png', prog='dot')

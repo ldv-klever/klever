@@ -134,11 +134,21 @@ class LKBCE(psi.components.Component):
                 path = "/home/alexey/kernel/modules/lib/modules/4.0.0-rc1/modules.dep"
             with open(path, 'r') as fp:
                 for line in fp:
-                    l = line.split(':')
-                    if len(l) == 2:
-                        module = re.sub('^kernel/', '', line.split(':')[0])
-                        deps = [re.sub('^kernel/', '', dep) for dep in line.split(':')[1][1:-1].split(' ')]
-                        self.linux_kernel['module deps'][module] = deps
+                    splits = line.split(':')
+                    if len(splits) == 1:
+                        continue
+                    module_name = splits[0]
+                    module_deps = splits[1][:-1]
+                    module_deps = list(filter(lambda x: x != '', module_deps.split(' ')))
+                    if len(module_deps) == 1:
+                        continue
+                    self.linux_kernel['module deps'][module_name] = module_deps
+
+                    #l = line.split(':')
+                    #if len(l) == 2:
+                    #    module = re.sub('^kernel/', '', l[0])
+                    #    deps = [re.sub('^kernel/', '', dep) for dep in l[1][1:-1].split(' ')]
+                    #    self.linux_kernel['module deps'][module] = deps
             self.conf['Linux kernel']['module deps'] = self.linux_kernel['module deps']
 
 

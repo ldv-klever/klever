@@ -8,7 +8,7 @@ import re
 
 import psi.components
 import psi.utils
-from psi.lkvog import strategies
+from psi.lkvog.strategies import closure
 
 
 def before_launch_all_components(context):
@@ -97,7 +97,8 @@ class LKVOG(psi.components.Component):
         strategy_name = self.conf['LKVOG strategy']['name']
         if strategy_name in ('closure'): #TODO вынести список стратегий в модуль
             self.module_deps = self.mqs['Linux kernel module deps'].get()
-            strategy = getattr(strategies, strategy_name)
+            #TODO: предусмотреть другие стратегии
+            strategy = closure.divide
 
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
@@ -115,10 +116,10 @@ class LKVOG(psi.components.Component):
                     # TODO: specification requires to do this in parallel...
                     psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
             if strategy_name in ('closure'):
-                clusters = strategy(self.module)
+                clusters = strategy(self.logger, self.module['name'], self.module_deps)
                 for cluster in clusters:
                     self.cluster = cluster
-                    psi.utils.invoke_callbacks(self.generate_all_verification_obj_descs)
+                    psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
 
 
     def generate_verification_obj_desc(self):
@@ -160,13 +161,13 @@ class LKVOG(psi.components.Component):
 
             self.verification_obj_desc['grps'] = []
             self.verification_obj_desc['deps'] = {}
-            modules = self.cluster.root
+            modules = [self.cluster.root]
             while modules:
                 module = modules.pop(0)
                 self.verification_obj_desc['grps'].append({'id' : module.id,
                                                           'cc full desc files' : self.__find_cc_full_desc_files(module.id)})
-                self.verification_obj_desc['deps'][module.name] = [x.id for x in module.successors]
-                modules.extend(module.successors)
+                self.verification_obj_desc['deps'][module.id] = [predecessor.id for predecessor in module.predecessors]
+                modules.extend(module.predecessors)
 
             self.logger.debug(
                 'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
