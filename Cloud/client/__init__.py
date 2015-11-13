@@ -48,7 +48,7 @@ def solve_job(conf):
     result = executor.execute_run(args=[bin, psi_config_file], output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
                                   walltimelimit=conf["resource limits"]["wall time"],
-                                  memlimit=conf["resource limits"]["max mem size"])
+                                  memlimit=conf["resource limits"]["maximum memory size"])
 
     return result
 

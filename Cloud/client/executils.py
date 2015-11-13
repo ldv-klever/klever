@@ -50,7 +50,7 @@ def extract_description(solution_dir, description_file):
                 elif key == "memory":
                     mem_bytes = number.match(value).group(1)
                     if mem_bytes:
-                        description["resources"]["max mem size"] = int(mem_bytes)
+                        description["resources"]["maximum memory size"] = int(mem_bytes)
                     else:
                         logging.warning("Cannot properly extract exhausted memory from {}".format(general_file))
                 elif key == "timeLimit":
@@ -63,7 +63,7 @@ def extract_description(solution_dir, description_file):
                 elif key == "memoryLimit":
                     mem_bytes = number.match(value).group(1)
                     if mem_bytes:
-                        limits["max mem size"] = int(mem_bytes)
+                        limits["maximum memory size"] = int(mem_bytes)
                     else:
                         logging.warning("Cannot properly extract memory limit from {}".format(general_file))
     else:
@@ -83,7 +83,7 @@ def extract_description(solution_dir, description_file):
             description["status"] = "wall time exhausted"
         elif limits["max time"] > 0.99 * description["resources"]["cpu time"]:
             description["status"] = "CPU time exhausted"
-        elif limits["max mem size"] > 0.99 * description["resources"]["max mem size"]:
+        elif limits["maximum memory size"] > 0.99 * description["resources"]["maximum memory size"]:
             description["status"] = "memory exhausted"
     elif "exit code" in description and description["exit code"] == 0:
         description["status"] = "normal exit"
@@ -111,7 +111,7 @@ def extract_description(solution_dir, description_file):
                 elif key == "cpuModel":
                     description["comp"]["CPU model"] = value
                 elif key == "cores":
-                    description["comp"]["CPUs"] = value
+                    description["comp"]["number of CPU cores"] = value
     else:
         raise FileNotFoundError("There is no solution file {}".format(host_file))
 
