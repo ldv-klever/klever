@@ -238,7 +238,7 @@ class Scheduler(schedulers.SchedulerExchange):
         psi_conf["Omega"] = {
             "name": self.conf["Omega"]["name"],
             "user": self.conf["Omega"]["user"],
-            "passwd": self.conf["Omega"]["password"]
+            "password": self.conf["Omega"]["password"]
         }
         self.__reserved[identifier]["configuration"] = psi_conf
 
