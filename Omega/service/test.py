@@ -85,5 +85,5 @@ TEST_JSON = {
         'cancelled': []
     },
     'job errors': {},
-    'Job configurations': {}
+    'job configurations': {}
 }

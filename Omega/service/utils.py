@@ -369,7 +369,7 @@ class GetTasks(object):
                 'cancelled': []
             },
             'job errors': {},
-            'Job configurations': {}
+            'job configurations': {}
         }
         status_map = {
             'pending': TASK_STATUS[0][0],
@@ -518,7 +518,7 @@ class GetTasks(object):
         if self.scheduler.type == SCHEDULER_TYPE[0][0]:
             for progress in SolvingProgress.objects.all():
                 if progress.job.status == JOB_STATUS[1][0]:
-                    new_data['Job configurations'][progress.job.identifier] = \
+                    new_data['job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
                     if progress.job.identifier in data['jobs']['error']:
                         progress.job.status = JOB_STATUS[4][0]
