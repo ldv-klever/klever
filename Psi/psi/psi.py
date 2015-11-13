@@ -102,6 +102,8 @@ class Psi:
                 self.logger.exception('Catch exception')
             else:
                 traceback.print_exc()
+
+            self.exit_code = 1
         finally:
             try:
                 for p in self.component_processes:
