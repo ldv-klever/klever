@@ -171,11 +171,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         "configuration": server_state["job configurations"][job_id]
                     }
 
-                # Update processing status
-                for job_id in [job_id for job_id in self.__jobs if self.__jobs[job_id]["status"] == "PENDING" and
-                               job_id in server_state["jobs"]["processing"]]:
-                    self.__jobs[job_id]["status"] == "PROCESSING"
-
                 # Remove finished or error tasks
                 logging.debug("Remove tasks with statuses FINISHED and ERROR")
                 deleted = set(scheduler_state["tasks"]["finished"] + scheduler_state["tasks"]["error"])
@@ -208,6 +203,32 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     self.cancel_job(job_id)
                     del self.__jobs[job_id]
                 logging.info("Total {} jobs have been cancelled".format(len(cancelled_jobs)))
+
+                # Update task processing status
+                for job_id in server_state["jobs"]["processing"]:
+                    if job_id in self.__jobs and self.__jobs[job_id]["status"] == "PENDING":
+                        self.__jobs[job_id]["status"] = "PROCESSING"
+                    elif job_id not in self.__jobs:
+                        logging.warning("Job {} has status PROCESSING but it was not running actually".
+                                        format(job_id))
+                        self.__jobs[job_id] = {
+                            "id": job_id,
+                            "status": "ERROR",
+                            "error": "Job {} has status PROCESSING but it was not running actually".\
+                                     format(job_id)
+                        }
+                        
+                # Update task processing status
+                for task_id in server_state["tasks"]["processing"]:
+                    if task_id not in self.__tasks:
+                        logging.warning("Task{} has status PROCESSING but it was not running actually".
+                                        format(job_id))
+                        self.__tasks[task_id] = {
+                            "id": task_id,
+                            "status": "ERROR",
+                            "error": "Task {} has status PROCESSING but it was not running actually".\
+                                     format(task_id)
+                        }
 
                 # Check new pending tasks and prepare them before launching
                 # TODO: It is extremely slow in case of VerifierCloud
@@ -256,7 +277,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 for job_id in [job for job in self.__jobs if self.__jobs[job]["status"] == "PROCESSING" and
                                self.__jobs[job]["future"].done()]:
                     try:
-                        self.__jobs[job_id]["status"] = self.process_task_result(job_id, self.__jobs[job_id]["future"])
+                        self.__jobs[job_id]["status"] = self.process_job_result(job_id, self.__jobs[job_id]["future"])
                     except SchedulerException as err:
                         logging.error("Cannot process results of job {}: {}".format(job_id, err))
                         self.__jobs[job_id]["status"] = "ERROR"

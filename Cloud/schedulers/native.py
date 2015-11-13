@@ -64,7 +64,8 @@ class Scheduler(schedulers.SchedulerExchange):
                            "available number of parallel processes")
         max_processes = self.conf["scheduler"]["processes"] - 1
         logging.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
-        self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
+        #self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
+        self.__pool = concurrent.futures.ThreadPoolExecutor(max_processes)
 
         # Check existence of verifier scripts
         for tool in self.conf["scheduler"]["verification tools"]:
@@ -240,6 +241,7 @@ class Scheduler(schedulers.SchedulerExchange):
             "user": self.conf["Omega"]["user"],
             "password": self.conf["Omega"]["password"]
         }
+        psi_conf["working directory"] = "psi-work-dir"
         self.__reserved[identifier]["configuration"] = psi_conf
 
         client_conf = self.__job_conf_prototype.copy()
@@ -315,7 +317,11 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         try:
             result = future.result()
-            return "FINISHED"
+            if result == 0:
+                return "FINISHED"
+            else:
+                error_msg = "Job finished with non-zero exit code: {}".format(result)
+                raise schedulers.SchedulerException(error_msg)
         except Exception as err:
             error_msg = "Job {} terminated with an exception: {}".format(identifier, err)
             logging.warning(error_msg)

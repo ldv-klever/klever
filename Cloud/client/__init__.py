@@ -36,21 +36,40 @@ def solve_job(conf):
         raise FileExistsError("There is no psi execution script {}".format(bin))
 
     # Save psi configuration file
-    psi_config_file = "psi configuration.json"
+    psi_config_file = os.path.abspath(os.path.join(os.path.curdir, "psi configuration.json"))
     with open(psi_config_file, "w") as fh:
         fh.write(json.dumps(conf["psi configuration"]))
 
     # Import RunExec
     executor = RunExecutor()
 
+    # Check resource limitations
+    if not conf["resource limits"]["CPU time"]:
+        conf["resource limits"]["CPU time"] = None
+        logging.info("CPU time limit will not be set")
+    else:
+        logging.info("CPU time limit: {}s".format(conf["resource limits"]["CPU time"]))
+    if not conf["resource limits"]["wall time"]:
+        conf["resource limits"]["wall time"] = None
+        logging.info("Wall time limit will not be set")
+    else:
+        logging.info("Wall time limit: {}s".format(conf["resource limits"]["wall time"]))
+    if not conf["resource limits"]["memory size"]:
+        conf["resource limits"]["memory size"] = None
+        logging.info("Memory limit will not be set")
+    else:
+        logging.info("Memory limit: {} bytes".format(conf["resource limits"]["memory size"]))
+
     # Run psi within runexec
     # TODO: How to choose proper CPU core numbers?
+    logging.info("Run psi script {} with configuration file '{}'".format(bin, psi_config_file))
     result = executor.execute_run(args=[bin, psi_config_file], output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
                                   walltimelimit=conf["resource limits"]["wall time"],
-                                  memlimit=conf["resource limits"]["maximum memory size"])
+                                  memlimit=conf["resource limits"]["memory size"])
 
-    return result
+    logging.info("Job solution has finished with exit code {}".format(result["exitcode"]))
+    return result["exitcode"]
 
 
 def split_archive_name(path):
