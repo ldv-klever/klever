@@ -88,9 +88,9 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: True if task or job can be scheduled, False - otherwise.
         """
         # TODO: Check disk space also
-        if limits["max mem size"] <= (self.__ram_memory - self.__reserved_ram_memory):
+        if limits["memory size"] <= (self.__ram_memory - self.__reserved_ram_memory):
             self.__reserved[identifier] = limits
-            self.__reserved_ram_memory += limits["max mem size"]
+            self.__reserved_ram_memory += limits["memory size"]
             self.__reserved[identifier] = limits
             return True
         else:
@@ -178,10 +178,10 @@ class Scheduler(schedulers.SchedulerExchange):
             raise schedulers.SchedulerException(
                 "There is no node with CPU model {} for job {}, has only {}".
                 format(configuration["resource limits"]["CPU model"]), identifier, self.__cpu_model)
-        if configuration["resource limits"]["max mem size"] >= self.__ram_memory:
+        if configuration["resource limits"]["memory size"] >= self.__ram_memory:
             raise schedulers.SchedulerException(
                 "Node does not have {} bytes of RAM memory for job {}, has only {} bytes".
-                format(configuration["resource limits"]["max mem size"]), identifier, self.__ram_memory)
+                format(configuration["resource limits"]["memory size"]), identifier, self.__ram_memory)
         # TODO: Disk space check
 
     def solve_task(self, identifier, description, user, password):
@@ -248,7 +248,6 @@ class Scheduler(schedulers.SchedulerExchange):
         client_conf["common"]["work dir"] = job_work_dir
         client_conf["psi configuration"] = self.__reserved[identifier]["configuration"]
         client_conf["resource limits"] = configuration["resource limits"]
-        json_str = json.dumps(client_conf)
         return self.__pool.submit(client.solve_job, client_conf)
 
     def flush(self):
@@ -329,7 +328,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         logging.debug("Cancel task {}".format(identifier))
         super(Scheduler, self).cancel_task(identifier)
-        self.__reserved_ram_memory -= self.__reserved[identifier]["max mem size"]
+        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
         self.__running_tasks -= 1
         del self.__reserved[identifier]
         
@@ -346,7 +345,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         logging.debug("Cancel job {}".format(identifier))
         super(Scheduler, self).cancel_job(identifier)
-        self.__reserved_ram_memory -= self.__reserved[identifier]["max mem size"]
+        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
         self.__running_jobs -= 1
         del self.__reserved[identifier]
 

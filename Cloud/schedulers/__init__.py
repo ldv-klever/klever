@@ -5,11 +5,8 @@ import os
 import shutil
 import time
 
-import Cloud.scheduler.requests.testgenerator as testgenerator
-import Cloud.scheduler.requests.omega as omega
-import Cloud.scheduler.native as native
-import Cloud.scheduler.verifiercloud as verifiercloud
-import Cloud.scheduler.docker as docker
+import Cloud.requests.testgenerator as testgenerator
+import Cloud.requests.omega as omega
 
 
 def get_gateway(conf, work_dir):
@@ -19,29 +16,10 @@ def get_gateway(conf, work_dir):
     :param work_dir: Path to the working directory.
     :return: Return object of the implementation of Session abstract class.
     """
-    if "debug with testgenerator" in conf["scheduler"]:
+    if "debug with testgenerator" in conf["scheduler"] and conf["scheduler"]["debug with testgenerator"]:
         return testgenerator.Server(conf["testgenerator"], work_dir)
     else:
         return omega.Server(conf["Omega"], work_dir)
-
-
-def get_scheduler(conf, work_dir, session):
-    """
-    Check which scheduler to run according to conf dictionary.
-    :param conf: Configuration dictionary.
-    :param work_dir: Path to the working directory.
-    :param session: Verification gateway object.
-    :return: Return object of implementation of abstract class TaskScheduler.
-    """
-    if conf["type"] == "verifiercloud":
-        return verifiercloud.Scheduler(conf, work_dir, session)
-    elif conf["type"] == "docker":
-        return docker.Scheduler(conf, work_dir, session)
-    elif conf["type"] == "native":
-        return native.Scheduler(conf, work_dir, session)
-    else:
-        raise ValueError("Scheduler type is not given in the configuration (scheduler->type) or it is not supported "
-                         "(supported are 'native', 'docker' or 'verifiercloud')")
 
 
 class SchedulerException(RuntimeError):
@@ -64,7 +42,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "Klever"
 
-    def __init__(self, conf, work_dir, server):
+    def __init__(self, conf, work_dir):
         """
         Get configuration and prepare working directory.
         :param conf: Dictionary with relevant configuration.
@@ -73,13 +51,13 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         self.conf = conf
         self.work_dir = work_dir
-        self.server = server
+        self.server = get_gateway(conf, os.path.join(work_dir, "requests"))
 
         # Check configuration completeness
         logging.debug("Check whether configuration contains all necessary data")
 
         # Initialize interaction
-        server.register(self.scheduler_type())
+        self.server.register(self.scheduler_type())
 
         # Clean working directory
         if os.path.isdir(work_dir):
@@ -87,8 +65,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             shutil.rmtree(work_dir)
         os.makedirs(work_dir, exist_ok=True)
 
-        if "iteration_timeout" in self.conf:
-            self.__iteration_period = self.conf["iteration_timeout"]
+        if "iteration_timeout" in self.conf["scheduler"]:
+            self.__iteration_period = self.conf["scheduler"]["iteration_timeout"]
 
         logging.info("Scheduler initialization has been successful")
 
@@ -171,6 +149,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 # Add PENDING tasks
                 for task_id in [task_id for task_id in server_state["tasks"]["pending"] if task_id not in self.__tasks]:
                     self.__tasks[task_id] = {
+                        "id": task_id,
                         "status": "PENDING",
                         "description": server_state["task descriptions"][task_id]["description"],
                         "priority": server_state["task descriptions"][task_id]["description"]["priority"]
@@ -187,6 +166,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 # Add PENDING jobs
                 for job_id in [job_id for job_id in server_state["jobs"]["pending"] if job_id not in self.__jobs]:
                     self.__jobs[job_id] = {
+                        "id": job_id,
                         "status": "PENDING",
                         "configuration": server_state["job configurations"][job_id]
                     }
@@ -249,16 +229,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         self.__jobs[job_id]["error"] = err
 
                 # Wait there until all threads are terminated
-                if "debug each iteration" in self.conf and self.conf["debug each iteration"]:
+                if "debug each iteration" in self.conf["scheduler"] and self.conf["scheduler"]["debug each iteration"]:
                     wait_list = [self.__tasks[task_id]["future"] for task_id in self.__tasks if "future" in
                                  self.__tasks[task_id]]
-                    if "iteration timeout" not in self.conf:
+                    if "iteration timeout" not in self.conf["scheduler"]:
                         logging.debug("Wait for termination of {} tasks".format(len(wait_list)))
                         concurrent.futures.wait(wait_list, timeout=None, return_when="ALL_COMPLETED")
                     else:
                         logging.debug("Wait {} seconds for termination of {} tasks".
-                                      format(self.conf["iteration timeout"], len(wait_list)))
-                        concurrent.futures.wait(wait_list, timeout=self.conf["iteration timeout"],
+                                      format(self.conf["scheduler"]["iteration timeout"], len(wait_list)))
+                        concurrent.futures.wait(wait_list, timeout=self.conf["scheduler"]["iteration timeout"],
                                                 return_when="ALL_COMPLETED")
 
                 # Update statuses
@@ -276,7 +256,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 for job_id in [job for job in self.__jobs if self.__jobs[job]["status"] == "PROCESSING" and
                                self.__jobs[job]["future"].done()]:
                     try:
-                        self.__jobs[job_id]["status"] = self._process_task_result(job_id, self.__jobs[job_id]["future"])
+                        self.__jobs[job_id]["status"] = self.process_task_result(job_id, self.__jobs[job_id]["future"])
                     except SchedulerException as err:
                         logging.error("Cannot process results of job {}: {}".format(job_id, err))
                         self.__jobs[job_id]["status"] = "ERROR"
@@ -285,7 +265,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 # Get actual information about connected nodes
                 submit = True
                 try:
-                    nothing_changed = self._update_nodes(self.conf["tools and nodes update period"])
+                    nothing_changed = self.update_nodes()
                 except Exception as err:
                     logging.error("Cannot obtain information about the nodes: {}".format(err))
                     submit = False
@@ -320,7 +300,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         # This check is very helpful for debugging
                         if self.__tasks[task_id]["status"] != "PENDING":
                             raise RuntimeError("Attempt to submit tasks with non-pending status: {}".format(task_id))
-                        future = self._solve_task(task_id,
+                        future = self.solve_task(task_id,
                                                   self.__tasks[task_id]["description"],
                                                   self.__tasks[task_id]["user"],
                                                   self.__tasks[task_id]["password"])
@@ -464,7 +444,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         Update statuses and configurations of available nodes and
         push it to the server.
-        :return: Dictionary with configurations and statuses of nodes.
         :return: Return True if nothing has changes
         """
         return True
@@ -474,7 +453,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         Generate dictionary with verification tools available and
         push it to the verification gate.
-        :return: Dictionary with available verification tools.
         """
         return
 
