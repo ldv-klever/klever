@@ -5,13 +5,13 @@ import os
 import json
 import random
 
-import Cloud.scheduler.requests as requests
+import Cloud.requests as requests
 import Cloud.utils as utils
 
 task_description_filename = "verification task desc.json"
 
 
-class Server(requests.Server):
+class Server(requests.AbstractServer):
     """Start exchange with verification gate."""
 
     tasks = {}

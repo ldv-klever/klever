@@ -4,14 +4,16 @@ import logging
 import os
 import shutil
 import time
-import Cloud.scheduler as scheduler
-import Cloud.client.executils as executils
-import requests
 import json
-import consulate
-import re
+import concurrent.futures
 
-class Scheduler(scheduler.SchedulerExchange):
+import requests
+import consulate
+
+import Cloud.schedulers as schedulers
+
+
+class Scheduler(schedulers.SchedulerExchange):
     """
     Implement scheduler which is used to run tasks and jobs on the system locally.
     """
@@ -22,55 +24,93 @@ class Scheduler(scheduler.SchedulerExchange):
     __ram_memory = None
     __disk_memory = None
     __disk_memory = None
+    __pool = None
+    __reserved_ram_memory = 0
+    __reserved_disk_memory = 0
+    __running_tasks = 0
+    __running_jobs = 0
+    __reserved = {}
 
     def launch(self):
         """Start scheduler loop."""
 
-        if "controller address" not in self.conf:
+        if "controller address" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''controller address'")
-        self.__kv_url = self.conf["controller address"]
+        self.__kv_url = self.conf["scheduler"]["controller address"]
 
         # Check first time node
-        self._update_nodes()
+        self.update_nodes()
 
-        # TODO: Check existence of verifier scripts
+        # init process pull
+        if "processes" not in self.conf["scheduler"] or self.conf["scheduler"]["processes"] < 2:
+            raise KeyError("Provide configuration property 'scheduler''processes' to set "
+                           "available number of parallel processes")
+        max_processes = self.conf["scheduler"]["processes"] - 1
+        logging.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
+        self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
 
-        # TODO: Add benchexec scripts
-
-        # Add path to benchexec directory
-        #bexec_loc = self.conf["BenchExec location"]
-        #logging.debug("Add to PATH location {0}".format(bexec_loc))
-        #sys.path.append(bexec_loc)
+        # Check existence of verifier scripts
+        for tool in self.conf["scheduler"]["verification tools"]:
+            for version in self.conf["scheduler"]["verification tools"][tool]:
+                if not os.path.isfile(self.conf["scheduler"]["verification tools"][tool][version]):
+                    raise ValueError("Cannot find script {} for verifier {} of the version {}".
+                                     format(self.conf["scheduler"]["verification tools"][tool][version], tool, version))
 
         return super(Scheduler, self).launch()
 
-    def scheduler_type(self):
+    @staticmethod
+    def scheduler_type():
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "Klever"
 
-    def _schedule(self, pending, processing, sorter):
+    def __try_to_schedule(self, identifier, limits):
+        """
+        Try to find slot to scheduler task or job with provided limits.
+        :param identifier: Identifier of the task or job.
+        :param limits: Dictionary with resource limits.
+        :return: True if task or job can be scheduled, False - otherwise.
+        """
+        # TODO: Check disk space also
+        if limits["max mem size"] <= (self.__ram_memory - self.__reserved_ram_memory):
+            self.__reserved[identifier] = limits
+            self.__reserved_ram_memory += limits["max mem size"]
+            return True
+        else:
+            return False
+
+    def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
         """
         Get list of new tasks which can be launched during current scheduler iteration.
-        :param pending: List with all pending tasks.
-        :param processing: List with currently ongoing tasks.
+        :param pending_tasks: List with all pending tasks.
+        :param pending_jobs: List with all pending jobs.
+        :param processing_tasks: List with currently ongoing tasks.
+        :param processing_jobs: List with currently ongoing jobs.
         :param sorter: Function which can by used for sorting tasks according to their priorities.
-        :return: List with identifiers of pending tasks to launch.
+        :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
         """
-        if "max concurrent tasks" in self.conf and self.conf["max concurrent tasks"]:
-            if len(processing) < self.conf["max concurrent tasks"]:
-                diff = self.conf["max concurrent tasks"] - len(processing)
-                if diff <= len(pending):
-                    new = pending[0:diff]
-                else:
-                    new = pending
-            else:
-                new = []
-        else:
-            new = pending
+        new_tasks = []
+        new_jobs = []
 
-        return new
+        # Plan tasks first
+        if len(pending_tasks) > 0:
+            # Sort to get high priority tasks at the beginning
+            pending_tasks = sorted(pending_tasks, key=sorter)
+            for task in pending_tasks:
+                if self.__try_to_schedule(task["id"], task["description"]["resource limits"]):
+                    new_tasks.append(task["id"])
+                    self.__running_tasks += 1
 
-    def _prepare_task(self, identifier, description):
+        # Plan jobs
+        if len(pending_jobs) > 0:
+            # Sort to get high priority tasks at the beginning
+            for job in pending_jobs:
+                if self.__try_to_schedule(job["id"], job["configuration"]["resource limits"]):
+                    new_jobs.append(job["id"])
+                    self.__running_jobs += 1
+
+        return new_tasks, new_jobs
+
+    def prepare_task(self, identifier, description):
         """
         Prepare working directory before starting solution.
         :param identifier: Verification task identifier.
@@ -107,15 +147,40 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Make directory for the task to solve {0}".format(task_work_dir))
         os.makedirs(task_work_dir, exist_ok=True)
 
-    def _prepare_job(self, identifier, configuration):
+    def prepare_job(self, identifier, configuration):
         """
         Prepare working directory before starting solution.
         :param identifier: Verification task identifier.
         :param configuration: Job configuration.
         """
-        return
+        # Check resource limitiations
+        logging.debug("Check resource limitations for the job {}".format(identifier))
+        if configuration["resource limits"]["CPU model"] and \
+           configuration["resource limits"]["CPU model"] != self.__cpu_model:
+            raise ValueError("There is no node with CPU model {} for job {}, has only {}".
+                             format(configuration["resource limits"]["CPU model"]), identifier, self.__cpu_model)
+        if configuration["resource limits"]["max mem size"] >= self.__ram_memory:
+            raise ValueError("Node does not have {} bytes of RAM memory for job {}, has only {} bytes".
+                             format(configuration["resource limits"]["max mem size"]), identifier, self.__ram_memory)
+        # TODO: Disk space check
 
-    def _solve_task(self, identifier, description, user, password):
+        # Create working directory
+        job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
+        logging.debug("Create working directory {}".format(identifier))
+        os.makedirs(job_work_dir)
+
+        # Generate configuration
+        psi_conf = configuration.copy()
+        del psi_conf["resource limits"]
+        psi_conf["Omega"] = {
+            "name": self.conf["Omega"]["name"],
+            "user": self.conf["Omega"]["user"],
+            "passwd": self.conf["Omega"]["password"]
+        }
+        self.__reserved[identifier]["configuration"] = psi_conf
+
+
+    def solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
         :param identifier: Verification task identifier.
@@ -149,20 +214,21 @@ class Scheduler(scheduler.SchedulerExchange):
                               svn_branch=branch,
                               svn_revision=revision)
 
-    def _solve_job(self, configuration):
+    def solve_job(self, identifier, configuration):
         """
         Solve given verification task.
         :param identifier: Job identifier.
         :param configuration: Job configuration.
         :return: Return Future object.
         """
-        return
+        logging.info("Going to start execution of the job {}".format(identifier))
+        self.__pool.submit()
 
-    def _flush(self):
+    def flush(self):
         """Start solution explicitly of all recently submitted tasks."""
-        self.wi.flush_runs()
+        super(Scheduler, self).flush()
 
-    def _process_task_result(self, identifier, result):
+    def process_task_result(self, identifier, result):
         """
         Process result and send results to the verification gateway.
         :param identifier:
@@ -214,7 +280,7 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
-    def _process_job_result(self, identifier, result):
+    def process_job_result(self, identifier, result):
         """
         Process result and send results to the server.
         :param identifier:
@@ -222,37 +288,54 @@ class Scheduler(scheduler.SchedulerExchange):
         """
         return
 
-    def _cancel_task(self, identifier):
+    def cancel_task(self, identifier):
         """
         Stop task solution.
         :param identifier: Verification task ID.
         """
         logging.debug("Cancel task {}".format(identifier))
-        super(Scheduler, self)._cancel_task(identifier)
+        super(Scheduler, self).cancel_task(identifier)
+        self.__reserved_ram_memory -= self.__reserved[identifier]["max mem size"]
+        self.__running_tasks -= 1
+        del self.__reserved[identifier]
+        
+        if "keep work dir" in self.conf["scheduler"] and self.conf["scheduler"]["keep work dir"]:
+            return
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
+        logging.debug("Clean task work dir {} for {}".format(task_work_dir, identifier))
         shutil.rmtree(task_work_dir)
 
-    def _cancel_job(self, identifier):
+    def cancel_job(self, identifier):
         """
         Stop task solution.
         :param identifier: Verification task ID.
         """
-        if identifier in self.__jobs and "future" in self.__jobs[identifier] \
-                and not self.__jobs[identifier]["future"].done():
-            logging.debug("Cancel job '{}'".format(identifier))
-            self.__jobs[identifier]["future"].cancel()
-        else:
-            logging.debug("Job '{}' is not running, so it cannot be canceled".format(identifier))
+        logging.debug("Cancel job {}".format(identifier))
+        super(Scheduler, self).cancel_job(identifier)
+        self.__reserved_ram_memory -= self.__reserved[identifier]["max mem size"]
+        self.__running_jobs -= 1
+        del self.__reserved[identifier]
 
-    def _terminate(self):
+        if "keep work dir" in self.conf["scheduler"] and self.conf["scheduler"]["keep work dir"]:
+            return
+        job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
+        logging.debug("Clean job work dir {} for {}".format(job_work_dir, identifier))
+        shutil.rmtree(job_work_dir)
+
+    def terminate(self):
         """
         Abort solution of all running tasks and any other actions before
         termination.
         """
-        logging.info("Terminate all runs")
-        return self.wi.shutdown()
+        # Submit an empty configuration
+        logging.debug("Submit an empty configuration list before shutting down")
+        configurations = []
+        self.server.submit_nodes(configurations)
 
-    def _update_nodes(self):
+        # Terminate
+        return super(Scheduler, self).terminate()
+
+    def update_nodes(self):
         """
         Update statuses and configurations of available nodes.
         :return: Return True if nothing has changes
@@ -274,6 +357,30 @@ class Scheduler(scheduler.SchedulerExchange):
         string = session.kv["states/" + self.__node_name]
         node_status = json.loads(string)
 
+        # Submit nodes
+        # TODO: Properly set node status
+        configurations = [{
+            "CPU model": node_status["CPU model"],
+            "CPU number": node_status["available CPU number"],
+            "RAM memory": node_status["available RAM memory"],
+            "disk memory": node_status["available disk memory"],
+            "nodes": {
+                node_status["node name"]: {
+                    "status": "HEALTHY",
+                    "workload": {
+                        "reserved CPU number": 0,
+                        "reserved RAM memory": 0,
+                        "reserved disk memory": 0,
+                        "running verification jobs": 0,
+                        "running verification tasks": 0,
+                        "available for jobs": node_status["available for jobs"],
+                        "available for tasks": node_status["available for tasks"],
+                    }
+                }
+            }
+        }]
+        self.server.submit_nodes(configurations)
+
         # Fill available resources
         if self.__cpu_model != node_status["CPU model"] or \
            self.__cpu_cores != node_status["available CPU number"] or \
@@ -286,7 +393,7 @@ class Scheduler(scheduler.SchedulerExchange):
             return False
         return True
 
-    def _update_tools(self):
+    def update_tools(self):
         """
         Generate dictionary with verification tools available.
         :return: Dictionary with available verification tools.

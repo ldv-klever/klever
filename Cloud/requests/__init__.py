@@ -1,7 +1,7 @@
 import abc
 
 
-class Server(metaclass=abc.ABCMeta):
+class AbstractServer(metaclass=abc.ABCMeta):
     """Start exchange with verification gate."""
 
     def __init__(self, conf, work_dir):

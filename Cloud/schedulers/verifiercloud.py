@@ -1,8 +1,8 @@
-import time
 import os
 import sys
 import shutil
 import logging
+
 import Cloud.scheduler as scheduler
 import Cloud.client.executils as executils
 
@@ -78,34 +78,35 @@ class Scheduler(scheduler.SchedulerExchange):
         """Start scheduler loop."""
 
         # Perform sanity checks before initializing scheduler
-        if "web-interface address" not in self.conf or not self.conf["web-interface address"]:
+        if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
             raise KeyError("Provide VerifierCloud address within configuration property "
                            "'scheduler''Web-interface address'")
-        if "scheduler user name" not in self.conf:
+        if "scheduler user name" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''scheduler user name'")
-        if "scheduler password" not in self.conf:
+        if "scheduler password" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''scheduler password'")
 
         # Add path to benchexec directory
-        bexec_loc = self.conf["BenchExec location"]
+        bexec_loc = self.conf["scheduler"]["BenchExec location"]
         logging.debug("Add to PATH location {0}".format(bexec_loc))
         sys.path.append(bexec_loc)
 
         # Add path to CPAchecker scripts directory
-        cpa_loc = os.path.join(self.conf["CPAchecker location"], "scripts", "benchmark")
+        cpa_loc = os.path.join(self.conf["scheduler"]["CPAchecker location"], "scripts", "benchmark")
         logging.debug("Add to PATH location {0}".format(cpa_loc))
         sys.path.append(cpa_loc)
         from webclient import WebInterface
-        self.wi = WebInterface(self.conf["web-interface address"], "{}:{}".format(self.conf["scheduler user name"],
-                                                                                  self.conf["scheduler password"]))
+        self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], "{}:{}".format(self.conf["scheduler"]["scheduler user name"],
+                                                                                  self.conf["scheduler"]["scheduler password"]))
 
         return super(Scheduler, self).launch()
 
-    def scheduler_type(self):
+    @staticmethod
+    def scheduler_type():
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "VerifierCloud"
 
-    def _schedule(self, pending, processing, sorter):
+    def schedule(self, pending, processing, sorter):
         """
         Get list of new tasks which can be launched during current scheduler iteration.
         :param pending: List with all pending tasks.
@@ -113,9 +114,10 @@ class Scheduler(scheduler.SchedulerExchange):
         :param sorter: Function which can by used for sorting tasks according to their priorities.
         :return: List with identifiers of pending tasks to launch.
         """
-        if "max concurrent tasks" in self.conf and self.conf["max concurrent tasks"]:
-            if len(processing) < self.conf["max concurrent tasks"]:
-                diff = self.conf["max concurrent tasks"] - len(processing)
+        pending = sorted(pending, key=sorter)
+        if "max concurrent tasks" in self.conf["scheduler"] and self.conf["scheduler"]["max concurrent tasks"]:
+            if len(processing) < self.conf["scheduler"]["max concurrent tasks"]:
+                diff = self.conf["scheduler"]["max concurrent tasks"] - len(processing)
                 if diff <= len(pending):
                     new = pending[0:diff]
                 else:
@@ -127,7 +129,7 @@ class Scheduler(scheduler.SchedulerExchange):
 
         return new
 
-    def _prepare_task(self, identifier, description=None):
+    def prepare_task(self, identifier, description=None):
         """
         Prepare working directory before starting solution.
         :param identifier: Verification task identifier.
@@ -146,7 +148,7 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Unpack archive {} to {}".format(archive, task_data_dir))
         shutil.unpack_archive(archive, task_data_dir)
 
-    def _prepare_job(self, identifier, configuration):
+    def prepare_job(self, identifier, configuration):
         """
         Prepare working directory before starting solution.
         :param identifier: Verification task identifier.
@@ -155,7 +157,7 @@ class Scheduler(scheduler.SchedulerExchange):
         # Cannot be called
         pass
 
-    def _solve_task(self, identifier, description, user, password):
+    def solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
         :param identifier: Verification task identifier.
@@ -189,7 +191,7 @@ class Scheduler(scheduler.SchedulerExchange):
                               svn_branch=branch,
                               svn_revision=revision)
 
-    def _solve_job(self, configuration):
+    def solve_job(self, configuration):
         """
         Solve given verification task.
         :param identifier: Job identifier.
@@ -199,11 +201,11 @@ class Scheduler(scheduler.SchedulerExchange):
         # Cannot be called
         pass
 
-    def _flush(self):
+    def flush(self):
         """Start solution explicitly of all recently submitted tasks."""
         self.wi.flush_runs()
 
-    def _process_task_result(self, identifier, result):
+    def process_task_result(self, identifier, result):
         """
         Process result and send results to the verification gateway.
         :param identifier:
@@ -255,7 +257,7 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
-    def _process_job_result(self, identifier, result):
+    def process_job_result(self, identifier, result):
         """
         Process result and send results to the server.
         :param identifier:
@@ -264,17 +266,17 @@ class Scheduler(scheduler.SchedulerExchange):
         # Cannot be called
         pass
 
-    def _cancel_task(self, identifier):
+    def cancel_task(self, identifier):
         """
         Stop task solution.
         :param identifier: Verification task ID.
         """
         logging.debug("Cancel task {}".format(identifier))
-        super(Scheduler, self)._cancel_task(identifier)
+        super(Scheduler, self).cancel_task(identifier)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
 
-    def _cancel_job(self, identifier):
+    def cancel_job(self, identifier):
         """
         Stop task solution.
         :param identifier: Verification task ID.
@@ -282,22 +284,22 @@ class Scheduler(scheduler.SchedulerExchange):
         # Cannot be called
         pass
 
-    def _terminate(self):
+    def terminate(self):
         """
         Abort solution of all running tasks and any other actions before
         termination.
         """
         logging.info("Terminate all runs")
-        return self.wi.shutdown()
+        self.wi.shutdown()
 
-    def _update_nodes(self):
+    def update_nodes(self):
         """
         Update statuses and configurations of available nodes.
         :return: Return True if nothing has changes
         """
-        return super(Scheduler, self)._update_nodes()
+        return super(Scheduler, self).update_nodes()
 
-    def _update_tools(self):
+    def update_tools(self):
         """
         Generate dictionary with verification tools available and
         push it to the verification gate.

@@ -1,11 +1,10 @@
-import requests
-import time
-import logging
-import Cloud.scheduler.requests as requests
+import json
+
+import Cloud.requests as requests
 import Cloud.utils.omega as omega
 
 
-class Server(requests.Server):
+class Server(requests.AbstractServer):
     """Exchange with gateway via net."""
 
     session = None
@@ -17,7 +16,8 @@ class Server(requests.Server):
         :param require_login: Flag indicating whether or not user should authorize to send tasks.
         """
         # Create session
-        self.session = omega.Session(self.conf["name"], self.conf["user"], self.conf["password"], scheduler_type)
+        data = {"scheduler": scheduler_type}
+        self.session = omega.Session(self.conf["name"], self.conf["user"], self.conf["password"], data)
 
     def exchange(self, tasks):
         """
@@ -26,8 +26,9 @@ class Server(requests.Server):
         :param tasks: String with JSON task set inside.
         :return: String with JSON task set received from the verification Gateway.
         """
-        data = {"jobs and tasks status": tasks}
-        return self.session.json_exchange("get_jobs_and_tasks/", data)
+        data = {"jobs and tasks status": json.dumps(tasks)}
+        ret = self.session.json_exchange("service/get_jobs_and_tasks/", data)
+        return json.loads(ret["jobs and tasks status"])
 
     def pull_task(self, identifier, description, archive):
         """
@@ -48,6 +49,7 @@ class Server(requests.Server):
         :param description: Path to the JSON file to send.
         :param archive: Path to the zip archive to send.
         """
+        # Create session
         pass
 
     def submit_nodes(self, nodes):
@@ -55,7 +57,8 @@ class Server(requests.Server):
         Send string with JSON description of nodes available for verification in VerifierCloud.
         :param nodes: String with JSON nodes description.
         """
-        pass
+        data = {"nodes data": json.dumps(nodes)}
+        self.session.json_exchange("service/update_nodes/", data)
 
     def submit_tools(self, tools):
         """
