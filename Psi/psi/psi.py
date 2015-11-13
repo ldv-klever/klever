@@ -129,7 +129,7 @@ class Psi:
 
                     self.logger.info('Wait for uploading all reports')
                     self.uploading_reports_process.join()
-                    self.exit_code = self.uploading_reports_process.exitcode
+                    self.exit_code = max(self.exit_code, self.uploading_reports_process.exitcode)
 
                 if self.session:
                     self.session.sign_out()
