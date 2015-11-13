@@ -711,15 +711,15 @@ def decide_job(request):
     if 'report' not in request.POST:
         return JsonResponse({'error': 'Start report is not specified'})
 
-    if 'job id' not in request.session:
+    if 'job identifier' not in request.session:
         return JsonResponse({'error': "Session does not have job id"})
     try:
-        job = Job.objects.get(identifier=request.session['job id'],
+        job = Job.objects.get(identifier__startswith=request.session['job identifier'],
                               format=int(request.POST['job format']))
     except ObjectDoesNotExist:
         return JsonResponse({
             'error': 'Job with the specified identifier "{0}" was not found'
-            .format(request.POST['job id'])})
+            .format(request.session['job identifier'])})
 
     if not JobAccess(request.user, job).psi_access():
         return JsonResponse({
@@ -729,6 +729,9 @@ def decide_job(request):
         })
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
+
+    # Following requests will deal with job id rather than with job identifier.
+    request.session['job id'] = job.id
 
     jobtar = PSIDownloadJob(job)
     if jobtar.error is not None:
