@@ -90,6 +90,7 @@ Run manage.py tasks
 ^^^^^^^^^^^^^^^^^^^
 
 To run manage.py tasks:
+
 #. :menuselection:`Tools --> Run manage.py Task...`.
 #. Some manage.py tasks are described in the :ref:`install` section.
 

@@ -1,0 +1,41 @@
+{% load i18n %}
+{% load tz %}
+
+{% timezone user.extended.timezone %}
+<table class="ui compact celled purple table">
+    <thead>
+        <tr>
+            <th>{% trans 'Job' %}</th>
+            <th>{% trans 'Job scheduler' %}</th>
+            <th>{% trans 'Priority' %}</th>
+            <th>{% trans 'Start date' %}</th>
+            <th>{% trans 'Finish date' %}</th>
+            <th>{% trans 'Solution wall time' %}</th>
+            <th>{% trans 'Tasks finished' %}</th>
+            <th>{% trans 'Total tasks' %}</th>
+            <th>{% trans 'Progress' %}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for str in data %}
+            <tr>
+                <td><a href="{% url 'jobs:job' str.job.pk %}">{{ str.job.name }}</a></td>
+                <td><a href="{% url 'service:scheduler' str.job.jobsession.job_scheduler_id %}">{{ str.job.jobsession.job_scheduler.name }}</a></td>
+                <td>{{ str.priority }}</td>
+                <td>{{ str.start_date }}</td>
+                <td>{{ str.finish_date }}</td>
+                <td>{{ str.wall_time }}</td>
+                <td>{{ str.tasks_finished }}</td>
+                <td>{{ str.tasks_total }}</td>
+                <td class="four wide column">
+                    <div class="ui indicating progress {% if str.progress != 100 %}active{% endif %}" data-percent="{{ str.progress }}">
+                        <div class="bar" style="transition-duration: 300ms; width: {{ str.progress }}%;">
+                            <div class="progress">{{ str.progress }}%</div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endtimezone %}

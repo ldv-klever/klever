@@ -12,12 +12,14 @@ from django.utils.translation import ugettext as _
 from django.utils.translation import activate
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
-from Omega.vars import LANGUAGES
+from Omega.vars import LANGUAGES, PRIORITY
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
 from jobs.models import Job
 from django.middleware.csrf import get_token
 from users.notifications import NotifyData
+from service.models import Scheduler
+from reports.models import ReportRoot
 
 
 def user_signin(request):
@@ -117,6 +119,7 @@ def edit_profile(request):
         user_form = EditUserForm(instance=request.user)
         profile_form = UserExtendedForm(instance=request.user.extended)
 
+    schedulers = Scheduler.objects.filter(need_auth=True)
     return render(
         request,
         'users/edit-profile.html',
@@ -127,7 +130,9 @@ def edit_profile(request):
             'profile_errors': profile_form.errors,
             'user_errors': user_form.errors,
             'timezones': pytz.common_timezones,
-            'LANGUAGES': LANGUAGES
+            'LANGUAGES': LANGUAGES,
+            'schedulers': schedulers,
+            'priorities': PRIORITY
         })
 
 
@@ -164,7 +169,8 @@ def show_profile(request, user_id=None):
     return render(request, 'users/showProfile.html', {
         'target': target,
         'activity': activity,
-        'user_tz': user_tz
+        'user_tz': user_tz,
+        'num_of_solving_jobs': len(ReportRoot.objects.filter(user=target))
     })
 
 
@@ -192,6 +198,7 @@ def psi_signout(request):
 
 @login_required
 def save_notifications(request):
+    activate(request.user.extended.language)
     if request.method == 'POST':
         notifications = request.POST.get('notifications', '[]')
         self_ntf = json.loads(request.POST.get('self_ntf', False))

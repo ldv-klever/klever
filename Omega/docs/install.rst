@@ -6,25 +6,44 @@ Installation
 Omega installation
 ------------------
 
-#. Create a new MySQL user (**mysql_user**) identified by a password (**mysql_passwd**).
-#. Create a new MySQL database (**mysql_db**) with character set utf8 and grant full access on all its tables to **mysql_user**.
+#. Create a new MySQL/MariaDB user (**db_user**) identified by a password (**db_user_passwd**)::
+
+    MariaDB [(none)]> CREATE USER `db_user`@`localhost` IDENTIFIED BY 'db_user_passwd';
+
+#. Create a new MySQL/MariaDB database (**db_name**) with character set utf8 and grant full access on all its tables to
+   **db_user**::
+
+    MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8;
+    MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
+    MariaDB [(none)]> FLUSH PRIVILEGES;
+
 #. Create :file:`Omega/Omega/db.cnf`::
 
     [client]
-    database = mysql_db
-    user = mysql_user
-    password = mysql_passwd
+    database = db_name
+    user = db_user
+    password = db_user_passwd
     default-character-set = utf8
 
 #. Execute the following manage.py tasks::
 
-    $ python3.4 manage.py compilemessages
-    $ python3.4 manage.py makemigrations users jobs reports marks
-    $ python3.4 manage.py migrate
-    $ python3.4 manage.py createsuperuser
+    $ python3 manage.py compilemessages
+    $ python3 manage.py makemigrations users jobs reports marks service
+    $ python3 manage.py migrate
+    $ python3 manage.py createsuperuser
 
-#. With last command you will create **omega_user** identified by a password **omega_passwd**.
+   .. note:: Execution of :command:`manage.py migrate` can take quite much time.
+
+#. The last command will prompt you to create an Omega administrator **omega_admin** identified by a password
+   **omega_admin_passwd**.
+   An email address could be omitted.
+
 #. Proceed with either :ref:`dev-install` or :ref:`production-install`.
+#. Sign in at `<http://127.0.0.1:8998/>`_ with username (**omega_admin**) and password (**omega_admin_passwd**).
+#. Create a new Omega manager (**omega_manager**).
+#. Remember his/her password (**omega_manager_passwd**).
+#. Sign out and sign in on behalf of **omega_manager**.
+#. Enjoy!
 
 .. _dev-install:
 
@@ -33,23 +52,7 @@ Installation for development purposes
 
 #. Run a development server::
 
-    $ python3.4 manage.py runserver
-
-#. Sign in at `<http://127.0.0.1:8000/admin/>`_ with username (**omega_user**) and password (**omega_passwd**).
-#. Create extended options (timezone - UTC - later you can chang it).
-#. Stop the server by pressing :kbd:`Control-c` in the console where :program:`runserver` was executed.
-#. Open a Python shell::
-
-    $ python3.4 manage.py shell
-
-#. Execute the following commands in the Python shell::
-
-     >>> import jobs.populate
-     >>> jobs.populate.main_population('omega_user')
-     >>> quit()
-
-#. Run the development server once again.
-#. Enjoy!
+    $ python3 manage.py runserver 8998
 
 .. _production-install:
 
@@ -81,34 +84,17 @@ Installation for production purposes
     </Location>
 
 #. Copy Omega to :file:`/var/www/`
-#. Create path: :file:`/var/www/Omega/media/JobFiles` and make www-data owner of the new folders.
-#. Edit :file:`Omega/Omega/settings.py`::
-    #. Comment lines: 26, 30, 95, 129
-    #. Uncomment lines: 28, 32, 96-99, 131 and update it::
+#. Create path: :file:`/var/www/Omega/media/` and make www-data owner of the new folder.
+#. Edit :file:`Omega/Omega/settings.py`:
 
-        'NAME': '**mysql_db**',
-        'USER': '**mysql_user**',
-        'PASSWORD': '**mysql_passwd**',
+   * Comment lines: 26, 30, 123.
+   * Uncomment lines: 28, 32, 125.
 
 #. Execute the following manage.py task::
 
     $ python3.4 manage.py collectstatic
 
 #. Restart service apache2
-#. Sign in at `<http://127.0.0.1/admin/>`_ with username (**omega_user**) and password (**omega_passwd**).
-#. Create extended options (timezone - UTC - later you can change it).
-#. Open a Python shell::
-
-    $ python3.4 manage.py shell
-
-#. Execute the following commands in the Python shell::
-
-     >>> import jobs.populate
-     >>> jobs.populate.main_population('omega_user')
-     >>> quit()
-
-#. Restart service apache2
-#. Enjoy `<http://127.0.0.1/>`_!
 
 Documentation installation
 --------------------------

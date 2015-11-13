@@ -667,11 +667,19 @@ function set_actions_for_file_form() {
         if (selected) {
             var sel_type = selected[0],
                 sel_id = selected[1],
-                files_table = $('#file_tree_table');
+                files_table = $('#file_tree_table'),
+                file_title_span = $('#file_title__1__' + sel_id);
             if (sel_type != 1) {
                 err_notify($('#error__cant_replace_folder').text());
                 return;
             }
+            if (file_title_span.children('a').length > 0) {
+                $('#replaced_file_name').text(file_title_span.children('a').first().text());
+            }
+            else {
+                $('#replaced_file_name').text(file_title_span.text());
+            }
+
             var file_input = $('#replace_file_input');
             $('#replace_file_name').val('');
             file_input.replaceWith(file_input.clone(true));
@@ -778,10 +786,24 @@ function set_actions_for_versions_delete() {
 }
 
 $(document).ready(function () {
+    $('.for_popup').popup();
+    $('#job_scheduler').dropdown();
+    $('#view_job_1st_part').find('.ui.dropdown').dropdown();
     $('#remove_job_popup').modal({transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_job_popup', 'show');
+
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
+    });
+
+    $('#decide_job_popup').modal({autofocus: false, allowMultiple: false})
+        .modal('attach events', '#show_decide_job_popup', 'show');
+    $('#decide_job_cancel').click(function () {
+        $('#decide_job_popup').modal('hide');
+    });
+    $('#decide_job_order_popup').modal({autofocus: false, allowMultiple: false});
+    $('#sch_order_cancel').click(function () {
+        $('#decide_job_order_popup').modal('hide');
     });
 
     if ($('#edit_job_div').length) {
@@ -865,5 +887,97 @@ $(document).ready(function () {
                 }
             }
         );
+    });
+
+    $('#move_schedulers_up').click(function () {
+        var $op = $('#selected_schedulers').children('option:selected');
+        if ($op.length) {
+            $op.first().prev().before($op);
+        }
+    });
+
+    $('#move_schedulers_down').click(function () {
+        var $op = $('#selected_schedulers').children('option:selected');
+        if ($op.length) {
+            $op.last().next().after($op);
+        }
+    });
+
+    $('#decide_job_start').click(function () {
+        var schedulers = [];
+        $('input[id^="scheduler_"]').each(function () {
+            if ($(this).is(':checked')) {
+                schedulers.push([$(this).attr('id').replace('scheduler_', ''), $(this).next('label').text()])
+            }
+        });
+        var job_scheduler = $('input[name="job_scheduler"]:checked').val();
+        if (!job_scheduler) {
+            err_notify($('#error___no_job_scheduler_selected').text());
+            return false;
+        }
+        if (schedulers.length <= 0) {
+            err_notify($('#error___no_schedulers_selected').text());
+            return false;
+        }
+        $('#selected_schedulers').empty();
+        $.each(schedulers, function(i, val) {
+            $('#selected_schedulers').append($('<option>', {
+                value: val[0],
+                text: val[1],
+                title: val[1]
+            }));
+        });
+        var select_prority_div = $('#div_select_priority');
+        select_prority_div.empty();
+        select_prority_div.append($('<select>', {
+            class: 'ui dropdown',
+            id: 'priority_select'
+        }));
+        $.post(
+            job_ajax_url + 'get_max_prority/',
+            {schedulers: JSON.stringify(schedulers)},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else if (data.priorities) {
+                    var priorities = JSON.parse(data.priorities);
+                    priorities.forEach(function (pr) {
+                        $('#priority_select').append($('<option>', {value: pr[0], text: pr[1]}))
+                    });
+                    $('#priority_select').dropdown();
+                }
+            }
+        ).fail(function (x) {
+                console.log(x.responseText);
+            });
+        $('#decide_job_order_popup').modal('show');
+        return false;
+
+    });
+    $('#sch_order_confirm').click(function () {
+        var schedulers = [];
+        $('#selected_schedulers').children().each(function () {
+            schedulers.push($(this).val());
+        });
+        $.post(
+            job_ajax_url + 'run_decision/',
+            {
+                job_id: $('#job_pk').text(),
+                schedulers: JSON.stringify(schedulers),
+                job_scheduler: $('input[name="job_scheduler"]:checked').val(),
+                priority: $('#priority_select').val()
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        ).fail(function (x) {
+                console.log(x.responseText);
+            });
     });
 });

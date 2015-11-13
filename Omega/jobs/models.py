@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from Omega.formatChecker import RestrictedFileField
 from Omega.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
 
@@ -45,15 +47,6 @@ class JobHistory(JobBase):
         db_table = 'jobhistory'
 
 
-class ReportRoot(models.Model):
-    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
-    job = models.OneToOneField(Job)
-    last_request_date = models.DateTimeField()
-
-    class Meta:
-        db_table = 'report_root'
-
-
 class File(models.Model):
     hash_sum = models.CharField(max_length=255)
     file = RestrictedFileField(
@@ -69,6 +62,13 @@ class File(models.Model):
         return self.hash_sum
 
 
+@receiver(pre_delete, sender=File)
+def file_delete(**kwargs):
+    file = kwargs['instance']
+    storage, path = file.file.storage, file.file.path
+    storage.delete(path)
+
+
 class FileSystem(models.Model):
     job = models.ForeignKey(JobHistory)
     file = models.ForeignKey(File, null=True)
@@ -77,6 +77,13 @@ class FileSystem(models.Model):
 
     def __str__(self):
         return self.name
+
+    def delete(self, *args, **kwargs):
+        file = self.file
+        super(FileSystem, self).delete(*args, **kwargs)
+        if len(file.filesystem_set.all()) == 0 \
+                and len(file.reportcomponent_set.all()) == 0:
+            file.delete()
 
     class Meta:
         db_table = 'file_system'

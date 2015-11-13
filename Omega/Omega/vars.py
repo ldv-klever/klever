@@ -15,8 +15,10 @@ ERRORS = {
     602: _("You don't have an access to delete this mark"),
     605: _("You don't have an access to download this mark"),
     650: _("Saving mark failed"),
-    704: _("The tag was not found"),
-    804: _("The problem was not found")
+    704: _("Tag was not found"),
+    804: _("Problem was not found"),
+    904: _("User was not found"),
+    905: _("Scheduler was not found")
 }
 
 JOB_CLASSES = (
@@ -322,3 +324,31 @@ MARKS_UNKNOWN_VIEW = {
 
     }
 }
+
+SCHEDULER_STATUS = (
+    ('HEALTHY', _('Healthy')),
+    ('AILING', _('Ailing')),
+    ('DISCONNECTED', _('Disconnected'))
+)
+
+PRIORITY = (
+    ('URGENT', _('Urgent')),
+    ('HIGH', _('High')),
+    ('LOW', _('Low')),
+    ('IDLE', _('Idle'))
+)
+
+NODE_STATUS = (
+    ('USER_OCCUPIED', _('User occupied')),
+    ('HEALTHY', _('Healthy')),
+    ('AILING', _('Ailing')),
+    ('DISCONNECTED', _('Disconnected'))
+)
+
+TASK_STATUS = (
+    ('PENDING', _('Pending')),
+    ('PROCESSING', _('Processing')),
+    ('ERROR', _('Error')),
+    ('UNKNOWN', _('Unknown')),
+    ('FINISHED', _('Finished'))
+)

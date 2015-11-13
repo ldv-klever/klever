@@ -128,7 +128,7 @@ class LKBCE(psi.components.Component):
 
     def extract_all_linux_kernel_mod_deps(self):
         if 'whole build' in self.conf['Linux kernel']:
-            self.linxe_kernel['module deps'] = {}
+            self.linux_kernel['module deps'] = {}
             path = self.linux_kernel['modules install'] + "/lib/modules/" + self.linux_kernel['version'] + "/modules.dep"
             if not os.path.exists(path):
                 path = "/home/alexey/kernel/modules/lib/modules/4.0.0-rc1/modules.dep"

@@ -20,7 +20,7 @@ def before_launch_all_components(context):
 def after_extract_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
-def after_extract_all_linux_kernel_mod_deps(context):
+def after_build_linux_kernel(context):
     context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
 
 
@@ -64,6 +64,7 @@ class LKVOG(psi.components.Component):
         self.module = {}
         self.all_modules = {}
         self.verification_obj_desc = {}
+        self.checked_modules = []
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         psi.utils.invoke_callbacks(self.extract_common_prj_attrs)
@@ -148,7 +149,9 @@ class LKVOG(psi.components.Component):
                 with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
+
         elif strategy == "closure":
+
 
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id)
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
