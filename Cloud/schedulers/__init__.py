@@ -50,7 +50,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         :param server: Session object.
         """
         self.conf = conf
-        self.work_dir = work_dir
+        self.work_dir = os.path.abspath(work_dir)
         self.server = get_gateway(conf, os.path.join(work_dir, "requests"))
 
         # Check configuration completeness
@@ -196,13 +196,14 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 logging.info("Total {} tasks have been cancelled".format(len(cancel_tasks)))
 
                 # Cancel jobs
-                cancelled_jobs = [job_id for job_id in set(scheduler_state["jobs"]["pending"] +
-                                  scheduler_state["jobs"]["processing"]) if job_id in server_state["jobs"]["cancelled"]]
-                for job_id in cancelled_jobs:
-                    self.__jobs[job_id]["future"].cancel()
-                    self.cancel_job(job_id)
-                    del self.__jobs[job_id]
-                logging.info("Total {} jobs have been cancelled".format(len(cancelled_jobs)))
+                for job_id in server_state["jobs"]["cancelled"]:
+                    if job_id in self.__jobs:
+                        if self.__jobs[job_id]["status"] == "PROCESSING":
+                            self.__jobs[job_id]["future"].cancel()
+                            self.cancel_job(job_id)
+                            del self.__jobs[job_id]
+                        elif self.__jobs[job_id]["status"] == "PENDING":
+                            del self.__jobs[job_id]
 
                 # Update task processing status
                 for job_id in server_state["jobs"]["processing"]:
