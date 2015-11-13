@@ -7,7 +7,7 @@ import urllib.request
 
 
 class Session:
-    def __init__(self, logger, omega):
+    def __init__(self, logger, omega, job_id):
         logger.info('Create session for user "{0}" at Omega "{1}"'.format(omega['user'], omega['name']))
 
         self.logger = logger
@@ -24,35 +24,34 @@ class Session:
         self.__request('users/psi_signin/', {
             'username': omega['user'],
             'password': omega['passwd'],
+            'job identifier': job_id
         })
         logger.debug('Session was created')
 
     def __request(self, path_url, data=None):
+        url = 'http://' + self.name + '/' + path_url
+
+        # Presence of data implies POST request.
+        method = 'POST' if data else 'GET'
+
+        self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
+
+        if data:
+            data.update({'csrfmiddlewaretoken': self.csrftoken})
+
         while True:
             try:
-                url = 'http://' + self.name + '/' + path_url
-
-                # Presence of data implies POST request.
-                method = 'POST' if data else 'GET'
-
-                self.logger.debug('Send "{0}" request to "{1}"'.format(method, url))
-
                 if data:
-                    data.update({'csrfmiddlewaretoken': self.csrftoken})
                     resp = self.opener.open(url, urllib.parse.urlencode(data).encode('utf-8'))
                 else:
                     resp = self.opener.open(url)
-                    # CSRF token is updated after each GET request.
-                    for cookie in self.cj:
-                        if cookie.name == 'csrftoken':
-                            self.csrftoken = cookie.value
 
-                if resp.code != 200:
-                    with open('response error.html', 'w') as fp:
-                        fp.write(resp.text)
-                    raise IOError(
-                        'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
-                                                                                                   method, url))
+                # TODO: WTF? Now it is updated even after POST request to psi_signin!
+                # CSRF token is updated after each GET request.
+                for cookie in self.cj:
+                    if cookie.name == 'csrftoken':
+                        self.csrftoken = cookie.value
+
                 if resp.headers['content-type'] == 'application/json':
                     resp_json = json.loads(resp.read().decode('utf-8'))
 
@@ -60,26 +59,24 @@ class Session:
                         raise IOError(
                             'Got error "{0}" when send "{1}" request to "{2}"'.format(resp_json['error'], method, url))
 
-                    return resp, resp_json
+                    return resp
 
                 return resp
             except urllib.error.HTTPError as err:
-                self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, err.url))
+                with open('response error.html', 'w') as fp:
+                    fp.write(err.read().decode('utf-8'))
+                raise IOError(
+                    'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(err.code, method, url))
+            except urllib.error.URLError as err:
+                self.logger.warning('Could not send "{0}" request to "{1}": {2}'.format(method, url, err.reason))
                 time.sleep(1)
 
     def decide_job(self, job, start_report_file):
-        # Acquire download lock.
-        resp, resp_json = self.__request('jobs/downloadlock/')
-        if 'status' not in resp_json or 'hash_sum' not in resp_json:
-            raise IOError('Could not get download lock at "{0}"'.format(resp.geturl))
-
         # TODO: report is likely should be compressed.
         with open(start_report_file) as fp:
             resp = self.__request('jobs/decide_job/', {
-                'job id': job.id,
                 'job format': job.format,
-                'report': fp.read(),
-                'hash sum': resp_json['hash_sum']
+                'report': fp.read()
             })
 
         self.logger.debug('Write job archive to "{0}'.format(job.archive))

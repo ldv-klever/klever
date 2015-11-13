@@ -875,7 +875,7 @@ $(document).ready(function () {
 
     $('#load_job_btn').click(function () {
         $('#job_name_tr').popup('hide');
-        download_job($('#job_pk').val());
+        window.location.replace(job_ajax_url + 'downloadjob/' + $('#job_pk').val());
     });
 
     $('#edit_versions').click(function () {

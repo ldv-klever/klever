@@ -70,7 +70,7 @@ class Psi:
                                                  {'id': self.id,
                                                   'attrs': [{'PSI version': self.version}],
                                                   'comp': self.comp})
-            self.session = psi.session.Session(self.logger, self.omega)
+            self.session = psi.session.Session(self.logger, self.omega, self.job.id)
             self.session.decide_job(self.job, start_report_file)
             # TODO: create parallel process to send requests about successful operation to Omega.
             self.mqs['report files'] = multiprocessing.Queue()
@@ -102,6 +102,8 @@ class Psi:
                 self.logger.exception('Catch exception')
             else:
                 traceback.print_exc()
+
+            self.exit_code = 1
         finally:
             try:
                 for p in self.component_processes:

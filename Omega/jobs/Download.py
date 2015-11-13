@@ -22,90 +22,12 @@ from service.models import SolvingProgress, Scheduler
 DOWNLOAD_LOCKFILE = 'download.lock'
 
 
-class DownloadLock(object):
-    def __init__(self, hash_sum=None, user=None):
-        self.user = user
-        self.hash_sum = hash_sum
-        self.lockfile = DOWNLOAD_LOCKFILE
-        self.__prepare_lockfile()
-        self.locked = False
-        if self.hash_sum is not None:
-            self.locked = self.__second_lock()
-        elif isinstance(self.user, User):
-            self.locked = self.__first_lock()
-
-    def __first_lock(self):
-        f = open(self.lockfile, 'r')
-        line = f.readline()
-        f.close()
-        curr_time = (datetime.now() - datetime(2000, 1, 1)).total_seconds()
-        if line == 'unlocked':
-            self.__update_hash_sum()
-            if self.hash_sum:
-                f = open(self.lockfile, 'w')
-                f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
-                f.close()
-                return True
-        elif line.startswith('locked#'):
-            line_lock_time = float(line.split('#')[1])
-            if (curr_time - line_lock_time) > 10:
-                self.__update_hash_sum()
-                if self.hash_sum:
-                    f = open(self.lockfile, 'w')
-                    f.write('locked#' + str(curr_time) + '#' + self.hash_sum)
-                    f.close()
-                    return True
-        return False
-
-    def __update_hash_sum(self):
-        if self.user:
-            hash_data = (
-                '%s%s' % (self.user.extended.pk, datetime.now().isoformat())
-            ).encode('utf8')
-            self.hash_sum = hashlib.md5(hash_data).hexdigest()
-
-    def __second_lock(self):
-        f = open(self.lockfile, 'r')
-        line = f.readline()
-        f.close()
-        line_data = line.split('#')
-        if len(line_data) == 3 and line_data[0] == 'locked':
-            if self.hash_sum == line_data[2]:
-                f = open(self.lockfile, 'w')
-                f.write('doublelocked')
-                f.close()
-                return True
-        return False
-
-    def unlock(self):
-        f = open(self.lockfile, 'r')
-        status = f.readline()
-        f.close()
-        if status == 'unlocked':
-            return
-        f = open(self.lockfile, 'w')
-        f.write('unlocked')
-        f.close()
-
-    def __prepare_lockfile(self):
-        self.lockfile = os.path.join(settings.MEDIA_ROOT, self.lockfile)
-        if not os.path.isfile(self.lockfile):
-            f = open(self.lockfile, 'w')
-            f.write('unlocked')
-            f.close()
-
-
 class PSIDownloadJob(object):
-    def __init__(self, job, hash_sum):
+    def __init__(self, job):
         self.error = None
         self.tarname = ''
         self.memory = BytesIO()
-        locker = DownloadLock(hash_sum)
-        if locker.locked:
-            self.__create_tar(job)
-            locker.unlock()
-        else:
-            self.error = "Can't download job now"
+        self.__create_tar(job)
 
     def __create_tar(self, job):
         last_version = job.versions.get(version=job.version)
@@ -153,16 +75,11 @@ class PSIDownloadJob(object):
 
 class DownloadJob(object):
 
-    def __init__(self, job, hash_sum):
+    def __init__(self, job):
         self.tarname = ''
         self.memory = BytesIO()
         self.error = None
-        locker = DownloadLock(hash_sum)
-        if locker.locked:
-            self.__create_tar(job)
-            locker.unlock()
-        else:
-            self.error = _("Can't download job now")
+        self.__create_tar(job)
 
     def __create_tar(self, job):
 

@@ -8,15 +8,15 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
-from django.core.exceptions import MultipleObjectsReturned
 from Omega.vars import VIEW_TYPES, PRIORITY
+from Omega.utils import unparallel
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
-from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob, DownloadLock
+from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob
 from jobs.utils import *
 from service.utils import StartJobDecision, StartDecisionData, StopDecision
 
@@ -410,6 +410,7 @@ def copy_new_job(request):
     })
 
 
+@unparallel
 @login_required
 def save_job(request):
     activate(request.user.extended.language)
@@ -511,6 +512,7 @@ def save_job(request):
     return JsonResponse({'status': 1, 'message': _('Unknown error')})
 
 
+@unparallel
 @login_required
 def remove_jobs(request):
     activate(request.user.extended.language)
@@ -609,44 +611,26 @@ def download_file(request, file_id):
     return response
 
 
+@unparallel
 @login_required
 def download_job(request, job_id):
-    if request.method == 'POST':
-        return HttpResponse('')
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[404]))
     if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
-
-    back_url = quote(reverse('jobs:job', args=[job_id]))
-    hash_sum = request.GET.get('hashsum', None)
-    if hash_sum is None:
-        return HttpResponseRedirect(
-            reverse('error', args=[451]) + "?back=%s" % back_url
-        )
-    jobtar = DownloadJob(job, hash_sum)
-
+    jobtar = DownloadJob(job)
     if jobtar.error is not None:
         return HttpResponseRedirect(
-            reverse('error', args=[500]) + "?back=%s" % back_url
+            reverse('error', args=[500]) + "?back=%s" %
+            quote(reverse('jobs:job', args=[job_id]))
         )
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = "attachment; filename=%s" % jobtar.tarname
     jobtar.memory.seek(0)
     response.write(jobtar.memory.read())
     return response
-
-
-@login_required
-def download_lock(request):
-    tarlock = DownloadLock(user=request.user)
-    status = tarlock.locked
-    response_data = {'status': status}
-    if status:
-        response_data['hash_sum'] = tarlock.hash_sum
-    return JsonResponse(response_data)
 
 
 @login_required
@@ -715,43 +699,27 @@ def upload_job(request, parent_id=None):
     })
 
 
+@unparallel
 def decide_job(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
 
-    # TODO: remove
-    if 'job id' not in request.POST:
-        if 'job_id' not in request.session:
-            return JsonResponse({'error': 'Job identifier is not specified'})
-        job_id = request.session['job_id']
-    else:
-        job_id = request.POST['job id']
-
     if 'job format' not in request.POST:
         return JsonResponse({'error': 'Job format is not specified'})
     if 'report' not in request.POST:
         return JsonResponse({'error': 'Start report is not specified'})
-    if 'hash sum' not in request.POST:
-        return JsonResponse({'error': 'Hash sum is not specified'})
 
-    # TODO: uncomment
-    # if 'job id' not in request.session:
-        # return JsonResponse({'error': "Session does not have job id"})
+    if 'job identifier' not in request.session:
+        return JsonResponse({'error': "Session does not have job id"})
     try:
-        job = Job.objects.get(identifier__startswith=job_id,
+        job = Job.objects.get(identifier__startswith=request.session['job identifier'],
                               format=int(request.POST['job format']))
-        # TODO: remove
-        request.session['job id'] = job.id
     except ObjectDoesNotExist:
         return JsonResponse({
             'error': 'Job with the specified identifier "{0}" was not found'
-            .format(request.POST['job id'])})
-    except MultipleObjectsReturned:
-        return JsonResponse({
-            'error': 'Specified identifier "{0}" is not unique'
-            .format(request.POST['job id'])})
+            .format(request.session['job identifier'])})
 
     if not JobAccess(request.user, job).psi_access():
         return JsonResponse({
@@ -762,12 +730,13 @@ def decide_job(request):
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
 
-    jobtar = PSIDownloadJob(job, request.POST['hash sum'])
+    # Following requests will deal with job id rather than with job identifier.
+    request.session['job id'] = job.id
+
+    jobtar = PSIDownloadJob(job)
     if jobtar.error is not None:
         return JsonResponse({
-            'error': 'Couldn not prepare archive for job "{0}"'.format(
-                job.identifier
-            )
+            'error': "Couldn't prepare archive for the job '%s'" % job.identifier
         })
     job.status = JOB_STATUS[2][0]
     job.save()
@@ -778,8 +747,7 @@ def decide_job(request):
         return JsonResponse({'error': err})
 
     response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = 'attachment; filename={0}'.format(
-        jobtar.tarname)
+    response["Content-Disposition"] = 'attachment; filename={0}'.format(jobtar.tarname)
     response.write(jobtar.memory.read())
 
     return response
@@ -824,6 +792,7 @@ def stop_decision(request):
     return JsonResponse({'status': True})
 
 
+@unparallel
 @login_required
 def run_decision(request):
     activate(request.user.extended.language)
