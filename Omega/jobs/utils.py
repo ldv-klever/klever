@@ -55,7 +55,7 @@ TITLES = {
     'unsafe:total': _('Total'),
     'problem': _('Unknowns'),
     'problem:total': _('Total'),
-    'resource': _('Resourses'),
+    'resource': _('Consumed resources'),
     'resource:total': _('Total'),
     'tag': _('Tags'),
     'tag:safe': _('Safes'),

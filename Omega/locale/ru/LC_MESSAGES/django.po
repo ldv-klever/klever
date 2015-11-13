@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-13 15:14+0000\n"
+"POT-Creation-Date: 2015-11-13 15:21+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -324,7 +324,7 @@ msgstr "Дата последнего изменения"
 
 #: jobs/JobTableProperties.py:45 jobs/templates/jobs/jobData.html:101
 #: jobs/templates/jobs/viewJobFilters.html:28
-#: jobs/templates/jobs/viewJobFilters.html:95
+#: jobs/templates/jobs/viewJobFilters.html:95 jobs/utils.py:58
 msgid "Consumed resources"
 msgstr "Потребленные ресурсы"
 
@@ -1079,10 +1079,6 @@ msgstr "Целевые ошибки"
 #: jobs/utils.py:51
 msgid "False positives"
 msgstr "Ложные сообщения об ошибках"
-
-#: jobs/utils.py:58
-msgid "Resourses"
-msgstr "Ресурсы"
 
 #: jobs/utils.py:65 service/templates/service/scheduler.html:56
 msgid "Version"
@@ -2367,5 +2363,5 @@ msgstr "Оценка проблем в компонентах"
 msgid "Saved"
 msgstr "Сохранено"
 
-#~ msgid "Resources"
+#~ msgid "Resourses"
 #~ msgstr "Ресурсы"
