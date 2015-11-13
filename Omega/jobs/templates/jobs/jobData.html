@@ -98,7 +98,7 @@
 {% endif %}
 
 {% if reportdata.view_data.resources|length %}
-    <h4 class="header ui violet" id="resource_title_span">{% trans 'Resources' %}*</h4>
+    <h4 class="header ui violet" id="resource_title_span">{% trans 'Consumed resources' %}*</h4>
     <div class="ui list">
         {% for res_data in reportdata.view_data.resources %}
             <div class="item">
@@ -117,5 +117,5 @@
 
 <div id="resource_star_div">
     <div class="ui divider"></div>
-    <small style="color: #867684">*{% trans "Resources (wall time, CPU time and maximum memory) are shown for each component and totally" %}</small>
+    <small style="color: #867684">*{% trans "Wall time, CPU time and maximum memory size" %}</small>
 </div>

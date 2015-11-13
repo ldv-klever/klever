@@ -25,7 +25,7 @@
             <div class="eight wide column">
                 <div class="ui checkbox">
                     <input type="checkbox" id="job_filter_checkbox__resources"{% if 'resources' in reportdata.view.data %} checked{% endif %}>
-                    <label for="job_filter_checkbox__resources">{% trans 'Resources' %}</label>
+                    <label for="job_filter_checkbox__resources">{% trans 'Consumed resources' %}</label>
                 </div>
                 <br>
                 <div class="ui checkbox">
@@ -92,7 +92,7 @@
         </div>
 
         <div class="ui divider"></div>
-        <h4 class="header">{% trans 'Resources' %}</h4>
+        <h4 class="header">{% trans 'Consumed resources' %}</h4>
         <div class="ui checkbox">
             <input type="checkbox" id="job_filter_checkbox__resource_total"{% if reportdata.view.filters.resource_total.type == 'hide' %} checked{% endif %}>
             <label for="job_filter_checkbox__resource_total">{% trans 'Hide total' %}</label>

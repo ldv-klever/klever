@@ -69,7 +69,8 @@ class Psi:
                                                  'start',
                                                  {'id': self.id,
                                                   'attrs': [{'PSI version': self.version}],
-                                                  'comp': self.comp})
+                                                  'comp': [{attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
+                                                           for attr in self.comp for attr_shortcut in attr]})
             self.session = psi.session.Session(self.logger, self.omega, self.job.id)
             self.session.decide_job(self.job, start_report_file)
             # TODO: create parallel process to send requests about successful operation to Omega.
@@ -161,7 +162,8 @@ class Psi:
 
         def check_another_instance():
             if os.path.isfile(self.is_solving_file):
-                raise FileExistsError('Another instance occupies working directory "{0}"'.format(self.conf['working directory']))
+                raise FileExistsError(
+                    'Another instance occupies working directory "{0}"'.format(self.conf['working directory']))
 
         check_another_instance()
 
@@ -229,17 +231,28 @@ class Psi:
     def get_comp_desc(self):
         self.logger.info('Get computer description')
 
-        self.comp = [{entity_name_cmd[0]: psi.utils.get_entity_val(self.logger,
-                                                                   entity_name_cmd[1] if entity_name_cmd[1] else
-                                                                   entity_name_cmd[0],
-                                                                   entity_name_cmd[2])} for entity_name_cmd in
-                     [['node name', '', 'uname -n'],
-                      ['CPU model', '', 'cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"'],
-                      ['CPUs num', 'number of CPUs', 'cat /proc/cpuinfo | grep processor | wc -l'],
-                      ['mem size', 'memory size',
-                       'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'],
-                      ['Linux kernel version', '', 'uname -r'],
-                      ['arch', 'architecture', 'uname -m']]]
+        self.comp = [
+            {
+                entity_name_cmd[0]: {
+                    'name': entity_name_cmd[1] if entity_name_cmd[1] else entity_name_cmd[0],
+                    'value': psi.utils.get_entity_val(self.logger,
+                                                      entity_name_cmd[1]
+                                                      if entity_name_cmd[1]
+                                                      else entity_name_cmd[0],
+                                                      entity_name_cmd[2])
+                }
+            }
+            for entity_name_cmd in [
+                ['node name', '', 'uname -n'],
+                ['CPU model', '', 'cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"'],
+                ['CPUs num', 'number of CPU cores', 'cat /proc/cpuinfo | grep processor | wc -l'],
+                ['mem size', 'memory size',
+                 'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'],
+                ['Linux kernel version', '', 'uname -r'],
+                ['arch', 'architecture', 'uname -m']
+
+            ]
+            ]
 
     def send_reports(self):
         try:
@@ -305,7 +318,7 @@ class Psi:
 
         self.components_conf.update(
             {'root id': os.path.abspath(os.path.curdir),
-             'sys': {attr: comp[attr] for attr in ('CPUs num', 'mem size', 'arch')},
+             'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')},
              'priority': self.conf['priority'],
              'abstract tasks generation priority': self.conf['abstract tasks generation priority'],
              'debug': self.conf['debug'],
