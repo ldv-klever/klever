@@ -13,7 +13,8 @@ def main():
 
     # Submit content
     session = consulate.Consul()
-    session.kv["states/{}".format(node_conf["node configuration"]["node name"])] = json.dumps(node_conf)
+    session.kv["states/{}".format(node_conf["node configuration"]["node name"])] = \
+        json.dumps(node_conf["node configuration"])
     exit(0)
 
 if __name__ == '__main__':

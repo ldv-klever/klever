@@ -4,6 +4,7 @@ import Cloud.controller as controller
 
 
 if __name__ == "__main__":
+    # Parse configuration
     conf = utils.common_initialization("Client controller")
 
     # Check config
