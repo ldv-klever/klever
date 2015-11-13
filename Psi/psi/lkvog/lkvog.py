@@ -8,6 +8,7 @@ import re
 
 import psi.components
 import psi.utils
+from psi.lkvog import strategies
 
 
 def before_launch_all_components(context):
@@ -92,6 +93,11 @@ class LKVOG(psi.components.Component):
     def generate_all_verification_obj_descs(self):
         self.logger.info('Generate all Linux kernel verification object decriptions')
 
+        strategy_name = self.conf['LKVOG strategy']['name']
+        if strategy_name in ('closure'): #TODO вынести список стратегий в модуль
+            self.module_deps = self.mqs['Linux kernel module deps'].get()
+            strategy = getattr(strategies, strategy_name)
+
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
 
@@ -102,10 +108,17 @@ class LKVOG(psi.components.Component):
 
             # Collect all modules for what we generate verification objects to avoid generation of the same verification
             # object.
-            if not self.module['name'] in self.all_modules:
-                self.all_modules[self.module['name']] = True
-                # TODO: specification requires to do this in parallel...
-                psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
+            if strategy_name == 'separate modules':
+                if not self.module['name'] in self.all_modules:
+                    self.all_modules[self.module['name']] = True
+                    # TODO: specification requires to do this in parallel...
+                    psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
+            if strategy_name in ('closure'):
+                clusters = strategy(self.module)
+                for cluster in clusters:
+                    self.cluster = cluster
+                    psi.utils.invoke_callbacks(self.generate_all_verification_obj_descs)
+
 
     def generate_verification_obj_desc(self):
         self.logger.info(
@@ -135,113 +148,26 @@ class LKVOG(psi.components.Component):
                 with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
-        #TODO: These strategies very similar
-        elif strategy == "tree":
-            #Only modules without childrens
+        elif strategy == "closure":
 
-            #Wait for module dependencies
-            if self.module_deps == None:
-                self.module_deps = self.mqs['Linux kernel module deps'].get()
-
-            if self.module['name'] not in list(self.module_deps.values())\
-                    and self.module['name'] in self.module_deps:
-                #Does not approach
-                return
-
-            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
+            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id)
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
             self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
 
-            self.verification_obj_desc['grps'] = [
-                {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
-            self.logger.debug(
-                'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
-
-            self.verification_obj_desc['deps'] = {self.module['name']: ["module1", "module2"]}
-            self.logger.debug(
-                'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
-
-            if self.conf['debug']:
-                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
-                self.logger.debug(
-                    'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
-                        self.module['name'], verification_obj_desc_file))
-                with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
-                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
-
-        elif strategy == "reduced":
-            #Only modules without parents
-
-            #Wait for module dependencies
-            if self.module_deps == None:
-                self.module_deps = self.mqs['Linux kernel module deps'].get()
-
-            if self.module['name'] not in self.module_deps:
-                #Does not approach
-                return
-
-            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
-            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
-
-            self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
-
-            self.verification_obj_desc['grps'] = [
-                {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
-            self.logger.debug(
-                'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
-
-            self.verification_obj_desc['deps'] = {self.module['name']: ["module1", "module2"]}
-            self.logger.debug(
-                'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
-
-            if self.conf['debug']:
-                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
-                self.logger.debug(
-                    'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
-                        self.module['name'], verification_obj_desc_file))
-                with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
-                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
-
-        elif strategy == "cluster":
-
-
-            #Wait for module dependencies
-            if self.module_deps == None:
-                self.module_deps = self.mqs['Linux kernel module deps'].get()
-
-            if self.checked_modules == None:
-                self.checked_modules = []
-
-            if self.module['name'] in self.checked_modules:
-                #Already checked
-                return
-
-            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
-            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
-
-            self.verification_obj_desc['grps'] = [
-                {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
-
-            deps = self.module_deps[self.module['name']]
-
-            self.checked_modules.append(self.module['name'])
-            queue = self.module['name']
-            while queue:
-                module_name = queue.pop(0)
-                deps = list(
-                    filter(lambda x : x not in self.checked_modules, self.module_deps[module_name]))
-                for module in deps:
-
-                    self.checked_modules.append(module['name'])
-
-                    self.verification_obj_desc['grps'].append({'id': module, 'cc full desc files': module['cc full desc files']})
-
-                self.verification_obj_desc['deps'].append({module_name : deps})
-                queue.extend(deps)
+            self.verification_obj_desc['grps'] = []
+            self.verification_obj_desc['deps'] = {}
+            modules = self.cluster.root
+            while modules:
+                module = modules.pop(0)
+                self.verification_obj_desc['grps'].append({'id' : module.id,
+                                                          'cc full desc files' : self.__find_cc_full_desc_files(module.id)})
+                self.verification_obj_desc['deps'][module.name] = [x.id for x in module.successors]
+                modules.extend(module.successors)
 
             self.logger.debug(
                 'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
+
             self.logger.debug(
                 'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
