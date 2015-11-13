@@ -15,48 +15,17 @@ DEF_PSI_RESTRICTIONS = {
     'max_disk': '100.0',
 }
 
+# TODO: keys and values are almost the same and thus can be refactored.
 GEN_PRIORITY = [
     ('balance', _('Balance')),
-    ('rule spec', _('Rule specification')),
-    ('verification obj', _('Verification object')),
+    ('rule specifications', _('Rule specifications')),
+    ('verification objects', _('Verification objects')),
 ]
 
 PSI_LOGGING = {
     'console': "%(name)s %(levelname)5s> %(message)s",
     'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
 }
-
-PSI_CONFIG = '''{
-    "work dir": "psi-work-dir",
-    "id": null,
-    "priority": "IDLE",
-    "resource limits": {
-        "wall time": null,
-        "CPU time": null,
-        "max mem size": null,
-        "CPUs": null,
-        "max result size": null,
-        "CPU model": null
-    },
-    "AVTG priority": "balance",
-    "Omega": {
-        "name": "localhost:8998",
-        "user": null,
-        "passwd": null
-    },
-    "debug": false,
-    "allow local source directories use": false,
-    "logging": {
-        "formatters": null,
-        "loggers": null
-    },
-    "parallel": {
-        "Linux kernel build": 1.0,
-        "verification objs gen": 2,
-        "AVTG": 2,
-        "verification tasks gen": 2
-    }
-}'''
 
 
 # Case 3.1(3) DONE
@@ -897,51 +866,57 @@ class StartJobDecision(object):
         self.job.save()
 
     def __get_psi_data(self):
-        conf = json.loads(PSI_CONFIG)
+        conf = {}
         try:
             job = Job.objects.get(pk=int(self.data['job_id']))
         except ObjectDoesNotExist:
             self.error = _("The job was not found")
             return None
-        conf['id'] = job.identifier
+        conf['identifier'] = job.identifier
         conf['priority'] = self.data['priority']
         conf['debug'] = self.data['debug']
         conf['allow local source directories use'] = self.data['allow_local_dir']
-        conf['AVTG priority'] = self.data['gen_priority']
-        conf['logging']['formatters'] = [
-            {
-                'name': 'brief',
-                'value': self.data['console_log_formatter']
-            },
-            {
-                'name': 'detailed',
-                'value': self.data['file_log_formatter']
-            }
-        ]
-        conf['logging']['loggers'] = [{
-            "name": "default",
-            "handlers": [
+        conf['abstract tasks generation priority'] = self.data['gen_priority']
+        conf['logging'] = {
+            'formatters': [
                 {
-                    "name": "console",
-                    "level": "INFO",
-                    "formatter": "brief"
+                    'name': 'brief',
+                    'value': self.data['console_log_formatter']
                 },
                 {
-                    "name": "file",
-                    "level": "DEBUG",
-                    "formatter": "detailed"
+                    'name': 'detailed',
+                    'value': self.data['file_log_formatter']
+                }
+            ],
+            'loggers': [
+                {
+                    "name": "default",
+                    "handlers": [
+                        {
+                            "name": "console",
+                            "level": "INFO",
+                            "formatter": "brief"
+                        },
+                        {
+                            "name": "file",
+                            "level": "DEBUG",
+                            "formatter": "detailed"
+                        }
+                    ]
                 }
             ]
-        }]
+        }
         try:
             parallelism = int(self.data['parallelism'])
         except ValueError:
             parallelism = float(self.data['parallelism'])
-        conf['parallel']['Linux kernel build'] = parallelism
-        conf['resource limits']['CPUs'] = int(self.data['max_cpus'])
-        conf['resource limits']['CPUs'] = int(self.data['max_cpus'])
-        conf['resource limits']['max mem size'] = int(float(self.data['max_ram']) * 10**9)
-        conf['resource limits']['max result size'] = int(float(self.data['max_disk']) * 10**9)
+        conf['parallelism'] = {'Linux kernel build': parallelism}
+        conf['resource limits'] = {'wall time': None,
+                                   'CPU time': None,
+                                   'memory size': int(float(self.data['max_ram']) * 10**9),
+                                   'number of CPU cores': int(self.data['max_cpus']),
+                                   'CPU model': None}
+        # conf['resource limits']['max result size'] = int(float(self.data['max_disk']) * 10**9)
         return json.dumps(conf)
 
     def __get_scheduler(self):

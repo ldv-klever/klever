@@ -63,7 +63,7 @@ class Psi:
             self.omega = {'name': self.conf['Omega']['name'], 'user': self.get_user('Omega'),
                           'passwd': self.get_passwd('Omega')}
             self.get_version()
-            self.job = psi.job.Job(self.logger, self.conf['job']['id'])
+            self.job = psi.job.Job(self.logger, self.conf['identifier'])
             self.get_comp_desc()
             start_report_file = psi.utils.report(self.logger,
                                                  'start',
@@ -157,11 +157,11 @@ class Psi:
         Clean up and create the working directory. Prevent simultaneous usage of the same working directory.
         """
         # This file exists during Psi occupies working directory.
-        self.is_solving_file = os.path.join(self.conf['work dir'], 'is solving')
+        self.is_solving_file = os.path.join(self.conf['working directory'], 'is solving')
 
         def check_another_instance():
             if os.path.isfile(self.is_solving_file):
-                raise FileExistsError('Another instance occupies working directory "{0}"'.format(self.conf['work dir']))
+                raise FileExistsError('Another instance occupies working directory "{0}"'.format(self.conf['working directory']))
 
         check_another_instance()
 
@@ -171,9 +171,9 @@ class Psi:
         # - create working directory (pass if it is created by another Psi),
         # - test one more time whether another Psi occupies the same working directory,
         # - occupy working directory.
-        shutil.rmtree(self.conf['work dir'], True)
+        shutil.rmtree(self.conf['working directory'], True)
 
-        os.makedirs(self.conf['work dir'], exist_ok=True)
+        os.makedirs(self.conf['working directory'], exist_ok=True)
 
         check_another_instance()
 
@@ -183,13 +183,13 @@ class Psi:
 
     def change_work_dir(self):
         # Remember path to configuration file relative to future working directory before changing to it.
-        self.conf_file = os.path.relpath(self.conf_file, self.conf['work dir'])
+        self.conf_file = os.path.relpath(self.conf_file, self.conf['working directory'])
 
         # Change working directory forever.
         # We can use path for "is solving" file relative to future working directory since exceptions aren't raised when
         # we have relative path but don't change working directory yet.
-        self.is_solving_file = os.path.relpath(self.is_solving_file, self.conf['work dir'])
-        os.chdir(self.conf['work dir'])
+        self.is_solving_file = os.path.relpath(self.is_solving_file, self.conf['working directory'])
+        os.chdir(self.conf['working directory'])
 
     def get_user(self, name):
         """
@@ -209,7 +209,7 @@ class Psi:
         :return: a password for the specified name.
         """
         self.logger.info('Get ' + name + ' password')
-        passwd = getpass.getpass() if not self.conf[name]['passwd'] else self.conf[name]['passwd']
+        passwd = getpass.getpass() if not self.conf[name]['password'] else self.conf[name]['password']
         return passwd
 
     def get_version(self):
@@ -306,8 +306,8 @@ class Psi:
         self.components_conf.update(
             {'root id': os.path.abspath(os.path.curdir),
              'sys': {attr: comp[attr] for attr in ('CPUs num', 'mem size', 'arch')},
-             'job priority': self.conf['job']['priority'],
-             'AVTG priority': self.conf['AVTG priority'],
+             'priority': self.conf['priority'],
+             'abstract tasks generation priority': self.conf['abstract tasks generation priority'],
              'debug': self.conf['debug'],
              'allow local source directories use': self.conf['allow local source directories use'],
              'parallelism': self.conf['parallelism'],
