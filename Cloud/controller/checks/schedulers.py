@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import os
 import json
+import consulate
 import Cloud.utils as utils
 import Cloud.utils.omega as omega
 
@@ -20,7 +21,7 @@ def main():
     }
 
     a = utils.get_output("ps -aux | grep -F \"klever-scheduler.py\" ")
-    ks_out = int(utils.get_output("ps -aux | grep -F \"klever-scheduler.py\" -c"))
+    ks_out = int(utils.get_output("ps -aux | grep -F \"native-scheduler.py\" -c"))
     if ks_out > 2:
         status["Klever"] = "HEALTHY"
     vc_out = int(utils.get_output("ps -aux | grep -F \"verifiercloud-scheduler.py\" -c"))
@@ -35,6 +36,11 @@ def main():
 
     # Sign out
     session.sign_out()
+
+    # Submit scheduler status to kv storage for debug
+    session = consulate.Consul()
+    session.kv["schedulers"] = json.dumps(status)
+    exit(0)
 
 if __name__ == '__main__':
     main()

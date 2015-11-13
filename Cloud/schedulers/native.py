@@ -11,6 +11,7 @@ import requests
 import consulate
 
 import Cloud.schedulers as schedulers
+import Cloud.client as client
 
 
 class Scheduler(schedulers.SchedulerExchange):
@@ -25,6 +26,7 @@ class Scheduler(schedulers.SchedulerExchange):
     __disk_memory = None
     __disk_memory = None
     __pool = None
+    __job_conf_prototype = {}
     __reserved_ram_memory = 0
     __reserved_disk_memory = 0
     __running_tasks = 0
@@ -34,9 +36,24 @@ class Scheduler(schedulers.SchedulerExchange):
     def launch(self):
         """Start scheduler loop."""
 
+        if "job client configuration" not in self.conf["scheduler"]:
+            raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
         if "controller address" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''controller address'")
         self.__kv_url = self.conf["scheduler"]["controller address"]
+
+        # Import job configuration prototype
+        with open(self.conf["scheduler"]["job client configuration"], "r") as fh:
+            self.__job_conf_prototype = json.loads(fh.read())
+        if "Omega" not in self.__job_conf_prototype:
+            logging.debug("Add Omega settings to client job configuration")
+            self.__job_conf_prototype["Omega"] = self.conf["Omega"]
+        else:
+            logging.debug("Use provided in configuration prototype Omega settings for jobs")
+        if "common" not in self.__job_conf_prototype:
+            logging.debug("Use the same 'common' options for jobs which is used for the scheduler")
+        else:
+            logging.debug("Use provided in configuration prototype 'common' settings for jobs")
 
         # Check first time node
         self.update_nodes()
@@ -74,6 +91,7 @@ class Scheduler(schedulers.SchedulerExchange):
         if limits["max mem size"] <= (self.__ram_memory - self.__reserved_ram_memory):
             self.__reserved[identifier] = limits
             self.__reserved_ram_memory += limits["max mem size"]
+            self.__reserved[identifier] = limits
             return True
         else:
             return False
@@ -103,7 +121,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Plan jobs
         if len(pending_jobs) > 0:
             # Sort to get high priority tasks at the beginning
-            for job in pending_jobs:
+            for job in [job for job in pending_jobs if job["id"] not in self.__reserved]:
                 if self.__try_to_schedule(job["id"], job["configuration"]["resource limits"]):
                     new_jobs.append(job["id"])
                     self.__running_jobs += 1
@@ -157,28 +175,14 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug("Check resource limitations for the job {}".format(identifier))
         if configuration["resource limits"]["CPU model"] and \
            configuration["resource limits"]["CPU model"] != self.__cpu_model:
-            raise ValueError("There is no node with CPU model {} for job {}, has only {}".
-                             format(configuration["resource limits"]["CPU model"]), identifier, self.__cpu_model)
+            raise schedulers.SchedulerException(
+                "There is no node with CPU model {} for job {}, has only {}".
+                format(configuration["resource limits"]["CPU model"]), identifier, self.__cpu_model)
         if configuration["resource limits"]["max mem size"] >= self.__ram_memory:
-            raise ValueError("Node does not have {} bytes of RAM memory for job {}, has only {} bytes".
-                             format(configuration["resource limits"]["max mem size"]), identifier, self.__ram_memory)
+            raise schedulers.SchedulerException(
+                "Node does not have {} bytes of RAM memory for job {}, has only {} bytes".
+                format(configuration["resource limits"]["max mem size"]), identifier, self.__ram_memory)
         # TODO: Disk space check
-
-        # Create working directory
-        job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
-        logging.debug("Create working directory {}".format(identifier))
-        os.makedirs(job_work_dir)
-
-        # Generate configuration
-        psi_conf = configuration.copy()
-        del psi_conf["resource limits"]
-        psi_conf["Omega"] = {
-            "name": self.conf["Omega"]["name"],
-            "user": self.conf["Omega"]["user"],
-            "passwd": self.conf["Omega"]["password"]
-        }
-        self.__reserved[identifier]["configuration"] = psi_conf
-
 
     def solve_task(self, identifier, description, user, password):
         """
@@ -222,7 +226,30 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         logging.info("Going to start execution of the job {}".format(identifier))
-        self.__pool.submit()
+
+        # Create working directory
+        job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
+        logging.debug("Create working directory {}".format(identifier))
+        os.makedirs(job_work_dir)
+
+        # Generate configuration
+        psi_conf = configuration.copy()
+        del psi_conf["resource limits"]
+        psi_conf["Omega"] = {
+            "name": self.conf["Omega"]["name"],
+            "user": self.conf["Omega"]["user"],
+            "passwd": self.conf["Omega"]["password"]
+        }
+        self.__reserved[identifier]["configuration"] = psi_conf
+
+        client_conf = self.__job_conf_prototype.copy()
+        job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
+        logging.debug("Use working directory {} for job {}".format(job_work_dir, identifier))
+        client_conf["common"]["work dir"] = job_work_dir
+        client_conf["psi configuration"] = self.__reserved[identifier]["configuration"]
+        client_conf["resource limits"] = configuration["resource limits"]
+        json_str = json.dumps(client_conf)
+        return self.__pool.submit(client.solve_job, client_conf)
 
     def flush(self):
         """Start solution explicitly of all recently submitted tasks."""
@@ -280,13 +307,20 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
-    def process_job_result(self, identifier, result):
+    def process_job_result(self, identifier, future):
         """
         Process result and send results to the server.
-        :param identifier:
-        :return: Status of the task after solution: FINISHED or ERROR.
+        :param identifier: Job identifier.
+        :param future: Future object.
+        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
-        return
+        try:
+            result = future.result()
+            return "FINISHED"
+        except Exception as err:
+            error_msg = "Job {} terminated with an exception: {}".format(identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
 
     def cancel_task(self, identifier):
         """

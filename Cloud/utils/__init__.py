@@ -1,12 +1,13 @@
 import subprocess
 import logging
+import logging.config
 import argparse
 import os
 import json
 import shutil
 
 
-def common_initialization(tool):
+def common_initialization(tool, conf=None):
     """
     Start execution of the corresponding cloud tool.
 
@@ -14,15 +15,16 @@ def common_initialization(tool):
     :return: Configuration dictionary.
     """
 
-    # Parse configuration
-    parser = argparse.ArgumentParser(description='Start cloud {} according to the provided configuration.'.
-                                     format(tool))
-    parser.add_argument('config', metavar="CONF", help='Path to the cloud configuration file.')
-    args = parser.parse_args()
+    if not conf:
+        # Parse configuration
+        parser = argparse.ArgumentParser(description='Start cloud {} according to the provided configuration.'.
+                                         format(tool))
+        parser.add_argument('config', metavar="CONF", help='Path to the cloud configuration file.')
+        args = parser.parse_args()
 
-    # Read configuration from file.
-    with open(args.config) as fp:
-        conf = json.load(fp)
+        # Read configuration from file.
+        with open(args.config) as fp:
+            conf = json.load(fp)
 
     # TODO: Do we need use version of the scheduler further?
     # TODO: Do we need any checks of exclusive execution?

@@ -4,7 +4,7 @@ import time
 
 
 class Session:
-    def __init__(self, name, user, password, parameters={}):
+    def __init__(self, name, user, password, parameters=dict()):
         """
         Create http session between scheduler and Omega server.
 
@@ -27,7 +27,8 @@ class Session:
         parameters["password"] = password
 
         # Sign in.
-        self.__request('users/signin/', 'POST', parameters)
+        # TODO: Replace with proper signin
+        self.__request('users/psi_signin/', 'POST', parameters)
         logging.debug('Session was created')
 
     def __request(self, path_url, method='GET', data=None, **kwargs):
@@ -81,8 +82,7 @@ class Session:
     def json_exchange(self, endpoint, json_data):
         response = self.__request(endpoint, 'POST', json_data)
 
-        # TODO: Extract and return only JSON or through an exception
-        return response
+        return response.json()
 
     def sign_out(self):
         """
