@@ -3,7 +3,6 @@ __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 import logging
 import os
 import shutil
-import time
 import json
 import concurrent.futures
 import subprocess

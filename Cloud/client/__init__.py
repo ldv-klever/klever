@@ -2,7 +2,6 @@ import os
 import logging
 import sys
 import json
-import subprocess
 
 import Cloud.utils as utils
 
