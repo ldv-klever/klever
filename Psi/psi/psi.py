@@ -129,7 +129,9 @@ class Psi:
 
                     self.logger.info('Wait for uploading all reports')
                     self.uploading_reports_process.join()
-                    self.exit_code = max(self.exit_code, self.uploading_reports_process.exitcode)
+                    # Do not override exit code of main program with the one of auxiliary process uploading reports.
+                    if not self.exit_code:
+                        self.exit_code = self.uploading_reports_process.exitcode
 
                 if self.session:
                     self.session.sign_out()
