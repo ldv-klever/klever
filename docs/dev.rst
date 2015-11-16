@@ -74,7 +74,7 @@ Setting run/debug configuration
 Omega run/debug configuration
 """""""""""""""""""""""""""""
 
-#. Select *Django server* from the list.
+#. Select :menuselection:`Django server`.
 #. Input *Omega* in field :guilabel:`Name`.
 #. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Omega in the local network.
 #. Specify *8998* in field :guilabel:`Port`.
@@ -85,12 +85,24 @@ Omega run/debug configuration
 Psi run/debug configuration
 """""""""""""""""""""""""""
 
-#. Select Python from the list.
+#. Select :menuselection:`Python`.
 #. Input *Psi* in field :guilabel:`Name`.
 #. Specify :file:`Psi/bin/psi` in field :guilabel:`Script`.
 #. Extend existing value of :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and Aspectator
    (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
 #. Specify working directory somewhere outside the Psi repository (**work_dir**) in field :guilabel:`Working directory`.
+#. Select project *Psi* in field :guilabel:`Project`.
+#. :menuselection:`OK`.
+
+
+Documentation run/debug configuration
+"""""""""""""""""""""""""""""""""""""
+
+#. Select :menuselection:`Python docs --> Sphinx task`.
+#. Input *docs* in field :guilabel:`Name`.
+#. Specify :file:`docs` in field :guilabel:`Input`.
+#. Specify :file:`docs/_build` in field :guilabel:`Output`.
+#. Select project *docs* in field :guilabel:`Project`.
 #. :menuselection:`OK`.
 
 Creating Psi working directory
