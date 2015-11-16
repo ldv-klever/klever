@@ -266,12 +266,11 @@ def fill_session(request):
 def process_job(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
-    for v in request.POST:
-        request.session[v] = request.POST[v]
     if 'job id' not in request.POST:
         return JsonResponse({'error': 'Job identifier is not specified'})
     try:
         job = Job.objects.get(identifier=request.session.get('job id', 'null'))
+        request.session['job id'] = job.pk
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Job was not found'})
 

@@ -135,3 +135,8 @@ DEF_PSI_RESTRICTIONS = {
     'max_cpus': '2',
     'max_disk': '100.0',
 }
+
+DEF_PSI_FORMATTERS = {
+    'console': "%(name)s %(levelname)5s> %(message)s",
+    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+}

@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_STATUS
 from Omega.utils import print_err
-from Omega.settings import DEF_PSI_RESTRICTIONS
+from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
@@ -17,11 +17,6 @@ GEN_PRIORITY = [
     ('rule specifications', _('Rule specifications')),
     ('verification objects', _('Verification objects')),
 ]
-
-PSI_LOGGING = {
-    'console': "%(name)s %(levelname)5s> %(message)s",
-    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
-}
 
 
 # Case 3.1(3) DONE
@@ -990,7 +985,7 @@ class StartDecisionData(object):
         self.restrictions = DEF_PSI_RESTRICTIONS
         self.gen_priorities = GEN_PRIORITY
         self.parallelism = str(1.0)
-        self.logging = PSI_LOGGING
+        self.logging = DEF_PSI_FORMATTERS
 
     def __get_schedulers(self):
         try:
