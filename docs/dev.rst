@@ -55,7 +55,7 @@ Setting project
 At the "Welcome to PyCharm" window:
 
 #. :menuselection:`Open`.
-#. Specify the path to :file:`Omega` or :file:`Psi`.
+#. Specify the path to :file:`Omega`.
 #. :menuselection:`OK`.
 
 Configuring the Python interpreter
