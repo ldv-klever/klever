@@ -1,14 +1,12 @@
 {
-  "work dir": "psi-work-dir",
-  "job": {
-    "id": null,
-    "priority": "low"
-  },
-  "AVTG priority": "balance",
+  "working directory": "psi-work-dir",
+  "identifier": null,
+  "priority": "IDLE",
+  "abstract tasks generation priority": "balance",
   "Omega": {
     "name": "localhost:8998",
     "user": null,
-    "passwd": null
+    "password": null
   },
   "debug": false,
   "allow local source directories use": false,
