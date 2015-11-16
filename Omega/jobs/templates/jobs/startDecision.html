@@ -30,7 +30,7 @@
                     <label for="priority">{% trans 'Job priority' %}</label>
                     <select id="priority" class="ui dropdown fluid normal-dropdown">
                         {% for p in data.priorities %}
-                            <option value="{{ p.0 }}">{{ p.1 }}</option>
+                            <option value="{{ p.0 }}"{% if data.def_config.priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -69,7 +69,7 @@
                 <label for="gen_priority">{% trans 'Abstract tasks generation priority' %}</label>
                 <select id="gen_priority" class="ui dropdown fluid normal-dropdown">
                     {% for p in data.gen_priorities %}
-                        <option value="{{ p.0 }}">{{ p.1 }}</option>
+                        <option value="{{ p.0 }}"{% if data.def_config.avtg_priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
                     {% endfor %}
                 </select>
                 <h5 class="ui header">{% trans 'Parallelism' %}</h5>
@@ -94,13 +94,13 @@
         <div class="ui grid need-auth">
             <div class="five wide column">
                 <div class="ui toggle checkbox">
-                    <input id="debug_checkbox" type="checkbox">
+                    <input id="debug_checkbox" type="checkbox" {% if data.def_config.debug %} checked{% endif %}>
                     <label for="debug_checkbox">{% trans 'Debug' %}</label>
                 </div>
             </div>
             <div class="eight wide column">
                 <div class="ui toggle checkbox">
-                    <input id="allow_localdir_checkbox" type="checkbox">
+                    <input id="allow_localdir_checkbox" type="checkbox"{% if data.def_config.allow_local_dir %} checked{% endif %}>
                     <label for="allow_localdir_checkbox">{% trans 'Allow use of local source directories' %}</label>
                 </div>
             </div>
