@@ -3,6 +3,15 @@
 Installation
 ============
 
+Documentation installation
+--------------------------
+
+#. Execute the following command (it should be executed each time when documentation might be changed)::
+
+    $ make -C docs html
+
+#. Find the generated documenation index in :file:`docs/_build/index.html`.
+
 Omega installation
 ------------------
 
@@ -38,14 +47,14 @@ Omega installation
    **omega_admin_passwd**.
    An email address could be omitted.
 
-#. Proceed with either :ref:`dev-install` or :ref:`production-install`.
+#. Proceed with either :ref:`omega-dev-install` or :ref:`omega-production-install`.
 #. Sign in at `<http://127.0.0.1:8998/>`_ with username (**omega_admin**) and password (**omega_admin_passwd**).
 #. Create a new Omega Manager (**omega_manager**) and a new service user (**omega_service_user**).
 #. Remember their passwords (**omega_manager_passwd** and **omega_service_user_passwd** respectively).
 #. Sign out and sign in on behalf of **omega_manager**.
 #. Enjoy!
 
-.. _dev-install:
+.. _omega-dev-install:
 
 Installation for development purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -54,7 +63,7 @@ Installation for development purposes
 
     $ python3 manage.py runserver 8998
 
-.. _production-install:
+.. _omega-production-install:
 
 Installation for production purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -122,12 +131,3 @@ Update for production purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. TODO: how to update production server?
-
-Documentation installation
---------------------------
-
-#. Execute the following command (it should be executed each time when documentation might be changed)::
-
-    $ make -C docs html
-
-#. Find the generated documenation index in :file:`docs/_build/index.html`.

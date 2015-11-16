@@ -1,6 +1,17 @@
 Requirements
 ============
 
+Documentation
+-------------
+
+To build this documentation you need:
+
+* `Python 3.4.x <https://www.python.org/>`_.
+* `Sphinx <http://sphinx-doc.org>`_
+
+Omega
+-----
+
 To run Omega you need:
 
 * `Python 3.4.x <https://www.python.org/>`_ and its packages:
@@ -17,8 +28,3 @@ To run a production server you additionally need `apache2 <http://httpd.apache.o
 
 To translate Omega (i.e. to execute :command:`manage.py compilemessages`) you additionally need
 `gettext <https://www.gnu.org/software/gettext/>`_.
-
-To build this documentation you need:
-
-* `Python 3.4.x <https://www.python.org/>`_.
-* `Sphinx <http://sphinx-doc.org>`_

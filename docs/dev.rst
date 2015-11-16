@@ -4,7 +4,7 @@ Developer documentation
 How to write this documentation
 -------------------------------
 
-The Omega documentation is created using `Sphinx <http://sphinx-doc.org>`_ from
+This documentation is created using `Sphinx <http://sphinx-doc.org>`_ from
 `reStructuredText <http://docutils.sourceforge.net/rst.html>`_ source files.
 To improve existing documentation or to develop the new one you need to read at least the following chapters of the
 `Sphinx documentation <http://sphinx-doc.org/contents.html>`_:
@@ -35,7 +35,7 @@ To develop documentation it is recommended to use some visual editor.
 Using PyCharm IDE
 -----------------
 
-To use PyCharm IDE to develop Omega follow the following steps.
+To use PyCharm IDE to develop Klever follow the following steps.
 
 Installation
 ^^^^^^^^^^^^
