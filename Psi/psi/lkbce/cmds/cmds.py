@@ -23,5 +23,12 @@ class Command:
         # Eclude path where wrapper build command is located.
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
 
+        # TODO: remove these ugly workarounds after updating Aspectator to one of the newest version of GCC.
+        if self.cmd == 'gcc':
+            for unsupported_opt in ('-Werror=date-time', '-mpreferred-stack-boundary=3', '-Wno-maybe-uninitialized',
+                                    '--param=allow-store-data-races=0'):
+                if unsupported_opt in self.opts:
+                    self.opts.remove(unsupported_opt)
+
         # Execute original build command.
         subprocess.call(tuple(['aspectator' if self.cmd == 'gcc' else self.cmd] + self.opts))
