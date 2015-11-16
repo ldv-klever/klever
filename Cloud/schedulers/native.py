@@ -6,12 +6,11 @@ import shutil
 import time
 import json
 import concurrent.futures
-
+import subprocess
 import requests
 import consulate
 
 import Cloud.schedulers as schedulers
-import Cloud.client as client
 
 
 class Scheduler(schedulers.SchedulerExchange):
@@ -64,8 +63,10 @@ class Scheduler(schedulers.SchedulerExchange):
                            "available number of parallel processes")
         max_processes = self.conf["scheduler"]["processes"] - 1
         logging.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
-        #self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
-        self.__pool = concurrent.futures.ThreadPoolExecutor(max_processes)
+        if "process pool" in self.conf["scheduler"] and self.conf["scheduler"]["process pool"]:
+            self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
+        else:
+            self.__pool = concurrent.futures.ThreadPoolExecutor(max_processes)
 
         # Check existence of verifier scripts
         for tool in self.conf["scheduler"]["verification tools"]:
@@ -130,41 +131,7 @@ class Scheduler(schedulers.SchedulerExchange):
         return new_tasks, new_jobs
 
     def prepare_task(self, identifier, description):
-        """
-        Prepare working directory before starting solution.
-        :param identifier: Verification task identifier.
-        :param description: Dictionary with task description.
-        """
-        # Check feasibility of resource limitations
-        logging.debug("Check that task {} has feasible resource limitations".format(identifier))
-        if description["resource limits"]["CPU model"] != self.__cpu_model:
-            raise ValueError("Computer has {} CPU model but task {} asks for {}".
-                             format(self.__cpu_model, identifier, description["resource limits"]["CPU model"]))
-        if description["resource limits"]["CPU number"] > self.__cpu_cores:
-            raise ValueError("Computer has {} cores but task {} asks for {}".
-                             format(self.__cpu_cores, identifier, description["resource limits"]["CPU number"]))
-        if description["resource limits"]["RAM memory"] > self.__ram_memory:
-            raise ValueError("Computer has {} bytes of RAM but task {} asks for {}".
-                             format(self.__ram_memory, identifier, description["resource limits"]["RAM memory"]))
-        if description["resource limits"]["RAM memory"] > self.__disk_memory:
-            raise ValueError("Computer has {} bytes of disk space but task {} asks for {}".
-                             format(self.__disk_memory, identifier, description["resource limits"]["RAM memory"]))
-
-        # Check verification tool
-        logging.debug("Check verifier {} of the version {} in the list of supported tools".
-                      format(description["verifier"]["name"], format(description["verifier"]["version"])))
-        if description["verifier"]["name"] not in self.__verifiers:
-            raise ValueError("Scheduler has not verifier {} in the list of supported tools".
-                             format(description["verifier"]["name"]))
-        else:
-            if description["verifier"]["version"] not in self.__verifiers[description["verifier"]["name"]]:
-                raise ValueError("Scheduler has not version {} of the verifier {} in the list of supported tools".
-                                 format(description["verifier"]["version"], description["verifier"]["name"]))
-
-        # Prepare working directory
-        task_work_dir = os.path.join(self.work_dir, "client-workdirs", identifier)
-        logging.debug("Make directory for the task to solve {0}".format(task_work_dir))
-        os.makedirs(task_work_dir, exist_ok=True)
+        pass
 
     def prepare_job(self, identifier, configuration):
         """
@@ -186,38 +153,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # TODO: Disk space check
 
     def solve_task(self, identifier, description, user, password):
-        """
-        Solve given verification task.
-        :param identifier: Verification task identifier.
-        :param description: Verification task description dictionary.
-        :param user: User name.
-        :param password: Password.
-        :return: Return Future object.
-        """
-        # TODO: Add more exceptions handling to make code more reliable
-
-        # Prepare command to submit
-        logging.debug("Prepare arguments of the task {}".format(identifier))
-        task_data_dir = os.path.join(self.work_dir, "tasks", identifier, "data")
-        run = Run(task_data_dir, description, user, password)
-        branch, revision = run.version
-        if branch == "":
-            logging.warning("Branch has not given for the task {}".format(identifier))
-            branch = None
-        if revision == "":
-            logging.warning("Revision has not given for the task {}".format(identifier))
-            revision = None
-
-        # Submit command
-        logging.info("Submit the task {0}".format(identifier))
-        return self.wi.submit(run=run,
-                              limits=run.limits,
-                              cpu_model=run.cpu_model,
-                              result_files_pattern=None,
-                              priority=run.priority,
-                              user_pwd=run.user_pwd,
-                              svn_branch=branch,
-                              svn_revision=revision)
+        pass
 
     def solve_job(self, identifier, configuration):
         """
@@ -250,63 +186,20 @@ class Scheduler(schedulers.SchedulerExchange):
         client_conf["common"]["work dir"] = job_work_dir
         client_conf["psi configuration"] = self.__reserved[identifier]["configuration"]
         client_conf["resource limits"] = configuration["resource limits"]
-        return self.__pool.submit(client.solve_job, client_conf)
+
+        # Prepare command
+        client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client.py"))
+        args = [client_bin, "JOB", json.dumps(client_conf)]
+        logging.debug("Start job: {}".format(str(args)))
+
+        return self.__pool.submit(subprocess.call, args)
 
     def flush(self):
         """Start solution explicitly of all recently submitted tasks."""
         super(Scheduler, self).flush()
 
     def process_task_result(self, identifier, result):
-        """
-        Process result and send results to the verification gateway.
-        :param identifier:
-        :return: Status of the task after solution: FINISHED or ERROR.
-        """
-        task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
-        solution_file = os.path.join(task_work_dir, "solution.zip")
-        logging.debug("Save solution to the disk as {}".format(solution_file))
-        if result:
-            with open(solution_file, 'wb') as sa:
-                sa.write(result)
-        else:
-            logging.warning("Task has been finished but no data has been received for the task {}".
-                            format(identifier))
-            return "ERROR"
-
-        # Unpack results
-        task_solution_dir = os.path.join(task_work_dir, "solution")
-        logging.debug("Make directory for the solution to extract {0}".format(task_solution_dir))
-        os.makedirs(task_solution_dir, exist_ok=True)
-        logging.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
-        shutil.unpack_archive(solution_file, task_solution_dir)
-
-        # Process results and convert RunExec output to result description
-        solution_description = os.path.join(task_solution_dir, "verification task decision result.json")
-        logging.debug("Get solution description from {}".format(solution_description))
-        try:
-            solution_identifier, solution_description = \
-                executils.extract_description(task_solution_dir, solution_description)
-            logging.debug("Successfully extracted solution {} for task {}".format(solution_identifier, identifier))
-        except Exception as err:
-            logging.warning("Cannot extract results from a solution: {}".format(err))
-            raise err
-
-        # Make archive
-        solution_archive = os.path.join(task_work_dir, "solution")
-        logging.debug("Make archive {} with a solution of the task {}.tar.gz".format(solution_archive, identifier))
-        shutil.make_archive(solution_archive, 'gztar', task_solution_dir)
-        solution_archive += ".tar.gz"
-
-        # Push result
-        logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
-                                                                                                     identifier))
-        self.server.submit_solution(identifier, solution_archive, solution_description)
-
-        # Remove task directory
-        shutil.rmtree(task_work_dir)
-
-        logging.debug("Task {} has been processed successfully".format(identifier))
-        return "FINISHED"
+        pass
 
     def process_job_result(self, identifier, future):
         """
@@ -315,6 +208,16 @@ class Scheduler(schedulers.SchedulerExchange):
         :param future: Future object.
         :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
+        # Job finished and resources should be marked as released
+        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
+        self.__running_jobs -= 1
+        del self.__reserved[identifier]
+
+        if "keep work dir" not in self.conf["scheduler"] or not self.conf["scheduler"]["keep work dir"]:
+            job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
+            logging.debug("Clean job work dir {} for {}".format(job_work_dir, identifier))
+            shutil.rmtree(job_work_dir)
+
         try:
             result = future.result()
             if result == 0:
@@ -328,29 +231,16 @@ class Scheduler(schedulers.SchedulerExchange):
             raise schedulers.SchedulerException(error_msg)
 
     def cancel_task(self, identifier):
-        """
-        Stop task solution.
-        :param identifier: Verification task ID.
-        """
-        logging.debug("Cancel task {}".format(identifier))
-        super(Scheduler, self).cancel_task(identifier)
-        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
-        self.__running_tasks -= 1
-        del self.__reserved[identifier]
-        
-        if "keep work dir" in self.conf["scheduler"] and self.conf["scheduler"]["keep work dir"]:
-            return
-        task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
-        logging.debug("Clean task work dir {} for {}".format(task_work_dir, identifier))
-        shutil.rmtree(task_work_dir)
+        pass
 
     def cancel_job(self, identifier):
         """
         Stop task solution.
         :param identifier: Verification task ID.
         """
-        logging.debug("Cancel job {}".format(identifier))
         super(Scheduler, self).cancel_job(identifier)
+
+        logging.debug("Mark resources reserved for job {} as free".format(identifier))
         self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
         self.__running_jobs -= 1
         del self.__reserved[identifier]
@@ -372,7 +262,10 @@ class Scheduler(schedulers.SchedulerExchange):
         self.server.submit_nodes(configurations)
 
         # Terminate
-        return super(Scheduler, self).terminate()
+        super(Scheduler, self).terminate()
+
+        # Be sure that workers are killed
+        self.__pool.shutdown()
 
     def update_nodes(self):
         """
@@ -437,11 +330,7 @@ class Scheduler(schedulers.SchedulerExchange):
         Generate dictionary with verification tools available.
         :return: Dictionary with available verification tools.
         """
-        while True:
-            logging.debug("Send tools info to the verification gateway")
-            # TODO: Implement collecting of working revisions
-            self.server.submit_tools([])
-            time.sleep(period)
+        pass
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

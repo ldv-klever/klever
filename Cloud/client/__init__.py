@@ -2,6 +2,7 @@ import os
 import logging
 import sys
 import json
+import subprocess
 
 import Cloud.utils as utils
 
@@ -22,6 +23,12 @@ def solve_job(conf):
     logging.debug("Add to PATH BenchExec location {0}".format(bench_exec_location))
     sys.path.append(bench_exec_location)
     from benchexec.runexecutor import RunExecutor
+
+    # Add CIF path
+    if "cif location" in conf["client"]:
+        logging.info("Add CIF bin location to path {}".format(conf["client"]["cif location"]))
+        os.environ["PATH"] = "{}:{}".format(conf["client"]["cif location"], os.environ["PATH"])
+        logging.debug("Current PATH content is {}".format(os.environ["PATH"]))
 
     # Determine psi script path
     if "psi path" not in conf["client"]:
@@ -62,14 +69,16 @@ def solve_job(conf):
 
     # Run psi within runexec
     # TODO: How to choose proper CPU core numbers?
+
     logging.info("Run psi script {} with configuration file '{}'".format(bin, psi_config_file))
     result = executor.execute_run(args=[bin, psi_config_file], output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
                                   walltimelimit=conf["resource limits"]["wall time"],
                                   memlimit=conf["resource limits"]["memory size"])
-
-    logging.info("Job solution has finished with exit code {}".format(result["exitcode"]))
-    return result["exitcode"]
+    # TODO: Mmmmagic
+    exit_code = int(result["exitcode"]) % 255
+    logging.info("Job solution has finished with exit code {}".format(exit_code))
+    return exit_code
 
 
 def split_archive_name(path):
