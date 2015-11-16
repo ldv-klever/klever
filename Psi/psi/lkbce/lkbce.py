@@ -40,12 +40,8 @@ class LKBCE(psi.components.Component):
                           'attrs': self.linux_kernel['attrs']},
                          self.mqs['report files'],
                          self.conf['root id'])
-        self.configure_linux_kernel()
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
-        # Always create Linux kernel raw build commands file prior to its reading in
-        # self.process_all_linux_kernel_raw_build_cmds().
-        with open(self.linux_kernel['raw build cmds file'], 'w'):
-            pass
+        self.configure_linux_kernel()
         self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
         if not self.conf['debug']:
@@ -130,7 +126,13 @@ class LKBCE(psi.components.Component):
             psi.utils.execute(self.logger,
                               ('make', '-C', self.linux_kernel['work src tree'],
                                'ARCH={0}'.format(self.linux_kernel['arch']),
-                               self.conf['Linux kernel']['configuration']))
+                               self.conf['Linux kernel']['configuration']),
+                              dict(os.environ,
+                                   PATH='{0}:{1}'.format(
+                                       os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
+                                       os.environ['PATH']),
+                                   LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
+                                       self.linux_kernel['raw build cmds file'])))
         else:
             raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
