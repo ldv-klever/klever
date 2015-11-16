@@ -28,3 +28,17 @@ To run a production server you additionally need `apache2 <http://httpd.apache.o
 
 To translate Omega (i.e. to execute :command:`manage.py compilemessages`) you additionally need
 `gettext <https://www.gnu.org/software/gettext/>`_.
+
+Cloud
+-----
+
+If you are going to execute on your machine scheduler or the other Klever Cloud tools you need:
+
+* `Python 3.4.x <https://www.python.org/>`_ and its packages:
+
+  * `consulate <https://pypi.python.org/pypi/consulate>`_.
+  * `requests <https://pypi.python.org/pypi/requests/>`_.
+
+* `BenchExec sources <http://github.com/dbeyer/benchexec>`_.
+* `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_. Web-interface is expected in the consul
+root directory.

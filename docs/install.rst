@@ -131,3 +131,44 @@ Update for production purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. TODO: how to update production server?
+
+Install Cloud tools
+-------------------
+
+Cloud tools after all requirements installation do not need specific installation, but each tool requires configuration
+file to prepare.
+
+Controller configuration
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Prototype for client controller configuration can be found in :file:`Cloud/conf/controller.json`. It is recommended to
+set up manually the following configuration properties:
+
+* *Omega* section contains *name*, *user*, *password* attributes which should be set according to Omega service user.
+* *client-controller* section contains consul configuration properties. It is better to provide your own *Omega* service
+  check and turn-on or off consul web-UI.
+
+Scheduler configuration
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Prototype for scheduler configuration can be found in :file:`Cloud/conf/scheduler.json`. It is recommended to set up
+manually the following configuration properties:
+
+* *Omega* section contains *name*, *user*, *password* attributes which should be set according to Omega service user.
+* *Scheduler* section describes scheduling configuration with the following major attributes:
+    * *controller address* - address which is used to access consul (do not change it if you use default consul
+      configuration).
+    * *keep work dir* attribute implies not to delete generated working directories. If you are going to debug psi or
+      a verification tool it is recommended to set it as True, but it will cause problems in case of solving the same
+      job or task twice.
+    * *job client configuration* attribute corresponds to a file with client configuration. You can prepare the file on
+      the base of :file:`Cloud/conf/client.json`.
+
+Scheduler client configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Prototype for scheduler client configuration can be found in :file:`Cloud/conf/client.json`. It is recommended to set
+up manually the following configuration properties:
+
+* *client:benchexec location* configuration property corresponds to a root directory with BenchExec sources.
+* *client:cif location* configuration property corresponds to a binaries directory with CIF tools.

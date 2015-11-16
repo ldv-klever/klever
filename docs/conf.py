@@ -55,8 +55,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'Klever'
-copyright = '2015, Vladimir Gratinskiy, Evgeny Novikov'
-author = 'Vladimir Gratinskiy, Evgeny Novikov'
+copyright = '2015, Evgeny Novikov, Ilja Zakharov, Vladimir Gratinskiy'
+author = 'Evgeny Novikov, Ilja Zakharov, Vladimir Gratinskiy'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

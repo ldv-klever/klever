@@ -100,3 +100,20 @@ Additional documentation
 A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
 available at the official `PyCharm documentation site <https://www.jetbrains.com/pycharm/documentation/>`_.
 
+Run cloud tools in PyCharm
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To be able to solve tasks on your machine you need to run Klever client-controller and native scheduler tools. Follow
+the steps:
+
+#. First install all requirements and prepare configuration properties according to the installation documentation.
+   Do it after you have working Omega server.
+
+#. Run client-controller. Use script :file:`Cloud/bin/client-controller` and prepared client-controller configuration
+   file as the first argument. If you would turn on web-UI in configuration and place necessary files in the consul
+   directory you will get a visualization of all checks at *http://localhost:8500/ui*.
+
+#. Run native scheduler after you have running controller and Omega server. Run script :file:`Cloud/bin/scheduler` with
+   the scheduler configuration file as a single argument.
+
+#. Check out at client-controller consul web-UI that all checks are passing now.
