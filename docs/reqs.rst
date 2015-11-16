@@ -40,8 +40,8 @@ If you are going to execute on your machine scheduler or the other Klever Cloud 
   * `requests <https://pypi.python.org/pypi/requests/>`_.
 
 * `BenchExec sources <http://github.com/dbeyer/benchexec>`_.
-* `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_. Web-interface is expected in the consul
-root directory.
+* `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_.
+  Web-interface is expected in the consul root directory.
 
 Psi
 ---
