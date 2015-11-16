@@ -44,16 +44,18 @@ Installation
    weren't tested, below all settings are given for version 4.5.3).
 #. Follow installation instructions provided at that site.
 #. Activate the PyCharm license.
-#. Specify your preferences until the "Welcome to PyCharm" window.
+#. Specify your preferences at the "Welcome to PyCharm" window.
 
 .. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JDK_HOME`, e.g.
           :file:`/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/`.
 
 Setting project
 ^^^^^^^^^^^^^^^
+
 At the "Welcome to PyCharm" window:
+
 #. :menuselection:`Open`.
-#. Specify the path to :file:`Omega`.
+#. Specify the path to :file:`Omega` or :file:`Psi`.
 #. :menuselection:`OK`.
 
 Configuring the Python interpreter
@@ -68,6 +70,10 @@ Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. :menuselection:`Run --> Edit Configurations... --> Add New Configuration`.
+
+Omega run/debug configuration
+"""""""""""""""""""""""""""""
+
 #. Select *Django server* from the list.
 #. Input *Omega* in field :guilabel:`Name`.
 #. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Omega in the local network.
@@ -76,23 +82,23 @@ Setting run/debug configuration
 
 .. note:: To make your Omega accessible from the local network you might need to set up your firewall accordingly.
 
-Run development server
-^^^^^^^^^^^^^^^^^^^^^^
+Run
+^^^
 
-To run the development server press :kbd:`Shift+F10`.
+To run press :kbd:`Shift+F10`.
 
-Debug development server
-^^^^^^^^^^^^^^^^^^^^^^^^
+Debug
+^^^^^
 
-To debug the development server press :kbd:`Shift+F9`.
+To debug press :kbd:`Shift+F9`.
 
-Run manage.py tasks
-^^^^^^^^^^^^^^^^^^^
+Run Omega manage.py tasks
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To run manage.py tasks:
 
 #. :menuselection:`Tools --> Run manage.py Task...`.
-#. Some manage.py tasks are described in the :ref:`install` section.
+#. Some manage.py tasks are described in the :ref:`omega-install` section.
 
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,5 +1,3 @@
-.. _install:
-
 Installation
 ============
 
@@ -11,6 +9,8 @@ Documentation installation
     $ make -C docs html
 
 #. Find the generated documenation index in :file:`docs/_build/index.html`.
+
+.. _omega-install:
 
 Omega installation
 ------------------
