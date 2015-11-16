@@ -812,6 +812,7 @@ def run_decision(request):
 
 @login_required
 def prepare_decision(request, job_id):
+    activate(request.user.extended.language)
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
