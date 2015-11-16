@@ -14,7 +14,6 @@ Contents:
    reqs
    install
    dev
-   modules/models
 
 Indices and tables
 ==================
