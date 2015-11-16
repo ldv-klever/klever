@@ -160,7 +160,7 @@ class UploadReport(object):
                 return 'Wrong computer description format'
             if len(d) != 1:
                 return 'Wrong computer description format'
-            if not isinstance(d[next(iter(d))], str):
+            if not isinstance(d[next(iter(d))], str) and not isinstance(d[next(iter(d))], int):
                 return 'Wrong computer description format'
         return None
 
