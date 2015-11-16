@@ -1,5 +1,4 @@
 __pycache__/*
 __pycache__
 */.idea/workspace.xml
-_build/*
-_build
+docs/_build

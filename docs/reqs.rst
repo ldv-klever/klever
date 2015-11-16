@@ -42,3 +42,11 @@ If you are going to execute on your machine scheduler or the other Klever Cloud 
 * `BenchExec sources <http://github.com/dbeyer/benchexec>`_.
 * `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_. Web-interface is expected in the consul
 root directory.
+
+Psi
+---
+
+To run Psi you need:
+
+* `Python 3.4.x <https://www.python.org/>`_.
+* `CIF <http://forge.ispras.ru/projects/cif>`_.

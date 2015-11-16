@@ -140,3 +140,10 @@ DEF_PSI_FORMATTERS = {
     'console': "%(name)s %(levelname)5s> %(message)s",
     'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
 }
+
+DEF_PSI_CONFIGURATION = {
+    'debug': False,
+    'allow_local_dir': False,  # Allow use of local source directories
+    'priority': 'IDLE',  # See Omega.vars.PRIORITY for more options
+    'avtg_priority': 'balance'  # See service.utils.GEN_PRIORITY for more options
+}

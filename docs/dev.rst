@@ -44,16 +44,18 @@ Installation
    weren't tested, below all settings are given for version 4.5.3).
 #. Follow installation instructions provided at that site.
 #. Activate the PyCharm license.
-#. Specify your preferences until the "Welcome to PyCharm" window.
+#. Specify your preferences at the "Welcome to PyCharm" window.
 
 .. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JDK_HOME`, e.g.
           :file:`/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/`.
 
 Setting project
 ^^^^^^^^^^^^^^^
+
 At the "Welcome to PyCharm" window:
+
 #. :menuselection:`Open`.
-#. Specify the path to :file:`Omega`.
+#. Specify the path to :file:`Omega` or :file:`Psi`.
 #. :menuselection:`OK`.
 
 Configuring the Python interpreter
@@ -68,6 +70,10 @@ Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. :menuselection:`Run --> Edit Configurations... --> Add New Configuration`.
+
+Omega run/debug configuration
+"""""""""""""""""""""""""""""
+
 #. Select *Django server* from the list.
 #. Input *Omega* in field :guilabel:`Name`.
 #. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Omega in the local network.
@@ -76,23 +82,64 @@ Setting run/debug configuration
 
 .. note:: To make your Omega accessible from the local network you might need to set up your firewall accordingly.
 
-Run development server
-^^^^^^^^^^^^^^^^^^^^^^
+Psi run/debug configuration
+"""""""""""""""""""""""""""
 
-To run the development server press :kbd:`Shift+F10`.
+#. Select Python from the list.
+#. Input *Psi* in field :guilabel:`Name`.
+#. Specify :file:`Psi/bin/psi` in field :guilabel:`Script`.
+#. Extend existing value of :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and Aspectator
+   (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
+#. Specify working directory somewhere outside the Psi repository (**work_dir**) in field :guilabel:`Working directory`.
+#. :menuselection:`OK`.
 
-Debug development server
-^^^^^^^^^^^^^^^^^^^^^^^^
+Creating Psi working directory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To debug the development server press :kbd:`Shift+F9`.
+Create **work_dir**.
 
-Run manage.py tasks
-^^^^^^^^^^^^^^^^^^^
+Specifying Psi configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. Copy :file:`Psi/psi-conf.json` to **work_dir**.
+#. Edit the copied file:
+    * Specify the identifier of the job you are going to solve (the value of property *job.id*).
+    * Specify the name of Omega and your credentials (values of properties *Omega.name*, *Omega.user* and *Omega.passwd*
+      correspondingly).
+      If the value of *Omega.user* will be left *"null"* your OS user name will be used.
+      If the value of *Omega.passwd* will be left *"null"* you will be asked to secretly enter your password when you
+      will run Psi.
+      The specified Omega user should have Operator rights for the specified job.
+    * Switch value of property *allow local source directories use* to *true*.
+
+Fetching Linux kernel source code
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Get somehow source code of some version of the Linux kernel and place it to **work_dir**.
+
+.. note:: The value of property *Linux kernel.src* of the specified job configuration should be the name of the
+          directory where you will place Linux kernel source code.
+
+Run
+^^^
+
+To run press :kbd:`Shift+F10`.
+
+.. note:: If Psi will fatally fail or you will kill Psi, you might need to manually remove :file:`is solving` inside
+          **work_dir** to run Psi fot the next time.
+
+Debug
+^^^^^
+
+To debug press :kbd:`Shift+F9`.
+
+Run Omega manage.py tasks
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To run manage.py tasks:
 
 #. :menuselection:`Tools --> Run manage.py Task...`.
-#. Some manage.py tasks are described in the :ref:`install` section.
+#. Some manage.py tasks are described in the :ref:`omega-install` section.
 
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^

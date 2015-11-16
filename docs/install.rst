@@ -12,6 +12,8 @@ Documentation installation
 
 #. Find the generated documenation index in :file:`docs/_build/index.html`.
 
+.. _omega-install:
+
 Omega installation
 ------------------
 
@@ -172,3 +174,8 @@ up manually the following configuration properties:
 
 * *client:benchexec location* configuration property corresponds to a root directory with BenchExec sources.
 * *client:cif location* configuration property corresponds to a binaries directory with CIF tools.
+
+Psi installlation
+-----------------
+
+Enjoy!

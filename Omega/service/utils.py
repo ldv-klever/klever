@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_STATUS
 from Omega.utils import print_err
-from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS
+from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS, DEF_PSI_CONFIGURATION
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
@@ -986,6 +986,7 @@ class StartDecisionData(object):
         self.gen_priorities = GEN_PRIORITY
         self.parallelism = str(1.0)
         self.logging = DEF_PSI_FORMATTERS
+        self.def_config = DEF_PSI_CONFIGURATION
 
     def __get_schedulers(self):
         try:
