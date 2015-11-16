@@ -131,3 +131,8 @@ Update for production purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. TODO: how to update production server?
+
+Psi installlation
+-----------------
+
+Enjoy!

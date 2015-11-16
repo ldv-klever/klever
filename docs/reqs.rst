@@ -28,3 +28,11 @@ To run a production server you additionally need `apache2 <http://httpd.apache.o
 
 To translate Omega (i.e. to execute :command:`manage.py compilemessages`) you additionally need
 `gettext <https://www.gnu.org/software/gettext/>`_.
+
+Psi
+---
+
+To run Psi you need:
+
+* `Python 3.4.x <https://www.python.org/>`_.
+* `CIF <http://forge.ispras.ru/projects/cif>`_.
