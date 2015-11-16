@@ -142,6 +142,9 @@ class Psi:
                         self.logger.info('Release working directory')
                     os.remove(self.is_solving_file)
 
+                if self.logger:
+                    self.logger.info('Exit with code "{0}"'.format(self.exit_code))
+
                 exit(self.exit_code)
 
     def get_conf(self):
