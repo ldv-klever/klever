@@ -40,12 +40,9 @@ class LKBCE(psi.components.Component):
                           'attrs': self.linux_kernel['attrs']},
                          self.mqs['report files'],
                          self.conf['root id'])
-        self.configure_linux_kernel()
+        # This file should be specified to collect build commands during configuring and building of the Linux kernel.
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
-        # Always create Linux kernel raw build commands file prior to its reading in
-        # self.process_all_linux_kernel_raw_build_cmds().
-        with open(self.linux_kernel['raw build cmds file'], 'w'):
-            pass
+        self.configure_linux_kernel()
         self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
         if not self.conf['debug']:
@@ -91,20 +88,9 @@ class LKBCE(psi.components.Component):
         self.logger.debug(
             'Following build commands will be executed:\n{0}'.format('\n'.join([' '.join(cmd) for cmd in cmds])))
 
-        for cmd in cmds:
-            psi.utils.execute(self.logger,
-                              tuple(['make', '-j',
-                                     psi.utils.get_parallel_threads_num(self.logger,
-                                                                        self.conf,
-                                                                        'Linux kernel build'),
-                                     '-C', self.linux_kernel['work src tree'],
-                                     'ARCH={0}'.format(self.linux_kernel['arch'])] + list(cmd)),
-                              dict(os.environ,
-                                   PATH='{0}:{1}'.format(
-                                       os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
-                                       os.environ['PATH']),
-                                   LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
-                                       self.linux_kernel['raw build cmds file'])))
+        for args in cmds:
+            self.__make(args, jobs_num=psi.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
+                        specify_arch=True, invoke_build_cmd_wrappers=True, collect_build_cmds=True)
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with psi.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a') as fp:
@@ -112,7 +98,7 @@ class LKBCE(psi.components.Component):
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
-        psi.utils.execute(self.logger, ('make', '-C', self.linux_kernel['work src tree'], 'mrproper'))
+        self.__make(('mrproper',))
 
         # In this case we need to remove intermediate files and directories that could be created during previous run.
         if self.conf['allow local source directories use']:
@@ -127,10 +113,8 @@ class LKBCE(psi.components.Component):
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
         if 'configuration' in self.conf['Linux kernel']:
-            psi.utils.execute(self.logger,
-                              ('make', '-C', self.linux_kernel['work src tree'],
-                               'ARCH={0}'.format(self.linux_kernel['arch']),
-                               self.conf['Linux kernel']['configuration']))
+            self.__make((self.conf['Linux kernel']['configuration'],), specify_arch=True,
+                        invoke_build_cmd_wrappers=True, collect_build_cmds=True, collect_all_stdout=True)
         else:
             raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
@@ -138,9 +122,8 @@ class LKBCE(psi.components.Component):
         self.logger.info('Extract Linux kernel atributes')
 
         self.logger.debug('Get Linux kernel version')
-        stdout = psi.utils.execute(self.logger,
-                                   ('make', '-s', '-C', self.linux_kernel['work src tree'], 'kernelversion'),
-                                   collect_all_stdout=True)
+        stdout = self.__make(('-s', 'kernelversion'), specify_arch=False, collect_all_stdout=True)
+
         self.linux_kernel['version'] = stdout[0]
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))
 
@@ -373,3 +356,26 @@ class LKBCE(psi.components.Component):
         self.logger.debug(
             'Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
         self.logger.debug('Options are "{0}"'.format(self.linux_kernel['build cmd']['opts']))
+
+    def __make(self, args, jobs_num=1, specify_arch=False, invoke_build_cmd_wrappers=False, collect_build_cmds=False,
+               collect_all_stdout=False):
+        env = None
+
+        # Update environment variables so that invoke build command wrappers and optionally collect build commands.
+        if invoke_build_cmd_wrappers or collect_build_cmds:
+            assert invoke_build_cmd_wrappers or not collect_build_cmds, \
+                'Build commands can not be collected without invoking build command wrappers'
+            env = dict(os.environ)
+            if invoke_build_cmd_wrappers:
+                env.update({'PATH': '{0}:{1}'.format(os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
+                                                     os.environ['PATH'])})
+            if collect_build_cmds:
+                env.update(
+                    {'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
+
+        return psi.utils.execute(self.logger,
+                                 tuple(['make', '-j', str(jobs_num), '-C', self.linux_kernel['work src tree']] +
+                                       (['ARCH={0}'.format(self.linux_kernel['arch'])] if specify_arch else []) +
+                                       list(args)),
+                                 env,
+                                 collect_all_stdout=collect_all_stdout)

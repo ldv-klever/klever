@@ -18,7 +18,7 @@ def schedule_task(request):
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
     if 'job id' not in request.session:
-        return JsonResponse({'error': 'Session does not have job identifier'})
+        return JsonResponse({'error': 'Session does not have job id'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'description' not in request.POST:
@@ -228,6 +228,7 @@ def set_schedulers_status(request):
 
 @login_required
 def schedulers_info(request):
+    activate(request.user.extended.language)
     return render(request, 'service/scheduler.html', {
         'schedulers': Scheduler.objects.all(),
         'data': NodesData()
@@ -265,12 +266,11 @@ def fill_session(request):
 def process_job(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
-    for v in request.POST:
-        request.session[v] = request.POST[v]
     if 'job id' not in request.POST:
         return JsonResponse({'error': 'Job identifier is not specified'})
     try:
         job = Job.objects.get(identifier=request.session.get('job id', 'null'))
+        request.session['job id'] = job.pk
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Job was not found'})
 

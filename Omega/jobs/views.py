@@ -5,6 +5,7 @@ import mimetypes
 from io import BytesIO
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import MultipleObjectsReturned
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
@@ -712,26 +713,29 @@ def decide_job(request):
         return JsonResponse({'error': 'Start report is not specified'})
 
     if 'job identifier' not in request.session:
-        return JsonResponse({'error': "Session does not have job id"})
+        return JsonResponse({'error': "Session does not have job identifier"})
     try:
         job = Job.objects.get(identifier__startswith=request.session['job identifier'],
                               format=int(request.POST['job format']))
     except ObjectDoesNotExist:
         return JsonResponse({
-            'error': 'Job with the specified identifier "{0}" was not found'
-            .format(request.session['job identifier'])})
+            'error': 'Job with the specified identifier "%s" was not found' % request.session['job identifier']
+        })
+    except MultipleObjectsReturned:
+        return JsonResponse({
+            'error': 'The specified job identifier "%s" is not unique' % request.session['job identifier']
+        })
 
     if not JobAccess(request.user, job).psi_access():
         return JsonResponse({
-            'error': 'User "{0}" has not access to decide job "{1}"'.format(
+            'error': 'User "{0}" doesn\'t have access to decide job "{1}"'.format(
                 request.user, job.identifier
             )
         })
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
 
-    # Following requests will deal with job id rather than with job identifier.
-    request.session['job id'] = job.id
+    request.session['job id'] = job.pk
 
     jobtar = PSIDownloadJob(job)
     if jobtar.error is not None:

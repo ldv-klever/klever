@@ -1,19 +1,15 @@
 import json
 import pytz
 from datetime import datetime
-from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
 from Omega.vars import JOB_STATUS
 from Omega.utils import print_err
+from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
 
-DEF_PSI_RESTRICTIONS = {
-    'max_ram': '2.0',
-    'max_cpus': '2',
-    'max_disk': '100.0',
-}
 
 # TODO: keys and values are almost the same and thus can be refactored.
 GEN_PRIORITY = [
@@ -21,11 +17,6 @@ GEN_PRIORITY = [
     ('rule specifications', _('Rule specifications')),
     ('verification objects', _('Verification objects')),
 ]
-
-PSI_LOGGING = {
-    'console': "%(name)s %(levelname)5s> %(message)s",
-    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
-}
 
 
 # Case 3.1(3) DONE
@@ -64,12 +55,12 @@ class ScheduleTask(object):
 
     def __get_job(self, job_id):
         try:
-            return Job.objects.get(identifier__startswith=job_id)
+            return Job.objects.get(pk=int(job_id))
         except ObjectDoesNotExist:
-            self.error = 'Job with the specified identifier "%s" was not found' % job_id
+            self.error = 'Job was not found was not found' % job_id
             return
-        except MultipleObjectsReturned:
-            self.error = 'Specified identifier "%s" is not unique' % job_id
+        except ValueError:
+            self.error = 'Wrong job id format'
             return
 
     def __create_task(self, description, archive):
@@ -866,57 +857,60 @@ class StartJobDecision(object):
         self.job.save()
 
     def __get_psi_data(self):
-        conf = {}
         try:
             job = Job.objects.get(pk=int(self.data['job_id']))
         except ObjectDoesNotExist:
             self.error = _("The job was not found")
             return None
-        conf['identifier'] = job.identifier
-        conf['priority'] = self.data['priority']
-        conf['debug'] = self.data['debug']
-        conf['allow local source directories use'] = self.data['allow_local_dir']
-        conf['abstract tasks generation priority'] = self.data['gen_priority']
-        conf['logging'] = {
-            'formatters': [
-                {
-                    'name': 'brief',
-                    'value': self.data['console_log_formatter']
-                },
-                {
-                    'name': 'detailed',
-                    'value': self.data['file_log_formatter']
-                }
-            ],
-            'loggers': [
-                {
-                    "name": "default",
-                    "handlers": [
-                        {
-                            "name": "console",
-                            "level": "INFO",
-                            "formatter": "brief"
-                        },
-                        {
-                            "name": "file",
-                            "level": "DEBUG",
-                            "formatter": "detailed"
-                        }
-                    ]
-                }
-            ]
+        conf = {
+            'identifier': job.identifier,
+            'priority': self.data['priority'],
+            'debug': self.data['debug'],
+            'allow local source directories use': self.data['allow_local_dir'],
+            'abstract tasks generation priority': self.data['gen_priority'],
+            'logging': {
+                'formatters': [
+                    {
+                        'name': 'brief',
+                        'value': self.data['console_log_formatter']
+                    },
+                    {
+                        'name': 'detailed',
+                        'value': self.data['file_log_formatter']
+                    }
+                ],
+                'loggers': [
+                    {
+                        "name": "default",
+                        "handlers": [
+                            {
+                                "name": "console",
+                                "level": "INFO",
+                                "formatter": "brief"
+                            },
+                            {
+                                "name": "file",
+                                "level": "DEBUG",
+                                "formatter": "detailed"
+                            }
+                        ]
+                    }
+                ]
+            },
+            'resource limits': {
+                'wall time': None,
+                'CPU time': None,
+                'memory size': int(float(self.data['max_ram']) * 10**9),
+                'number of CPU cores': int(self.data['max_cpus']),
+                'CPU model': None,
+                # 'max result size': int(float(self.data['max_disk']) * 10**9)
+            }
         }
         try:
             parallelism = int(self.data['parallelism'])
         except ValueError:
             parallelism = float(self.data['parallelism'])
         conf['parallelism'] = {'Linux kernel build': parallelism}
-        conf['resource limits'] = {'wall time': None,
-                                   'CPU time': None,
-                                   'memory size': int(float(self.data['max_ram']) * 10**9),
-                                   'number of CPU cores': int(self.data['max_cpus']),
-                                   'CPU model': None}
-        # conf['resource limits']['max result size'] = int(float(self.data['max_disk']) * 10**9)
         return json.dumps(conf)
 
     def __get_scheduler(self):
@@ -991,7 +985,7 @@ class StartDecisionData(object):
         self.restrictions = DEF_PSI_RESTRICTIONS
         self.gen_priorities = GEN_PRIORITY
         self.parallelism = str(1.0)
-        self.logging = PSI_LOGGING
+        self.logging = DEF_PSI_FORMATTERS
 
     def __get_schedulers(self):
         try:

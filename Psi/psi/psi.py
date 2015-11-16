@@ -129,7 +129,9 @@ class Psi:
 
                     self.logger.info('Wait for uploading all reports')
                     self.uploading_reports_process.join()
-                    self.exit_code = max(self.exit_code, self.uploading_reports_process.exitcode)
+                    # Do not override exit code of main program with the one of auxiliary process uploading reports.
+                    if not self.exit_code:
+                        self.exit_code = self.uploading_reports_process.exitcode
 
                 if self.session:
                     self.session.sign_out()
@@ -139,6 +141,9 @@ class Psi:
                     if self.logger:
                         self.logger.info('Release working directory')
                     os.remove(self.is_solving_file)
+
+                if self.logger:
+                    self.logger.info('Exit with code "{0}"'.format(self.exit_code))
 
                 exit(self.exit_code)
 

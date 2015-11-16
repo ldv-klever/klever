@@ -129,3 +129,14 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+DEF_PSI_RESTRICTIONS = {
+    'max_ram': '2.0',
+    'max_cpus': '2',
+    'max_disk': '100.0',
+}
+
+DEF_PSI_FORMATTERS = {
+    'console': "%(name)s %(levelname)5s> %(message)s",
+    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+}

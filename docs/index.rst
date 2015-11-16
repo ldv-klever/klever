@@ -1,10 +1,10 @@
-.. Omega documentation master file, created by
+.. Klever documentation master file, created by
    sphinx-quickstart on Wed Jul 29 16:08:33 2015.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Omega's documentation!
-=================================
+Welcome to Klever's documentation!
+==================================
 
 Contents:
 
@@ -14,7 +14,6 @@ Contents:
    reqs
    install
    dev
-   modules/models
 
 Indices and tables
 ==================
