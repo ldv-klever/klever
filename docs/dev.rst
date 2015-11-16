@@ -115,14 +115,14 @@ Specifying Psi configuration
 
 #. Copy :file:`Psi/psi-conf.json` to **work_dir**.
 #. Edit the copied file:
-    * Specify the identifier of the job you are going to solve (the value of property *job.id*).
-    * Specify the name of Omega and your credentials (values of properties *Omega.name*, *Omega.user* and *Omega.passwd*
-      correspondingly).
+    * Specify the identifier of the job you are going to solve (the value of property *identifier*).
+    * Specify the name of Omega and your credentials (values of properties *Omega.name*, *Omega.user* and
+      *Omega.password* correspondingly).
       If the value of *Omega.user* will be left *"null"* your OS user name will be used.
-      If the value of *Omega.passwd* will be left *"null"* you will be asked to secretly enter your password when you
+      If the value of *Omega.password* will be left *"null"* you will be asked to secretly enter your password when you
       will run Psi.
-      The specified Omega user should have Operator rights for the specified job.
-    * Switch value of property *allow local source directories use* to *true*.
+      The specified Omega user should have service rights.
+    * Switch values of properties *debug* and *allow local source directories use* to *true*.
 
 Fetching Linux kernel source code
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
