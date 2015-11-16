@@ -41,6 +41,7 @@ def prepare_node_info(node_info):
 
     return result
 
+
 def setup_consul(conf):
     """
     Setup consul working directory and configuration files.
@@ -80,6 +81,11 @@ def setup_consul(conf):
     if "service checks" in conf["client-controller"]:
         for check in conf["client-controller"]["service checks"]:
             consul_config["checks"].append(check)
+
+    # Add additional configuration options
+    if "consul additional configuration" in conf["client-controller"]:
+        for key in conf["client-controller"]["consul additional configuration"]:
+            consul_config[key] = conf["client-controller"]["consul additional configuration"][key]
 
     consul_config_file = os.path.join(consul_work_dir, "config.json")
     logging.info("Save consul configuration file {}".format(consul_config_file))

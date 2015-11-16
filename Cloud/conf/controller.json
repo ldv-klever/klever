@@ -43,7 +43,11 @@
       "-log-level=debug",
       "-server",
       "-retry-interval=30s"
-    ]
+    ],
+    "consul additional configuration": {
+      "disable_anonymous_signature": true,
+      "disable_update_check": true
+    }
   },
   "node configuration": {
     "bind address": "0.0.0.0",
