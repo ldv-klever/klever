@@ -16,7 +16,7 @@ class Command:
         self.opts = argv[1:]
 
     def launch(self):
-        with psi.utils.LockedOpen(os.environ['LINUX_KERNEL_RAW_BUILD_CMS_FILE'], 'a') as fp:
+        with psi.utils.LockedOpen(os.environ['LINUX_KERNEL_RAW_BUILD_CMDS_FILE'], 'a') as fp:
             fp.write('{0}\n{1}'.format('\n'.join([self.cmd.upper() if self.cmd != 'gcc' else 'CC'] + self.opts),
                                        self.cmds_separator))
 

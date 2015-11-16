@@ -371,7 +371,7 @@ class LKBCE(psi.components.Component):
                                                      os.environ['PATH'])})
             if collect_build_cmds:
                 env.update(
-                    {'LINUX_KERNEL_RAW_BUILD_CMS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
+                    {'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
 
         return psi.utils.execute(self.logger,
                                  tuple(['make', '-j', str(jobs_num), '-C', self.linux_kernel['work src tree']] +
