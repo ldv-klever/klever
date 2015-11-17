@@ -17,7 +17,7 @@ class Session:
         self.csrftoken = None
 
         # TODO: try to autentificate like with httplib2.Http().add_credentials().
-        # Get CSRF token via GET request.
+        # Get initial value of CSRF token via useless GET request.
         self.__request('users/psi_signin/')
 
         # Sign in.
@@ -46,8 +46,8 @@ class Session:
                 else:
                     resp = self.opener.open(url)
 
-                # TODO: WTF? Now it is updated even after POST request to psi_signin!
-                # CSRF token is updated after each GET request.
+                # Update CSRF token after each request although it isn't likely changed. There is no good stable rules
+                # describing when CSRF token does can change.
                 for cookie in self.cj:
                     if cookie.name == 'csrftoken':
                         self.csrftoken = cookie.value
