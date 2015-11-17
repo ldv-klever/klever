@@ -55,7 +55,7 @@ Setting project
 At the "Welcome to PyCharm" window:
 
 #. :menuselection:`Open`.
-#. Specify the path to :file:`Omega`.
+#. Specify :file:`Omega`.
 #. :menuselection:`OK`.
 
 Configuring the Python interpreter
@@ -88,10 +88,10 @@ Psi run/debug configuration
 #. Select :menuselection:`Python`.
 #. Input *Psi* in field :guilabel:`Name`.
 #. Specify :file:`Psi/bin/psi` in field :guilabel:`Script`.
+#. Select project *Psi* in field :guilabel:`Project`.
 #. Extend existing value of :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and Aspectator
    (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
-#. Specify working directory somewhere outside the Psi repository (**work_dir**) in field :guilabel:`Working directory`.
-#. Select project *Psi* in field :guilabel:`Project`.
+#. Specify working directory somewhere outside the repository (**work_dir**) in field :guilabel:`Working directory`.
 #. :menuselection:`OK`.
 
 
