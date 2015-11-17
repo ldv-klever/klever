@@ -41,7 +41,11 @@ session.sign_out()
 
 # Submit scheduler status to kv storage for debug
 session = consulate.Consul()
-session.kv["schedulers"] = json.dumps(status)
-exit(0)
+try:
+    session.kv["schedulers"] = json.dumps(status)
+    exit(0)
+except KeyError:
+    print("Key-value storage is inaccessible.")
+    exit(2)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
