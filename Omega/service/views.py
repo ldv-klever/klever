@@ -7,11 +7,13 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 from Omega.vars import USER_ROLES
+from Omega.utils import unparallel_group, unparallel
 from service.utils import *
 from service.test import *
 
 
 # Case 3.1(3)
+@unparallel_group(['service', 'task'])
 def schedule_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -53,6 +55,7 @@ def get_task_status(request):
 
 
 # Case 3.1(5)
+@unparallel_group(['solution'])
 def download_solution(request, task_id):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -74,6 +77,7 @@ def download_solution(request, task_id):
 
 
 # Case 3.1(6)
+@unparallel_group(['service'])
 def remove_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -91,6 +95,7 @@ def remove_task(request):
 
 
 # Case 3.1(7)
+@unparallel_group(['service'])
 def cancel_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -107,6 +112,7 @@ def cancel_task(request):
 
 
 # Case 3.2(2)
+@unparallel_group(['service', 'job'])
 def get_jobs_and_tasks(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -129,6 +135,7 @@ def get_jobs_and_tasks(request):
 
 
 # Case 3.2(3)
+@unparallel_group(['service'])
 def download_task(request, task_id):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -148,6 +155,7 @@ def download_task(request, task_id):
 
 
 # Case 3.2(4)
+@unparallel_group(['task', 'solution'])
 def upload_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -172,6 +180,7 @@ def upload_solution(request):
 
 
 # Case 3.2(5)
+@unparallel
 def update_nodes(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -189,6 +198,7 @@ def update_nodes(request):
 
 
 # Case 3.2(6)
+@unparallel
 def update_tools(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -211,6 +221,7 @@ def update_tools(request):
 
 
 # Case 3.3(2)
+@unparallel_group(['service'])
 def set_schedulers_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})

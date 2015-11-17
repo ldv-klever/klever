@@ -10,7 +10,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import VIEW_TYPES, PRIORITY
-from Omega.utils import unparallel
+from Omega.utils import unparallel, unparallel_group
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
@@ -41,6 +41,7 @@ def tree_view(request):
     })
 
 
+@unparallel_group(['view'])
 @login_required
 def preferable_view(request):
     activate(request.user.extended.language)
@@ -73,6 +74,7 @@ def preferable_view(request):
     return JsonResponse({'message': _("The preferred view was successfully changed")})
 
 
+@unparallel_group(['view'])
 @login_required
 def check_view_name(request):
     activate(request.user.extended.language)
@@ -95,6 +97,7 @@ def check_view_name(request):
     return JsonResponse({})
 
 
+@unparallel_group(['view'])
 @login_required
 def save_view(request):
     activate(request.user.extended.language)
@@ -132,6 +135,7 @@ def save_view(request):
     })
 
 
+@unparallel_group(['view'])
 @login_required
 def remove_view(request):
     activate(request.user.extended.language)
@@ -282,6 +286,7 @@ def edit_job(request):
     })
 
 
+@unparallel
 @login_required
 def remove_versions(request):
     activate(request.user.extended.language)
@@ -366,7 +371,7 @@ def copy_new_job(request):
     })
 
 
-@unparallel
+@unparallel_group(['job'])
 @login_required
 def save_job(request):
     activate(request.user.extended.language)
@@ -438,7 +443,7 @@ def save_job(request):
     return JsonResponse({'error': 'Unknown error'})
 
 
-@unparallel
+@unparallel_group(['job'])
 @login_required
 def remove_jobs(request):
     activate(request.user.extended.language)
@@ -454,8 +459,7 @@ def remove_jobs(request):
     elif status == 400:
         if len(jobs_for_del) == 1:
             return JsonResponse({'error': _("You don't have an access to remove this job")})
-        return JsonResponse({'error': _("You don't have an access to remove one of the selected jobs")
-        })
+        return JsonResponse({'error': _("You don't have an access to remove one of the selected jobs")})
     return JsonResponse({})
 
 
@@ -526,7 +530,7 @@ def download_file(request, file_id):
     return response
 
 
-@unparallel
+@unparallel_group(['job'])
 @login_required
 def download_job(request, job_id):
     try:
@@ -565,7 +569,7 @@ def check_access(request):
     return JsonResponse({})
 
 
-
+@unparallel_group(['job'])
 @login_required
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
@@ -603,7 +607,7 @@ def upload_job(request, parent_id=None):
     })
 
 
-@unparallel
+@unparallel_group(['job', 'report'])
 def decide_job(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -677,6 +681,7 @@ def getfilecontent(request):
     return HttpResponse(source.file.file.read())
 
 
+@unparallel
 @login_required
 def stop_decision(request):
     activate(request.user.extended.language)
