@@ -23,6 +23,9 @@ class EMG(psi.components.Component):
 
         # TODO: Generate module interface specification
 
-        return
+        self.logger.info("Prepare environment model for an abstract verification task {}".format(self.id))
+        print(self.mqs['abstract task description'].get())
+
+		return
 
     main = generate_environment
