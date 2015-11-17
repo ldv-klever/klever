@@ -1,4 +1,5 @@
-#!/usr/bin/python3
+import json
+import os
 
 import psi.components
 import psi.utils
@@ -7,7 +8,8 @@ import psi.utils
 class EMG(psi.components.Component):
     def generate_environment(self):
         self.logger.info("Start environment model generator instance {}".format(self.id))
-        # TODO: Check existanc of all necessary configuration files
+
+        spec_dir = psi.utils.find_file_or_dir(self.logger, self.conf["root id"], self.conf["specifications directory"])
 
         # TODO: Import interface categories configuration
 
@@ -21,8 +23,6 @@ class EMG(psi.components.Component):
 
         # TODO: Generate module interface specification
 
-        self.__check_specifications()
-
-
+        return
 
     main = generate_environment
