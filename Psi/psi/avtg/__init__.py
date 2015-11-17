@@ -195,6 +195,10 @@ class AVTG(psi.components.Component):
     def generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
 
+        # TODO: use different MQs for different workers when abstract verification task descriptions will be generated
+        # in parallel (see below).
+        self.mqs.update({'abstract task description': multiprocessing.Queue()})
+
         while True:
             verification_obj_desc = self.mqs['verification obj descs'].get()
 
@@ -218,6 +222,11 @@ class AVTG(psi.components.Component):
             os.path.join(self.conf['root id'], '{0}.task'.format(verification_obj_desc['id']), rule_spec_desc['id']))
         os.makedirs(self.plugins_work_dir)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
+
+        # Initial abstract verification task looks like corresponding verification object except id.
+        abstract_task_desc = copy.deepcopy(verification_obj_desc)
+        abstract_task_desc['id'] = '{0}/{1}'.format(verification_obj_desc['id'], rule_spec_desc['id'])
+        self.mqs['abstract task description'].put(abstract_task_desc)
 
         # Invoke all plugins one by one.
         for plugin_desc in rule_spec_desc['plugins']:
