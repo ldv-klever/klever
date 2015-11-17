@@ -27,7 +27,7 @@ class VTSC(psi.components.Component):
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
                          self.conf['root id'])
-
+        return
         # TODO: delete following stub code after all.
         # Verification tasks are solved on another computer.
         verification_comp = [

@@ -26,7 +26,7 @@ class VTG(psi.components.Component):
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
                          self.conf['root id'])
-
+        return
         # TODO: delete following stub code after all.
         # Start and finish "WRAPPER". Upload safes, unsafes and unknowns in the middle.
         for i, verification_obj in enumerate(('drivers/usb/core/usbcore.ko', 'drivers/usb/usb-commmon.ko')):
