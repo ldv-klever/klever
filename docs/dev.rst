@@ -133,6 +133,7 @@ Configuring the Python interpreter
 #. Select Python 3.4.x from the list and press :kbd:`Enter`.
 #. Input *Python 3.4* in field :guilabel:`name`.
 #. :menuselection:`OK`.
+#. Ditto for *Psi*, *Cloud* and *docs*.
 
 Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
