@@ -138,7 +138,14 @@ Install Cloud tools
 -------------------
 
 Cloud tools after all requirements installation do not need specific installation, but each tool requires configuration
-file to prepare.
+file to prepare. All tools have section *common* in corresponfing configuration files. The following configuration
+properties can be set there:
+
+* *working directory* it is a relative path in the current working directory to create directory for all
+  generated files.
+* *keep working directory* implies not to delete existing working directory when running a tool again.
+* *logging* contains configuration properties for `logging <http://docs.python.org/3.4/library/logging.html>`_
+  python package.
 
 Controller configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -147,8 +154,12 @@ Prototype for client controller configuration can be found in :file:`Cloud/conf/
 set up manually the following configuration properties:
 
 * *Omega* section contains *name*, *user*, *password* attributes which should be set according to Omega service user.
-* *client-controller* section contains consul configuration properties. It is better to provide your own *Omega* service
-  check and turn-on or off consul web-UI.
+* *client-controller* section contains consul configuration properties and an absoulute path to a directory with consul
+  binary and directory with web-UI files in it. It is better to provide your own *Omega* service check and turn-on or
+  off consul web-UI.
+* *node configuration* section contains configuration options which tell a controller which resources of your computer
+  are available for a scheduler. It is recommended to leave enough RAM memory for the other programms running on the
+  computer and to choose partition with enough disk space before running controller.
 
 Scheduler configuration
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -160,11 +171,13 @@ manually the following configuration properties:
 * *Scheduler* section describes scheduling configuration with the following major attributes:
     * *controller address* - address which is used to access consul (do not change it if you use default consul
       configuration).
-    * *keep work dir* attribute implies not to delete generated working directories. If you are going to debug psi or
-      a verification tool it is recommended to set it as True, but it will cause problems in case of solving the same
+    * *keep working directory* attribute implies not to delete generated working directories. If you are going to debug psi or
+      a verification tool it is recommended to set it as *true*, but it will cause problems in case of solving the same
       job or task twice.
-    * *job client configuration* attribute corresponds to a file with client configuration. You can prepare the file on
-      the base of :file:`Cloud/conf/client.json`.
+    * *job client configuration* attribute corresponds to an absolute path to a file with client configuration. You can
+      prepare such file on the base of :file:`Cloud/conf/client.json`.
+    * *"verification tools"* contains names of verification tools, corresponding versions and absolute pathes to
+      binaries of corresponding verification tools.
 
 Scheduler client configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -172,8 +185,9 @@ Scheduler client configuration
 Prototype for scheduler client configuration can be found in :file:`Cloud/conf/client.json`. It is recommended to set
 up manually the following configuration properties:
 
-* *client:benchexec location* configuration property corresponds to a root directory with BenchExec sources.
-* *client:cif location* configuration property corresponds to a binaries directory with CIF tools.
+* *client:benchexec location* configuration property corresponds to an absolute path to a root directory with
+  downloaded BenchExec sources.
+* *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
 
 Psi installlation
 -----------------

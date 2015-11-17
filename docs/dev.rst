@@ -166,13 +166,21 @@ To be able to solve tasks on your machine you need to run Klever client-controll
 the steps:
 
 #. First install all requirements and prepare configuration properties according to the installation documentation.
-   Do it after you have working Omega server.
+   Do it after you have working Omega server. All additional tools and configuration files should be outside from
+   the Klever sources and corresponding working directories.
 
-#. Run client-controller. Use script :file:`Cloud/bin/client-controller` and prepared client-controller configuration
-   file as the first argument. If you would turn on web-UI in configuration and place necessary files in the consul
+#. Run client-controller. Use script :file:`Cloud/bin/client-controller.py` and path to a prepared client-controller
+   configuration file as the first argument. Be sure that you have chosen clean working directory outside of sources
+   for an execution. If you would turn on web-UI in configuration and place necessary files in the consul
    directory you will get a visualization of all checks at *http://localhost:8500/ui*.
 
-#. Run native scheduler after you have running controller and Omega server. Run script :file:`Cloud/bin/scheduler` with
-   the scheduler configuration file as a single argument.
+#. Run native scheduler after you have running controller and Omega server. Run script
+   :file:`Cloud/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
+   that you have chosen clean working directory outside of sources for an execution.
 
-#. Check out at client-controller consul web-UI that all checks are passing now.
+#. Before running any tasks be sure that you have properly configured machine with swap accounting (or better disable
+   swap runnning *sudo swapoff -a*) and available cgroup subsystems (it is often necessary to run
+   *sudo chmod o+wt '/sys/fs/cgroup/cpuset/'*).
+
+#. Check out at client-controller consul web-UI that all checks are passing now. The address by defauilt is
+   `localhost:8500 <http://localhost:8500/ui>`_.
