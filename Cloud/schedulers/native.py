@@ -9,7 +9,7 @@ import subprocess
 import requests
 import consulate
 
-import Cloud.schedulers as schedulers
+import schedulers as schedulers
 
 
 class Scheduler(schedulers.SchedulerExchange):
@@ -187,7 +187,7 @@ class Scheduler(schedulers.SchedulerExchange):
         client_conf["resource limits"] = configuration["resource limits"]
 
         # Prepare command
-        client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client.py"))
+        client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
         args = [client_bin, "JOB", json.dumps(client_conf)]
         logging.debug("Start job: {}".format(str(args)))
 

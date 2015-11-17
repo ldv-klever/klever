@@ -1,0 +1,47 @@
+#!/usr/bin/python3
+import os
+import json
+import sys
+import consulate
+
+sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
+
+import utils as utils
+import utils.omega as omega
+
+expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
+with open(expect_file) as fh:
+    conf = json.load(fh)
+
+# Sign in
+session = omega.Session(conf["Omega"]["name"], conf["Omega"]["user"], conf["Omega"]["password"])
+
+# Submit scheduler status
+status = {
+    "VerifierCloud": "DISCONNECTED",
+    "Klever": "DISCONNECTED"
+}
+
+a = utils.get_output("ps -aux | grep -F \"klever-scheduler.py\" ")
+ks_out = int(utils.get_output("ps -aux | grep -F \"native-scheduler\" -c"))
+if ks_out > 2:
+    status["Klever"] = "HEALTHY"
+vc_out = int(utils.get_output("ps -aux | grep -F \"verifiercloud-scheduler\" -c"))
+if vc_out > 2:
+    status["VerifierCloud"] = "HEALTHY"
+
+data = {
+    "statuses": json.dumps(status)
+}
+
+session.json_exchange("service/set_schedulers_status/", data)
+
+# Sign out
+session.sign_out()
+
+# Submit scheduler status to kv storage for debug
+session = consulate.Consul()
+session.kv["schedulers"] = json.dumps(status)
+exit(0)
+
+__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

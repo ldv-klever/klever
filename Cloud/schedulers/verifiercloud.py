@@ -3,8 +3,8 @@ import sys
 import shutil
 import logging
 
-import Cloud.scheduler as scheduler
-import Cloud.client.executils as executils
+import scheduler as scheduler
+import client.executils as executils
 
 
 class Run:

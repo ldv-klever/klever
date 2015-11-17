@@ -1,0 +1,11 @@
+#!/usr/bin/python3
+import os
+
+expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
+print("Looking for a file {}".format(expect_file))
+if os.path.isfile(expect_file):
+    exit(0)
+else:
+    exit(2)
+
+__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

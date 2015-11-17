@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
-import Cloud.utils as utils
-import Cloud.controller as controller
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
+
+import utils as utils
+import controller as controller
 
 
 if __name__ == "__main__":

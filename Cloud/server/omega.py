@@ -1,10 +1,10 @@
 import json
 
-import Cloud.requests as requests
-import Cloud.utils.omega as omega
+import server as server
+import utils.omega as omega
 
 
-class Server(requests.AbstractServer):
+class Server(server.AbstractServer):
     """Exchange with gateway via net."""
 
     session = None

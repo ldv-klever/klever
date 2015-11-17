@@ -3,7 +3,7 @@ import json
 import logging.config
 import subprocess
 
-import Cloud.utils as utils
+import utils as utils
 
 
 def prepare_node_info(node_info):
@@ -64,7 +64,7 @@ def setup_consul(conf):
         for check in [check for check in conf["client-controller"]["script checks"]
                       if check["active"]]:
             check_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      "../controller/checks", check["name"] + ".py")
+                                      "../controller/checks", check["name"])
             if not os.path.isfile(check_file):
                 raise ValueError("Cannot find check {}, expect check script there {}".format(check["name"],
                                                                                              check_file))

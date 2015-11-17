@@ -1,0 +1,23 @@
+#!/usr/bin/python3
+import os
+import json
+import consulate
+import logging
+
+expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
+logging.info("Configuration file: {}".format(expect_file))
+with open(expect_file) as fh:
+    node_conf = json.load(fh)
+
+# Submit content
+session = consulate.Consul()
+try:
+    session.kv["states/{}".format(node_conf["node configuration"]["node name"])] = \
+        json.dumps(node_conf["node configuration"])
+except KeyError:
+    print("Key-value storage is inaccessible")
+    exit(2)
+
+exit(0)
+
+__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

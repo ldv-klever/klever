@@ -3,7 +3,7 @@ import logging
 import sys
 import json
 
-import Cloud.utils as utils
+import utils as utils
 
 
 def solve_job(conf):

@@ -5,8 +5,8 @@ import os
 import shutil
 import time
 
-import Cloud.requests.testgenerator as testgenerator
-import Cloud.requests.omega as omega
+import server.testgenerator as testgenerator
+import server.omega as omega
 
 
 def get_gateway(conf, work_dir):

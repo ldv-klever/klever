@@ -5,13 +5,13 @@ import os
 import json
 import random
 
-import Cloud.requests as requests
-import Cloud.utils as utils
+import server as server
+import utils as utils
 
 task_description_filename = "verification task desc.json"
 
 
-class Server(requests.AbstractServer):
+class Server(server.AbstractServer):
     """Start exchange with verification gate."""
 
     tasks = {}
