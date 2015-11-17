@@ -153,9 +153,9 @@ function check_jobs_access(jobs) {
         data: {jobs: JSON.stringify(jobs)},
         async: false,
         success: function (res) {
-            status = res.status;
-            if (!status) {
+            if (res.error) {
                 err_notify(res.message);
+                status = false;
             }
         }
     });
@@ -299,7 +299,7 @@ $(document).ready(function () {
                     {jobs: JSON.stringify(jobs_for_delete)},
                     function (data) {
                         confirm_delete_modal.modal('hide');
-                        data.status === 0 ? window.location.replace('') : err_notify(data.message);
+                        data.error ? err_notify(data.error) : window.location.replace('');
                     },
                     'json'
                 );
@@ -392,7 +392,10 @@ $(document).ready(function () {
                 view_type: '1'
             },
             success: function(data) {
-                if (data.status) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
                     var request_data = collect_filter_data();
                     request_data['title'] = view_title;
                     request_data['view_type'] = '1';
@@ -402,22 +405,19 @@ $(document).ready(function () {
                         dataType: 'json',
                         data: request_data,
                         success: function(save_data) {
-                            if (save_data.status === 0) {
-                                $('#available_views').append($('<option>', {
-                                    text: save_data.view_name,
-                                    value: save_data.view_id
-                                }));
-                                $('#new_view_name_input').val('');
-                                success_notify(save_data.message);
+                            if (save_data.error) {
+                                err_notify(data.error);
                             }
                             else {
-                                err_notify(data.message);
+                                $('#available_views').append($('<option>', {
+                                    text: save_data['view_name'],
+                                    value: save_data['view_id']
+                                }));
+                                $('#new_view_name_input').val('');
+                                success_notify(save_data['message']);
                             }
                         }
                     });
-                }
-                else {
-                    err_notify(data.message);
                 }
             }
         });
@@ -433,7 +433,7 @@ $(document).ready(function () {
             dataType: 'json',
             data: request_data,
             success: function(save_data) {
-                save_data.status === 0 ? success_notify(save_data.message) : err_notify(save_data.message);
+                save_data.error ? err_notify(save_data.error) : success_notify(save_data.message);
             }
         });
     });
@@ -452,12 +452,12 @@ $(document).ready(function () {
                 view_type: '1'
             },
             success: function(data) {
-                if (data.status === 0) {
-                    $('#available_views').children('option:selected').remove();
-                    success_notify(data.message)
+                if (data.error) {
+                    err_notify(data.error)
                 }
                 else {
-                    err_notify(data.message)
+                    $('#available_views').children('option:selected').remove();
+                    success_notify(data.message)
                 }
             }
         });
@@ -473,7 +473,7 @@ $(document).ready(function () {
                 view_type: '1'
             },
             success: function(data) {
-                data.status === 0 ? success_notify(data.message) : err_notify(data.message);
+                data.error ? err_notify(data.error) : success_notify(data.message);
             }
         });
     });
@@ -492,35 +492,12 @@ $(document).ready(function () {
         }
     });
 
-    $('#delete_jobs_btn').click(function () {
-        var jobs_for_delete = [];
-        $("input[id^='job_checkbox__']").each(function () {
-            if ($(this).is(':checked')) {
-                jobs_for_delete.push($(this).attr('id').replace('job_checkbox__', ''));
-            }
-        });
-        if (jobs_for_delete.length == 0) {
-            err_notify($('#error__no_jobs_to_delete').text());
-        }
-        $('#remove_jobs_popup').modal('hide');
-        if (jobs_for_delete.length) {
-            $.post(
-                job_ajax_url + 'removejobs/',
-                {jobs: JSON.stringify(jobs_for_delete)},
-                function (data) {
-                    data.status === 0 ? window.location.replace('') : err_notify(data.message);
-                },
-                'json'
-            );
-        }
-    });
     $('#cancel_remove_jobs').click(function () {
         $('#remove_jobs_popup').modal('hide');
     });
 
     $('#download_selected_jobs').click(function (event) {
         event.preventDefault();
-        $('#dimmer_of_page').addClass('active');
 
         function download(href) {
             var interval = null;
@@ -532,7 +509,6 @@ $(document).ready(function () {
                     data: {},
                     dataType: 'json',
                     success: function () {
-                        console.log(href);
                         window.location.replace(href);
                         $('#dimmer_of_page').removeClass('active');
                         return false;
@@ -551,6 +527,7 @@ $(document).ready(function () {
         if (job_ids.length) {
             if (check_jobs_access(job_ids)) {
                 for (var i = 0; i < job_ids.length; i++) {
+                    $('#dimmer_of_page').addClass('active');
                     download(job_ajax_url + 'downloadjob/' + job_ids[i]);
                 }
             }

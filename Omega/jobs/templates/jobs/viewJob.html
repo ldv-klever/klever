@@ -88,7 +88,7 @@
                             {% endif %}
                         </td>
                     </tr>
-                    <tr>
+                    <tr id="job_status_popup_activator">
                         <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
                             {% if reportdata %}
@@ -134,6 +134,11 @@
                 {% endif %}
                 {% if can_delete %}<a id="show_remove_job_popup" class="item">{% trans 'Delete' %}</a>{% endif %}
             </div>
+            {% if job.solvingprogress.error %}
+                <div id="job_status_popup" class="ui inverted popup wide hidden">
+                    <div class="ui red header">{{ job.solvingprogress.error }}</div>
+                </div>
+            {% endif %}
             <br>
             {% if reportdata %}
                 {% include 'jobs/jobData.html' %}

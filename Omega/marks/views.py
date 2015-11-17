@@ -179,7 +179,7 @@ def get_func_description(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': 'Unknown error'})
     func_id = int(request.POST.get('func_id', '0'))
     func_type = request.POST.get('func_type', 'compare')
     if func_type == 'compare':
@@ -197,7 +197,7 @@ def get_func_description(request):
                 'error': _('The error traces conversion function was not found')
             })
     else:
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': 'Unknown error'})
     return JsonResponse({'description': function.description})
 
 

@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
-from django.utils.translation import ugettext as _, activate
+from django.utils.translation import activate
 from Omega.vars import USER_ROLES
 from service.utils import *
 from service.test import *
@@ -285,11 +285,11 @@ def process_job(request):
 def add_scheduler_user(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': 'Unknown error'})
     if 'login' not in request.POST or len(request.POST['login']) == 0:
-        return JsonResponse({'error': _('Wrong login')})
+        return JsonResponse({'error': 'Unknown error'})
     if 'password' not in request.POST or len(request.POST['password']) == 0:
-        return JsonResponse({'error': _('Wrong password')})
+        return JsonResponse({'error': 'Unknown error'})
     try:
         sch_u = request.user.scheduleruser
     except ObjectDoesNotExist:
