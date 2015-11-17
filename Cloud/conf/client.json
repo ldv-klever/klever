@@ -4,8 +4,8 @@
     "cif location": "cif/bin/"
   },
   "common": {
-    "work dir": null,
-    "keep work dir": false,
+    "working directory": null,
+    "keep working directory": false,
     "logging": {
       "version": 1,
       "disable_existing_loggers": false,

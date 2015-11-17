@@ -34,19 +34,19 @@ def common_initialization(tool, conf=None):
         raise KeyError("Provide configuration property 'common' as an JSON-object")
 
     # Prepare working directory
-    if "work dir" not in conf["common"]:
-        raise KeyError("Provide configuration property 'common''work dir'")
-    if "keep work dir" in conf["common"] and conf["common"]["keep work dir"]:
+    if "working directory" not in conf["common"]:
+        raise KeyError("Provide configuration property 'common''working directory'")
+    if "keep working directory" in conf["common"] and conf["common"]["keep working directory"]:
         logging.info("Keep working directory from the previous run")
     else:
-        logging.debug("Clean working dir: {0}".format(conf["common"]['work dir']))
-        shutil.rmtree(conf["common"]['work dir'], True)
+        logging.debug("Clean working dir: {0}".format(conf["common"]['working directory']))
+        shutil.rmtree(conf["common"]['working directory'], True)
 
-    logging.debug("Create working dir: {0}".format(conf["common"]['work dir']))
-    os.makedirs(conf["common"]['work dir'], exist_ok=True)
+    logging.debug("Create working dir: {0}".format(conf["common"]['working directory']))
+    os.makedirs(conf["common"]['working directory'], exist_ok=True)
 
     # Go to the working directory to avoid creating files elsewhere
-    os.chdir(conf["common"]['work dir'])
+    os.chdir(conf["common"]['working directory'])
 
     # Start logging
     if "logging" not in conf["common"]:

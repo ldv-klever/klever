@@ -49,7 +49,7 @@ def setup_consul(conf):
     """
     consul_work_dir = os.path.join(os.path.abspath(os.path.curdir), "consul-dir")
     logging.info("Setup consul working directory {}".format(consul_work_dir))
-    # Make consul work dir
+    # Make consul working directory
     os.makedirs(consul_work_dir)
 
     # Prepare ndde info

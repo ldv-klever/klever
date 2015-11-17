@@ -9,7 +9,7 @@
     "processes": 4,
     "process pool": false,
     "controller address": "http://localhost:8500",
-    "keep work dir": false,
+    "keep working directory": false,
     "job client configuration": "conf/client.json",
     "verification tools": {
       "CPAchecker": {
@@ -18,8 +18,8 @@
     }
   },
   "common": {
-    "work dir": "scheduler-work-dir",
-    "keep work dir": false,
+    "working directory": "scheduler-work-dir",
+    "keep working directory": false,
     "logging": {
       "version": 1,
       "disable_existing_loggers": false,

@@ -58,8 +58,8 @@
     "available disk memory": 8000000000
   },
   "common": {
-    "work dir": "scheduler-controller-dir",
-    "keep work dir": false,
+    "working directory": "scheduler-controller-dir",
+    "keep working directory": false,
     "debug": false,
     "logging": {
       "version": 1,

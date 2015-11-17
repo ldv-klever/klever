@@ -10,7 +10,7 @@ if __name__ == "__main__":
     if "Omega" not in conf:
         raise KeyError("Provide configuration property 'scheduler' as an JSON-object")
 
-    scheduler_impl = verifiercloud.Scheduler(conf, conf["common"]["work dir"] + "/scheduler/")
+    scheduler_impl = verifiercloud.Scheduler(conf, conf["common"]["working directory"] + "/scheduler/")
     scheduler_impl.launch()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

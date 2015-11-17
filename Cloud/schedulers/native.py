@@ -182,7 +182,7 @@ class Scheduler(schedulers.SchedulerExchange):
         client_conf = self.__job_conf_prototype.copy()
         job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
         logging.debug("Use working directory {} for job {}".format(job_work_dir, identifier))
-        client_conf["common"]["work dir"] = job_work_dir
+        client_conf["common"]["working directory"] = job_work_dir
         client_conf["psi configuration"] = self.__reserved[identifier]["configuration"]
         client_conf["resource limits"] = configuration["resource limits"]
 
@@ -212,9 +212,10 @@ class Scheduler(schedulers.SchedulerExchange):
         self.__running_jobs -= 1
         del self.__reserved[identifier]
 
-        if "keep work dir" not in self.conf["scheduler"] or not self.conf["scheduler"]["keep work dir"]:
+        if "keep working directory" not in self.conf["scheduler"] or \
+                not self.conf["scheduler"]["keep working directory"]:
             job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
-            logging.debug("Clean job work dir {} for {}".format(job_work_dir, identifier))
+            logging.debug("Clean job working directory {} for {}".format(job_work_dir, identifier))
             shutil.rmtree(job_work_dir)
 
         try:
@@ -244,10 +245,10 @@ class Scheduler(schedulers.SchedulerExchange):
         self.__running_jobs -= 1
         del self.__reserved[identifier]
 
-        if "keep work dir" in self.conf["scheduler"] and self.conf["scheduler"]["keep work dir"]:
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
             return
         job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
-        logging.debug("Clean job work dir {} for {}".format(job_work_dir, identifier))
+        logging.debug("Clean job working directory {} for {}".format(job_work_dir, identifier))
         shutil.rmtree(job_work_dir)
 
     def terminate(self):
