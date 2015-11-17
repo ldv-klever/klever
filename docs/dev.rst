@@ -32,6 +32,74 @@ To develop documentation it is recommended to use some visual editor.
    If you are a newbie then examine carefully the existing documentation and create the new one on that basis.
    Just if you are a guru then you can suggest to improve the existing documentation.
 
+Using Git repository
+--------------------
+
+Klever source code resides in the `Git <https://git-scm.com/>`_ repository.
+There is plenty of very good documentation about Git usage.
+This section describes just rules specific for the given project.
+
+Update
+^^^^^^
+
+#. Periodically synchronize your local repository with the main developer repository::
+
+    branch $ git fetch origin
+    branch $ git remote prune origin
+
+   .. note:: This is especially required when you are going to create a new branch or to merge some branch to the master
+             branch.
+
+#. Pull changes if so::
+
+    branch $ git pull --rebase origin branch
+
+   .. warning:: Forget about pulling without rebasing!
+
+#. Resolve conflicts if so.
+
+Fixing bugs and implementing new features
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. One must create a new branch to fix/implement each individual bug or new feature::
+
+    master $ git checkout -b fix-psi-conf
+
+   .. warning:: Do not intermix fixes and implementations of completely different bugs and features in one branch.
+                Otherwise users will need to wait or to make some tricky things like cherry-picking and merging of
+                non-master branches.
+                Eventually this can lead to very unpleasant consequences, e.g. the master branch can be broken.
+
+   .. note:: Trivial bugs/features can be fixed/implemented directly in the master branch.
+             Most likely you will not have any conflict but you will save some time.
+
+#. Push all new branches to the main developer repository.
+   As well re-push them at least one time a day if you make some commits::
+
+    fix-psi-conf $ git push origin fix-psi-conf
+
+#. Merge the master branch into your new branches if you need some recent bug fixes or features::
+
+    fix-psi-conf $ git merge master
+
+   .. note:: Do not forget to update the master branch from the main developer repository.
+
+#. Merge branches to the master branch when corresponding bugs/features are fixed/implemented::
+
+    fix-psi-conf $ git checkout master
+    master $ git merge fix-psi-conf
+
+   .. note:: Do not forget to update the master branch from the main developer repository.
+
+#. Push the master branch to the main developer repository::
+
+    master $ git push origin master
+
+#. Delete merged branches locally and remotely::
+
+    master $ git branch -d fix-psi-conf
+    master $ git push origin :fix-psi-conf
+
 Using PyCharm IDE
 -----------------
 
