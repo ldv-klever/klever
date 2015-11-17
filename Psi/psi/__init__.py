@@ -14,11 +14,11 @@ import psi.session
 import psi.utils
 
 # Psi components.
-import psi.lkbce.lkbce
-import psi.lkvog.lkvog
-import psi.avtg.avtg
-import psi.vtg.vtg
-import psi.vtsc.vtsc
+from psi.lkbce import LKBCE
+from psi.lkvog import LKVOG
+from psi.avtg import AVTG
+from psi.vtg import VTG
+from psi.vtsc import VTSC
 
 
 class Psi:
@@ -40,9 +40,9 @@ class Psi:
         self.mqs = {}
         self.uploading_reports_process = None
         self.job_class_components = {
-            'Verification of Linux kernel modules': [psi.lkbce.lkbce.LKBCE, psi.lkvog.lkvog.LKVOG],
+            'Verification of Linux kernel modules': [LKBCE, LKVOG],
             # These components are likely appropriate for all job classes.
-            'Common': [psi.avtg.avtg.AVTG, psi.vtg.vtg.VTG, psi.vtsc.vtsc.VTSC]}
+            'Common': [AVTG, VTG, VTSC]}
         self.components = []
         self.components_conf = None
         self.callbacks = {}

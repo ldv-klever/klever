@@ -9,8 +9,8 @@ import psi.components
 import psi.utils
 
 # ATVG plugins.
-import psi.avtg.deg.deg
-import psi.avtg.ri.ri
+from psi.avtg.deg import DEG
+from psi.avtg.ri import RI
 
 
 def before_launch_all_components(context):
@@ -140,7 +140,7 @@ def _extract_rule_spec_descs(conf, logger):
 
 
 _rule_spec_descs = None
-_plugins = (psi.avtg.deg.deg.DEG, psi.avtg.ri.ri.RI)
+_plugins = (DEG, RI)
 
 
 def get_subcomponent_callbacks(conf, logger):
