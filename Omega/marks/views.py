@@ -10,7 +10,7 @@ from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import USER_ROLES
-from Omega.utils import print_err
+from Omega.utils import print_err, unparallel_group, unparallel
 from users.models import View
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess,\
     TagsInfo, DeleteMark
@@ -112,6 +112,7 @@ def edit_mark(request, mark_type, mark_id):
         })
 
 
+@unparallel_group(['mark'])
 @login_required
 def save_mark(request):
     activate(request.user.extended.language)
@@ -179,7 +180,7 @@ def get_func_description(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': 'Unknown error'})
     func_id = int(request.POST.get('func_id', '0'))
     func_type = request.POST.get('func_type', 'compare')
     if func_type == 'compare':
@@ -197,7 +198,7 @@ def get_func_description(request):
                 'error': _('The error traces conversion function was not found')
             })
     else:
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': 'Unknown error'})
     return JsonResponse({'description': function.description})
 
 
@@ -314,6 +315,7 @@ def download_mark(request, mark_type, mark_id):
     return response
 
 
+@unparallel_group(['mark'])
 @login_required
 def upload_marks(request):
     activate(request.user.extended.language)
@@ -345,6 +347,7 @@ def upload_marks(request):
     return JsonResponse({'status': True})
 
 
+@unparallel_group(['mark'])
 @login_required
 def delete_mark(request, mark_type, mark_id):
     try:
@@ -362,12 +365,13 @@ def delete_mark(request, mark_type, mark_id):
     return HttpResponseRedirect(reverse('marks:mark_list', args=[mark_type]))
 
 
+@unparallel
 @login_required
 def remove_versions(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        return JsonResponse({'status': 1, 'message': 'Unknown error'})
     mark_id = int(request.POST.get('mark_id', 0))
     mark_type = request.POST.get('mark_type', None)
     try:

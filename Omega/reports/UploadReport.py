@@ -60,10 +60,10 @@ class UploadReport(object):
             err = self.__check_comp(data['comp'])
             if err is not None:
                 return err
-        if 'attrs' in data:
-            err = self.__check_attrs(data['attrs'])
-            if err is not None:
-                return err
+        # if 'attrs' in data:
+        #     err = self.__check_attrs(data['attrs'])
+        #     if err is not None:
+        #         return err
         if 'name' in data and len(data['name']) > 15:
             return 'Component name is too long (max 15 symbols expected)'
 
