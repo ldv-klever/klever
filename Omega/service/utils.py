@@ -252,7 +252,7 @@ class StopDecision(object):
         try:
             self.progress = self.job.solvingprogress
         except ObjectDoesNotExist:
-            self.error = _('Job solving progress does not exists')
+            self.error = _('The job solving progress does not exist')
             return
         if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             self.error = _("Only pending and processing jobs can be stopped")
@@ -947,16 +947,16 @@ class StartJobDecision(object):
             self.error = _('Unknown error')
             return
         if klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _('Klever scheduler is disconnected')
+            self.error = _('The Klever scheduler is disconnected')
             return
         if self.job_scheduler.type == SCHEDULER_TYPE[1][0]:
             if self.job_scheduler.status == SCHEDULER_STATUS[2][0]:
-                self.error = _('VerifierCloud scheduler is disconnected')
+                self.error = _('The VerifierCloud scheduler is disconnected')
                 return
             try:
                 self.operator.scheduleruser
             except ObjectDoesNotExist:
-                self.error = _("You don't have login and password for VefifierCloud scheduler")
+                self.error = _("You didn't specify credentials for VerifierCloud")
                 return
 
 
@@ -993,9 +993,9 @@ class StartDecisionData(object):
         except ObjectDoesNotExist:
             return _('Unknown error')
         if klever_sch.status == SCHEDULER_STATUS[1][0]:
-            self.job_sch_err = _("Klever scheduler is ailing")
+            self.job_sch_err = _("The Klever scheduler is ailing")
         elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            return _("Klever scheduler is disconnected")
+            return _("The Klever scheduler is disconnected")
         self.schedulers.append([
             klever_sch.type,
             string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')

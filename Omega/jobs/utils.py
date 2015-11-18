@@ -69,7 +69,7 @@ TITLES = {
     'priority': _('Priority'),
     'start_date': _('Decision start date'),
     'finish_date': _('Decision finish date'),
-    'solution_wall_time': _('Solution wall time'),
+    'solution_wall_time': _('Decision wall time'),
     'operator': _('Operator'),
     'tasks_pending': _('Pending tasks'),
     'tasks_processing': _('Processing tasks'),
