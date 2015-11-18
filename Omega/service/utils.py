@@ -893,14 +893,16 @@ class StartJobDecision(object):
                 ]
             },
             'resource limits': {
-                'wall time': None,
-                'CPU time': None,
+                'wall time': int(self.data['max_wall_time']) * 1000,
+                'CPU time': int(self.data['max_cpu_time']) * 1000,
                 'memory size': int(float(self.data['max_ram']) * 10**9),
                 'number of CPU cores': int(self.data['max_cpus']),
                 'CPU model': None,
-                # 'max result size': int(float(self.data['max_disk']) * 10**9)
+                'disk memory size': int(float(self.data['max_disk']) * 10**9)
             }
         }
+        if len(self.data['cpu_model']) > 0:
+            conf['resource limits']['CPU model'] = self.data['cpu_model']
         try:
             parallelism = int(self.data['parallelism'])
         except ValueError:
