@@ -1,5 +1,4 @@
 import os
-import pytz
 import json
 import mimetypes
 from io import BytesIO
@@ -9,6 +8,7 @@ from django.core.exceptions import MultipleObjectsReturned
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
+from django.utils.timezone import pytz
 from Omega.vars import VIEW_TYPES, PRIORITY
 from Omega.utils import unparallel, unparallel_group
 from jobs.forms import FileForm

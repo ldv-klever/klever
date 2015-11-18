@@ -1,4 +1,3 @@
-import pytz
 import json
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -8,8 +7,8 @@ from django.core.urlresolvers import reverse
 from django.forms import ValidationError
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.shortcuts import render
-from django.utils.translation import ugettext as _
-from django.utils.translation import activate
+from django.utils.translation import ugettext as _, activate
+from django.utils.timezone import pytz
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
 from Omega.vars import LANGUAGES

@@ -1,8 +1,7 @@
 import json
-import pytz
-from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.timezone import now
 from Omega.vars import JOB_STATUS
 from Omega.utils import print_err
 from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS, DEF_PSI_CONFIGURATION
@@ -210,7 +209,7 @@ class PSIFinishDecision(object):
             if task.status not in [TASK_STATUS[2][0], TASK_STATUS[3][0]]:
                 self.error = 'There are unfinished tasks'
             RemoveTask(task.pk)
-        self.progress.finish_date = current_date()
+        self.progress.finish_date = now()
         if error is not None:
             self.progress.error = error
             job.status = JOB_STATUS[5][0]
@@ -241,7 +240,7 @@ class PSIStartDecision(object):
         elif progress.finish_date is not None:
             self.error = 'Solving progress already has finish date'
             return
-        progress.start_date = current_date()
+        progress.start_date = now()
         progress.save()
 
 
@@ -276,7 +275,7 @@ class StopDecision(object):
                 task.delete()
             except Exception as e:
                 print_err(e)
-        self.progress.finish_date = current_date()
+        self.progress.finish_date = now()
         self.progress.error = "The job was cancelled"
         self.progress.save()
 
@@ -710,7 +709,7 @@ class SetSchedulersStatus(object):
                 task.error = "Task was finished with error due to scheduler is disconnected"
                 task.save()
             if scheduler.type == SCHEDULER_TYPE[0][0]:
-                progress.finish_date = current_date()
+                progress.finish_date = now()
                 progress.error = "Klever scheduler was disconnected"
                 progress.job.status = JOB_STATUS[4][0]
                 progress.job.save()
@@ -730,10 +729,6 @@ def compare_priority(priority1, priority2):
     if not isinstance(priority2, int):
         priority2 = 0
     return priority1 > priority2
-
-
-def current_date():
-    return pytz.timezone('UTC').localize(datetime.now())
 
 
 class NodesData(object):

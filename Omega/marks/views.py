@@ -1,5 +1,4 @@
 import json
-import pytz
 from urllib.parse import unquote
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -9,6 +8,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
+from django.utils.timezone import pytz
 from Omega.vars import USER_ROLES
 from Omega.utils import print_err, unparallel_group, unparallel
 from users.models import View

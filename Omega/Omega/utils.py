@@ -1,3 +1,5 @@
+import time
+from django.utils.timezone import now
 from Omega.settings import DEBUG
 
 BLOCKER = {}
@@ -10,16 +12,14 @@ def print_err(message):
 
 
 def unparallel(f):
-    from datetime import datetime
-    import time
 
     def wait_other(*args, **kwargs):
-        t1 = datetime.now()
+        t1 = now()
         if f.__name__ not in BLOCKER:
             BLOCKER[f.__name__] = 0
         while BLOCKER[f.__name__] == 1:
             # Max waiting time is 10 seconds
-            if (datetime.now() - t1).seconds > 10:
+            if (now() - t1).seconds > 10:
                 BLOCKER[f.__name__] = 0
             time.sleep(0.1)
         BLOCKER[f.__name__] = 1
@@ -31,8 +31,6 @@ def unparallel(f):
 
 def unparallel_group(groups):
     def unparallel_inner(f):
-        from datetime import datetime
-        import time
 
         def block_access():
             for g in groups:
@@ -47,10 +45,10 @@ def unparallel_group(groups):
                 GROUP_BLOCKER[g] = status
 
         def wait(*args, **kwargs):
-            t1 = datetime.now()
+            t1 = now()
             while not block_access():
                 # Max waiting time is 10 seconds
-                if (datetime.now() - t1).seconds > 10:
+                if (now() - t1).seconds > 10:
                     change_block(0)
                 time.sleep(0.1)
             change_block(1)

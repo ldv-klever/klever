@@ -1,11 +1,10 @@
 import json
-import pytz
 import hashlib
 from io import BytesIO
-from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from django.core.files import File as Newfile
+from django.utils.timezone import now
 from Omega.vars import JOB_STATUS
 from reports.models import *
 from reports.utils import save_attrs
@@ -298,7 +297,7 @@ class UploadReport(object):
             report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
-        report.start_date = pytz.timezone('UTC').localize(datetime.now())
+        report.start_date = now()
 
         if self.data['type'] == 'verification':
             report.finish_date = report.start_date
@@ -354,7 +353,7 @@ class UploadReport(object):
             report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
-        report.finish_date = pytz.timezone('UTC').localize(datetime.now())
+        report.finish_date = now()
         report.save()
 
         self.__add_attrs(report)

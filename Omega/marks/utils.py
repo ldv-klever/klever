@@ -3,10 +3,10 @@ import json
 import tarfile
 import hashlib
 from io import BytesIO
-from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
+from django.utils.timezone import now
 from Omega.vars import USER_ROLES, JOB_ROLES
 from Omega.utils import print_err
 from marks.models import *
@@ -111,8 +111,7 @@ class NewMark(object):
         mark.type = report.root.job.type
         mark.job = report.root.job
 
-        time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z").\
-            encode('utf8')
+        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
         mark.identifier = hashlib.md5(time_encoded).hexdigest()
 
         if 'is_modifiable' in args and isinstance(args['is_modifiable'], bool) \
@@ -786,8 +785,7 @@ class ReadTarMark(object):
                 return _('The mark format is not supported')
             mark.type = args['type']
 
-            time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z").\
-                encode('utf8')
+            time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
             mark.identifier = hashlib.md5(time_encoded).hexdigest()
 
             if isinstance(args['is_modifiable'], bool):
