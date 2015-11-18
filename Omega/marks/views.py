@@ -12,10 +12,8 @@ from django.utils.timezone import pytz
 from Omega.vars import USER_ROLES
 from Omega.utils import print_err, unparallel_group, unparallel
 from users.models import View
-from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess,\
-    TagsInfo, DeleteMark
-from marks.tables import MarkAttrTable, MarkData, MarkChangesTable,\
-    MarkReportsTable, MarksList
+from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, TagsInfo, DeleteMark
+from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList
 from marks.models import *
 
 
@@ -38,8 +36,7 @@ def create_mark(request, mark_type, report_id):
     return render(request, 'marks/CreateMark.html', {
         'report': report,
         'type': mark_type,
-        'AttrTable': MarkAttrTable(report),
-        'markdata': MarkData(mark_type),
+        'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': TagsInfo(mark_type),
         'can_edit': True
@@ -91,8 +88,7 @@ def edit_mark(request, mark_type, mark_id):
             'version': last_version,
             'first_version': history_set.order_by('version')[0],
             'type': mark_type,
-            'AttrTable': MarkAttrTable(mark_version=last_version),
-            'markdata': MarkData(mark_type, last_version),
+            'markdata': MarkData(mark_type, mark_version=last_version),
             'reports': MarkReportsTable(request.user, mark),
             'versions': mark_versions,
             'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
@@ -105,8 +101,7 @@ def edit_mark(request, mark_type, mark_id):
             'version': last_version,
             'first_version': history_set.order_by('version')[0],
             'type': mark_type,
-            'AttrTable': MarkAttrTable(mark_version=last_version),
-            'markdata': MarkData(mark_type, last_version),
+            'markdata': MarkData(mark_type, mark_version=last_version),
             'reports': MarkReportsTable(request.user, mark),
             'tags': TagsInfo(mark_type, mark)
         })
@@ -238,21 +233,17 @@ def get_mark_version_data(request):
         })
     if mark_type == 'unknown':
         unknown_data_tmpl = get_template('marks/MarkUnknownData.html')
-        unknown_data = unknown_data_tmpl.render({
-            'markdata': MarkData(mark_type, mark_version)
+        data = unknown_data_tmpl.render({
+            'markdata': MarkData(mark_type, mark_version=mark_version)
         })
-        return JsonResponse({'adddata': unknown_data})
-    table_templ = get_template('marks/MarkAttrTable.html')
-    table = table_templ.render({
-        'data': MarkAttrTable(mark_version=mark_version)
-    })
-    data_templ = get_template('marks/MarkAddData.html')
-    data = data_templ.render({
-        'markdata': MarkData(mark_type, mark_version),
-        'tags': TagsInfo(mark_type, mark_version),
-        'can_edit': True
-    })
-    return JsonResponse({'table': table, 'adddata': data})
+    else:
+        data_templ = get_template('marks/MarkAddData.html')
+        data = data_templ.render({
+            'markdata': MarkData(mark_type, mark_version=mark_version),
+            'tags': TagsInfo(mark_type, mark_version),
+            'can_edit': True
+        })
+    return JsonResponse({'data': data})
 
 
 @login_required

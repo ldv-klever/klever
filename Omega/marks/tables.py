@@ -576,6 +576,7 @@ class MarksList(object):
         return True
 
 
+# TODO: remove after marks tests
 class MarkAttrTable(object):
 
     def __init__(self, report=None, mark_version=None):
@@ -614,18 +615,43 @@ class MarkAttrTable(object):
 
 
 class MarkData(object):
-    def __init__(self, mark_type, mark_version=None):
+    def __init__(self, mark_type, mark_version=None, report=None):
         self.type = mark_type
         self.mark_version = mark_version
         self.verdicts = self.__verdict_info()
         self.statuses = self.__status_info()
-        self.comparison, self.compare_desc = self.__functions('compare')
-        self.convertion, self.convert_desc = self.__functions('convert')
+        if isinstance(self.mark_version, MarkUnsafeHistory) or isinstance(report, ReportUnsafe):
+            self.comparison, self.compare_desc = self.__functions('compare')
+            self.convertion, self.convert_desc = self.__functions('convert')
         self.unknown_data = self.__unknown_info()
+        self.attributes = self.__get_attributes(report)
         self.description = ''
         if isinstance(self.mark_version,
                       (MarkUnsafeHistory, MarkSafeHistory, MarkUnknownHistory)):
             self.description = self.mark_version.description
+
+    def __get_attributes(self, report):
+        values = []
+        if isinstance(self.mark_version, (MarkUnsafeHistory, MarkSafeHistory)):
+            for name in self.mark_version.mark.attrorder.order_by('id'):
+                try:
+                    attr = self.mark_version.attrs.get(
+                        attr__name__name=name.name.name)
+                except ObjectDoesNotExist:
+                    continue
+                values.append(
+                    (attr.attr.name.name, attr.attr.value, attr.is_compare)
+                )
+        elif isinstance(report, (ReportUnsafe, ReportSafe)):
+            for name in report.attrorder.order_by('id'):
+                try:
+                    attr = report.attr.get(name__name=name.name.name)
+                except ObjectDoesNotExist:
+                    continue
+                values.append((attr.name.name, attr.value, True))
+        else:
+            return None
+        return values
 
     def __unknown_info(self):
         unknown_markdata = []
@@ -680,8 +706,8 @@ class MarkData(object):
             if ((isinstance(self.mark_version, MarkUnsafeHistory) or
                 isinstance(self.mark_version, MarkSafeHistory) or
                 isinstance(self.mark_version, MarkUnknownHistory)) and
-                    status_data['value'] == self.mark_version.status) or \
-                    (self.mark_version is None and status_data['value'] == '0'):
+                    verdict[0] == self.mark_version.status) or \
+                    (self.mark_version is None and verdict[0] == MARK_STATUS[0][0]):
                 status_data['checked'] = True
             statuses.append(status_data)
         return statuses
@@ -703,8 +729,7 @@ class MarkData(object):
                     if self.mark_version.function == f:
                         func_data['selected'] = True
                         selected_description = f.description
-                elif (not isinstance(self.mark_version, MarkUnsafe) and
-                        f.name == DEFAULT_COMPARE):
+                elif f.name == DEFAULT_COMPARE:
                     func_data['selected'] = True
                     selected_description = f.description
                 functions.append(func_data)
