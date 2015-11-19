@@ -98,15 +98,8 @@ class LKBCE(psi.components.Component):
             #Install modules
             self.linux_kernel['modules install'] = self.conf['root id'] + '/linux-modules'
             os.mkdir(self.linux_kernel['modules install'])
-            psi.utils.execute(self.logger,
-                                     tuple(['make', '-C', self.linux_kernel['work src tree'],
-                                            'INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install']),
-                                     dict(os.environ,
-                                              PATH='{0}:{1}'.format(
-                                                  os.path.join(sys.path[0], os.path.pardir, 'psi', 'lkbce', 'cmds'),
-                                                  os.environ['PATH']),
-                                              LINUX_KERNEL_RAW_BUILD_CMS_FILE=os.path.abspath(
-                                                  self.linux_kernel['raw build cmds file'])))
+            self.__make(['-C', self.linux_kernel['work src tree'],
+                         'INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'])
             #Extract mod deps
             self.extract_all_linux_kernel_mod_deps()
 
@@ -116,9 +109,8 @@ class LKBCE(psi.components.Component):
 
     def extract_all_linux_kernel_mod_deps(self):
         if 'whole build' in self.conf['Linux kernel']:
-            path = self.linux_kernel['modules install'] + "/lib/modules/" + self.linux_kernel['version'] + "/modules.dep"
-            if not os.path.exists(path):
-                path = "/home/alexey/kernel/modules/lib/modules/4.0.0-rc1/modules.dep"
+            path = os.path.join(self.linux_kernel['modules install'], "lib/modules", self.linux_kernel['version'], "modules.dep")
+
             with open(path, 'r') as fp:
                 for line in fp:
                     splits = line.split(':')
@@ -132,12 +124,6 @@ class LKBCE(psi.components.Component):
                     if len(module_deps) == 1:
                         continue
                     self.linux_kernel['module deps'][module_name] = module_deps
-
-                    #l = line.split(':')
-                    #if len(l) == 2:
-                    #    module = re.sub('^kernel/', '', l[0])
-                    #    deps = [re.sub('^kernel/', '', dep) for dep in l[1][1:-1].split(' ')]
-                    #    self.linux_kernel['module deps'][module] = deps
             self.conf['Linux kernel']['module deps'] = self.linux_kernel['module deps']
 
     def clean_linux_kernel_work_src_tree(self):

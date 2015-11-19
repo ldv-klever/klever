@@ -95,10 +95,15 @@ class LKVOG(psi.components.Component):
         self.logger.info('Generate all Linux kernel verification object decriptions')
 
         strategy_name = self.conf['LKVOG strategy']['name']
-        if strategy_name in ('closure'): #TODO вынести список стратегий в модуль
+        #TODO: предусмотреть другие стратегии
+        if strategy_name == 'closure':
             self.module_deps = self.mqs['Linux kernel module deps'].get()
-            #TODO: предусмотреть другие стратегии
-            strategy = closure.divide
+            if 'cluster size' in self.conf["LKVOG strategy"]:
+                cluster_size = self.conf['LKVOG strategy']['cluster size']
+            else:
+                cluster_size = 0
+            strategy = closure.Closure(self.logger, self.module_deps, cluster_size)
+
 
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
@@ -116,7 +121,7 @@ class LKVOG(psi.components.Component):
                     # TODO: specification requires to do this in parallel...
                     psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
             if strategy_name in ('closure'):
-                clusters = strategy(self.logger, self.module['name'], self.module_deps)
+                clusters = strategy.divide(self.module['name'])
                 for cluster in clusters:
                     self.cluster = cluster
                     psi.utils.invoke_callbacks(self.generate_verification_obj_desc)

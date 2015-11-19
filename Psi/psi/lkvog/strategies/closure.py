@@ -2,51 +2,38 @@ from psi.lkvog.strategies.module import Module
 from psi.lkvog.strategies.module import Cluster
 import os
 
-def divide(logger, module_name, module_deps):
-     #Auxiliary function for preparation groups of modules with
-     #its dependencies taking into account size restrictions of
-     #verification objects
+class Closure:
+    def __init__(self, logger, module_deps, cluster_size):
+        self.logger = logger
+        self.cluster_size = cluster_size
+        self.logger.debug('Calculate graph of all dependencies between modules')
+        self.modules = {}
 
-     #Wait for module dependencies
+        for module in module_deps:
+            if module not in self.modules:
+                self.modules[module] = Module(module)
+            for pred in module_deps[module]:
+                if pred not in self.modules:
+                    self.modules[pred] = Module(pred)
+                self.modules[module].add_predecessor(self.modules[pred])
 
-     logger.debug('Calculate graph of all dependencies between modules')
+    def divide(self, module_name):
+         #Auxiliary function for preparation groups of modules with
+         #its dependencies taking into account size restrictions of
+         #verification objects
 
-     modules = {}
-
-     process_modules = [module_name]
-
-     while process_modules:
-         module = process_modules.pop(0)
-         if module not in modules:
-             modules[module] = Module(module)
-         if module in module_deps:
-             for predecessor in module_deps[module]:
-                 if predecessor not in modules:
-                     modules[predecessor] = Module(predecessor)
-                     process_modules.append(predecessor)
-                 modules[module].add_predecessor(modules[predecessor])
-
-     #TODO: check that graph has not checked
-
-     top_modules = []
-     for module in modules.values():
-         #Add only root vertexes to the new list
-         if not module.successors:
-             top_modules.append(module)
-
-     #Calculation
-     clusters = []
-     logger.debug('Calculate dependencies for these "top" modules')
-     for root in top_modules:
+         #Calculation
+         clusters = []
+         self.logger.debug('Calculate dependencies for these "top" modules')
+         root = Module(module_name)
          #Will be created own graph
+         #TODO: check that graph has not checked
          cluster = Cluster(root)
 
-         #TODO verification obj size from file
-         verification_obj_size = 2
-         if verification_obj_size:
-             if cluster.size > verification_obj_size:
-                 logger.debug('Module' + root.id + 'has too much dependencies, going to divide this verificatoin object')
-                 shatters = cluster.divide_cluster(verification_obj_size)
+         if self.cluster_size != 0:
+             if cluster.size > self.cluster_size:
+                 self.logger.debug('Module' + root.id + 'has too much dependencies, going to divide this verificatoin object')
+                 shatters = self.divide_cluster(cluster)
 
                  clusters.extend(shatters)
              else:
@@ -54,4 +41,102 @@ def divide(logger, module_name, module_deps):
          else:
              clusters.append(cluster)
 
-     return clusters
+         return clusters
+
+    def divide_cluster(self, cluster_d):
+
+        # Get simple hash
+        hash = {}
+        for module in cluster_d.modules:
+            for pred in module.predecessors:
+                hash.setdefault(module.id, {}).setdefault(pred.id, 0)
+                hash[module.id][pred.id] += 1
+
+        # Use hash to keep only unque tasks
+        task_list = {}
+        rest_list = [{'root': cluster_d.root.id,
+                      'hash': hash,
+                      'size': 1,
+                      'modules': [cluster_d.root.id]}]
+        while rest_list:
+            task = rest_list.pop(0)
+
+            # Trying to add all children
+            children = list(task['hash'].get(task['root'], {}).keys())
+            while children and task['size'] < self.cluster_size:
+                # Add child to group
+                child = children.pop(0)
+                task['modules'].append(child)
+                task['size'] += 1
+                if child in task['hash'] and len(task['hash'][child]) > 0:
+                    new_task = {'root': child,
+                                'hash': task['hash'],
+                                'size': 1,
+                                'modules': [child]}
+                    rest_list.append(new_task)
+            if task['size'] < self.cluster_size or children:
+
+                # Reach limit, rebuild graph without selected edges
+                new_hash = {}
+                exclude = {x: 1 for x in task['modules']}
+                for module in task['hash'].keys():
+                    if module == task['root']:
+                        for child in task['hash'][module]:
+                            if child not in exclude:
+                                new_hash.setdefault(module, {})
+                                new_hash[module][child] = 1
+                    else:
+                        new_hash[module] = task['hash'][module]
+
+                if children:
+
+                    # Limit reached ? Proceed with same values but new hash
+                    new_task = {'root': task['root'],
+                                'hash': new_hash,
+                                'size': 1,
+                                'modules': [task['root']]}
+                    rest_list.append(new_task)
+
+                    id = " ".join(list(sorted(task['modules'])))
+                    task_list[id] = task
+                else:
+
+                    # Limit wasn't reached ? Find new root
+                    for m in task['modules']:
+                        if m != task['root'] and m in task['hash'] and task['hash'][m].keys():
+                            new_task = {'root': m,
+                                        'hash': new_hash,
+                                        'size': len(task['modules']),
+                                        'modules': task['modules']}
+                            if 'origin' in task:
+                                new_task['origin'] = task['origin']
+                            else:
+                                new_task['origin'] = task['root']
+                            rest_list.append(new_task)
+            else:
+                id = " ".join(list(sorted(task['modules'])))
+                task_list[id] = task
+
+        # Prepare Cluster objects
+        ret = []
+        for task in task_list.values():
+
+            # Initialize module objects
+            modules = {}
+            for module in task['modules']:
+                modules[module] = Module(module)
+
+            # Add edges
+            for obj in modules.values():
+                for predecessor in hash.get(obj.id, {}).keys():
+                    if predecessor in modules:
+                        obj.add_predecessor(modules[predecessor])
+            # If root was shifted down during calculation - use original one
+            if ('origin' in task):
+                root = modules[task['origin']]
+            else:
+                root = modules[task['root']]
+            cluster = Cluster(root)
+            ret.append(cluster)
+
+        return ret
