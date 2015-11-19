@@ -40,7 +40,7 @@ class LKBCE(psi.components.Component):
                          {'id': self.name,
                           'attrs': self.linux_kernel['attrs']},
                          self.mqs['report files'],
-                         self.conf['root id'])
+                         self.conf['main working directory'])
         # This file should be specified to collect build commands during configuring and building of the Linux kernel.
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
         self.configure_linux_kernel()
@@ -145,7 +145,7 @@ class LKBCE(psi.components.Component):
         self.src_tree_root = self.linux_kernel['work src tree']
 
     def fetch_linux_kernel_work_src_tree(self):
-        self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
+        self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['main working directory'], 'linux'))
 
         self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel['work src tree']))
 
@@ -161,7 +161,7 @@ class LKBCE(psi.components.Component):
         elif o[0]:
             raise ValueError('Linux kernel source code is provided in unsupported form "{0}"'.format(o[0]))
 
-        self.linux_kernel['src'] = psi.utils.find_file_or_dir(self.logger, self.conf['root id'],
+        self.linux_kernel['src'] = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                               self.linux_kernel['src'])
 
         if os.path.isdir(self.linux_kernel['src']):

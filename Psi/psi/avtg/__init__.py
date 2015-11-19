@@ -42,7 +42,7 @@ def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
 
     # Read rule specification descriprions DB.
-    with open(psi.utils.find_file_or_dir(logger, conf['root id'], conf['rule specifications DB'])) as fp:
+    with open(psi.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB'])) as fp:
         descs = json.load(fp)
 
     rule_spec_descs = []
@@ -184,7 +184,7 @@ class AVTG(psi.components.Component):
                          {'id': self.name,
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
-                         self.conf['root id'])
+                         self.conf['main working directory'])
         self.extract_src_tree_root()
         self.rule_spec_descs = _rule_spec_descs
         psi.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
@@ -234,7 +234,8 @@ class AVTG(psi.components.Component):
                     verification_obj_desc['id'], rule_spec_desc['id'])))
 
         self.plugins_work_dir = os.path.relpath(
-            os.path.join(self.conf['root id'], '{0}.task'.format(verification_obj_desc['id']), rule_spec_desc['id']))
+            os.path.join(self.conf['main working directory'], '{0}.task'.format(verification_obj_desc['id']),
+                         rule_spec_desc['id']))
         os.makedirs(self.plugins_work_dir)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
 

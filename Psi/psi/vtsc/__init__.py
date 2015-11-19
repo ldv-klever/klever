@@ -26,7 +26,7 @@ class VTSC(psi.components.Component):
                          {'id': self.name,
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
-                         self.conf['root id'])
+                         self.conf['main working directory'])
         return
         # TODO: delete following stub code after all.
         # Verification tasks are solved on another computer.
@@ -70,7 +70,7 @@ class VTSC(psi.components.Component):
                                           'log': '',
                                           'data': ''},
                                          self.mqs['report files'],
-                                         self.conf['root id'])
+                                         self.conf['main working directory'])
 
                         if i == 1 and k == 1:
                             psi.utils.report(self.logger,
@@ -88,7 +88,7 @@ class VTSC(psi.components.Component):
                                               'log': '',
                                               'data': ''},
                                              self.mqs['report files'],
-                                             self.conf['root id'],
+                                             self.conf['main working directory'],
                                              'retry')
 
                         os.chdir(os.pardir)
@@ -119,7 +119,7 @@ class VTSC(psi.components.Component):
                                           'log': '',
                                           'data': ''},
                                          self.mqs['report files'],
-                                         self.conf['root id'])
+                                         self.conf['root'])
 
                         os.chdir(os.pardir)
 

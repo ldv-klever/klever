@@ -161,9 +161,9 @@ def execute(logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
     return out_q.output
 
 
-def find_file_or_dir(logger, root_id, file_or_dir):
+def find_file_or_dir(logger, main_work_dir, file_or_dir):
     search_dirs = tuple(
-        os.path.relpath(os.path.join(root_id, search_dir)) for search_dir in ('job/root', os.path.pardir))
+        os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in ('job/root', os.path.pardir))
 
     for search_dir in search_dirs:
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
