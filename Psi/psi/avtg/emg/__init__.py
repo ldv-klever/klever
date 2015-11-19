@@ -3,7 +3,8 @@ import os
 
 import psi.components
 import psi.utils
-import psi.avtg.emg.interfaces as interfaces
+
+from psi.avtg.emg.interfaces import CategorySpecification
 
 
 class EMG(psi.components.Component):
@@ -12,14 +13,14 @@ class EMG(psi.components.Component):
 
         self.logger.debug("Receive abstract verification task")
         avt = self.mqs['abstract task description'].get()
-        self.logger.info("Prepare environment model for an abstract verification task {}".format(avt.id))
+        self.logger.info("Prepare environment model for an abstract verification task {}".format(avt["id"]))
 
         spec_dir = psi.utils.find_file_or_dir(self.logger, self.conf["root id"], self.conf["specifications directory"])
-        intf_spec, event_spec = self.__get_specs(self.logger, spec_dir)
+        intf_spec_dict, event_spec_dict = self.__get_specs(self.logger, spec_dir)
 
         # TODO: Import interface categories configuration
-        categories = interfaces.CategorySpecification(intf_spec)
-
+        intf_spec = CategorySpecification(self.logger)
+        intf_spec.import_specification(intf_spec_dict)
 
         # TODO: Generate aspect files
 
