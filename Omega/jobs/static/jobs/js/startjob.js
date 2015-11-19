@@ -116,7 +116,7 @@ $(document).ready(function () {
             console_log_formatter = $('#console_log_formatter').val(),
             file_log_formatter = $('#file_log_formatter').val(),
             debug = false, allowlocaldir = false;
-        if (!max_ram || !max_cpus || !max_disk || !parallelism || !console_log_formatter || !file_log_formatter || !max_wall_time || !max_cpu_time) {
+        if (!max_ram || !max_cpus || !max_disk || !parallelism || !console_log_formatter || !file_log_formatter) {
             err_notify($('#fields_required').text());
         }
         else {
