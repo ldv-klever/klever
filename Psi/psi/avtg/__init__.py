@@ -120,7 +120,7 @@ def _extract_rule_spec_descs(conf, logger):
                 for plugin_desc in plugin_descs:
                     if plugin_name == plugin_desc['name']:
                         is_plugin_specified = True
-                        if 'opts' not in plugin_desc['name']:
+                        if 'opts' not in plugin_desc:
                             plugin_desc['opts'] = {}
                         plugin_desc['opts'].update(rule_spec_desc[plugin_name])
                         logger.debug(
