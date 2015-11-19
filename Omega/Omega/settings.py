@@ -50,9 +50,7 @@ INSTALLED_APPS = (
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
-
     'django.middleware.locale.LocaleMiddleware',
-
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -107,7 +105,7 @@ LANGUAGES = (
 LOCALE_PATHS = (
     os.path.join(BASE_DIR,  'locale'),
 )
-DEFAULT_LANGUAGE = 'en'
+DEFAULT_LANGUAGE = 'en-us'
 
 TIME_ZONE = 'UTC'
 
@@ -129,3 +127,24 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+DEF_PSI_RESTRICTIONS = {
+    'max_ram': '2.0',
+    'max_cpus': '2',
+    'max_disk': '100.0',
+    'max_wall_time': 900,
+    'max_cpu_time': 1000,
+    'cpu_model': '',
+}
+
+DEF_PSI_FORMATTERS = {
+    'console': "%(name)s %(levelname)5s> %(message)s",
+    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+}
+
+DEF_PSI_CONFIGURATION = {
+    'debug': False,
+    'allow_local_dir': False,  # Allow use of local source directories
+    'priority': 'IDLE',  # See Omega.vars.PRIORITY for more options
+    'avtg_priority': 'balance'  # See service.utils.GEN_PRIORITY for more options
+}

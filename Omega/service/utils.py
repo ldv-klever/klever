@@ -1,62 +1,21 @@
 import json
-import pytz
-from datetime import datetime
-from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.timezone import now
 from Omega.vars import JOB_STATUS
 from Omega.utils import print_err
+from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS, DEF_PSI_CONFIGURATION
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
 
-DEF_PSI_RESTRICTIONS = {
-    'max_ram': '2.0',
-    'max_cpus': '2',
-    'max_disk': '100.0',
-}
 
+# TODO: keys and values are almost the same and thus can be refactored.
 GEN_PRIORITY = [
     ('balance', _('Balance')),
-    ('rule spec', _('Rule specification')),
-    ('verification obj', _('Verification object')),
+    ('rule specifications', _('Rule specifications')),
+    ('verification objects', _('Verification objects')),
 ]
-
-PSI_LOGGING = {
-    'console': "%(name)s %(levelname)5s> %(message)s",
-    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
-}
-
-PSI_CONFIG = '''{
-    "work dir": "psi-work-dir",
-    "id": null,
-    "priority": "IDLE",
-    "resource limits": {
-        "wall time": null,
-        "CPU time": null,
-        "max mem size": null,
-        "CPUs": null,
-        "max result size": null,
-        "CPU model": null
-    },
-    "AVTG priority": "balance",
-    "Omega": {
-        "name": "localhost:8998",
-        "user": null,
-        "passwd": null
-    },
-    "debug": false,
-    "allow local source directories use": false,
-    "logging": {
-        "formatters": null,
-        "loggers": null
-    },
-    "parallel": {
-        "Linux kernel build": 1.0,
-        "verification objs gen": 2,
-        "AVTG": 2,
-        "verification tasks gen": 2
-    }
-}'''
 
 
 # Case 3.1(3) DONE
@@ -95,12 +54,12 @@ class ScheduleTask(object):
 
     def __get_job(self, job_id):
         try:
-            return Job.objects.get(identifier__startswith=job_id)
+            return Job.objects.get(pk=int(job_id))
         except ObjectDoesNotExist:
-            self.error = 'Job with the specified identifier "%s" was not found' % job_id
+            self.error = 'Job was not found was not found' % job_id
             return
-        except MultipleObjectsReturned:
-            self.error = 'Specified identifier "%s" is not unique' % job_id
+        except ValueError:
+            self.error = 'Wrong job id format'
             return
 
     def __create_task(self, description, archive):
@@ -250,7 +209,7 @@ class PSIFinishDecision(object):
             if task.status not in [TASK_STATUS[2][0], TASK_STATUS[3][0]]:
                 self.error = 'There are unfinished tasks'
             RemoveTask(task.pk)
-        self.progress.finish_date = current_date()
+        self.progress.finish_date = now()
         if error is not None:
             self.progress.error = error
             job.status = JOB_STATUS[5][0]
@@ -281,7 +240,7 @@ class PSIStartDecision(object):
         elif progress.finish_date is not None:
             self.error = 'Solving progress already has finish date'
             return
-        progress.start_date = current_date()
+        progress.start_date = now()
         progress.save()
 
 
@@ -293,7 +252,7 @@ class StopDecision(object):
         try:
             self.progress = self.job.solvingprogress
         except ObjectDoesNotExist:
-            self.error = _('Job solving progress does not exists')
+            self.error = _('The job solving progress does not exist')
             return
         if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             self.error = _("Only pending and processing jobs can be stopped")
@@ -316,7 +275,7 @@ class StopDecision(object):
                 task.delete()
             except Exception as e:
                 print_err(e)
-        self.progress.finish_date = current_date()
+        self.progress.finish_date = now()
         self.progress.error = "The job was cancelled"
         self.progress.save()
 
@@ -369,7 +328,7 @@ class GetTasks(object):
                 'cancelled': []
             },
             'job errors': {},
-            'Job configurations': {}
+            'job configurations': {}
         }
         status_map = {
             'pending': TASK_STATUS[0][0],
@@ -518,7 +477,7 @@ class GetTasks(object):
         if self.scheduler.type == SCHEDULER_TYPE[0][0]:
             for progress in SolvingProgress.objects.all():
                 if progress.job.status == JOB_STATUS[1][0]:
-                    new_data['Job configurations'][progress.job.identifier] = \
+                    new_data['job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
                     if progress.job.identifier in data['jobs']['error']:
                         progress.job.status = JOB_STATUS[4][0]
@@ -750,7 +709,7 @@ class SetSchedulersStatus(object):
                 task.error = "Task was finished with error due to scheduler is disconnected"
                 task.save()
             if scheduler.type == SCHEDULER_TYPE[0][0]:
-                progress.finish_date = current_date()
+                progress.finish_date = now()
                 progress.error = "Klever scheduler was disconnected"
                 progress.job.status = JOB_STATUS[4][0]
                 progress.job.save()
@@ -770,10 +729,6 @@ def compare_priority(priority1, priority2):
     if not isinstance(priority2, int):
         priority2 = 0
     return priority1 > priority2
-
-
-def current_date():
-    return pytz.timezone('UTC').localize(datetime.now())
 
 
 class NodesData(object):
@@ -897,51 +852,62 @@ class StartJobDecision(object):
         self.job.save()
 
     def __get_psi_data(self):
-        conf = json.loads(PSI_CONFIG)
         try:
             job = Job.objects.get(pk=int(self.data['job_id']))
         except ObjectDoesNotExist:
             self.error = _("The job was not found")
             return None
-        conf['id'] = job.identifier
-        conf['priority'] = self.data['priority']
-        conf['debug'] = self.data['debug']
-        conf['allow local source directories use'] = self.data['allow_local_dir']
-        conf['AVTG priority'] = self.data['gen_priority']
-        conf['logging']['formatters'] = [
-            {
-                'name': 'brief',
-                'value': self.data['console_log_formatter']
+        conf = {
+            'identifier': job.identifier,
+            'priority': self.data['priority'],
+            'debug': self.data['debug'],
+            'allow local source directories use': self.data['allow_local_dir'],
+            'abstract tasks generation priority': self.data['gen_priority'],
+            'logging': {
+                'formatters': [
+                    {
+                        'name': 'brief',
+                        'value': self.data['console_log_formatter']
+                    },
+                    {
+                        'name': 'detailed',
+                        'value': self.data['file_log_formatter']
+                    }
+                ],
+                'loggers': [
+                    {
+                        "name": "default",
+                        "handlers": [
+                            {
+                                "name": "console",
+                                "level": "INFO",
+                                "formatter": "brief"
+                            },
+                            {
+                                "name": "file",
+                                "level": "DEBUG",
+                                "formatter": "detailed"
+                            }
+                        ]
+                    }
+                ]
             },
-            {
-                'name': 'detailed',
-                'value': self.data['file_log_formatter']
+            'resource limits': {
+                'wall time': int(self.data['max_wall_time']) * 1000,
+                'CPU time': int(self.data['max_cpu_time']) * 1000,
+                'memory size': int(float(self.data['max_ram']) * 10**9),
+                'number of CPU cores': int(self.data['max_cpus']),
+                'CPU model': None,
+                'disk memory size': int(float(self.data['max_disk']) * 10**9)
             }
-        ]
-        conf['logging']['loggers'] = [{
-            "name": "default",
-            "handlers": [
-                {
-                    "name": "console",
-                    "level": "INFO",
-                    "formatter": "brief"
-                },
-                {
-                    "name": "file",
-                    "level": "DEBUG",
-                    "formatter": "detailed"
-                }
-            ]
-        }]
+        }
+        if len(self.data['cpu_model']) > 0:
+            conf['resource limits']['CPU model'] = self.data['cpu_model']
         try:
             parallelism = int(self.data['parallelism'])
         except ValueError:
             parallelism = float(self.data['parallelism'])
-        conf['parallel']['Linux kernel build'] = parallelism
-        conf['resource limits']['CPUs'] = int(self.data['max_cpus'])
-        conf['resource limits']['CPUs'] = int(self.data['max_cpus'])
-        conf['resource limits']['max mem size'] = int(float(self.data['max_ram']) * 10**9)
-        conf['resource limits']['max result size'] = int(float(self.data['max_disk']) * 10**9)
+        conf['parallelism'] = {'Linux kernel build': parallelism}
         return json.dumps(conf)
 
     def __get_scheduler(self):
@@ -983,16 +949,16 @@ class StartJobDecision(object):
             self.error = _('Unknown error')
             return
         if klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _('Klever scheduler is disconnected')
+            self.error = _('The Klever scheduler is disconnected')
             return
         if self.job_scheduler.type == SCHEDULER_TYPE[1][0]:
             if self.job_scheduler.status == SCHEDULER_STATUS[2][0]:
-                self.error = _('VerifierCloud scheduler is disconnected')
+                self.error = _('The VerifierCloud scheduler is disconnected')
                 return
             try:
                 self.operator.scheduleruser
             except ObjectDoesNotExist:
-                self.error = _("You don't have login and password for VefifierCloud scheduler")
+                self.error = _("You didn't specify credentials for VerifierCloud")
                 return
 
 
@@ -1016,7 +982,8 @@ class StartDecisionData(object):
         self.restrictions = DEF_PSI_RESTRICTIONS
         self.gen_priorities = GEN_PRIORITY
         self.parallelism = str(1.0)
-        self.logging = PSI_LOGGING
+        self.logging = DEF_PSI_FORMATTERS
+        self.def_config = DEF_PSI_CONFIGURATION
 
     def __get_schedulers(self):
         try:
@@ -1028,9 +995,9 @@ class StartDecisionData(object):
         except ObjectDoesNotExist:
             return _('Unknown error')
         if klever_sch.status == SCHEDULER_STATUS[1][0]:
-            self.job_sch_err = _("Klever scheduler is ailing")
+            self.job_sch_err = _("The Klever scheduler is ailing")
         elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            return _("Klever scheduler is disconnected")
+            return _("The Klever scheduler is disconnected")
         self.schedulers.append([
             klever_sch.type,
             string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')

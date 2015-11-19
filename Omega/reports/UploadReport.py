@@ -1,11 +1,10 @@
 import json
-import pytz
 import hashlib
 from io import BytesIO
-from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from django.core.files import File as Newfile
+from django.utils.timezone import now
 from Omega.vars import JOB_STATUS
 from reports.models import *
 from reports.utils import save_attrs
@@ -56,6 +55,16 @@ class UploadReport(object):
         self.data = {'type': data['type'], 'id': data['id']}
         if 'desc' in data:
             self.data['description'] = data['desc']
+        if 'comp' in data:
+            err = self.__check_comp(data['comp'])
+            if err is not None:
+                return err
+        # if 'attrs' in data:
+        #     err = self.__check_attrs(data['attrs'])
+        #     if err is not None:
+        #         return err
+        if 'name' in data and len(data['name']) > 15:
+            return 'Component name is too long (max 15 symbols expected)'
 
         if data['type'] == 'start':
             if data['id'] == '/':
@@ -139,6 +148,28 @@ class UploadReport(object):
                 return "Property '%s' is required." % e
         else:
             return "Report type is not supported"
+        return None
+
+    def __check_comp(self, descr):
+        self.ccc = 0
+        if not isinstance(descr, list):
+            return 'Wrong computer description format'
+        for d in descr:
+            if not isinstance(d, dict):
+                return 'Wrong computer description format'
+            if len(d) != 1:
+                return 'Wrong computer description format'
+            if not isinstance(d[next(iter(d))], str) and not isinstance(d[next(iter(d))], int):
+                return 'Wrong computer description format'
+        return None
+
+    def __check_attrs(self, attrs):
+        self.ccc = 0
+        if not isinstance(attrs, list):
+            return 'Wrong attributes format'
+        for a in attrs:
+            if not isinstance(a, dict):
+                return 'Wrong attributes format'
         return None
 
     def __get_root_report(self):
@@ -266,7 +297,7 @@ class UploadReport(object):
             report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
-        report.start_date = pytz.timezone('UTC').localize(datetime.now())
+        report.start_date = now()
 
         if self.data['type'] == 'verification':
             report.finish_date = report.start_date
@@ -322,7 +353,7 @@ class UploadReport(object):
             report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
-        report.finish_date = pytz.timezone('UTC').localize(datetime.now())
+        report.finish_date = now()
         report.save()
 
         self.__add_attrs(report)
@@ -336,8 +367,6 @@ class UploadReport(object):
                 self.__job_failed("There are unfinished reports")
             elif self.job.status != JOB_STATUS[5][0]:
                 PSIFinishDecision(self.job)
-                # if len(ReportUnknown.objects.filter(parent=report)) > 0:
-                # self.__set_status(JOB_STATUS[4][0])
         return report
 
     def __create_report_unknown(self, identifier):

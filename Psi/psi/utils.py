@@ -341,7 +341,7 @@ def get_parallel_threads_num(logger, conf, action):
 
     logger.debug('The number of parallel threads for "{0}" is "{1}"'.format(action, parallel_threads_num))
 
-    return str(parallel_threads_num)
+    return parallel_threads_num
 
 
 def invoke_callbacks(event, args=None):

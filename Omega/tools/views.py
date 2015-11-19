@@ -5,10 +5,12 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import USER_ROLES
+from Omega.utils import unparallel_group
 from reports.models import Component
 from marks.models import UnknownProblem
 
 
+@unparallel_group(['report'])
 @login_required
 def change_component(request):
     activate(request.user.extended.language)
@@ -57,6 +59,7 @@ def change_component(request):
     return JsonResponse({'error': _("Unknown error")})
 
 
+@unparallel_group(['report'])
 @login_required
 def clear_components_table(request):
     activate(request.user.extended.language)

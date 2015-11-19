@@ -1,5 +1,4 @@
 import json
-import pytz
 from urllib.parse import unquote
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -9,13 +8,12 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
+from django.utils.timezone import pytz
 from Omega.vars import USER_ROLES
-from Omega.utils import print_err
+from Omega.utils import print_err, unparallel_group, unparallel
 from users.models import View
-from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess,\
-    TagsInfo, DeleteMark
-from marks.tables import MarkAttrTable, MarkData, MarkChangesTable,\
-    MarkReportsTable, MarksList
+from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, TagsInfo, DeleteMark
+from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList
 from marks.models import *
 
 
@@ -38,8 +36,7 @@ def create_mark(request, mark_type, report_id):
     return render(request, 'marks/CreateMark.html', {
         'report': report,
         'type': mark_type,
-        'AttrTable': MarkAttrTable(report),
-        'markdata': MarkData(mark_type),
+        'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': TagsInfo(mark_type),
         'can_edit': True
@@ -91,8 +88,7 @@ def edit_mark(request, mark_type, mark_id):
             'version': last_version,
             'first_version': history_set.order_by('version')[0],
             'type': mark_type,
-            'AttrTable': MarkAttrTable(mark_version=last_version),
-            'markdata': MarkData(mark_type, last_version),
+            'markdata': MarkData(mark_type, mark_version=last_version),
             'reports': MarkReportsTable(request.user, mark),
             'versions': mark_versions,
             'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
@@ -105,13 +101,13 @@ def edit_mark(request, mark_type, mark_id):
             'version': last_version,
             'first_version': history_set.order_by('version')[0],
             'type': mark_type,
-            'AttrTable': MarkAttrTable(mark_version=last_version),
-            'markdata': MarkData(mark_type, last_version),
+            'markdata': MarkData(mark_type, mark_version=last_version),
             'reports': MarkReportsTable(request.user, mark),
             'tags': TagsInfo(mark_type, mark)
         })
 
 
+@unparallel_group(['mark'])
 @login_required
 def save_mark(request):
     activate(request.user.extended.language)
@@ -179,7 +175,7 @@ def get_func_description(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': 'Unknown error'})
     func_id = int(request.POST.get('func_id', '0'))
     func_type = request.POST.get('func_type', 'compare')
     if func_type == 'compare':
@@ -197,7 +193,7 @@ def get_func_description(request):
                 'error': _('The error traces conversion function was not found')
             })
     else:
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': 'Unknown error'})
     return JsonResponse({'description': function.description})
 
 
@@ -237,21 +233,17 @@ def get_mark_version_data(request):
         })
     if mark_type == 'unknown':
         unknown_data_tmpl = get_template('marks/MarkUnknownData.html')
-        unknown_data = unknown_data_tmpl.render({
-            'markdata': MarkData(mark_type, mark_version)
+        data = unknown_data_tmpl.render({
+            'markdata': MarkData(mark_type, mark_version=mark_version)
         })
-        return JsonResponse({'adddata': unknown_data})
-    table_templ = get_template('marks/MarkAttrTable.html')
-    table = table_templ.render({
-        'data': MarkAttrTable(mark_version=mark_version)
-    })
-    data_templ = get_template('marks/MarkAddData.html')
-    data = data_templ.render({
-        'markdata': MarkData(mark_type, mark_version),
-        'tags': TagsInfo(mark_type, mark_version),
-        'can_edit': True
-    })
-    return JsonResponse({'table': table, 'adddata': data})
+    else:
+        data_templ = get_template('marks/MarkAddData.html')
+        data = data_templ.render({
+            'markdata': MarkData(mark_type, mark_version=mark_version),
+            'tags': TagsInfo(mark_type, mark_version),
+            'can_edit': True
+        })
+    return JsonResponse({'data': data})
 
 
 @login_required
@@ -314,6 +306,7 @@ def download_mark(request, mark_type, mark_id):
     return response
 
 
+@unparallel_group(['mark'])
 @login_required
 def upload_marks(request):
     activate(request.user.extended.language)
@@ -345,6 +338,7 @@ def upload_marks(request):
     return JsonResponse({'status': True})
 
 
+@unparallel_group(['mark'])
 @login_required
 def delete_mark(request, mark_type, mark_id):
     try:
@@ -362,12 +356,13 @@ def delete_mark(request, mark_type, mark_id):
     return HttpResponseRedirect(reverse('marks:mark_list', args=[mark_type]))
 
 
+@unparallel
 @login_required
 def remove_versions(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        return JsonResponse({'status': 1, 'message': 'Unknown error'})
     mark_id = int(request.POST.get('mark_id', 0))
     mark_type = request.POST.get('mark_type', None)
     try:

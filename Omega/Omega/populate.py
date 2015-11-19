@@ -1,11 +1,11 @@
 import hashlib
 from time import sleep
-from datetime import datetime
 from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override
+from django.utils.timezone import now
 from Omega.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES
 from Omega.settings import DEFAULT_LANGUAGE
 from users.models import Extended
@@ -33,10 +33,10 @@ def populate_jobs(user):
         with override(DEFAULT_LANGUAGE):
             args['name'] = JOB_CLASSES[i][1]
             args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
-        args['pk'] = i + 1
-        args['type'] = JOB_CLASSES[i][0]
-        create_job(args)
-        sleep(0.1)
+            args['pk'] = i + 1
+            args['type'] = JOB_CLASSES[i][0]
+            create_job(args)
+            sleep(0.1)
 
 
 class Population(object):
@@ -123,8 +123,7 @@ class Population(object):
         manager = User()
         manager.username = self.manager_username
         manager.save()
-        time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z")\
-            .encode('utf8')
+        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
         password = hashlib.md5(time_encoded).hexdigest()[:8]
         manager.set_password(password)
         manager.save()
@@ -153,8 +152,7 @@ class Population(object):
         service = User()
         service.username = self.service_username
         service.save()
-        time_encoded = datetime.now().strftime("%Y%m%d%H%M%S%f%z")\
-            .encode('utf8')
+        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
         password = hashlib.md5(time_encoded).hexdigest()[:8]
         service.set_password(password)
         service.save()

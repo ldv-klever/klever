@@ -3,18 +3,15 @@ try:
 except ImportError:
     from distutils.core import setup
 
-config = {
-    'description': 'TODO',
-    'author': 'Evgeny Novikov',
-    'url': 'TODO: URL to get it at.',
-    'download_url': 'TODO: Where to download it.',
-    'author_email': 'novikov@ispras.ru',
-    'version': '0.1',
-    'install_requires': ['nose'],
-    'packages': ['Psi'],
-    'scripts': [],
-    'name': 'Psi',
-    'requires': [],
-}
-
-setup(**config)
+setup(name='Psi',
+      version='0.1',
+      description='TODO: a single line describing the package',
+      author='Evgeny Novikov',
+      author_email='novikov@ispras.ru',
+      url='http://forge.ispras.ru/projects/klever',
+      download_url='TODO: a URL to download the package',
+      packages=['psi', 'psi.lkbce', 'psi.lkvog', 'psi.avtg', 'psi.vtg'],
+      scripts=['bin/psi'],
+      requires=[],
+      classifiers=['TODO: a list of categories for the package'],
+      )

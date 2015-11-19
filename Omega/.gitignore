@@ -1,6 +1,5 @@
 Omega/db.cnf
 locale/ru/LC_MESSAGES/django.mo
-media/*
-migrations
-migrations/*
+media
+migrations/
 

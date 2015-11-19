@@ -1,10 +1,9 @@
 import json
-import pytz
-from datetime import datetime, timedelta
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.timezone import now, timedelta
 from Omega.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
 from jobs.models import Job
 from marks.models import ReportSafeTag, ReportUnsafeTag,\
@@ -42,7 +41,7 @@ FILTER_TITLES = {
     'change_date': _('Last change date'),
     'status': _('Decision status'),
     'resource_component': string_concat(
-        _('Resources'), '/', _('Component name')),
+        _('Consumed resources'), '/', _('Component name')),
     'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
     'format': _('Format'),
@@ -446,9 +445,8 @@ class TableTree(object):
             except ValueError:
                 return {}
             if measure in ['minutes', 'hours', 'days', 'weeks']:
-                limit_time = pytz.timezone('UTC').localize(
-                    datetime.now()
-                ) - timedelta(**{measure: value})
+                # limit_time = pytz.timezone('UTC').localize(datetime.now()) - timedelta(**{measure: value})
+                limit_time = now() - timedelta(**{measure: value})
                 if fdata['type'] == 'older':
                     return {'change_date__lt': limit_time}
                 elif fdata['type'] == 'younger':

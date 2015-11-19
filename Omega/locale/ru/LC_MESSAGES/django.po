@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-12 15:14+0000\n"
+"POT-Creation-Date: 2015-11-18 14:59+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,9 +29,9 @@ msgstr ""
 "Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - "
 "{1})"
 
-#: Omega/vars.py:6 jobs/views.py:332 jobs/views.py:361 jobs/views.py:437
-#: jobs/views.py:525 jobs/views.py:818 service/utils.py:904
-#: service/utils.py:958
+#: Omega/vars.py:6 jobs/views.py:300 jobs/views.py:322 jobs/views.py:397
+#: jobs/views.py:457 jobs/views.py:698 service/utils.py:863
+#: service/utils.py:927
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
@@ -49,7 +49,7 @@ msgstr ""
 msgid "The report was not found"
 msgstr "Отчет не был найден"
 
-#: Omega/vars.py:10 marks/views.py:385 marks/views.py:426
+#: Omega/vars.py:10 marks/views.py:389 marks/views.py:430
 msgid "The mark was not found"
 msgstr "Оценка не была найдена"
 
@@ -73,13 +73,13 @@ msgstr "Сохранение оценки провалилось"
 msgid "The tag was not found"
 msgstr "Тег не был найден"
 
-#: Omega/vars.py:16 tools/views.py:93
+#: Omega/vars.py:16 tools/views.py:96
 msgid "The problem was not found"
 msgstr "Проблема не была найдена"
 
 #: Omega/vars.py:25 Omega/vars.py:39
-#: tools/templates/tools/ManagerPanel.html:10 tools/views.py:19
-#: tools/views.py:67 tools/views.py:86 tools/views.py:113
+#: tools/templates/tools/ManagerPanel.html:10 tools/views.py:21
+#: tools/views.py:70 tools/views.py:89 tools/views.py:116
 msgid "No access"
 msgstr "Нет доступа"
 
@@ -245,40 +245,30 @@ msgstr "Решается"
 msgid "Error"
 msgstr "Ошибка"
 
-#: Omega/views.py:30 jobs/utils.py:276 jobs/utils.py:462 jobs/views.py:48
-#: jobs/views.py:53 jobs/views.py:92 jobs/views.py:97 jobs/views.py:121
-#: jobs/views.py:129 jobs/views.py:167 jobs/views.py:171 jobs/views.py:326
-#: jobs/views.py:356 jobs/views.py:418 jobs/views.py:511 jobs/views.py:519
-#: jobs/views.py:677 jobs/views.py:793 jobs/views.py:797 jobs/views.py:810
-#: jobs/views.py:831 jobs/views.py:833 marks/utils.py:763 marks/utils.py:823
-#: marks/utils.py:974 marks/views.py:182 marks/views.py:200 marks/views.py:213
-#: marks/views.py:370 marks/views.py:381 marks/views.py:411 marks/views.py:422
-#: reports/etv.py:279 service/utils.py:872 service/utils.py:880
-#: service/utils.py:961 service/utils.py:983 service/utils.py:1025
-#: service/utils.py:1029 service/views.py:288 tools/views.py:16
-#: tools/views.py:57 tools/views.py:64 tools/views.py:83 tools/views.py:110
-#: users/views.py:299
+#: Omega/views.py:32 jobs/utils.py:276 jobs/utils.py:462 marks/utils.py:763
+#: marks/utils.py:823 marks/utils.py:974 marks/views.py:214 marks/views.py:385
+#: marks/views.py:415 marks/views.py:426 reports/etv.py:279
+#: service/utils.py:832 service/utils.py:840 service/utils.py:930
+#: service/utils.py:952 service/utils.py:995 service/utils.py:999
+#: tools/views.py:18 tools/views.py:59 tools/views.py:67 tools/views.py:86
+#: tools/views.py:113 users/views.py:299
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
-#: jobs/Download.py:165
-msgid "You can't download the job now"
-msgstr "Вы не можете загрузить задание сейчас"
-
-#: jobs/Download.py:388 jobs/Download.py:410 jobs/Download.py:421
-#: jobs/Download.py:440
+#: jobs/Download.py:305 jobs/Download.py:327 jobs/Download.py:338
+#: jobs/Download.py:357
 msgid "The job archive is corrupted"
 msgstr "Архив задания поврежден"
 
-#: jobs/Download.py:412
+#: jobs/Download.py:329
 msgid "The job format is not supported"
 msgstr "Формат задания не поддерживается"
 
-#: jobs/Download.py:414
+#: jobs/Download.py:331
 msgid "The job class does not equal to the parent class"
 msgstr "Класс задания не совпадает с классом родителя"
 
-#: jobs/Download.py:480
+#: jobs/Download.py:397
 msgid "One of the reports was not uploaded"
 msgstr "Один из отчетов не был загружен на сервер"
 
@@ -328,9 +318,9 @@ msgstr "Дата последнего изменения"
 
 #: jobs/JobTableProperties.py:45 jobs/templates/jobs/jobData.html:101
 #: jobs/templates/jobs/viewJobFilters.html:28
-#: jobs/templates/jobs/viewJobFilters.html:95
-msgid "Resources"
-msgstr "Ресурсы"
+#: jobs/templates/jobs/viewJobFilters.html:95 jobs/utils.py:58
+msgid "Consumed resources"
+msgstr "Потребленные ресурсы"
 
 #: jobs/JobTableProperties.py:45 jobs/JobTableProperties.py:46
 #: jobs/templates/jobs/viewJobFilters.html:60
@@ -344,7 +334,7 @@ msgstr "Название компонента"
 #: jobs/JobTableProperties.py:46 jobs/templates/jobs/jobData.html:40
 #: jobs/templates/jobs/viewJobFilters.html:22
 #: jobs/templates/jobs/viewJobFilters.html:44 jobs/utils.py:56
-#: reports/views.py:116 templates/base.html:49
+#: reports/views.py:117 templates/base.html:49
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
@@ -450,7 +440,7 @@ msgstr "Сохранить"
 #: jobs/templates/jobs/filesTree.html:117
 #: jobs/templates/jobs/filesTree.html:151
 #: jobs/templates/jobs/filesTree.html:178 jobs/templates/jobs/tree.html:402
-#: jobs/templates/jobs/viewJob.html:157
+#: jobs/templates/jobs/viewJob.html:162
 #: jobs/templates/jobs/viewVersions.html:18
 #: jobs/templates/jobs/viewVersions.html:32
 #: marks/templates/marks/CreateMark.html:90
@@ -504,7 +494,7 @@ msgstr "Заменить файл"
 #: jobs/templates/jobs/filesTree.html:30
 #: jobs/templates/jobs/filesTree.html:120 jobs/templates/jobs/tree.html:364
 #: jobs/templates/jobs/tree.html.py:403 jobs/templates/jobs/viewJob.html:135
-#: jobs/templates/jobs/viewJob.html:158
+#: jobs/templates/jobs/viewJob.html:163
 #: jobs/templates/jobs/viewVersions.html:17
 #: jobs/templates/jobs/viewVersions.html:33
 #: marks/templates/marks/EditMark.html:18
@@ -619,14 +609,14 @@ msgstr ""
 
 #: jobs/templates/jobs/jobData.html:8
 #: jobs/templates/jobs/viewJobFilters.html:12 jobs/utils.py:48
-#: jobs/utils.py:62 reports/views.py:107 reports/views.py:111
+#: jobs/utils.py:62 reports/views.py:108 reports/views.py:112
 #: templates/base.html:48
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
 #: jobs/templates/jobs/jobData.html:24
 #: jobs/templates/jobs/viewJobFilters.html:17 jobs/utils.py:41
-#: jobs/utils.py:61 reports/views.py:98 reports/views.py:102
+#: jobs/utils.py:61 reports/views.py:99 reports/views.py:103
 #: templates/base.html:50
 msgid "Safes"
 msgstr "Доказательства корректности"
@@ -650,12 +640,10 @@ msgid "Safe"
 msgstr "Доказательство корректности"
 
 #: jobs/templates/jobs/jobData.html:120
-msgid ""
-"Resources (wall time, CPU time and maximum memory) are shown for each "
-"component and totally"
+msgid "Wall time, CPU time and maximum memory size"
 msgstr ""
-"Показаны ресурсы (астрономическое время, процессорное время и максимальный "
-"объем оперативной памяти) по отдельности для каждого компонента и суммарно"
+"Астрономическое время, процессорное время и максимальный объем оперативной "
+"памяти"
 
 #: jobs/templates/jobs/startDecision.html:4
 #: jobs/templates/jobs/startDecision.html:11
@@ -671,13 +659,15 @@ msgid "Job priority"
 msgstr "Приоритет задания"
 
 #: jobs/templates/jobs/startDecision.html:48
-msgid "Restrictions for Psi"
-msgstr "Ограничения для Psi"
+msgid "Resource limits for Psi"
+msgstr "Ограничения на ресурсы для Psi"
 
 #: jobs/templates/jobs/startDecision.html:49
-#: reports/templates/reports/ReportMain.html:102
-msgid "Maximum memory size"
-msgstr "Максимальный объем оперативной памяти"
+#: service/templates/service/scheduler.html:82
+#: service/templates/service/scheduler.html:129
+#: service/templates/service/scheduler.html:147
+msgid "Memory size"
+msgstr "Объем оперативной памяти"
 
 #: jobs/templates/jobs/startDecision.html:49
 #: jobs/templates/jobs/startDecision.html:59 jobs/utils.py:346
@@ -701,11 +691,16 @@ msgid "e.g."
 msgstr "например,"
 
 #: jobs/templates/jobs/startDecision.html:54
-msgid "Maximum number of CPU cores"
-msgstr "Максимальное количество ядер процессора"
+#: service/templates/service/scheduler.html:81
+#: service/templates/service/scheduler.html:128
+#: service/templates/service/scheduler.html:146
+msgid "Number of CPU cores"
+msgstr "Количество ядер процессора"
 
 #: jobs/templates/jobs/startDecision.html:59
-msgid "Maximum disk space"
+#, fuzzy
+#| msgid "Maximum disk space"
+msgid "__Maximum disk space"
 msgstr "Максимальный объем дискового пространства"
 
 #: jobs/templates/jobs/startDecision.html:68
@@ -888,7 +883,7 @@ msgstr "Показать"
 msgid "New view name"
 msgstr "Название нового представления"
 
-#: jobs/templates/jobs/tree.html:356 jobs/views.py:99
+#: jobs/templates/jobs/tree.html:356 jobs/views.py:89
 #: templates/viewButtons.html:23
 msgid "Default"
 msgstr "По умолчанию"
@@ -921,7 +916,7 @@ msgstr "Загрузить отмеченные задания"
 msgid "View"
 msgstr "Представление"
 
-#: jobs/templates/jobs/tree.html:393 jobs/templates/jobs/viewJob.html:148
+#: jobs/templates/jobs/tree.html:393 jobs/templates/jobs/viewJob.html:153
 #: jobs/templates/jobs/viewVersions.html:23
 #: marks/templates/marks/EditMark.html:116
 #: marks/templates/marks/EditUnknownMark.html:112
@@ -1020,7 +1015,7 @@ msgstr "Редактировать"
 msgid "Delete versions"
 msgstr "Удалить версии"
 
-#: jobs/templates/jobs/viewJob.html:152
+#: jobs/templates/jobs/viewJob.html:157
 msgid "All versions and all data of this job will be deleted"
 msgstr "Все версии и все данные задания будут удалены"
 
@@ -1079,10 +1074,6 @@ msgstr "Целевые ошибки"
 msgid "False positives"
 msgstr "Ложные сообщения об ошибках"
 
-#: jobs/utils.py:58
-msgid "Resourses"
-msgstr "Ресурсы"
-
 #: jobs/utils.py:65 service/templates/service/scheduler.html:56
 msgid "Version"
 msgstr "Версия"
@@ -1104,8 +1095,8 @@ msgid "Decision finish date"
 msgstr "Дата завершения решения"
 
 #: jobs/utils.py:72
-msgid "Solution wall time"
-msgstr ""
+msgid "Decision wall time"
+msgstr "Астрономическое время решения"
 
 #: jobs/utils.py:73 users/notifications.py:222
 msgid "Operator"
@@ -1208,69 +1199,69 @@ msgid "The default view was made preferred"
 msgstr ""
 "Представление, которое используется по умолчанию, было сделано предпочитаемым"
 
-#: jobs/views.py:66
+#: jobs/views.py:63
 msgid "The default view is already preferred"
 msgstr ""
 "Представление, которое используется по умолчанию, уже является предпочитаемым"
 
-#: jobs/views.py:75 jobs/views.py:141 jobs/views.py:184
+#: jobs/views.py:68 jobs/views.py:121 jobs/views.py:156
 msgid "The view was not found"
 msgstr "Представление не было найдено"
 
-#: jobs/views.py:84
+#: jobs/views.py:74
 msgid "The preferred view was successfully changed"
 msgstr "Предпочитаемое представление было успешно изменено"
 
-#: jobs/views.py:101 jobs/views.py:111
+#: jobs/views.py:90 jobs/views.py:96
 msgid "Please choose another view name"
 msgstr "Пожалуйста, выберете другое название представления"
 
-#: jobs/views.py:106 jobs/views.py:150
+#: jobs/views.py:93 jobs/views.py:128
 msgid "The view name is required"
 msgstr "Требуется указать название представления"
 
-#: jobs/views.py:133
+#: jobs/views.py:116
 msgid "You can't edit the default view"
 msgstr ""
 "Вы не можете редактировать представление, которое используется по умолчанию"
 
-#: jobs/views.py:158
+#: jobs/views.py:134
 msgid "The view was successfully saved"
 msgstr "Представление было успешно сохранено"
 
-#: jobs/views.py:175
+#: jobs/views.py:150
 msgid "You can't remove the default view"
 msgstr "Вы не можете удалить представление, которое используется по умолчанию"
 
-#: jobs/views.py:188
+#: jobs/views.py:157
 msgid "The view was successfully removed"
 msgstr "Представление было успешно удалено"
 
-#: jobs/views.py:289 marks/views.py:73
+#: jobs/views.py:257 marks/views.py:73
 msgid "Current version"
 msgstr "Текущая версия"
 
-#: jobs/views.py:337
+#: jobs/views.py:302
 msgid "You don't have access to delete versions"
 msgstr "У Вас нет прав удалить версии"
 
-#: jobs/views.py:346 marks/views.py:401
+#: jobs/views.py:308 marks/views.py:405
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
-#: jobs/views.py:348 marks/views.py:403
+#: jobs/views.py:309 marks/views.py:407
 msgid "Nothing to delete"
 msgstr "Нечего удалять"
 
-#: jobs/views.py:442
+#: jobs/views.py:399
 msgid "You don't have an access to edit this job"
 msgstr "У Вас нет прав редактировать данное задание"
 
-#: jobs/views.py:451 jobs/views.py:498
+#: jobs/views.py:405 jobs/views.py:434
 msgid "The job parent was not found"
 msgstr "Родитель задания не был найден"
 
-#: jobs/views.py:456
+#: jobs/views.py:408
 msgid ""
 "Several parents match the specified identifier, please increase the length "
 "of the parent identifier"
@@ -1278,63 +1269,63 @@ msgstr ""
 "Указанному идентификатору соответствуют несколько родителей, пожалуйста, "
 "увеличьте длину идентификатора родителя"
 
-#: jobs/views.py:464
+#: jobs/views.py:413
 msgid "Parent can't be specified for root jobs"
 msgstr "Нельзя указывать родителя для корневых заданий"
 
-#: jobs/views.py:469
+#: jobs/views.py:415
 msgid "The specified parent can't be set for this job"
 msgstr "Для этого задания не может быть установлен указанный родитель"
 
-#: jobs/views.py:476
+#: jobs/views.py:418
 msgid "The parent identifier is required for this job"
 msgstr "Для этого задания требуется идентификатор родителя"
 
-#: jobs/views.py:481 marks/views.py:232
+#: jobs/views.py:420 marks/views.py:233
 msgid "Your version is expired, please reload the page"
 msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
-#: jobs/views.py:503
+#: jobs/views.py:436
 msgid "You don't have an access to create new jobs"
 msgstr "У Вас нет прав создавать новые задания"
 
-#: jobs/views.py:529 jobs/views.py:664
+#: jobs/views.py:458 jobs/views.py:566
 msgid "One of the selected jobs was not found"
 msgstr "Одно из отмеченных заданий не было найдено"
 
-#: jobs/views.py:535
+#: jobs/views.py:461
 msgid "You don't have an access to remove this job"
 msgstr "У Вас нет прав удалить данное задание"
 
-#: jobs/views.py:539
+#: jobs/views.py:462
 msgid "You don't have an access to remove one of the selected jobs"
 msgstr "У Вас нет прав удалить одно из отмеченных заданий"
 
-#: jobs/views.py:589
+#: jobs/views.py:510
 msgid "File uploading failed"
 msgstr "Загрузка файла на сервер провалилась"
 
-#: jobs/views.py:669
+#: jobs/views.py:568
 msgid "You don't have an access to download one of the selected jobs"
 msgstr "У Вас нет прав загрузить одно из отмеченных заданий"
 
-#: jobs/views.py:688
+#: jobs/views.py:580
 msgid "The parent identifier was not got"
 msgstr "Не был получен идентификатор родителя"
 
-#: jobs/views.py:694
+#: jobs/views.py:586
 msgid "The parent with the specified identifier was not found"
 msgstr "Родитель с указанным идентификатором не был найден"
 
-#: jobs/views.py:700
+#: jobs/views.py:592
 msgid "Too many jobs starts with the specified identifier"
 msgstr "Слишком много заданий начинаются с указанного идентификатора"
 
-#: jobs/views.py:801
+#: jobs/views.py:680
 msgid "The file was not found"
 msgstr "Файл не был найден"
 
-#: jobs/views.py:813 jobs/views.py:820
+#: jobs/views.py:693 jobs/views.py:700
 msgid "You don't have an access to stop decision of this job"
 msgstr "У Вас нет прав остановить решение данного задания"
 
@@ -1546,7 +1537,7 @@ msgstr "не совпадает с"
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:782 marks/views.py:190
+#: marks/utils.py:782 marks/views.py:191
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
@@ -1568,27 +1559,27 @@ msgstr "Архив оценки поврежден"
 msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
-#: marks/views.py:197
+#: marks/views.py:198
 msgid "The error traces conversion function was not found"
 msgstr "Функция преобразования трасс ошибок не была найдена"
 
-#: marks/views.py:236 marks/views.py:390
+#: marks/views.py:237 marks/views.py:394
 msgid "You don't have an access to edit this mark"
 msgstr "У Вас нет прав редактировать данную оценку"
 
-#: marks/views.py:261
+#: marks/views.py:262
 msgid "Unsafe marks"
 msgstr "Оценки предупреждений об ошибках"
 
-#: marks/views.py:262
+#: marks/views.py:263
 msgid "Safe marks"
 msgstr "Оценки доказательств корректности"
 
-#: marks/views.py:263
+#: marks/views.py:264
 msgid "Unknown marks"
 msgstr "Оценки проблем в компонентах"
 
-#: marks/views.py:324
+#: marks/views.py:326
 msgid "You don't have access to create new marks"
 msgstr "У Вас нет прав создавать новые оценки"
 
@@ -1692,6 +1683,10 @@ msgstr "Астрономическое время"
 msgid "CPU time"
 msgstr "Процессорное время"
 
+#: reports/templates/reports/ReportMain.html:102
+msgid "Maximum memory size"
+msgstr "Максимальный объем оперативной памяти"
+
 #: reports/templates/reports/ReportMain.html:115
 msgid "Log"
 msgstr "Лог"
@@ -1713,15 +1708,15 @@ msgstr "Компонент"
 msgid "Number of associated marks"
 msgstr "Количество привязанных оценок"
 
-#: reports/views.py:96
+#: reports/views.py:97
 msgid "All safes"
 msgstr "Все доказательства корректности"
 
-#: reports/views.py:105
+#: reports/views.py:106
 msgid "All unsafes"
 msgstr "Все предупрeждения об ошибках"
 
-#: reports/views.py:114
+#: reports/views.py:115
 msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
@@ -1749,18 +1744,6 @@ msgstr "Конфигурации и статистика узвлов плани
 #: service/templates/service/scheduler.html:80
 msgid "Node configurations"
 msgstr "Конфигурации узлов"
-
-#: service/templates/service/scheduler.html:81
-#: service/templates/service/scheduler.html:128
-#: service/templates/service/scheduler.html:146
-msgid "Number of CPU cores"
-msgstr "Количество ядер процессора"
-
-#: service/templates/service/scheduler.html:82
-#: service/templates/service/scheduler.html:129
-#: service/templates/service/scheduler.html:147
-msgid "Memory size"
-msgstr "Объем оперативной памяти"
 
 #: service/templates/service/scheduler.html:83
 #: service/templates/service/scheduler.html:130
@@ -1821,59 +1804,49 @@ msgstr "Зарезервировано"
 msgid "Available"
 msgstr "Доступно"
 
-#: service/utils.py:19
+#: service/utils.py:16
 msgid "Balance"
 msgstr "Баланс"
 
-#: service/utils.py:20
-msgid "Rule specification"
-msgstr "Спецификация правил"
+#: service/utils.py:17
+msgid "Rule specifications"
+msgstr "Спецификации правил"
 
-#: service/utils.py:21
-msgid "Verification object"
-msgstr "Верификационный объект"
+#: service/utils.py:18
+msgid "Verification objects"
+msgstr "Верификационные объекты"
 
-#: service/utils.py:296
-msgid "Job solving progress does not exists"
-msgstr ""
+#: service/utils.py:256
+msgid "The job solving progress does not exist"
+msgstr "Прогресс решения задания не существует"
 
-#: service/utils.py:299
+#: service/utils.py:259
 msgid "Only pending and processing jobs can be stopped"
 msgstr "Только ожидающие и решающиеся задания могут быть остановлены"
 
-#: service/utils.py:951
+#: service/utils.py:920
 msgid "The scheduler was not found"
 msgstr "Планировщик не был найден"
 
-#: service/utils.py:964
+#: service/utils.py:933
 msgid "You don't have an access to start decision of this job"
 msgstr "У Вас нет прав начать решение данного задания"
 
-#: service/utils.py:986 service/utils.py:1033
-msgid "Klever scheduler is disconnected"
-msgstr ""
+#: service/utils.py:955 service/utils.py:1003
+msgid "The Klever scheduler is disconnected"
+msgstr "Планировщик Klever отключен"
 
-#: service/utils.py:990
-msgid "VerifierCloud scheduler is disconnected"
-msgstr ""
+#: service/utils.py:959
+msgid "The VerifierCloud scheduler is disconnected"
+msgstr "Планировщик VerifierCloud отключен"
 
-#: service/utils.py:995
-msgid "You don't have login and password for VefifierCloud scheduler"
-msgstr ""
+#: service/utils.py:964
+msgid "You didn't specify credentials for VerifierCloud"
+msgstr "Вы не указали идентификационную информацию для VerifierCloud"
 
-#: service/utils.py:1031
-msgid "Klever scheduler is ailing"
-msgstr ""
-
-#: service/views.py:290
-msgid "Wrong login"
-msgstr ""
-
-#: service/views.py:292
-#, fuzzy
-#| msgid "New password"
-msgid "Wrong password"
-msgstr "Новый пароль"
+#: service/utils.py:1001
+msgid "The Klever scheduler is ailing"
+msgstr "Планировщик Klever нездоров"
 
 #: templates/Population.html:5 templates/base.html:57
 msgid "Population"
@@ -2043,44 +2016,44 @@ msgstr "Удалить все неиспользуемые проблемы"
 msgid "There are no problems yet"
 msgstr "Проблем еще нет"
 
-#: tools/views.py:26
+#: tools/views.py:28
 msgid "The component was not found"
 msgstr "Компонент не был найден"
 
-#: tools/views.py:34
+#: tools/views.py:36
 msgid "The component is used and can't be deleted"
 msgstr "Компонент используется и не может быть удален"
 
-#: tools/views.py:37
+#: tools/views.py:39
 msgid "The component was successfully deleted"
 msgstr "Компонент был успешно удален"
 
-#: tools/views.py:43
+#: tools/views.py:45
 msgid "The component name should be greater than 0 and less than 16 symbols"
 msgstr "Название компонента должно быть больше 0 и меньше 16 символов"
 
-#: tools/views.py:48
+#: tools/views.py:50
 msgid "The specified component name is used already"
 msgstr "Указанное название компонента уже используется"
 
-#: tools/views.py:55
+#: tools/views.py:57
 msgid "The component was successfully renamed"
 msgstr "Компонент был успешно переименован"
 
-#: tools/views.py:75
+#: tools/views.py:78
 msgid "All unused components were deleted, please reload the page"
 msgstr ""
 "Все неиспользуемые компоненты были удалены, пожалуйста, обновите страницу"
 
-#: tools/views.py:99
+#: tools/views.py:102
 msgid "The problem is used and can't be deleted"
 msgstr "Проблема используется и не может быть удалена"
 
-#: tools/views.py:102
+#: tools/views.py:105
 msgid "The problem was successfully deleted"
 msgstr "Проблема была успешно удалена"
 
-#: tools/views.py:121
+#: tools/views.py:124
 msgid "All unused problems were deleted, please reload the page"
 msgstr ""
 "Все неиспользуемые проблемы были удалены, пожалуйста, обновите страницу"
@@ -2373,8 +2346,3 @@ msgstr "Оценка проблем в компонентах"
 #: users/views.py:298
 msgid "Saved"
 msgstr "Сохранено"
-
-#, fuzzy
-#~| msgid "Please wait"
-#~ msgid "Please save this data"
-#~ msgstr "Пожалуйста, подождите"

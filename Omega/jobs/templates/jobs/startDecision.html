@@ -14,7 +14,7 @@
         <h3 class="ui red header">{{ data.error }}</h3>
     {% else %}
         {% if data.job_sch_err %}
-            <h4 class="ui red header">{{ data.job_sch_err }}</h4>
+            <h3 class="ui red header">{{ data.job_sch_err }}</h3>
         {% endif %}
         <input type="hidden" id="job_pk" value="{{ job.pk }}">
         <div class="ui grid">
@@ -30,7 +30,7 @@
                     <label for="priority">{% trans 'Job priority' %}</label>
                     <select id="priority" class="ui dropdown fluid normal-dropdown">
                         {% for p in data.priorities %}
-                            <option value="{{ p.0 }}">{{ p.1 }}</option>
+                            <option value="{{ p.0 }}"{% if data.def_config.priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -45,20 +45,37 @@
                 </div>
             {% endif %}
             <div class="five wide column need-auth">
-                <h4 class="ui header">{% trans 'Restrictions for Psi' %}</h4>
-                <label for="max_ram">{% trans 'Maximum memory size' %} ( {% trans 'GiB' %} ), {% trans 'e.g.' %} 2.0</label>
+                <h4 class="ui header">{% trans 'Resource limits for Psi' %}</h4>
+                <label for="max_ram">{% trans 'Memory size' %} ( {% trans 'GiB' %} ), {% trans 'e.g.' %} 2.0</label>
                 <div class="ui input fluid">
                     <input id="max_ram" type="number" value="{{ data.restrictions.max_ram }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
                 <br>
-                <label for="max_cpus">{% trans 'Maximum number of CPU cores' %}, {% trans 'e.g.' %} 2</label>
+                <label for="max_cpus">{% trans 'Number of CPU cores' %}, {% trans 'e.g.' %} 2</label>
                 <div class="ui input fluid">
                     <input id="max_cpus" type="number" value="{{ data.restrictions.max_cpus }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Maximum disk space' %} ( {% trans 'GiB' %} ), {% trans 'e.g.' %} 100.0</label>
+                <label for="max_disk">{% trans '__Maximum disk space' %} ( {% trans 'GiB' %} ), {% trans 'e.g.' %} 100.0</label>
                 <div class="ui input fluid">
                     <input id="max_disk" type="number" value="{{ data.restrictions.max_disk }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                </div>
+            </div>
+            <div class="six wide column need-auth">
+                <br><br>
+                <label for="max_wall_time">{% trans 'Wall time' %} ( {% trans 'seconds' %} ), {% trans 'e.g.' %} 900</label>
+                <div class="ui input fluid">
+                    <input id="max_wall_time" type="number" value="{{ data.restrictions.max_wall_time }}" pattern="[0-9]+">
+                </div>
+                <br>
+                <label for="max_cpu_time">{% trans 'CPU time' %}, {% trans 'e.g.' %} 1000</label>
+                <div class="ui input fluid">
+                    <input id="max_cpu_time" type="number" value="{{ data.restrictions.max_cpu_time }}" pattern="[0-9]+">
+                </div>
+                <br>
+                <label for="cpu_model">{% trans 'CPU model' %}</label>
+                <div class="ui input fluid">
+                    <input id="cpu_model" type="text" value="{{ data.restrictions.cpu_model }}">
                 </div>
             </div>
         </div>
@@ -69,7 +86,7 @@
                 <label for="gen_priority">{% trans 'Abstract tasks generation priority' %}</label>
                 <select id="gen_priority" class="ui dropdown fluid normal-dropdown">
                     {% for p in data.gen_priorities %}
-                        <option value="{{ p.0 }}">{{ p.1 }}</option>
+                        <option value="{{ p.0 }}"{% if data.def_config.avtg_priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
                     {% endfor %}
                 </select>
                 <h5 class="ui header">{% trans 'Parallelism' %}</h5>
@@ -94,13 +111,13 @@
         <div class="ui grid need-auth">
             <div class="five wide column">
                 <div class="ui toggle checkbox">
-                    <input id="debug_checkbox" type="checkbox">
+                    <input id="debug_checkbox" type="checkbox" {% if data.def_config.debug %} checked{% endif %}>
                     <label for="debug_checkbox">{% trans 'Debug' %}</label>
                 </div>
             </div>
             <div class="eight wide column">
                 <div class="ui toggle checkbox">
-                    <input id="allow_localdir_checkbox" type="checkbox">
+                    <input id="allow_localdir_checkbox" type="checkbox"{% if data.def_config.allow_local_dir %} checked{% endif %}>
                     <label for="allow_localdir_checkbox">{% trans 'Allow use of local source directories' %}</label>
                 </div>
             </div>
@@ -112,5 +129,5 @@
     {% endif %}
     </div>
     <span id="sch_u_saved" hidden>{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}</span>
-    <span id="fields_required" hidden>{% trans 'All fields are required' %}</span>
+    <span id="fields_required" hidden>{% trans 'All fields (except CPU model) are required' %}</span>
 {% endblock %}

@@ -3,9 +3,7 @@ import json
 import tarfile
 import hashlib
 from io import BytesIO
-from datetime import datetime
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
