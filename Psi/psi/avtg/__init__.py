@@ -10,7 +10,7 @@ import psi.utils
 
 # ATVG plugins.
 from psi.avtg.emg import EMG
-from psi.avtg.ri import RI
+from psi.avtg.rsg import RSG
 
 
 def before_launch_all_components(context):
@@ -145,7 +145,7 @@ def _extract_rule_spec_descs(conf, logger):
 
 
 _rule_spec_descs = None
-_plugins = (EMG, RI)
+_plugins = (EMG, RSG)
 
 
 def get_subcomponent_callbacks(conf, logger):
