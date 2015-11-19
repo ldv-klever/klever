@@ -16,10 +16,15 @@ from psi.avtg.ri import RI
 def before_launch_all_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj descs'] = multiprocessing.Queue()
+    context.mqs['src tree root'] = multiprocessing.Queue()
 
 
 def after_extract_common_prj_attrs(context):
     context.mqs['AVTG common prj attrs'].put(context.common_prj_attrs)
+
+
+def after_extract_src_tree_root(context):
+    context.mqs['src tree root'].put(context.src_tree_root)
 
 
 def after_generate_verification_obj_desc(context):
@@ -180,6 +185,7 @@ class AVTG(psi.components.Component):
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
                          self.conf['root id'])
+        self.extract_src_tree_root()
         self.rule_spec_descs = _rule_spec_descs
         psi.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
 
@@ -191,6 +197,15 @@ class AVTG(psi.components.Component):
         self.common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
 
         self.mqs['AVTG common prj attrs'].close()
+
+    def extract_src_tree_root(self):
+        self.logger.info('Extract source tree root')
+
+        self.conf['source tree root'] = self.mqs['src tree root'].get()
+
+        self.mqs['src tree root'].close()
+
+        self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
 
     def generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')

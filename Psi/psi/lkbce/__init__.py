@@ -32,6 +32,7 @@ class LKBCE(psi.components.Component):
         self.linux_kernel = {}
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
+        psi.utils.invoke_callbacks(self.extract_src_tree_root)
         self.clean_linux_kernel_work_src_tree()
         psi.utils.invoke_callbacks(self.extract_linux_kernel_attrs)
         psi.utils.report(self.logger,
@@ -139,6 +140,9 @@ class LKBCE(psi.components.Component):
             {'Linux kernel': [{'version': self.linux_kernel['version']},
                               {'architecture': self.linux_kernel['arch']},
                               {'configuration': self.linux_kernel['conf shortcut']}]}]
+
+    def extract_src_tree_root(self):
+        self.src_tree_root = self.linux_kernel['work src tree']
 
     def fetch_linux_kernel_work_src_tree(self):
         self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
