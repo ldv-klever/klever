@@ -142,7 +142,7 @@ class LKBCE(psi.components.Component):
                               {'configuration': self.linux_kernel['conf shortcut']}]}]
 
     def extract_src_tree_root(self):
-        self.src_tree_root = self.linux_kernel['work src tree']
+        self.src_tree_root = os.path.abspath(self.linux_kernel['work src tree'])
 
     def fetch_linux_kernel_work_src_tree(self):
         self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['main working directory'], 'linux'))
