@@ -1,10 +1,10 @@
 import hashlib
-from datetime import datetime
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.timezone import now
 from Omega.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from Omega.utils import print_err
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
@@ -69,7 +69,7 @@ TITLES = {
     'priority': _('Priority'),
     'start_date': _('Decision start date'),
     'finish_date': _('Decision finish date'),
-    'solution_wall_time': _('Solution wall time'),
+    'solution_wall_time': _('Decision wall time'),
     'operator': _('Operator'),
     'tasks_pending': _('Pending tasks'),
     'tasks_processing': _('Processing tasks'),
@@ -428,9 +428,7 @@ def create_job(kwargs):
         except ObjectDoesNotExist:
             newjob.pk = int(kwargs['pk'])
 
-    time_encoded = datetime.now().strftime(
-        "%Y%m%d%H%M%S%f%z"
-    ).encode('utf-8')
+    time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
     newjob.identifier = hashlib.md5(time_encoded).hexdigest()
     newjob.save()
 

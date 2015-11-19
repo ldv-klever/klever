@@ -5,14 +5,10 @@
 {% block body_block %}
 {% if type == 'unsafe' %}
     <form autocomplete="off" onsubmit="return false">
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
-        <input id="report_type" type="hidden" value="{{ type }}">
-        <div style="overflow-x: auto">
-            {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
-        </div>
-        <br>
         <div class="ui grid">
             <div class="ten wide column">
+                <input id="report_pk" type="hidden" value="{{ report.pk }}">
+                <input id="report_type" type="hidden" value="{{ type }}">
                 <div class="ui horizontal segments">
                     <div class="ui segment" style="max-width: 50%;">
                         <div class="ui top attached teal label">{% trans 'Error traces conversion function' %}</div>
@@ -80,6 +76,30 @@
                     </div>
                 </div>
                 {% include 'marks/Tags.html' %}
+                <div class="ui styled accordion fluid">
+                    <div class="title">
+                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                    </div>
+                    <div class="content">
+                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                            <table class="ui celled compact purple table">
+                                <tbody>
+                                    <tr>
+                                        {% for v in markdata.attributes %}
+                                            <th class="collapsing">{{ v.0 }}</th>
+                                            <td class="collapsing">
+                                                <div class="ui small checkbox">
+                                                    <label for="attr_checkbox__{{ v.0 }}">{{ v.1 }}</label>
+                                                    <input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}>
+                                                </div>
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
                 {% if can_freeze %}
                     <div class="ui toggle checkbox">
                         <input type="checkbox" id="is_modifiable" checked>
@@ -94,14 +114,10 @@
     </form>
 {% elif type == 'safe' %}
     <form autocomplete="off" onsubmit="return false">
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
-        <input id="report_type" type="hidden" value="{{ type }}">
-        <div style="overflow-x: auto">
-            {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
-        </div>
-        <hr>
         <div class="ui grid">
             <div class="four wide column">
+                <input id="report_pk" type="hidden" value="{{ report.pk }}">
+                <input id="report_type" type="hidden" value="{{ type }}">
                 <div class="ui green segment">
                     <h4 class="ui green header">{% trans 'Verdict' %}</h4>
                     {% for v in markdata.verdicts %}
@@ -133,6 +149,30 @@
             </div>
             <div class="six wide column">
                 {% include 'marks/Tags.html' %}
+            </div>
+            <div class="ui styled accordion fluid">
+                <div class="title">
+                    <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                </div>
+                <div class="content">
+                    <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                        <table class="ui celled compact purple table">
+                            <tbody>
+                                <tr>
+                                    {% for v in markdata.attributes %}
+                                        <th>{{ v.0 }}</th>
+                                        <td class="collapsing">
+                                            <div class="ui small checkbox">
+                                                <label for="attr_checkbox__{{ v.0 }}">{{ v.1 }}</label>
+                                                <input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}>
+                                            </div>
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="ui divider"></div>

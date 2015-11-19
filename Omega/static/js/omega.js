@@ -112,7 +112,10 @@ window.set_actions_for_views = function(filter_type, data_collection) {
                 view_type: filter_type
             },
             success: function(data) {
-                if (data.status) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
                     var request_data = collect_data();
                     request_data['title'] = view_title;
                     request_data['view_type'] = filter_type;
@@ -122,24 +125,19 @@ window.set_actions_for_views = function(filter_type, data_collection) {
                         dataType: 'json',
                         data: request_data,
                         success: function(save_data) {
-                            if (save_data.status === 0) {
-                                if (save_data.hasOwnProperty('view_name')) {
-                                    $('#' + filter_type + '__available_views').append($('<option>', {
-                                        text: save_data['view_name'],
-                                        value: save_data['view_id']
-                                    }));
-                                    $('#' + filter_type + '__view_name_input').val('');
-                                    success_notify(save_data.message);
-                                }
+                            if (save_data.error) {
+                                err_notify(data.error);
                             }
                             else {
-                                err_notify(data.message);
+                                $('#' + filter_type + '__available_views').append($('<option>', {
+                                    text: save_data['view_name'],
+                                    value: save_data['view_id']
+                                }));
+                                $('#' + filter_type + '__view_name_input').val('');
+                                success_notify(save_data.message);
                             }
                         }
                     });
-                }
-                else {
-                    err_notify(data.message);
                 }
             }
         });
@@ -155,7 +153,7 @@ window.set_actions_for_views = function(filter_type, data_collection) {
             dataType: 'json',
             data: request_data,
             success: function(save_data) {
-                save_data.status === 0 ? success_notify(save_data.message) : err_notify(save_data.message);
+                save_data.error ? err_notify(save_data.error) : success_notify(save_data.message);
             }
         });
     });
@@ -177,12 +175,12 @@ window.set_actions_for_views = function(filter_type, data_collection) {
                 view_type: filter_type
             },
             success: function(data) {
-                if (data.status === 0) {
-                    $('#' + filter_type + '__available_views').children('option:selected').remove();
-                    success_notify(data.message)
+                if (data.error) {
+                    err_notify(data.error)
                 }
                 else {
-                    err_notify(data.message)
+                    $('#' + filter_type + '__available_views').children('option:selected').remove();
+                    success_notify(data.message)
                 }
             }
         });
@@ -198,7 +196,7 @@ window.set_actions_for_views = function(filter_type, data_collection) {
                 view_type: filter_type
             },
             success: function(data) {
-                data.status === 0 ? success_notify(data.message) : err_notify(data.message);
+                data.error ? err_notify(data.error) : success_notify(data.message);
             }
         });
     });

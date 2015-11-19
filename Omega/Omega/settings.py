@@ -132,6 +132,9 @@ DEF_PSI_RESTRICTIONS = {
     'max_ram': '2.0',
     'max_cpus': '2',
     'max_disk': '100.0',
+    'max_wall_time': None,
+    'max_cpu_time': None,
+    'cpu_model': '',
 }
 
 DEF_PSI_FORMATTERS = {

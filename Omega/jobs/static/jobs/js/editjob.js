@@ -209,7 +209,7 @@ function set_actions_for_edit_form () {
                 last_version: last_job_version
             },
             function (data) {
-                data.status === 0 ? window.location.replace('/jobs/' + data.job_id + '/'):err_notify(data.message);
+                data.error ? err_notify(data.error) : window.location.replace('/jobs/' + data.job_id + '/');
             },
             "json"
         );
@@ -783,13 +783,13 @@ function set_actions_for_versions_delete() {
             job_ajax_url + 'remove_versions/',
             {job_id: $('#job_pk').val(), versions: JSON.stringify(checked_versions)},
             function (data) {
+                data.error ? err_notify(data.error) : success_notify(data.message);
                 var global_parent;
                 $.each(checked_versions, function (i, val) {
                     var curr_checkbox = $("#checkbox_version__" + val);
                     global_parent = curr_checkbox.parent().parent().parent();
                     curr_checkbox.parent().parent().remove();
                 });
-                data.status === 0 ? success_notify(data.message) : err_notify(data.message);
                 if (global_parent && global_parent.children().first().children().length == 0) {
                     $('#versions_to_delete').hide();
                     $('#no_versions_to_delete').show();
@@ -824,6 +824,13 @@ $(document).ready(function () {
             hide: 100
         }
     });
+
+    if ($('#job_status_popup').length) {
+        $('#job_status_popup_activator').popup({
+            popup: $('#job_status_popup'),
+            position: 'bottom center'
+        });
+    }
 
     if ($('#edit_job_div').length) {
         $.ajax({
@@ -867,7 +874,7 @@ $(document).ready(function () {
             job_ajax_url + 'removejobs/',
             {jobs: JSON.stringify([$('#job_pk').val()])},
             function (data) {
-                data.status === 0 ? window.location.replace('/jobs/') : err_notify(data.message);
+                data.error ? err_notify(data.error) : window.location.replace('/jobs/');
             },
             'json'
         );

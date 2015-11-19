@@ -2,6 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from Omega.vars import JOB_STATUS
+from Omega.utils import unparallel_group
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -217,6 +218,7 @@ def report_leaf(request, leaf_type, report_id):
     )
 
 
+@unparallel_group(['mark', 'report'])
 @login_required
 def upload_report(request):
     if request.method != 'POST':

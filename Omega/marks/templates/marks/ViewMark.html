@@ -88,6 +88,34 @@
             </div>
         </div>
         <div class="nine wide column">
+            {% if markdata.type == 'unsafe' or markdata.type == 'safe' %}
+                <div class="ui styled accordion fluid">
+                    <div class="title">
+                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                    </div>
+                    <div class="content">
+                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                            <table class="ui celled compact purple table">
+                                <tbody>
+                                    <tr>
+                                        {% for v in markdata.attributes %}
+                                            <th class="collapsing">{{ v.0 }}</th>
+                                            <td class="collapsing">
+                                                {% if v.3 %}
+                                                    <i class="ui green small checkmark icon"></i>
+                                                {% else %}
+                                                    <i class="ui red small remove icon"></i>
+                                                {% endif %}
+                                                {{ v.1 }}
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
             {% if markdata.type == 'unsafe' %}
                 <div class="ui horizontal segments">
                     <div class="ui green segment">
@@ -110,7 +138,6 @@
                         <div class="filecontent">{{ markdata.compare_desc }}</div>
                     </div>
                 </div>
-
             {% elif markdata.type == 'safe' %}
                 <div class="ui horizontal segments">
                     <div class="ui green segment">
