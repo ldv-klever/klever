@@ -895,10 +895,10 @@ class StartJobDecision(object):
             'resource limits': {
                 'wall time': int(self.data['max_wall_time']) * 1000,
                 'CPU time': int(self.data['max_cpu_time']) * 1000,
-                'memory size': int(float(self.data['max_ram']) * 10**9),
+                'memory size': int(float(self.data['max_ram']) * 2**30),
                 'number of CPU cores': int(self.data['max_cpus']),
                 'CPU model': None,
-                'disk memory size': int(float(self.data['max_disk']) * 10**9)
+                'disk memory size': int(float(self.data['max_disk']) * 2**30)
             }
         }
         if len(self.data['cpu_model']) > 0:
