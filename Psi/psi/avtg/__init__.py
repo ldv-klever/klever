@@ -239,9 +239,13 @@ class AVTG(psi.components.Component):
         os.makedirs(self.plugins_work_dir)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
 
-        # Initial abstract verification task looks like corresponding verification object except id.
+        # Initial abstract verification task looks like corresponding verification object.
         abstract_task_desc = copy.deepcopy(verification_obj_desc)
         abstract_task_desc['id'] = '{0}/{1}'.format(verification_obj_desc['id'], rule_spec_desc['id'])
+        for grp in abstract_task_desc['grps']:
+            grp['cc extra full desc files'] = [{"cc full desc file": cc_full_desc_file} for cc_full_desc_file in
+                                               grp['cc full desc files']]
+            del(grp['cc full desc files'])
         self.mqs['abstract task description'].put(abstract_task_desc)
 
         # Invoke all plugins one by one.
