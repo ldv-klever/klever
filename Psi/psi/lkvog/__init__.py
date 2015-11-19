@@ -8,7 +8,7 @@ import re
 
 import psi.components
 import psi.utils
-import psi.lkvog.strategies
+from psi.lkvog.strategies import closure
 
 
 def before_launch_all_components(context):

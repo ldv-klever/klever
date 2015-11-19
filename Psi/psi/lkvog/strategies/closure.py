@@ -42,7 +42,7 @@ def divide(logger, module_name, module_deps):
          cluster = Cluster(root)
 
          #TODO verification obj size from file
-         verification_obj_size = 10
+         verification_obj_size = 2
          if verification_obj_size:
              if cluster.size > verification_obj_size:
                  logger.debug('Module' + root.id + 'has too much dependencies, going to divide this verificatoin object')
@@ -53,12 +53,5 @@ def divide(logger, module_name, module_deps):
                  clusters.append(cluster)
          else:
              clusters.append(cluster)
-     dir = '/home/alexey/graphs/' + module_name.replace('/', '-')
-     os.mkdir(dir)
-     for i, cluster in enumerate(clusters):
-         cluster.draw(dir + '/' + str(i) + '.png')
-
-     with open(dir + '/' + 'file', 'w') as fp:
-         fp.write(str(len(clusters)))
 
      return clusters

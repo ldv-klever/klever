@@ -1,4 +1,4 @@
-import pygraphviz as pgv
+import json
 
 class Module:
     def __init__(self, id):
@@ -131,12 +131,12 @@ class Cluster:
         return ret
 
     def draw(self, path):
-        graph = pgv.AGraph(directd=True)
         modules = [self.root]
+        graph = {}
         while modules:
             module = modules.pop(0)
-            graph.add_node(module.id)
+            graph[module.id] = []
             for successor in module.successors:
-                graph.add_edge([successor.id, module.id])
+                graph[successor.id].append(module.id)
             modules.extend(module.predecessors)
-        graph.draw(path, 'png', prog='dot')
+        json.dump(graph, open(path,'w'))
