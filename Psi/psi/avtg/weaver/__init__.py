@@ -20,7 +20,14 @@ class Weaver(psi.components.Component):
                 with open(os.path.join(self.conf['source tree root'],
                                        cc_extra_full_desc_file['cc full desc file'])) as fp:
                     cc_full_desc = json.load(fp)
-                # TODO: invoke CIF here.
+                # TODO: GCC can accept several input files but who cares?
+                if 'plugin aspect files' not in cc_extra_full_desc_file:
+                    psi.utils.execute(self.logger,
+                                      ('cif',
+                                       '--in', cc_full_desc['in files'][0],
+                                       '--aspect', '/dev/null',
+                                       '--out', cc_full_desc['out file'],
+                                       '--back-end', 'src'))
                 extra_c_file['C file'] = cc_full_desc['out file']
 
                 if 'rule spec id' in cc_extra_full_desc_file:
