@@ -2,6 +2,7 @@
 
 import json
 import os
+import string
 
 import psi.components
 import psi.utils
@@ -74,7 +75,8 @@ class RSG(psi.components.Component):
                                 psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                            self.conf['rule specifications directory']),
                                 os.path.realpath(self.conf['source tree root'])))] +
-                            self.conf['model CC opts']
+                            [string.Template(opt).substitute(arch=self.conf['sys']['arch']) for opt in
+                             self.conf['model CC opts']]
                         ]
                     }, fp, sort_keys=True, indent=4)
                 self.logger.debug('CC extra full description file is "{0}"'.format(full_desc_file))
