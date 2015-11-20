@@ -893,8 +893,8 @@ class StartJobDecision(object):
                 ]
             },
             'resource limits': {
-                'wall time': int(self.data['max_wall_time']) * 1000 if self.data['max_wall_time'] else None,
-                'CPU time': int(self.data['max_cpu_time']) * 1000 if self.data['max_cpu_time'] else None,
+                'wall time': int(self.data['max_wall_time']) * 1000 if len(self.data['max_wall_time']) > 0 else None,
+                'CPU time': int(self.data['max_cpu_time']) * 1000 if len(self.data['max_cpu_time']) > 0 else None,
                 'memory size': int(float(self.data['max_ram']) * 2**30),
                 'number of CPU cores': int(self.data['max_cpus']),
                 'CPU model': self.data['cpu_model'] if len(self.data['cpu_model']) > 0 else None,
