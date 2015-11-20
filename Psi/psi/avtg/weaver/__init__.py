@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+import json
+import os
+
 import psi.components
 import psi.utils
 
@@ -8,7 +11,25 @@ class Weaver(psi.components.Component):
     def weave(self):
         self.abstract_task_desc = self.mqs['abstract task description'].get()
 
-        self.func()
+        self.abstract_task_desc['extra C files'] = []
+
+        for grp in self.abstract_task_desc['grps']:
+            for cc_extra_full_desc_file in grp['cc extra full desc files']:
+                extra_c_file = {}
+
+                with open(os.path.join(self.conf['source tree root'],
+                                       cc_extra_full_desc_file['cc full desc file'])) as fp:
+                    cc_full_desc = json.load(fp)
+                # TODO: invoke CIF here.
+                extra_c_file['C file'] = cc_full_desc['out file']
+
+                if 'rule spec id' in cc_extra_full_desc_file:
+                    extra_c_file['rule spec id'] = cc_extra_full_desc_file['rule spec id']
+
+                if 'bug kinds' in cc_extra_full_desc_file:
+                    extra_c_file['bug kinds'] = cc_extra_full_desc_file['bug kinds']
+
+                self.abstract_task_desc['extra C files'].append(extra_c_file)
 
         # These sections won't be reffered any more.
         del (self.abstract_task_desc['grps'])
@@ -17,6 +38,3 @@ class Weaver(psi.components.Component):
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = weave
-
-    def func(self):
-        self.logger.info('')
