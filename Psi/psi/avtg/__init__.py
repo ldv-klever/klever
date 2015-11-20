@@ -240,13 +240,18 @@ class AVTG(psi.components.Component):
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
 
         # Initial abstract verification task looks like corresponding verification object.
-        abstract_task_desc = copy.deepcopy(verification_obj_desc)
-        abstract_task_desc['id'] = '{0}/{1}'.format(verification_obj_desc['id'], rule_spec_desc['id'])
-        for grp in abstract_task_desc['grps']:
+        initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
+        initial_abstract_task_desc['id'] = '{0}/{1}'.format(verification_obj_desc['id'], rule_spec_desc['id'])
+        for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = [{'cc full desc file': cc_full_desc_file} for cc_full_desc_file in
                                                grp['cc full desc files']]
             del(grp['cc full desc files'])
-        self.mqs['abstract task description'].put(abstract_task_desc)
+        self.mqs['abstract task description'].put(initial_abstract_task_desc)
+        if self.conf['debug']:
+            initial_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'abstract task.json')
+            self.logger.debug('Create initial abstract verification task description file "{0}"'.format(initial_abstract_task_desc_file))
+            with open(initial_abstract_task_desc_file, 'w') as fp:
+                json.dump(initial_abstract_task_desc, fp, sort_keys=True, indent=4)
 
         # Invoke all plugins one by one.
         for plugin_desc in rule_spec_desc['plugins']:
@@ -280,3 +285,12 @@ class AVTG(psi.components.Component):
                 self.logger.debug('Create configuration file "{0}"'.format(plugin_conf_file))
                 with open(plugin_conf_file, 'w') as fp:
                     json.dump(plugin_conf, fp, sort_keys=True, indent=4)
+
+                cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'abstract task.json')
+                self.logger.debug('Create current abstract verification task description file "{0}"'.format(cur_abstract_task_desc_file))
+                # Temporarily get current abstract verification task description.
+                cur_abstract_task_desc = self.mqs['abstract task description'].get()
+                with open(cur_abstract_task_desc_file, 'w') as fp:
+                    json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
+                # Return current abstract verification task description back.
+                self.mqs['abstract task description'].put(cur_abstract_task_desc)
