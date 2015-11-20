@@ -20,7 +20,7 @@ class RSG(psi.components.Component):
     main = generate_rule_specification
 
     def add_aspects(self):
-        self.logger.info("Add aspects to abstract task description")
+        self.logger.info('Add aspects to abstract task description')
 
         # Get common and rule specific aspects.
         aspects = []
@@ -42,7 +42,7 @@ class RSG(psi.components.Component):
                                           aspect in aspects]})
 
     def add_models(self):
-        self.logger.info("Add models to abstract task description")
+        self.logger.info('Add models to abstract task description')
 
         # Get common and rule specific models.
         models = []
