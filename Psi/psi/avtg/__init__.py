@@ -139,7 +139,7 @@ def _extract_rule_spec_descs(conf, logger):
             del (rule_spec_desc[plugin_name])
         rule_spec_desc['plugins'] = plugin_descs
 
-        rule_spec_descs.append({'id': rule_spec_id, 'plugins': plugin_descs})
+        rule_spec_descs.append({'id': rule_spec_id, 'plugins': plugin_descs, 'bug kinds': rule_spec_desc['bug kinds']})
 
     return rule_spec_descs
 
@@ -243,7 +243,7 @@ class AVTG(psi.components.Component):
         abstract_task_desc = copy.deepcopy(verification_obj_desc)
         abstract_task_desc['id'] = '{0}/{1}'.format(verification_obj_desc['id'], rule_spec_desc['id'])
         for grp in abstract_task_desc['grps']:
-            grp['cc extra full desc files'] = [{"cc full desc file": cc_full_desc_file} for cc_full_desc_file in
+            grp['cc extra full desc files'] = [{'cc full desc file': cc_full_desc_file} for cc_full_desc_file in
                                                grp['cc full desc files']]
             del(grp['cc full desc files'])
         self.mqs['abstract task description'].put(abstract_task_desc)
@@ -252,10 +252,11 @@ class AVTG(psi.components.Component):
         for plugin_desc in rule_spec_desc['plugins']:
             self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
-            # Get plugin configuration on the basis of common configuration and plugin options specific for rule
-            # specification.
+            # Get plugin configuration on the basis of common configuration, plugin options specific for rule
+            # specification and information on rule specification itself.
             plugin_conf = copy.deepcopy(self.conf)
             plugin_conf.update(plugin_desc['opts'])
+            plugin_conf.update({'rule spec id': rule_spec_desc['id'], 'bug kinds': rule_spec_desc['bug kinds']})
 
             p = plugin_desc['plugin'](plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
                                       '{0}/{1}/{2}'.format(verification_obj_desc['id'], rule_spec_desc['id'],
