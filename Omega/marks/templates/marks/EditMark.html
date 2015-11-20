@@ -90,6 +90,7 @@
                 <div id="mark_data_div">
                     {% include 'marks/MarkAddData.html' with markdata=markdata %}
                 </div>
+                <br>
                 {% if can_freeze %}
                     <div class="ui toggle checkbox">
                         <input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>

@@ -454,7 +454,6 @@ class ConnectMarkWithReports(object):
         for mark_safe in self.mark.markreport_set.all():
             self.changes[mark_safe.report] = {
                 'kind': '=',
-                'result1': mark_safe.result,
                 'verdict1': mark_safe.report.verdict,
             }
         self.mark.markreport_set.all().delete()
