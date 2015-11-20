@@ -133,8 +133,11 @@ def execute(logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
     for stream_q in (out_q, err_q):
         stream_q.start()
 
-    # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds.
-    while not out_q.finished or not err_q.finished:
+    # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds. Last try is required to
+    # print last messages queued before command finishes.
+    last_try = True
+    while not out_q.finished or not err_q.finished or last_try:
+        last_try = out_q.finished and err_q.finished
         time.sleep(timeout)
 
         for stream_q in (out_q, err_q):
