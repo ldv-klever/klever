@@ -9,6 +9,8 @@ import re
 import psi.components
 import psi.utils
 from psi.lkvog.strategies import closure
+from psi.lkvog.strategies import scotch
+from psi.lkvog.strategies import strategies_list
 
 
 def before_launch_all_components(context):
@@ -95,7 +97,7 @@ class LKVOG(psi.components.Component):
         self.logger.info('Generate all Linux kernel verification object decriptions')
 
         strategy_name = self.conf['LKVOG strategy']['name']
-        #TODO: предусмотреть другие стратегии
+
         if strategy_name == 'closure':
             self.module_deps = self.mqs['Linux kernel module deps'].get()
             if 'cluster size' in self.conf["LKVOG strategy"]:
@@ -103,6 +105,16 @@ class LKVOG(psi.components.Component):
             else:
                 cluster_size = 0
             strategy = closure.Closure(self.logger, self.module_deps, cluster_size)
+
+        elif strategy_name == 'scotch':
+            self.module_deps = self.mqs['Linux kernel module deps'].get()
+            #TODO: check params?
+            task_size = self.conf['LKVOG strategy']['task size']
+            balance_tolerance = self.conf['LKVOG strategy']['balance tolerance']
+            graph_file = self.conf['LKVOG strategy']['graph file']
+            scotch_log = self.conf['LKVOG strategy']['scotch log']
+            scotch_out = self.conf['LKVOG strategy']['scotch out']
+            stategy = scotch.Scotch(self.logger, task_size, balance_tolerance, graph_file, scotch_log, scotch_out)
 
 
         while True:
@@ -120,7 +132,7 @@ class LKVOG(psi.components.Component):
                     self.all_modules[self.module['name']] = True
                     # TODO: specification requires to do this in parallel...
                     psi.utils.invoke_callbacks(self.generate_verification_obj_desc)
-            if strategy_name in ('closure'):
+            if strategy_name in strategies_list:
                 clusters = strategy.divide(self.module['name'])
                 for cluster in clusters:
                     self.cluster = cluster
@@ -154,8 +166,7 @@ class LKVOG(psi.components.Component):
                 with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
-        elif strategy == "closure":
-
+        elif strategy in strategies_list:
 
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id)
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
@@ -164,13 +175,10 @@ class LKVOG(psi.components.Component):
 
             self.verification_obj_desc['grps'] = []
             self.verification_obj_desc['deps'] = {}
-            modules = [self.cluster.root]
-            while modules:
-                module = modules.pop(0)
+            for module in self.cluster.modules:
                 self.verification_obj_desc['grps'].append({'id' : module.id,
                                                           'cc full desc files' : self.__find_cc_full_desc_files(module.id)})
                 self.verification_obj_desc['deps'][module.id] = [predecessor.id for predecessor in module.predecessors]
-                modules.extend(module.predecessors)
 
             self.logger.debug(
                 'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))

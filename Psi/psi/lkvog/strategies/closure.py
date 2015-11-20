@@ -1,6 +1,5 @@
 from psi.lkvog.strategies.module import Module
 from psi.lkvog.strategies.module import Cluster
-import os
 
 class Closure:
     def __init__(self, logger, module_deps, cluster_size):
@@ -8,6 +7,7 @@ class Closure:
         self.cluster_size = cluster_size
         self.logger.debug('Calculate graph of all dependencies between modules')
         self.modules = {}
+        self.checked_clusters = set()
 
         for module in module_deps:
             if module not in self.modules:
@@ -27,21 +27,28 @@ class Closure:
          self.logger.debug('Calculate dependencies for these "top" modules')
          root = Module(module_name)
          #Will be created own graph
-         #TODO: check that graph has not checked
          cluster = Cluster(root)
 
          if self.cluster_size != 0:
              if cluster.size > self.cluster_size:
-                 self.logger.debug('Module' + root.id + 'has too much dependencies, going to divide this verificatoin object')
+                 self.logger.debug('Module', root.id, 'has too much dependencies, going to divide this verificatoin object')
                  shatters = self.divide_cluster(cluster)
-
                  clusters.extend(shatters)
              else:
+
                  clusters.append(cluster)
          else:
              clusters.append(cluster)
 
-         return clusters
+         #Return only not checked clusters
+         ret_clusters = []
+         for cluster in clusters:
+             hash_num = hash(cluster)
+             if hash_num not in self.checked_clusters:
+                 self.checked_clusters.add(hash_num)
+                 ret_clusters.append(cluster)
+
+         return ret_clusters
 
     def divide_cluster(self, cluster_d):
 

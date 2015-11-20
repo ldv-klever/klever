@@ -16,11 +16,15 @@ class Module:
         else:
             return 0
 
+    def __hash__(self):
+        return hash(self.id)
+
 
 class Cluster:
     def __init__(self, root):
         self.root = root
         modules = {}
+        self.hash = None
         check = [self.root]
         while check:
             module = check.pop(0)
@@ -32,4 +36,13 @@ class Cluster:
         self.modules = list(modules.values())
         self.size = len(self.modules)
 
+    def __hash__(self):
+        return hash(frozenset(self.modules))
 
+class Graph:
+    def __init__(self, modules):
+        self.modules = modules
+        self.size = len(self.modules)
+
+    def __hash__(self):
+        return hash(frozenset(self.modules))
