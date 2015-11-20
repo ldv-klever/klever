@@ -119,7 +119,7 @@ class VTSC(psi.components.Component):
                                           'log': '',
                                           'data': ''},
                                          self.mqs['report files'],
-                                         self.conf['root'])
+                                         self.conf['main working directory'])
 
                         os.chdir(os.pardir)
 
