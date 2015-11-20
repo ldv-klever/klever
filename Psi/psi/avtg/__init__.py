@@ -260,7 +260,8 @@ class AVTG(psi.components.Component):
             # Get plugin configuration on the basis of common configuration, plugin options specific for rule
             # specification and information on rule specification itself.
             plugin_conf = copy.deepcopy(self.conf)
-            plugin_conf.update(plugin_desc['opts'])
+            if 'opts' in plugin_desc:
+                plugin_conf.update(plugin_desc['opts'])
             plugin_conf.update({'rule spec id': rule_spec_desc['id'], 'bug kinds': rule_spec_desc['bug kinds']})
 
             p = plugin_desc['plugin'](plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
