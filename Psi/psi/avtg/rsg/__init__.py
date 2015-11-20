@@ -5,8 +5,8 @@ import psi.utils
 
 
 class RSG(psi.components.Component):
-    def do_something_useful(self):
+    def generate_rule_specification(self):
         abstract_task_desc = self.mqs['abstract task description'].get()
         self.mqs['abstract task description'].put(abstract_task_desc)
 
-    main = do_something_useful
+    main = generate_rule_specification
