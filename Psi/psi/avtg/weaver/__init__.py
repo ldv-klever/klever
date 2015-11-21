@@ -22,12 +22,18 @@ class Weaver(psi.components.Component):
                     cc_full_desc = json.load(fp)
                 # TODO: GCC can accept several input files but who cares?
                 if 'plugin aspect files' not in cc_extra_full_desc_file:
-                    psi.utils.execute(self.logger,
-                                      ('cif',
-                                       '--in', cc_full_desc['in files'][0],
-                                       '--aspect', '/dev/null',
-                                       '--out', cc_full_desc['out file'],
-                                       '--back-end', 'src'),
+                    stdout = psi.utils.execute(self.logger,
+                                               ('aspectator', '-print-file-name=include'),
+                                               collect_all_stdout=True)
+                    psi.utils.execute(self.logger, tuple([
+                                                             'cif',
+                                                             '--in', cc_full_desc['in files'][0],
+                                                             '--aspect', '/dev/null',
+                                                             '--out', cc_full_desc['out file'],
+                                                             '--back-end', 'src',
+                                                             '--'] +
+                                                         cc_full_desc['opts'] +
+                                                         ['-I{0}'.format(stdout[0])]),
                                       cwd=self.conf['source tree root'])
                 extra_c_file['C file'] = cc_full_desc['out file']
 
