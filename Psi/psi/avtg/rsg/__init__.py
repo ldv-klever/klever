@@ -70,7 +70,7 @@ class RSG(psi.components.Component):
                         # Otput file should be located somewhere inside RSG working directory to avoid races.
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
                         "opts":
-                            [string.Template(opt).substitute(arch=self.conf['sys']['arch']) for opt in
+                            [string.Template(opt).substitute({'hdr-arch': self.conf['sys']['hdr-arch']}) for opt in
                              self.conf['model CC opts']] +
                             # Besides header files specific for rule specifications will be searched for.
                             ["-I{0}".format(os.path.relpath(

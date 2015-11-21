@@ -26,6 +26,17 @@ _cmd_opts = {
            'opts discarding in files': (),
            'opts discarding out file': ()}}
 
+# Architecture name to search for architecture specific header files can differ from the target architecture.
+# See Linux kernel Makefile for details. Mapping below was extracted from Linux 3.5.
+_arch_hdr_arch = {
+    'i386': 'x86',
+    'x86_64': 'x86',
+    'sparc32': 'sparc',
+    'sparc64': 'sparc',
+    'sh64': 'sh',
+    'tilepro': 'tile',
+    'tilegx': 'tile',
+}
 
 class LKBCE(psi.components.Component):
     def extract_linux_kernel_build_commands(self):
@@ -35,6 +46,7 @@ class LKBCE(psi.components.Component):
         psi.utils.invoke_callbacks(self.extract_src_tree_root)
         self.clean_linux_kernel_work_src_tree()
         psi.utils.invoke_callbacks(self.extract_linux_kernel_attrs)
+        psi.utils.invoke_callbacks(self.extract_hdr_arch)
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,
@@ -140,6 +152,9 @@ class LKBCE(psi.components.Component):
             {'Linux kernel': [{'version': self.linux_kernel['version']},
                               {'architecture': self.linux_kernel['arch']},
                               {'configuration': self.linux_kernel['conf shortcut']}]}]
+
+    def extract_hdr_arch(self):
+        self.hdr_arch = _arch_hdr_arch[self.linux_kernel['arch']]
 
     def extract_src_tree_root(self):
         self.src_tree_root = os.path.abspath(self.linux_kernel['work src tree'])
