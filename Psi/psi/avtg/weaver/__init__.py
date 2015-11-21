@@ -27,7 +27,8 @@ class Weaver(psi.components.Component):
                                        '--in', cc_full_desc['in files'][0],
                                        '--aspect', '/dev/null',
                                        '--out', cc_full_desc['out file'],
-                                       '--back-end', 'src'))
+                                       '--back-end', 'src'),
+                                      cwd=self.conf['source tree root'])
                 extra_c_file['C file'] = cc_full_desc['out file']
 
                 if 'rule spec id' in cc_extra_full_desc_file:
