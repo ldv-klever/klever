@@ -1,10 +1,10 @@
 import re
-import pygraphml as gml
-import xml.etree.ElementTree as Et
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from Omega.utils import print_err
 from reports.models import ReportUnsafe
+from reports.graphml_parser import GraphMLParser
+
 
 TAB_LENGTH = 4
 SOURCE_CLASSES = {
@@ -35,136 +35,63 @@ KEY2_WORDS = [
 
 
 class GetETV(object):
-    def __init__(self):
-        file = '/work/vladimir/klever/Omega/witness.graphml'
+    def __init__(self, report):
+        self.report = report
         self.error = None
-        self.g = None
-        self.__read_trace(file)
-        self.attrs = self.AttrData(file)
+
+        self.g = self.__parse_graph()
         if self.error is not None:
             return
-        self.entry = self.g.set_root_by_attribute('true', 'entry')
-        if self.entry is None:
-            self.error = _('Trace entry was not found')
-            return
+
+        self.traces = self.__get_traces()
         if self.error is not None:
             return
-        self.traces = self.__get_traces(self.entry)
+
         if len(self.traces) == 0:
             self.error = _('Wrong error trace file format')
             return
         elif len(self.traces) > 2:
             self.error = _('Error trace with more than two '
-                           'pathes are not supported')
+                           'error pathes are not supported')
             return
-        self.trace1 = self.__parse_trace(0)
-        self.trace2 = self.__parse_trace(1)
 
-        f = open('test.html', 'w')
-        f.write(self.html_trace())
-        f.close()
+        self.html_traces = []
 
-    class AttrData(object):
-        def __init__(self, file):
-            self.error = None
-            self.root = self.__read_file(file)
-            if self.error is not None:
-                return
-            self.data = {}
-            self.graphdata = {}
-            self.__read_attrs()
+        for trace in self.traces:
+            self.__html_trace(trace)
 
-        def __read_file(self, file):
-            try:
-                return Et.parse(file).getroot()
-            except Exception as e:
-                print_err(e)
-                self.error = _('Wrong error trace file format')
-                return None
-
-        def __read_attrs(self):
-            for ch in self.root:
-                if is_tag(ch.tag, 'key') and \
-                        all(x in ch.attrib for x in ['attr.name', 'id', 'for']):
-                    self.data[ch.attrib['attr.name']] = {
-                        'id': ch.attrib['id'],
-                        'default': None
-                    }
-                    if len(ch) == 1:
-                        if is_tag(ch[0].tag, 'default'):
-                            self.data[ch.attrib['attr.name']]['default'] = \
-                                ch[0].text
-                elif is_tag(ch.tag, 'graph'):
-                    for gch in ch:
-                        if is_tag(gch.tag, 'data') and 'key' in gch.attrib:
-                            self.graphdata[gch.attrib['key']] = gch.text
-
-        def default(self, name):
-            if name in self.data:
-                return self.data[name]['default']
-            return None
-
-        def id(self, name):
-            if name in self.data:
-                return self.data[name]['id']
-            return name
-
-        def name(self, attr_id):
-            for n in self.data:
-                if self.data[n]['id'] == attr_id:
-                    return n
-            return attr_id
-
-    def __read_trace(self, file):
-        parser = gml.GraphMLParser()
+    def __parse_graph(self):
         try:
-            self.g = parser.parse(file)
+            return GraphMLParser().parse(self.report.error_trace_processed)
         except Exception as e:
             print_err(e)
             self.error = _('Wrong error trace file format')
+        return None
 
-    def __get_traces(self, node):
+    def __get_traces(self):
         traces = []
-        trace = []
-        curr_node = node
-        while len(curr_node.children()) == 1:
-            trace.append(curr_node)
-            curr_node = curr_node.children()[0]
-        trace.append(curr_node)
-        if len(curr_node.children()) == 0:
-            if self.attrs.id('isSinkNode') not in curr_node.attr \
-                    or curr_node[self.attrs.id('isSinkNode')] != 'true':
-                traces.append(trace)
-        else:
-            for child in curr_node.children():
-                for path in self.__get_traces(child):
-                    traces.append(trace + path)
+        if self.g.set_root_by_attribute('true', 'isEntryNode') is None:
+            self.error = _('Trace entry was not found')
+            return traces
+
+        for path in self.g.bfs():
+            if 'isSinkNode' not in path[-1].attr or path[-1]['isSinkNode'] != 'true':
+                traces.append(path)
         return traces
 
-    def __parse_trace(self, trace_num):
-        trace = []
-        if len(self.traces) <= trace_num:
-            return None
-        prev_node = self.traces[trace_num][0]
-        for node in self.traces[trace_num][1:]:
-            data = {}
-            edge = None
-            for e in node.edges():
-                if e.node(node) == prev_node:
-                    edge = e
-                    break
-            if edge is None:
-                continue
-            for attr in edge.attributes():
-                data[self.attrs.name(attr)] = edge[attr]
-            prev_node = node
-            trace.append(data)
-        return trace
-
-    def html_trace(self):
+    def __html_trace(self, node_trace):
         max_line_length = 1
-        for n in self.trace1:
-            if 'startline' in n:
+
+        edge_trace = []
+        prev_node = node_trace[0]
+        for n in node_trace[1:]:
+            e = self.g.edge(prev_node, n)
+            if e is not None:
+                edge_trace.append(e)
+            prev_node = n
+
+        for n in edge_trace:
+            if 'startline' in n.attr:
                 if len(n['startline']) > max_line_length:
                     max_line_length = len(n['startline'])
         assume_scopes = {}
@@ -184,7 +111,7 @@ class GetETV(object):
             linadata = '<span class="ETVSrcL">%s%s%s</span>' % (
                 ' ' * (max_line_length - line_length), source_href, fileinput
             )
-            return '<span class="%s">%s%s%s%s</span><br>\n' % (
+            return '<span class="%s">%s%s %s%s</span><br>' % (
                 c, linadata, ' ' * o, sc, ''.join(assume_scopes[curr_scope])
             )
 
@@ -192,37 +119,50 @@ class GetETV(object):
         cnt = 1
         num_of_enters = 0
         curr_offset = 0
-        for n in self.trace1:
+        file = None
+        has_main = False
+        for n in edge_trace:
             line = None
-            if 'startline' in n:
+
+            attrs = []
+            for a in n.attr:
+                attrs.append("%s: %s" % (a, n.attr[a].value))
+            if 'startline' in n.attr:
                 line = n['startline']
-            file = None
-            if 'originFileName' in n:
+            if 'originFileName' in n.attr:
                 file = n['originFileName']
-            if file is None:
-                file = self.attrs.default('originFileName')
             if file is None:
                 line = None
             sourcecode = ''
-            if 'sourcecode' in n:
+            if 'sourcecode' in n.attr:
                 sourcecode = n['sourcecode']
 
-            if 'assumption' in n:
-                if 'assumption.scope' in n:
+            if 'assumption' in n.attr:
+                if 'assumption.scope' in n.attr:
                     curr_scope = n['assumption.scope']
+                if not has_main and curr_scope == 'main':
+                    num_of_enters += 1
+                    cnt += 1
+                    hide_link = '<a href="#" class="ETV_Fa">-</a>'
+                    trace += get_line(
+                        'ETV_F', None, None, curr_offset, hide_link + 'main()'
+                    )
+                    trace += get_line(
+                        '', None, None, curr_offset, '{'
+                    )
+                    curr_offset += TAB_LENGTH
+                    trace += '<span id="%s__%s">' % ('main', str(cnt))
+                    has_main = True
                 for assume in n['assumption'].split(';'):
                     if len(assume) == 0:
                         continue
                     if curr_scope not in assume_scopes:
                         assume_scopes[curr_scope] = []
                     assume_scopes[curr_scope].append(
-                        '<input class="ETV_ScopeAssume" '
-                        'type="hidden" value="%s">' % assume
+                        '<input class="ETV_ScopeAssume" type="hidden" value="%s">' % assume
                     )
-                trace += get_line(
-                    'ETV_A', line, file, curr_offset, sourcecode
-                )
-            elif 'enterFunction' in n:
+                trace += get_line('ETV_A', line, file, curr_offset, sourcecode)
+            elif 'enterFunction' in n.attr:
                 num_of_enters += 1
                 cnt += 1
                 hide_link = '<a href="#" class="ETV_Fa">-</a>'
@@ -234,11 +174,11 @@ class GetETV(object):
                 )
                 curr_offset += TAB_LENGTH
                 trace += '<span id="%s__%s">' % (n['enterFunction'], str(cnt))
-            elif 'returnFromFunction' in n:
+            elif 'returnFromFunction' in n.attr:
                 trace += get_line(
                     'ETV_F', line, file, curr_offset, sourcecode
                 )
-                if curr_offset > TAB_LENGTH:
+                if curr_offset >= TAB_LENGTH:
                     curr_offset -= TAB_LENGTH
                 trace += get_line(
                     '', None, None, curr_offset, '}'
@@ -249,13 +189,12 @@ class GetETV(object):
                     '', line, file, curr_offset, sourcecode
                 )
         for i in range(0, num_of_enters // TAB_LENGTH + 1):
-            if curr_offset > TAB_LENGTH:
+            if curr_offset >= TAB_LENGTH:
                 curr_offset -= TAB_LENGTH
-            trace += get_line(
-                '', None, None, curr_offset, '}'
-            )
+            trace += get_line('', None, None, curr_offset, '}')
             trace += '</span>'
-        return trace
+        trace += get_line('', None, None, 0, '')
+        self.html_traces.append(trace)
 
 
 class GetSource(object):

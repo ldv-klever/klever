@@ -14,18 +14,23 @@
                     <h3 class="header">{% trans 'Error trace' %}</h3>
                 </div>
                 <div class="eight wide column right aligned">
-                    <button id="test_get_source" class="ui violet tiny button">Get source</button>
                     <button id="etv-options-activator" class="ui orange tiny button">{% trans 'Options' %}</button>
                 </div>
             </div>
-            <div class="ui divider"></div>
             <div class="filecontent" id="ETV_error_trace">{{ trace|safe }}</div>
         </div>
     </div>
     <div id="etv-source">
         <div style="margin: 10px;">
             <div class="ETVTitleBlock">
-                <h3 id="ETVSourceTitle" class="header" style="padding-bottom: 7px;">somefile.c</h3>
+                <div class="ui grid">
+                    <div class="eleven wide column">
+                        <h3 id="ETVSourceTitle" class="header" style="padding-bottom: 7px;"></h3>
+                    </div>
+                    <div class="five wide column right aligned">
+                        <button id="test_get_source" class="ui violet tiny button">Get source</button>
+                    </div>
+                </div>
             </div>
             <div class="filecontent" id="ETV_source_code"></div>
         </div>

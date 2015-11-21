@@ -104,6 +104,11 @@ class ReportUnsafe(Report):
         db_table = 'report_unsafe'
 
 
+class ETVFiles(models.Model):
+    unsafe = models.ForeignKey(ReportUnsafe)
+    file = models.ForeignKey(File)
+
+
 class ReportSafe(Report):
     proof = models.BinaryField()
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS,

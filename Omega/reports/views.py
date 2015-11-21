@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from Omega.vars import JOB_STATUS
-from Omega.utils import unparallel_group
+from Omega.utils import unparallel_group, print_err
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -197,13 +197,17 @@ def report_leaf(request, leaf_type, report_id):
 
     template = 'reports/report_leaf.html'
     trace = ''
+    from django.utils.timezone import now
+    n = now()
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        if 2 == 1:
-            et = GetETV()
-            if et.error is not None:
-                return HttpResponseRedirect(reverse('error', args=[500]))
-            trace = et.html_trace()
+        et = GetETV(report)
+
+        if et.error is not None:
+            print_err(et.error)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+        trace = et.html_traces[0]
+    print_err((now() - n).microseconds)
     return render(
         request, template,
         {
@@ -284,16 +288,13 @@ def get_log_content(request, report_id):
 
 @login_required
 def get_source_code(request):
-    return JsonResponse({
-        'content': 'It does not matter',
-        'name': 'name'
-    })
+    # return JsonResponse({'content': 'It does not matter', 'name': 'name'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     if 'report_id' not in request.POST:
         return JsonResponse({'error': 'Unknown error'})
     # file_name = '/work/vladimir/klever/Omega/reports/dca-core.c'
-    file_name = '/work/vladimir/klever/Omega/reports/phy-msm-usb.c'
+    file_name = 'C:/Users/user/Work/phy-generic.c'
     # file_name = '/work/vladimir/test'
     result = GetSource(request.POST['report_id'], file_name)
     if result.error is not None:
