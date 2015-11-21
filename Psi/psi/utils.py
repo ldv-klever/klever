@@ -123,10 +123,10 @@ class StreamQueue:
         self.finished = True
 
 
-def execute(logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
+def execute(logger, cmd, env=None, cwd=None, timeout=0.5, collect_all_stdout=False):
     logger.debug('Execute "{0}"'.format(cmd))
 
-    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
 
     out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
 
