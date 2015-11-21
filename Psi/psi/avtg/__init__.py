@@ -18,6 +18,7 @@ def before_launch_all_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj descs'] = multiprocessing.Queue()
     context.mqs['src tree root'] = multiprocessing.Queue()
+    context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
 def after_extract_common_prj_attrs(context):
@@ -26,6 +27,10 @@ def after_extract_common_prj_attrs(context):
 
 def after_extract_src_tree_root(context):
     context.mqs['src tree root'].put(context.src_tree_root)
+
+
+def after_extract_hdr_arch(context):
+    context.mqs['hdr arch'].put(context.hdr_arch)
 
 
 def after_generate_verification_obj_desc(context):
@@ -187,6 +192,7 @@ class AVTG(psi.components.Component):
                          self.mqs['report files'],
                          self.conf['main working directory'])
         self.extract_src_tree_root()
+        self.extract_hdr_arch()
         self.rule_spec_descs = _rule_spec_descs
         psi.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
 
@@ -198,6 +204,16 @@ class AVTG(psi.components.Component):
         self.common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
 
         self.mqs['AVTG common prj attrs'].close()
+
+    def extract_hdr_arch(self):
+        self.logger.info('Extract architecture name to search for architecture specific header files')
+
+        self.conf['sys']['hdr arch'] = self.mqs['hdr arch'].get()
+
+        self.mqs['hdr arch'].close()
+
+        self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
+            self.conf['sys']['hdr arch']))
 
     def extract_src_tree_root(self):
         self.logger.info('Extract source tree root')
@@ -246,11 +262,12 @@ class AVTG(psi.components.Component):
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = [{'cc full desc file': cc_full_desc_file} for cc_full_desc_file in
                                                grp['cc full desc files']]
-            del(grp['cc full desc files'])
+            del (grp['cc full desc files'])
         self.mqs['abstract task description'].put(initial_abstract_task_desc)
         if self.conf['debug']:
             initial_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'abstract task.json')
-            self.logger.debug('Create initial abstract verification task description file "{0}"'.format(initial_abstract_task_desc_file))
+            self.logger.debug('Create initial abstract verification task description file "{0}"'.format(
+                initial_abstract_task_desc_file))
             with open(initial_abstract_task_desc_file, 'w') as fp:
                 json.dump(initial_abstract_task_desc, fp, sort_keys=True, indent=4)
 
@@ -288,8 +305,10 @@ class AVTG(psi.components.Component):
                 with open(plugin_conf_file, 'w') as fp:
                     json.dump(plugin_conf, fp, sort_keys=True, indent=4)
 
-                cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'abstract task.json')
-                self.logger.debug('Create current abstract verification task description file "{0}"'.format(cur_abstract_task_desc_file))
+                cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(),
+                                                           'abstract task.json')
+                self.logger.debug('Create current abstract verification task description file "{0}"'.format(
+                    cur_abstract_task_desc_file))
                 # Temporarily get current abstract verification task description.
                 cur_abstract_task_desc = self.mqs['abstract task description'].get()
                 with open(cur_abstract_task_desc_file, 'w') as fp:
