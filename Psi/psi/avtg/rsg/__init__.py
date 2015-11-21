@@ -69,7 +69,7 @@ class RSG(psi.components.Component):
                         "in files": [os.path.relpath(model, os.path.realpath(self.conf['source tree root']))],
                         # Otput file should be located somewhere inside RSG working directory to avoid races.
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
-                        "opts": [
+                        "opts":
                             # First of all header files specific for rule specifications will be searched for.
                             ["-I{0}".format(os.path.relpath(
                                 psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
@@ -77,7 +77,6 @@ class RSG(psi.components.Component):
                                 os.path.realpath(self.conf['source tree root'])))] +
                             [string.Template(opt).substitute(arch=self.conf['sys']['arch']) for opt in
                              self.conf['model CC opts']]
-                        ]
                     }, fp, sort_keys=True, indent=4)
                 self.logger.debug('CC extra full description file is "{0}"'.format(full_desc_file))
 
