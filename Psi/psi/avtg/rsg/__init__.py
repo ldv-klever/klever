@@ -34,12 +34,12 @@ class RSG(psi.components.Component):
 
         for grp in self.abstract_task_desc['grps']:
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                if 'plugin aspect files' not in cc_extra_full_desc_file:
-                    cc_extra_full_desc_file['plugin aspect files'] = []
-                    cc_extra_full_desc_file['plugin aspect files'].append(
+                if 'plugin aspects' not in cc_extra_full_desc_file:
+                    cc_extra_full_desc_file['plugin aspects'] = []
+                    cc_extra_full_desc_file['plugin aspects'].append(
                         {"plugin": self.name,
-                         "aspect files": [os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])) for
-                                          aspect in aspects]})
+                         "aspects": [os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])) for
+                                     aspect in aspects]})
 
     def add_models(self):
         self.logger.info('Add models to abstract task description')
