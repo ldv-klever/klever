@@ -33,6 +33,7 @@ class RSG(psi.components.Component):
             aspects.append(aspect)
 
         for grp in self.abstract_task_desc['grps']:
+            self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
                 if 'plugin aspects' not in cc_extra_full_desc_file:
                     cc_extra_full_desc_file['plugin aspects'] = []
@@ -57,8 +58,11 @@ class RSG(psi.components.Component):
         # CC extra full description files will be put to this directory as well as corresponding output files.
         os.makedirs('models')
 
+        # TODO: at the moment it is assumed that there is the only group in each verification object. Actually we need
+        # to create a separate group and make all other to depend on it.
         # Generate CC extra full description file per each model and add it to abstract task description.
         for grp in self.abstract_task_desc['grps']:
+            self.logger.info('Add models to group "{0}"'.format(grp['id']))
             for model in models:
                 out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model))[0]))
                 full_desc_file = '{0}.json'.format(out_file)
