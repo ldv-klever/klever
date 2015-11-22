@@ -41,6 +41,8 @@ class Weaver(psi.components.Component):
                     aspect = '/dev/null'
                 self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
 
+                # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
+                # "-nostdinc" option and system stdarg.h couldn't be used.
                 stdout = psi.utils.execute(self.logger,
                                            ('aspectator', '-print-file-name=include'),
                                            collect_all_stdout=True)
@@ -49,7 +51,10 @@ class Weaver(psi.components.Component):
                                                       '--aspect', aspect,
                                                       '--out', cc_full_desc['out file'],
                                                       '--back-end', 'src',
-                                                      '--'] +
+                                                      '--debug', 'DEBUG',
+                                                      '--keep-prepared-file'] +
+                                                     (['--keep'] if self.conf['debug'] else []) +
+                                                     ['--'] +
                                                      cc_full_desc['opts'] +
                                                      ['-I{0}'.format(stdout[0])]),
                                   cwd=self.conf['source tree root'])
