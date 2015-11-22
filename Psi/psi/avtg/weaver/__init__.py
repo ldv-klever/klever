@@ -24,8 +24,9 @@ class Weaver(psi.components.Component):
                                        cc_extra_full_desc_file['cc full desc file'])) as fp:
                     cc_full_desc = json.load(fp)
 
+                self.logger.info('Weave in C file "{0}"'.format(cc_full_desc['in files'][0]))
+
                 # Produce aspect to be weaved in.
-                aspect = None
                 if 'plugin aspects' in cc_extra_full_desc_file:
                     # Concatenate all aspects of all plugins together.
                     aspect = os.path.join(self.conf['source tree root'], '{}.aspect'.format(
@@ -52,8 +53,16 @@ class Weaver(psi.components.Component):
                                                      cc_full_desc['opts'] +
                                                      ['-I{0}'.format(stdout[0])]),
                                   cwd=self.conf['source tree root'])
-                extra_c_file['C file'] = cc_full_desc['out file']
-                self.logger.debug('C file "{0}" was weaved in'.format(extra_c_file['C file']))
+                self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
+
+                # In addition preprocess output files since CIF outputs a bit unpreprocessed files.
+                preprocessed_c_file = '{}.i'.format(os.path.splitext(cc_full_desc['out file'])[0])
+                psi.utils.execute(self.logger,
+                                  ('aspectator', '-E', '-x', 'c', cc_full_desc['out file'], '-o', preprocessed_c_file),
+                                  cwd=self.conf['source tree root'])
+                self.logger.debug('Preprocess weaved C file to "{0}"'.format(preprocessed_c_file))
+
+                extra_c_file['C file'] = preprocessed_c_file
 
                 if 'rule spec id' in cc_extra_full_desc_file:
                     extra_c_file['rule spec id'] = cc_extra_full_desc_file['rule spec id']
