@@ -60,7 +60,7 @@ class RSG(psi.components.Component):
         # Generate CC extra full description file per each model and add it to abstract task description.
         for grp in self.abstract_task_desc['grps']:
             for model in models:
-                out_file = os.path.join('models', '{}.o'.format(os.path.splitext(os.path.basename(model))[0]))
+                out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model))[0]))
                 full_desc_file = '{0}.json'.format(out_file)
                 with open(full_desc_file, 'w') as fp:
                     json.dump({
