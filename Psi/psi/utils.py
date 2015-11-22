@@ -137,7 +137,7 @@ def execute(logger, cmd, env=None, cwd=None, timeout=0.5, collect_all_stdout=Fal
     # print last messages queued before command finishes.
     last_try = True
     while not out_q.finished or not err_q.finished or last_try:
-        last_try = out_q.finished and err_q.finished
+        last_try = not out_q.finished or not err_q.finished
         time.sleep(timeout)
 
         for stream_q in (out_q, err_q):
