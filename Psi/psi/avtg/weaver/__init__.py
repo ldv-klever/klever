@@ -38,9 +38,14 @@ class Weaver(psi.components.Component):
                         for line in fin:
                             fout.write(line)
 
-                    # Here output file is corresponding, likely already generated and existing object file. To keep it
-                    # let's overwrite file suffix.
-                    cc_full_desc['out file'] = '{}.weaved.c'.format(os.path.splitext(cc_full_desc['out file'])[0])
+                    # TODO: if several files in verification object will have the same name everything will break.
+                    # Here output file is corresponding, likely already generated and existing object file. But other
+                    # instances of AVTG plugins can refer to the same file. So the only safe place to put intermediate
+                    # and output file is working directory. Besides overwrite suffix because of we will obtain
+                    # weaved C files.
+                    cc_full_desc['out file'] = os.path.relpath(
+                        '{}.c'.format(os.path.splitext(os.path.basename(cc_full_desc['out file']))[0]),
+                        os.path.realpath(self.conf['source tree root']))
                 else:
                     aspect = '/dev/null'
                 self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
