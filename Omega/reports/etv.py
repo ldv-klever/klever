@@ -35,11 +35,10 @@ KEY2_WORDS = [
 
 
 class GetETV(object):
-    def __init__(self, report):
-        self.report = report
+    def __init__(self, graphml_file):
         self.error = None
 
-        self.g = self.__parse_graph()
+        self.g = self.__parse_graph(graphml_file)
         if self.error is not None:
             return
 
@@ -56,13 +55,14 @@ class GetETV(object):
             return
 
         self.html_traces = []
+        self.assumes = []
 
         for trace in self.traces:
             self.__html_trace(trace)
 
-    def __parse_graph(self):
+    def __parse_graph(self, graphml_file):
         try:
-            return GraphMLParser().parse(self.report.error_trace_processed)
+            return GraphMLParser().parse(graphml_file)
         except Exception as e:
             print_err(e)
             self.error = _('Wrong error trace file format')
@@ -80,7 +80,7 @@ class GetETV(object):
         return traces
 
     def __html_trace(self, node_trace):
-        max_line_length = 1
+        lines_data = []
 
         edge_trace = []
         prev_node = node_trace[0]
@@ -90,111 +90,134 @@ class GetETV(object):
                 edge_trace.append(e)
             prev_node = n
 
+        max_line_length = 1
         for n in edge_trace:
             if 'startline' in n.attr:
                 if len(n['startline']) > max_line_length:
                     max_line_length = len(n['startline'])
-        assume_scopes = {}
-        curr_scope = 'global'
 
-        def get_line(c, l, f, o, sc):
-            if curr_scope not in assume_scopes:
-                assume_scopes[curr_scope] = []
-            if l is not None:
-                fileinput = '<input type="hidden" value="%s">' % f
-                source_href = '<a href="#" class="ETV_La">%s</a>' % l
-                line_length = len(l)
-            else:
-                source_href = ''
-                fileinput = ''
-                line_length = 0
-            linadata = '<span class="ETVSrcL">%s%s%s</span>' % (
-                ' ' * (max_line_length - line_length), source_href, fileinput
-            )
-            return '<span class="%s">%s%s %s%s</span><br>' % (
-                c, linadata, ' ' * o, sc, ''.join(assume_scopes[curr_scope])
-            )
-
-        trace = ''
-        cnt = 1
-        num_of_enters = 0
-        curr_offset = 0
+        cnt = 0
         file = None
         has_main = False
-        for n in edge_trace:
-            line = None
+        curr_offset = 1
+        scope_stack = ['global']
+        assume_scopes = {'global': []}
 
-            attrs = []
-            for a in n.attr:
-                attrs.append("%s: %s" % (a, n.attr[a].value))
-            if 'startline' in n.attr:
-                line = n['startline']
+        def add_fake_line(fake_code, hide_id=None):
+            lines_data.append({
+                'code': fake_code,
+                'line': None,
+                'line_offset': ' ' * max_line_length,
+                'offset': curr_offset * ' ',
+                'class': scope_stack[-1],
+                'hide_id': hide_id
+            })
+
+        def fill_assumptions(current_assumptions=None):
+            assumptions = []
+            if scope_stack[-1] in assume_scopes:
+                for j in range(0, len(assume_scopes[scope_stack[-1]])):
+                    assume_id = '%s_%s' % (scope_stack[-1], j)
+                    if isinstance(current_assumptions, list) and assume_id in current_assumptions:
+                        continue
+                    assumptions.append(assume_id)
+            return {
+                'assumptions': ';'.join(reversed(assumptions)),
+                'current_assumptions': ';'.join(current_assumptions) if isinstance(current_assumptions, list) else None
+            }
+
+        for n in edge_trace:
+            line = n.attr.get('startline', None)
+            if line is None:
+                line_offset = max_line_length
+            else:
+                line = line.value
+                line_offset = max_line_length - len(line)
+            if 'sourcecode' in n.attr:
+                code = n.attr['sourcecode'].value
+            else:
+                code = ''
+            line_data = {
+                'line_offset': ' ' * line_offset,
+                'line': line,
+                'code': code,
+                'offset': curr_offset * ' ',
+                'class': scope_stack[-1]
+            }
             if 'originFileName' in n.attr:
                 file = n['originFileName']
             if file is None:
-                line = None
-            sourcecode = ''
-            if 'sourcecode' in n.attr:
-                sourcecode = n['sourcecode']
+                line_data['line'] = None
+            line_data['file'] = file
+            if line_data['line'] is not None and 'assumption' not in n.attr:
+                line_data.update(fill_assumptions())
 
             if 'assumption' in n.attr:
-                if 'assumption.scope' in n.attr:
-                    curr_scope = n['assumption.scope']
-                if not has_main and curr_scope == 'main':
-                    num_of_enters += 1
+                if not has_main and 'assumption.scope' in n.attr and n['assumption.scope'] == 'main':
                     cnt += 1
-                    hide_link = '<a href="#" class="ETV_Fa">-</a>'
-                    trace += get_line(
-                        'ETV_F', None, None, curr_offset, hide_link + 'main()'
-                    )
-                    trace += get_line(
-                        '', None, None, curr_offset, '{'
-                    )
+                    main_id = 'scope__main__%s' % str(cnt)
+                    add_fake_line('main();', main_id)
+                    add_fake_line('{')
+                    scope_stack.append(main_id)
                     curr_offset += TAB_LENGTH
-                    trace += '<span id="%s__%s">' % ('main', str(cnt))
+                    line_data['offset'] = ' ' * curr_offset
+                    line_data['class'] = scope_stack[-1]
                     has_main = True
+                if 'assumption.scope' in n.attr:
+                    ass_scope = scope_stack[-1]
+                else:
+                    ass_scope = 'global'
+                if ass_scope not in assume_scopes:
+                    assume_scopes[ass_scope] = []
+                curr_assumes = []
                 for assume in n['assumption'].split(';'):
                     if len(assume) == 0:
                         continue
-                    if curr_scope not in assume_scopes:
-                        assume_scopes[curr_scope] = []
-                    assume_scopes[curr_scope].append(
-                        '<input class="ETV_ScopeAssume" type="hidden" value="%s">' % assume
-                    )
-                trace += get_line('ETV_A', line, file, curr_offset, sourcecode)
+                    assume_scopes[ass_scope].append(assume)
+                    curr_assumes.append('%s_%s' % (ass_scope, str(len(assume_scopes[ass_scope]) - 1)))
+                line_data.update(fill_assumptions(curr_assumes))
+                lines_data.append(line_data)
             elif 'enterFunction' in n.attr:
-                num_of_enters += 1
                 cnt += 1
-                hide_link = '<a href="#" class="ETV_Fa">-</a>'
-                trace += get_line(
-                    'ETV_F', line, file, curr_offset, hide_link + sourcecode
-                )
-                trace += get_line(
-                    '', None, None, curr_offset, '{'
-                )
+                scope_stack.append('scope__%s__%s' % (n['enterFunction'], str(cnt)))
+                line_data['hide_id'] = scope_stack[-1]
+                lines_data.append(line_data)
+                add_fake_line('{')
                 curr_offset += TAB_LENGTH
-                trace += '<span id="%s__%s">' % (n['enterFunction'], str(cnt))
             elif 'returnFromFunction' in n.attr:
-                trace += get_line(
-                    'ETV_F', line, file, curr_offset, sourcecode
-                )
+                lines_data.append(line_data)
                 if curr_offset >= TAB_LENGTH:
                     curr_offset -= TAB_LENGTH
-                trace += get_line(
-                    '', None, None, curr_offset, '}'
+                add_fake_line('}')
+                try:
+                    scope_stack.pop()
+                    if len(scope_stack) == 0:
+                        self.error = _('Error trace is corrupted')
+                        return None
+                except IndexError:
+                    self.error = _('Error trace is corrupted')
+                    return None
+            elif 'control' in n.attr:
+                line_data['code'] = 'assume(' + str(line_data['code']) + ' == %s);' % (
+                    'True' if n['control'] == 'condition-true' else 'False'
                 )
-                trace += '</span>'
+                lines_data.append(line_data)
             else:
-                trace += get_line(
-                    '', line, file, curr_offset, sourcecode
-                )
-        for i in range(0, num_of_enters // TAB_LENGTH + 1):
+                lines_data.append(line_data)
+
+        while len(scope_stack) > 1:
             if curr_offset >= TAB_LENGTH:
                 curr_offset -= TAB_LENGTH
-            trace += get_line('', None, None, curr_offset, '}')
-            trace += '</span>'
-        trace += get_line('', None, None, 0, '')
-        self.html_traces.append(trace)
+            add_fake_line('}')
+            scope_stack.pop()
+        lines_data.append({'class': 'ETV_End_of_trace'})
+        self.html_traces.append(lines_data)
+
+        for sc in assume_scopes:
+            as_cnt = 0
+            for a in assume_scopes[sc]:
+                self.assumes.append(['%s_%s' % (sc, as_cnt), a])
+                as_cnt += 1
 
 
 class GetSource(object):
@@ -220,20 +243,20 @@ class GetSource(object):
 
     def __get_source(self, file_name):
         data = ''
-        if file_name is None:
-            self.error = _("Source was not found")
+        try:
+            src = self.report.files.get(name=file_name)
+        except ObjectDoesNotExist:
+            self.error = _("Source code was not found")
             return
-        f = open(file_name, 'r')
         cnt = 1
-        lines = f.read().split('\n')
+        lines = src.file.file.read().decode('utf8').split('\n')
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH)
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)
             data += '<span>%s %s</span><br>' % (
-                self.__wrap_line(line_num, 'line'), self.__parse_line(line)
+                self.__wrap_line(line_num, 'line', 'ETVSrcL_%s' % cnt), self.__parse_line(line)
             )
             cnt += 1
-        f.close()
         return data
 
     def __parse_line(self, line):
@@ -322,10 +345,12 @@ class GetSource(object):
             return before, after
         return before, None
 
-    def __wrap_line(self, line, text_type):
+    def __wrap_line(self, line, text_type, line_id=None):
         self.ccc = 0
         if text_type not in SOURCE_CLASSES:
             return line
+        if line_id is not None:
+            return '<span id="%s" class="%s">%s</span>' % (line_id, SOURCE_CLASSES[text_type], line)
         return '<span class="%s">%s</span>' % (SOURCE_CLASSES[text_type], line)
 
 

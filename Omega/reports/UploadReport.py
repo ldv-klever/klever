@@ -452,7 +452,7 @@ class UploadReport(object):
         report.error_trace = self.data['error trace'].encode('utf8')
 
         # TODO: get processed trace
-        report.error_trace_processed = self.data['error trace'].encode('utf8')
+        # report.error_trace_processed = self.data['error trace'].encode('utf8')
         report.save()
 
         self.__add_attrs(report)

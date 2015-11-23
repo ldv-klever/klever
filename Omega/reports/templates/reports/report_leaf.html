@@ -103,6 +103,8 @@
             <div class="ui green segment filecontent" style="height:400px;">{{ report.proof }}</div>
         {% elif type == 'unknown' %}
             <div class="ui red segment filecontent" style="height:400px;">{{ report.problem_description }}</div>
+        {% else %}
+            <h3 class="ui orange header">There isn't processed error trace for this unsafe in the database</h3>
         {% endif %}
         {% if report.description %}
             <div class="ui blue segment">

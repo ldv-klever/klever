@@ -17,7 +17,22 @@
                     <button id="etv-options-activator" class="ui orange tiny button">{% trans 'Options' %}</button>
                 </div>
             </div>
-            <div class="filecontent" id="ETV_error_trace">{{ trace|safe }}</div>
+            <div id="ETV_error_trace">
+                {% for l in etv.html_traces.0 %}
+                    <span{% if l.class %} class="{{ l.class }}"{% endif %}>
+                        <span class="ETV_LN">{{ l.line_offset }}{% if l.line %}<a class="ETV_La">{{ l.line }}</a><span class="ETV_File" hidden>{{ l.file }}</span>{% endif %}</span>
+                        <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a id="{{ l.hide_id }}" class="ETV_HideLink"><i class="mini icon violet caret down"></i></a>{% endif %}{{ l.code }}</span>
+                        <span class="ETV_Assumptions" hidden>{{ l.assumptions }}</span>
+                        {% if l.current_assumptions %}
+                            <span class="ETV_CurrentAssumptions" hidden>{{ l.current_assumptions }}</span>
+                        {% endif %}
+                        <br>
+                    </span>
+                {% endfor %}
+                {% for assumption in etv.assumes %}
+                    <span id="{{ assumption.0 }}" hidden>{{ assumption.1 }}</span>
+                {% endfor %}
+            </div>
         </div>
     </div>
     <div id="etv-source">
@@ -35,7 +50,12 @@
             <div class="filecontent" id="ETV_source_code"></div>
         </div>
     </div>
+    <div id="etv-assumes">
+        <div id="ETV_assumes">
+        </div>
+    </div>
     <div id="etv-divider"></div>
+    <div id="etv-divider-2"></div>
 </div>
 
 <div id="etv-options" class="ui popup special very wide menu" style="white-space: nowrap;">
@@ -69,3 +89,4 @@
     </div>
 </div>
 
+<span id="error___line_not_found" hidden>{% trans 'The line was not found' %}</span>

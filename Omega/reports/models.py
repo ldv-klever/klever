@@ -83,12 +83,17 @@ class ReportComponent(Report):
     def delete(self, *args, **kwargs):
         computer = self.computer
         resource = self.resource
+        file = self.file
         super(ReportComponent, self).delete(*args, **kwargs)
         if len(computer.reportcomponent_set.all()) == 0:
             computer.delete()
         if len(resource.reportcomponent_set.all()) == 0 \
                 and len(resource.componentresource_set.all()) == 0:
             resource.delete()
+        if len(file.filesystem_set.all()) == 0 \
+                and len(file.reportcomponent_set.all()) == 0 \
+                and len(file.etvfiles_set.all()) == 0:
+            file.delete()
 
     class Meta:
         db_table = 'report_component'
@@ -96,17 +101,28 @@ class ReportComponent(Report):
 
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
-    error_trace_processed = models.BinaryField()
-    verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS,
-                               default='5')
+    error_trace_processed = models.BinaryField(null=True)
+    verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
     class Meta:
         db_table = 'report_unsafe'
 
 
 class ETVFiles(models.Model):
-    unsafe = models.ForeignKey(ReportUnsafe)
+    unsafe = models.ForeignKey(ReportUnsafe, related_name='files')
     file = models.ForeignKey(File)
+    name = models.CharField(max_length=1024)
+
+    def delete(self, *args, **kwargs):
+        file = self.file
+        super(ETVFiles, self).delete(*args, **kwargs)
+        if len(file.filesystem_set.all()) == 0 \
+                and len(file.reportcomponent_set.all()) == 0 \
+                and len(file.etvfiles_set.all()) == 0:
+            file.delete()
+
+    class Meta:
+        db_table = 'etv_files'
 
 
 class ReportSafe(Report):

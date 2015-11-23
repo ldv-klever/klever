@@ -318,7 +318,7 @@ class UploadJob(object):
             elif file_name.startswith('version-'):
                 version_id = int(file_name.replace('version-', ''))
                 versions_data[version_id] = json.loads(
-                    file_obj.read().decode('utf-8'))
+                    file_obj.read().decode('utf8'))
 
         if any(x not in jobdata for x in
                ['format', 'type', 'status', 'filedata', 'reports']):

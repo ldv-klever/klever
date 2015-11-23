@@ -83,7 +83,8 @@ class FileSystem(models.Model):
         file = self.file
         super(FileSystem, self).delete(*args, **kwargs)
         if len(file.filesystem_set.all()) == 0 \
-                and len(file.reportcomponent_set.all()) == 0:
+                and len(file.reportcomponent_set.all()) == 0 \
+                and len(file.etvfiles_set.all()) == 0:
             file.delete()
 
     class Meta:

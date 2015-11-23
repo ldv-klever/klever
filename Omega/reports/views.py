@@ -196,18 +196,13 @@ def report_leaf(request, leaf_type, report_id):
         return HttpResponseRedirect(reverse('error', args=[400]))
 
     template = 'reports/report_leaf.html'
-    trace = ''
-    from django.utils.timezone import now
-    n = now()
-    if leaf_type == 'unsafe':
+    etv = None
+    if leaf_type == 'unsafe' and report.error_trace_processed is not None:
         template = 'reports/report_unsafe.html'
-        et = GetETV(report)
-
-        if et.error is not None:
-            print_err(et.error)
+        etv = GetETV(report.error_trace_processed)
+        if etv.error is not None:
+            print_err(etv.error)
             return HttpResponseRedirect(reverse('error', args=[500]))
-        trace = et.html_traces[0]
-    print_err((now() - n).microseconds)
     return render(
         request, template,
         {
@@ -217,7 +212,7 @@ def report_leaf(request, leaf_type, report_id):
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
             'MarkTable': ReportMarkTable(request.user, report),
-            'trace': trace
+            'etv': etv
         }
     )
 
@@ -283,23 +278,23 @@ def get_log_content(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    return HttpResponse(report.log.file.read())
+    return HttpResponse(report.log.file.read().decode('utf8'))
 
 
 @login_required
 def get_source_code(request):
-    # return JsonResponse({'content': 'It does not matter', 'name': 'name'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     if 'report_id' not in request.POST:
         return JsonResponse({'error': 'Unknown error'})
-    # file_name = '/work/vladimir/klever/Omega/reports/dca-core.c'
-    file_name = 'C:/Users/user/Work/phy-generic.c'
-    # file_name = '/work/vladimir/test'
-    result = GetSource(request.POST['report_id'], file_name)
+    if 'file_name' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+
+    # TODO: request.POST['file_name'] instead 'default-file.c'
+    result = GetSource(request.POST['report_id'], 'default-file.c')
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({
         'content': result.data,
-        'name': file_name.split('/', -1)[-1]
+        'name': 'default-file.c'.split('/', -1)[-1]
     })
