@@ -25,8 +25,8 @@ class VTG(psi.components.Component):
                          {'id': self.name,
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
-                         self.conf['root id'])
-
+                         self.conf['main working directory'])
+        return
         # TODO: delete following stub code after all.
         # Start and finish "WRAPPER". Upload safes, unsafes and unknowns in the middle.
         for i, verification_obj in enumerate(('drivers/usb/core/usbcore.ko', 'drivers/usb/usb-commmon.ko')):
@@ -49,7 +49,7 @@ class VTG(psi.components.Component):
                                   'name': 'WRAPPER',
                                   'parent id': 'VTG'},
                                  self.mqs['report files'],
-                                 self.conf['root id'])
+                                 self.conf['main working directory'])
 
                 # We have two different bug kinds for mutex and "WRAPPER*0" produces one verification task per each bug
                 # kind. First verification task leads to SAFE while the second one to UNSAFE for first module and to
@@ -66,7 +66,7 @@ class VTG(psi.components.Component):
                                               'attrs': [{'bug kind': bug_kind}],
                                               'proof': 'It does not matter...'},
                                              self.mqs['report files'],
-                                             self.conf['root id'])
+                                             self.conf['main working directory'])
                         elif i == 0 and k == 1:
                             psi.utils.report(self.logger,
                                              'unsafe',
@@ -75,7 +75,7 @@ class VTG(psi.components.Component):
                                               'attrs': [{'bug kind': bug_kind}],
                                               'error trace': 'Error trace 1'},
                                              self.mqs['report files'],
-                                             self.conf['root id'])
+                                             self.conf['main working directory'])
                         else:
                             psi.utils.report(self.logger,
                                              'unsafe',
@@ -84,7 +84,7 @@ class VTG(psi.components.Component):
                                               'attrs': [{'bug kind': bug_kind}],
                                               'error trace': 'Error trace 2'},
                                              self.mqs['report files'],
-                                             self.conf['root id'],
+                                             self.conf['main working directory'],
                                              '1')
                             psi.utils.report(self.logger,
                                              'unsafe',
@@ -93,7 +93,7 @@ class VTG(psi.components.Component):
                                               'attrs': [{'bug kind': bug_kind}],
                                               'error trace': 'Error trace 2'},
                                              self.mqs['report files'],
-                                             self.conf['root id'],
+                                             self.conf['main working directory'],
                                              '2')
                             psi.utils.report(self.logger,
                                              'unknown',
@@ -102,7 +102,7 @@ class VTG(psi.components.Component):
                                               'attrs': [{'bug kind': bug_kind}],
                                               'problem desc': 'Fatal error!'},
                                              self.mqs['report files'],
-                                             self.conf['root id'])
+                                             self.conf['main working directory'])
 
                 # We have two different entry points for spin lock and "WRAPPER01" produces one verification task per
                 # each entry point. First verification task leads to UNSAFE while the second one to UNKNOWN.
@@ -118,7 +118,7 @@ class VTG(psi.components.Component):
                                                         {'bug kind': 'one thread:double acquisition'}],
                                               'error trace': 'Error trace 3'},
                                              self.mqs['report files'],
-                                             self.conf['root id'])
+                                             self.conf['main working directory'])
                         else:
                             psi.utils.report(self.logger,
                                              'unknown',
@@ -128,7 +128,7 @@ class VTG(psi.components.Component):
                                                         {'bug kind': 'one thread:double acquisition'}],
                                               'problem desc': 'Fatal error!'},
                                              self.mqs['report files'],
-                                             self.conf['root id'])
+                                             self.conf['main working directory'])
 
                 psi.utils.report(self.logger,
                                  'finish',
@@ -139,7 +139,7 @@ class VTG(psi.components.Component):
                                   'log': '',
                                   'data': ''},
                                  self.mqs['report files'],
-                                 self.conf['root id'])
+                                 self.conf['main working directory'])
 
                 os.chdir(os.pardir)
 

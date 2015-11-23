@@ -5,12 +5,6 @@
 {% block body_block %}
 {% if type == 'unsafe' %}
     <form autocomplete="off" onsubmit="return false">
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
-        <input id="report_type" type="hidden" value="{{ type }}">
-        <div style="overflow-x: auto">
-            {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
-        </div>
-        <br>
         <div class="ui grid">
             <div class="ten wide column">
                 <div class="ui horizontal segments">
@@ -48,6 +42,8 @@
                         <textarea id="mark_description" rows="5" style="resize:none">{{ markdata.description }}</textarea>
                     </div>
                 </div>
+                <input id="report_pk" type="hidden" value="{{ report.pk }}">
+                <input id="report_type" type="hidden" value="{{ type }}">
             </div>
             <div class="six wide column">
                 <div></div>
@@ -80,6 +76,31 @@
                     </div>
                 </div>
                 {% include 'marks/Tags.html' %}
+                <div class="ui styled accordion fluid">
+                    <div class="title">
+                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                    </div>
+                    <div class="content">
+                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                            <table class="ui celled compact purple table">
+                                <tbody>
+                                    {% for v in markdata.attributes %}
+                                        <tr>
+                                            <th>{{ v.0 }}</th>
+                                            <td class="collapsing">
+                                                <div class="ui small checkbox">
+                                                    <label for="attr_checkbox__{{ v.0 }}">{{ v.1 }}</label>
+                                                    <input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <br>
                 {% if can_freeze %}
                     <div class="ui toggle checkbox">
                         <input type="checkbox" id="is_modifiable" checked>
@@ -94,12 +115,6 @@
     </form>
 {% elif type == 'safe' %}
     <form autocomplete="off" onsubmit="return false">
-        <input id="report_pk" type="hidden" value="{{ report.pk }}">
-        <input id="report_type" type="hidden" value="{{ type }}">
-        <div style="overflow-x: auto">
-            {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
-        </div>
-        <hr>
         <div class="ui grid">
             <div class="four wide column">
                 <div class="ui green segment">
@@ -111,7 +126,8 @@
                         </div>
                         <br>
                     {% endfor %}
-
+                    <input id="report_pk" type="hidden" value="{{ report.pk }}">
+                    <input id="report_type" type="hidden" value="{{ type }}">
                     <h4 class="ui green header">{% trans 'Status' %}</h4>
                     {% for s in markdata.statuses %}
                         <div class="ui radio checkbox">
@@ -122,20 +138,45 @@
                     {% endfor %}
                 </div>
             </div>
-            <div class="six wide column">
+            <div class="seven wide column">
+                {% include 'marks/Tags.html' %}
+                <br>
+                <div class="ui styled accordion fluid">
+                    <div class="title">
+                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                    </div>
+                    <div class="content">
+                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                            <table class="ui celled compact purple table">
+                                <tbody>
+                                    {% for v in markdata.attributes %}
+                                        <tr>
+                                            <th>{{ v.0 }}</th>
+                                            <td class="collapsing">
+                                                <div class="ui small checkbox">
+                                                    <label for="attr_checkbox__{{ v.0 }}">{{ v.1 }}</label>
+                                                    <input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="five wide column">
                 <div class="ui blue segment">
                     <h4 class="header ui blue">{% trans 'Description' %}</h4>
                     <div class="ui form">
                         <label for="mark_description"></label>
-                        <textarea id="mark_description" rows="5" style="resize:none">{{ markdata.description }}</textarea>
+                        <textarea id="mark_description" rows="6" style="resize:none">{{ markdata.description }}</textarea>
                     </div>
                 </div>
             </div>
-            <div class="six wide column">
-                {% include 'marks/Tags.html' %}
-            </div>
         </div>
-        <div class="ui divider"></div>
+        <br>
         {% if can_freeze %}
             <div class="ui toggle checkbox">
                 <input type="checkbox" id="is_modifiable" checked>

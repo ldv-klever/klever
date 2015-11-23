@@ -322,7 +322,7 @@ class Psi:
             comp.update(attr)
 
         self.components_conf.update(
-            {'root id': os.path.abspath(os.path.curdir),
+            {'main working directory': os.path.abspath(os.path.curdir),
              'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')},
              'priority': self.conf['priority'],
              'abstract tasks generation priority': self.conf['abstract tasks generation priority'],

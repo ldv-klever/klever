@@ -56,3 +56,30 @@
     </div>
 </div>
 {% include 'marks/Tags.html' %}
+
+{% if markdata.type == 'unsafe' or markdata.type == 'safe' %}
+    <div class="ui styled accordion fluid">
+        <div class="title">
+            <i class="grid layout icon"></i>{% trans 'Attributes' %}
+        </div>
+        <div class="content">
+            <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                <table class="ui celled compact purple table">
+                    <tbody>
+                        {% for v in markdata.attributes %}
+                            <tr>
+                                <th class="collapsing">{{ v.0 }}</th>
+                                <td class="collapsing">
+                                    <div class="ui small checkbox">
+                                        <label for="attr_checkbox__{{ v.0 }}">{{ v.1 }}</label>
+                                        <input id="attr_checkbox__{{ v.0 }}" type="checkbox" value="{{ v.0 }}"{% if v.2 %} checked{% endif %}>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endif %}

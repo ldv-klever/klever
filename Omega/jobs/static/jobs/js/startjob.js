@@ -86,52 +86,52 @@ function set_actions_for_scheduler_user() {
 $(document).ready(function () {
     $('.normal-dropdown').dropdown();
     $('#scheduler').dropdown({onChange: function () {
-        if ($('#new_sch_u').length) {
+        var new_sch_u = $('#new_sch_u');
+        if (new_sch_u.length) {
             if ($('#scheduler').val() == '1') {
-                $('#new_sch_u').show();
+                new_sch_u.show();
                 $('.need-auth').hide();
             }
             else {
-                $('#new_sch_u').hide();
+                new_sch_u.hide();
                 $('.need-auth').show();
             }
         }
     }});
     set_actions_for_scheduler_user();
     $('#start_job_decision').click(function () {
-        var data = {
-            scheduler: $('#scheduler').val(),
-            priority: $('#priority').val(),
-            gen_priority: $('#gen_priority').val(),
-            job_id: $('#job_pk').val()
-        };
-        var max_ram = $('#max_ram').val(),
-            max_cpus = $('#max_cpus').val(),
-            max_disk = $('#max_disk').val(),
-            parallelism = $('#parallelism').val(),
-            console_log_formatter = $('#console_log_formatter').val(),
-            file_log_formatter = $('#file_log_formatter').val(),
-            debug = false, allowlocaldir = false;
-        if (!max_ram || !max_cpus || !max_disk || !parallelism || !console_log_formatter || !file_log_formatter) {
+        var required_fields = [
+            'max_ram', 'max_cpus', 'max_disk', 'parallelism',
+            'console_log_formatter', 'file_log_formatter'
+        ], err_found = false;
+        $.each(required_fields, function (i, v) {
+            var curr_input = $('#' + v);
+            curr_input.parent().removeClass('error');
+            if (!curr_input.val()) {
+                curr_input.parent().addClass('error');
+                err_found = true;
+            }
+        });
+        if (err_found) {
             err_notify($('#fields_required').text());
         }
         else {
-            data['max_ram'] = max_ram;
-            data['max_cpus'] = max_cpus;
-            data['max_disk'] = max_disk;
-            data['parallelism'] = parallelism;
-            data['console_log_formatter'] = console_log_formatter;
-            data['file_log_formatter'] = file_log_formatter;
-            if ($('#debug_checkbox').is(':checked')) {
-                debug = true;
-            }
-            if ($('#allow_localdir_checkbox').is(':checked')) {
-                allowlocaldir = true;
-            }
-            data['debug'] = debug;
-            data['allow_local_dir'] = allowlocaldir;
+            var data = {
+                scheduler: $('#scheduler').val(),
+                priority: $('#priority').val(),
+                gen_priority: $('#gen_priority').val(),
+                job_id: $('#job_pk').val(),
+                cpu_model: $('#cpu_model').val(),
+                max_wall_time: $('#max_wall_time').val(),
+                max_cpu_time: $('#max_cpu_time').val(),
+                debug: $('#debug_checkbox').is(':checked'),
+                allow_local_dir: $('#allow_localdir_checkbox').is(':checked')
+            };
+            $.each(required_fields, function (i, v) {
+                data[v] = $('#' + v).val();
+            });
             $.ajax({
-                url: '/jobs/ajax/run_decision/',
+                url: job_ajax_url + 'run_decision/',
                 data: {data: JSON.stringify(data)},
                 type: 'POST',
                 success: function (data) {
@@ -141,6 +141,9 @@ $(document).ready(function () {
                     else {
                         window.location.replace($('#job_link').attr('href'));
                     }
+                },
+                error: function(x) {
+                    console.log(x.responseText);
                 }
             });
         }

@@ -1,8 +1,7 @@
 import json
-import pytz
-from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.timezone import now
 from Omega.vars import JOB_STATUS
 from Omega.utils import print_err
 from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS, DEF_PSI_CONFIGURATION
@@ -210,7 +209,7 @@ class PSIFinishDecision(object):
             if task.status not in [TASK_STATUS[2][0], TASK_STATUS[3][0]]:
                 self.error = 'There are unfinished tasks'
             RemoveTask(task.pk)
-        self.progress.finish_date = current_date()
+        self.progress.finish_date = now()
         if error is not None:
             self.progress.error = error
             job.status = JOB_STATUS[5][0]
@@ -241,7 +240,7 @@ class PSIStartDecision(object):
         elif progress.finish_date is not None:
             self.error = 'Solving progress already has finish date'
             return
-        progress.start_date = current_date()
+        progress.start_date = now()
         progress.save()
 
 
@@ -253,7 +252,7 @@ class StopDecision(object):
         try:
             self.progress = self.job.solvingprogress
         except ObjectDoesNotExist:
-            self.error = _('Job solving progress does not exists')
+            self.error = _('The job solving progress does not exist')
             return
         if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             self.error = _("Only pending and processing jobs can be stopped")
@@ -276,7 +275,7 @@ class StopDecision(object):
                 task.delete()
             except Exception as e:
                 print_err(e)
-        self.progress.finish_date = current_date()
+        self.progress.finish_date = now()
         self.progress.error = "The job was cancelled"
         self.progress.save()
 
@@ -710,7 +709,7 @@ class SetSchedulersStatus(object):
                 task.error = "Task was finished with error due to scheduler is disconnected"
                 task.save()
             if scheduler.type == SCHEDULER_TYPE[0][0]:
-                progress.finish_date = current_date()
+                progress.finish_date = now()
                 progress.error = "Klever scheduler was disconnected"
                 progress.job.status = JOB_STATUS[4][0]
                 progress.job.save()
@@ -730,10 +729,6 @@ def compare_priority(priority1, priority2):
     if not isinstance(priority2, int):
         priority2 = 0
     return priority1 > priority2
-
-
-def current_date():
-    return pytz.timezone('UTC').localize(datetime.now())
 
 
 class NodesData(object):
@@ -898,12 +893,12 @@ class StartJobDecision(object):
                 ]
             },
             'resource limits': {
-                'wall time': None,
-                'CPU time': None,
-                'memory size': int(float(self.data['max_ram']) * 10**9),
+                'wall time': int(self.data['max_wall_time']) * 1000 if len(self.data['max_wall_time']) > 0 else None,
+                'CPU time': int(self.data['max_cpu_time']) * 1000 if len(self.data['max_cpu_time']) > 0 else None,
+                'memory size': int(float(self.data['max_ram']) * 2**30),
                 'number of CPU cores': int(self.data['max_cpus']),
-                'CPU model': None,
-                # 'max result size': int(float(self.data['max_disk']) * 10**9)
+                'CPU model': self.data['cpu_model'] if len(self.data['cpu_model']) > 0 else None,
+                'disk memory size': int(float(self.data['max_disk']) * 2**30)
             }
         }
         try:
@@ -952,16 +947,16 @@ class StartJobDecision(object):
             self.error = _('Unknown error')
             return
         if klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _('Klever scheduler is disconnected')
+            self.error = _('The Klever scheduler is disconnected')
             return
         if self.job_scheduler.type == SCHEDULER_TYPE[1][0]:
             if self.job_scheduler.status == SCHEDULER_STATUS[2][0]:
-                self.error = _('VerifierCloud scheduler is disconnected')
+                self.error = _('The VerifierCloud scheduler is disconnected')
                 return
             try:
                 self.operator.scheduleruser
             except ObjectDoesNotExist:
-                self.error = _("You don't have login and password for VefifierCloud scheduler")
+                self.error = _("You didn't specify credentials for VerifierCloud")
                 return
 
 
@@ -998,9 +993,9 @@ class StartDecisionData(object):
         except ObjectDoesNotExist:
             return _('Unknown error')
         if klever_sch.status == SCHEDULER_STATUS[1][0]:
-            self.job_sch_err = _("Klever scheduler is ailing")
+            self.job_sch_err = _("The Klever scheduler is ailing")
         elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            return _("Klever scheduler is disconnected")
+            return _("The Klever scheduler is disconnected")
         self.schedulers.append([
             klever_sch.type,
             string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')

@@ -18,6 +18,10 @@ To run Omega you need:
 
   * `Django <https://www.djangoproject.com/>`_.
   * `pytz <http://pythonhosted.org/pytz/>`_.
+
+    .. note:: The corresponding openSUSE RPM package is likely broken since it couldn't be updated properly.
+              Please, uninstall it and the *pytz* python package and install the latest version of *pytz*.
+
   * `mysqlclient <https://github.com/PyMySQL/mysqlclient-python>`_ (requires Python and MySQL development headers and
     libraries).
   * `pygraphml <https://github.com/hadim/pygraphml/>`_.

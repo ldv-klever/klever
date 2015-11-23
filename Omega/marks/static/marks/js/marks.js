@@ -361,8 +361,7 @@ $(document).ready(function () {
                     err_notify(data.error);
                 }
                 else {
-                    $('#mark_attributes_table').html(data.table);
-                    $('#mark_add_data_div').html(data.adddata);
+                    $('#mark_data_div').html(data.data);
                     $('#compare_function').change(set_action_on_func_change);
                     activate_tags();
                     $('.ui.dropdown').each(function () {
@@ -371,6 +370,7 @@ $(document).ready(function () {
                         }
                     });
                     $('.ui.checkbox').checkbox();
+                    $('.ui.accordion').accordion();
                 }
             }
         });

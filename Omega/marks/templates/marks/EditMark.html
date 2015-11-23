@@ -4,12 +4,6 @@
 {% load tz %}
 {% block body_block %}
     <form autocomplete="off" onsubmit="return false">
-        <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
-        <input id="mark_type" type="hidden" value="{{ type }}">
-        <div id="mark_attributes_table" style="overflow-x: auto">
-            {% include 'marks/MarkAttrTable.html' with data=AttrTable %}
-        </div>
-        <br>
         <div class="ui grid">
             <div class="seven wide column">
                 <div class="ui tiny buttons top attached">
@@ -17,6 +11,8 @@
                     <button id="edit_mark_versions" type="button" class="ui brown button">{% trans 'Delete versions' %}</button>
                     <button id="show_remove_mark_popup" type="button" class="ui red button">{% trans 'Delete' %}</button>
                 </div>
+                <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
+                <input id="mark_type" type="hidden" value="{{ type }}">
                 <table class="ui selectable compact inverted violet table attached">
                     <tbody>
                         <tr>
@@ -91,9 +87,10 @@
                     </select>
                 {% endif %}
                 <div class="ui divider"></div>
-                <div id="mark_add_data_div">
+                <div id="mark_data_div">
                     {% include 'marks/MarkAddData.html' with markdata=markdata %}
                 </div>
+                <br>
                 {% if can_freeze %}
                     <div class="ui toggle checkbox">
                         <input type="checkbox" id="is_modifiable" {% if mark.is_modifiable %}checked{% endif %}>

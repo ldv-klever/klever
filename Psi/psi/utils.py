@@ -123,18 +123,21 @@ class StreamQueue:
         self.finished = True
 
 
-def execute(logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
+def execute(logger, cmd, env=None, cwd=None, timeout=0.5, collect_all_stdout=False):
     logger.debug('Execute "{0}"'.format(cmd))
 
-    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
 
     out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
 
     for stream_q in (out_q, err_q):
         stream_q.start()
 
-    # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds.
-    while not out_q.finished or not err_q.finished:
+    # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds. Last try is required to
+    # print last messages queued before command finishes.
+    last_try = True
+    while not out_q.finished or not err_q.finished or last_try:
+        last_try = not out_q.finished or not err_q.finished
         time.sleep(timeout)
 
         for stream_q in (out_q, err_q):
@@ -161,9 +164,9 @@ def execute(logger, cmd, env=None, timeout=0.5, collect_all_stdout=False):
     return out_q.output
 
 
-def find_file_or_dir(logger, root_id, file_or_dir):
+def find_file_or_dir(logger, main_work_dir, file_or_dir):
     search_dirs = tuple(
-        os.path.relpath(os.path.join(root_id, search_dir)) for search_dir in ('job/root', os.path.pardir))
+        os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in ('job/root', os.path.pardir))
 
     for search_dir in search_dirs:
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
