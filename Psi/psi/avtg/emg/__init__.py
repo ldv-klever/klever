@@ -31,6 +31,7 @@ class EMG(psi.components.Component):
         # TODO: Read output and parse CIF out
 
         # TODO: Generate module interface specification
+        self.mqs['abstract task description'].put(avt)
 
         return
 
