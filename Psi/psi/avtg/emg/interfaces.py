@@ -85,23 +85,41 @@ class CategorySpecification:
             self.logger.warning("Kernel functions are not provided in interface categories specification, "
                                 "expect 'kernel functions' attribute")
 
+        if "kernel macro-functions" in specification:
+            self.logger.info("Import kernel macro-functions")
+            for intf in self._import_kernel_interfaces("kernel macro-functions", specification):
+                self.kernel_functions[intf.identifier] = intf
+        else:
+            self.logger.warning("Kernel functions are not provided in interface categories specification, "
+                                "expect 'kernel macro-functions' attribute")
+
+        if "kernel macros" in specification:
+            self.logger.info("Import kernel macro-functions")
+            for intf in self._import_kernel_interfaces("kernel macro-functions", specification):
+                self.kernel_functions[intf.identifier] = intf
+        else:
+            self.logger.warning("Kernel functions are not provided in interface categories specification, "
+                                "expect 'kernel macro-functions' attribute")
+
     @staticmethod
     def _import_kernel_interfaces(category_name, collection):
-        for category_name in collection:
-            for name in collection[category_name]:
-                if "signature" not in collection[category_name][name]:
-                    raise TypeError("Specify 'signature' for kernel interface {} at {}".format(name, category_name))
-                elif "header" not in collection[category_name][name]:
-                    raise TypeError("Specify 'header' for kernel interface {} at {}".format(name, category_name))
-                intf = Interface(collection[category_name][name]["signature"],
-                                 name,
-                                 collection[category_name][name]["header"],
-                                 True)
-                intf.category = category_name
-                if intf.signature.function_name != name:
-                    raise ValueError("Kernel function name {} does not correspond its signature {}".
-                                     format(name, intf.signature.expression))
-                yield intf
+        for identifier in collection[category_name]:
+            if "signature" not in collection[category_name][identifier]:
+                raise TypeError("Specify 'signature' for kernel interface {} at {}".format(name, category_name))
+            elif "header" not in collection[category_name][identifier]:
+                raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category_name))
+            intf = Interface(collection[category_name][identifier]["signature"],
+                             identifier,
+                             collection[category_name][identifier]["header"],
+                             True)
+            intf.category = category_name
+            if intf.signature.function_name and intf.signature.function_name != identifier:
+                raise ValueError("Kernel function name {} does not correspond its signature {}".
+                                 format(identifier, intf.signature.expression))
+            elif not intf.signature.function_name:
+                raise ValueError("Kernel function name {} is not a macro or a function".
+                                 format(identifier, intf.signature.expression))
+            yield intf
 
     @staticmethod
     def _import_interfaces(category_name, collection):
@@ -238,6 +256,9 @@ class Signature:
     array = None
     return_value = None
     interface = None
+    function_name = None
+    return_value = None
+    args = None
 
     def __init__(self, expression):
         """
@@ -247,7 +268,7 @@ class Signature:
         """
         self.expression = expression
 
-        ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%\w*%))"
+        ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%))"
         identifier_re = "(?:(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
         args_re = "(?:[^()]*)"
         function_re = re.compile("^{}\s\(?{}\)?\s?\({}\)\Z".format(ret_val_re, identifier_re, args_re))
@@ -263,6 +284,12 @@ class Signature:
             else:
                 self.array = False
 
+        macro_re = re.compile("^\w*\s?\({}\)\Z".format(args_re))
+        if macro_re.fullmatch(self.expression):
+            self.type_class = "macro"
+            self.pointer = False
+            self.array = False
+
         struct_re = re.compile("^struct\s+\w*\s+(\*?)%s\s?((?:\[\w*\]))?\Z")
         self._check_type(struct_re, "struct")
 
@@ -273,14 +300,14 @@ class Signature:
         if not self.type_class and interface_re.fullmatch(self.expression):
             self.type_class = "interface"
 
-        if self.type_class == "function":
+        if self.type_class in ["function", "macro"]:
             self._extract_function_interfaces()
         if self.type_class == "interface":
             self.interface = fi_extract.fullmatch(self.expression).group(1)
 
         if not self.type_class:
             raise ValueError("Cannot determine signature type (function, structure, value or interface) {}".
-                             format(expression))
+                             format(self.expression))
 
     def _check_type(self, regex, type_name):
         if not self.type_class and regex.fullmatch(self.expression):
@@ -301,20 +328,30 @@ class Signature:
             return False
 
     def _extract_function_interfaces(self):
-        ret_val_re = "(\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%\w*%))"
         identifier_re = "((?:\*?%[\w.]*%)|(?:\*?\w*))(?:\s?\[\w*\])?"
         args_re = "([^()]*)"
-        function_re = re.compile("^{}\s\(?{}\)?\s?\({}\)\Z".format(ret_val_re, identifier_re, args_re))
 
-        if function_re.fullmatch(self.expression):
-            ret_val, name, args = function_re.fullmatch(self.expression).groups()
-        else:
-            raise ValueError("Cannot parse function signature {}".format(self.expression))
+        if self.type_class == "function":
+            ret_val_re = "(\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%))"
+            function_re = re.compile("^{}\s\(?{}\)?\s?\({}\)\Z".format(ret_val_re, identifier_re, args_re))
 
-        if ret_val in ["$", "void"]:
-            self.return_value = None
+            if function_re.fullmatch(self.expression):
+                ret_val, name, args = function_re.fullmatch(self.expression).groups()
+            else:
+                raise ValueError("Cannot parse function signature {}".format(self.expression))
+
+            if ret_val in ["$", "void"]:
+                self.return_value = None
+            else:
+                self.return_value = Signature(ret_val)
         else:
-            self.return_value = Signature(ret_val)
+            identifier_re = "(\w*)"
+            macro_re = re.compile("^{}\s?\({}\)\Z".format(identifier_re, args_re))
+
+            if macro_re.fullmatch(self.expression):
+                name, args = macro_re.fullmatch(self.expression).groups()
+            else:
+                raise ValueError("Cannot parse macro signature {}".format(self.expression))
         self.function_name = name
 
         self.args = []
