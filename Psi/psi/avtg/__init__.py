@@ -82,7 +82,7 @@ def _extract_rule_spec_descs(conf, logger):
             rule_spec_desc = descs['rule specifications'][rule_spec_id]
 
         # Get rid of useless information.
-        for attr in ('aliases', 'desc'):
+        for attr in ('aliases', 'description'):
             if attr in rule_spec_desc:
                 del (rule_spec_desc[attr])
 
@@ -118,7 +118,7 @@ def _extract_rule_spec_descs(conf, logger):
         rule_spec_plugin_names = []
         for attr in rule_spec_desc:
             # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-            if attr not in ('aliases', 'desc', 'bug kinds', 'template'):
+            if attr not in ('aliases', 'description', 'bug kinds', 'template'):
                 plugin_name = attr
                 rule_spec_plugin_names.append(plugin_name)
                 is_plugin_specified = False
@@ -126,9 +126,9 @@ def _extract_rule_spec_descs(conf, logger):
                 for plugin_desc in plugin_descs:
                     if plugin_name == plugin_desc['name']:
                         is_plugin_specified = True
-                        if 'opts' not in plugin_desc:
-                            plugin_desc['opts'] = {}
-                        plugin_desc['opts'].update(rule_spec_desc[plugin_name])
+                        if 'options' not in plugin_desc:
+                            plugin_desc['options'] = {}
+                        plugin_desc['options'].update(rule_spec_desc[plugin_name])
                         logger.debug(
                             'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(plugin_name,
                                                                                                           rule_spec_id,
@@ -278,8 +278,8 @@ class AVTG(psi.components.Component):
             # Get plugin configuration on the basis of common configuration, plugin options specific for rule
             # specification and information on rule specification itself.
             plugin_conf = copy.deepcopy(self.conf)
-            if 'opts' in plugin_desc:
-                plugin_conf.update(plugin_desc['opts'])
+            if 'options' in plugin_desc:
+                plugin_conf.update(plugin_desc['options'])
             plugin_conf.update({'rule spec id': rule_spec_desc['id'], 'bug kinds': rule_spec_desc['bug kinds']})
 
             p = plugin_desc['plugin'](plugin_conf, self.logger, self.name, self.callbacks, self.mqs,

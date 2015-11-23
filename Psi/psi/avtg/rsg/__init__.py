@@ -75,7 +75,7 @@ class RSG(psi.components.Component):
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
                         "opts":
                             [string.Template(opt).substitute(hdr_arch=self.conf['sys']['hdr arch']) for opt in
-                             self.conf['model CC opts']] +
+                             self.conf['model CC options']] +
                             # Besides header files specific for rule specifications will be searched for.
                             ["-I{0}".format(os.path.relpath(
                                 psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
