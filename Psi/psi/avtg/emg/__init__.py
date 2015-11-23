@@ -15,7 +15,8 @@ class EMG(psi.components.Component):
         avt = self.mqs['abstract task description'].get()
         self.logger.info("Prepare environment model for an abstract verification task {}".format(avt["id"]))
 
-        spec_dir = psi.utils.find_file_or_dir(self.logger, self.conf["root id"], self.conf["specifications directory"])
+        spec_dir = psi.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
+                                              self.conf["specifications directory"])
         intf_spec_dict, event_spec_dict = self.__get_specs(self.logger, spec_dir)
 
         # TODO: Import interface categories configuration
@@ -75,5 +76,6 @@ class EMG(psi.components.Component):
             return intf_spec, event_spec
 
     main = generate_environment
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
