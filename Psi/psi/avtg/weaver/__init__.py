@@ -37,6 +37,10 @@ class Weaver(psi.components.Component):
                              plugin_aspects['aspects']]) as fin:
                         for line in fin:
                             fout.write(line)
+
+                    # Here output file is corresponding, likely already generated and existing object file. To keep it
+                    # let's overwrite file suffix.
+                    cc_full_desc['out file'] = '{}.weaved.c'.format(os.path.splitext(cc_full_desc['out file'])[0])
                 else:
                     aspect = '/dev/null'
                 self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
