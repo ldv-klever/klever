@@ -1,4 +1,7 @@
 import re
+import subprocess
+import os
+import json
 
 fi_regex = re.compile("(\w*)\.(\w*)")
 fi_extract = re.compile("\*?%((?:\w*\.)?\w*)%")
@@ -197,6 +200,68 @@ class CategorySpecification:
                 elif intf and intf.full_identifier in self.interfaces:
                     self.logger.debug("Imported existing identifier description {}".format(intf.full_identifier))
                     self.callback = True
+
+
+class ModuleSpecification(CategorySpecification):
+    pass
+
+
+class Analysis:
+
+    def __init__(self, logger, conf, work_dir, abstract_task, category_spec):
+        self.logger = logger
+        self.conf = conf
+        self.abstract_task = abstract_task
+        self.category_spec = category_spec
+
+        self.logger.info("Check relevant configuration before source code analysis")
+        self.work_dir = work_dir
+        if "kartographer" not in self.conf:
+            raise TypeError("Provide EMG configuration property 'kartographer'")
+        else:
+            self.kartographer = self.conf["kartographer"]
+        if "source tree root" not in self.conf:
+            raise TypeError("Provide configuration property 'source tree root' for EMG")
+        else:
+            self.kernel_dir = self.conf["source tree root"]
+
+        self.logger.info("Import source build commands")
+        for group in self.abstract_task["grps"]:
+            identifier = group["id"],
+            group["build commands"] = []
+            for section in group["cc extra full desc files"]:
+                file = os.path.join(self.conf["source tree root"],
+                                    section["cc full desc file"])
+                logger.debug("Import build commands from {}".format(file))
+                with open(file, "r") as fh:
+                    build_commands = json.loads(fh.read())
+                    # TODO: Remove this
+                    build_commands["type"] = "CC"
+                    group["build commands"].append(build_commands)
+
+        self.run_kartographer()
+
+    def __generate_command_file(self, filename):
+        file_content = {
+            "source tree root": os.path.realpath(self.kernel_dir),
+            "build commands": []
+        }
+
+        for group in self.abstract_task["grps"]:
+            for cc in group["build commands"]:
+                file_content["build commands"].append(cc)
+
+        self.logger.info("Save build commands to the file {}".format(filename))
+        with open(filename, "w") as fh:
+            fh.write(json.dumps(file_content))
+
+    def run_kartographer(self):
+        #curr_dir = os.path.curdir()
+        filename = os.path.join("build commands.json")
+        self.__generate_command_file(filename)
+
+        args = ["python3", self.kartographer, "--bc", filename]
+        subprocess.call(args)
 
 
 class Interface:

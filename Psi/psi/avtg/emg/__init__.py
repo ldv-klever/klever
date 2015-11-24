@@ -4,7 +4,7 @@ import os
 import psi.components
 import psi.utils
 
-from psi.avtg.emg.interfaces import CategorySpecification
+from psi.avtg.emg.interfaces import CategorySpecification, Analysis
 
 
 class EMG(psi.components.Component):
@@ -19,11 +19,12 @@ class EMG(psi.components.Component):
                                               self.conf["specifications directory"])
         intf_spec_dict, event_spec_dict = self.__get_specs(self.logger, spec_dir)
 
-        # TODO: Import interface categories configuration
+        # Import interface categories configuration
         intf_spec = CategorySpecification(self.logger)
         intf_spec.import_specification(intf_spec_dict)
 
         # TODO: Generate aspect files
+        sa = Analysis(self.logger, self.conf, self.work_dir, avt, intf_spec)
 
         # TODO: Start CIF for each C file with generated aspect and read outut
 
