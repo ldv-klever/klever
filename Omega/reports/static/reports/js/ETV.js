@@ -52,11 +52,11 @@ $(document).ready(function () {
         distance: 5
     });
 
-    $('#etv-options-activator').popup({
-        popup: $('#etv-options'),
-        position: 'bottom right',
+    $('#error_trace_options').popup({
+        popup: $('#etv-attributes'),
+        position: 'right center',
         hoverable: true,
-        on: 'click',
+        lastResort: true,
         delay: {
             show: 100,
             hide: 100
@@ -99,6 +99,18 @@ $(document).ready(function () {
 
     $('#test_get_source').click(function () {
         get_source_code(1, 'default-file.c');
+    });
+
+    $('#global_scope').click(function (event) {
+        event.preventDefault();
+        if ($(this).find('i').first().hasClass('empty')) {
+            $(this).find('i').first().removeClass('empty')
+            $('.global').hide();
+        }
+        else {
+            $(this).find('i').first().addClass('empty');
+            $('.global').show();
+        }
     });
 
     $('.ETV_HideLink').click(function (event) {

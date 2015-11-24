@@ -24,5 +24,6 @@ urlpatterns = [
         name='unknowns_problem'),
     url(r'^upload/$', views.upload_report),
 
-    url(r'^ajax/get_source/$', views.get_source_code)
+    url(r'^ajax/get_source/$', views.get_source_code),
+    url(r'^ajax/upload_etv/$', views.upload_etv)
 ]

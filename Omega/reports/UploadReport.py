@@ -1,5 +1,6 @@
 import json
 import hashlib
+import tarfile
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
@@ -14,8 +15,9 @@ from service.utils import PSIFinishDecision, PSIStartDecision
 
 class UploadReport(object):
 
-    def __init__(self, job, data):
+    def __init__(self, job, data, archive=None):
         self.job = job
+        self.archive = archive
         self.data = {}
         self.ordered_attrs = []
         self.error = self.__check_data(data)
@@ -46,11 +48,9 @@ class UploadReport(object):
             return 'Type and id are required'
 
         if 'resources' in data:
-            if not isinstance(data['resources'], dict) and all(
-                    x in data['resources'] for x in [
-                        'wall time', 'CPU time', 'max mem size']):
-                return 'Resources has wrong format: %s' % json.dumps(
-                    data['resources'])
+            if not isinstance(data['resources'], dict) \
+                    and all(x in data['resources'] for x in ['wall time', 'CPU time', 'max mem size']):
+                return 'Resources has wrong format: %s' % json.dumps(data['resources'])
 
         self.data = {'type': data['type'], 'id': data['id']}
         if 'desc' in data:
@@ -59,10 +59,6 @@ class UploadReport(object):
             err = self.__check_comp(data['comp'])
             if err is not None:
                 return err
-        # if 'attrs' in data:
-        #     err = self.__check_attrs(data['attrs'])
-        #     if err is not None:
-        #         return err
         if 'name' in data and len(data['name']) > 15:
             return 'Component name is too long (max 15 symbols expected)'
 
@@ -161,15 +157,6 @@ class UploadReport(object):
                 return 'Wrong computer description format'
             if not isinstance(d[next(iter(d))], str) and not isinstance(d[next(iter(d))], int):
                 return 'Wrong computer description format'
-        return None
-
-    def __check_attrs(self, attrs):
-        self.ccc = 0
-        if not isinstance(attrs, list):
-            return 'Wrong attributes format'
-        for a in attrs:
-            if not isinstance(a, dict):
-                return 'Wrong attributes format'
         return None
 
     def __get_root_report(self):
@@ -450,10 +437,8 @@ class UploadReport(object):
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.error_trace = self.data['error trace'].encode('utf8')
-
-        # TODO: get processed trace
-        # report.error_trace_processed = self.data['error trace'].encode('utf8')
         report.save()
+        upload_unsafe_files(report, self.data['error trace'], self.archive)
 
         self.__add_attrs(report)
         self.__collect_attrs(report)
@@ -566,3 +551,30 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
+
+
+def upload_unsafe_files(unsafe, et_name, archive):
+    if archive is None:
+        return
+    import os
+    from django.core.files import File as NewFile
+    inmemory = BytesIO(archive.read())
+    zipfile = tarfile.open(fileobj=inmemory, mode='r')
+    for f in zipfile.getmembers():
+        file_name = f.name
+        if f.isreg():
+            file_obj = zipfile.extractfile(f)
+            if et_name == file_name:
+                unsafe.error_trace = file_obj.read()
+                unsafe.save()
+            else:
+                file_content = BytesIO(file_obj.read())
+                check_sum = hashlib.md5(file_content.read()).hexdigest()
+                try:
+                    db_file = File.objects.get(hash_sum=check_sum)
+                except ObjectDoesNotExist:
+                    db_file = File()
+                    db_file.file.save(os.path.basename(file_name), NewFile(file_content))
+                    db_file.hash_sum = check_sum
+                    db_file.save()
+                ETVFiles.objects.get_or_create(file=db_file, name=file_name, unsafe=unsafe)

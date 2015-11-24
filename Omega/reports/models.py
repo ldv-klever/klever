@@ -101,7 +101,6 @@ class ReportComponent(Report):
 
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
-    error_trace_processed = models.BinaryField(null=True)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
     class Meta:

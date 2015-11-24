@@ -7,7 +7,7 @@ from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
 from marks.models import UnsafeTag, SafeTag
-from reports.UploadReport import UploadReport
+from reports.UploadReport import UploadReport, upload_unsafe_files
 from reports.models import *
 from reports.utils import *
 from django.utils.translation import ugettext as _, activate, string_concat
@@ -197,9 +197,9 @@ def report_leaf(request, leaf_type, report_id):
 
     template = 'reports/report_leaf.html'
     etv = None
-    if leaf_type == 'unsafe' and report.error_trace_processed is not None:
+    if leaf_type == 'unsafe' and len(report.error_trace) > 100:
         template = 'reports/report_unsafe.html'
-        etv = GetETV(report.error_trace_processed)
+        etv = GetETV(report.error_trace)
         if etv.error is not None:
             print_err(etv.error)
             return HttpResponseRedirect(reverse('error', args=[500]))
@@ -239,8 +239,15 @@ def upload_report(request):
         return JsonResponse({
             'error': 'Reports can be uploaded only for processing jobs'
         })
-
-    err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
+    try:
+        data = json.loads(request.POST.get('report', '{}'))
+    except Exception as e:
+        print_err(e)
+        return JsonResponse({'error': 'Can not parse json data'})
+    archive = None
+    for f in request.FILES.getlist('file'):
+        archive = f
+    err = UploadReport(job, data, archive).error
     if err is not None:
         return JsonResponse({'error': err})
     return JsonResponse({})
@@ -298,3 +305,25 @@ def get_source_code(request):
         'content': result.data,
         'name': 'default-file.c'.split('/', -1)[-1]
     })
+
+
+@login_required
+def upload_etv(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'et_name' not in request.POST:
+        return JsonResponse({'error': 'Error trace name is required'})
+    if 'report_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    archive = None
+    for f in request.FILES.getlist('file'):
+        archive = f
+    try:
+        unsafe = ReportUnsafe.objects.get(pk=int(request.POST['report_id']))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Unknown error'})
+    if archive is None:
+        return JsonResponse({'error': 'Error trace archive is required'})
+    upload_unsafe_files(unsafe, request.POST['et_name'], archive)
+    return JsonResponse({})

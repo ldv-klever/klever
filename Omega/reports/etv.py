@@ -59,6 +59,14 @@ class GetETV(object):
 
         for trace in self.traces:
             self.__html_trace(trace)
+        self.attributes = self.__get_attributes()
+
+    def __get_attributes(self):
+        attrs = []
+        for a in self.g.attributes():
+            if a.name != 'programfile':
+                attrs.append([a.name, a.value])
+        return attrs
 
     def __parse_graph(self, graphml_file):
         try:
@@ -126,6 +134,14 @@ class GetETV(object):
                 'current_assumptions': ';'.join(current_assumptions) if isinstance(current_assumptions, list) else None
             }
 
+        lines_data.append({
+            'code': '<span class="ETV_GlobalExpander">Global initialization</span>',
+            'line': None,
+            'line_offset': ' ' * max_line_length,
+            'offset': curr_offset * ' ',
+            'hide_id': 'global_scope'
+        })
+
         for n in edge_trace:
             line = n.attr.get('startline', None)
             if line is None:
@@ -151,14 +167,18 @@ class GetETV(object):
             line_data['file'] = file
             if line_data['line'] is not None and 'assumption' not in n.attr:
                 line_data.update(fill_assumptions())
+            if 'assumption' not in n.attr and line_data['class'] == 'global':
+                line_data['hidden'] = True
 
             if 'assumption' in n.attr:
                 if not has_main and 'assumption.scope' in n.attr and n['assumption.scope'] == 'main':
                     cnt += 1
                     main_id = 'scope__main__%s' % str(cnt)
+                    scope_stack.append('')
                     add_fake_line('main();', main_id)
-                    add_fake_line('{')
+                    scope_stack.pop()
                     scope_stack.append(main_id)
+                    add_fake_line('{')
                     curr_offset += TAB_LENGTH
                     line_data['offset'] = ' ' * curr_offset
                     line_data['class'] = scope_stack[-1]
@@ -167,6 +187,10 @@ class GetETV(object):
                     ass_scope = scope_stack[-1]
                 else:
                     ass_scope = 'global'
+
+                if ass_scope == 'global':
+                    line_data['hidden'] = True
+
                 if ass_scope not in assume_scopes:
                     assume_scopes[ass_scope] = []
                 curr_assumes = []
@@ -198,7 +222,9 @@ class GetETV(object):
                     self.error = _('Error trace is corrupted')
                     return None
             elif 'control' in n.attr:
-                line_data['code'] = 'assume(' + str(line_data['code']) + ' == %s);' % (
+                line_data['code'] = '<span class="ETV_CondAss">assume(</span>' + \
+                                    str(line_data['code']) + \
+                                    ' == %s<span class="ETV_CondAss">);</span>' % (
                     'True' if n['control'] == 'condition-true' else 'False'
                 )
                 lines_data.append(line_data)

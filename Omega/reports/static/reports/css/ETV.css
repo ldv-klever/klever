@@ -19,6 +19,7 @@
     font-family: monospace;
     border-top: 1px solid #ca8f1d;
     overflow: auto;
+    white-space: nowrap
 }
 #ETV_assumes {
     position: absolute;
@@ -132,4 +133,17 @@
 
 .ETVSelectedLine {
     background-color: #ffc8e0;
+}
+
+.ETV_CondAss {
+    color: #9928b4;
+    font-weight: bold;
+    font-style: italic;
+}
+
+.ETV_GlobalExpander {
+    color: #005f81;
+}
+.ETV_GlobalExpanderLink {
+    cursor: pointer;
 }
