@@ -9,6 +9,7 @@ import psi.components
 import psi.utils
 
 # ATVG plugins.
+from psi.avtg.sa import SA
 from psi.avtg.emg import EMG
 from psi.avtg.rsg import RSG
 from psi.avtg.weaver import Weaver
@@ -151,7 +152,7 @@ def _extract_rule_spec_descs(conf, logger):
 
 
 _rule_spec_descs = None
-_plugins = (EMG, RSG, Weaver)
+_plugins = (SA, EMG, RSG, Weaver)
 
 
 def get_subcomponent_callbacks(conf, logger):
