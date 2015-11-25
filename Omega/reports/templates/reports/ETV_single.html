@@ -1,0 +1,37 @@
+{% load i18n %}
+
+<div id="etv-trace">
+    <div style="margin: 10px;">
+        <div class="ui grid">
+            <div class="sixteen wide column center aligned">
+                <h3 class="ui blue header">
+                    <span id="error_trace_options">{% trans 'Error trace' %}</span>
+                </h3>
+            </div>
+        </div>
+        <div class="ETV_error_trace">
+            {% for l in etv.html_traces.0 %}
+                {% if l.hide_id == 'global_scope' %}
+                    <span>
+                        <span class="ETV_LN">{{ l.line_offset }}</span>
+                        <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a class="ETV_GlobalExpanderLink"><i class="mini icon violet star"></i></a>{% endif %}{{ l.code|safe }}</span>
+                        <br>
+                    </span>
+                {% else %}
+                    <span{% if l.class %} class="{{ l.class }}"{% endif %}{% if l.hidden %} style="display:none"{% endif %}>
+                        <span class="ETV_LN">{{ l.line_offset }}{% if l.line %}<a class="ETV_La">{{ l.line }}</a><span class="ETV_File" hidden>{{ l.file }}</span>{% endif %}</span>
+                        <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a id="{{ l.hide_id }}" class="ETV_HideLink"><i class="mini icon violet caret down"></i></a>{% endif %}{{ l.code|safe }}</span>
+                        <span class="ETV_Assumptions" hidden>{{ l.assumptions }}</span>
+                        {% if l.current_assumptions %}
+                            <span class="ETV_CurrentAssumptions" hidden>{{ l.current_assumptions }}</span>
+                        {% endif %}
+                        <br>
+                    </span>
+                {% endif %}
+            {% endfor %}
+            {% for assumption in etv.assumes.0 %}
+                <span id="{{ assumption.0 }}" hidden>{{ assumption.1 }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>

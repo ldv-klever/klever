@@ -104,7 +104,7 @@
         {% elif type == 'unknown' %}
             <div class="ui red segment filecontent" style="height:400px;">{{ report.problem_description }}</div>
         {% else %}
-            <h3 class="ui orange header">There isn't processed error trace for this unsafe in the database.You can upload archive with error trace and files.</h3>
+            <h3 class="ui orange header">There isn't error trace for this unsafe in the database.You can upload archive with error trace and files.</h3>
             <input id="report_pk" type="hidden" value="{{ report.pk }}">
             <div class="ui fluid input">
                 <input id="upload_ETV_et_name" type="text" placeholder="Error trace name (local path in the archive)">

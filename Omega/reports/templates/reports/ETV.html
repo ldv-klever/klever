@@ -1,47 +1,63 @@
 {% load i18n %}
 
 {% block reports_head_block %}
-    <script src="/static/reports/js/ETV.js"></script>
     <script src="/static/reports/js/jquery-ui.min.js"></script>
+    <script src="/static/reports/js/ETV.js"></script>
     <link href="/static/reports/css/ETV.css" rel="stylesheet">
+    {% if etv.html_traces|length == 1 %}
+        <script src="/static/reports/js/ETV_single.js"></script>
+        <link href="/static/reports/css/ETV_single.css" rel="stylesheet">
+    {% else %}
+        <script src="/static/reports/js/ETV_double.js"></script>
+        <link href="/static/reports/css/ETV_double.css" rel="stylesheet">
+    {% endif %}
 {% endblock %}
 
-<div id="etv" class="ui orange segment">
-    <div id="etv-trace">
-        <div style="margin: 10px;">
-            <div class="ui grid">
-                <div class="sixteen wide column center aligned">
-                    <h3 class="ui blue header">
-                        <span id="error_trace_options">{% trans 'Error trace' %}</span>
-                    </h3>
-                </div>
-            </div>
-            <div id="ETV_error_trace">
-                {% for l in etv.html_traces.0 %}
-                    {% if l.hide_id == 'global_scope' %}
-                        <span>
-                            <span class="ETV_LN">{{ l.line_offset }}</span>
-                            <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a id="global_scope" class="ETV_GlobalExpanderLink"><i class="mini icon violet star"></i></a>{% endif %}{{ l.code|safe }}</span>
-                            <br>
-                        </span>
-                    {% else %}
-                        <span{% if l.class %} class="{{ l.class }}"{% endif %}{% if l.hidden %} style="display:none"{% endif %}>
-                            <span class="ETV_LN">{{ l.line_offset }}{% if l.line %}<a class="ETV_La">{{ l.line }}</a><span class="ETV_File" hidden>{{ l.file }}</span>{% endif %}</span>
-                            <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a id="{{ l.hide_id }}" class="ETV_HideLink"><i class="mini icon violet caret down"></i></a>{% endif %}{{ l.code|safe }}</span>
-                            <span class="ETV_Assumptions" hidden>{{ l.assumptions }}</span>
-                            {% if l.current_assumptions %}
-                                <span class="ETV_CurrentAssumptions" hidden>{{ l.current_assumptions }}</span>
-                            {% endif %}
-                            <br>
-                        </span>
-                    {% endif %}
-                {% endfor %}
-                {% for assumption in etv.assumes %}
-                    <span id="{{ assumption.0 }}" hidden>{{ assumption.1 }}</span>
-                {% endfor %}
-            </div>
-        </div>
+<div class="ui icon orange buttons right attached">
+    <button class="ui button normal-popup"><i class="step backward icon"></i></button>
+    <div class="ui popup">
+        <p>{% trans 'Backward' %}</p>
     </div>
+    <button class="ui button normal-popup"><i class="play icon"></i></button>
+    <div class="ui popup">
+        <p>{% trans 'Start from first string' %}</p>
+    </div>
+    <button class="ui button normal-popup"><i class="step forward icon"></i></button>
+    <div class="ui popup">
+        <p>{% trans 'Forward' %}</p>
+    </div>
+    <button class="ui button normal-popup"><i class="forward icon"></i></button>
+    <div class="ui popup">
+        <p>{% trans 'Play from selected string' %}</p>
+    </div>
+    <button class="ui button normal-popup"><i class="backward icon"></i></button>
+    <div class="ui popup">
+        <p>{% trans 'Play backward from selected string' %}</p>
+    </div>
+    <button class="ui button normal-popup"><i class="pause icon"></i></button>
+    <div class="ui popup">
+        <p>{% trans 'Pause' %}</p>
+    </div>
+    <button class="ui button normal-popup"><i class="stop icon"></i></button>
+    <div class="ui popup">
+        <p>{% trans 'Stop' %}</p>
+    </div>
+</div>
+<select id="select_speed" class="ui dropdown attached">
+    <option value="2">2 {% trans 'seconds for string' %}</option>
+    <option value="3">3 {% trans 'seconds for string' %}</option>
+    <option value="4">4 {% trans 'seconds for string' %}</option>
+    <option value="5">5 {% trans 'seconds for string' %}</option>
+    <option value="10">10 {% trans 'seconds for string' %}</option>
+</select>
+<label for="select_speed"></label>
+
+<div id="etv" class="ui orange segment">
+    {% if etv.html_traces|length == 1 %}
+        {% include 'reports/ETV_single.html' %}
+    {% else %}
+        {% include 'reports/ETV_double.html' %}
+    {% endif %}
     <div id="etv-source">
         <div style="margin: 10px;">
             <div class="ETVTitleBlock">

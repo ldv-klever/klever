@@ -8,7 +8,7 @@
     font-size: 12px;
     border-top: 1px solid #ca8f1d;
 }
-#ETV_error_trace {
+.ETV_error_trace {
     width: 100%;
     position: absolute;
     left: 0;
@@ -37,17 +37,8 @@
 }
 
 #etv {
-    width: 99%;
     height: 550px;
     position: relative;
-}
-#etv-trace {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 40%;
-    background-color: #fff8e9;
 }
 #etv-source {
     position: absolute;
@@ -98,7 +89,7 @@
     padding-right: 5px;
 }
 
-/* Erro trace: Line number object */
+/* Error trace: Line number object */
 .ETV_LN {
     white-space: pre;
     background-color: #f3ecd2;

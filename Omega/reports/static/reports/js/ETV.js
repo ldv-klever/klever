@@ -1,57 +1,4 @@
 $(document).ready(function () {
-    var D1 = $('#etv-divider'), D2 = $('#etv-divider-2'),
-        S = $('#etv-source'), T = $('#etv-trace'), A = $('#etv-assumes'), etv = $('#etv'),
-        Tw = parseInt(T.width(), 10),
-        Sw = parseInt(S.width(), 10),
-        Sh = parseInt(S.height(), 10),
-        Ah = parseInt(A.height(), 10),
-        D1w = parseInt(D1.width(), 10),
-        D2h = parseInt(D2.width(), 10),
-        minw = parseInt((Tw + Sw + D1w) * 15 / 100, 10),
-        minh = parseInt((Sh + Ah + D2h) / 100, 10),
-        splitter = function (event, ui) {
-            var aw = parseInt(ui.position.left),
-                bw = Tw + Sw - aw;
-            if (ui.position.top < 0) {
-                ui.position.top = 0;
-            }
-            $('#etv-trace').css({width: aw});
-            $('#etv-source').css({width: bw});
-            $('#etv-assumes').css({width: bw});
-            $('#etv-divider-2').css({left: aw + D1w, width: bw});
-        },
-        splitter2 = function (event, ui) {
-            var ah = parseInt(ui.position.top),
-                bh = Sh + Ah - ah;
-            if (ui.position.right < 0) {
-                ui.position.right = 0;
-            }
-            S.css({height: ah});
-            A.css({height: bh});
-        };
-    D1.draggable({
-        axis: 'x',
-        containment: [
-            etv.offset().left + minw,
-            etv.offset().top,
-            etv.offset().left + Tw + Sw - minw,
-            etv.offset().top + etv.height()
-        ],
-        drag: splitter,
-        distance: 10
-    });
-    D2.draggable({
-        axis: 'y',
-        containment: [
-            etv.offset().left + Tw + D1w,
-            etv.offset().top + minh + 50,
-            etv.offset().left + Tw + Sw + D1w,
-            etv.offset().top + Ah + Sh - minh
-        ],
-        drag: splitter2,
-        distance: 5
-    });
-
     $('#error_trace_options').popup({
         popup: $('#etv-attributes'),
         position: 'right center',
@@ -62,8 +9,8 @@ $(document).ready(function () {
             hide: 100
         }
     });
+    $('.normal-popup').popup();
     function get_source_code(line, filename) {
-        console.log(line);
         $.ajax({
             url: '/reports/ajax/get_source/',
             type: 'POST',
@@ -79,7 +26,7 @@ $(document).ready(function () {
                     err_notify(data.error);
                 }
                 else if (data.name && data.content) {
-                    $('#ETVSourceTitle').html(data.name);
+                    $('#ETVSourceTitle').text(data.name);
                     source_code_window.html(data.content);
                     var selected_src_line = $('#ETVSrcL_' + line);
                     if (selected_src_line.length) {
@@ -97,33 +44,31 @@ $(document).ready(function () {
         });
     }
 
-    $('#test_get_source').click(function () {
-        get_source_code(1, 'default-file.c');
-    });
-
-    $('#global_scope').click(function (event) {
+    $('.ETV_GlobalExpanderLink').click(function (event) {
         event.preventDefault();
         if ($(this).find('i').first().hasClass('empty')) {
-            $(this).find('i').first().removeClass('empty')
-            $('.global').hide();
+            $(this).find('i').first().removeClass('empty');
+            $(this).closest('.ETV_error_trace').find('.global').hide();
         }
         else {
             $(this).find('i').first().addClass('empty');
-            $('.global').show();
+            $(this).closest('.ETV_error_trace').find('.global').show();
         }
     });
 
     $('.ETV_HideLink').click(function (event) {
         event.preventDefault();
         var whole_line = $(this).parent().parent(),
+            etv_main_parent = $(this).closest('div[id^="etv-trace"]'),
+            add_id = etv_main_parent.attr('id').replace('etv-trace', ''),
             expanded = 'mini icon violet caret down',
             collapsed = 'mini icon violet caret right',
-            last_selector = $('.' + $(this).attr('id')).last(),
+            last_selector = etv_main_parent.find('.' + $(this).attr('id').replace(add_id, '')).last(),
             next_line = whole_line.next('span');
         if ($(this).children('i').first().attr('class') == expanded) {
             $(this).children('i').first().attr('class', collapsed);
             whole_line.addClass('func_collapsed');
-            while (!next_line.is(last_selector) && !next_line.is($('.ETV_End_of_trace').first())) {
+            while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
                 next_line.hide();
                 next_line = next_line.next('span');
             }
@@ -132,10 +77,10 @@ $(document).ready(function () {
         else {
             $(this).children('i').first().attr('class', expanded);
             whole_line.removeClass('func_collapsed');
-            while (!next_line.is(last_selector) && !next_line.is($('.ETV_End_of_trace').first())) {
+            while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
                 next_line.show();
                 if (next_line.hasClass('func_collapsed')) {
-                    next_line = $(
+                    next_line = etv_main_parent.find(
                         '.' + next_line.find('a[class="ETV_HideLink"]').first().attr('id')
                     ).last().next('span').next('span');
                 }
@@ -155,12 +100,13 @@ $(document).ready(function () {
         var whole_line = $(this).parent().parent();
         whole_line.addClass('ETVSelectedLine');
 
-        var assume_window = $('#ETV_assumes');
+        var assume_window = $('#ETV_assumes'),
+            add_id = $(this).closest('div[id^="etv-trace"]').attr('id').replace('etv-trace', '');
         assume_window.empty();
         whole_line.find('span[class="ETV_CurrentAssumptions"]').each(function () {
             var assume_ids = $(this).text().split(';');
             $.each(assume_ids, function (i, v) {
-                var curr_assume = $('#' + v);
+                var curr_assume = $('#' + v + add_id);
                 if (curr_assume.length) {
                     assume_window.append($('<span>', {
                         text: curr_assume.text(),
@@ -172,7 +118,7 @@ $(document).ready(function () {
         whole_line.find('span[class="ETV_Assumptions"]').each(function () {
             var assume_ids = $(this).text().split(';');
             $.each(assume_ids, function (i, v) {
-                var curr_assume = $('#' + v);
+                var curr_assume = $('#' + v + add_id);
                 if (curr_assume.length) {
                     assume_window.append($('<span>', {
                         text: curr_assume.text()
@@ -181,6 +127,4 @@ $(document).ready(function () {
             });
         });
     });
-
-    // $('.global_hide').hide();
 });

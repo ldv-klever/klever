@@ -562,6 +562,11 @@ def upload_unsafe_files(unsafe, et_name, archive):
     zipfile = tarfile.open(fileobj=inmemory, mode='r')
     for f in zipfile.getmembers():
         file_name = f.name
+        try:
+            ETVFiles.objects.get(name=file_name, unsafe=unsafe)
+            continue
+        except ObjectDoesNotExist:
+            pass
         if f.isreg():
             file_obj = zipfile.extractfile(f)
             if et_name == file_name:
@@ -577,4 +582,4 @@ def upload_unsafe_files(unsafe, et_name, archive):
                     db_file.file.save(os.path.basename(file_name), NewFile(file_content))
                     db_file.hash_sum = check_sum
                     db_file.save()
-                ETVFiles.objects.get_or_create(file=db_file, name=file_name, unsafe=unsafe)
+                ETVFiles.objects.create(file=db_file, name=file_name, unsafe=unsafe)

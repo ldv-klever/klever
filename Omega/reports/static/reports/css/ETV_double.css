@@ -1,0 +1,38 @@
+#etv-trace___et1 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 55%;
+    width: 40%;
+    background-color: #fff8e9;
+}
+
+#etv-trace___et2 {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 40%;
+    height: 44.6%;
+    background-color: #fff8e9;
+}
+#etv-divider-3 {
+    position: absolute;
+    left: 0;
+    top: 55%;
+    height: 0.4%;
+    width: 40%;
+    background-color: #f2711c;
+    cursor: move;
+}
+.ETV_error_trace_2 {
+    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    line-height: normal;
+    font-size: 12px;
+    font-family: monospace;
+    overflow: auto;
+    white-space: nowrap
+}

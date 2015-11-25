@@ -57,7 +57,9 @@ class GetETV(object):
         self.html_traces = []
         self.assumes = []
 
+        self._cnt = 0
         for trace in self.traces:
+            self._cnt += 1
             self.__html_trace(trace)
         self.attributes = self.__get_attributes()
 
@@ -239,11 +241,13 @@ class GetETV(object):
         lines_data.append({'class': 'ETV_End_of_trace'})
         self.html_traces.append(lines_data)
 
+        trace_assumes = []
         for sc in assume_scopes:
             as_cnt = 0
             for a in assume_scopes[sc]:
-                self.assumes.append(['%s_%s' % (sc, as_cnt), a])
+                trace_assumes.append(['%s_%s' % (sc, as_cnt), a])
                 as_cnt += 1
+        self.assumes.append(trace_assumes)
 
 
 class GetSource(object):
