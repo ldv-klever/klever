@@ -18,8 +18,6 @@ class Weaver(psi.components.Component):
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                extra_c_file = {}
-
                 with open(os.path.join(self.conf['source tree root'],
                                        cc_extra_full_desc_file['cc full desc file'])) as fp:
                     cc_full_desc = json.load(fp)
@@ -55,17 +53,18 @@ class Weaver(psi.components.Component):
                 stdout = psi.utils.execute(self.logger,
                                            ('aspectator', '-print-file-name=include'),
                                            collect_all_stdout=True)
-                psi.utils.execute(self.logger, tuple(['cif',
-                                                      '--in', cc_full_desc['in files'][0],
-                                                      '--aspect', aspect,
-                                                      '--out', cc_full_desc['out file'],
-                                                      '--back-end', 'src',
-                                                      '--debug', 'DEBUG',
-                                                      '--keep-prepared-file'] +
-                                                     (['--keep'] if self.conf['debug'] else []) +
-                                                     ['--'] +
-                                                     cc_full_desc['opts'] +
-                                                     ['-I{0}'.format(stdout[0])]),
+                psi.utils.execute(self.logger,
+                                  tuple(['cif',
+                                         '--in', cc_full_desc['in files'][0],
+                                         '--aspect', aspect,
+                                         '--out', cc_full_desc['out file'],
+                                         '--back-end', 'src',
+                                         '--debug', 'DEBUG',
+                                         '--keep-prepared-file'] +
+                                        (['--keep'] if self.conf['debug'] else []) +
+                                        ['--'] +
+                                        cc_full_desc['opts'] +
+                                        ['-I{0}'.format(stdout[0])]),
                                   cwd=self.conf['source tree root'])
                 self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
 
@@ -76,7 +75,7 @@ class Weaver(psi.components.Component):
                                   cwd=self.conf['source tree root'])
                 self.logger.debug('Preprocess weaved C file to "{0}"'.format(preprocessed_c_file))
 
-                extra_c_file['C file'] = preprocessed_c_file
+                extra_c_file = {'C file': preprocessed_c_file}
 
                 if 'rule spec id' in cc_extra_full_desc_file:
                     extra_c_file['rule spec id'] = cc_extra_full_desc_file['rule spec id']
