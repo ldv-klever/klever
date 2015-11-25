@@ -58,4 +58,9 @@ class ASG(psi.components.Component):
                                   env,
                                   self.conf['source tree root'])
 
+        # We could obtain the same argument signatures, so remove duplicates.
+        with open('arg signs') as fp:
+            arg_signs = set(fp.read().splitlines())
+        self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
+
     main = generate_argument_signatures
