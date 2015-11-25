@@ -18,6 +18,19 @@ class ASG(psi.components.Component):
     def request_arg_signs(self):
         self.logger.info('Request argument signatures')
 
+        request_aspect = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                    os.path.join(self.conf['request aspects directory'],
+                                                                 self.conf['request aspect']))
+        self.logger.debug('Request aspect is "{0}"'.format(request_aspect))
+
+        # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
+        # "-nostdinc" option and system stdarg.h couldn't be used.
+        gcc_search_dir = '-I{0}'.format(
+            psi.utils.execute(self.logger, ('aspectator', '-print-file-name=include'), collect_all_stdout=True)[0])
+
+        env = dict(os.environ)
+        env['LDV_ARG_SIGNS_FILE'] = os.path.relpath('arg signs', os.path.realpath(self.conf['source tree root']))
+
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
 
@@ -28,19 +41,6 @@ class ASG(psi.components.Component):
 
                 self.logger.info('Request argument signatures for C file "{0}"'.format(cc_full_desc['in files'][0]))
 
-                request_aspect = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                            os.path.join(self.conf['request aspects directory'],
-                                                                         self.conf['request aspect']))
-                self.logger.debug('Request aspect is "{0}"'.format(request_aspect))
-
-                # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
-                # "-nostdinc" option and system stdarg.h couldn't be used.
-                stdout = psi.utils.execute(self.logger,
-                                           ('aspectator', '-print-file-name=include'),
-                                           collect_all_stdout=True)
-                env = dict(os.environ)
-                env['LDV_ARG_SIGNS_FILE'] = os.path.relpath('arg signs',
-                                                            os.path.realpath(self.conf['source tree root']))
                 psi.utils.execute(self.logger,
                                   tuple(['cif',
                                          '--in', cc_full_desc['in files'][0],
@@ -54,7 +54,7 @@ class ASG(psi.components.Component):
                                         (['--keep'] if self.conf['debug'] else []) +
                                         ['--'] +
                                         cc_full_desc['opts'] +
-                                        ['-I{0}'.format(stdout[0])]),
+                                        [gcc_search_dir]),
                                   env,
                                   self.conf['source tree root'])
 
