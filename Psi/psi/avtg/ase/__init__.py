@@ -18,6 +18,8 @@ class ASE(psi.components.Component):
             arg_signs = set(fp.read().splitlines())
         self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
 
+        self.abstract_task_desc['template context'] = {'arg_signs': list(arg_signs)}
+
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     def request_arg_signs(self):
