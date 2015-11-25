@@ -11,16 +11,24 @@
         </div>
         <div class="ETV_error_trace">
             {% for l in etv.html_traces.0 %}
-                {% if l.hide_id == 'global_scope' %}
+                {% if l.note %}
+                    <span>
+                        <a class="ui mini blue label ETV_ShowCommentCode">{% trans 'Note' %}</a><span  class="ETV_NoteText">  {{ l.note }}</span><br>
+                    </span>
+                {% elif l.warning %}
+                    <span>
+                        <a class="ui mini red label ETV_ShowCommentCode">{% trans 'Warning' %}</a><span class="ETV_WarnText">  {{ l.warning }}</span><br>
+                    </span>
+                {% elif l.hide_id == 'global_scope' %}
                     <span>
                         <span class="ETV_LN">{{ l.line_offset }}</span>
                         <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a class="ETV_GlobalExpanderLink"><i class="mini icon violet star"></i></a>{% endif %}{{ l.code|safe }}</span>
                         <br>
                     </span>
                 {% else %}
-                    <span{% if l.class %} class="{{ l.class }}"{% endif %}{% if l.hidden %} style="display:none"{% endif %}>
+                    <span class="{% if l.class %}{{ l.class }}{% endif %}{% if l.commented %} commented{% endif %}{% if l.commented and l.hide_id %} func_collapsed{% endif %}"{% if l.hidden %} style="display:none"{% endif %}>
                         <span class="ETV_LN">{{ l.line_offset }}{% if l.line %}<a class="ETV_La">{{ l.line }}</a><span class="ETV_File" hidden>{{ l.file }}</span>{% endif %}</span>
-                        <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a id="{{ l.hide_id }}" class="ETV_HideLink"><i class="mini icon violet caret down"></i></a>{% endif %}{{ l.code|safe }}</span>
+                        <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a id="{{ l.hide_id }}" class="ETV_HideLink"><i class="mini icon violet caret {% if l.hidden %}right{% else %}down{% endif %}"></i></a>{% endif %}{{ l.code|safe }}</span>
                         <span class="ETV_Assumptions" hidden>{{ l.assumptions }}</span>
                         {% if l.current_assumptions %}
                             <span class="ETV_CurrentAssumptions" hidden>{{ l.current_assumptions }}</span>

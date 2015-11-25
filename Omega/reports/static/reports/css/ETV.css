@@ -138,3 +138,8 @@
 .ETV_GlobalExpanderLink {
     cursor: pointer;
 }
+
+.ETV_NoteText, .ETV_WarnText {
+    color: #aeaeae;
+    font-style: italic;
+}

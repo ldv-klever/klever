@@ -85,7 +85,7 @@ class GetETV(object):
             return traces
 
         for path in self.g.bfs():
-            if 'isSinkNode' not in path[-1].attr or path[-1]['isSinkNode'] != 'true':
+            if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
                 traces.append(path)
         return traces
 
@@ -112,15 +112,20 @@ class GetETV(object):
         curr_offset = 1
         scope_stack = ['global']
         assume_scopes = {'global': []}
+        hidden_scopes = []
 
         def add_fake_line(fake_code, hide_id=None):
+            hidden = False
+            if scope_stack[-1] in hidden_scopes:
+                hidden = True
             lines_data.append({
                 'code': fake_code,
                 'line': None,
                 'line_offset': ' ' * max_line_length,
                 'offset': curr_offset * ' ',
                 'class': scope_stack[-1],
-                'hide_id': hide_id
+                'hide_id': hide_id,
+                'hidden': hidden
             })
 
         def fill_assumptions(current_assumptions=None):
@@ -169,8 +174,15 @@ class GetETV(object):
             line_data['file'] = file
             if line_data['line'] is not None and 'assumption' not in n.attr:
                 line_data.update(fill_assumptions())
-            if 'assumption' not in n.attr and line_data['class'] == 'global':
+            if ('assumption' not in n.attr and line_data['class'] == 'global') \
+                    or 'note' in n.attr or 'warning' in n.attr or scope_stack[-1] in hidden_scopes:
                 line_data['hidden'] = True
+            if 'note' in n.attr:
+                lines_data.append({'note': n['note']})
+                line_data['commented'] = True
+            if 'warning' in n.attr:
+                lines_data.append({'warning': n['warning']})
+                line_data['commented'] = True
 
             if 'assumption' in n.attr:
                 if not has_main and 'assumption.scope' in n.attr and n['assumption.scope'] == 'main':
@@ -206,6 +218,8 @@ class GetETV(object):
             elif 'enterFunction' in n.attr:
                 cnt += 1
                 scope_stack.append('scope__%s__%s' % (n['enterFunction'], str(cnt)))
+                if 'hidden' in line_data and line_data['hidden']:
+                    hidden_scopes.append(scope_stack[-1])
                 line_data['hide_id'] = scope_stack[-1]
                 lines_data.append(line_data)
                 add_fake_line('{')
