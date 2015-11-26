@@ -132,10 +132,12 @@ DEF_PSI_RESTRICTIONS = {
     'max_ram': '2.0',
     'max_cpus': '2',
     'max_disk': '100.0',
-    'max_wall_time': None,
-    'max_cpu_time': None,
+    'max_wall_time': '',
+    'max_cpu_time': '',
     'cpu_model': '',
 }
+
+DEF_LINUX_KERNEL_BUILD_PARALLELISM = 1.0
 
 DEF_PSI_FORMATTERS = {
     'console': "%(name)s %(levelname)5s> %(message)s",
@@ -146,5 +148,5 @@ DEF_PSI_CONFIGURATION = {
     'debug': False,
     'allow_local_dir': False,  # Allow use of local source directories
     'priority': 'IDLE',  # See Omega.vars.PRIORITY for more options
-    'avtg_priority': 'balance'  # See service.utils.GEN_PRIORITY for more options
+    'avtg_priority': 'balance'  # See service.utils.AVTG_PRIORITY for more options
 }

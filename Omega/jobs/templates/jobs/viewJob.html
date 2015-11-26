@@ -124,6 +124,7 @@
                 {% if can_download %}<a id="load_job_btn" class="item">{% trans 'Download' %}</a>{% endif %}
                 {% if can_decide %}
                     <a class="item" href="{% url 'jobs:prepare_run' job.pk %}">{% trans 'Start decision' %}</a>
+                    <a id="fast_job_start" class="item">{% trans 'Start decision with default values' %}</a>
                 {% endif %}
                 {% if can_stop %}
                     <a id="stop_job_btn" class="item">{% trans 'Stop decision' %}</a>
