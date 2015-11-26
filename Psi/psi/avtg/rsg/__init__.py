@@ -25,12 +25,16 @@ class RSG(psi.components.Component):
         # Get common and rule specific aspects.
         aspects = []
 
-        for aspect in self.conf['common aspects'] + self.conf['aspects']:
+        for aspect in (self.conf.get('common aspects') or []) + (self.conf.get('aspects') or []):
             # All aspects are relative to aspects directory.
             aspect = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                 os.path.join(self.conf['aspects directory'], aspect))
             self.logger.debug('Get aspect "{0}"'.format(aspect))
             aspects.append(aspect)
+
+        if not aspects:
+            self.logger.warning('No aspects ase specified')
+            return
 
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
@@ -48,12 +52,16 @@ class RSG(psi.components.Component):
         # Get common and rule specific models.
         models = []
 
-        for model in self.conf['common models'] + self.conf['models']:
+        for model in (self.conf.get('common models') or []) + (self.conf.get('models') or []):
             # All models are relative to models directory.
             model = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                os.path.join(self.conf['models directory'], model))
             self.logger.debug('Get model "{0}"'.format(model))
             models.append(model)
+
+        if not models:
+            self.logger.warning('No models are specified')
+            return
 
         # CC extra full description files will be put to this directory as well as corresponding output files.
         os.makedirs('models')
