@@ -80,7 +80,7 @@
                         <th>{% trans 'Node configurations' %}</th>
                         <th>{% trans 'Number of CPU cores' %}*</th>
                         <th>{% trans 'Memory size' %}**</th>
-                        <th>{% trans 'Disk space' %}**</th>
+                        <th>{% trans 'Disk memory size' %}**</th>
                         <th>{% trans 'Number of solving jobs' %}</th>
                         <th>{% trans 'Number of solving tasks' %}</th>
                     </tr>
@@ -127,7 +127,7 @@
                             <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'CPU model' %}:</span> {{ conf.cpu }}</div>
                             <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Number of CPU cores' %}:</span> {{ conf.conf.cores }}</div>
                             <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Memory size' %} ({% trans 'GiB' %}):</span> {{ conf.conf.ram }}</div>
-                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Disk space' %} ({% trans 'GiB' %}):</span> {{ conf.conf.memory }}</div>
+                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Disk memory size' %} ({% trans 'GiB' %}):</span> {{ conf.conf.memory }}</div>
                             <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Number of nodes' %}:</span> {{ conf.conf.num_of_nodes }}</div>
                         </div>
                     </div>
@@ -145,7 +145,7 @@
                 <th>{% trans 'CPU model' %}</th>
                 <th>{% trans 'Number of CPU cores' %}*</th>
                 <th>{% trans 'Memory size' %}**</th>
-                <th>{% trans 'Disk space' %}**</th>
+                <th>{% trans 'Disk memory size' %}**</th>
                 <th>{% trans 'Number of solving tasks' %}</th>
                 <th>{% trans 'Number of solving jobs' %}</th>
                 <th>{% trans 'Available for solving tasks' %}</th>
