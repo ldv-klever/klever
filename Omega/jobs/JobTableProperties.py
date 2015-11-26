@@ -576,8 +576,7 @@ class TableTree(object):
         for job in self.jobdata:
             cmup_filter['report__root__job'] = job['job']
             found_comp_ids = []
-            for cmup in ComponentMarkUnknownProblem.objects.filter(
-                    **cmup_filter):
+            for cmup in ComponentMarkUnknownProblem.objects.filter(**cmup_filter):
                 problem = cmup.problem
                 comp_id = 'pr_component_%s' % str(cmup.component.pk)
                 comp_name = cmup.component.name

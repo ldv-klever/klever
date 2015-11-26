@@ -374,6 +374,10 @@ class ReportMarkTable(object):
                         )
                 elif col == 'problem':
                     value = mark_rep.problem.name
+                    if mark_rep.mark.link is not None:
+                        href = mark_rep.mark.link
+                        if not href.startswith('http'):
+                            href = 'http://' + mark_rep.mark.link
                 values_row.append({
                     'value': value, 'href': href, 'color': color
                 })
