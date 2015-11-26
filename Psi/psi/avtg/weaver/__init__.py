@@ -27,10 +27,10 @@ class Weaver(psi.components.Component):
                 # Produce aspect to be weaved in.
                 if 'plugin aspects' in cc_extra_full_desc_file:
                     # Concatenate all aspects of all plugins together.
-                    aspect = os.path.join(self.conf['source tree root'], '{}.aspect'.format(
-                        os.path.splitext(cc_full_desc['out file'])[0]))
+                    aspect = os.path.join(self.conf['source tree root']
+                                          , '{}.aspect'.format(os.path.splitext(cc_full_desc['out file'])[0]))
                     with open(aspect, 'w') as fout, fileinput.input(
-                            [os.path.join(self.conf['main working directory'], aspect) for plugin_aspects
+                            [os.path.join(self.conf['source tree root'], aspect) for plugin_aspects
                              in cc_extra_full_desc_file['plugin aspects'] for aspect in
                              plugin_aspects['aspects']]) as fin:
                         for line in fin:
@@ -56,7 +56,8 @@ class Weaver(psi.components.Component):
                 psi.utils.execute(self.logger,
                                   tuple(['cif',
                                          '--in', cc_full_desc['in files'][0],
-                                         '--aspect', aspect,
+                                         '--aspect',
+                                         os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])),
                                          '--out', cc_full_desc['out file'],
                                          '--back-end', 'src',
                                          '--debug', 'DEBUG',

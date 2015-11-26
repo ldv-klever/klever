@@ -48,7 +48,7 @@ class RSG(psi.components.Component):
             aspect = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                 os.path.join(self.conf['aspects directory'], aspect))
             self.logger.debug('Get aspect "{0}"'.format(aspect))
-            aspects.append(aspect)
+            aspects.append(os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])))
 
         if not aspects:
             self.logger.warning('No aspects ase specified')
@@ -59,10 +59,8 @@ class RSG(psi.components.Component):
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
                 if 'plugin aspects' not in cc_extra_full_desc_file:
                     cc_extra_full_desc_file['plugin aspects'] = []
-                    cc_extra_full_desc_file['plugin aspects'].append(
-                        {"plugin": self.name,
-                         "aspects": [os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])) for
-                                     aspect in aspects]})
+                cc_extra_full_desc_file['plugin aspects'].append({"plugin": self.name, "aspects": aspects}
+                                                                     )
 
     def add_models(self, models):
         self.logger.info('Add models to abstract task description')
@@ -73,7 +71,7 @@ class RSG(psi.components.Component):
             model = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                os.path.join(self.conf['models directory'], model))
             self.logger.debug('Get model "{0}"'.format(model))
-            models.append(model)
+            models.append(os.path.relpath(model, os.path.realpath(self.conf['source tree root'])))
 
         if not models:
             self.logger.warning('No models are specified')
@@ -94,7 +92,7 @@ class RSG(psi.components.Component):
                     json.dump({
                         # Input file path should be relative to source tree root since compilation options are relative
                         # to this directory and we will change directory to that one before invoking preprocessor.
-                        "in files": [os.path.relpath(model, os.path.realpath(self.conf['source tree root']))],
+                        "in files": [model],
                         # Otput file should be located somewhere inside RSG working directory to avoid races.
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
                         "opts":
