@@ -915,4 +915,18 @@ $(document).ready(function () {
             }
         );
     });
+    $('#fast_job_start').click(function () {
+        $.post(
+            job_ajax_url + 'fast_run_decision/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
 });
