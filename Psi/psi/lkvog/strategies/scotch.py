@@ -5,18 +5,19 @@ import os
 
 class Scotch:
     #TODO: graph_file, scotch_out, scotch_log from parameters
-    def __init__(self, logger, module_deps, task_size, balance_tolerance, graph_file, scotch_log, scotch_out):
+    def __init__(self, logger, module_deps, task_size, balance_tolerance, graph_file, scotch_path, scotch_log, scotch_out):
         self.logger = logger
         self.graph_file = graph_file
+        self.scotch_path = scotch_path
         self.scotch_log = scotch_log
         self.scotch_out = scotch_out
         self.module_deps = module_deps
         self.edge_to_id = {}
         self.id_to_edge = []
         self.task_size = task_size
-        self.logger.debug('Going to get verification verification objects of size less than', self.task_size)
+        self.logger.debug('Going to get verification verification objects of size less than ' + str(self.task_size))
         self.balance_tolerance = balance_tolerance
-        self.logger.debug('Going to keep balance tolerance equal to', self.balance_tolerance)
+        self.logger.debug('Going to keep balance tolerance equal to ' + str(self.balance_tolerance))
         self.logger.debug('Calculate graph of all dependencies between modules')
         self.modules = {}
         self.checked_clusters = set()
@@ -28,26 +29,27 @@ class Scotch:
         dual_graph, dual_edges_num = self.get_dual_graph(module_name)
 
         self.logger.debug('Going to print dual graph to file:')
-        self.print_and_check_dual_graph(dual_graph. dual_edges_num)
+        self.print_and_check_dual_graph(dual_graph, dual_edges_num)
 
         #Determine how much partitions we are going to obtain
         partitions = 2 * (1 + self.balance_tolerance) * (len(dual_graph) / (self.task_size + 1))
 
-        self.logger.debug('Going to obtain', partitions, 'verification objecct in total')
+        self.logger.debug('Going to obtain ' + str(partitions) + ' verification object in total')
 
         #Going to run scotch partitioner
-        result = os.system("gpart " + ' '.join([partitions, self.graph_file,
-                                                self.scotch_out, self.scotch_log, '-vm', "-b" + self.balance_tolerance]))
+        result = os.system(os.path.join(self.scotch_path, "gpart") + ' ' + ' '.join([str(partitions), self.graph_file,
+                                                self.scotch_out, self.scotch_log, '-vm', "-b" + str(self.balance_tolerance)]))
 
         #Import results
         self.logger.debug("Import partitioning results from the file")
 
         partitioning = {}
-        with open("/home/alexey/scotch_out") as fp:
-            for line in fp.read()[1:]:
+        with open(self.scotch_out) as fp:
+            lines = fp.readlines()
+            for line in lines[1:]:
                 line = line.rstrip("\n")
-                parts = line.split(' ')
-                for module in self.id_to_edge[parts[0]].split(' '):
+                parts = line.split('\t')
+                for module in self.id_to_edge[int(parts[0])].split(' '):
                     partitioning.setdefault(parts[1], {})
                     partitioning[parts[1]][module] = 1
 
@@ -63,7 +65,7 @@ class Scotch:
                     group_dict[module] = Module(module)
 
                 #Add edges between the groups
-                for predecessor in self.module_deps[module]:
+                for predecessor in self.module_deps.get(module, []):
                     if predecessor in partitioning[group_id]:
                         if predecessor not in group_dict:
                             group_dict[predecessor] = Module(predecessor)
@@ -75,7 +77,7 @@ class Scotch:
                 clusters.append(graph)
 
         if len(clusters) != partitions:
-            self.logger.debug('Number of uielded partitions is less than expected:', len(clusters), 'expected: ', partitions)
+            self.logger.debug('Number of yielded partitions is less than expected: ' + str(len(clusters)) + ' expected: ' + str(partitions))
 
         ret_clusters = []
         for cluster in clusters:
@@ -96,7 +98,7 @@ class Scotch:
         return self.prepare_dual_graph(connective_graph)
 
     def extract_connective_graph(self, module_name):
-        self.logger('Going to prepare undirected graph of dependencies')
+        self.logger.debug('Going to prepare undirected graph of dependencies')
         undirected_graph = self.collect_undirected_graph(module_name)
         connective_graph = {}
 
@@ -119,7 +121,7 @@ class Scotch:
             #Maybe it's redundant
             if undirected_graph[module]:
                 vert_to_id[module] = vertex_key
-                id_to_vert[vertex_key] = module
+                id_to_vert.append(module)
                 vertex_key += 1
 
                 #Add edges
@@ -127,15 +129,14 @@ class Scotch:
                     #Add new vertex
                     if module not in connective_graph or connected not in connective_graph[module]:
                         edges_num += 1
-
-                    if connected not in connective_graph or module not in connective_graph[connective_graph]:
+                    if connected not in connective_graph or module not in connective_graph[connected]:
                         edges_num += 1
 
                     if ' '.join((module, connected)) not in self.edge_to_id \
                         and ' '.join((connected, module)) not in self.edge_to_id:
                         #Get verticles
                         self.edge_to_id[' '.join((module, connected))] = edge_key
-                        self.id_to_edge[edge_key] = ' '.join((module, connected))
+                        self.id_to_edge.append(' '.join((module, connected)))
                         edge_key += 1
                     connective_graph.setdefault(connected, {})
                     connective_graph[connected][module] = 1
@@ -143,8 +144,8 @@ class Scotch:
                     connective_graph.setdefault(module, {})
                     connective_graph[module][connected] = 1
 
-        self.logger.debug('Connective graph contains:', len(connective_graph), 'verticles')
-        self.logger.debug('Connective graph contains:', edges_num, 'edges')
+        self.logger.debug('Connective graph contains: ' + str(len(connective_graph)) + ' verticles')
+        self.logger.debug('Connective graph contains: ' + str(edges_num) + ' edges')
 
         return connective_graph
 
@@ -153,16 +154,16 @@ class Scotch:
         process_modules = [module_name]
         while process_modules:
             module = process_modules.pop(0)
-            for predecessor in self.module_deps[module]:
+            for predecessor in self.module_deps.get(module, []):
                 undirected_graph.setdefault(module, {})
                 undirected_graph[module][predecessor] = 1
 
                 undirected_graph.setdefault(predecessor, {})
                 undirected_graph[predecessor][module] = 1
 
-            process_modules.extend(self.module_deps[module])
+            process_modules.extend(self.module_deps.get(module, []))
 
-        self.logger.debug('Undirected graph contains:', len(undirected_graph), 'verticles')
+        self.logger.debug('Undirected graph contains: ' + str(len(undirected_graph)) + ' verticles')
         return undirected_graph
 
     def prepare_dual_graph(self, connective_graph):
@@ -172,10 +173,10 @@ class Scotch:
         for v1 in connective_graph:
             for v2 in connective_graph[v1]:
                 #Get id
-                if ' '.join((v1, v2)):
+                if ' '.join((v1, v2)) in self.edge_to_id:
                     edge = self.edge_to_id[' '.join((v1, v2))]
                 else:
-                    edge = self.edge_to_id[' '.join((v2, v2))]
+                    edge = self.edge_to_id[' '.join((v2, v1))]
 
                 for v3 in connective_graph[v1]:
                     #Get id
@@ -196,8 +197,8 @@ class Scotch:
                         dual_graph[e][edge] = 1
 
         #Print stats
-        self.logger.debug('Dual graph contains:', len(dual_graph), 'verticles')
-        self.logger.debug('Dual graph contains:', dual_edges_num, 'edges')
+        self.logger.debug('Dual graph contains: ' + str(len(dual_graph)) + ' verticles')
+        self.logger.debug('Dual graph contains: ' + str(dual_edges_num) + ' edges')
 
         return (dual_graph, dual_edges_num)
 
@@ -216,12 +217,12 @@ class Scotch:
 
         #Write them
         with open(self.graph_file, 'w') as fp:
-            fp.write(text_to_print)
+            fp.write(''.join(text_to_print))
 
         #Check that number of edges was determined correctly
             if edges_num_check == dual_edges_num:
-                self.logger.debug('Number of edges in dual graph was determied correctly:', dual_edges_num)
+                self.logger.debug('Number of edges in dual graph was determied correctly: ' + str(dual_edges_num))
             else:
-                self.logger.debug('Number of edges in dual graph was determined incorrectly. Correct number is', edges_num_check)
+                self.logger.debug('Number of edges in dual graph was determined incorrectly. Correct number is ' + str(edges_num_check))
 
         return
