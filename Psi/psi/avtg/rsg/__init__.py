@@ -12,19 +12,37 @@ class RSG(psi.components.Component):
     def generate_rule_specification(self):
         self.abstract_task_desc = self.mqs['abstract task description'].get()
 
-        self.add_aspects()
-        self.add_models()
+        aspects = []
+        models = []
+
+        if 'files' in self.abstract_task_desc:
+            self.logger.info('Get additional aspects and models specified in abstract task description')
+
+            for file in self.abstract_task_desc['files']:
+                ext = os.path.splitext(file)[1]
+                if ext == '.c':
+                    models.append(file)
+                    self.logger.debug('Get additional model "{0}'.format(file))
+                elif ext == '.aspect':
+                    aspects.append(file)
+                    self.logger.debug('Get additional aspect "{0}'.format(file))
+                else:
+                    raise ValueError('Files with extension "{0}" are not supported'.format(ext))
+
+        self.add_aspects(aspects)
+        self.add_models(models)
+
+        if 'files' in self.abstract_task_desc:
+            self.abstract_task_desc.pop('files')
 
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = generate_rule_specification
 
-    def add_aspects(self):
+    def add_aspects(self, aspects):
         self.logger.info('Add aspects to abstract task description')
 
         # Get common and rule specific aspects.
-        aspects = []
-
         for aspect in (self.conf.get('common aspects') or []) + (self.conf.get('aspects') or []):
             # All aspects are relative to aspects directory.
             aspect = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
@@ -46,12 +64,10 @@ class RSG(psi.components.Component):
                          "aspects": [os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])) for
                                      aspect in aspects]})
 
-    def add_models(self):
+    def add_models(self, models):
         self.logger.info('Add models to abstract task description')
 
         # Get common and rule specific models.
-        models = []
-
         for model in (self.conf.get('common models') or []) + (self.conf.get('models') or []):
             # All models are relative to models directory.
             model = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
