@@ -53,5 +53,9 @@ Psi
 
 To run Psi you need:
 
-* `Python 3.4.x <https://www.python.org/>`_.
+* `Python 3.4.x <https://www.python.org/>`_ and its packages:
+
+  * `Jinja2 <http://jinja.pocoo.org/>`_ (just if you are going to verify source code against rule specifications using
+    argument signatures).
+
 * `CIF <http://forge.ispras.ru/projects/cif>`_.
