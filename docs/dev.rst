@@ -170,7 +170,7 @@ Documentation run/debug configuration
 #. Select :menuselection:`Python docs --> Sphinx task`.
 #. Input *docs* in field :guilabel:`Name`.
 #. Specify :file:`docs` in field :guilabel:`Input`.
-#. Specify :file:`docs/_build` in field :guilabel:`Output`.
+#. Specify :file:`docs/_build/html` in field :guilabel:`Output`.
 #. Select project *docs* in field :guilabel:`Project`.
 #. :menuselection:`OK`.
 
