@@ -70,6 +70,12 @@ $(document).ready(function () {
             whole_line.addClass('func_collapsed');
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
                 next_line.hide();
+                if (event.shiftKey) {
+                    if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
+                        next_line.addClass('func_collapsed');
+                        next_line.find('i[class="' + expanded + '"]').attr('class', collapsed);
+                    }
+                }
                 next_line = next_line.next('span');
             }
             last_selector.hide();
@@ -82,11 +88,22 @@ $(document).ready(function () {
                     next_line.show();
                 }
                 if (next_line.hasClass('func_collapsed')) {
-                    next_line = etv_main_parent.find(
-                        '.' + next_line.find('a[class="ETV_HideLink"]').first().attr('id')
-                    ).last().next('span');
+                    if (event.shiftKey) {
+                        next_line.show();
+                        next_line.removeClass('func_collapsed');
+                        next_line.find('i[class="' + collapsed + '"]').attr('class', expanded);
+                        next_line = next_line.next('span');
+                    }
+                    else {
+                        next_line = etv_main_parent.find(
+                            '.' + next_line.find('a[class="ETV_HideLink"]').first().attr('id')
+                        ).last().next('span');
+                    }
                 }
                 else {
+                    if (event.shiftKey) {
+                        next_line.show();
+                    }
                     next_line = next_line.next('span');
                 }
 

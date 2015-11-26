@@ -11,7 +11,15 @@
         </div>
         <div class="ETV_error_trace">
             {% for l in etv.html_traces.0 %}
-                {% if l.hide_id == 'global_scope' %}
+                {% if l.note %}
+                    <span>
+                        <a class="ui mini blue label ETV_ShowCommentCode">{% trans 'Note' %}</a><span class="ETV_NoteText">  {{ l.note }}</span><br>
+                    </span>
+                {% elif l.warning %}
+                    <span>
+                        <a class="ui mini red label ETV_ShowCommentCode">{% trans 'Warning' %}</a><span class="ETV_WarnText">  {{ l.warning }}</span><br>
+                    </span>
+                {% elif l.hide_id == 'global_scope' %}
                     <span>
                         <span class="ETV_LN">{{ l.line_offset }}</span>
                         <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a class="ETV_GlobalExpanderLink"><i class="mini icon violet star"></i></a>{% endif %}{{ l.code|safe }}</span>
@@ -39,7 +47,15 @@
     <div style="margin: 10px;">
         <div class="ETV_error_trace_2">
             {% for l in etv.html_traces.1 %}
-                {% if l.hide_id == 'global_scope' %}
+                {% if l.note %}
+                    <span>
+                        <a class="ui mini blue label ETV_ShowCommentCode">{% trans 'Note' %}</a><span class="ETV_NoteText">  {{ l.note }}</span><br>
+                    </span>
+                {% elif l.warning %}
+                    <span>
+                        <a class="ui mini red label ETV_ShowCommentCode">{% trans 'Warning' %}</a><span class="ETV_WarnText">  {{ l.warning }}</span><br>
+                    </span>
+                {% elif l.hide_id == 'global_scope' %}
                     <span>
                         <span class="ETV_LN">{{ l.line_offset }}</span>
                         <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a class="ETV_GlobalExpanderLink"><i class="mini icon violet star"></i></a>{% endif %}{{ l.code|safe }}</span>
