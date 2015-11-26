@@ -189,7 +189,7 @@ class GetETV(object):
                     cnt += 1
                     main_id = 'scope__main__%s' % str(cnt)
                     scope_stack.append('')
-                    add_fake_line('main();', main_id)
+                    add_fake_line('<span class="ETV_Fname">main</span>();', main_id)
                     scope_stack.pop()
                     scope_stack.append(main_id)
                     add_fake_line('{')
@@ -221,6 +221,11 @@ class GetETV(object):
                 if 'hidden' in line_data and line_data['hidden']:
                     hidden_scopes.append(scope_stack[-1])
                 line_data['hide_id'] = scope_stack[-1]
+                line_data['code'] = re.sub(
+                    '(^|\W)' + n['enterFunction'] + '(\W|$)',
+                    '\g<1><span class="ETV_Fname">' + n['enterFunction'] + '</span>\g<2>',
+                    line_data['code']
+                )
                 lines_data.append(line_data)
                 add_fake_line('{')
                 curr_offset += TAB_LENGTH
