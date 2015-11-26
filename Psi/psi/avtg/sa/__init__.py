@@ -48,10 +48,10 @@ class SA(psi.components.Component):
 
         self.logger.debug("Add workdir path to each fprintf command in the aspect file")
         new_file = []
-        fprintf_re = re.compile("[\s\t]*\$fprintf\<\"")
-        fprintf_list_re = re.compile("[\s\t]*\$fprintf_var_init_list\<\"")
+        fprintf_re = re.compile("[\s\t]*\$fprintf<\"")
+        fprintf_list_re = re.compile("[\s\t]*\$fprintf_var_init_list<\"")
         replacement = "  $fprintf<\"{}/".format(os.path.realpath(os.getcwd()))
-        list_replacement = "  $fprintf_var_init_list<\"{}".format(os.path.realpath(os.getcwd()))
+        list_replacement = "  $fprintf_var_init_list<\"{}/".format(os.path.realpath(os.getcwd()))
         self.logger.info("Import template aspect from {}".format(template_aspect_file))
         with open(template_aspect_file, "r") as fh:
             for line in fh.readlines():
@@ -91,6 +91,7 @@ class SA(psi.components.Component):
                                                       '--in', command['in files'][0],
                                                       '--aspect', self.aspect,
                                                       '--out', command['out file'],
+                                                      '--stage', 'instrumentation',
                                                       '--back-end', 'src',
                                                       '--debug', 'DEBUG',
                                                       '--keep-prepared-file'] +
@@ -112,45 +113,142 @@ class SA(psi.components.Component):
                         new_line = path_re.sub("", line)
                     else:
                         new_line = line
-                    content.append(line)
+                    content.append(new_line)
         else:
             self.logger.warning("File {} does not exist".format(file))
         return content
 
     def _build_km(self):
         self.logger.info("Extract of request results")
-
-        func_definition_file = "execution.txt"
-        self.logger.debug("Extract function definitions from {}".format(func_definition_file))
-        content = self._import_content(func_definition_file)
-        exec_re = re.compile("^([^\s]*)\s(\w*)\sret='([^']*)('(?:\sarg\d='[^']*')*)\n")
+        all_args_re = "(?:\sarg\d='[^']*')*"
+        exec_re = re.compile("^([^\s]*)\s(\w*)\sret='([^']*)'({})\n".format(all_args_re))
+        call_re = re.compile("^([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
         arg_re = re.compile("\sarg(\d)='([^']*)'")
+        short_pair_re = re.compile("^([^\s]*)\s(\w*)\n")
+
+        func_definition_files = [
+            {"file": "execution.txt", "static": False},
+            {"file": "static-execution.txt", "static": True}
+        ]
+        for execution_source in func_definition_files:
+            self.logger.debug("Extract function definitions from {}".format(execution_source["file"]))
+            content = self._import_content(execution_source["file"])
+            for line in content:
+                if exec_re.fullmatch(line):
+                    path, name, ret_type, args = exec_re.fullmatch(line).groups()
+                    if not self.model["functions"][name]["definitions"][path]:
+                        self.model["functions"][name]["definitions"][path]["return value type"] = ret_type
+                        self.model["functions"][name]["definitions"][path]["parameters"] = \
+                            [arg[1] for arg in arg_re.findall(args)]
+                        self.model["functions"][name]["definitions"][path]["static"] = execution_source["static"]
+                    else:
+                        raise ValueError("Function definition {} from file {} has been already described".
+                                          format(name, path))
+                else:
+                    raise ValueError("Cannot parse line '{}' in file {}".format(line, execution_source["file"]))
+
+        func_declaration_files = [
+            {"file": "declare-function.txt", "static": False},
+            {"file": "static-declare-function.txt", "static": True}
+        ]
+        for definition_source in func_declaration_files:
+            self.logger.debug("Extract function declarations from {}".format(definition_source["file"]))
+            content = self._import_content(definition_source["file"])
+            for line in content:
+                if short_pair_re.fullmatch(line):
+                    path, name = short_pair_re.fullmatch(line).groups()
+                    self.model["functions"][name]["declarations"][path] = True
+                else:
+                    raise ValueError("Cannot parse line '{}' in file {}".format(line, definition_source["file"]))
+
+        expand_file = "expand.txt"
+        self.logger.debug("Extract macro expansions from {}".format(expand_file))
+        content = self._import_content(expand_file)
         for line in content:
-            if exec_re.fullmatch(line):
-                path, name, ret_type, args = exec_re.fullmatch(line).groups()
-                for arg_pair in arg_re.findall(args):
-                    position, arg_type = arg_pair
+            if short_pair_re.fullmatch(line):
+                path, name = short_pair_re.fullmatch(line).groups()
+                if not self.model["macro expansions"][name][path]:
+                    self.model["macro expansions"][name][path] = True
             else:
-                raise ValueError("Cannot parse line '{}' in file {}".format(line, func_definition_file))
+                raise ValueError("Cannot parse line '{}' in file {}".format(line, expand_file))
 
+        func_calls_file = "call-function.txt"
+        self.logger.debug("Extract function calls from {}".format(func_calls_file))
+        content = self._import_content(func_calls_file)
+        for line in content:
+            if call_re.fullmatch(line):
+                path, caller_name, name, args = call_re.fullmatch(line).groups()
+                if self.model["functions"][caller_name]["definitions"][path]:
+                    if not self.model["functions"][caller_name]["definitions"][path]:
+                        raise ValueError("Expect definition of function {} in {}".format(caller_name, path))
+                    if not self.model["functions"][caller_name]["definitions"][path]["call"][name]:
+                        self.model["functions"][caller_name]["definitions"][path]["call"][name] = []
+                    self.model["functions"][caller_name]["definitions"][path]["call"][name].\
+                        append([arg[1] for arg in arg_re.findall(args)])
 
-        return
+                    if not self.model["functions"][name]["calls"][path]:
+                        self.model["functions"][name]["calls"][path] = []
+                    self.model["functions"][name]["calls"][path].append(
+                        {
+                            "called at": caller_name,
+                            "parameters":  [arg[1] for arg in arg_re.findall(args)]
+                        }
+                    )
+                else:
+                    raise ValueError("Expect function definition {} in file {} but it has not been extracted".
+                                     format(name, path))
+            else:
+                raise ValueError("Cannot parse line '{}' in file {}".format(line, func_calls_file))
 
-    def _process_callp(self):
-        if not os.path.isfile(self.callp):
-            return
+        export_file = "exported-symbols.txt"
+        self.logger.debug("Extract export symbols from {}".format(export_file))
+        content = self._import_content(export_file)
+        for line in content:
+            if short_pair_re.fullmatch(line):
+                path, name = short_pair_re.fullmatch(line).groups()
+                if self.model["functions"][name]["definitions"][path]:
+                    self.model["functions"][name]["definitions"][path]["exported"] = True
+                else:
+                    raise ValueError("Exported function {} in {} should be defined first".format(name, path))
+            else:
+                raise ValueError("Cannot parse line '{}' in file {}".format(line, export_file))
 
-        with open(self.callp, "r") as callp_fh:
-            for line in callp_fh:
-                m = re.match(r'(\S*) (\S*) (\S*) (\S*) (\S*)', line)
-                if m:
-                    context_file = m.group(1)
-                    context_func = m.group(2)
-                    context_decl_line = m.group(3)
-                    call_line = m.group(4)
-                    func_ptr = m.group(5)
+        init_file = "init.txt"
+        self.logger.debug("Extract initialization functions from {}".format(init_file))
+        content = self._import_content(init_file)
+        for line in content:
+            if short_pair_re.fullmatch(line):
+                path, func = short_pair_re.fullmatch(line).groups()
+                if not self.model["init"][path]:
+                    self.model["init"][path] = func
+                else:
+                    raise ValueError("Module cannot contain two initialization functions but file {} contains".
+                                     format(path))
+            else:
+                raise ValueError("Cannot parse line '{}' in file {}".format(line, init_file))
 
-                    self.model["functions"][context_func][context_file]["calls by pointer"][func_ptr][call_line] = 1
+        exit_file = "exit.txt"
+        self.logger.debug("Extract exit functions from {}".format(exit_file))
+        content = self._import_content(init_file)
+        for line in content:
+            if short_pair_re.fullmatch(line):
+                path, func = short_pair_re.fullmatch(line).groups()
+                if not self.model["exit"][path]:
+                    self.model["exit"][path] = func
+                else:
+                    raise ValueError("Module cannot contain two exit functions but file {} contains".
+                                     format(path))
+            else:
+                raise ValueError("Cannot parse line '{}' in file {}".format(line, exit_file))
+
+        global_file = "global.txt"
+        self.logger.debug("Extract global variables from {}".format(global_file))
+        content = self._import_content(init_file)
+        self._import_global_var_initializations(self, content)
+
+    def _import_global_var_initializations(self, content):
+        # Get blocks of structure declarations
+        
 
     def _store_km(self, km_file):
         """
