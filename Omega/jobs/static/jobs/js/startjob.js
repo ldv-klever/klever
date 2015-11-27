@@ -119,7 +119,7 @@ $(document).ready(function () {
             var data = {
                 scheduler: $('#scheduler').val(),
                 priority: $('#priority').val(),
-                gen_priority: $('#gen_priority').val(),
+                avtg_priority: $('#avtg_priority').val(),
                 job_id: $('#job_pk').val(),
                 cpu_model: $('#cpu_model').val(),
                 max_wall_time: $('#max_wall_time').val(),

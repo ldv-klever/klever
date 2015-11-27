@@ -12,48 +12,70 @@ class RSG(psi.components.Component):
     def generate_rule_specification(self):
         self.abstract_task_desc = self.mqs['abstract task description'].get()
 
-        self.add_aspects()
-        self.add_models()
+        aspects = []
+        models = []
+
+        if 'files' in self.abstract_task_desc:
+            self.logger.info('Get additional aspects and models specified in abstract task description')
+
+            for file in self.abstract_task_desc['files']:
+                ext = os.path.splitext(file)[1]
+                if ext == '.c':
+                    models.append(file)
+                    self.logger.debug('Get additional model "{0}'.format(file))
+                elif ext == '.aspect':
+                    aspects.append(file)
+                    self.logger.debug('Get additional aspect "{0}'.format(file))
+                else:
+                    raise ValueError('Files with extension "{0}" are not supported'.format(ext))
+
+        self.add_aspects(aspects)
+        self.add_models(models)
+
+        if 'files' in self.abstract_task_desc:
+            self.abstract_task_desc.pop('files')
 
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = generate_rule_specification
 
-    def add_aspects(self):
+    def add_aspects(self, aspects):
         self.logger.info('Add aspects to abstract task description')
 
         # Get common and rule specific aspects.
-        aspects = []
-
-        for aspect in self.conf['common aspects'] + self.conf['aspects']:
+        for aspect in (self.conf.get('common aspects') or []) + (self.conf.get('aspects') or []):
             # All aspects are relative to aspects directory.
             aspect = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                 os.path.join(self.conf['aspects directory'], aspect))
             self.logger.debug('Get aspect "{0}"'.format(aspect))
-            aspects.append(aspect)
+            aspects.append(os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])))
+
+        if not aspects:
+            self.logger.warning('No aspects ase specified')
+            return
 
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
                 if 'plugin aspects' not in cc_extra_full_desc_file:
                     cc_extra_full_desc_file['plugin aspects'] = []
-                    cc_extra_full_desc_file['plugin aspects'].append(
-                        {"plugin": self.name,
-                         "aspects": [os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])) for
-                                     aspect in aspects]})
+                cc_extra_full_desc_file['plugin aspects'].append({"plugin": self.name, "aspects": aspects}
+                                                                     )
 
-    def add_models(self):
+    def add_models(self, models):
         self.logger.info('Add models to abstract task description')
 
         # Get common and rule specific models.
-        models = []
-
-        for model in self.conf['common models'] + self.conf['models']:
+        for model in (self.conf.get('common models') or []) + (self.conf.get('models') or []):
             # All models are relative to models directory.
             model = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                os.path.join(self.conf['models directory'], model))
             self.logger.debug('Get model "{0}"'.format(model))
-            models.append(model)
+            models.append(os.path.relpath(model, os.path.realpath(self.conf['source tree root'])))
+
+        if not models:
+            self.logger.warning('No models are specified')
+            return
 
         # CC extra full description files will be put to this directory as well as corresponding output files.
         os.makedirs('models')
@@ -70,7 +92,7 @@ class RSG(psi.components.Component):
                     json.dump({
                         # Input file path should be relative to source tree root since compilation options are relative
                         # to this directory and we will change directory to that one before invoking preprocessor.
-                        "in files": [os.path.relpath(model, os.path.realpath(self.conf['source tree root']))],
+                        "in files": [model],
                         # Otput file should be located somewhere inside RSG working directory to avoid races.
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
                         "opts":
