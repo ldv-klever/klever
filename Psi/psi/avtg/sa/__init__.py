@@ -258,7 +258,7 @@ class SA(psi.components.Component):
     main = analyze_sources
 
 
-class GlobalInitParser():
+class GlobalInitParser:
     result = dict()
     indent_re = re.compile("^(\s*)\w")
 
