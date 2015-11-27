@@ -14,6 +14,9 @@ def nested_dict():
 class SA(psi.components.Component):
     # TODO: Use template processor instead of predefined aspect file and target output files
     model = None
+    files = []
+    modules_functions = []
+    kernel_functions = []
 
     def analyze_sources(self):
         self.logger.info("Start source analyzer instance {}".format(self.id))
@@ -33,6 +36,9 @@ class SA(psi.components.Component):
 
         # Extract data
         self._fill_model()
+
+        # Model postprocessing
+        self._process_model()
 
         # Save data to file
         self._save_model("model.json")
@@ -86,6 +92,7 @@ class SA(psi.components.Component):
                 with open(file, "r") as fh:
                     command = json.loads(fh.read())
                     group["build commands"].append(command)
+                    self.files.append(command['in files'][0])
 
         for group in abstract_task["grps"]:
             self.logger.debug("Analyze source files from group {}".format(group["id"]))
@@ -254,6 +261,68 @@ class SA(psi.components.Component):
         self.logger.info("Save source analysis results to the file {}".format(km_file))
         with open(km_file, "w") as km_fh:
             json.dump(self.model, km_fh, sort_keys=True, indent=4)
+
+    def _process_model(self):
+        self.logger.info("Process model according to provided options")
+        self.modules_functions = [name for name in self.model["functions"]
+                                  if "definitions" in self.model["functions"][name]
+                                  and len(set(self.files).intersection(self.model["functions"][name]["definitions"]))]
+
+        # Collect all functions called in module
+        called_functions = []
+        for name in self.modules_functions:
+            for path in self.model["functions"][name]["definitions"]:
+                if path in self.files:
+                    for called in self.model["functions"][name]["definitions"][path]["call"]:
+                        called_functions.append(called)
+
+        # Collect all kernel functions called in the module
+        self.kernel_functions = set(called_functions) - set(self.modules_functions)
+
+        # Remove useless functions
+        self._shrink_kernel_functions()
+
+        # Remove useless macro expansions
+        self._shrink_macro_expansions()
+
+        # Split functions into two parts strictly according to source
+        self._split_functions()
+
+    def _shrink_kernel_functions(self):
+        names = self.model["functions"].keys()
+        for name in list(names):
+            if name not in self.kernel_functions and name not in self.modules_functions:
+                del self.model["functions"][name]
+
+        for name in self.model["functions"]:
+            for path in self.model["functions"][name]["definitions"]:
+                if path in self.files:
+                    called = list(self.model["functions"][name]["definitions"][path]["call"].keys())
+                    for f in called:
+                        if f not in self.model["functions"]:
+                            del self.model["functions"][name]["definitions"][path]["call"][f]
+
+        for name in self.model["functions"]:
+            files = list(self.model["functions"][name]["calls"].keys())
+            for file in files:
+                if file not in self.files:
+                    del self.model["functions"][name]["calls"][file]
+
+        return
+
+    def _shrink_macro_expansions(self):
+        expansions = list(self.model["macro expansions"].keys())
+        for exp in expansions:
+            files = list(self.model["macro expansions"][exp].keys())
+            if len(set(self.files).intersection(files)) == 0:
+                del self.model["macro expansions"][exp]
+
+    def _split_functions(self):
+        for function in self.kernel_functions:
+            self.model["kernel functions"][function] = self.model["functions"][function]
+        for function in self.kernel_functions:
+            self.model["modules functions"][function] = self.model["functions"][function]
+        del self.model["functions"]
 
     main = analyze_sources
 
