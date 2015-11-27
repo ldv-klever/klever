@@ -7,6 +7,10 @@ import psi.components
 import psi.utils
 
 
+def nested_dict():
+    return collections.defaultdict(nested_dict)
+
+
 class SA(psi.components.Component):
     # TODO: Use template processor instead of predefined aspect file and target output files
     model = None
@@ -19,7 +23,7 @@ class SA(psi.components.Component):
         self.logger.info("Analyze source code of an abstract verification task {}".format(avt["id"]))
 
         # Init empty model
-        self.model = collections.defaultdict(self._nested_dict)
+        self.model = collections.defaultdict(nested_dict)
 
         # Generate aspect file
         self._generate_aspect_file()
@@ -27,17 +31,19 @@ class SA(psi.components.Component):
         # Perform requests
         self._perform_info_requests(avt)
 
-        self._build_km()
-        self._store_km("model.json")
+        # Extract data
+        self._fill_model()
 
-        # TODO: Do not forget to place there JSON
+        # Save data to file
+        self._save_model("model.json")
 
+        # Save data to abstract task
+        self.logger.info("Add extracted data to abstract verification task {}".format(avt["id"]))
+        avt["source analysis"] = os.path.relpath("model.json", os.path.realpath(self.conf['source tree root']))
+
+        # Put edited task and terminate
         self.mqs['abstract task description'].put(avt)
-
-        return
-
-    def _nested_dict(self):
-        return collections.defaultdict(self._nested_dict)
+        self.logger.info("SA successfully finished")
 
     def _generate_aspect_file(self):
         # Prepare aspect file
@@ -84,7 +90,7 @@ class SA(psi.components.Component):
         for group in abstract_task["grps"]:
             self.logger.debug("Analyze source files from group {}".format(group["id"]))
             for command in group["build commands"]:
-                os.environ["CC_IN_FILE"] = os.path.realpath(os.path.join(os.getcwd(), command['in files'][0]))
+                os.environ["CC_IN_FILE"] = command['in files'][0]
                 stdout = psi.utils.execute(self.logger, ('aspectator', '-print-file-name=include'),
                                            collect_all_stdout=True)
                 psi.utils.execute(self.logger, tuple(['cif',
@@ -109,7 +115,7 @@ class SA(psi.components.Component):
             path_re = re.compile(kernel)
             with open(file, "r") as output_fh:
                 for line in output_fh:
-                    if path_re.match(line):
+                    if path_re.search(line):
                         new_line = path_re.sub("", line)
                     else:
                         new_line = line
@@ -118,7 +124,7 @@ class SA(psi.components.Component):
             self.logger.warning("File {} does not exist".format(file))
         return content
 
-    def _build_km(self):
+    def _fill_model(self):
         self.logger.info("Extract of request results")
         all_args_re = "(?:\sarg\d='[^']*')*"
         exec_re = re.compile("^([^\s]*)\s(\w*)\sret='([^']*)'({})\n".format(all_args_re))
@@ -141,9 +147,6 @@ class SA(psi.components.Component):
                         self.model["functions"][name]["definitions"][path]["parameters"] = \
                             [arg[1] for arg in arg_re.findall(args)]
                         self.model["functions"][name]["definitions"][path]["static"] = execution_source["static"]
-                    else:
-                        raise ValueError("Function definition {} from file {} has been already described".
-                                          format(name, path))
                 else:
                     raise ValueError("Cannot parse line '{}' in file {}".format(line, execution_source["file"]))
 
@@ -243,22 +246,177 @@ class SA(psi.components.Component):
 
         global_file = "global.txt"
         self.logger.debug("Extract global variables from {}".format(global_file))
-        content = self._import_content(init_file)
-        self._import_global_var_initializations(self, content)
+        content = self._import_content(global_file)
+        gi_parser = GlobalInitParser(content)
+        self.model["global variable initializations"] = gi_parser.analysis
 
-    def _import_global_var_initializations(self, content):
-        # Get blocks of structure declarations
-        
-
-    def _store_km(self, km_file):
-        """
-        Serializes generated model in a form of JSON.
-        """
-
-        self.logger.info("Serializing generated model")
+    def _save_model(self, km_file):
+        self.logger.info("Save source analysis results to the file {}".format(km_file))
         with open(km_file, "w") as km_fh:
             json.dump(self.model, km_fh)
 
     main = analyze_sources
+
+
+class GlobalInitParser():
+    result = dict()
+    indent_re = re.compile("^(\s*)\w")
+
+    def __init__(self, content):
+        self.content = content
+        self.analysis = collections.defaultdict(nested_dict)
+        if len(content) > 0:
+            self._parse(content)
+
+    def _get_indent(self, string):
+        return self.indent_re.match(string).group(1)
+
+    def _parse(self, lines):
+        indent_str = self._get_indent(lines[0])
+
+        begin_re = \
+            re.compile("^{}Structure\sdescription\sbegin\spath='([^']*)'\sname='([^']*)'\stype='([^']*)'".
+                       format(indent_str))
+        init_re = re.compile("^{}Initializer list".format(indent_str))
+        end_re = re.compile("^{}Structure description end".format(indent_str))
+
+        # 0 - begin, 1 - in structure, 2 - out of structure
+        state = 0
+        current_block = []
+        current_struct = None
+        for line in lines:
+            if state in [0, 2]:
+                path, name, struct_type = begin_re.match(line).groups()
+                self.analysis[path][name]["signature"] = "struct {} %s".format(struct_type)
+                self.analysis[path][name]["struct type"] = struct_type
+                current_struct = self.analysis[path][name]
+                state = 1
+            elif state == 1:
+                if init_re.match(line):
+                    current_block = []
+                elif end_re.match(line):
+                    self._parse_init_list(current_struct["fields"], current_block)
+                    current_struct = None
+                    current_block = None
+                    state = 2
+                else:
+                    current_block.append(line)
+        return
+
+    def _parse_init_list(self, structure, block):
+        indent_str = self._get_indent(block[0])
+        begin_re = re.compile("^{}Structure field initialization".format(indent_str))
+        name_re = re.compile("^{}Field\sname\sis\s'([^']*)'".format(indent_str))
+        type_re = re.compile("^{}Type\sis\s'([^']*)'".format(indent_str))
+        sign_re = re.compile("^{}Declaration\sis\s'([^']*)'".format(indent_str))
+
+        # 0 - out of field description,
+        # 1 - at the beginning,
+        # 2 - with filled name
+        # 3 - with filled type
+        # 4 - with filled signature
+        state = 0
+
+        current_field = None
+        current_block = []
+        for line in block:
+            if state == 0:
+                # Skip the first line
+                state = 1
+            elif state == 1:
+                # Parse name
+                current_name = name_re.match(line).group(1)
+                current_field = structure[current_name]
+                state = 2
+            elif state == 2:
+                field_type = type_re.match(line).group(1)
+                current_field["type"] = field_type
+                state = 3
+            elif state == 3:
+                signature = sign_re.match(line).group(1)
+                current_field["signature"] = signature
+                current_block = []
+                state = 4
+            elif state == 4:
+                if begin_re.match(line):
+                    self._parse_field(current_field, current_block)
+                    current_block = None
+                    current_field = None
+                    state = 1
+                else:
+                    current_block.append(line)
+        return {}
+
+    def _parse_array(self, array, block):
+        indent_str = self._get_indent(block[0])
+        begin_re = re.compile("^{}Array\selement\sinitialization".format(indent_str))
+        index_re = re.compile("^{}Array\sindex\sis\s'([^']*)'".format(indent_str))
+        type_re = re.compile("^{}Type\sis\s'([^']*)'".format(indent_str))
+        sign_re = re.compile("^{}Declaration\sis\s'([^']*)'".format(indent_str))
+
+        # 0 - out of field description,
+        # 1 - at the beginning,
+        # 2 - with filled name
+        # 3 - with filled type
+        # 4 - with filled signature
+        state = 0
+
+        current_element = None
+        current_block = []
+        for line in block:
+            if state == 0:
+                # Skip the first line
+                state = 1
+            elif state == 1:
+                # Parse name
+                current_index = index_re.match(line).group(1)
+                current_element = array[current_index]
+                state = 2
+            elif state == 2:
+                field_type = type_re.match(line).group(1)
+                current_element["type"] = field_type
+                state = 3
+            elif state == 3:
+                signature = sign_re.match(line).group(1)
+                current_element["signature"] = signature
+                current_block = []
+                state = 4
+            elif state == 4:
+                if begin_re.match(line):
+                    self._parse_field(current_element, current_block)
+                    current_block = None
+                    current_element = None
+                    state = 1
+                else:
+                    current_block.append(line)
+        return {}
+
+    def _parse_field(self, element, block):
+        value_re = re.compile("^\s*Value\sis\s'([^']*)'")
+
+        if element["type"] == "structure":
+            # Ignore Initializer list first string
+            element["value"] = self._parse_init_list(element["value"], block[1:])
+        elif element["type"] == "function pointer":
+            ret_re = re.compile("^\s*Pointed\sfunction\sreturn\stype\sdeclaration\sis\s'([^']*)'")
+            args_re = re.compile("^\s*Pointed\sfunction\sargument\stype\sdeclarations\sare([^\n]*)\n")
+            all_args_re = re.compile("\s'([^']*)'")
+
+            return_type = ret_re.match(block[0]).group(1)
+            args = args_re.match(block[1]).group(1)
+            parameters = all_args_re.findall(args)
+            value = value_re.match(block[2]).group(1)
+            signature = "{} (*%s)({})".format(return_type, ", ".join(parameters))
+            element["signature"] = signature
+            element["value"] = value
+        elif element["type"] in ["primitive", "primitive pointer", "pointer to structure variable"]:
+            value = value_re.match(block[0]).group(1)
+            element["value"] = value
+        elif element["type"] == "array":
+            # Ignore Initializer list first string
+            element["value"] = self._parse_array(element["value"], block[1:])
+        else:
+            raise NotImplementedError("Field type '{}' is not supported by global variables initialization parser".
+                                      format(element["type"]))
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
