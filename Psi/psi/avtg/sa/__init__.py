@@ -410,6 +410,8 @@ class GlobalInitParser:
             value = value_re.match(block[2]).group(1)
             signature = "{} (*%s)({})".format(return_type, ", ".join(parameters))
             element["signature"] = signature
+            element["return value type"] = return_type
+            element["parameters"] = parameters
             element["value"] = value
         elif element["type"] in ["primitive", "primitive pointer", "pointer to structure variable"]:
             value = value_re.match(block[0]).group(1)
