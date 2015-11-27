@@ -4,7 +4,7 @@ import os
 import psi.components
 import psi.utils
 
-from psi.avtg.emg.interfaces import CategorySpecification, Analysis
+from psi.avtg.emg.interfaces import CategorySpecification
 
 
 class EMG(psi.components.Component):
@@ -23,16 +23,8 @@ class EMG(psi.components.Component):
         intf_spec = CategorySpecification(self.logger)
         intf_spec.import_specification(intf_spec_dict)
 
-        # TODO: Generate aspect files
-        sa = Analysis(self.logger, self.conf, self.work_dir, avt, intf_spec)
-
-        # TODO: Start CIF for each C file with generated aspect and read outut
-
-        # TODO: Can we do it in parallel
-
-        # TODO: Read output and parse CIF out
-
         # TODO: Generate module interface specification
+
         self.mqs['abstract task description'].put(avt)
 
         return
