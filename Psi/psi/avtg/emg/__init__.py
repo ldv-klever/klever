@@ -23,6 +23,8 @@ class EMG(psi.components.Component):
         intf_spec = CategorySpecification(self.logger)
         intf_spec.import_specification(intf_spec_dict)
 
+        # Import results of source code analysis
+
         # TODO: Generate module interface specification
 
         self.mqs['abstract task description'].put(avt)

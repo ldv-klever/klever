@@ -232,7 +232,7 @@ class SA(psi.components.Component):
 
         exit_file = "exit.txt"
         self.logger.debug("Extract exit functions from {}".format(exit_file))
-        content = self._import_content(init_file)
+        content = self._import_content(exit_file)
         for line in content:
             if short_pair_re.fullmatch(line):
                 path, func = short_pair_re.fullmatch(line).groups()
@@ -295,7 +295,7 @@ class GlobalInitParser:
                 if init_re.match(line):
                     current_block = []
                 elif end_re.match(line):
-                    self._parse_init_list(current_struct["fields"], current_block)
+                    self._parse_structure(current_struct["fields"], current_block)
                     current_struct = None
                     current_block = None
                     state = 2
@@ -303,7 +303,7 @@ class GlobalInitParser:
                     current_block.append(line)
         return
 
-    def _parse_init_list(self, structure, block):
+    def _parse_structure(self, structure, block):
         indent_str = self._get_indent(block[0])
         begin_re = re.compile("^{}Structure field initialization".format(indent_str))
         name_re = re.compile("^{}Field\sname\sis\s'([^']*)'".format(indent_str))
@@ -325,6 +325,7 @@ class GlobalInitParser:
                 state = 1
             elif state == 1:
                 # Parse name
+                current_block = None
                 current_name = name_re.match(line).group(1)
                 current_field = structure[current_name]
                 state = 2
@@ -339,13 +340,13 @@ class GlobalInitParser:
                 state = 4
             elif state == 4:
                 if begin_re.match(line):
-                    self._parse_field(current_field, current_block)
-                    current_block = None
-                    current_field = None
+                    self._parse_element(current_field, current_block)
                     state = 1
                 else:
                     current_block.append(line)
-        return {}
+
+        # Parse last element
+        self._parse_element(current_field, current_block)
 
     def _parse_array(self, array, block):
         indent_str = self._get_indent(block[0])
@@ -369,6 +370,7 @@ class GlobalInitParser:
                 state = 1
             elif state == 1:
                 # Parse name
+                current_block = None
                 current_index = index_re.match(line).group(1)
                 current_element = array[current_index]
                 state = 2
@@ -383,20 +385,20 @@ class GlobalInitParser:
                 state = 4
             elif state == 4:
                 if begin_re.match(line):
-                    self._parse_field(current_element, current_block)
-                    current_block = None
-                    current_element = None
+                    self._parse_element(current_element, current_block)
                     state = 1
                 else:
                     current_block.append(line)
-        return {}
 
-    def _parse_field(self, element, block):
+        # Parse last element
+        self._parse_element(current_element, current_block)
+
+    def _parse_element(self, element, block):
         value_re = re.compile("^\s*Value\sis\s'([^']*)'")
 
         if element["type"] == "structure":
             # Ignore Initializer list first string
-            element["value"] = self._parse_init_list(element["value"], block[1:])
+            element["value"] = self._parse_structure(element["value"], block[1:])
         elif element["type"] == "function pointer":
             ret_re = re.compile("^\s*Pointed\sfunction\sreturn\stype\sdeclaration\sis\s'([^']*)'")
             args_re = re.compile("^\s*Pointed\sfunction\sargument\stype\sdeclarations\sare([^\n]*)\n")
@@ -414,7 +416,7 @@ class GlobalInitParser:
             element["value"] = value
         elif element["type"] == "array":
             # Ignore Initializer list first string
-            element["value"] = self._parse_array(element["value"], block[1:])
+            self._parse_array(element["value"], block[1:])
         else:
             raise NotImplementedError("Field type '{}' is not supported by global variables initialization parser".
                                       format(element["type"]))
