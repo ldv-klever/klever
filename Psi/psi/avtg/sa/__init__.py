@@ -253,7 +253,7 @@ class SA(psi.components.Component):
     def _save_model(self, km_file):
         self.logger.info("Save source analysis results to the file {}".format(km_file))
         with open(km_file, "w") as km_fh:
-            json.dump(self.model, km_fh)
+            json.dump(self.model, km_fh, sort_keys=True, indent=4)
 
     main = analyze_sources
 
