@@ -186,7 +186,7 @@ class NewMark(object):
                 if args['function'] != mark.function:
                     self.do_recalk = True
                     mark.function = args['function']
-            if 'problem' in args and len(args['problem']) > 0:
+            if 'problem' in args and 0 < len(args['problem']) < 15:
                 if args['problem'] != mark.problem_pattern:
                     self.do_recalk = True
                     mark.problem_pattern = args['problem']
@@ -384,6 +384,9 @@ class ConnectReportWithMarks(object):
             ).problem
             if problem is None:
                 continue
+            elif len(problem) > 15:
+                print_err("Generated problem '%s' for mark %s is too long" % (problem, mark.identifier))
+                continue
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(
                 mark=mark, report=self.report, problem=problem)
@@ -485,6 +488,9 @@ class ConnectMarkWithReports(object):
                 self.mark.problem_pattern
             ).problem
             if problem is None:
+                continue
+            elif len(problem) > 15:
+                print_err("Generated problem '%s' for mark %s is too long" % (problem, self.mark.identifier))
                 continue
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(
@@ -797,8 +803,7 @@ class ReadTarMark(object):
                     args['verdict'] in list(x[0] for x in MARK_SAFE):
                 mark.verdict = args['verdict']
             elif self.type == 'unknown':
-                mark.component = Component.objects.get_or_create(
-                    name=args['component'])[0]
+                mark.component = Component.objects.get_or_create(name=args['component'])[0]
                 mark.function = args['function']
                 mark.problem_pattern = args['problem']
                 if 'link' in args and len(args['link']) > 0:
