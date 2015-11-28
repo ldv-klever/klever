@@ -7,6 +7,7 @@ from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
 from marks.models import UnsafeTag, SafeTag
+from marks.utils import MarkAccess
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
@@ -213,7 +214,8 @@ def report_leaf(request, leaf_type, report_id):
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
             'MarkTable': ReportMarkTable(request.user, report),
-            'trace': trace
+            'trace': trace,
+            'can_mark': MarkAccess(request.user, report=report).can_create()
         }
     )
 

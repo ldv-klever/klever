@@ -385,8 +385,8 @@ class ConnectReportWithMarks(object):
             if problem is None:
                 continue
             elif len(problem) > 15:
+                problem = 'Too long!'
                 print_err("Generated problem '%s' for mark %s is too long" % (problem, mark.identifier))
-                continue
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(
                 mark=mark, report=self.report, problem=problem)
@@ -490,8 +490,8 @@ class ConnectMarkWithReports(object):
             if problem is None:
                 continue
             elif len(problem) > 15:
+                problem = 'Too long!'
                 print_err("Generated problem '%s' for mark %s is too long" % (problem, self.mark.identifier))
-                continue
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(
                 mark=self.mark, report=unknown, problem=problem)

@@ -3,25 +3,6 @@
 {% load i18n %}
 {% load tz %}
 {% block body_block %}
-    {% if markdata.type != 'unknown' %}
-        <div id="mark_attributes_table" style="overflow-x: auto">
-            <table class="ui celled compact purple table">
-                <thead>
-                    {% for column_row in AttrTable.header %}
-                        <tr class="info">
-                        {% for coldata in column_row %}
-                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.column }}</th>
-                        {% endfor %}
-                        </tr>
-                    {% endfor %}
-                </thead>
-                <tbody>
-                    <tr>{% for v in AttrTable.values %}<td class="collapsing">{{ v.1 }}</td>{%  endfor %}</tr>
-                </tbody>
-            </table>
-        </div>
-        <br>
-    {% endif %}
     <div class="ui grid">
         <div class="seven wide column">
             <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button top attached">{% trans 'Download' %}</a>
@@ -35,6 +16,12 @@
                         <th class="right aligned">{% trans 'Format' %}</th>
                         <td>{{ mark.format }}</td>
                     </tr>
+                    {% if markdata.type == 'unknown' %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Component' %}</th>
+                            <td>{{ mark.component.name }}</td>
+                        </tr>
+                    {% endif %}
                     {% if first_version.author %}
                         <tr>
                             <th class="right aligned">{% trans 'Author' %}</th>
@@ -88,34 +75,6 @@
             </div>
         </div>
         <div class="nine wide column">
-            {% if markdata.type == 'unsafe' or markdata.type == 'safe' %}
-                <div class="ui styled accordion fluid">
-                    <div class="title">
-                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
-                    </div>
-                    <div class="content">
-                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
-                            <table class="ui celled compact purple table">
-                                <tbody>
-                                    <tr>
-                                        {% for v in markdata.attributes %}
-                                            <th class="collapsing">{{ v.0 }}</th>
-                                            <td class="collapsing">
-                                                {% if v.3 %}
-                                                    <i class="ui green small checkmark icon"></i>
-                                                {% else %}
-                                                    <i class="ui red small remove icon"></i>
-                                                {% endif %}
-                                                {{ v.1 }}
-                                            </td>
-                                        {% endfor %}
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
             {% if markdata.type == 'unsafe' %}
                 <div class="ui horizontal segments">
                     <div class="ui green segment">
@@ -138,6 +97,32 @@
                         <div class="filecontent">{{ markdata.compare_desc }}</div>
                     </div>
                 </div>
+                <div class="ui styled accordion fluid">
+                    <div class="title">
+                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                    </div>
+                    <div class="content">
+                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                            <table class="ui celled compact purple table">
+                                <tbody>
+                                    {% for v in markdata.attributes %}
+                                        <tr>
+                                            <th class="collapsing">{{ v.0 }}</th>
+                                            <td class="collapsing">
+                                                {% if v.2 %}
+                                                    <i class="ui green small checkmark icon"></i>
+                                                {% else %}
+                                                    <i class="ui red small remove icon"></i>
+                                                {% endif %}
+                                                {{ v.1 }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             {% elif markdata.type == 'safe' %}
                 <div class="ui horizontal segments">
                     <div class="ui green segment">
@@ -152,6 +137,32 @@
                         {% endfor %}
                     </div>
                     {% include 'marks/Tags.html' %}
+                </div>
+                <div class="ui styled accordion fluid">
+                    <div class="title">
+                        <i class="grid layout icon"></i>{% trans 'Attributes' %}
+                    </div>
+                    <div class="content">
+                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                            <table class="ui celled compact purple table">
+                                <tbody>
+                                    {% for v in markdata.attributes %}
+                                        <tr>
+                                            <th class="collapsing">{{ v.0 }}</th>
+                                            <td class="collapsing">
+                                                {% if v.2 %}
+                                                    <i class="ui green small checkmark icon"></i>
+                                                {% else %}
+                                                    <i class="ui red small remove icon"></i>
+                                                {% endif %}
+                                                {{ v.1 }}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             {% elif markdata.type == 'unknown' %}
                 <div class="ui horizontal segments">

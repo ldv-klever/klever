@@ -72,7 +72,9 @@
             </div>
         {% endif %}
         <br>
-        <a class="ui pink button" style="float: right;" href="{% url 'marks:create_mark' type report.pk %}">{% trans 'Create mark' %}</a>
+        {% if can_mark %}
+            <a class="ui pink button" style="float: right;" href="{% url 'marks:create_mark' type report.pk %}">{% trans 'Create mark' %}</a>
+        {% endif %}
     </div>
     <div class="nine wide column">
         <div class="ui breadcrumb">

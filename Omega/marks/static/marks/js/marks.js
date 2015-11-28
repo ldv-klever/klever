@@ -4,7 +4,7 @@ function encodeData(s) {
 
 function collect_filters_data() {
     var view_values = {columns: []}, filter_values = {},
-        columns = ['num_of_links', 'verdict', 'status', 'author', 'format'],
+        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format'],
         order_type = $('input[name=marks_enable_order]:checked').val();
     $.each(columns, function (index, val) {
         var column_checkbox = $('#marks_filter_checkbox__' + val);
@@ -47,6 +47,15 @@ function collect_filters_data() {
         filter_values['author'] = {
             type: 'is',
             value: parseInt($('#filter__value__author').children(':selected').val())
+        }
+    }
+    if ($('#filter__enable__component').is(':checked')) {
+        var filter_val = $('#filter__value__component').val();
+        if (filter_val.length > 0) {
+            filter_values['component'] = {
+                type: $('#filter__type__component').val(),
+                value: filter_val
+            }
         }
     }
     view_values['filters'] = filter_values;
