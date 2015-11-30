@@ -8,6 +8,7 @@ from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
 from marks.models import UnsafeTag, SafeTag
 from reports.UploadReport import UploadReport, upload_unsafe_files
+from marks.utils import MarkAccess
 from reports.models import *
 from reports.utils import *
 from django.utils.translation import ugettext as _, activate, string_concat
@@ -113,8 +114,10 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None,
                     break
     else:
         title = _("All unknowns")
-        if problem is not None:
+        if isinstance(problem, UnknownProblem):
             title = string_concat(_("Unknowns"), ': ', problem.name)
+        elif problem == 0:
+            title = string_concat(_("Unknowns without marks"))
 
     report_attrs_data = [request.user, report]
     if request.method == 'POST':
@@ -157,8 +160,7 @@ def report_list_by_verdict(request, report_id, ltype, verdict):
 
 @login_required
 def report_unknowns(request, report_id, component_id):
-    return report_list(request, report_id, 'unknowns',
-                       component_id=component_id)
+    return report_list(request, report_id, 'unknowns', component_id=component_id)
 
 
 @login_required
@@ -171,8 +173,7 @@ def report_unknowns_by_problem(request, report_id, component_id, problem_id):
             problem = UnknownProblem.objects.get(pk=problem_id)
         except ObjectDoesNotExist:
             return HttpResponseRedirect(reverse('error', args=[804]))
-    return report_list(request, report_id, 'unknowns',
-                       component_id=component_id, problem=problem)
+    return report_list(request, report_id, 'unknowns', component_id=component_id, problem=problem)
 
 
 @login_required
@@ -212,7 +213,8 @@ def report_leaf(request, leaf_type, report_id):
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
             'MarkTable': ReportMarkTable(request.user, report),
-            'etv': etv
+            'etv': etv,
+            'can_mark': MarkAccess(request.user, report=report).can_create()
         }
     )
 

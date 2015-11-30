@@ -145,7 +145,7 @@ class JobAccess(object):
         return self.__is_author or self.__is_manager
 
     def can_download(self):
-        return not (self.job is None or self.job.status in [JOB_STATUS[5][0], JOB_STATUS[6][0]])
+        return not (self.job is None or self.job.status in [JOB_STATUS[2][0], JOB_STATUS[5][0], JOB_STATUS[6][0]])
 
     def __get_prop(self, user):
         if self.job is not None:

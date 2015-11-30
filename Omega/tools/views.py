@@ -127,6 +127,7 @@ def clear_problems(request):
 
 @login_required
 def manager_tools(request):
+    activate(request.user.extended.language)
     return render(request, "tools/ManagerPanel.html", {
         'components': Component.objects.all(),
         'problems': UnknownProblem.objects.all()

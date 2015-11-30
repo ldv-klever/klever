@@ -13,7 +13,13 @@
                     <label for="marks_filter_checkbox__num_of_links">{% trans 'The number of associated leaf reports' %}</label>
                 </div>
                 <br>
-            {% if tabledata.type != 'unknown' %}
+            {% if tabledata.type == 'unknown' %}
+                <div class="ui checkbox">
+                    <input type="checkbox" id="marks_filter_checkbox__component"{% if 'component' in tabledata.view.columns %} checked{% endif %}>
+                    <label for="marks_filter_checkbox__component">{% trans 'Component' %}</label>
+                </div>
+                <br>
+            {% else %}
                 <div class="ui checkbox">
                     <input type="checkbox" id="marks_filter_checkbox__verdict"{% if 'verdict' in tabledata.view.columns %} checked{% endif %}>
                     <label for="marks_filter_checkbox__verdict">{% trans 'Verdict' %}</label>
@@ -54,20 +60,21 @@
             </div>
             <div class="eight wide column">
                 <h4 class="header">{% trans 'Filters' %}</h4>
-                <div class="ui checkbox">
-                    <input type="checkbox" id="filter__enable__status"{% if 'status' in tabledata.view.filters %} checked{% endif %}>
-                    <label for="filter__enable__status">{% trans 'Status' %}</label>
-                </div>
-                <br>
                 <div class="ui grid">
-                    <div class="seven wide column">
+                    <div class="five wide column">
+                        <div class="ui checkbox">
+                            <input type="checkbox" id="filter__enable__status"{% if 'status' in tabledata.view.filters %} checked{% endif %}>
+                            <label for="filter__enable__status">{% trans 'Status' %}</label>
+                        </div>
+                    </div>
+                    <div class="four wide column">
                         <label for="filter__type__status"></label>
                         <select id="filter__type__status" class="ui dropdown fluid">
                             <option value="is"{% if tabledata.view.filters.status.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
                             <option value="isnot"{% if tabledata.view.filters.status.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
                         </select>
                     </div>
-                    <div class="nine wide column">
+                    <div class="seven wide column">
                         <label for="filter__value__status"></label>
                         <select id="filter__value__status" class="ui dropdown fluid">
                             {% for status in statuses %}
@@ -77,21 +84,44 @@
                     </div>
                 </div>
                 <br>
-            {% if tabledata.type != 'unknown' %}
-                <div class="ui checkbox">
-                    <input type="checkbox" id="filter__enable__verdict"{% if 'verdict' in tabledata.view.filters %} checked{% endif %}>
-                    <label for="filter__enable__verdict">{% trans 'Verdict' %}</label>
-                </div>
-                <br>
+            {% if tabledata.type == 'unknown' %}
                 <div class="ui grid">
+                    <div class="five wide column">
+                        <div class="ui checkbox">
+                            <input type="checkbox" id="filter__enable__component"{% if 'component' in tabledata.view.filters %} checked{% endif %}>
+                            <label for="filter__enable__component">{% trans 'Component' %}</label>
+                        </div>
+                    </div>
+                    <div class="four wide column">
+                        <label for="filter__type__component"></label>
+                        <select id="filter__type__component" class="ui dropdown fluid">
+                            <option value="is"{% if tabledata.view.filters.component.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="startswith"{% if tabledata.view.filters.component.type == 'startswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                        </select>
+                    </div>
                     <div class="seven wide column">
+                        <label for="filter__value__component"></label>
+                        <div class="ui fluid input">
+                            <input id="filter__value__component" type="text" value="{{ tabledata.view.filters.component.value }}">
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="ui grid">
+                    <div class="five wide column">
+                        <div class="ui checkbox">
+                            <input type="checkbox" id="filter__enable__verdict"{% if 'verdict' in tabledata.view.filters %} checked{% endif %}>
+                            <label for="filter__enable__verdict">{% trans 'Verdict' %}</label>
+                        </div>
+                    </div>
+                    <div class="four wide column">
                         <label for="filter__type__verdict"></label>
                         <select id="filter__type__verdict" class="ui dropdown fluid">
                             <option value="is"{% if tabledata.view.filters.verdict.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
                             <option value="isnot"{% if tabledata.view.filters.verdict.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
                         </select>
                     </div>
-                    <div class="nine wide column">
+                    <div class="seven wide column">
                         <label for="filter__value__verdict"></label>
                         <select id="filter__value__verdict" class="ui dropdown fluid">
                             {% for verdict in verdicts %}
@@ -101,7 +131,6 @@
                     </div>
                 </div>
             {% endif %}
-                <br>
                 <div class="ui grid">
                     <div class="four wide column">
                         <div class="ui checkbox">

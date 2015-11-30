@@ -19,7 +19,7 @@ from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
 from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob
 from jobs.utils import *
-from service.utils import StartJobDecision, StartDecisionData, StopDecision
+from service.utils import StartJobDecision, StartDecisionData, StopDecision, get_default_data
 
 
 @login_required
@@ -508,7 +508,7 @@ def upload_file(request):
         })
     return JsonResponse({
         'message': _('File uploading failed'),
-        'form_errors': form.errors,
+        'errors': form.errors,
         'status': 1
     })
 
@@ -704,7 +704,7 @@ def stop_decision(request):
     return JsonResponse({'status': True})
 
 
-@unparallel
+@unparallel_group('decision')
 @login_required
 def run_decision(request):
     activate(request.user.extended.language)
@@ -729,3 +729,21 @@ def prepare_decision(request, job_id):
         'job': job,
         'data': StartDecisionData(request.user)
     })
+
+
+@unparallel_group('decision')
+@login_required
+def fast_run_decision(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'status': False, 'error': 'Unknown error'})
+    try:
+        job_id = Job.objects.get(pk=int(request.POST.get('job_id', 0))).pk
+    except ObjectDoesNotExist:
+        return JsonResponse({'status': False, 'error': 'Unknown error'})
+    data = {'job_id': job_id}
+    data.update(get_default_data())
+    result = StartJobDecision(request.user, json.dumps(data))
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({})
