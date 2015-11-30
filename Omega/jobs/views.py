@@ -508,7 +508,7 @@ def upload_file(request):
         })
     return JsonResponse({
         'message': _('File uploading failed'),
-        'form_errors': form.errors,
+        'errors': form.errors,
         'status': 1
     })
 

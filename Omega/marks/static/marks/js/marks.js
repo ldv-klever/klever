@@ -252,15 +252,16 @@ function set_actions_for_mark_versions_delete() {
                 versions: JSON.stringify(checked_versions)
             },
             function (data) {
-                var global_parent;
+                var global_parent = $('#versions_rows');
                 $.each(checked_versions, function (i, val) {
-                    var curr_checkbox = $("#checkbox_version__" + val);
-                    global_parent = curr_checkbox.parents().eq(2);
-                    curr_checkbox.parents().eq(1).remove();
+                    var version_line = $("#checkbox_version__" + val).closest('.version-line');
+                    if (version_line.length) {
+                        version_line.remove();
+                    }
                 });
                 data.status === 0 ? success_notify(data.message) : err_notify(data.message);
                 if (global_parent && global_parent.children().first().children().length == 0) {
-                    $('#versions_to_delete_form').hide();
+                    $('#versions_to_delete_form').remove();
                     $('#no_versions_to_delete').show();
                 }
             },
