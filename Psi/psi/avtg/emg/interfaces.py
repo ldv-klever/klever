@@ -47,7 +47,7 @@ class CategorySpecification:
                 signature = self.categories[category]["callbacks"][callback].signature
 
                 if signature.return_value:
-                    if signature.return_value.interface:
+                    if signature.return_value.interface and type(signature.return_value.interface) is str:
                         interface = signature.return_value.interface
                         if not is_full_identifier(interface):
                             interface = "{}.{}".format(category, interface)
@@ -58,7 +58,7 @@ class CategorySpecification:
                             signature.return_value.interface = \
                                 self.interfaces[interface]
                 for arg in signature.args:
-                    if arg and arg.interface:
+                    if arg and arg.interface and type(arg.interface) is str:
                         interface = arg.interface
                         if not is_full_identifier(interface):
                             interface = "{}.{}".format(category, interface)
@@ -68,17 +68,19 @@ class CategorySpecification:
                         else:
                             arg.interface = self.interfaces[interface]
 
-        self.logger.info("Import interfaces from containers")
-        for container in self.categories[category]["containers"]:
-            for field in self.categories[category]["containers"][container].fields:
-                identifier = self.categories[category]["containers"][container].fields[field]
-                if not is_full_identifier(identifier):
-                    identifier = "{}.{}".format(category, identifier)
-                if interface not in self.interfaces:
-                    raise ValueError("Interface {} is referenced in the interface categories specification but "
-                                     "it is not described there".format(identifier))
-                else:
-                    self.categories[category]["containers"][container].fields[field] = self.interfaces[interface]
+            self.logger.info("Import interfaces from containers")
+            for container in self.categories[category]["containers"]:
+                for field in self.categories[category]["containers"][container].fields:
+                    if type(self.categories[category]["containers"][container].fields[field]) is str:
+                        identifier = self.categories[category]["containers"][container].fields[field]
+                        if not is_full_identifier(identifier):
+                            identifier = "{}.{}".format(category, identifier)
+                        if identifier not in self.interfaces:
+                            raise ValueError("Interface {} is referenced in the interface categories specification but "
+                                             "it is not described there".format(identifier))
+                        else:
+                            self.categories[category]["containers"][container].fields[field] =\
+                                self.interfaces[identifier]
 
         if "kernel functions" in specification:
             self.logger.info("Import kernel functions")
@@ -158,7 +160,7 @@ class CategorySpecification:
 
     def _import_category_interfaces(self, category_name, dictionary):
         if category_name in self.categories:
-            raise TypeError("Category {} has been already defined in inteface category specification".
+            self.logger.warning("Category {} has been already defined in inteface category specification".
                             format(category_name))
         else:
             self.categories[category_name] = {
@@ -173,37 +175,117 @@ class CategorySpecification:
                 if intf and intf.full_identifier not in self.interfaces:
                     self.logger.debug("Imported new identifier description {}".format(intf.full_identifier))
                     self.interfaces[intf.full_identifier] = intf
-                    self.container = True
+                    intf.container = True
                     self.categories[intf.category]["containers"][intf.identifier] = intf
                 elif intf and intf.full_identifier in self.interfaces:
                     self.logger.debug("Imported existing identifier description {}".format(intf.full_identifier))
-                    self.container = True
+                    intf.container = True
         if "resources" in dictionary:
             self.logger.debug("Import resources of the interface category {}".format(category_name))
             for intf in self._import_interfaces(category_name, dictionary["resources"]):
                 if intf and intf.full_identifier not in self.interfaces:
                     self.logger.debug("Imported new identifier description {}".format(intf.full_identifier))
-                    self.resource = True
+                    intf.resource = True
                     self.interfaces[intf.full_identifier] = intf
                     self.categories[intf.category]["resources"][intf.identifier] = intf
                 elif intf and intf.full_identifier in self.interfaces:
                     self.logger.debug("Imported existing identifier description {}".format(intf.full_identifier))
-                    self.resource = True
+                    intf.resource = True
         if "callbacks" in dictionary:
             self.logger.debug("Import callbacks of the interface category {}".format(category_name))
             for intf in self._import_interfaces(category_name, dictionary["callbacks"]):
                 if intf and intf.full_identifier not in self.interfaces:
                     self.logger.debug("Imported new identifier description {}".format(intf.full_identifier))
-                    self.callback = True
+                    intf.callback = True
                     self.interfaces[intf.full_identifier] = intf
                     self.categories[intf.category]["callbacks"][intf.identifier] = intf
                 elif intf and intf.full_identifier in self.interfaces:
                     self.logger.debug("Imported existing identifier description {}".format(intf.full_identifier))
-                    self.callback = True
+                    intf.callback = True
 
 
 class ModuleSpecification(CategorySpecification):
-    pass
+    implementations = {}
+    analysis = {}
+
+    def import_specification(self, specification={}, categories=None, analysis={}):
+        # Import categories
+        self.categories = categories.categories
+        self.interfaces = categories.interfaces
+        self.kernel_functions = categories.kernel_functions
+        self.kernel_macro_functions = categories.kernel_macro_functions
+        self.kernel_macros = categories.kernel_macros
+        self.analysis = analysis
+
+        # Import categories from modules specification
+        super().import_specification(specification)
+
+        # TODO: import existing module specification
+
+        # Import source analysis
+        self._import_source_analysis()
+
+    def _import_source_analysis(self):
+        self.logger.info("Start processing source code amnalysis data")
+
+        self.logger.debug("Mark all types as interfaces if there are already spercified")
+        self._mark_existing_interfaces()
+
+        self.logger.debug("Determine more interfaces from existng data in source analysis data")
+        # TODO: Implementation
+        self.logger.debug("Build more Interface objects and establish references between them")
+        # TODO: Implementation
+
+    def _match_signature(self, signature):
+        return None
+
+    def _mark_existing_interfaces(self):
+        self.logger.debug("Mark already described kernel functions as existing interfaces")
+        for function in self.analysis["kernel functions"]:
+            for file in self.analysis["kernel functions"][function]["definitions"]:
+                identifier = \
+                    self._match_signature(self.analysis["kernel functions"][function]["definitions"][file]["signature"])
+                self.analysis["kernel functions"][function]["definitions"][file]["interface"] = identifier
+
+        self.logger.debug("Mark already described arguments of already described kernel functions as existing "
+                          "interfaces")
+        self.logger.debug("Mark already described modules functions as existing interfaces")
+        self.logger.debug("Mark already described arguments of already described modules functions as existing "
+                          "interfaces")
+        self.logger.debug("Mark already described containers as existing interfaces")
+        self.logger.debug("Mark already described containers fields as existing interfaces")
+
+    def _extract_more_interfaces(self):
+        # Determine potential callbacks as callbacks without calls in other module functions
+        potential_callbacks = [callback for callback in self.analysis["modules functions"]
+                               if not self.analysis["modules functions"][callback]["calls"]]
+
+    def _establish_references(self):
+        # Import confirmed container implementations
+        name_re = re.compile("%name%")
+        for file in self.analysis["global variable initializations"]:
+            for var_name in self.analysis["global variable initializations"][file]:
+                variable = self.analysis["global variable initializations"][file][var_name]
+                for intf in self.interfaces:
+                    if variable["signature"] == self.interfaces[intf].signature.expression:
+                        if file not in self.interfaces[intf].implementations:
+                            self.interfaces[intf].implementations[file] = {}
+                        if var_name not in self.interfaces[intf].implementations[file]:
+                            # Extend field types
+                            # Submit implementation
+                            for field in [field for field in variable["fields"] if
+                                          variable["fields"][field]["type"] == "function pointer"]:
+                                identifier = "{}.{}".format(self.interfaces[intf].category, field)
+                                # Replace function name
+                                new_expr = name_re.sub("%{}%".format(identifier),
+                                                       variable["fields"][field]["signature"])
+                                if identifier not in self.interfaces:
+                                    new = Interface(new_expr)
+                                    new.callback = True
+                                    new.category = self.interfaces[intf].category
+                                    new.full_identifier = identifier
+                                    new.identifier = field
+                                    self.interfaces[new.full_identifier] = new
 
 
 class Interface:
@@ -217,6 +299,7 @@ class Interface:
     container = False
     kernel_interface = False
     fields = {}
+    implementations = {}
 
     def __init__(self, signature=None, identifier=None, header=None, implemented_in_kernel=False):
 
