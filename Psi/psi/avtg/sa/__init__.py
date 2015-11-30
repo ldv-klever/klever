@@ -320,7 +320,7 @@ class SA(psi.components.Component):
     def _split_functions(self):
         for function in self.kernel_functions:
             self.model["kernel functions"][function] = self.model["functions"][function]
-        for function in self.kernel_functions:
+        for function in self.modules_functions:
             self.model["modules functions"][function] = self.model["functions"][function]
         del self.model["functions"]
 
