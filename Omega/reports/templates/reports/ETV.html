@@ -14,36 +14,35 @@
 {% endblock %}
 
 <div class="ui icon orange buttons right attached">
-    <button class="ui button normal-popup"><i class="step backward icon"></i></button>
+    <button id="etv_prev_step" class="ui button normal-popup"><i class="step backward icon"></i></button>
     <div class="ui popup">
         <p style="white-space: nowrap">{% trans 'Backward' %}</p>
     </div>
-    <button class="ui button normal-popup"><i class="play icon"></i></button>
-    <div class="ui popup">
-        <p style="white-space: nowrap">{% trans 'Start from first string' %}</p>
-    </div>
-    <button class="ui button normal-popup"><i class="step forward icon"></i></button>
+    {% if etv.html_traces|length == 1 %}
+        <button id="etv_start" class="ui button normal-popup"><i class="play icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'Start from first string' %}</p>
+        </div>
+    {% endif %}
+    <button id="etv_next_step" class="ui button normal-popup"><i class="step forward icon"></i></button>
     <div class="ui popup">
         <p style="white-space: nowrap">{% trans 'Forward' %}</p>
     </div>
-    <button class="ui button normal-popup"><i class="forward icon"></i></button>
+    <button id="etv_play_forward" class="ui button normal-popup"><i class="forward icon"></i></button>
     <div class="ui popup">
         <p style="white-space: nowrap">{% trans 'Play from selected string' %}</p>
     </div>
-    <button class="ui button normal-popup"><i class="backward icon"></i></button>
+    <button id="etv_play_backward" class="ui button normal-popup"><i class="backward icon"></i></button>
     <div class="ui popup">
         <p style="white-space: nowrap">{% trans 'Play backward from selected string' %}</p>
     </div>
-    <button class="ui button normal-popup"><i class="pause icon"></i></button>
+    <button id="etv_pause_play" class="ui button normal-popup"><i class="pause icon"></i></button>
     <div class="ui popup">
         <p style="white-space: nowrap">{% trans 'Pause' %}</p>
     </div>
-    <button class="ui button normal-popup"><i class="stop icon"></i></button>
-    <div class="ui popup">
-        <p style="white-space: nowrap">{% trans 'Stop' %}</p>
-    </div>
 </div>
 <select id="select_speed" class="ui dropdown attached">
+    <option value="1">1 {% trans 'second for string' %}</option>
     <option value="2">2 {% trans 'seconds for string' %}</option>
     <option value="3">3 {% trans 'seconds for string' %}</option>
     <option value="4">4 {% trans 'seconds for string' %}</option>
@@ -85,3 +84,5 @@
 </div>
 
 <span id="error___line_not_found" hidden>{% trans 'The line was not found' %}</span>
+<span id="error___no_selected_line" hidden>{% trans 'Please select the line first' %}</span>
+<span id="play_finished" hidden>{% trans 'Error trace autoselect finished' %}</span>
