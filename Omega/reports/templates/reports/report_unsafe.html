@@ -7,7 +7,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block body_block %}
-<div class="ui grid" id="report_unsafe_top">
+<div class="ui grid">
     <div class="five wide column">
         <h2 class="header"><ins>{{ title }}</ins></h2>
     </div>
@@ -46,11 +46,10 @@
         </div>
     </div>
 </div>
-<input type="hidden" id="report_pk" value="{{ report.pk }}">
 <br>
 {% include 'reports/ETV.html' %}
-<br>
-<div class="ui grid" id="report_unsafe_bottom">
+
+<div class="ui grid">
     <div class="eight wide column">
         <h4 class="header">{% trans 'Attributes' %}</h4>
         <div style="overflow-x: auto">
@@ -118,5 +117,6 @@
         {% endif %}
     </div>
 </div>
+    <input type="hidden" id="report_pk" value="{{ report.pk }}">
 
 {% endblock %}

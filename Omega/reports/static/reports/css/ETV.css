@@ -44,7 +44,7 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 59.7%;
+    width: 54.7%;
     height: 70%;
     background-color: #fff8e9;
 }
@@ -52,7 +52,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 40%;
+    left: 45%;
     width: 0.3%;
     background-color: #f2711c;
     cursor: move;
@@ -61,8 +61,8 @@
     position: absolute;
     right: 0;
     top: 70%;
-    height: 0.4%;
-    width: 59.7%;
+    height: 0.5%;
+    width: 54.7%;
     background-color: #f2711c;
     cursor: move;
 }
@@ -70,8 +70,8 @@
     position: absolute;
     right: 0;
     bottom: 0;
-    width: 59.7%;
-    height: 29.6%;
+    width: 54.7%;
+    height: 29.5%;
     background-color: #fff8e9;
 }
 
