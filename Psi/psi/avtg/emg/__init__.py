@@ -4,10 +4,14 @@ import os
 import psi.components
 import psi.utils
 
-from psi.avtg.emg.interfaces import CategorySpecification
+from psi.avtg.emg.interfaces import CategorySpecification, ModuleSpecification
 
 
 class EMG(psi.components.Component):
+    module_interface_spec = {}
+    interface_spec = {}
+    event_spec = {}
+
     def generate_environment(self):
         self.logger.info("Start environment model generator instance {}".format(self.id))
 
@@ -17,22 +21,26 @@ class EMG(psi.components.Component):
 
         spec_dir = psi.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
                                               self.conf["specifications directory"])
-        intf_spec_dict, event_spec_dict = self.__get_specs(self.logger, spec_dir)
+        self.__get_specs(self.logger, spec_dir)
 
         # Import interface categories configuration
         intf_spec = CategorySpecification(self.logger)
-        intf_spec.import_specification(intf_spec_dict)
+        intf_spec.import_specification(self.interface_spec)
 
         # Import results of source code analysis
-
-        # TODO: Generate module interface specification
+        module_spec = ModuleSpecification(self.logger)
+        analysis = {}
+        if "source analysis" in avt:
+            analysis_file = os.path.join(self.conf["main working directory"],                   avt["source analysis"])
+            with open(analysis_file, "r") as fh:
+                analysis = json.loads(fh.read())
+        else:
+            self.logger.warning("Results of source analysis are not available for EMG")
+        module_spec.import_specification(self.module_interface_spec, intf_spec, analysis)
 
         self.mqs['abstract task description'].put(avt)
 
-        return
-
-    @staticmethod
-    def __get_specs(logger, directory):
+    def __get_specs(self, logger, directory):
         """
         Fins in the given directory two JSON specifications: interface categories specification and event categories
         specifications.
@@ -41,11 +49,9 @@ class EMG(psi.components.Component):
         :return: Dictionaries with interface categories specification and event categories specifications.
         """
         files = [os.path.join(directory, name) for name in os.listdir(directory)]
-        if len(files) != 2:
-            FileNotFoundError("EMG expects exactly 2 specifications but found {}".format(len(files)))
+        if len(files) < 2:
+            FileNotFoundError("EMG expects no less than 2 specifications but found {}".format(len(files)))
 
-        intf_spec = None,
-        event_spec = None
         for file in files:
             logger.info("Import specification {}".format(file))
             with open(file, "r") as fh:
@@ -53,22 +59,23 @@ class EMG(psi.components.Component):
 
             logger.info("Going to determine type of the specification {}".format(file))
 
-            if "categories" in spec:
+            if "categories" in spec and "interface implementations" in spec:
+                logger.info("File {} is treated as module interface specification".format(file))
+                self.module_interface_spec = spec
+            elif "categories" in spec and "interface implementations" not in spec:
                 logger.info("File {} is treated as interface categories specification".format(file))
-                intf_spec = spec
+                self.interface_spec = spec
             elif "environment processes" in spec:
                 logger.info("File {} is treated as event categories specification".format(file))
-                event_spec = spec
+                self.event_spec = spec
             else:
                 raise FileNotFoundError("File {} does not match interface categories specification nor it matches event"
                                         " categories specification, please check its content")
 
-        if not intf_spec:
+        if not self.interface_spec:
             raise FileNotFoundError("EMG requires interface categories specification but it is missed")
-        elif not event_spec:
+        elif not self.event_spec:
             raise FileNotFoundError("EMG requires event categories specification but it is missed")
-        else:
-            return intf_spec, event_spec
 
     main = generate_environment
 
