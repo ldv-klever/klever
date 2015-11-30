@@ -45,7 +45,7 @@ class SA(psi.components.Component):
 
         # Save data to abstract task
         self.logger.info("Add extracted data to abstract verification task {}".format(avt["id"]))
-        avt["source analysis"] = os.path.relpath("model.json", os.path.realpath(self.conf['source tree root']))
+        avt["source analysis"] = os.path.relpath("model.json", os.path.realpath(self.conf["main working directory"]))
 
         # Put edited task and terminate
         self.mqs['abstract task description'].put(avt)
@@ -141,35 +141,25 @@ class SA(psi.components.Component):
 
         func_definition_files = [
             {"file": "execution.txt", "static": False},
-            {"file": "static-execution.txt", "static": True}
+            {"file": "static-execution.txt", "static": True},
+            {"file": "declare-function.txt", "static": False},
+            {"file": "static-declare-function.txt", "static": True}
         ]
         for execution_source in func_definition_files:
-            self.logger.debug("Extract function definitions from {}".format(execution_source["file"]))
+            self.logger.debug("Extract function definitions or declarations from {}".format(execution_source["file"]))
             content = self._import_content(execution_source["file"])
             for line in content:
                 if exec_re.fullmatch(line):
                     path, name, ret_type, args = exec_re.fullmatch(line).groups()
-                    if not self.model["functions"][name]["definitions"][path]:
-                        self.model["functions"][name]["definitions"][path]["return value type"] = ret_type
-                        self.model["functions"][name]["definitions"][path]["parameters"] = \
-                            [arg[1] for arg in arg_re.findall(args)]
-                        self.model["functions"][name]["definitions"][path]["static"] = execution_source["static"]
+                    if not self.model["functions"][name]:
+                        self.model["functions"][name][path]["return value type"] = ret_type
+                        self.model["functions"][name][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
+                        prms = ", ".join(self.model["functions"][name][path]["parameters"])
+                        self.model["functions"][name][path]["signature"] = "{} {}({})".format(ret_type, name, prms)
+                    if not self.model["functions"][name][path]["static"]:
+                        self.model["functions"][name][path]["static"] = execution_source["static"]
                 else:
                     raise ValueError("Cannot parse line '{}' in file {}".format(line, execution_source["file"]))
-
-        func_declaration_files = [
-            {"file": "declare-function.txt", "static": False},
-            {"file": "static-declare-function.txt", "static": True}
-        ]
-        for definition_source in func_declaration_files:
-            self.logger.debug("Extract function declarations from {}".format(definition_source["file"]))
-            content = self._import_content(definition_source["file"])
-            for line in content:
-                if short_pair_re.fullmatch(line):
-                    path, name = short_pair_re.fullmatch(line).groups()
-                    self.model["functions"][name]["declarations"][path] = True
-                else:
-                    raise ValueError("Cannot parse line '{}' in file {}".format(line, definition_source["file"]))
 
         expand_file = "expand.txt"
         self.logger.debug("Extract macro expansions from {}".format(expand_file))
@@ -188,12 +178,12 @@ class SA(psi.components.Component):
         for line in content:
             if call_re.fullmatch(line):
                 path, caller_name, name, args = call_re.fullmatch(line).groups()
-                if self.model["functions"][caller_name]["definitions"][path]:
-                    if not self.model["functions"][caller_name]["definitions"][path]:
+                if self.model["functions"][caller_name][path]:
+                    if not self.model["functions"][caller_name][path]:
                         raise ValueError("Expect definition of function {} in {}".format(caller_name, path))
-                    if not self.model["functions"][caller_name]["definitions"][path]["call"][name]:
-                        self.model["functions"][caller_name]["definitions"][path]["call"][name] = []
-                    self.model["functions"][caller_name]["definitions"][path]["call"][name].\
+                    if not self.model["functions"][caller_name][path]["call"][name]:
+                        self.model["functions"][caller_name][path]["call"][name] = []
+                    self.model["functions"][caller_name][path]["call"][name].\
                         append([arg[1] for arg in arg_re.findall(args)])
 
                     if not self.model["functions"][name]["calls"][path]:
@@ -216,8 +206,8 @@ class SA(psi.components.Component):
         for line in content:
             if short_pair_re.fullmatch(line):
                 path, name = short_pair_re.fullmatch(line).groups()
-                if self.model["functions"][name]["definitions"][path]:
-                    self.model["functions"][name]["definitions"][path]["exported"] = True
+                if self.model["functions"][name][path]:
+                    self.model["functions"][name][path]["exported"] = True
                 else:
                     raise ValueError("Exported function {} in {} should be defined first".format(name, path))
             else:
@@ -264,16 +254,16 @@ class SA(psi.components.Component):
 
     def _process_model(self):
         self.logger.info("Process model according to provided options")
-        self.modules_functions = [name for name in self.model["functions"]
-                                  if "definitions" in self.model["functions"][name]
-                                  and len(set(self.files).intersection(self.model["functions"][name]["definitions"]))]
+
+        self.modules_functions = [name for name in self.model["functions"] if
+                                  len(set(self.files).intersection(self.model["functions"][name]))]
 
         # Collect all functions called in module
         called_functions = []
         for name in self.modules_functions:
-            for path in self.model["functions"][name]["definitions"]:
+            for path in self.model["functions"][name]:
                 if path in self.files:
-                    for called in self.model["functions"][name]["definitions"][path]["call"]:
+                    for called in self.model["functions"][name][path]["call"]:
                         called_functions.append(called)
 
         # Collect all kernel functions called in the module
@@ -295,12 +285,12 @@ class SA(psi.components.Component):
                 del self.model["functions"][name]
 
         for name in self.model["functions"]:
-            for path in self.model["functions"][name]["definitions"]:
+            for path in self.model["functions"][name]:
                 if path in self.files:
-                    called = list(self.model["functions"][name]["definitions"][path]["call"].keys())
+                    called = list(self.model["functions"][name][path]["call"].keys())
                     for f in called:
                         if f not in self.model["functions"]:
-                            del self.model["functions"][name]["definitions"][path]["call"][f]
+                            del self.model["functions"][name][path]["call"][f]
 
         for name in self.model["functions"]:
             files = list(self.model["functions"][name]["calls"].keys())
@@ -477,7 +467,7 @@ class GlobalInitParser:
             args = args_re.match(block[1]).group(1)
             parameters = all_args_re.findall(args)
             value = value_re.match(block[2]).group(1)
-            signature = "{} (*%s)({})".format(return_type, ", ".join(parameters))
+            signature = "{} (*%name%)({})".format(return_type, ", ".join(parameters))
             element["signature"] = signature
             element["return value type"] = return_type
             element["parameters"] = parameters
