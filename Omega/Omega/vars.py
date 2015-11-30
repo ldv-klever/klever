@@ -51,7 +51,6 @@ JOB_STATUS = (
     ('4', _('Failed')),
     ('5', _('Corrupted')),
     ('6', _('Cancelled'))
-    # ('7', _('Stopped'))
 )
 
 # Default view of the table
