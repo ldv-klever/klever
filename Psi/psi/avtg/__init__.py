@@ -297,6 +297,9 @@ class AVTG(psi.components.Component):
                 p.start()
                 p.join()
             except psi.components.ComponentError:
+                # Clean up interplugin MQ to prevent intermixing of data for different abstract tasks.
+                if not self.mqs['abstract task description'].empty():
+                    self.mqs['abstract task description'].get()
                 break
 
             # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
