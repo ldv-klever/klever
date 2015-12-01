@@ -12,14 +12,61 @@
     {% if job %}
     <div class="ui grid">
         <div id="view_job_1st_part" class="eight wide column">
-            <table class="ui selectable compact inverted violet table">
-                <tbody>
+            <div class="ui small icon buttons top attached">
+                {% if can_create %}
+                    <button id="copy_job_btn" class="ui teal button normal-popup"><i class="file outline icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Make copy' %}</p>
+                    </div>
+                {% endif %}
+                {% if can_download %}
+                    <button id="load_job_btn" class="ui olive button normal-popup"><i class="download icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Download' %}</p>
+                    </div>
+                {% endif %}
+                {% if can_decide %}
+                    <a href="{% url 'jobs:prepare_run' job.pk %}" class="ui purple button normal-popup"><i class="play icon"></i></a>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
+                    </div>
+                    <button id="fast_job_start" class="ui pink button normal-popup"><i class="play forward icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Start decision with default values' %}</p>
+                    </div>
+                {% endif %}
+                {% if can_stop %}
+                    <button id="stop_job_btn" class="ui orange button normal-popup"><i class="stop icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Stop decision' %}</p>
+                    </div>
+                {% endif %}
+                {% if can_edit %}
+                    <button id="edit_job_btn" class="ui blue button normal-popup"><i class="write icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Edit' %}</p>
+                    </div>
+                    <button id="edit_versions" class="ui brown button normal-popup"><i class="recycle icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Delete versions' %}</p>
+                    </div>
+                {% endif %}
+                {% if can_delete %}
+                    <button id="show_remove_job_popup" class="ui red button normal-popup"><i class="remove icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Delete' %}</p>
+                    </div>
+                {% endif %}
+            </div>
+            <table class="ui selectable compact inverted violet table attached">
+                <thead>
                     <tr>
-                        <th id="job_name_tr" class="center aligned" colspan="2">
-                            <i class="ui caret down large icon" style="float: right;margin-top: 8px"></i>
-                            <h3 class="header" style="margin-top: 6px;margin-bottom: 5px;">{{ job.name }}</h3>
+                        <th class="center aligned" colspan="2">
+                            <span class="ui olive header">{{ job.name }}</span>
                         </th>
                     </tr>
+                </thead>
+                <tbody>
                     <tr>
                         <th class="right aligned">{% trans 'Class' %}</th>
                         <td>{{ job.get_type_display }}</td>
@@ -119,22 +166,6 @@
                 </tbody>
             </table>
             <input type="hidden" id="job_pk" value="{{ job.pk }}">
-            <div id="job_actions_menu" class="ui purple inverted popup transition vertical menu hidden">
-                {% if can_create %}<a id="copy_job_btn" class="item">{% trans 'Make copy' %}</a>{% endif %}
-                {% if can_download %}<a id="load_job_btn" class="item">{% trans 'Download' %}</a>{% endif %}
-                {% if can_decide %}
-                    <a class="item" href="{% url 'jobs:prepare_run' job.pk %}">{% trans 'Start decision' %}</a>
-                    <a id="fast_job_start" class="item">{% trans 'Start decision with default values' %}</a>
-                {% endif %}
-                {% if can_stop %}
-                    <a id="stop_job_btn" class="item">{% trans 'Stop decision' %}</a>
-                {% endif %}
-                {% if can_edit %}
-                    <a id="edit_job_btn" class="item">{% trans 'Edit' %}</a>
-                    <a id="edit_versions" class="item">{% trans 'Delete versions' %}</a>
-                {% endif %}
-                {% if can_delete %}<a id="show_remove_job_popup" class="item">{% trans 'Delete' %}</a>{% endif %}
-            </div>
             {% if job.solvingprogress.error %}
                 <div id="job_status_popup" class="ui inverted popup wide hidden">
                     <div class="ui red header">{{ job.solvingprogress.error }}</div>

@@ -4,7 +4,7 @@ function encodeData(s) {
 
 function collect_filters_data() {
     var view_values = {columns: []}, filter_values = {},
-        columns = ['num_of_links', 'verdict', 'status', 'author', 'format'],
+        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format'],
         order_type = $('input[name=marks_enable_order]:checked').val();
     $.each(columns, function (index, val) {
         var column_checkbox = $('#marks_filter_checkbox__' + val);
@@ -47,6 +47,15 @@ function collect_filters_data() {
         filter_values['author'] = {
             type: 'is',
             value: parseInt($('#filter__value__author').children(':selected').val())
+        }
+    }
+    if ($('#filter__enable__component').is(':checked')) {
+        var filter_val = $('#filter__value__component').val();
+        if (filter_val.length > 0) {
+            filter_values['component'] = {
+                type: $('#filter__type__component').val(),
+                value: filter_val
+            }
         }
     }
     view_values['filters'] = filter_values;
@@ -243,15 +252,16 @@ function set_actions_for_mark_versions_delete() {
                 versions: JSON.stringify(checked_versions)
             },
             function (data) {
-                var global_parent;
+                var global_parent = $('#versions_rows');
                 $.each(checked_versions, function (i, val) {
-                    var curr_checkbox = $("#checkbox_version__" + val);
-                    global_parent = curr_checkbox.parents().eq(2);
-                    curr_checkbox.parents().eq(1).remove();
+                    var version_line = $("#checkbox_version__" + val).closest('.version-line');
+                    if (version_line.length) {
+                        version_line.remove();
+                    }
                 });
                 data.status === 0 ? success_notify(data.message) : err_notify(data.message);
                 if (global_parent && global_parent.children().first().children().length == 0) {
-                    $('#versions_to_delete_form').hide();
+                    $('#versions_to_delete_form').remove();
                     $('#no_versions_to_delete').show();
                 }
             },

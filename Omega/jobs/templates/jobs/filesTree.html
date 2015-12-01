@@ -1,35 +1,52 @@
 {% load i18n %}
 
 <div class="ui teal segment">
-    <div>
-        <a id="edit_files_menu_activator" class="ui top left attached teal large active label"><i class="caret left icon"></i> {% trans 'Files' %}</a>
-        <table id="file_tree_table" class="ui compact teal table tree">
-            <tbody>
-            {% for f in filedata %}
-                <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}"{% if f.type == 0 %} style="background: #a3edef;"{% endif %}>
-                    <td class="one wide right aligned">
-                        <div class="ui radio checkbox">
-                            <label for="selected_filerow__{{ f.type }}__{{ f.id }}"></label>
-                            <input id="selected_filerow__{{ f.type }}__{{ f.id }}" type="radio" name="selected_filerow" value="{{ f.type }}__{{ f.id }}">
-                        </div>
-                    </td>
-                    <td>
-                        <span id="file_title__{{ f.type }}__{{ f.id }}">{% if f.type == 1 %}<a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>{% else %}{{ f.title }}{% endif %}</span>
-                        {% if f.type == 1 %}<span id="file_hash_sum__{{ f.type }}__{{ f.id }}" hidden>{{ f.hash_sum }}</span>{% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        <div id="edit_files_menu" class="ui teal inverted popup transition vertical menu hidden">
-            <a id="new_folder_btn" class="item">{% trans 'New folder' %}</a>
-            <a id="new_file_btn" class="item">{% trans 'New file' %}</a>
-            <a id="rename_file_btn" class="item">{% trans 'Rename' %}</a>
-            <a id="move_file_btn" class="item">{% trans 'Move file' %}</a>
-            <a id="replace_file_btn" class="item">{% trans 'Replace file' %}</a>
-            <a id="remove_obj_btn" class="item">{% trans 'Delete' %}</a>
+    <div class="ui basic icon buttons bottom right attached" style="position: absolute; top: 0;right: 0;">
+        <button id="new_folder_btn" class="ui button files-actions-popup"><i class="folder outline icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'New folder' %}</p>
+        </div>
+        <button id="new_file_btn" class="ui button files-actions-popup"><i class="file text outline icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'New file' %}</p>
+        </div>
+        <button id="rename_file_btn" class="ui button files-actions-popup"><i class="write icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'Rename' %}</p>
+        </div>
+        <button id="move_file_btn" class="ui button files-actions-popup"><i class="level down icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'Move file' %}</p>
+        </div>
+        <button id="replace_file_btn" class="ui button files-actions-popup"><i class="file icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'Replace file' %}</p>
+        </div>
+        <button id="remove_obj_btn" class="ui button files-actions-popup"><i class="trash outline icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'Delete' %}</p>
         </div>
     </div>
+    <div class="ui top left attached teal large active label">{% trans 'Files' %}</div>
+    <br>
+    <table id="file_tree_table" class="ui compact teal table tree">
+        <tbody>
+        {% for f in filedata %}
+            <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}"{% if f.type == 0 %} style="background: #a3edef;"{% endif %}>
+                <td class="one wide right aligned">
+                    <div class="ui radio checkbox">
+                        <label for="selected_filerow__{{ f.type }}__{{ f.id }}"></label>
+                        <input id="selected_filerow__{{ f.type }}__{{ f.id }}" type="radio" name="selected_filerow" value="{{ f.type }}__{{ f.id }}">
+                    </div>
+                </td>
+                <td>
+                    <span id="file_title__{{ f.type }}__{{ f.id }}">{% if f.type == 1 %}<a href="{% url 'jobs:download_file' f.id %}">{{ f.title }}</a>{% else %}{{ f.title }}{% endif %}</span>
+                    {% if f.type == 1 %}<span id="file_hash_sum__{{ f.type }}__{{ f.id }}" hidden>{{ f.hash_sum }}</span>{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 </div>
 <div id="files_for_upload" hidden></div>
 

@@ -2,9 +2,9 @@
 
 {% if versions|length %}
     <div id="versions_to_delete_form">
-        <div class="ui brown attached segment" style="max-height: 300px; overflow-y: auto">
+        <div id="versions_rows" class="ui brown attached segment" style="max-height: 300px; overflow-y: auto">
             {% for version in versions %}
-                <div>
+                <div class="version-line">
                     <div class="ui checkbox">
                         <input id="checkbox_version__{{ version.version }}" type="checkbox">
                         <label for="checkbox_version__{{ version.version }}">{{ version.title }}</label>
