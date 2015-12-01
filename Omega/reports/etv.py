@@ -112,20 +112,17 @@ class GetETV(object):
         curr_offset = 1
         scope_stack = ['global']
         assume_scopes = {'global': []}
-        hidden_scopes = []
+        scopes_to_show = []
+        scopes_to_hide = []
 
         def add_fake_line(fake_code, hide_id=None):
-            hidden = False
-            if scope_stack[-1] in hidden_scopes:
-                hidden = True
             lines_data.append({
                 'code': fake_code,
                 'line': None,
                 'line_offset': ' ' * max_line_length,
                 'offset': curr_offset * ' ',
                 'class': scope_stack[-1],
-                'hide_id': hide_id,
-                'hidden': hidden
+                'hide_id': hide_id
             })
 
         def fill_assumptions(current_assumptions=None):
@@ -174,25 +171,27 @@ class GetETV(object):
             line_data['file'] = file
             if line_data['line'] is not None and 'assumption' not in n.attr:
                 line_data.update(fill_assumptions())
-            if ('assumption' not in n.attr and line_data['class'] == 'global') \
-                    or 'note' in n.attr or 'warning' in n.attr or scope_stack[-1] in hidden_scopes:
-                line_data['hidden'] = True
             if 'note' in n.attr:
-                lines_data.append({'note': n['note']})
-                line_data['commented'] = True
+                line_data['note'] = n['note']
+                if all(ss not in scopes_to_hide for ss in scope_stack) and scope_stack[-1] not in scopes_to_show:
+                    scopes_to_show.append(scope_stack[-1])
             if 'warning' in n.attr:
-                lines_data.append({'warning': n['warning']})
-                line_data['commented'] = True
+                line_data['warning'] = n['warning']
+                for ss in scope_stack[1:]:
+                    if ss not in scopes_to_show:
+                        scopes_to_show.append(ss)
 
             if 'assumption' in n.attr:
                 if not has_main and 'assumption.scope' in n.attr and n['assumption.scope'] == 'main':
                     cnt += 1
+                    # TODO: remove comments, refactoring
                     main_id = 'scope__main__%s' % str(cnt)
-                    scope_stack.append('')
-                    add_fake_line('<span class="ETV_Fname">main</span>();', main_id)
-                    scope_stack.pop()
+                    # scope_stack.append('')
+                    # add_fake_line('<span class="ETV_Fname">main</span>();', main_id)
+                    # scope_stack.pop()
                     scope_stack.append(main_id)
-                    add_fake_line('{')
+                    scopes_to_show.append(scope_stack[-1])
+                    add_fake_line('main() {')
                     curr_offset += TAB_LENGTH
                     line_data['offset'] = ' ' * curr_offset
                     line_data['class'] = scope_stack[-1]
@@ -201,9 +200,6 @@ class GetETV(object):
                     ass_scope = scope_stack[-1]
                 else:
                     ass_scope = 'global'
-
-                if ass_scope == 'global':
-                    line_data['hidden'] = True
 
                 if ass_scope not in assume_scopes:
                     assume_scopes[ass_scope] = []
@@ -218,9 +214,9 @@ class GetETV(object):
             elif 'enterFunction' in n.attr:
                 cnt += 1
                 scope_stack.append('scope__%s__%s' % (n['enterFunction'], str(cnt)))
-                if 'hidden' in line_data and line_data['hidden']:
-                    hidden_scopes.append(scope_stack[-1])
                 line_data['hide_id'] = scope_stack[-1]
+                if 'note' in n.attr or 'warning' in n.attr:
+                    scopes_to_hide.append(scope_stack[-1])
                 line_data['code'] = re.sub(
                     '(^|\W)' + n['enterFunction'] + '(\W|$)',
                     '\g<1><span class="ETV_Fname">' + n['enterFunction'] + '</span>\g<2>',
@@ -257,6 +253,38 @@ class GetETV(object):
                 curr_offset -= TAB_LENGTH
             add_fake_line('}')
             scope_stack.pop()
+        for i in range(0, len(lines_data)):
+            if 'class' not in lines_data[i]:
+                continue
+            if lines_data[i]['class'] != 'global':
+                print_line = 'Scope: ' + lines_data[i]['class'] + '; '
+                if 'hide_id' in lines_data[i]:
+                    if lines_data[i]['hide_id'] is not None:
+                        print_line += 'Hide id: ' + lines_data[i]['hide_id'] + '; '
+                    else:
+                        print_line += 'Hide is None!!!; '
+                if 'note' in lines_data[i]:
+                    print_line += 'Has note; '
+                if 'warning' in lines_data[i]:
+                    print_line += 'Has warning; '
+                print_line += 'CODE: "%s"' % lines_data[i]['code']
+                print(print_line)
+            a = 'warning' in lines_data[i]
+            b = 'note' in lines_data[i]
+            c = lines_data[i]['class'] not in scopes_to_show
+            d = 'hide_id' not in lines_data[i] or lines_data[i]['hide_id'] is None
+            e = 'hide_id' in lines_data[i] and lines_data[i]['hide_id'] is not None \
+                and lines_data[i]['hide_id'] not in scopes_to_show
+            if a or b and (d or e or c) or not a and not b and c and (d or e):
+                lines_data[i]['hidden'] = True
+                if e:
+                    lines_data[i]['collapsed'] = True
+            elif e:
+                lines_data[i]['collapsed'] = True
+            if a or b:
+                lines_data[i]['commented'] = True
+            if b and c:
+                lines_data[i]['note_hidden'] = True
         lines_data.append({'class': 'ETV_End_of_trace'})
         self.html_traces.append(lines_data)
 

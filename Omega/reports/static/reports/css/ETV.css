@@ -140,8 +140,14 @@
 }
 
 .ETV_NoteText, .ETV_WarnText {
-    color: #aeaeae;
     font-style: italic;
+    white-space: pre;
+}
+.ETV_WarnText {
+    color: #d077a5;
+}
+.ETV_NoteText {
+    color: #81a7c3;
 }
 .ETV_Fname {
     color: #67238f;
