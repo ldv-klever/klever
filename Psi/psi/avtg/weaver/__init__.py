@@ -65,7 +65,7 @@ class Weaver(psi.components.Component):
                                         (['--keep'] if self.conf['debug'] else []) +
                                         ['--'] +
                                         cc_full_desc['opts'] +
-                                        ['-I{0}'.format(stdout[0])]),
+                                        ['-isystem{0}'.format(stdout[0])]),
                                   cwd=self.conf['source tree root'])
                 self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
 
