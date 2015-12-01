@@ -186,6 +186,8 @@ class AVTG(psi.components.Component):
     def generate_abstract_verification_tasks(self):
         self.common_prj_attrs = {}
         self.plugins_work_dir = None
+        self.abstact_task_desc = None
+
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
@@ -320,3 +322,6 @@ class AVTG(psi.components.Component):
                     json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
                 # Return current abstract verification task description back.
                 self.mqs['abstract task description'].put(cur_abstract_task_desc)
+
+        # VTG will consume this abstract verification task description.
+        self.abstact_task_desc = self.mqs['abstract task description'].get()
