@@ -237,23 +237,70 @@ class ModuleSpecification(CategorySpecification):
         # TODO: Implementation
 
     def _match_signature(self, signature):
+        for interface in self.interfaces:
+            if self.interfaces[interface].signature.expression == signature:
+                return self.interfaces[interface]
         return None
+
+    def _match_function_signature(self, function):
+        intf = self._match_signature(function["return value type"])
+        if intf:
+            function["matched return value type"] = intf
+            matched_retval = True
+        else:
+            matched_retval = False
+
+        matched_params = 0
+        function["matched parameters"] = []
+        for param in function["parameters"]:
+            intf = self._match_signature(param)
+            if intf:
+                function["matched parameters"].append(intf)
+                matched_params += 1
+            else:
+                function["matched parameters"].append(None)
+
+        if matched_retval and matched_params == len(function["parameters"]):
+            return True
+
+    def _mark_elements(self, fields):
+        for name in fields:
+            if fields[name]["type"] not in ["array", "structure"]:
+                intf = self._match_signature(fields[name]["signature"])
+                if intf:
+                    fields[name]["matched"] = intf
+            elif fields[name]["type"] == "array":
+                self._mark_elements(fields[name]["elements"])
+            elif fields[name]["type"] == "structure":
+                self._mark_elements(fields[name]["elements"])
+            else:
+                raise NotImplementedError("Cannot process element of the type {}".format(fields[name]["type"]))
 
     def _mark_existing_interfaces(self):
         self.logger.debug("Mark already described kernel functions as existing interfaces")
-        for function in self.analysis["kernel functions"]:
-            for file in self.analysis["kernel functions"][function]["definitions"]:
-                identifier = \
-                    self._match_signature(self.analysis["kernel functions"][function]["definitions"][file]["signature"])
-                self.analysis["kernel functions"][function]["definitions"][file]["interface"] = identifier
 
-        self.logger.debug("Mark already described arguments of already described kernel functions as existing "
-                          "interfaces")
+        self.logger.debug("Mark function arguments of already described kernel functions as existing interfaces")
+        for function in self.analysis["kernel functions"]:
+            if function in self.kernel_functions:
+                self.analysis["kernel functions"]["match"] = self.kernel_functions[function]
+            else:
+                self._match_function_signature(self.analysis["kernel functions"][function])
+
         self.logger.debug("Mark already described modules functions as existing interfaces")
-        self.logger.debug("Mark already described arguments of already described modules functions as existing "
-                          "interfaces")
+        self.logger.debug("Mark function arguments of already described kernel functions as existing interfaces")
+        for function in self.analysis["modules functions"]:
+            for path in self.analysis["modules functions"][function]["files"]:
+                self._match_function_signature(self.analysis["modules functions"][function]["files"])
+
         self.logger.debug("Mark already described containers as existing interfaces")
-        self.logger.debug("Mark already described containers fields as existing interfaces")
+        for path in self.analysis["global variables initialization"]:
+            for variable in self.analysis["global variables initialization"][path]:
+                intf = self._match_signature(
+                    self.analysis["global variables initialization"][path][variable]["signature"])
+                if intf:
+                    self.analysis["global variables initialization"][path][variable]["matched"] = intf
+
+                self._mark_elements(self.analysis["global variables initialization"][path][variable]["fields"])
 
     def _extract_more_interfaces(self):
         # Determine potential callbacks as callbacks without calls in other module functions
