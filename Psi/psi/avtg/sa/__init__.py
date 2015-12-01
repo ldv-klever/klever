@@ -151,13 +151,13 @@ class SA(psi.components.Component):
             for line in content:
                 if exec_re.fullmatch(line):
                     path, name, ret_type, args = exec_re.fullmatch(line).groups()
-                    if not self.model["functions"][name]:
-                        self.model["functions"][name][path]["return value type"] = ret_type
-                        self.model["functions"][name][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
-                        prms = ", ".join(self.model["functions"][name][path]["parameters"])
-                        self.model["functions"][name][path]["signature"] = "{} {}({})".format(ret_type, name, prms)
-                    if not self.model["functions"][name][path]["static"]:
-                        self.model["functions"][name][path]["static"] = execution_source["static"]
+                    if not self.model["functions"][name]["files"][path]:
+                        self.model["functions"][name]["files"][path]["return value type"] = ret_type
+                        self.model["functions"][name]["files"][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
+                        prms = ", ".join(self.model["functions"][name]["files"][path]["parameters"])
+                        self.model["functions"][name]["files"][path]["signature"] = "{} {}({})".format(ret_type, name, prms)
+                    if not self.model["functions"][name]["files"][path]["static"]:
+                        self.model["functions"][name]["files"][path]["static"] = execution_source["static"]
                 else:
                     raise ValueError("Cannot parse line '{}' in file {}".format(line, execution_source["file"]))
 
@@ -178,22 +178,11 @@ class SA(psi.components.Component):
         for line in content:
             if call_re.fullmatch(line):
                 path, caller_name, name, args = call_re.fullmatch(line).groups()
-                if self.model["functions"][caller_name][path]:
-                    if not self.model["functions"][caller_name][path]:
-                        raise ValueError("Expect definition of function {} in {}".format(caller_name, path))
-                    if not self.model["functions"][caller_name][path]["call"][name]:
-                        self.model["functions"][caller_name][path]["call"][name] = []
-                    self.model["functions"][caller_name][path]["call"][name].\
+                if self.model["functions"][caller_name]["files"][path]:
+                    if not self.model["functions"][caller_name]["files"][path]["calls"][name]:
+                        self.model["functions"][caller_name]["files"][path]["calls"][name] = list()
+                    self.model["functions"][caller_name]["files"][path]["calls"][name].\
                         append([arg[1] for arg in arg_re.findall(args)])
-
-                    if not self.model["functions"][name]["calls"][path]:
-                        self.model["functions"][name]["calls"][path] = []
-                    self.model["functions"][name]["calls"][path].append(
-                        {
-                            "called at": caller_name,
-                            "parameters":  [arg[1] for arg in arg_re.findall(args)]
-                        }
-                    )
                 else:
                     raise ValueError("Expect function definition {} in file {} but it has not been extracted".
                                      format(name, path))
@@ -206,8 +195,8 @@ class SA(psi.components.Component):
         for line in content:
             if short_pair_re.fullmatch(line):
                 path, name = short_pair_re.fullmatch(line).groups()
-                if self.model["functions"][name][path]:
-                    self.model["functions"][name][path]["exported"] = True
+                if self.model["functions"][name]["files"][path]:
+                    self.model["functions"][name]["files"][path]["exported"] = True
                 else:
                     raise ValueError("Exported function {} in {} should be defined first".format(name, path))
             else:
@@ -256,15 +245,14 @@ class SA(psi.components.Component):
         self.logger.info("Process model according to provided options")
 
         self.modules_functions = [name for name in self.model["functions"] if
-                                  len(set(self.files).intersection(self.model["functions"][name]))]
+                                  len(set(self.files).intersection(self.model["functions"][name]["files"]))]
 
         # Collect all functions called in module
         called_functions = []
         for name in self.modules_functions:
-            for path in self.model["functions"][name]:
-                if path in self.files:
-                    for called in self.model["functions"][name][path]["call"]:
-                        called_functions.append(called)
+            for path in self.model["functions"][name]["files"]:
+                for called in self.model["functions"][name]["files"][path]["calls"]:
+                    called_functions.append(called)
 
         # Collect all kernel functions called in the module
         self.kernel_functions = set(called_functions) - set(self.modules_functions)
@@ -278,6 +266,24 @@ class SA(psi.components.Component):
         # Split functions into two parts strictly according to source
         self._split_functions()
 
+        # Remove pathes from kernel functions and keep only single header reference
+        self._remove_multi_declarations()
+
+    def _remove_multi_declarations(self):
+        functions = list(self.model["kernel functions"].keys())
+        for function in functions:
+            files = list(self.model["kernel functions"][function]["files"].keys())
+            if len(files) > 0:
+                first_file = files[0]
+                for key in self.model["kernel functions"][function]["files"][first_file]:
+                    self.model["kernel functions"][function][key] = \
+                        self.model["kernel functions"][function]["files"][first_file][key]
+
+                for file in files:
+                    self.model["kernel functions"][function]["files"][file] = True
+            else:
+                del self.model["kernel functions"][function]
+
     def _shrink_kernel_functions(self):
         names = self.model["functions"].keys()
         for name in list(names):
@@ -287,16 +293,10 @@ class SA(psi.components.Component):
         for name in self.model["functions"]:
             for path in self.model["functions"][name]:
                 if path in self.files:
-                    called = list(self.model["functions"][name][path]["call"].keys())
+                    called = list(self.model["functions"][name]["files"][path]["call"].keys())
                     for f in called:
                         if f not in self.model["functions"]:
-                            del self.model["functions"][name][path]["call"][f]
-
-        for name in self.model["functions"]:
-            files = list(self.model["functions"][name]["calls"].keys())
-            for file in files:
-                if file not in self.files:
-                    del self.model["functions"][name]["calls"][file]
+                            del self.model["functions"][name]["files"][path]["call"][f]
 
         return
 
