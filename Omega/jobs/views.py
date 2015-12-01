@@ -523,10 +523,9 @@ def download_file(request, file_id):
         return HttpResponse('')
     if source.file is None:
         return HttpResponse('')
-    new_file = BytesIO(source.file.file.read())
     mimetype = mimetypes.guess_type(os.path.basename(source.file.file.name))[0]
-    response = HttpResponse(new_file.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % source.name
+    response = HttpResponse(source.file.file.read(), content_type=mimetype)
+    response['Content-Disposition'] = 'attachment; filename=%s' % quote(source.name)
     return response
 
 
@@ -549,6 +548,37 @@ def download_job(request, job_id):
     response["Content-Disposition"] = "attachment; filename=%s" % jobtar.tarname
     jobtar.memory.seek(0)
     response.write(jobtar.memory.read())
+    return response
+
+
+@unparallel_group(['job'])
+@login_required
+def download_jobs(request):
+    if request.method != 'POST' or 'job_ids' not in request.POST:
+        return HttpResponseRedirect(
+            reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
+        )
+    import tarfile
+    arch_mem = BytesIO()
+    jobs_archive = tarfile.open(fileobj=arch_mem, mode='w:gz')
+    for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
+        if not JobAccess(request.user, job).can_download():
+            return HttpResponseRedirect(reverse('error', args=[401]))
+        jobtar = DownloadJob(job)
+        if jobtar.error is not None:
+            return HttpResponseRedirect(
+                reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
+            )
+        jobtar.memory.seek(0)
+        tarname = 'Job-%s.tar.gz' % job.identifier[:10]
+        tinfo = tarfile.TarInfo(tarname)
+        tinfo.size = jobtar.memory.getbuffer().nbytes
+        jobs_archive.addfile(tinfo, jobtar.memory)
+    jobs_archive.close()
+    arch_mem.seek(0)
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = "attachment; filename=KleverJobs.tar.gz"
+    response.write(arch_mem.read())
     return response
 
 

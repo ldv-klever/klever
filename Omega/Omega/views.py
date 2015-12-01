@@ -1,8 +1,9 @@
-from django.utils.translation import ugettext as _, activate
 from urllib.parse import unquote
-from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.core.urlresolvers import reverse
+from django.http import JsonResponse, HttpResponseRedirect
+from django.shortcuts import render
+from django.utils.translation import ugettext as _, activate
 from Omega.populate import Population
 from Omega.vars import ERRORS, USER_ROLES
 from Omega.utils import unparallel
@@ -37,15 +38,18 @@ def omega_error(request, err_code=0, user_message=None):
 @unparallel
 @login_required
 def population(request):
+    if not request.user.is_staff:
+        return HttpResponseRedirect(reverse('error', args=[900]))
     if request.method == 'POST':
-        manager_username = request.POST.get('manager_username', None)
-        if not(isinstance(manager_username, str) and len(manager_username) > 0):
+        manager_username = request.POST.get('manager_username', '')
+        if len(manager_username) == 0:
             manager_username = None
-        service_username = request.POST.get('service_username', None)
-        if not(isinstance(service_username, str) and len(service_username) > 0):
+        service_username = request.POST.get('service_username', '')
+        if len(service_username) == 0:
             service_username = None
-        popul = Population(request.user, manager_username, service_username)
-        return render(request, 'Population.html', {'population': popul})
+        return render(request, 'Population.html', {
+            'changes': Population(request.user, manager_username, service_username).changes
+        })
     return render(request, 'Population.html', {
         'need_manager': (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0),
         'need_service': (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0),

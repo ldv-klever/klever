@@ -529,7 +529,7 @@ class GetTasks(object):
         data['task descriptions'][str(task.pk)] = {
             'description': json.loads(task.description.decode('utf8'))
         }
-        if task.progress.scheduler.type == SCHEDULER_TYPE[0][0]:
+        if task.progress.scheduler.type == SCHEDULER_TYPE[1][0]:
             try:
                 operator = task.progress.job.reportroot.user
             except ObjectDoesNotExist:

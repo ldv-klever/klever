@@ -703,7 +703,7 @@ class CreateMarkTar(object):
             t.size = len(file_content)
             jobtar.addfile(t, BytesIO(file_content))
 
-        self.marktar_name = 'EM__' + self.mark.identifier + '.tar.gz'
+        self.marktar_name = 'Mark-%s-%s.tar.gz' % (self.type, self.mark.identifier[:10])
         marktar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
         for markversion in self.mark.versions.all():
             version_data = {
@@ -930,8 +930,7 @@ class ReadTarMark(object):
             elif file_name.startswith('version-'):
                 version_id = int(file_name.replace('version-', ''))
                 try:
-                    versions_data[version_id] = json.loads(
-                        file_obj.read().decode('utf-8'))
+                    versions_data[version_id] = json.loads(file_obj.read().decode('utf-8'))
                 except ValueError:
                     return _("The mark archive is corrupted")
 
