@@ -83,7 +83,7 @@ class DownloadJob(object):
     def __create_tar(self, job):
 
         files_in_tar = {}
-        self.tarname = 'VJ__' + job.identifier + '.tar.gz'
+        self.tarname = 'Job-' + job.identifier[:10] + '.tar.gz'
         jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
 
         def write_file_str(file_name, file_content):
@@ -258,8 +258,7 @@ class ReverseReport(object):
             }
             self.report_data['log'] = ''
             if self.report.log is not None:
-                self.report_data['log'] = \
-                    self.report.log.file.read().decode('utf8')
+                self.report_data['log'] = self.report.log.file.read().decode('utf8')
 
     def __revert_leaf_report(self):
         if isinstance(self.report, ReportUnsafe):
@@ -346,8 +345,7 @@ class UploadJob(object):
                     files_in_db[file_name] = check_sum
             elif file_name.startswith('version-'):
                 version_id = int(file_name.replace('version-', ''))
-                versions_data[version_id] = json.loads(
-                    file_obj.read().decode('utf8'))
+                versions_data[version_id] = json.loads(file_obj.read().decode('utf8'))
             elif file_name.startswith('unsafe_files__'):
                 import re
                 m = re.match('unsafe_files__(\d+)\.tar\.gz', file_name)

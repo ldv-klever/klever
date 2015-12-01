@@ -8,13 +8,26 @@
         <input id="mark_type" type="hidden" value="{{ type }}">
         <div class="ui grid">
             <div class="seven wide column">
-                <div class="ui tiny buttons top attached">
-                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button">{% trans 'Download' %}</a>
-                    <button id="edit_mark_versions" type="button" class="ui brown button">{% trans 'Delete versions' %}</button>
-                    <button id="show_remove_mark_popup" type="button" class="ui red button">{% trans 'Delete' %}</button>
+                <div class="ui small icon buttons top attached">
+                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button normal-popup"><i class="download icon"></i></a>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Download' %}</p>
+                    </div>
+                    <button id="edit_mark_versions" type="button" class="ui brown button normal-popup"><i class="recycle icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Delete versions' %}</p>
+                    </div>
+                    <button id="show_remove_mark_popup" type="button" class="ui red button normal-popup"><i class="remove icon"></i></button>
+                    <div class="ui popup">
+                        <p style="white-space: nowrap">{% trans 'Delete' %}</p>
+                    </div>
                 </div>
-
                 <table class="ui selectable compact inverted violet table attached">
+                    <thead>
+                        <tr>
+                            <th class="center aligned" colspan="2"><span class="ui header" style="color: #ff6462;">{% trans 'Unknown mark' %}</span></th>
+                        </tr>
+                    </thead>
                     <tbody>
                         <tr>
                             <th class="right aligned">{% trans 'Identifier' %}</th>

@@ -275,8 +275,7 @@ class UploadReport(object):
                 file_in_db = File.objects.get(hash_sum=check_sum)
             except ObjectDoesNotExist:
                 file_in_db = File()
-                file_in_db.file.save(component_name + '.log',
-                                     Newfile(file_content))
+                file_in_db.file.save(component_name + '.log', Newfile(file_content))
                 file_in_db.hash_sum = check_sum
                 file_in_db.save()
             report.log = file_in_db

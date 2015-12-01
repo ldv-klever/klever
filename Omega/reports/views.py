@@ -1,3 +1,4 @@
+from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
@@ -270,7 +271,7 @@ def get_component_log(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[500]))
     logname = report.component.name + '.log'
     response = HttpResponse(report.log.file.read(), content_type='text/plain')
-    response['Content-Disposition'] = 'attachment; filename="%s"' % logname
+    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
 
