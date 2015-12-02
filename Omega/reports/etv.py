@@ -8,12 +8,12 @@ from reports.graphml_parser import GraphMLParser
 
 TAB_LENGTH = 4
 SOURCE_CLASSES = {
-    'comment': "ETVSrcC",
-    'number': "ETVSrcN",
+    'comment': "ETVComment",
+    'number': "ETVNumber",
     'line': "ETVSrcL",
-    'text': "ETVSrcT",
-    'key1': "ETVSrcI",
-    'key2': "ETVSrcO"
+    'text': "ETVText",
+    'key1': "ETVKey1",
+    'key2': "ETVKey2"
 }
 
 KEY1_WORDS = [
@@ -254,6 +254,7 @@ class GetETV(object):
             add_fake_line('}')
             scope_stack.pop()
         for i in range(0, len(lines_data)):
+            lines_data[i]['code'] = self.__parse_code(lines_data[i]['code'])
             if 'class' not in lines_data[i]:
                 continue
             if lines_data[i]['class'] != 'global':
@@ -295,6 +296,54 @@ class GetETV(object):
                 trace_assumes.append(['%s_%s' % (sc, as_cnt), a])
                 as_cnt += 1
         self.assumes.append(trace_assumes)
+
+    def __wrap_code(self, code, code_type):
+        self.ccc = 0
+        if code_type in SOURCE_CLASSES:
+            return '<span class="%s">%s</span>' % (SOURCE_CLASSES[code_type], code)
+        return code
+
+    def __parse_code(self, code):
+        m = re.match('(.*?)(<span.*?</span>)(.*)', code)
+        if m is not None:
+            return "%s%s%s" % (
+                self.__parse_code(m.group(1)),
+                m.group(2),
+                self.__parse_code(m.group(3))
+            )
+        m = re.match('(.*?)(/\*.*?\*/)(.*)', code)
+        if m is not None:
+            return "%s%s%s" % (
+                self.__parse_code(m.group(1)),
+                self.__wrap_code(m.group(2), 'comment'),
+                self.__parse_code(m.group(3))
+            )
+        m = re.match('(.*?)([\'\"])(.*)', code)
+        if m is not None:
+            m2 = re.match('(.*?)%s(.*)' % m.group(2), m.group(3))
+            if m2 is not None:
+                return "%s%s%s" % (
+                    self.__parse_code(m.group(1)),
+                    self.__wrap_code(m.group(2) + m2.group(1) + m.group(2), 'text'),
+                    self.__parse_code(m2.group(2))
+                )
+        m = re.match('(.*?\W)(\d+)(\W.*)', code)
+        if m is not None:
+            return "%s%s%s" % (
+                self.__parse_code(m.group(1)),
+                self.__wrap_code(m.group(2), 'number'),
+                self.__parse_code(m.group(3))
+            )
+        words = re.split('([^a-zA-Z0-9-_#])', code)
+        new_words = []
+        for word in words:
+            if word in KEY1_WORDS:
+                new_words.append(self.__wrap_code(word, 'key1'))
+            elif word in KEY2_WORDS:
+                new_words.append(self.__wrap_code(word, 'key2'))
+            else:
+                new_words.append(word)
+        return ''.join(new_words)
 
 
 class GetSource(object):

@@ -75,11 +75,11 @@
     background-color: #fff8e9;
 }
 
-.ETVSrcC {
+.ETVComment {
     color: #b1b4b7;
 }
 
-.ETVSrcN {
+.ETVNumber {
     color: #3bbbbc;
 }
 
@@ -108,16 +108,16 @@
     cursor: pointer;
 }
 
-.ETVSrcT {
+.ETVText {
     color: #20d467;
 }
 
-.ETVSrcI {
+.ETVKey1 {
     color: #1f984c;
     font-weight: bold;
 }
 
-.ETVSrcO {
+.ETVKey2 {
     color: #291fbf;
     font-weight: bold;
 }
@@ -144,10 +144,12 @@
     white-space: pre;
 }
 .ETV_WarnText {
-    color: #d077a5;
+    color: #f0828f;
+    font-weight: bold;
 }
 .ETV_NoteText {
-    color: #81a7c3;
+    color: #6fb5bd;
+    font-weight: bold;
 }
 .ETV_Fname {
     color: #67238f;
