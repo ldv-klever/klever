@@ -47,11 +47,10 @@ class GetETV(object):
             return
 
         if len(self.traces) == 0:
-            self.error = _('Wrong error trace file format')
+            self.error = 'Wrong error trace file format'
             return
         elif len(self.traces) > 2:
-            self.error = _('Error trace with more than two '
-                           'error pathes are not supported')
+            self.error = 'Error trace with more than one threads are not supported'
             return
 
         self.html_traces = []
@@ -87,21 +86,40 @@ class GetETV(object):
         for path in self.g.bfs():
             if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
                 traces.append(path)
-        return traces
-
-    def __html_trace(self, node_trace):
-        lines_data = []
-
-        edge_trace = []
-        prev_node = node_trace[0]
-        for n in node_trace[1:]:
+        if len(traces) != 1:
+            self.error = _('Only error traces with one error path are supported')
+            return None
+        edge_trace1 = []
+        edge_trace2 = []
+        prev_node = traces[0][0]
+        must_have_thread = False
+        for n in traces[0][1:]:
             e = self.g.edge(prev_node, n)
             if e is not None:
-                edge_trace.append(e)
+                if 'thread' in e.attr:
+                    must_have_thread = True
+                    if e['thread'] == '0':
+                        edge_trace1.append(e)
+                    elif e['thread'] == '1':
+                        edge_trace2.append(e)
+                elif must_have_thread:
+                    self.error = 'One of the edges does not have thread attribute'
+                    return None
+                else:
+                    edge_trace1.append(e)
             prev_node = n
+        edge_traces = []
+        if len(edge_trace1) > 0:
+            edge_traces.append(edge_trace1)
+        if len(edge_trace2) > 0:
+            edge_traces.append(edge_trace2)
+        return edge_traces
+
+    def __html_trace(self, trace):
+        lines_data = []
 
         max_line_length = 1
-        for n in edge_trace:
+        for n in trace:
             if 'startline' in n.attr:
                 if len(n['startline']) > max_line_length:
                     max_line_length = len(n['startline'])
@@ -146,7 +164,7 @@ class GetETV(object):
             'hide_id': 'global_scope'
         })
 
-        for n in edge_trace:
+        for n in trace:
             line = n.attr.get('startline', None)
             if line is None:
                 line_offset = max_line_length
