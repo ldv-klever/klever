@@ -123,10 +123,13 @@ class StreamQueue:
         self.finished = True
 
 
-def execute(logger, cmd, env=None, cwd=None, timeout=0.5, collect_all_stdout=False):
-    logger.debug('Execute "{0}"'.format(cmd))
+def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=False):
+    cmd = args[0]
+    logger.debug('Execute "{0}{1}{2}"'.format(cmd,
+                                              '' if len(args) == 1 else ' ',
+                                              ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
-    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+    p = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
 
     out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
 
@@ -148,7 +151,7 @@ def execute(logger, cmd, env=None, cwd=None, timeout=0.5, collect_all_stdout=Fal
                     break
                 output.append(line)
             if output:
-                m = '"{0}" outputted to {1}:\n{2}'.format(cmd[0], stream_q.stream_name, '\n'.join(output))
+                m = '"{0}" outputted to {1}:\n{2}'.format(cmd, stream_q.stream_name, '\n'.join(output))
                 if stream_q is out_q:
                     logger.debug(m)
                 else:
@@ -158,8 +161,8 @@ def execute(logger, cmd, env=None, cwd=None, timeout=0.5, collect_all_stdout=Fal
         stream_q.join()
 
     if p.poll():
-        logger.error('"{0}" exitted with "{1}"'.format(cmd[0], p.poll()))
-        raise CommandError('"{0}" failed'.format(cmd[0]))
+        logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
+        raise CommandError('"{0}" failed'.format(cmd))
 
     return out_q.output
 
