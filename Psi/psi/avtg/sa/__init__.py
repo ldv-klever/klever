@@ -154,8 +154,8 @@ class SA(psi.components.Component):
                     if not self.model["functions"][name]["files"][path]:
                         self.model["functions"][name]["files"][path]["return value type"] = ret_type
                         self.model["functions"][name]["files"][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
-                        prms = ", ".join(self.model["functions"][name]["files"][path]["parameters"])
-                        self.model["functions"][name]["files"][path]["signature"] = "{} {}({})".format(ret_type, name, prms)
+                        self.model["functions"][name]["files"][path]["signature"] = "{} {}({})".\
+                            format("$", name, "...")
                     if not self.model["functions"][name]["files"][path]["static"]:
                         self.model["functions"][name]["files"][path]["static"] = execution_source["static"]
                 else:
@@ -457,7 +457,7 @@ class GlobalInitParser:
 
         if element["type"] == "structure":
             # Ignore Initializer list first string
-            element["value"] = self._parse_structure(element["value"], block[1:])
+            self._parse_structure(element["value"], block[1:])
         elif element["type"] == "function pointer":
             ret_re = re.compile("^\s*Pointed\sfunction\sreturn\stype\sdeclaration\sis\s'([^']*)'")
             args_re = re.compile("^\s*Pointed\sfunction\sargument\stype\sdeclarations\sare([^\n]*)\n")
@@ -467,7 +467,7 @@ class GlobalInitParser:
             args = args_re.match(block[1]).group(1)
             parameters = all_args_re.findall(args)
             value = value_re.match(block[2]).group(1)
-            signature = "{} (*%name%)({})".format(return_type, ", ".join(parameters))
+            signature = "{} (*%name%)({})".format("$", "...")
             element["signature"] = signature
             element["return value type"] = return_type
             element["parameters"] = parameters

@@ -57,7 +57,7 @@ class CategorySpecification:
                         else:
                             signature.return_value.interface = \
                                 self.interfaces[interface]
-                for arg in signature.args:
+                for arg in signature.parameters:
                     if arg and arg.interface and type(arg.interface) is str:
                         interface = arg.interface
                         if not is_full_identifier(interface):
@@ -227,6 +227,7 @@ class ModuleSpecification(CategorySpecification):
 
     def _import_source_analysis(self):
         self.logger.info("Start processing source code amnalysis data")
+        self._parse_signatures_as_is()
 
         self.logger.debug("Mark all types as interfaces if there are already spercified")
         self._mark_existing_interfaces()
@@ -235,6 +236,58 @@ class ModuleSpecification(CategorySpecification):
         # TODO: Implementation
         self.logger.debug("Build more Interface objects and establish references between them")
         # TODO: Implementation
+
+    def _parse_elements_signatures(self, elements):
+        for element in elements:
+            elements[element]["signature"] = \
+                Signature(elements[element]["signature"])
+
+            if elements[element]["type"] in ["array", "structure"]:
+                self._parse_elements_signatures(elements[element]["value"])
+            elif elements[element]["type"] == "function pointer":
+                self._process_function_signature(elements[element])
+                elements[element]["signature"].function_name = None
+
+    @staticmethod
+    def _process_function_signature(function):
+        function["signature"].return_value = Signature(function["return value type"])
+        del function["return value type"]
+
+        function["signature"].parameters = []
+        for parameter in function["parameters"]:
+            function["signature"].parameters.append(Signature(parameter))
+        del function["parameters"]
+
+    def _parse_signatures_as_is(self):
+        self.logger.debug("Pase signatures in source analysis")
+
+        self.logger.debug("Parse kernel functions signatures")
+        for function in self.analysis["kernel functions"]:
+            self.logger.debug("Parse signature of function {}".format(function))
+            self.analysis["kernel functions"][function]["signature"] = \
+                Signature(self.analysis["kernel functions"][function]["signature"])
+            self._process_function_signature(self.analysis["kernel functions"][function])
+            self.analysis["kernel functions"][function]["signature"].function_name = function
+
+        self.logger.debug("Parse modules functions signatures")
+        for function in self.analysis["modules functions"]:
+            for path in self.analysis["modules functions"][function]["files"]:
+                self.logger.debug("Parse signature of function {} from file {}".format(function, path))
+                self.logger.debug("Parse signature of function {}".format(function))
+                self.analysis["modules functions"][function]["files"][path]["signature"] = \
+                    Signature(self.analysis["modules functions"][function]["files"][path]["signature"])
+                self._process_function_signature(self.analysis["modules functions"][function]["files"][path])
+                self.analysis["modules functions"][function]["files"][path]["signature"].function_name = function
+
+        self.logger.debug("Parse global variables signatures")
+        for path in self.analysis["global variable initializations"]:
+            for variable in self.analysis["global variable initializations"][path]:
+                self.logger.debug("Parse signature of global variable {} from file {}".format(function, path))
+                self.analysis["global variable initializations"][path][variable]["signature"] = \
+                    Signature(self.analysis["global variable initializations"][path][variable]["signature"])
+
+                self._parse_elements_signatures(
+                    self.analysis["global variable initializations"][path][variable]["fields"])
 
     def _match_signature(self, signature):
         for interface in self.interfaces:
@@ -282,7 +335,7 @@ class ModuleSpecification(CategorySpecification):
         self.logger.debug("Mark function arguments of already described kernel functions as existing interfaces")
         for function in self.analysis["kernel functions"]:
             if function in self.kernel_functions:
-                self.analysis["kernel functions"]["match"] = self.kernel_functions[function]
+                self.analysis["kernel functions"][function]["match"] = self.kernel_functions[function]
             else:
                 self._match_function_signature(self.analysis["kernel functions"][function])
 
@@ -290,17 +343,17 @@ class ModuleSpecification(CategorySpecification):
         self.logger.debug("Mark function arguments of already described kernel functions as existing interfaces")
         for function in self.analysis["modules functions"]:
             for path in self.analysis["modules functions"][function]["files"]:
-                self._match_function_signature(self.analysis["modules functions"][function]["files"])
+                self._match_function_signature(self.analysis["modules functions"][function]["files"][path])
 
         self.logger.debug("Mark already described containers as existing interfaces")
-        for path in self.analysis["global variables initialization"]:
-            for variable in self.analysis["global variables initialization"][path]:
+        for path in self.analysis["global variable initializations"]:
+            for variable in self.analysis["global variable initializations"][path]:
                 intf = self._match_signature(
-                    self.analysis["global variables initialization"][path][variable]["signature"])
+                    self.analysis["global variable initializations"][path][variable]["signature"])
                 if intf:
-                    self.analysis["global variables initialization"][path][variable]["matched"] = intf
+                    self.analysis["global variable initializations"][path][variable]["matched"] = intf
 
-                self._mark_elements(self.analysis["global variables initialization"][path][variable]["fields"])
+                self._mark_elements(self.analysis["global variable initializations"][path][variable]["fields"])
 
     def _extract_more_interfaces(self):
         # Determine potential callbacks as callbacks without calls in other module functions
@@ -395,7 +448,7 @@ class Signature:
     interface = None
     function_name = None
     return_value = None
-    args = None
+    parameters = None
 
     def __init__(self, expression):
         """
@@ -405,8 +458,8 @@ class Signature:
         """
         self.expression = expression
 
-        ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%))"
-        identifier_re = "(?:(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
+        ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
+        identifier_re = "(?:(?:(\*?)%s)|(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
         args_re = "(?:[^()]*)"
         function_re = re.compile("^{}\s\(?{}\)?\s?\({}\)\Z".format(ret_val_re, identifier_re, args_re))
         if function_re.fullmatch(self.expression):
@@ -465,11 +518,11 @@ class Signature:
             return False
 
     def _extract_function_interfaces(self):
-        identifier_re = "((?:\*?%[\w.]*%)|(?:\*?\w*))(?:\s?\[\w*\])?"
+        identifier_re = "((?:\*?%s)|(?:\*?%[\w.]*%)|(?:\*?\w*))(?:\s?\[\w*\])?"
         args_re = "([^()]*)"
 
         if self.type_class == "function":
-            ret_val_re = "(\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%))"
+            ret_val_re = "(\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
             function_re = re.compile("^{}\s\(?{}\)?\s?\({}\)\Z".format(ret_val_re, identifier_re, args_re))
 
             if function_re.fullmatch(self.expression):
@@ -477,7 +530,7 @@ class Signature:
             else:
                 raise ValueError("Cannot parse function signature {}".format(self.expression))
 
-            if ret_val in ["$", "void"]:
+            if ret_val in ["$", "void"] or "%" not in ret_val:
                 self.return_value = None
             else:
                 self.return_value = Signature(ret_val)
@@ -491,12 +544,12 @@ class Signature:
                 raise ValueError("Cannot parse macro signature {}".format(self.expression))
         self.function_name = name
 
-        self.args = []
+        self.parameters = []
         if args != "void":
             for arg in args.split(", "):
-                if arg in ["$", "..."]:
-                    self.args.append("None")
+                if arg in ["$", "..."] or "%" not in arg:
+                    self.parameters.append("None")
                 else:
-                    self.args.append(Signature(arg))
+                    self.parameters.append(Signature(arg))
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
