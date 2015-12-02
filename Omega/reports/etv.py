@@ -222,6 +222,7 @@ class GetETV(object):
                     '\g<1><span class="ETV_Fname">' + n['enterFunction'] + '</span>\g<2>',
                     line_data['code']
                 )
+                # line_data['code'] += ' {'
                 lines_data.append(line_data)
                 add_fake_line('{')
                 curr_offset += TAB_LENGTH
@@ -239,11 +240,13 @@ class GetETV(object):
                     self.error = _('Error trace is corrupted')
                     return None
             elif 'control' in n.attr:
+                m = re.match('^\s*\[(.*)\]\s*$', line_data['code'])
+                if m is not None:
+                    line_data['code'] = m.group(1)
+                if n['control'] == 'condition-false':
+                    line_data['code'] = '!(%s)' % line_data['code']
                 line_data['code'] = '<span class="ETV_CondAss">assume(</span>' + \
-                                    str(line_data['code']) + \
-                                    ' == %s<span class="ETV_CondAss">);</span>' % (
-                    'True' if n['control'] == 'condition-true' else 'False'
-                )
+                                    str(line_data['code']) + '<span class="ETV_CondAss">);</span>'
                 lines_data.append(line_data)
             else:
                 lines_data.append(line_data)

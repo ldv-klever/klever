@@ -2,7 +2,7 @@
     width: 100%;
     position: absolute;
     left: 0;
-    top: 50px;
+    top: 35px;
     bottom: 0;
     line-height: normal;
     font-size: 12px;
@@ -12,7 +12,7 @@
     width: 100%;
     position: absolute;
     left: 0;
-    top: 50px;
+    top: 35px;
     bottom: 0;
     line-height: normal;
     font-size: 12px;
@@ -40,6 +40,11 @@
     height: 550px;
     position: relative;
 }
+
+.fullscreen {
+    height: 85vh!important;
+}
+
 #etv-source {
     position: absolute;
     top: 0;

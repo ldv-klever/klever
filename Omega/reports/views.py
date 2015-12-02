@@ -220,6 +220,31 @@ def report_leaf(request, leaf_type, report_id):
     )
 
 
+@login_required
+def report_etv_full(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        report = ReportUnsafe.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+
+    if not JobAccess(request.user, report.root.job).can_view():
+        return HttpResponseRedirect(reverse('error', args=[400]))
+
+    etv = GetETV(report.error_trace)
+    if etv.error is not None:
+        print_err(etv.error)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    return render(
+        request, 'reports/etv_fullscreen.html',
+        {
+            'report': report,
+            'etv': etv
+        }
+    )
+
+
 @unparallel_group(['mark', 'report'])
 @login_required
 def upload_report(request):

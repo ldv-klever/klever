@@ -9,7 +9,7 @@ $(document).ready(function () {
         Sh = parseInt(S.height(), 10),
         Ah = parseInt(A.height(), 10),
         D2h = parseInt(D2.width(), 10),
-        minh = parseInt((Sh + Ah + D2h) / 100, 10);
+        minh = parseInt((Sh + Ah + D2h) * 2 / 100, 10);
     D1.draggable({
         axis: 'x',
         containment: [
@@ -35,7 +35,7 @@ $(document).ready(function () {
         axis: 'y',
         containment: [
             etv.offset().left + Tw + D1w,
-            etv.offset().top + minh + 50,
+            etv.offset().top + minh + 35,
             etv.offset().left + Tw + Sw + D1w,
             etv.offset().top + Ah + Sh - minh
         ],
