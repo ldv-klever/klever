@@ -257,19 +257,6 @@ class GetETV(object):
             lines_data[i]['code'] = self.__parse_code(lines_data[i]['code'])
             if 'class' not in lines_data[i]:
                 continue
-            if lines_data[i]['class'] != 'global':
-                print_line = 'Scope: ' + lines_data[i]['class'] + '; '
-                if 'hide_id' in lines_data[i]:
-                    if lines_data[i]['hide_id'] is not None:
-                        print_line += 'Hide id: ' + lines_data[i]['hide_id'] + '; '
-                    else:
-                        print_line += 'Hide is None!!!; '
-                if 'note' in lines_data[i]:
-                    print_line += 'Has note; '
-                if 'warning' in lines_data[i]:
-                    print_line += 'Has warning; '
-                print_line += 'CODE: "%s"' % lines_data[i]['code']
-                print(print_line)
             a = 'warning' in lines_data[i]
             b = 'note' in lines_data[i]
             c = lines_data[i]['class'] not in scopes_to_show

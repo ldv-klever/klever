@@ -156,7 +156,7 @@ class Population(object):
                 print_err(e)
                 print_err('The default job was not created')
                 continue
-            if any(x not in job_settings for x in ['name', 'type']):
+            if any(x not in job_settings for x in ['name', 'type', 'description']):
                 print_err('Default job settings must contain name, type and description')
                 continue
             if job_settings['type'] not in list(x[0] for x in JOB_CLASSES):
