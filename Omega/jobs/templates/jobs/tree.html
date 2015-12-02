@@ -367,13 +367,19 @@
             </div>
         </form>
     </div>
-    <div id="jobs_actions_menu" class="ui blue launch fixed mini icon inverted button">
-        <i class="content icon"></i>
-    </div>
-    <div id="actions_popup" class="ui blue inverted popup transition vertical menu hidden">
-        <a class="item" href="#" id="compare_reports_btn">{% trans 'Compare reports' %}</a>
-        <a class="item" href="#" id="show_remove_jobs_popup">{% trans 'Delete selected jobs' %}</a>
-        <a class="item" href="#" id="download_selected_jobs">{% trans 'Download selected jobs' %}</a>
+    <div class="ui mini basic icon buttons">
+        <button class="ui button violet normal-popup" id="compare_reports_btn"><i class="ui columns icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'Compare reports' %}</p>
+        </div>
+        <button class="ui olive button normal-popup" id="download_selected_jobs"><i class="ui download icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'Download selected jobs' %}</p>
+        </div>
+        <button class="ui red button normal-popup" id="show_remove_jobs_popup"><i class="ui remove icon"></i></button>
+        <div class="ui popup">
+            <p style="white-space: nowrap">{% trans 'Delete selected jobs' %}</p>
+        </div>
     </div>
 
     <button type="button" class="ui mini violet icon basic button" id="jobstree-fullscreen-btn" style="float:right;margin-right: 10px;">

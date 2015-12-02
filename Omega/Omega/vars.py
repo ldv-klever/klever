@@ -5,6 +5,7 @@ FORMAT = 1
 ERRORS = {
     404: _('The job was not found'),
     400: _("You don't have an access to this job"),
+    401: _("You don't have an access to one of the selected jobs"),
     451: _('You specified wrong parameters, please reload the page and try again'),
     504: _('The report was not found'),
     604: _("The mark was not found"),
@@ -13,7 +14,8 @@ ERRORS = {
     602: _("You don't have an access to delete this mark"),
     650: _("Saving the mark failed"),
     704: _("The tag was not found"),
-    804: _("The problem was not found")
+    804: _("The problem was not found"),
+    900: _("You don't have an access to this page")
 }
 
 LANGUAGES = (

@@ -328,6 +328,7 @@ $(document).ready(function () {
             $(this).dropdown();
         }
     });
+    $('.normal-popup').popup({position: 'bottom center'});
     $('#remove_mark_popup').modal({transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_mark_popup', 'show');
     $('#cancel_remove_mark').click(function () {

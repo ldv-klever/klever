@@ -38,6 +38,7 @@ _arch_hdr_arch = {
     'tilegx': 'tile',
 }
 
+
 class LKBCE(psi.components.Component):
     def extract_linux_kernel_build_commands(self):
         self.linux_kernel = {}
@@ -66,43 +67,51 @@ class LKBCE(psi.components.Component):
     def build_linux_kernel(self):
         self.logger.info('Build Linux kernel')
 
-        # First of all collect all build commands to be executed.
-        cmds = []
-        if 'whole build' in self.conf['Linux kernel']:
-            cmds.append(('all',))
-        elif 'modules' in self.conf['Linux kernel']:
-            # Check that module sets aren't intersect explicitly.
-            for i, modules1 in enumerate(self.conf['Linux kernel']['modules']):
-                for j, modules2 in enumerate(self.conf['Linux kernel']['modules']):
-                    if i != j and modules1.startswith(modules2):
-                        raise ValueError('Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
+        # First of all collect all targets to be built.
+        build_targets = []
 
-            # Examine module sets.
-            for modules in self.conf['Linux kernel']['modules']:
-                # Module sets ending with .ko imply individual modules.
-                if re.search(r'\.ko$', modules):
-                    cmds.append((modules,))
-                # Otherwise it is directory that can contain modules.
-                else:
-                    # Add "modules_prepare" target once.
-                    if not cmds or cmds[0] != ('modules_prepare',):
-                        cmds.insert(0, ('modules_prepare',))
+        if 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
+            build_targets.append(('vmlinux',))
 
-                    if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules)):
-                        raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules,
-                                                                                            self.linux_kernel[
-                                                                                                'work src tree']))
+        if 'modules' in self.conf['Linux kernel']:
+            # Specially process building of all modules.
+            if 'all' in self.conf['Linux kernel']['modules']:
+                if not len(self.conf['Linux kernel']['modules']) == 1:
+                    raise ValueError('You can not specify "all" modules together with some other modules')
 
-                    cmds.append(('M={0}'.format(modules), 'modules'))
-        else:
-            raise KeyError(
-                'Neither "whole build" nor "modules" attribute of Linux kernel is specified in configuration')
+                build_targets.append(('modules',))
+            else:
+                # Check that module sets aren't intersect explicitly.
+                for i, modules1 in enumerate(self.conf['Linux kernel']['modules']):
+                    for j, modules2 in enumerate(self.conf['Linux kernel']['modules']):
+                        if i != j and modules1.startswith(modules2):
+                            raise ValueError(
+                                'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
-        self.logger.debug(
-            'Following build commands will be executed:\n{0}'.format('\n'.join([' '.join(cmd) for cmd in cmds])))
+                # Examine module sets.
+                for modules in self.conf['Linux kernel']['modules']:
+                    # Module sets ending with .ko imply individual modules.
+                    if re.search(r'\.ko$', modules):
+                        build_targets.append((modules,))
+                    # Otherwise it is directory that can contain modules.
+                    else:
+                        # Add "modules_prepare" target once.
+                        if not build_targets or build_targets[0] != ('modules_prepare',):
+                            build_targets.insert(0, ('modules_prepare',))
 
-        for args in cmds:
-            self.__make(args, jobs_num=psi.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
+                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules)):
+                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules,
+                                                                                                self.linux_kernel[
+                                                                                                    'work src tree']))
+
+                        build_targets.append(('M={0}'.format(modules), 'modules'))
+
+        self.logger.debug('Build following targets:\n{0}'.format(
+            '\n'.join([' '.join(build_target) for build_target in build_targets])))
+
+        for build_target in build_targets:
+            self.__make(build_target,
+                        jobs_num=psi.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
                         specify_arch=True, invoke_build_cmd_wrappers=True, collect_build_cmds=True)
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
@@ -245,7 +254,7 @@ class LKBCE(psi.components.Component):
                             self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
                             return
                         else:
-                            psi.utils.invoke_callbacks(self.process_linux_kernel_raw_build_cmd, args=(opts,))
+                            psi.utils.invoke_callbacks(self.process_linux_kernel_raw_build_cmd, (opts,))
 
                             # Go to the next command or finish operation.
                             self.linux_kernel['build cmd']['type'] = None
@@ -376,7 +385,8 @@ class LKBCE(psi.components.Component):
             'Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
         self.logger.debug('Options are "{0}"'.format(self.linux_kernel['build cmd']['opts']))
 
-    def __make(self, args, jobs_num=1, specify_arch=False, invoke_build_cmd_wrappers=False, collect_build_cmds=False,
+    def __make(self, build_target, jobs_num=1, specify_arch=False, invoke_build_cmd_wrappers=False,
+               collect_build_cmds=False,
                collect_all_stdout=False):
         env = None
 
@@ -395,6 +405,6 @@ class LKBCE(psi.components.Component):
         return psi.utils.execute(self.logger,
                                  tuple(['make', '-j', str(jobs_num), '-C', self.linux_kernel['work src tree']] +
                                        (['ARCH={0}'.format(self.linux_kernel['arch'])] if specify_arch else []) +
-                                       list(args)),
+                                       list(build_target)),
                                  env,
                                  collect_all_stdout=collect_all_stdout)
