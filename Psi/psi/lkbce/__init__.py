@@ -106,8 +106,9 @@ class LKBCE(psi.components.Component):
 
                         build_targets.append(('M={0}'.format(modules), 'modules'))
 
-        self.logger.debug('Build following targets:\n{0}'.format(
-            '\n'.join([' '.join(build_target) for build_target in build_targets])))
+        if build_targets:
+            self.logger.debug('Build following targets:\n{0}'.format(
+                '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
         for build_target in build_targets:
             self.__make(build_target,
