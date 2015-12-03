@@ -20,7 +20,7 @@ from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
 from service.models import Scheduler
 
-JOB_SETTINGS_FILE = 'job-settings.json'
+JOB_SETTINGS_FILE = 'settings.json'
 
 
 class Population(object):
@@ -144,7 +144,7 @@ class Population(object):
                     self.changes['jobs'] = True
 
     def __populate_default_jobs(self):
-        default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'default-jobs')
+        default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
                 print_err('There is default job without settings file')
