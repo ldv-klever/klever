@@ -1,6 +1,6 @@
 import os
 import mimetypes
-from io import BytesIO
+from urllib.parse import quote
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
@@ -69,10 +69,9 @@ def download_solution(request, task_id):
         return JsonResponse({'error': result.error + ''})
     if result.task.status == TASK_STATUS[3][0]:
         return JsonResponse({'task error': result.task.error})
-    new_file = BytesIO(result.solution.archive.read())
     mimetype = mimetypes.guess_type(os.path.basename(result.solution.archname))[0]
-    response = HttpResponse(new_file.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % result.solution.archname
+    response = HttpResponse(result.solution.archive.read(), content_type=mimetype)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(result.solution.archname)
     return response
 
 
@@ -147,10 +146,9 @@ def download_task(request, task_id):
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
 
-    new_file = BytesIO(result.task.archive.read())
     mimetype = mimetypes.guess_type(os.path.basename(result.task.archname))[0]
-    response = HttpResponse(new_file.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % result.task.archname
+    response = HttpResponse(result.task.archive.read(), content_type=mimetype)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(result.task.archname)
     return response
 
 
@@ -280,7 +278,7 @@ def process_job(request):
     if 'job id' not in request.POST:
         return JsonResponse({'error': 'Job identifier is not specified'})
     try:
-        job = Job.objects.get(identifier=request.session.get('job id', 'null'))
+        job = Job.objects.get(identifier=request.POST.get('job id', 'null'))
         request.session['job id'] = job.pk
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Job was not found'})

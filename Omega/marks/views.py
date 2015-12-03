@@ -299,8 +299,7 @@ def download_mark(request, mark_type, mark_id):
     mark_tar = CreateMarkTar(mark)
 
     response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % \
-                                      mark_tar.marktar_name
+    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.marktar_name
     mark_tar.memory.seek(0)
     response.write(mark_tar.memory.read())
     return response

@@ -265,16 +265,7 @@ function collect_filter_data () {
 
 $(document).ready(function () {
     $('.ui.dropdown').dropdown();
-
-    $('#jobs_actions_menu').popup({
-        hoverable: true,
-        position: 'right center',
-        on: 'click',
-        delay: {
-            show: 300,
-            hide: 600
-        }
-    });
+    $('.normal-popup').popup({position: 'bottom left'});
 
     $('#remove_jobs_popup').modal({transition: 'fly up', autofocus: false, closable: false});
     $('#show_remove_jobs_popup').click(function () {
@@ -499,26 +490,6 @@ $(document).ready(function () {
     $('#download_selected_jobs').click(function (event) {
         event.preventDefault();
 
-        function download(href) {
-            var interval = null;
-            function fake_request() {
-                clearInterval(interval);
-                $.ajax({
-                    method: 'post',
-                    url: '/ajax/fake/',
-                    data: {},
-                    dataType: 'json',
-                    success: function () {
-                        window.location.replace(href);
-                        $('#dimmer_of_page').removeClass('active');
-                        return false;
-                    }
-                });
-            }
-            interval = setInterval(fake_request, 1);
-            return false;
-        }
-
         $('#jobs_actions_menu').popup('hide');
         var job_ids = [];
         $('input[id^="job_checkbox__"]:checked').each(function () {
@@ -526,10 +497,7 @@ $(document).ready(function () {
         });
         if (job_ids.length) {
             if (check_jobs_access(job_ids)) {
-                for (var i = 0; i < job_ids.length; i++) {
-                    $('#dimmer_of_page').addClass('active');
-                    download(job_ajax_url + 'downloadjob/' + job_ids[i]);
-                }
+                $.redirectPost(job_ajax_url + 'downloadjobs/', {job_ids: JSON.stringify(job_ids)});
             }
         }
         else {

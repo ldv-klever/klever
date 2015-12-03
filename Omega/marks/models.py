@@ -250,7 +250,7 @@ class MarkUnknown(models.Model):
     change_date = models.DateTimeField(auto_now=True)
     component = models.ForeignKey(Component)
     function = models.TextField()
-    problem_pattern = models.CharField(max_length=100)
+    problem_pattern = models.CharField(max_length=15)
     link = models.URLField(null=True)
     description = models.TextField(default='')
 

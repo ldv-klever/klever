@@ -186,7 +186,7 @@ class NewMark(object):
                 if args['function'] != mark.function:
                     self.do_recalk = True
                     mark.function = args['function']
-            if 'problem' in args and len(args['problem']) > 0:
+            if 'problem' in args and 0 < len(args['problem']) < 15:
                 if args['problem'] != mark.problem_pattern:
                     self.do_recalk = True
                     mark.problem_pattern = args['problem']
@@ -384,6 +384,9 @@ class ConnectReportWithMarks(object):
             ).problem
             if problem is None:
                 continue
+            elif len(problem) > 15:
+                problem = 'Too long!'
+                print_err("Generated problem '%s' for mark %s is too long" % (problem, mark.identifier))
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(
                 mark=mark, report=self.report, problem=problem)
@@ -486,6 +489,9 @@ class ConnectMarkWithReports(object):
             ).problem
             if problem is None:
                 continue
+            elif len(problem) > 15:
+                problem = 'Too long!'
+                print_err("Generated problem '%s' for mark %s is too long" % (problem, self.mark.identifier))
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(
                 mark=self.mark, report=unknown, problem=problem)
@@ -697,7 +703,7 @@ class CreateMarkTar(object):
             t.size = len(file_content)
             jobtar.addfile(t, BytesIO(file_content))
 
-        self.marktar_name = 'EM__' + self.mark.identifier + '.tar.gz'
+        self.marktar_name = 'Mark-%s-%s.tar.gz' % (self.type, self.mark.identifier[:10])
         marktar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
         for markversion in self.mark.versions.all():
             version_data = {
@@ -797,8 +803,7 @@ class ReadTarMark(object):
                     args['verdict'] in list(x[0] for x in MARK_SAFE):
                 mark.verdict = args['verdict']
             elif self.type == 'unknown':
-                mark.component = Component.objects.get_or_create(
-                    name=args['component'])[0]
+                mark.component = Component.objects.get_or_create(name=args['component'])[0]
                 mark.function = args['function']
                 mark.problem_pattern = args['problem']
                 if 'link' in args and len(args['link']) > 0:
@@ -925,8 +930,7 @@ class ReadTarMark(object):
             elif file_name.startswith('version-'):
                 version_id = int(file_name.replace('version-', ''))
                 try:
-                    versions_data[version_id] = json.loads(
-                        file_obj.read().decode('utf-8'))
+                    versions_data[version_id] = json.loads(file_obj.read().decode('utf-8'))
                 except ValueError:
                     return _("The mark archive is corrupted")
 

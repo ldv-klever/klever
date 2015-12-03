@@ -226,13 +226,18 @@ class LKVOG(psi.components.Component):
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             match = False
-            if 'whole build' in self.conf['Linux kernel']:
-                match = True
-            elif 'modules' in self.conf['Linux kernel']:
-                for modules in self.conf['Linux kernel']['modules']:
-                    if re.search(r'^{0}'.format(modules), desc['out file']):
-                        match = True
-                        break
+            if 'modules' in self.conf['Linux kernel']:
+                if 'all' in self.conf['Linux kernel']['modules']:
+                    match = True
+                else:
+                    for modules in self.conf['Linux kernel']['modules']:
+                        if re.search(r'^{0}'.format(modules), desc['out file']):
+                            match = True
+                            break
+            else:
+                self.logger.warning(
+                    'Nothing will be verified since "modules" attribute is not specified or its value is empty')
+
             if match:
                 self.linux_kernel_module_names_mq.put(desc['out file'])
 

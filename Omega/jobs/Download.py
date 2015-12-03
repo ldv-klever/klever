@@ -88,7 +88,7 @@ class DownloadJob(object):
             jobtar.addfile(t, BytesIO(file_content))
 
         files_in_tar = {}
-        self.tarname = 'VJ__' + job.identifier + '.tar.gz'
+        self.tarname = 'Job-' + job.identifier[:10] + '.tar.gz'
         jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
         for jobversion in job.versions.all():
             filedata = []
@@ -231,8 +231,7 @@ class ReverseReport(object):
             }
             self.report_data['log'] = ''
             if self.report.log is not None:
-                self.report_data['log'] = \
-                    self.report.log.file.read().decode('utf8')
+                self.report_data['log'] = self.report.log.file.read().decode('utf8')
 
     def __revert_leaf_report(self):
         if isinstance(self.report, ReportUnsafe):
@@ -317,8 +316,7 @@ class UploadJob(object):
                     files_in_db[file_name] = check_sum
             elif file_name.startswith('version-'):
                 version_id = int(file_name.replace('version-', ''))
-                versions_data[version_id] = json.loads(
-                    file_obj.read().decode('utf-8'))
+                versions_data[version_id] = json.loads(file_obj.read().decode('utf-8'))
 
         if any(x not in jobdata for x in
                ['format', 'type', 'status', 'filedata', 'reports']):

@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^ajax/showjobdata/$', views.showjobdata),
     url(r'^ajax/upload_file/$', views.upload_file),
     url(r'^ajax/downloadjob/(?P<job_id>[0-9]+)/$', views.download_job),
+    url(r'^ajax/downloadjobs/$', views.download_jobs),
     url(r'^ajax/check_access/$', views.check_access),
     url(r'^ajax/upload_job/(?P<parent_id>.*)/$', views.upload_job),
     url(r'^ajax/getfilecontent/$', views.getfilecontent),
@@ -28,6 +29,7 @@ urlpatterns = [
     url(r'^ajax/remove_versions/$', views.remove_versions),
     url(r'^ajax/stop_decision/$', views.stop_decision),
     url(r'^ajax/run_decision/$', views.run_decision),
+    url(r'^ajax/fast_run_decision/$', views.fast_run_decision),
 
     # For psi
     url(r'^decide_job/$', views.decide_job),

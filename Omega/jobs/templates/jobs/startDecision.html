@@ -83,8 +83,8 @@
         <div class="ui grid need-auth">
             <div class="five wide column">
                 <h4 class="ui header">{% trans 'Psi configuration' %}</h4>
-                <label for="gen_priority">{% trans 'Abstract tasks generation priority' %}</label>
-                <select id="gen_priority" class="ui dropdown fluid normal-dropdown">
+                <label for="avtg_priority">{% trans 'Abstract tasks generation priority' %}</label>
+                <select id="avtg_priority" class="ui dropdown fluid normal-dropdown">
                     {% for p in data.gen_priorities %}
                         <option value="{{ p.0 }}"{% if data.def_config.avtg_priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
                     {% endfor %}
@@ -129,5 +129,5 @@
     {% endif %}
     </div>
     <span id="sch_u_saved" hidden>{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}</span>
-    <span id="fields_required" hidden>{% trans 'Red field(s) are required' %}</span>
+    <span id="fields_required" hidden>{% trans 'Field(s) with red background are required' %}</span>
 {% endblock %}

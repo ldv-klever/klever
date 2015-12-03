@@ -4,14 +4,15 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from Omega.vars import JOB_STATUS
 from Omega.utils import print_err
-from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS, DEF_PSI_CONFIGURATION
+from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS, DEF_PSI_CONFIGURATION,\
+    DEF_LINUX_KERNEL_BUILD_PARALLELISM
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
 
 
 # TODO: keys and values are almost the same and thus can be refactored.
-GEN_PRIORITY = [
+AVTG_PRIORITY = [
     ('balance', _('Balance')),
     ('rule specifications', _('Rule specifications')),
     ('verification objects', _('Verification objects')),
@@ -528,7 +529,7 @@ class GetTasks(object):
         data['task descriptions'][str(task.pk)] = {
             'description': json.loads(task.description.decode('utf8'))
         }
-        if task.progress.scheduler.type == SCHEDULER_TYPE[0][0]:
+        if task.progress.scheduler.type == SCHEDULER_TYPE[1][0]:
             try:
                 operator = task.progress.job.reportroot.user
             except ObjectDoesNotExist:
@@ -862,7 +863,7 @@ class StartJobDecision(object):
             'priority': self.data['priority'],
             'debug': self.data['debug'],
             'allow local source directories use': self.data['allow_local_dir'],
-            'abstract tasks generation priority': self.data['gen_priority'],
+            'abstract tasks generation priority': self.data['avtg_priority'],
             'logging': {
                 'formatters': [
                     {
@@ -978,8 +979,8 @@ class StartDecisionData(object):
             self.need_auth = True
 
         self.restrictions = DEF_PSI_RESTRICTIONS
-        self.gen_priorities = GEN_PRIORITY
-        self.parallelism = str(1.0)
+        self.gen_priorities = AVTG_PRIORITY
+        self.parallelism = str(DEF_LINUX_KERNEL_BUILD_PARALLELISM)
         self.logging = DEF_PSI_FORMATTERS
         self.def_config = DEF_PSI_CONFIGURATION
 
@@ -1005,3 +1006,15 @@ class StartDecisionData(object):
                 cloud_sch.type,
                 string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
             ])
+
+
+def get_default_data():
+    data = {
+        'console_log_formatter': DEF_PSI_FORMATTERS['console'],
+        'file_log_formatter': DEF_PSI_FORMATTERS['file'],
+        'parallelism': str(DEF_LINUX_KERNEL_BUILD_PARALLELISM),
+        'scheduler': SCHEDULER_TYPE[0][0]
+    }
+    data.update(DEF_PSI_CONFIGURATION)
+    data.update(DEF_PSI_RESTRICTIONS)
+    return data
