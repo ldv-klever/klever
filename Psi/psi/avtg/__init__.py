@@ -250,11 +250,16 @@ class AVTG(psi.components.Component):
                                            (verification_obj_desc, rule_spec_desc))
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
+        initial_attrs = (
+            {'verification object': verification_obj_desc['id']},
+            {'rule specification': rule_spec_desc['id']}
+        )
+        initial_attr_vals = tuple(attr[name] for attr in initial_attrs for name in attr)
+
         # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
         self.logger.info(
             'Generate abstract verification task description for {0}'.format(
-                'verification object "{0}" and rule specification "{1}"'.format(
-                    verification_obj_desc['id'], rule_spec_desc['id'])))
+                'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals)))
 
         self.plugins_work_dir = os.path.relpath(
             os.path.join(self.conf['main working directory'], '{0}.task'.format(verification_obj_desc['id']),
@@ -264,7 +269,8 @@ class AVTG(psi.components.Component):
 
         # Initial abstract verification task looks like corresponding verification object.
         initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
-        initial_abstract_task_desc['id'] = '{0}/{1}'.format(verification_obj_desc['id'], rule_spec_desc['id'])
+        initial_abstract_task_desc['id'] = '{0}/{1}'.format(*initial_attr_vals)
+        initial_abstract_task_desc['attrs'] = initial_attrs
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = [{'cc full desc file': cc_full_desc_file} for cc_full_desc_file in
                                                grp['cc full desc files']]
@@ -290,11 +296,9 @@ class AVTG(psi.components.Component):
             plugin_conf.update({'rule spec id': rule_spec_desc['id'], 'bug kinds': rule_spec_desc['bug kinds']})
 
             p = plugin_desc['plugin'](plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
-                                      '{0}/{1}/{2}'.format(verification_obj_desc['id'], rule_spec_desc['id'],
-                                                           plugin_desc['name']),
+                                      '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
                                       os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
-                                      [{'verification object': verification_obj_desc['id']},
-                                       {'rule specification': rule_spec_desc['id']}], True, True)
+                                      initial_attrs, True, True)
 
             # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
             # verification objects or/and rule specifications.

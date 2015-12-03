@@ -8,6 +8,11 @@ import random
 import psi.components
 import psi.utils
 
+# VTG strategies.
+from psi.vtg.abkm import ABKM
+
+_strategies = (ABKM,)
+
 
 def before_launch_all_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
@@ -31,8 +36,11 @@ def after_generate_all_abstract_verification_task_descs(context):
 
 class VTG(psi.components.Component):
     def generate_verification_tasks(self):
+        self.strategy = None
         self.common_prj_attrs = {}
 
+        # Get strategy as early as possible to terminate without any delays if strategy isn't supported.
+        self.get_strategy()
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
@@ -162,6 +170,16 @@ class VTG(psi.components.Component):
 
     main = generate_verification_tasks
 
+    def get_strategy(self):
+        self.logger.info('Get strategy')
+
+        for strategy in _strategies:
+            if ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')]) == strategy.__name__.lower():
+                self.strategy = strategy
+
+        if not self.strategy:
+            NotImplementedError('Strategy {0} is not supported'.format(self.conf['VTG strategy']['name']))
+
     def extract_common_prj_attrs(self):
         self.logger.info('Extract common project atributes')
 
@@ -187,3 +205,20 @@ class VTG(psi.components.Component):
         # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
         self.logger.info('Generate verification task descriptions for abstract verification task "{0}"'.format(
             abstract_task_desc['id']))
+
+        attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
+
+        work_dir = os.path.join(
+            os.path.relpath(
+                os.path.join(self.conf['main working directory'],
+                             '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
+                             abstract_task_desc['attrs'][1]['rule specification'])),
+            self.strategy.__name__.lower())
+        os.makedirs(work_dir)
+        self.logger.debug('Working directory is "{0}"'.format(work_dir))
+
+        p = self.strategy(self.conf, self.logger, self.name, self.callbacks, self.mqs,
+                          '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
+                          work_dir, abstract_task_desc['attrs'], True, True)
+        p.start()
+        p.join()
