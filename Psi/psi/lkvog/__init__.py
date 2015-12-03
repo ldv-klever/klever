@@ -108,13 +108,24 @@ class LKVOG(psi.components.Component):
 
         elif strategy_name == 'scotch':
             self.module_deps = self.mqs['Linux kernel module deps'].get()
+
+            scotch_dir_path = os.path.join(self.conf['root id'], 'scotch')
+            if not os.path.isdir(scotch_dir_path):
+                os.mkdir(scotch_dir_path)
+            else:
+                #Clean scotch directory
+                file_list = os.listdir(scotch_dir_path)
+                for file_name in file_list:
+                    os.remove(os.path.join(scotch_dir_path, file_name))
+
             #TODO: check params?
             task_size = self.conf['LKVOG strategy']['task size']
             balance_tolerance = self.conf['LKVOG strategy']['balance tolerance']
-            graph_file = self.conf['LKVOG strategy']['graph file']
-            scotch_log = self.conf['LKVOG strategy']['scotch log']
-            scotch_out = self.conf['LKVOG strategy']['scotch out']
-            stategy = scotch.Scotch(self.logger, task_size, balance_tolerance, graph_file, scotch_log, scotch_out)
+            scotch_bin_path = self.conf['LKVOG strategy']['scotch path']
+            strategy = scotch.Scotch(self.logger, self.module_deps, task_size, balance_tolerance, scotch_bin_path,
+                                    os.path.join(scotch_dir_path, 'graph_file'),
+                                    os.path.join(scotch_dir_path, 'scotch_log'),
+                                    os.path.join(scotch_dir_path, 'scotch_out'))
 
 
         while True:
@@ -168,7 +179,7 @@ class LKVOG(psi.components.Component):
 
         elif strategy in strategies_list:
 
-            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id)
+            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id + str(hash(self.cluster)))
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
             self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])

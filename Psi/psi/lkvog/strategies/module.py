@@ -42,6 +42,8 @@ class Cluster:
 class Graph:
     def __init__(self, modules):
         self.modules = modules
+        #TODO: здесь нет root
+        self.root = self.modules[0]
         self.size = len(self.modules)
 
     def __hash__(self):

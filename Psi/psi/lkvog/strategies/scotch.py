@@ -5,27 +5,29 @@ import os
 
 class Scotch:
     #TODO: graph_file, scotch_out, scotch_log from parameters
-    def __init__(self, logger, module_deps, task_size, balance_tolerance, graph_file, scotch_path, scotch_log, scotch_out):
+    def __init__(self, logger, module_deps, task_size, balance_tolerance, scotch_path, graph_file, scotch_log, scotch_out):
         self.logger = logger
-        self.graph_file = graph_file
         self.scotch_path = scotch_path
+        self.graph_file = graph_file
         self.scotch_log = scotch_log
         self.scotch_out = scotch_out
         self.module_deps = module_deps
-        self.edge_to_id = {}
-        self.id_to_edge = []
         self.task_size = task_size
         self.logger.debug('Going to get verification verification objects of size less than ' + str(self.task_size))
         self.balance_tolerance = balance_tolerance
         self.logger.debug('Going to keep balance tolerance equal to ' + str(self.balance_tolerance))
         self.logger.debug('Calculate graph of all dependencies between modules')
-        self.modules = {}
         self.checked_clusters = set()
 
-
     def divide(self, module_name):
+        self.modules = {}
+        self.edge_to_id = {}
+        self.id_to_edge = []
         self.logger.debug('Start verificaton multimodule task extraction based on scotch partitioning')
-
+        self.logger.debug('Module name ' + module_name)
+        if module_name not in self.module_deps or not self.module_deps[module_name]:
+            self.logger.debug('Module has no dependencies')
+            return [Graph([Module(module_name)])]
         dual_graph, dual_edges_num = self.get_dual_graph(module_name)
 
         self.logger.debug('Going to print dual graph to file:')
@@ -73,7 +75,7 @@ class Scotch:
                         group_dict[module].add_predecessor(group_dict[predecessor])
 
             if group_dict:
-                graph = Graph(group_dict.values())
+                graph = Graph(list(group_dict.values()))
                 clusters.append(graph)
 
         if len(clusters) != partitions:
@@ -135,8 +137,8 @@ class Scotch:
                     if ' '.join((module, connected)) not in self.edge_to_id \
                         and ' '.join((connected, module)) not in self.edge_to_id:
                         #Get verticles
-                        self.edge_to_id[' '.join((module, connected))] = edge_key
-                        self.id_to_edge.append(' '.join((module, connected)))
+                        self.edge_to_id[' '.join((connected, module))] = edge_key
+                        self.id_to_edge.append(' '.join((connected, module)))
                         edge_key += 1
                     connective_graph.setdefault(connected, {})
                     connective_graph[connected][module] = 1

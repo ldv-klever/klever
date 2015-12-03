@@ -103,12 +103,14 @@ class LKBCE(psi.components.Component):
 
          #TODO external module
         self.linux_kernel['module deps'] = {}
-        if 'whole build' in self.conf['Linux kernel']:
+        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
+                and 'build kernel' in self.conf['Linux kernel']:
             #Install modules
-            self.linux_kernel['modules install'] = self.conf['root id'] + '/linux-modules'
+            self.linux_kernel['modules install'] = os.path.join(self.conf['root id'], 'linux-modules')
             os.mkdir(self.linux_kernel['modules install'])
-            self.__make(['-C', self.linux_kernel['work src tree'],
-                         'INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'])
+            self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'],
+                        jobs_num=psi.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
+                        specify_arch=False, invoke_build_cmd_wrappers=False, collect_build_cmds=False)
             #Extract mod deps
             self.extract_all_linux_kernel_mod_deps()
 
@@ -117,7 +119,8 @@ class LKBCE(psi.components.Component):
             fp.write(psi.lkbce.cmds.cmds.Command.cmds_separator)
 
     def extract_all_linux_kernel_mod_deps(self):
-        if 'whole build' in self.conf['Linux kernel']:
+        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
+                and 'build kernel' in self.conf['Linux kernel']:
             path = os.path.join(self.linux_kernel['modules install'], "lib/modules", self.linux_kernel['version'], "modules.dep")
 
             with open(path, 'r') as fp:
@@ -129,9 +132,10 @@ class LKBCE(psi.components.Component):
                     module_name = module_name[7:] if module_name.startswith('kernel/') else module_name
                     module_deps = splits[1][:-1]
                     module_deps = list(filter(lambda x: x != '', module_deps.split(' ')))
-                    module_deps = [dep[7:] if dep.startswith('kernel/') else dep for dep in module_deps]
                     if len(module_deps) == 1:
                         continue
+                    module_deps = [dep[7:] if dep.startswith('kernel/') else dep for dep in module_deps]
+                    module_deps = list(sorted(module_deps))
                     self.linux_kernel['module deps'][module_name] = module_deps
             self.conf['Linux kernel']['module deps'] = self.linux_kernel['module deps']
 
