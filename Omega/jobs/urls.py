@@ -21,6 +21,7 @@ urlpatterns = [
     url(r'^ajax/showjobdata/$', views.showjobdata),
     url(r'^ajax/upload_file/$', views.upload_file),
     url(r'^ajax/downloadjob/(?P<job_id>[0-9]+)/$', views.download_job),
+    url(r'^ajax/downloadjobs/$', views.download_jobs),
     url(r'^ajax/check_access/$', views.check_access),
     url(r'^ajax/upload_job/(?P<parent_id>.*)/$', views.upload_job),
     url(r'^ajax/getfilecontent/$', views.getfilecontent),

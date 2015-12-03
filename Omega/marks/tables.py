@@ -25,7 +25,8 @@ MARK_TITLES = {
     'format': _('Format'),
     'number': '№',
     'num_of_links': _('Number of associated leaf reports'),
-    'problem': _("Problem")
+    'problem': _("Problem"),
+    'component': _('Component')
 }
 
 STATUS_COLOR = {
@@ -434,7 +435,7 @@ class MarksList(object):
     def __get_columns(self):
         columns = ['mark_num']
         if self.type == 'unknown':
-            for col in ['num_of_links', 'status', 'author',
+            for col in ['num_of_links', 'status', 'component', 'author',
                         'format']:
                 if col in self.view['columns']:
                     columns.append(col)
@@ -456,11 +457,14 @@ class MarksList(object):
                     unfilter['status'] = self.view['filters']['status']['value']
             if self.type != 'unknown' and 'verdict' in self.view['filters']:
                 if self.view['filters']['verdict']['type'] == 'is':
-                    filters['verdict'] = \
-                        self.view['filters']['verdict']['value']
+                    filters['verdict'] = self.view['filters']['verdict']['value']
                 else:
-                    unfilter['verdict'] = \
-                        self.view['filters']['verdict']['value']
+                    unfilter['verdict'] = self.view['filters']['verdict']['value']
+            if 'component' in self.view['filters']:
+                if self.view['filters']['component']['type'] == 'is':
+                    filters['component__name'] = self.view['filters']['component']['value']
+                elif self.view['filters']['component']['type'] == 'startswith':
+                    filters['component__name__istartswith'] = self.view['filters']['component']['value']
             if 'author' in self.view['filters']:
                 filters['author_id'] = self.view['filters']['author']['value']
 
@@ -552,6 +556,8 @@ class MarksList(object):
                     href = reverse('users:show_profile', args=[mark.author.pk])
                 elif col == 'format':
                     val = mark.format
+                elif col == 'component':
+                    val = mark.component.name
                 values_str.append({'color': color, 'value': val, 'href': href})
             else:
                 values.append((order_by_value, values_str))
