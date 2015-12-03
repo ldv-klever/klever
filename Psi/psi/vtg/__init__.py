@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import copy
 import multiprocessing
 import os
 import random
@@ -10,15 +11,28 @@ import psi.utils
 
 def before_launch_all_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
+    context.mqs['abstract task descs'] = multiprocessing.Queue()
 
 
 def after_extract_common_prj_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
 
 
+def after_generate_abstact_verification_task_desc(context):
+    # We need to copy abstrtact verification task description since it may be accidently overwritten by AVTG.
+    if context.abstract_task_desc:
+        context.mqs['abstract task descs'].put(copy.deepcopy(context.abstract_task_desc))
+
+
+def after_generate_all_abstract_verification_task_descs(context):
+    context.logger.info('Terminate abstract verification task descriptions message queue')
+    context.mqs['abstract task descs'].put(None)
+
+
 class VTG(psi.components.Component):
     def generate_verification_tasks(self):
         self.common_prj_attrs = {}
+
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
@@ -26,6 +40,9 @@ class VTG(psi.components.Component):
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
                          self.conf['main working directory'])
+
+        self.generate_all_verification_task_descs()
+
         return
         # TODO: delete following stub code after all.
         # Start and finish "WRAPPER". Upload safes, unsafes and unknowns in the middle.
@@ -151,3 +168,22 @@ class VTG(psi.components.Component):
         self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
 
         self.mqs['VTG common prj attrs'].close()
+
+    def generate_all_verification_task_descs(self):
+        self.logger.info('Generate all verification task decriptions')
+
+        while True:
+            abstact_task_desc = self.mqs['abstract task descs'].get()
+
+            if abstact_task_desc is None:
+                self.logger.debug('Abstract verification task descriptions message queue was terminated')
+                self.mqs['abstract task descs'].close()
+                break
+
+            # TODO: specification requires to do this in parallel...
+            self.generate_verification_task_descs(abstact_task_desc)
+
+    def generate_verification_task_descs(self, abstract_task_desc):
+        # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
+        self.logger.info('Generate verification task descriptions for abstract verification task "{0}"'.format(
+            abstract_task_desc['id']))
