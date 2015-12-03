@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-12-02 13:58+0000\n"
+"POT-Creation-Date: 2015-12-03 09:45+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1938,16 +1938,12 @@ msgid "Error traces conversion and comparison functions were updated"
 msgstr "Были обновлены функции преобразования и сравнения трасс ошибок"
 
 #: templates/Population.html:39
-#, fuzzy
-#| msgid "New jobs were uploaded"
-msgid "New main jobs were uploaded"
-msgstr "Были загружены новые задания"
+msgid "New root jobs were uploaded"
+msgstr "Были загружены новые корневые задания"
 
 #: templates/Population.html:44
-#, fuzzy
-#| msgid "New jobs were uploaded"
-msgid "New default jobs were uploaded"
-msgstr "Были загружены новые задания"
+msgid "New preset jobs were uploaded"
+msgstr "Были загружены новые предустановленные задания"
 
 #: templates/Population.html:53
 msgid "Nothing changed"
@@ -2392,3 +2388,8 @@ msgstr "Изменение"
 #: users/views.py:297
 msgid "Saved"
 msgstr "Сохранено"
+
+#, fuzzy
+#~| msgid "New jobs were uploaded"
+#~ msgid "New default jobs were uploaded"
+#~ msgstr "Были загружены задания"
