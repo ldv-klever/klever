@@ -31,7 +31,7 @@ class EMG(psi.components.Component):
         module_spec = ModuleSpecification(self.logger)
         analysis = {}
         if "source analysis" in avt:
-            analysis_file = os.path.join(self.conf["main working directory"],                   avt["source analysis"])
+            analysis_file = os.path.join(self.conf["main working directory"], avt["source analysis"])
             with open(analysis_file, "r") as fh:
                 analysis = json.loads(fh.read())
         else:
