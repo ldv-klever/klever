@@ -1,0 +1,30 @@
+before: file("$this")
+{
+long ldv_is_err(const void *ptr);
+long ldv_is_err_or_null(const void *ptr);
+void* ldv_err_ptr(long error);
+long ldv_ptr_err(const void *ptr);
+} 
+
+around: execution(static inline long IS_ERR(..))
+{
+	return ldv_is_err($arg1);
+}
+
+around: execution(static inline void* ERR_PTR(..))
+{
+	return ldv_err_ptr($arg1);
+}
+
+around: execution(static inline long PTR_ERR(..))
+{
+	return ldv_ptr_err($arg1);
+}
+
+around: execution(static inline long IS_ERR_OR_NULL(..))
+{
+	return ldv_is_err_or_null($arg1);
+}
+
+
+
