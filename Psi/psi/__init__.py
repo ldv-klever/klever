@@ -313,7 +313,7 @@ class Psi:
         self.logger.info('Create components configuration')
 
         # Read job configuration from file.
-        with open('job/root/conf.json') as fp:
+        with open(psi.utils.find_file_or_dir(self.logger, os.path.curdir, 'conf.json')) as fp:
             self.components_conf = json.load(fp)
 
         # Convert list of primitive dictionaries to one dictionary to simplify code below.
