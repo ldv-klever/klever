@@ -327,7 +327,7 @@ class ModuleSpecification(CategorySpecification):
                     # Compare with resources
                     for category in self.categories:
                         for resource in self.categories[category]["resources"]:
-                            if self.categories[category]["containers"][resource].signature.\
+                            if self.categories[category]["resources"][resource].signature.\
                                 compare_signature(
                                     self.analysis["global variable initializations"][path][variable]):
                                 self.analysis["global variable initializations"][path][variable].interface = \
@@ -517,10 +517,10 @@ class Signature:
             self.pointer = False
             self.array = False
 
-        struct_re = re.compile("^struct\s+\w*\s+(\*?)%s\s?((?:\[\w*\]))?\Z")
+        struct_re = re.compile("^struct\s+(?:[\w|*]*\s)+(\**)%s\s?((?:\[\w*\]))?\Z")
         self.__check_type(struct_re, "struct")
 
-        value_re = re.compile("^(\w*\s+)+(\*?)%s((?:\[\w*\]))?\Z")
+        value_re = re.compile("^(\w*\s+)+(\**)%s((?:\[\w*\]))?\Z")
         self.__check_type(value_re, "primitive")
 
         interface_re = re.compile("^(\*?)%.*%\Z")
