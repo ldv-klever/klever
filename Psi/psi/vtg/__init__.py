@@ -217,6 +217,8 @@ class VTG(psi.components.Component):
         os.makedirs(work_dir)
         self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
+        self.conf['abstract task desc'] = abstract_task_desc
+
         p = self.strategy(self.conf, self.logger, self.name, self.callbacks, self.mqs,
                           '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
                           work_dir, abstract_task_desc['attrs'], True, True)
