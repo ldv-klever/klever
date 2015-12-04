@@ -1,5 +1,4 @@
 import argparse
-import getpass
 import io
 import json
 import multiprocessing
@@ -59,9 +58,6 @@ class Psi:
             self.prepare_work_dir()
             self.change_work_dir()
             self.logger = psi.utils.get_logger(self.__class__.__name__, self.conf['logging'])
-            # Configuration for Omega.
-            self.omega = {'name': self.conf['Omega']['name'], 'user': self.get_user('Omega'),
-                          'passwd': self.get_passwd('Omega')}
             self.get_version()
             self.job = psi.job.Job(self.logger, self.conf['identifier'])
             self.get_comp_desc()
@@ -71,7 +67,7 @@ class Psi:
                                                   'attrs': [{'PSI version': self.version}],
                                                   'comp': [{attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
                                                            for attr in self.comp for attr_shortcut in attr]})
-            self.session = psi.session.Session(self.logger, self.omega, self.job.id)
+            self.session = psi.session.Session(self.logger, self.conf['Omega'], self.job.id)
             self.session.decide_job(self.job, start_report_file)
             # TODO: create parallel process to send requests about successful operation to Omega.
             self.mqs['report files'] = multiprocessing.Queue()
@@ -197,27 +193,6 @@ class Psi:
         # we have relative path but don't change working directory yet.
         self.is_solving_file = os.path.relpath(self.is_solving_file, self.conf['working directory'])
         os.chdir(self.conf['working directory'])
-
-    def get_user(self, name):
-        """
-        Get user for the specified name either from configuration or by using OS user.
-        :param name: a name of service for which user is required.
-        :return: a user for the specified name.
-        """
-        self.logger.info('Get ' + name + ' user name')
-        user = getpass.getuser() if not self.conf[name]['user'] else self.conf[name]['user']
-        self.logger.debug(name + ' user name is "{}"'.format(user))
-        return user
-
-    def get_passwd(self, name):
-        """
-        Get password for the specified name either from configuration or by using password prompt.
-        :param name: a name of service for which password is required.
-        :return: a password for the specified name.
-        """
-        self.logger.info('Get ' + name + ' password')
-        passwd = getpass.getpass() if not self.conf[name]['password'] else self.conf[name]['password']
-        return passwd
 
     def get_version(self):
         """
