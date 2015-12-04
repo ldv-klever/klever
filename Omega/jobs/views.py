@@ -656,11 +656,11 @@ def decide_job(request):
                               format=int(request.POST['job format']))
     except ObjectDoesNotExist:
         return JsonResponse({
-            'error': 'Job with the specified identifier "%s" was not found' % request.session['job identifier']
+            'error': 'Job with identifier "%s" was not found' % request.session['job identifier']
         })
     except MultipleObjectsReturned:
         return JsonResponse({
-            'error': 'The specified job identifier "%s" is not unique' % request.session['job identifier']
+            'error': 'The job identifier "%s" is not unique' % request.session['job identifier']
         })
 
     if not JobAccess(request.user, job).psi_access():
@@ -718,10 +718,6 @@ def stop_decision(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': "Unknown error"})
-    if request.user.extended.role != USER_ROLES[2][0]:
-        return JsonResponse({
-            'error': _("You don't have an access to stop decision of this job")
-        })
     try:
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
     except ObjectDoesNotExist:
@@ -731,10 +727,10 @@ def stop_decision(request):
     result = StopDecision(job)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
-    return JsonResponse({'status': True})
+    return JsonResponse({})
 
 
-@unparallel_group('decision')
+@unparallel_group(['decision'])
 @login_required
 def run_decision(request):
     activate(request.user.extended.language)
@@ -761,16 +757,16 @@ def prepare_decision(request, job_id):
     })
 
 
-@unparallel_group('decision')
+@unparallel_group(['decision'])
 @login_required
 def fast_run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'status': False, 'error': 'Unknown error'})
+        return JsonResponse({'error': 'Unknown error'})
     try:
         job_id = Job.objects.get(pk=int(request.POST.get('job_id', 0))).pk
     except ObjectDoesNotExist:
-        return JsonResponse({'status': False, 'error': 'Unknown error'})
+        return JsonResponse({'error': 'Unknown error'})
     data = {'job_id': job_id}
     data.update(get_default_data())
     result = StartJobDecision(request.user, json.dumps(data))

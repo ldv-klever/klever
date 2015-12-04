@@ -880,7 +880,7 @@ $(document).ready(function () {
                 if (data.error) {
                     err_notify(data.error);
                 }
-                else if (data.status) {
+                else {
                     window.location.replace('');
                 }
             }

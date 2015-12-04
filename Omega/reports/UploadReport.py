@@ -29,8 +29,7 @@ class UploadReport(object):
         if self.error is not None:
             self.__job_failed(self.error)
             return
-        self.root = None
-        self.__get_root_report()
+        self.root = self.__get_root_report()
         if self.error is not None:
             self.__job_failed(self.error)
             return
@@ -49,7 +48,7 @@ class UploadReport(object):
 
         if 'resources' in data:
             if not isinstance(data['resources'], dict) \
-                    and all(x in data['resources'] for x in ['wall time', 'CPU time', 'max mem size']):
+                    or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'max mem size']):
                 return 'Resources has wrong format: %s' % json.dumps(data['resources'])
 
         self.data = {'type': data['type'], 'id': data['id']}
@@ -161,10 +160,10 @@ class UploadReport(object):
 
     def __get_root_report(self):
         try:
-            self.root = self.job.reportroot
+            return self.job.reportroot
         except ObjectDoesNotExist:
             self.error = "Can't find report root"
-            return
+            return None
 
     def __get_parent(self):
         if 'parent id' in self.data:
@@ -224,9 +223,8 @@ class UploadReport(object):
             if attr not in single_attrs_order:
                 single_attrs_order.insert(0, attr)
             elif self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-                self.__job_failed("Got double attribute: '%s' for report"
-                                  " with type '%s' and id '%s'" %
-                                  (attr, self.data['type'], self.data['id']))
+                self.__job_failed("Got double attribute: '%s' for report with type"
+                                  " '%s' and id '%s'" % (attr, self.data['type'], self.data['id']))
         for attr_name in single_attrs_order:
             ReportAttrOrder.objects.get_or_create(
                 name=AttrName.objects.get_or_create(name=attr_name)[0],
@@ -246,7 +244,7 @@ class UploadReport(object):
         component_name = 'Psi'
         if 'name' in self.data:
             component_name = self.data['name']
-        component, tmp = Component.objects.get_or_create(name=component_name)
+        component = Component.objects.get_or_create(name=component_name)[0]
         report.component = component
 
         if 'comp' in self.data:
@@ -279,14 +277,13 @@ class UploadReport(object):
                 file_in_db.hash_sum = check_sum
                 file_in_db.save()
             report.log = file_in_db
-        if 'data' in self.data:
-            report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.start_date = now()
 
         if self.data['type'] == 'verification':
             report.finish_date = report.start_date
+            report.data = self.data['data'].encode('utf8')
         report.save()
 
         self.__add_attrs(report)
@@ -335,21 +332,17 @@ class UploadReport(object):
                 file_in_db.hash_sum = check_sum
                 file_in_db.save()
             report.log = file_in_db
-        if 'data' in self.data:
-            report.data = self.data['data'].encode('utf8')
+        report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.finish_date = now()
         report.save()
 
         self.__add_attrs(report)
-
-        if 'resources' in self.data:
-            self.__update_parent_resources(report)
+        self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            if len(ReportComponent.objects.filter(finish_date=None,
-                                                  root=self.root)):
+            if len(ReportComponent.objects.filter(finish_date=None, root=self.root)):
                 self.__job_failed("There are unfinished reports")
             elif self.job.status != JOB_STATUS[5][0]:
                 PSIFinishDecision(self.job)

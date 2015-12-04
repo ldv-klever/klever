@@ -77,8 +77,7 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-def report_list(request, report_id, ltype, component_id=None, verdict=None,
-                tag=None, problem=None):
+def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=None, problem=None):
     activate(request.user.extended.language)
 
     try:
@@ -246,8 +245,9 @@ def report_etv_full(request, report_id):
 
 
 @unparallel_group(['mark', 'report'])
-@login_required
 def upload_report(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signed in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Get request is not supported'})
     if 'job id' not in request.session:
@@ -264,9 +264,7 @@ def upload_report(request):
                      (request.user.username, job.identifier)
         })
     if job.status != JOB_STATUS[2][0]:
-        return JsonResponse({
-            'error': 'Reports can be uploaded only for processing jobs'
-        })
+        return JsonResponse({'error': 'Reports can be uploaded only for processing jobs'})
     try:
         data = json.loads(request.POST.get('report', '{}'))
     except Exception as e:

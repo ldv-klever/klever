@@ -17,7 +17,6 @@ from reports.models import ReportComponent, ReportUnsafe, ReportSafe,\
 from reports.UploadReport import UploadReport
 from service.models import SolvingProgress, Scheduler
 
-DOWNLOAD_LOCKFILE = 'download.lock'
 ET_FILE = 'omega-error-trace.graphml'
 
 
@@ -262,7 +261,6 @@ class ReverseReport(object):
 
     def __revert_leaf_report(self):
         if isinstance(self.report, ReportUnsafe):
-            # self.report_data['error trace'] = self.report.error_trace.decode('utf8')
             self.report_data['error trace'] = ET_FILE
             self.report_data['type'] = 'unsafe'
             self.report_data['omega_db_pk'] = self.report.pk

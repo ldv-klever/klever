@@ -853,13 +853,8 @@ class StartJobDecision(object):
         self.job.save()
 
     def __get_psi_data(self):
-        try:
-            job = Job.objects.get(pk=int(self.data['job_id']))
-        except ObjectDoesNotExist:
-            self.error = _("The job was not found")
-            return None
         conf = {
-            'identifier': job.identifier,
+            'identifier': self.job.identifier,
             'priority': self.data['priority'],
             'debug': self.data['debug'],
             'allow local source directories use': self.data['allow_local_dir'],

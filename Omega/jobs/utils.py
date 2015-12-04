@@ -223,7 +223,7 @@ class FileData(object):
         self.filedata = ordered_data
 
 
-class DBFileData(object):
+class SaveFileData(object):
 
     def __init__(self, filedata, job):
         self.filedata = filedata
@@ -435,7 +435,7 @@ def create_job(kwargs):
     new_version = create_version(newjob, kwargs)
 
     if 'filedata' in kwargs:
-        db_fdata = DBFileData(kwargs['filedata'], new_version)
+        db_fdata = SaveFileData(kwargs['filedata'], new_version)
         if db_fdata.err_message is not None:
             newjob.delete()
             return db_fdata.err_message
@@ -473,7 +473,7 @@ def update_job(kwargs):
     newversion = create_version(kwargs['job'], kwargs)
 
     if 'filedata' in kwargs:
-        db_fdata = DBFileData(kwargs['filedata'], newversion)
+        db_fdata = SaveFileData(kwargs['filedata'], newversion)
         if db_fdata.err_message is not None:
             newversion.delete()
             kwargs['job'].version -= 1

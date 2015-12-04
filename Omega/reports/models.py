@@ -83,7 +83,7 @@ class ReportComponent(Report):
     def delete(self, *args, **kwargs):
         computer = self.computer
         resource = self.resource
-        file = self.file
+        file = self.log
         super(ReportComponent, self).delete(*args, **kwargs)
         if len(computer.reportcomponent_set.all()) == 0:
             computer.delete()
@@ -126,8 +126,7 @@ class ETVFiles(models.Model):
 
 class ReportSafe(Report):
     proof = models.BinaryField()
-    verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS,
-                               default='4')
+    verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
 
     class Meta:
         db_table = 'report_safe'
@@ -174,8 +173,7 @@ class Verdict(models.Model):
 
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='resources_cache')
-    component = models.ForeignKey(Component, null=True, blank=True,
-                                  on_delete=models.PROTECT)
+    component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
     resource = models.ForeignKey(Resource)
 
     def delete(self, *args, **kwargs):
