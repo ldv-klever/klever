@@ -260,5 +260,227 @@
         }
       }
     }
+  },
+  "interface implementations": {
+    "drivers/net/usb/catc.c": {
+      "global variables": [
+        {
+          "name": "catc_driver",
+          "interface": "usb.usb_driver",
+          "value": {
+            "probe": {
+              "type": "function",
+              "identifier": "catc_probe",
+              "expression": "& catc_probe"
+            },
+            "disconnect": {
+              "type": "function",
+              "identifier": "catc_disconnect",
+              "expression": "& catc_disconnect"
+            },
+            "id_table": {
+              "type": "magnitude",
+              "expression": "1U"
+            }
+          }
+        },
+        {
+          "name": "ops",
+          "interface": "net.ethtool_ops",
+          "value": {
+            "get_settings": {
+              "type": "function",
+              "identifier": "catc_get_settings",
+              "expression": "& catc_get_settings"
+            },
+            "get_link": {
+              "type": "function",
+              "identifier": "ethtool_op_get_link",
+              "expression": "& ethtool_op_get_link"
+            },
+            "get_drvinfo": {
+              "type": "function",
+              "identifier": "catc_get_drvinfo",
+              "expression": "& catc_get_drvinfo"
+            }
+          }
+        },
+        {
+          "name": "catc_netdev_ops",
+          "interface": "net.net_device_ops",
+          "value": {
+            "ndo_open": {
+              "type": "function",
+              "identifier": "catc_open",
+              "expression": "& catc_open"
+            },
+            "ndo_stop": {
+              "type": "function",
+              "identifier": "catc_stop",
+              "expression": "& catc_stop"
+            },
+            "ndo_start_xmit": {
+              "type": "function",
+              "identifier": "catc_start_xmit",
+              "expression": "& catc_start_xmit"
+            },
+            "ndo_set_mac_address": {
+              "type": "function",
+              "identifier": "eth_mac_addr",
+              "expression": "& eth_mac_addr"
+            },
+            "ndo_validate_addr": {
+              "type": "function",
+              "identifier": "eth_validate_addr",
+              "expression": "& eth_validate_addr"
+            },
+            "ndo_tx_timeout": {
+              "type": "function",
+              "identifier": "catc_tx_timeout",
+              "expression": "& catc_tx_timeout"
+            }
+          }
+        }
+      ],
+      "call graph": {
+        "catc_init": {
+          "calls": [
+            {
+              "name": "usb_register",
+              "parameters": {
+                "0": {
+                  "type": "global variable",
+                  "identifier": "catc_driver",
+                  "expression": "& catc_driver"
+                }
+              }
+            }
+          ]
+        },
+        "catc_exit": {
+          "calls": [
+            {
+              "name": "usb_deregister",
+              "parameters": {
+                "0": {
+                  "type": "global variable",
+                  "identifier": "catc_driver",
+                  "expression": "& catc_driver"
+                }
+              }
+            }
+          ]
+        },
+        "catc_probe": {
+          "calls": [
+            {
+              "name": "alloc_netdev",
+              "parameters": {
+                "0": {
+                  "type": "magnitude",
+                  "expression": "sizeof(struct catc)"
+                }
+              }
+            },
+            {
+              "name": "register_netdev",
+              "parameters": {
+                "0": {
+                  "type": "local variable",
+                  "identifier": "netdev",
+                  "expression": "netdev"
+                }
+              }
+            },
+            {
+              "name": "free_netdev",
+              "parameters": {
+                "0": {
+                  "type": "local variable",
+                  "identifier": "netdev",
+                  "expression": "netdev"
+                }
+              }
+            },
+            {
+              "name": "init_timer",
+              "parameters": {
+                "0": {
+                  "type": "statement",
+                  "expression": "timer->function"
+                }
+              }
+            }
+          ],
+          "variables": [
+            {
+              "name": "netdev",
+              "interface": "net.net_device"
+            }
+          ]
+        },
+        "catc_disconnect": {
+          "calls": [
+            {
+              "name": "unregister_netdev",
+              "parameters": {
+                "0": {
+                  "type": "statement",
+                  "expression": "catc->netdev"
+                }
+              }
+            },
+            {
+              "name": "free_netdev",
+              "parameters": {
+                "0": {
+                  "type": "statement",
+                  "expression": "catc->netdev"
+                }
+              }
+            }
+          ]
+        },
+        "catc_stats_timer": {
+          "calls": [
+            {
+              "name": "mod_timer",
+              "parameters": {
+                "0": {
+                  "type": "statement",
+                  "expression": "&catc->timer"
+                },
+                "1": {
+                  "type": "magnitude",
+                  "expression": "jiffies + STATS_UPDATE"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "macros": [
+        {
+          "name": "module_init",
+          "parameters": {
+            "0": {
+              "type": "function",
+              "identifier": "catc_init",
+              "expression": "& catc_init"
+            }
+          }
+        },
+        {
+          "name": "module_exit",
+          "parameters": {
+            "0": {
+              "type": "function",
+              "identifier": "catc_exit",
+              "expression": "& catc_exit"
+            }
+          }
+        }
+      ]
+    }
   }
 }

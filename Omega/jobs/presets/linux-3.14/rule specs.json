@@ -3,117 +3,160 @@
     "Common for Linux kernel modules": {
       "description": "...",
       "plugins": [
-	{
-	  "name": "EMG",
-	  "options": {
-	    "specifications directory": "emg",
-	    "entry point": "entry point",
-	    "kartographer": "/home/zakharov/src/kartographer/kartographer.py"
-	  }
-	},
-	{
-	  "name": "RSG",
-	  "options": {
-	    "rule specifications directory": "rule specs",
-	    "models directory": "rule specs/linux",
-	    "model CC options": ["-nostdinc", 
-	                         "-Iarch/$hdr_arch/include",
-	                         "-Iarch/$hdr_arch/include/generated",
-	                         "-Iinclude",
-	                         "-Iarch/$hdr_arch/include/uapi",
-	                         "-Iarch/$hdr_arch/include/generated/uapi",
-	                         "-Iinclude/uapi",
-	                         "-Iinclude/generated/uapi",
-	                         "-include", "include/linux/kconfig.h",
-	                         "-D__KERNEL__"],
-	    "common models": ["err.c"],
-	    "aspects directory": "rule specs/linux",
-	    "common aspects": ["err.aspect"]
-	  }
-	},
-	{
-	  "name": "Weaver"
-	} 
+        {
+          "name": "SA",
+          "options": {
+            "template aspect": "sa.template.aspect",
+            "filter kernel functions": true
+          }
+        },
+        {
+          "name": "EMG",
+          "options": {
+            "specifications directory": "emg",
+            "entry point": "entry point"
+          }
+        },
+        {
+          "name": "RSG",
+          "options": {
+            "rule specifications directory": "rule specs",
+            "models directory": "rule specs/linux",
+            "model CC options": [
+              "-nostdinc",
+              "-Iarch/$hdr_arch/include",
+              "-Iarch/$hdr_arch/include/generated",
+              "-Iinclude",
+              "-Iarch/$hdr_arch/include/uapi",
+              "-Iarch/$hdr_arch/include/generated/uapi",
+              "-Iinclude/uapi",
+              "-Iinclude/generated/uapi",
+              "-include",
+              "include/linux/kconfig.h",
+              "-D__KERNEL__"
+            ],
+            "common models": [
+              "err.c"
+            ],
+            "aspects directory": "rule specs/linux",
+            "common aspects": [
+              "err.aspect"
+            ]
+          }
+        },
+        {
+          "name": "Weaver"
+        }
       ]
     },
     "Argument signatures for Linux kernel modules": {
       "description": "...",
       "plugins": [
-	{
-	  "name": "EMG",
-	  "options": {
-	    "specifications directory": "emg",
-	    "entry point": "entry point",
-	    "kartographer": "/home/zakharov/src/kartographer/kartographer.py"
-	  }
-	},
-	{
-	  "name": "ASE",
-	  "options": {
-	    "algorithm": "COMPLEX_ID",
-	    "request aspects directory": "rule specs/linux"
-	  }
-	},
-	{
-	  "name": "TR",
-	  "options": {
-	    "templates directory": "rule specs/linux"
-	  }
-	},
-	{
-	  "name": "RSG",
-	  "options": {
-	    "rule specifications directory": "rule specs",
-	    "models directory": "rule specs/linux",
-	    "model CC options": ["-nostdinc", 
-	                         "-Iarch/$hdr_arch/include",
-	                         "-Iarch/$hdr_arch/include/generated",
-	                         "-Iinclude",
-	                         "-Iarch/$hdr_arch/include/uapi",
-	                         "-Iarch/$hdr_arch/include/generated/uapi",
-	                         "-Iinclude/uapi",
-	                         "-Iinclude/generated/uapi",
-	                         "-include", "include/linux/kconfig.h",
-	                         "-D__KERNEL__"],
-	    "common models": ["err.c"],
-	    "aspects directory": "rule specs/linux",
-	    "common aspects": ["err.aspect"]
-	  }
-	},
-	{
-	  "name": "Weaver"
-	} 
+        {
+          "name": "SA",
+          "options": {
+            "template aspect": "sa.template.aspect",
+            "filter kernel functions": true
+          }
+        },
+        {
+          "name": "EMG",
+          "options": {
+            "specifications directory": "emg",
+            "entry point": "entry point"
+          }
+        },
+        {
+          "name": "ASE",
+          "options": {
+            "algorithm": "COMPLEX_ID",
+            "request aspects directory": "rule specs/linux"
+          }
+        },
+        {
+          "name": "TR",
+          "options": {
+            "templates directory": "rule specs/linux"
+          }
+        },
+        {
+          "name": "RSG",
+          "options": {
+            "rule specifications directory": "rule specs",
+            "models directory": "rule specs/linux",
+            "model CC options": [
+              "-nostdinc",
+              "-Iarch/$hdr_arch/include",
+              "-Iarch/$hdr_arch/include/generated",
+              "-Iinclude",
+              "-Iarch/$hdr_arch/include/uapi",
+              "-Iarch/$hdr_arch/include/generated/uapi",
+              "-Iinclude/uapi",
+              "-Iinclude/generated/uapi",
+              "-include",
+              "include/linux/kconfig.h",
+              "-D__KERNEL__"
+            ],
+            "common models": [
+              "err.c"
+            ],
+            "aspects directory": "rule specs/linux",
+            "common aspects": [
+              "err.aspect"
+            ]
+          }
+        },
+        {
+          "name": "Weaver"
+        }
       ]
     }
   },
   "rule specifications": {
     "linux:mutex": {
-      "aliases": ["32"],
+      "aliases": [
+        "32"
+      ],
       "description": "...",
-      "bug kinds": ["one thread:double acquisition", "one thread:unreleased at exit"],
+      "bug kinds": [
+        "one thread:double acquisition",
+        "one thread:unreleased at exit"
+      ],
       "template": "Common for Linux kernel modules",
       "RSG": {
-	"models": ["mutex.c"],
-	"aspects": ["mutex.aspect"]
+        "models": [
+          "mutex.c"
+        ],
+        "aspects": [
+          "mutex.aspect"
+        ]
       }
     },
     "linux:mutex:as": {
       "description": "...",
-      "bug kinds": ["one thread:double acquisition", "one thread:unreleased at exit"],
+      "bug kinds": [
+        "one thread:double acquisition",
+        "one thread:unreleased at exit"
+      ],
       "template": "Argument signatures for Linux kernel modules",
       "ASE": {
         "request aspect": "mutex.request.aspect"
       },
       "TR": {
-        "templates": ["mutex.c.tmpl", "mutex.aspect.tmpl"]
+        "templates": [
+          "mutex.c.tmpl",
+          "mutex.aspect.tmpl"
+        ]
       }
     },
     "linux:spinlock": {
       "description": "...",
-      "bug kinds": ["one thread:double acquisition"],
+      "bug kinds": [
+        "one thread:double acquisition"
+      ],
       "template": "Common for Linux kernel modules",
       "RSG": {
-	"model": "rule specs/linux/spinlock.c"
+        "model": "rule specs/linux/spinlock.c"
       }
     }
   }
