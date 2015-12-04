@@ -454,10 +454,12 @@ class GlobalInitParser:
 
     def _parse_element(self, element, block):
         value_re = re.compile("^\s*Value\sis\s'([^']*)'")
+        array_re = re.compile("^\s*Array\selement\sinitialization")
+        struct_re = re.compile("^\s*Structure field initialization")
 
         if element["type"] == "structure":
             # Ignore Initializer list first string
-            self._parse_structure(element["value"], block[1:])
+            self._parse_structure(element["fields"], block[1:])
         elif element["type"] == "function pointer":
             ret_re = re.compile("^\s*Pointed\sfunction\sreturn\stype\sdeclaration\sis\s'([^']*)'")
             args_re = re.compile("^\s*Pointed\sfunction\sargument\stype\sdeclarations\sare([^\n]*)\n")
@@ -472,12 +474,26 @@ class GlobalInitParser:
             element["return value type"] = return_type
             element["parameters"] = parameters
             element["value"] = value
-        elif element["type"] in ["primitive", "primitive pointer", "pointer to structure variable"]:
-            value = value_re.match(block[0]).group(1)
-            element["value"] = value
+        elif element["type"] in ["primitive", "primitive pointer", "pointer to structure variable",
+                                 "pointer to pointer"]:
+            if not value_re.match(block[0]):
+                # TODO: Remove this when CIF will always return only Value for primitives
+                element["value"] = None
+            else:
+                value = value_re.match(block[0]).group(1)
+                element["value"] = value
         elif element["type"] == "array":
             # Ignore Initializer list first string
-            self._parse_array(element["value"], block[1:])
+            self._parse_array(element["elements"], block[1:])
+        elif element["type"] == "typedef":
+            # Check typedef element
+            if value_re.match(block[0]):
+                value = value_re.match(block[0]).group(1)
+                element["value"] = value
+            elif array_re.match(block[1]):
+                self._parse_array(element["elements"], block[1:])
+            elif struct_re.match(block[1]):
+                self._parse_structure(element["fields"], block[1:])
         else:
             raise NotImplementedError("Field type '{}' is not supported by global variables initialization parser".
                                       format(element["type"]))
