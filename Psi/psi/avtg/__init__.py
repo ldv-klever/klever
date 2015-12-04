@@ -157,7 +157,7 @@ def _extract_rule_spec_descs(conf, logger):
 
 
 _rule_spec_descs = None
-_plugins = (EMG, ASE, TR, RSG, Weaver)
+_plugins = (SA, EMG, ASE, TR, RSG, Weaver)
 
 
 def get_subcomponent_callbacks(conf, logger):
