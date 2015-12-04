@@ -3,3 +3,5 @@ dist/
 *.egg-info/
 docs/_build
 */.idea/workspace.xml
+addons
+
