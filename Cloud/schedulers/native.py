@@ -166,7 +166,10 @@ class Scheduler(schedulers.SchedulerExchange):
         # Create working directory
         job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
         logging.debug("Create working directory {}".format(identifier))
-        os.makedirs(job_work_dir)
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
+            os.makedirs(job_work_dir, exist_ok=True)
+        else:
+            os.makedirs(job_work_dir, exist_ok=False)
 
         # Generate configuration
         psi_conf = configuration.copy()
