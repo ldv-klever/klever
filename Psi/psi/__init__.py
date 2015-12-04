@@ -287,7 +287,7 @@ class Psi:
         """
         self.logger.info('Create components configuration')
 
-        # Read job configuration from file.
+        # Components configuration is based on job configuration.
         with open(psi.utils.find_file_or_dir(self.logger, os.path.curdir, 'conf.json')) as fp:
             self.components_conf = json.load(fp)
 
@@ -296,15 +296,12 @@ class Psi:
         for attr in self.comp:
             comp.update(attr)
 
-        self.components_conf.update(
-            {'root id': os.path.abspath(os.path.curdir),
-             'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')},
-             'priority': self.conf['priority'],
-             'abstract tasks generation priority': self.conf['abstract tasks generation priority'],
-             'debug': self.conf['debug'],
-             'allow local source directories use': self.conf['allow local source directories use'],
-             'parallelism': self.conf['parallelism'],
-             'logging': self.conf['logging']})
+        # Add complete Psi configuration itself to components configuration since almost all its attributes will be used
+        # somewhere in components.
+        self.components_conf.update(self.conf)
+
+        self.components_conf.update({'main working directory': os.path.abspath(os.path.curdir),
+                                     'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')}})
 
         if self.conf['debug']:
             self.logger.debug('Create components configuration file "components conf.json"')
