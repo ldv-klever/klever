@@ -9,6 +9,8 @@ import queue
 import psi.components
 import psi.utils
 
+# TODO: try to use modulefinder package to avoid explicit enumerating of these plugins here and setting list of these
+# plugins below.
 # ATVG plugins.
 from psi.avtg.sa import SA
 from psi.avtg.emg import EMG
@@ -155,7 +157,7 @@ def _extract_rule_spec_descs(conf, logger):
 
 
 _rule_spec_descs = None
-_plugins = (SA, EMG, ASE, TR, RSG, Weaver)
+_plugins = (EMG, ASE, TR, RSG, Weaver)
 
 
 def get_subcomponent_callbacks(conf, logger):

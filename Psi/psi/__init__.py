@@ -1,5 +1,4 @@
 import argparse
-import getpass
 import io
 import json
 import multiprocessing
@@ -59,9 +58,6 @@ class Psi:
             self.prepare_work_dir()
             self.change_work_dir()
             self.logger = psi.utils.get_logger(self.__class__.__name__, self.conf['logging'])
-            # Configuration for Omega.
-            self.omega = {'name': self.conf['Omega']['name'], 'user': self.get_user('Omega'),
-                          'passwd': self.get_passwd('Omega')}
             self.get_version()
             self.job = psi.job.Job(self.logger, self.conf['identifier'])
             self.get_comp_desc()
@@ -71,7 +67,7 @@ class Psi:
                                                   'attrs': [{'PSI version': self.version}],
                                                   'comp': [{attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
                                                            for attr in self.comp for attr_shortcut in attr]})
-            self.session = psi.session.Session(self.logger, self.omega, self.job.id)
+            self.session = psi.session.Session(self.logger, self.conf['Omega'], self.job.id)
             self.session.decide_job(self.job, start_report_file)
             # TODO: create parallel process to send requests about successful operation to Omega.
             self.mqs['report files'] = multiprocessing.Queue()
@@ -198,27 +194,6 @@ class Psi:
         self.is_solving_file = os.path.relpath(self.is_solving_file, self.conf['working directory'])
         os.chdir(self.conf['working directory'])
 
-    def get_user(self, name):
-        """
-        Get user for the specified name either from configuration or by using OS user.
-        :param name: a name of service for which user is required.
-        :return: a user for the specified name.
-        """
-        self.logger.info('Get ' + name + ' user name')
-        user = getpass.getuser() if not self.conf[name]['user'] else self.conf[name]['user']
-        self.logger.debug(name + ' user name is "{}"'.format(user))
-        return user
-
-    def get_passwd(self, name):
-        """
-        Get password for the specified name either from configuration or by using password prompt.
-        :param name: a name of service for which password is required.
-        :return: a password for the specified name.
-        """
-        self.logger.info('Get ' + name + ' password')
-        passwd = getpass.getpass() if not self.conf[name]['password'] else self.conf[name]['password']
-        return passwd
-
     def get_version(self):
         """
         Get version either as a tag in the Git repository of Psi or from the file created when installing Psi.
@@ -312,7 +287,7 @@ class Psi:
         """
         self.logger.info('Create components configuration')
 
-        # Read job configuration from file.
+        # Components configuration is based on job configuration.
         with open(psi.utils.find_file_or_dir(self.logger, os.path.curdir, 'conf.json')) as fp:
             self.components_conf = json.load(fp)
 
@@ -321,15 +296,12 @@ class Psi:
         for attr in self.comp:
             comp.update(attr)
 
-        self.components_conf.update(
-            {'main working directory': os.path.abspath(os.path.curdir),
-             'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')},
-             'priority': self.conf['priority'],
-             'abstract tasks generation priority': self.conf['abstract tasks generation priority'],
-             'debug': self.conf['debug'],
-             'allow local source directories use': self.conf['allow local source directories use'],
-             'parallelism': self.conf['parallelism'],
-             'logging': self.conf['logging']})
+        # Add complete Psi configuration itself to components configuration since almost all its attributes will be used
+        # somewhere in components.
+        self.components_conf.update(self.conf)
+
+        self.components_conf.update({'main working directory': os.path.abspath(os.path.curdir),
+                                     'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')}})
 
         if self.conf['debug']:
             self.logger.debug('Create components configuration file "components conf.json"')
