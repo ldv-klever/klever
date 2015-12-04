@@ -60,7 +60,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         self.server.register(self.scheduler_type())
 
         # Clean working directory
-        if os.path.isdir(work_dir):
+        if os.path.isdir(work_dir) and ("keep working directory" not in self.conf["scheduler"]
+                                        or not self.conf["scheduler"]["keep working directory"]):
             logging.info("Clean scheduler working directory {}".format(work_dir))
             shutil.rmtree(work_dir)
         os.makedirs(work_dir, exist_ok=True)

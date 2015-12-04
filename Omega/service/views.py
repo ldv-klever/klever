@@ -19,8 +19,15 @@ def schedule_task(request):
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
-    if 'job id' not in request.session:
+    if 'job identifier' not in request.session:
         return JsonResponse({'error': 'Session does not have job id'})
+    try:
+        job = Job.objects.get(identifier__startswith=request.session['job identifier'])
+    except ObjectDoesNotExist:
+        return JsonResponse({
+            'error': 'Job with the specified identifier "%s" was not found' % request.session['job identifier']
+        })
+    request.session['job id'] = job.pk
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'description' not in request.POST:

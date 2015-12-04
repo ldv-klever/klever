@@ -12,6 +12,6 @@ setup(name='Psi',
       download_url='TODO: a URL to download the package',
       packages=['psi', 'psi.lkbce', 'psi.lkvog', 'psi.avtg', 'psi.vtg'],
       scripts=['bin/psi'],
-      requires=['jinja2'],
+      requires=['jinja2', 'requests'],
       classifiers=['TODO: a list of categories for the package'],
       )
