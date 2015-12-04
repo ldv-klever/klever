@@ -9,7 +9,9 @@ import queue
 import psi.components
 import psi.utils
 
-# ATVG plugins.
+# TODO: try to use modulefinder package to avoid explicit enumerating of these plugins here and setting list of these
+# plugins below.
+# AVTG plugins.
 from psi.avtg.emg import EMG
 from psi.avtg.ase import ASE
 from psi.avtg.tr import TR
@@ -84,6 +86,8 @@ def _extract_rule_spec_descs(conf, logger):
         else:
             rule_spec_desc = descs['rule specifications'][rule_spec_id]
 
+        rule_spec_desc['id'] = rule_spec_id
+
         # Get rid of useless information.
         for attr in ('aliases', 'description'):
             if attr in rule_spec_desc:
@@ -121,7 +125,7 @@ def _extract_rule_spec_descs(conf, logger):
         rule_spec_plugin_names = []
         for attr in rule_spec_desc:
             # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-            if attr not in ('aliases', 'description', 'bug kinds', 'template'):
+            if attr not in ('id', 'bug kinds'):
                 plugin_name = attr
                 rule_spec_plugin_names.append(plugin_name)
                 is_plugin_specified = False
@@ -148,7 +152,7 @@ def _extract_rule_spec_descs(conf, logger):
             del (rule_spec_desc[plugin_name])
         rule_spec_desc['plugins'] = plugin_descs
 
-        rule_spec_descs.append({'id': rule_spec_id, 'plugins': plugin_descs, 'bug kinds': rule_spec_desc['bug kinds']})
+        rule_spec_descs.append(rule_spec_desc)
 
     return rule_spec_descs
 
@@ -185,10 +189,12 @@ def get_subcomponent_callbacks(conf, logger):
 
 class AVTG(psi.components.Component):
     def generate_abstract_verification_tasks(self):
+        # TODO: get rid of these variables.
         self.common_prj_attrs = {}
         self.plugins_work_dir = None
         self.abstract_task_desc = None
 
+        # TODO: combine extracting and reporting of attributes.
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
@@ -287,7 +293,9 @@ class AVTG(psi.components.Component):
             plugin_conf = copy.deepcopy(self.conf)
             if 'options' in plugin_desc:
                 plugin_conf.update(plugin_desc['options'])
-            plugin_conf.update({'rule spec id': rule_spec_desc['id'], 'bug kinds': rule_spec_desc['bug kinds']})
+            plugin_conf.update({'rule spec id': rule_spec_desc['id']})
+            if 'bug kinds' in rule_spec_desc:
+                plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
 
             p = plugin_desc['plugin'](plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
                                       '{0}/{1}/{2}'.format(verification_obj_desc['id'], rule_spec_desc['id'],
