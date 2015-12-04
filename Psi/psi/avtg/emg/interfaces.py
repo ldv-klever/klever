@@ -217,9 +217,85 @@ class ModuleSpecification(CategorySpecification):
         self.__mark_existing_interfaces()
 
         self.logger.debug("Determine more interfaces from existng data in source analysis data")
+        self.__add_more_interfaces()
+
         # TODO: Implementation
         self.logger.debug("Build more Interface objects and establish references between them")
         # TODO: Implementation
+
+    def __add_more_interfaces(self):
+        # Extract more containers from structures with callbacks
+        self.logger.info("Extract more interfaces from matched containers")
+        for path in self.analysis["global variable initializations"]:
+            for variable in self.analysis["global variable initializations"][path]:
+                var_desc = self.analysis["global variable initializations"][path][variable]
+                if not var_desc.interface:
+                    self.__process_unmatched_structure(var_desc)
+                elif var_desc.interface and var_desc.interface.container:
+                    self.__process_matched_structure(var_desc)
+
+    def __process_matched_structure(self, structure):
+        for field in structure.fields:
+            if not structure.fields[field].interface:
+                if structure.fields[field].type_class == "function":
+                    intf = self.__make_intf_from_signature(structure.fields[field], structure.interface.category, field)
+                    intf.callback = True
+                elif structure.fields[field].type_class == "structure":
+                    self.__process_unmatched_structure(structure.fields[field])
+
+    def __make_intf_from_signature(self, signature, category, identifier):
+        intf = Interface(signature.expression, category, identifier, None)
+        intf.signature = signature
+        signature.interface = intf
+        if intf.full_identifier not in self.interfaces:
+            self.interfaces[intf.full_identifier] = intf
+        else:
+            raise KeyError("Cannot add interface {}".format(intf.full_identifier))
+        return intf
+
+    def __process_unmatched_structure(self, structure):
+        fp = []
+        intfs = []
+        matched = False
+        for field in structure.fields:
+            if not structure.fields[field].interface:
+                if structure.fields[field].type_class == "function":
+                    fp.append(structure.fields[field])
+                elif structure.fields[field].type_class == "structure":
+                    if self.__process_unmatched_structure(structure.fields[field]):
+                        intfs.append(structure.fields[field].interface)
+            else:
+                intfs.append(structure.fields[field].interface)
+
+        if len(intfs) != 0:
+            probe_intf = intfs[0]
+            same = [intf for intf in intfs if intf.category == probe_intf.category]
+            if len(same) != len(intfs):
+                raise RuntimeError("Cannot determine signle category for structure {}".format(structure.expression))
+            category = same.category
+            identifier = structure.structure_name
+            interface = self.__make_intf_from_signature(structure, category, identifier)
+            interface.container = True
+            return matched
+        elif len(fp) != 0:
+            category = self._choose_new_category()
+            identifier = structure.structure_name
+            interface = self.__make_intf_from_signature(structure, category, identifier)
+            interface.container = True
+            return matched
+
+        if matched:
+            # Process content of the structure
+            self.__process_matched_structure(structure)
+        return matched
+
+    def _choose_new_category(self):
+        cnt = 0
+        name = "yielded_category_{}".format(cnt)
+        while name in self.categories:
+            cnt += 1
+            name = "yielded_category_{}".format(cnt)
+        return name
 
     def __parse_elements_signatures(self, elements):
         for element in elements:
@@ -387,10 +463,6 @@ class Interface:
 
     def __init__(self, signature, category, identifier, header, implemented_in_kernel=False):
         self.signature = Signature(signature)
-        if not header and self.signature.type_class == "struct":
-            raise TypeError("Require header with struct '{}' declaration in interface categories specification".
-                            format(self.expression()))
-
         self.header = header
         self.category = category
         self.identifier = identifier
@@ -518,6 +590,7 @@ class Signature:
             self.array = False
 
         struct_re = re.compile("^struct\s+(?:[\w|*]*\s)+(\**)%s\s?((?:\[\w*\]))?\Z")
+        struct_name_re = re.compile("^struct\s+(\w+)")
         self.__check_type(struct_re, "struct")
 
         value_re = re.compile("^(\w*\s+)+(\**)%s((?:\[\w*\]))?\Z")
@@ -536,6 +609,7 @@ class Signature:
             self.interface = fi_extract.fullmatch(self.expression).group(1)
         if self.type_class == "struct":
             self.fields = {}
+            self.structure_name = struct_name_re.match(self.expression).group(1)
 
         if not self.type_class:
             raise ValueError("Cannot determine signature type (function, structure, primitive or interface) {}".
