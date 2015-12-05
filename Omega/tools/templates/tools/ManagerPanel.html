@@ -22,7 +22,7 @@
                                     <div class="ui action input fluid">
                                         <input id="component_name_input__{{ component.pk }}" type="text" placeholder="{% trans 'Component name' %}" value="{{ component.name }}">
                                         <button id="rename_component_btn__{{ component.pk }}" class="ui teal button">{% trans 'Rename' %}</button>
-                                        <button id="delete_component_btn__{{ component.pk }}"class="ui red button">{% trans 'Delete' %}</button>
+                                        <button id="delete_component_btn__{{ component.pk }}" class="ui red button">{% trans 'Delete' %}</button>
                                     </div>
                                     <br>
                                 </div>
@@ -44,7 +44,7 @@
                             {% for problem in problems %}
                                 <tr id="problem__{{ problem.pk }}">
                                     <th class="eleven wide column">{{ problem.name }}</th>
-                                    <td class="five wide column"><button id="delete_problem_btn__{{ problem.pk }}"class="ui red small button">{% trans 'Delete' %}</button></td>
+                                    <td class="five wide column"><button id="delete_problem_btn__{{ problem.pk }}" class="ui red small button">{% trans 'Delete' %}</button></td>
                                 </tr>
                             {% endfor %}
                             </table>
@@ -58,6 +58,9 @@
             </div>
         </div>
         <br><br>
-        <a class="ui violet button" href="{% url 'service:test' %}">Test service requests</a>
+        <div class="ui buttons">
+            <a class="ui violet button" href="{% url 'service:test' %}">Test service requests</a>
+            <button id="clear_system" class="ui red button">{% trans 'Clear unused files and DB rows' %}</button>
+        </div>
     {% endif %}
 {% endblock %}

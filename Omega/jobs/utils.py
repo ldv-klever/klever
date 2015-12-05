@@ -417,7 +417,6 @@ def create_job(kwargs):
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
         newjob.type = kwargs['parent'].type
-        kwargs['comment'] = "Make copy of %s" % kwargs['parent'].identifier
     elif 'type' in kwargs:
         newjob.type = kwargs['type']
     else:
@@ -460,8 +459,10 @@ def update_job(kwargs):
         return _("Unknown error")
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
         return _("Change author is required")
-    if 'comment' not in kwargs or len(kwargs['comment']) == 0:
+    if 'comment' in kwargs and len(kwargs['comment']) == 0:
         return _("Change comment is required")
+    else:
+        kwargs['comment'] = ''
     if 'parent' in kwargs:
         kwargs['job'].parent = kwargs['parent']
     if 'name' in kwargs and len(kwargs['name']) > 0:
@@ -508,7 +509,6 @@ def remove_jobs_by_id(user, job_ids):
         except Exception as e:
             print_err("Can't notify users: %s" % e)
         job.delete()
-    clear_files()
     return 0
 
 
@@ -521,14 +521,7 @@ def delete_versions(job, versions):
     checked_versions = job.versions.filter(version__in=access_versions)
     num_of_deleted = len(checked_versions)
     checked_versions.delete()
-    clear_files()
     return num_of_deleted
-
-
-def clear_files():
-    for file in File.objects.all():
-        if len(file.filesystem_set.all()) == 0:
-            file.delete()
 
 
 def check_new_parent(job, parent):

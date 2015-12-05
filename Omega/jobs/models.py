@@ -25,8 +25,7 @@ class Job(JobBase):
     version = models.PositiveSmallIntegerField(default=1)
     change_date = models.DateTimeField(auto_now=True)
     identifier = models.CharField(max_length=255, unique=True)
-    parent = models.ForeignKey('self', null=True, on_delete=models.PROTECT,
-                               related_name='children')
+    parent = models.ForeignKey('self', null=True, on_delete=models.PROTECT, related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
 
     class Meta:
@@ -78,14 +77,6 @@ class FileSystem(models.Model):
 
     def __str__(self):
         return self.name
-
-    def delete(self, *args, **kwargs):
-        file = self.file
-        super(FileSystem, self).delete(*args, **kwargs)
-        if len(file.filesystem_set.all()) == 0 \
-                and len(file.reportcomponent_set.all()) == 0 \
-                and len(file.etvfiles_set.all()) == 0:
-            file.delete()
 
     class Meta:
         db_table = 'file_system'

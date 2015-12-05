@@ -31,6 +31,7 @@ class Population(object):
         self.manager = self.__get_manager(manager)
         self.__population()
         self.__add_service_user(service)
+        print('END:', self.changes)
 
     def __population(self):
         try:
@@ -95,11 +96,13 @@ class Population(object):
         try:
             manager = User.objects.get(username=manager_username)
         except ObjectDoesNotExist:
+            print('Creating manager')
             manager = User.objects.create(username=manager_username)
             self.changes['manager'] = {
                 'username': manager.username,
                 'password': self.__add_password(manager)
             }
+            print('Changes:', self.changes)
         self.__extend_user(manager, USER_ROLES[2][0])
         return manager
 
@@ -124,6 +127,8 @@ class Population(object):
         return password
 
     def __populate_jobs(self):
+        if not isinstance(self.manager, User):
+            return None
         args = {
             'author': self.manager,
             'global_role': JOB_ROLES[1][0],
@@ -144,6 +149,8 @@ class Population(object):
                     self.changes['jobs'] = True
 
     def __populate_default_jobs(self):
+        if not isinstance(self.manager, User):
+            return None
         default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
@@ -171,7 +178,7 @@ class Population(object):
                 print_err('Main jobs were not created')
                 continue
             job = create_job({
-                'author': self.user,
+                'author': self.manager,
                 'global_role': '1',
                 'name': job_settings['name'],
                 'description': job_settings['description'],

@@ -8,6 +8,7 @@ from Omega.vars import USER_ROLES
 from Omega.utils import unparallel_group
 from reports.models import Component
 from marks.models import UnknownProblem
+from tools.utils import *
 
 
 @unparallel_group(['report'])
@@ -132,3 +133,18 @@ def manager_tools(request):
         'components': Component.objects.all(),
         'problems': UnknownProblem.objects.all()
     })
+
+
+@unparallel_group(['report', 'job', 'mark', 'task', 'solution'])
+@login_required
+def clear_system(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': _('Unknown error')})
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({'error': _("No access")})
+    clear_job_files()
+    clear_service_files()
+    clear_resorces()
+    clear_computers()
+    return JsonResponse({'message': _("All unused files and DB rows were deleted")})

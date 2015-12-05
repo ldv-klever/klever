@@ -93,4 +93,21 @@ $(document).ready(function () {
                 console.log(x.responseText);
             });
     });
+
+    $('#clear_system').click(function () {
+        $('#dimmer_of_page').addClass('active');
+        $.post(
+            '/tools/ajax/clear_system/',
+            {},
+            function (data) {
+                $('#dimmer_of_page').removeClass('active');
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    success_notify(data.message);
+                }
+            }
+        );
+    });
 });

@@ -80,21 +80,6 @@ class ReportComponent(Report):
     log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
     data = models.BinaryField(null=True)
 
-    def delete(self, *args, **kwargs):
-        computer = self.computer
-        resource = self.resource
-        file = self.log
-        super(ReportComponent, self).delete(*args, **kwargs)
-        if len(computer.reportcomponent_set.all()) == 0:
-            computer.delete()
-        if len(resource.reportcomponent_set.all()) == 0 \
-                and len(resource.componentresource_set.all()) == 0:
-            resource.delete()
-        if len(file.filesystem_set.all()) == 0 \
-                and len(file.reportcomponent_set.all()) == 0 \
-                and len(file.etvfiles_set.all()) == 0:
-            file.delete()
-
     class Meta:
         db_table = 'report_component'
 
@@ -111,14 +96,6 @@ class ETVFiles(models.Model):
     unsafe = models.ForeignKey(ReportUnsafe, related_name='files')
     file = models.ForeignKey(File)
     name = models.CharField(max_length=1024)
-
-    def delete(self, *args, **kwargs):
-        file = self.file
-        super(ETVFiles, self).delete(*args, **kwargs)
-        if len(file.filesystem_set.all()) == 0 \
-                and len(file.reportcomponent_set.all()) == 0 \
-                and len(file.etvfiles_set.all()) == 0:
-            file.delete()
 
     class Meta:
         db_table = 'etv_files'
@@ -175,13 +152,6 @@ class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='resources_cache')
     component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
     resource = models.ForeignKey(Resource)
-
-    def delete(self, *args, **kwargs):
-        resource = self.resource
-        super(ComponentResource, self).delete(*args, **kwargs)
-        if len(resource.reportcomponent_set.all()) == 0 \
-                and len(resource.componentresource_set.all()) == 0:
-            resource.delete()
 
     class Meta:
         db_table = 'cache_report_component_resource'

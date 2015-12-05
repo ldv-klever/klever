@@ -26,7 +26,10 @@ $(document).ready(function () {
                     err_notify(data.error);
                 }
                 else if (data.name && data.content) {
-                    $('#ETVSourceTitle').text(data.name);
+                    var title_place = $('#ETVSourceTitle');
+                    title_place.text(data.name);
+                    $('#ETVSourceTitleFull').text(data['fullname']);
+                    title_place.popup();
                     source_code_window.html(data.content);
                     var selected_src_line = $('#ETVSrcL_' + line);
                     if (selected_src_line.length) {
@@ -115,7 +118,9 @@ $(document).ready(function () {
     $('.ETV_La').click(function (event) {
         event.preventDefault();
         $('.ETVSelectedLine').removeClass('ETVSelectedLine');
-        get_source_code(parseInt($(this).text()), 'default-file.c');
+        if ($(this).next('span.ETV_File').length) {
+            get_source_code(parseInt($(this).text()), $(this).next('span.ETV_File').text());
+        }
         var whole_line = $(this).parent().parent();
         whole_line.addClass('ETVSelectedLine');
 
