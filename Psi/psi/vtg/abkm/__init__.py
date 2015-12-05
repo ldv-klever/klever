@@ -23,7 +23,9 @@ class ABKM(psi.components.Component):
         session = psi.session.Session(self.logger, self.conf['Omega'], self.conf['identifier'])
         task_id = session.schedule_task(task_desc)
         while True:
-            self.logger.info(session.get_task_status(task_id))
+            task_status = session.get_task_status(task_id)
+            if task_status == 'FINISHED':
+                break
             time.sleep(1)
 
 
