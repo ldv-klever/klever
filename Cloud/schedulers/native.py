@@ -153,7 +153,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # TODO: Disk space check
 
     def solve_task(self, identifier, description, user, password):
-        pass
+        return self.__pool.submit(subprocess.call, ['ls'])
 
     def solve_job(self, identifier, configuration):
         """
@@ -202,7 +202,7 @@ class Scheduler(schedulers.SchedulerExchange):
         super(Scheduler, self).flush()
 
     def process_task_result(self, identifier, result):
-        pass
+        return "FINISHED"
 
     def process_job_result(self, identifier, future):
         """
