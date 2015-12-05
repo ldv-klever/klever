@@ -149,7 +149,7 @@ class Scheduler(schedulers.SchedulerExchange):
         if configuration["resource limits"]["memory size"] >= self.__ram_memory:
             raise schedulers.SchedulerException(
                 "Node does not have {} bytes of RAM memory for job {}, has only {} bytes".
-                format(configuration["resource limits"]["memory size"]), identifier, self.__ram_memory)
+                format(configuration["resource limits"]["memory size"], identifier, self.__ram_memory))
         # TODO: Disk space check
 
     def solve_task(self, identifier, description, user, password):
