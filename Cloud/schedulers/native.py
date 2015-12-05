@@ -129,6 +129,7 @@ class Scheduler(schedulers.SchedulerExchange):
 
         return new_tasks, new_jobs
 
+    # TODO: what these functions are intended for?
     def prepare_task(self, identifier, description):
         pass
 
@@ -229,6 +230,7 @@ class Scheduler(schedulers.SchedulerExchange):
                 error_msg = "Job finished with non-zero exit code: {}".format(result)
                 raise schedulers.SchedulerException(error_msg)
         except Exception as err:
+            # TODO: this error holds some useless text.
             error_msg = "Job {} terminated with an exception: {}".format(identifier, err)
             logging.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
