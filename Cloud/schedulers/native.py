@@ -175,11 +175,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Generate configuration
         psi_conf = configuration.copy()
         del psi_conf["resource limits"]
-        psi_conf["Omega"] = {
-            "name": self.conf["Omega"]["name"],
-            "user": self.conf["Omega"]["user"],
-            "password": self.conf["Omega"]["password"]
-        }
+        psi_conf["Omega"] = self.conf["Omega"]
         psi_conf["working directory"] = "psi-work-dir"
         self.__reserved[identifier]["configuration"] = psi_conf
 
