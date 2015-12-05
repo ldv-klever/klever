@@ -295,8 +295,9 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                                 return_when="ALL_COMPLETED")
 
                 # Update statuses
-                for task_id in [task for task in self.__tasks if self.__tasks[task]["status"] == "PROCESSING" and
-                                self.__tasks[task]["future"].done()]:
+                for task_id in [task_id for task_id in self.__tasks
+                                if self.__tasks[task_id]["status"] == "PROCESSING" and
+                                "future" in self.__tasks[task_id] and self.__tasks[task_id]["future"].done()]:
                     try:
                         self.__tasks[task_id]["status"] = self.process_task_result(task_id,
                                                                                    self.__tasks[task_id]["future"])
