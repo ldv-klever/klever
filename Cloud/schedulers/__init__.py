@@ -71,13 +71,13 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
         logging.info("Scheduler initialization has been successful")
 
-    def __sort_priority(self, task_id):
+    def __sort_priority(self, task):
         """
         Use the function to sort tasks by their priorities. For higher priority return higher integer.
-        :param task_id: Task identifier..
+        :param task: Task.
         :return: 3, 2, 1, 0
         """
-        priority = self.__tasks[task_id]["priority"]
+        priority = task["priority"]
         if priority == "IDLE":
             return 3
         elif priority == "LOW":
@@ -295,8 +295,9 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                                 return_when="ALL_COMPLETED")
 
                 # Update statuses
-                for task_id in [task for task in self.__tasks if self.__tasks[task]["status"] == "PROCESSING" and
-                                self.__tasks[task]["future"].done()]:
+                for task_id in [task_id for task_id in self.__tasks
+                                if self.__tasks[task_id]["status"] == "PROCESSING" and
+                                "future" in self.__tasks[task_id] and self.__tasks[task_id]["future"].done()]:
                     try:
                         self.__tasks[task_id]["status"] = self.process_task_result(task_id,
                                                                                    self.__tasks[task_id]["future"])

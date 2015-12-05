@@ -1,5 +1,13 @@
 {
   "templates": {
+    "Empty": {
+      "description": "...",
+      "plugins": [
+	{
+	  "name": "Weaver"
+	}
+      ]
+    },
     "Common for Linux kernel modules": {
       "description": "...",
       "plugins": [
@@ -87,6 +95,10 @@
     }
   },
   "rule specifications": {
+    "empty": {
+      "description": "...",
+      "template": "Empty"
+    },
     "linux:mutex": {
       "aliases": ["32"],
       "description": "...",

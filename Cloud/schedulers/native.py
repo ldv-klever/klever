@@ -129,6 +129,7 @@ class Scheduler(schedulers.SchedulerExchange):
 
         return new_tasks, new_jobs
 
+    # TODO: what these functions are intended for?
     def prepare_task(self, identifier, description):
         pass
 
@@ -148,11 +149,11 @@ class Scheduler(schedulers.SchedulerExchange):
         if configuration["resource limits"]["memory size"] >= self.__ram_memory:
             raise schedulers.SchedulerException(
                 "Node does not have {} bytes of RAM memory for job {}, has only {} bytes".
-                format(configuration["resource limits"]["memory size"]), identifier, self.__ram_memory)
+                format(configuration["resource limits"]["memory size"], identifier, self.__ram_memory))
         # TODO: Disk space check
 
     def solve_task(self, identifier, description, user, password):
-        pass
+        return self.__pool.submit(subprocess.call, ['ls'])
 
     def solve_job(self, identifier, configuration):
         """
@@ -174,11 +175,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Generate configuration
         psi_conf = configuration.copy()
         del psi_conf["resource limits"]
-        psi_conf["Omega"] = {
-            "name": self.conf["Omega"]["name"],
-            "user": self.conf["Omega"]["user"],
-            "password": self.conf["Omega"]["password"]
-        }
+        psi_conf["Omega"] = self.conf["Omega"]
         psi_conf["working directory"] = "psi-work-dir"
         self.__reserved[identifier]["configuration"] = psi_conf
 
@@ -201,7 +198,7 @@ class Scheduler(schedulers.SchedulerExchange):
         super(Scheduler, self).flush()
 
     def process_task_result(self, identifier, result):
-        pass
+        return "FINISHED"
 
     def process_job_result(self, identifier, future):
         """
@@ -229,6 +226,7 @@ class Scheduler(schedulers.SchedulerExchange):
                 error_msg = "Job finished with non-zero exit code: {}".format(result)
                 raise schedulers.SchedulerException(error_msg)
         except Exception as err:
+            # TODO: this error holds some useless text.
             error_msg = "Job {} terminated with an exception: {}".format(identifier, err)
             logging.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
