@@ -56,11 +56,55 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
-        <br><br>
-        <div class="ui buttons">
-            <a class="ui violet button" href="{% url 'service:test' %}">Test service requests</a>
-            <button id="clear_system" class="ui red button">{% trans 'Clear unused files and DB rows' %}</button>
+            <div class="five wide column">
+                <div class="ui vertical buttons">
+                    <a class="ui violet button" href="{% url 'service:test' %}">Test service requests</a>
+                    <button id="clear_system" class="ui red button">{% trans 'Clear unused files and DB rows' %}</button>
+                </div>
+            </div>
+            <br>
+            <div class="eight wide column">
+                <h3>{% trans 'Jobs' %}</h3>
+                <table class="ui compact violet table celled">
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Name' %}</th>
+                            <th>{% trans 'Identifier' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                            <tr class="one wide column">
+                                <td>
+                                    <div class="ui checkbox">
+
+                                        <input id="job__{{ job.pk }}" type="checkbox" value="{{ job.pk }}">
+                                        <label for="job__{{ job.pk }}">{{ job.name }}</label>
+                                    </div>
+                                </td>
+                                <td>{{ job.identifier }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="eight wide column">
+                <h3>{% trans 'Recalculate' %}:</h3>
+                <div id="recalc_for_all_jobs_checkbox" class="ui checkbox">
+                    <input id="recalc_for_all_jobs" type="checkbox">
+                    <label for="recalc_for_all_jobs">{% trans 'For all jobs' %}</label>
+                </div>
+                <br><br>
+                <div class="ui vertical orange buttons">
+                    <button id="recalc_safe" class="ui button">{% trans 'Safe marks cache' %}</button>
+                    <button id="recalc_unsafe" class="ui button">{% trans 'Unsafe marks cache' %}</button>
+                    <button id="recalc_unknown" class="ui button">{% trans 'Unknown marks cache' %}</button>
+                    <button id="recalc_verdicts" class="ui button">{% trans 'Verdicts cache' %}</button>
+                    <button id="recalc_resources" class="ui button">{% trans 'Resources cache' %}</button>
+                </div>
+                <br><br>
+                <button id="recalc_all" class="ui red button">{% trans 'Recalculate all caches' %}</button>
+            </div>
         </div>
     {% endif %}
 {% endblock %}

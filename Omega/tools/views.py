@@ -1,14 +1,20 @@
-from django.db.models import Q, ProtectedError
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from Omega.vars import USER_ROLES
 from Omega.utils import unparallel_group
-from reports.models import Component
-from marks.models import UnknownProblem
 from tools.utils import *
+
+
+@login_required
+def manager_tools(request):
+    activate(request.user.extended.language)
+    return render(request, "tools/ManagerPanel.html", {
+        'components': Component.objects.all(),
+        'problems': UnknownProblem.objects.all(),
+        'jobs': Job.objects.all()
+    })
 
 
 @unparallel_group(['report'])
@@ -126,15 +132,6 @@ def clear_problems(request):
     })
 
 
-@login_required
-def manager_tools(request):
-    activate(request.user.extended.language)
-    return render(request, "tools/ManagerPanel.html", {
-        'components': Component.objects.all(),
-        'problems': UnknownProblem.objects.all()
-    })
-
-
 @unparallel_group(['report', 'job', 'mark', 'task', 'solution'])
 @login_required
 def clear_system(request):
@@ -145,6 +142,22 @@ def clear_system(request):
         return JsonResponse({'error': _("No access")})
     clear_job_files()
     clear_service_files()
-    clear_resorces()
+    clear_resources()
     clear_computers()
     return JsonResponse({'message': _("All unused files and DB rows were deleted")})
+
+
+@unparallel_group(['report', 'job', 'mark', 'task', 'solution'])
+@login_required
+def recalculation(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({'error': _("No access")})
+    if 'type' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    res = Recalculation(request.POST['type'], request.POST.get('jobs', None))
+    if res.error is not None:
+        return JsonResponse({'error': res.error + ''})
+    return JsonResponse({'message': _("Successfully recalculated")})

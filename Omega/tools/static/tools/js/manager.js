@@ -110,4 +110,53 @@ $(document).ready(function () {
             }
         );
     });
+    $('#recalc_for_all_jobs_checkbox').checkbox({
+        onChecked: function () {
+            $('input[id^="job__"]').each(function () {
+                $(this).prop('checked', true);
+                $(this).parent().addClass('disabled');
+            });
+        },
+        onUnchecked: function () {
+            $('input[id^="job__"]').each(function () {
+                $(this).prop('checked', false);
+                $(this).parent().removeClass('disabled');
+            });
+        }
+    });
+
+    function get_data() {
+        var jobs = [];
+        if ($('#recalc_for_all_jobs').is(':checked')) {
+            return {};
+        }
+        $('input[id^="job__"]').each(function () {
+            if ($(this).is(':checked')) {
+                jobs.push($(this).attr('id').replace('job__', ''));
+            }
+        });
+        return {'jobs': JSON.stringify(jobs)};
+    }
+    $('button[id^="recalc_"]').click(function () {
+        var data = get_data();
+        data['type'] = $(this).attr('id').replace('recalc_', '');
+        $('#dimmer_of_page').addClass('active');
+        $('button[id^="recalc_"]').addClass('disabled');
+        $.post(
+            '/tools/ajax/recalculation/',
+            data,
+            function (data) {
+                $('#dimmer_of_page').removeClass('active');
+                $('button[id^="recalc_"]').removeClass('disabled');
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    success_notify(data.message);
+                }
+            }
+        ).fail(function (x) {
+            console.log(x.responseText);
+        });
+    });
 });

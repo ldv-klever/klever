@@ -31,7 +31,6 @@ class Population(object):
         self.manager = self.__get_manager(manager)
         self.__population()
         self.__add_service_user(service)
-        print('END:', self.changes)
 
     def __population(self):
         try:
@@ -96,13 +95,11 @@ class Population(object):
         try:
             manager = User.objects.get(username=manager_username)
         except ObjectDoesNotExist:
-            print('Creating manager')
             manager = User.objects.create(username=manager_username)
             self.changes['manager'] = {
                 'username': manager.username,
                 'password': self.__add_password(manager)
             }
-            print('Changes:', self.changes)
         self.__extend_user(manager, USER_ROLES[2][0])
         return manager
 
