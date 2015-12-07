@@ -4,7 +4,6 @@ import mimetypes
 from io import BytesIO
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import MultipleObjectsReturned
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils.translation import ugettext as _, activate
@@ -649,19 +648,14 @@ def decide_job(request):
     if 'report' not in request.POST:
         return JsonResponse({'error': 'Start report is not specified'})
 
-    if 'job identifier' not in request.session:
-        return JsonResponse({'error': "Session does not have job identifier"})
+    if 'job id' not in request.session:
+        return JsonResponse({'error': "Session does not have job id"})
     try:
-        job = Job.objects.get(identifier__startswith=request.session['job identifier'],
-                              format=int(request.POST['job format']))
+        job = Job.objects.get(pk=int(request.session['job id']), format=int(request.POST['job format']))
     except ObjectDoesNotExist:
-        return JsonResponse({
-            'error': 'Job with identifier "%s" was not found' % request.session['job identifier']
-        })
-    except MultipleObjectsReturned:
-        return JsonResponse({
-            'error': 'The job identifier "%s" is not unique' % request.session['job identifier']
-        })
+        return JsonResponse({'error': 'The job was not found'})
+    except ValueError:
+        return JsonResponse({'error': 'Unknown error'})
 
     if not JobAccess(request.user, job).psi_access():
         return JsonResponse({
@@ -671,8 +665,6 @@ def decide_job(request):
         })
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
-
-    request.session['job id'] = job.pk
 
     jobtar = PSIDownloadJob(job)
     if jobtar.error is not None:

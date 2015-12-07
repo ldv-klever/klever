@@ -29,9 +29,7 @@ def schedule_task(request):
     for f in request.FILES.getlist('file'):
         archive = f
     if archive is None:
-        return JsonResponse({
-            'error': 'The task archive was not got'
-        })
+        return JsonResponse({'error': 'The task archive was not got'})
     result = ScheduleTask(request.session['job id'], request.POST['description'], archive)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
@@ -119,10 +117,6 @@ def get_jobs_and_tasks(request):
         return JsonResponse({'error': 'No access'})
     if 'scheduler' not in request.session:
         return JsonResponse({'error': 'The scheduler was not found in session'})
-    if request.session['scheduler'] not in [x[1] for x in SCHEDULER_TYPE]:
-        return JsonResponse({
-            'error': "The scheduler '%s' is not supported" % request.session['scheduler']
-        })
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'jobs and tasks status' not in request.POST:
@@ -204,10 +198,6 @@ def update_tools(request):
         return JsonResponse({'error': 'No access'})
     if 'scheduler' not in request.session:
         return JsonResponse({'error': 'The scheduler was not found in session'})
-    if request.session['scheduler'] not in [x[1] for x in SCHEDULER_TYPE]:
-        return JsonResponse({
-            'error': "The scheduler '%s' is not supported" % request.session['scheduler']
-        })
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'tools data' not in request.POST:
@@ -278,10 +268,12 @@ def process_job(request):
     if 'job id' not in request.POST:
         return JsonResponse({'error': 'Job identifier is not specified'})
     try:
-        job = Job.objects.get(identifier=request.POST.get('job id', 'null'))
+        job = Job.objects.get(pk=int(request.POST['job id']))
         request.session['job id'] = job.pk
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Job was not found'})
+    except ValueError:
+        return JsonResponse({'error': 'Unknown error'})
 
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Job is not PENDING'})

@@ -14,7 +14,7 @@
             <label for="job_selector"></label>
             <select id="job_selector" class="ui dropdown">
                 {% for job in jobs %}
-                    <option value="{{ job.identifier }}"{% if curr_job_id == job.identifier %} selected{% endif %}>{{ job.name }}</option>
+                    <option value="{{ job.pk }}"{% if curr_job_id == job.pk|stringformat:"i" %} selected{% endif %}>{{ job.name }}</option>
                 {% endfor %}
             </select>
             <button id="process_job" class="ui green button">Process this job</button>
@@ -70,7 +70,7 @@
             <label for="sch_selector"></label>
             <select id="sch_selector" class="ui dropdown">
                 {% for scheduler in schedulers %}
-                    <option value="{{ scheduler.get_type_display }}"{% if curr_scheduler == scheduler.get_type_display %} selected{% endif %}>{{ scheduler.get_type_display }}</option>
+                    <option value="{{ scheduler.type }}"{% if curr_scheduler == scheduler.type %} selected{% endif %}>{{ scheduler.get_type_display }}</option>
                 {% endfor %}
             </select>
             <button id="add_sch_to_session" class="ui blue button">Add scheduler to session</button>

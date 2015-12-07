@@ -2,7 +2,7 @@ import json
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.urlresolvers import reverse
 from django.forms import ValidationError
 from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
@@ -11,7 +11,7 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
-from Omega.vars import LANGUAGES
+from Omega.vars import LANGUAGES, SCHEDULER_TYPE
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
 from jobs.models import Job
@@ -251,13 +251,29 @@ def show_profile(request, user_id=None):
     })
 
 
-def psi_signin(request):
+def service_signin(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
         for p in request.POST:
-            if p not in ['username', 'password'] and not p.startswith('csrf'):
-                request.session[p] = request.POST[p]
+            if p == 'job identifier':
+                try:
+                    request.session['job id'] = Job.objects.get(identifier__startswith=request.POST[p]).pk
+                except ObjectDoesNotExist:
+                    return JsonResponse({
+                        'error': 'The job with specified identifier "%s" was not found' % request.POST[p]
+                    })
+                except MultipleObjectsReturned:
+                    return JsonResponse({'error': 'The specified job identifier is not unique'})
+            elif p == 'scheduler':
+                if request.POST[p] not in list(x[1] for x in SCHEDULER_TYPE):
+                    return JsonResponse({
+                        'error': 'The specified scheduler "%s" is not supported' % request.POST[p]
+                    })
+                for s in SCHEDULER_TYPE:
+                    if s[1] == request.POST[p]:
+                        request.session['scheduler'] = s[0]
+
         user = authenticate(username=username, password=password)
         if user is not None:
             if user.is_active:
@@ -275,7 +291,7 @@ def psi_signin(request):
         return HttpResponse('')
 
 
-def psi_signout(request):
+def service_signout(request):
     logout(request)
     return HttpResponse('')
 

@@ -257,7 +257,7 @@ def upload_report(request):
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'The job was not found'})
     except ValueError:
-        return JsonResponse({'error': 'The job id has wrong format'})
+        return JsonResponse({'error': 'Unknown error'})
     if not JobAccess(request.user, job).psi_access():
         return JsonResponse({
             'error': "User '%s' don't have access to upload report for job '%s'" %
