@@ -5,6 +5,7 @@ import psi.components
 import psi.utils
 
 from psi.avtg.emg.interfaces import CategorySpecification, ModuleSpecification
+from psi.avtg.emg.events import EventSpecification, EventModel
 
 
 class EMG(psi.components.Component):
@@ -37,6 +38,14 @@ class EMG(psi.components.Component):
         else:
             self.logger.warning("Results of source analysis are not available for EMG")
         module_spec.import_specification(self.module_interface_spec, intf_spec, analysis)
+
+        # Import event categories specification
+        self.logger.info("Import event categories specification")
+        event_spec = EventSpecification(self.event_spec)
+
+        # Import event categories specification
+        self.logger.info("Prepare intermediate model")
+        EventModel(module_spec, event_spec)
 
         self.mqs['abstract task description'].put(avt)
 
