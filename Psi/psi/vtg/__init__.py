@@ -17,10 +17,15 @@ _strategies = (ABKM,)
 def before_launch_all_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['abstract task descs'] = multiprocessing.Queue()
+    context.mqs['VTG src tree root'] = multiprocessing.Queue()
 
 
 def after_extract_common_prj_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
+
+
+def after_extract_src_tree_root(context):
+    context.mqs['VTG src tree root'].put(context.src_tree_root)
 
 
 def after_generate_abstact_verification_task_desc(context):
@@ -41,6 +46,7 @@ class VTG(psi.components.Component):
 
         # Get strategy as early as possible to terminate without any delays if strategy isn't supported.
         self.get_strategy()
+
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
@@ -48,6 +54,8 @@ class VTG(psi.components.Component):
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
                          self.conf['main working directory'])
+
+        self.extract_src_tree_root()
 
         self.generate_all_verification_tasks()
 
@@ -186,6 +194,15 @@ class VTG(psi.components.Component):
         self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
 
         self.mqs['VTG common prj attrs'].close()
+
+    def extract_src_tree_root(self):
+        self.logger.info('Extract source tree root')
+
+        self.conf['source tree root'] = self.mqs['VTG src tree root'].get()
+
+        self.mqs['VTG src tree root'].close()
+
+        self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
 
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')

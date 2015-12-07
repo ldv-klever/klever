@@ -22,7 +22,7 @@ from psi.avtg.weaver import Weaver
 def before_launch_all_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj descs'] = multiprocessing.Queue()
-    context.mqs['src tree root'] = multiprocessing.Queue()
+    context.mqs['AVTG src tree root'] = multiprocessing.Queue()
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
@@ -31,7 +31,7 @@ def after_extract_common_prj_attrs(context):
 
 
 def after_extract_src_tree_root(context):
-    context.mqs['src tree root'].put(context.src_tree_root)
+    context.mqs['AVTG src tree root'].put(context.src_tree_root)
 
 
 def after_extract_hdr_arch(context):
@@ -229,9 +229,9 @@ class AVTG(psi.components.Component):
     def extract_src_tree_root(self):
         self.logger.info('Extract source tree root')
 
-        self.conf['source tree root'] = self.mqs['src tree root'].get()
+        self.conf['source tree root'] = self.mqs['AVTG src tree root'].get()
 
-        self.mqs['src tree root'].close()
+        self.mqs['AVTG src tree root'].close()
 
         self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
 

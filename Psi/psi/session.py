@@ -72,7 +72,7 @@ class Session:
     def schedule_task(self, task_desc):
         resp = self.__request('service/schedule_task/',
                               {'description': json.dumps(task_desc)},
-                              files={'file': open('/home/novikov/Downloads/keepassx-0.4.3.tar.gz', 'rb')})
+                              files={'file': open('task files.tar.gz', 'rb')})
         return resp.json()['task id']
 
     def get_task_status(self, task_id):
