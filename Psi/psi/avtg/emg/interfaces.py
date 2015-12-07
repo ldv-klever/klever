@@ -223,7 +223,7 @@ class ModuleSpecification(CategorySpecification):
         self.__mark_existing_interfaces()
 
         self.logger.debug("Add implementations to existing interfaces from source code analysis")
-        self._add_implementations_from_analysis()
+        self.__add_implementations_from_analysis()
 
         return
 
