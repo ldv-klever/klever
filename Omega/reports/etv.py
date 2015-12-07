@@ -264,12 +264,6 @@ class GetETV(object):
                 m = re.match('^\s*\[(.*)\]\s*$', line_data['code'])
                 if m is not None:
                     line_data['code'] = m.group(1)
-                if n['control'] == 'condition-false':
-                    m = re.match('^\s*!\((.*)\)\s*$', line_data['code'])
-                    if m is not None:
-                        line_data['code'] = m.group(1)
-                    else:
-                        line_data['code'] = '!(%s)' % line_data['code']
                 line_data['code'] = '<span class="ETV_CondAss">assume(</span>' + \
                                     str(line_data['code']) + '<span class="ETV_CondAss">);</span>'
                 lines_data.append(line_data)
