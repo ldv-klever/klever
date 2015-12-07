@@ -1286,7 +1286,7 @@ class MatchUnknown(object):
 
     def __match_description(self):
         for l in self.description.split('\n'):
-            m = re.match(self.function, l)
+            m = re.search(self.function, l)
             if m is not None:
                 if self.max_pn is not None and len(self.numbers) > 0:
                     group_elements = []
