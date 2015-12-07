@@ -49,7 +49,7 @@ class VTG(psi.components.Component):
                          self.mqs['report files'],
                          self.conf['main working directory'])
 
-        self.generate_all_verification_task_descs()
+        self.generate_all_verification_tasks()
 
         return
         # TODO: delete following stub code after all.
@@ -187,8 +187,8 @@ class VTG(psi.components.Component):
 
         self.mqs['VTG common prj attrs'].close()
 
-    def generate_all_verification_task_descs(self):
-        self.logger.info('Generate all verification task decriptions')
+    def generate_all_verification_tasks(self):
+        self.logger.info('Generate all verification tasks')
 
         while True:
             abstact_task_desc = self.mqs['abstract task descs'].get()
@@ -199,11 +199,11 @@ class VTG(psi.components.Component):
                 break
 
             # TODO: specification requires to do this in parallel...
-            self.generate_verification_task_descs(abstact_task_desc)
+            self._generate_verification_tasks(abstact_task_desc)
 
-    def generate_verification_task_descs(self, abstract_task_desc):
+    def _generate_verification_tasks(self, abstract_task_desc):
         # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
-        self.logger.info('Generate verification task descriptions for abstract verification task "{0}"'.format(
+        self.logger.info('Generate verification tasks for abstract verification task "{0}"'.format(
             abstract_task_desc['id']))
 
         attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
