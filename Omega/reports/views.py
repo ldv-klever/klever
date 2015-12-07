@@ -3,13 +3,13 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from Omega.vars import JOB_STATUS
-from Omega.utils import unparallel_group
+from Omega.utils import unparallel_group, print_err
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
 from marks.models import UnsafeTag, SafeTag
+from reports.UploadReport import UploadReport, upload_unsafe_files
 from marks.utils import MarkAccess
-from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
 from django.utils.translation import ugettext as _, activate, string_concat
@@ -77,8 +77,7 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-def report_list(request, report_id, ltype, component_id=None, verdict=None,
-                tag=None, problem=None):
+def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=None, problem=None):
     activate(request.user.extended.language)
 
     try:
@@ -198,14 +197,13 @@ def report_leaf(request, leaf_type, report_id):
         return HttpResponseRedirect(reverse('error', args=[400]))
 
     template = 'reports/report_leaf.html'
-    trace = ''
-    if leaf_type == 'unsafe':
+    etv = None
+    if leaf_type == 'unsafe' and len(report.error_trace) > 100:
         template = 'reports/report_unsafe.html'
-        if 2 == 1:
-            et = GetETV()
-            if et.error is not None:
-                return HttpResponseRedirect(reverse('error', args=[500]))
-            trace = et.html_trace()
+        etv = GetETV(report.error_trace)
+        if etv.error is not None:
+            print_err(etv.error)
+            return HttpResponseRedirect(reverse('error', args=[500]))
     return render(
         request, template,
         {
@@ -215,15 +213,41 @@ def report_leaf(request, leaf_type, report_id):
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,
             'MarkTable': ReportMarkTable(request.user, report),
-            'trace': trace,
+            'etv': etv,
             'can_mark': MarkAccess(request.user, report=report).can_create()
         }
     )
 
 
-@unparallel_group(['mark', 'report'])
 @login_required
+def report_etv_full(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        report = ReportUnsafe.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+
+    if not JobAccess(request.user, report.root.job).can_view():
+        return HttpResponseRedirect(reverse('error', args=[400]))
+
+    etv = GetETV(report.error_trace)
+    if etv.error is not None:
+        print_err(etv.error)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    return render(
+        request, 'reports/etv_fullscreen.html',
+        {
+            'report': report,
+            'etv': etv
+        }
+    )
+
+
+@unparallel_group(['mark', 'report'])
 def upload_report(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signed in'})
     if request.method != 'POST':
         return JsonResponse({'error': 'Get request is not supported'})
     if 'job id' not in request.session:
@@ -233,18 +257,23 @@ def upload_report(request):
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'The job was not found'})
     except ValueError:
-        return JsonResponse({'error': 'The job id has wrong format'})
+        return JsonResponse({'error': 'Unknown error'})
     if not JobAccess(request.user, job).psi_access():
         return JsonResponse({
             'error': "User '%s' don't have access to upload report for job '%s'" %
                      (request.user.username, job.identifier)
         })
     if job.status != JOB_STATUS[2][0]:
-        return JsonResponse({
-            'error': 'Reports can be uploaded only for processing jobs'
-        })
-
-    err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
+        return JsonResponse({'error': 'Reports can be uploaded only for processing jobs'})
+    try:
+        data = json.loads(request.POST.get('report', '{}'))
+    except Exception as e:
+        print_err(e)
+        return JsonResponse({'error': 'Can not parse json data'})
+    archive = None
+    for f in request.FILES.getlist('file'):
+        archive = f
+    err = UploadReport(job, data, archive).error
     if err is not None:
         return JsonResponse({'error': err})
     return JsonResponse({})
@@ -282,26 +311,49 @@ def get_log_content(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    return HttpResponse(report.log.file.read())
+    return HttpResponse(report.log.file.read().decode('utf8'))
 
 
 @login_required
 def get_source_code(request):
-    return JsonResponse({
-        'content': 'It does not matter',
-        'name': 'name'
-    })
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     if 'report_id' not in request.POST:
         return JsonResponse({'error': 'Unknown error'})
-    # file_name = '/work/vladimir/klever/Omega/reports/dca-core.c'
-    file_name = '/work/vladimir/klever/Omega/reports/phy-msm-usb.c'
-    # file_name = '/work/vladimir/test'
-    result = GetSource(request.POST['report_id'], file_name)
+    if 'file_name' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+
+    # TODO: request.POST['file_name'] instead 'default-file.c'
+    result = GetSource(request.POST['report_id'], '123/default-file.c')
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
+    filename = request.POST['file_name']
+    if len(filename) > 50:
+        filename = '.../' + filename[-50:].split('/', 1)[-1]
     return JsonResponse({
         'content': result.data,
-        'name': file_name.split('/', -1)[-1]
+        'name': filename,
+        'fullname': request.POST['file_name']
     })
+
+
+@login_required
+def upload_etv(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'et_name' not in request.POST:
+        return JsonResponse({'error': 'Error trace name is required'})
+    if 'report_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    archive = None
+    for f in request.FILES.getlist('file'):
+        archive = f
+    try:
+        unsafe = ReportUnsafe.objects.get(pk=int(request.POST['report_id']))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Unknown error'})
+    if archive is None:
+        return JsonResponse({'error': 'Error trace archive is required'})
+    upload_unsafe_files(unsafe, request.POST['et_name'], archive)
+    return JsonResponse({})

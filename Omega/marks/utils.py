@@ -119,8 +119,7 @@ class NewMark(object):
             mark.is_modifiable = args['is_modifiable']
 
         if 'verdict' in args:
-            if self.type == 'unsafe' and \
-                    args['verdict'] in list(x[0] for x in MARK_UNSAFE):
+            if self.type == 'unsafe' and args['verdict'] in list(x[0] for x in MARK_UNSAFE):
                 mark.verdict = args['verdict']
             elif args['verdict'] in list(x[0] for x in MARK_SAFE):
                 mark.verdict = args['verdict']
@@ -1108,8 +1107,7 @@ class UpdateTags(object):
     def __update_tags_for_report(self, report):
         for mark_rep in report.markreport_set.all():
             tag_data = []
-            for mtag in mark_rep.mark.versions.order_by('-version')[0]\
-                    .tags.all():
+            for mtag in mark_rep.mark.versions.order_by('-version')[0].tags.all():
                 rtag, created = mark_rep.report.tags.get_or_create(tag=mtag.tag)
                 if created:
                     tag_data.append({
