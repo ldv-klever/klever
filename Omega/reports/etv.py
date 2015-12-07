@@ -202,14 +202,9 @@ class GetETV(object):
             if 'assumption' in n.attr:
                 if not has_main and 'assumption.scope' in n.attr and n['assumption.scope'] == 'main':
                     cnt += 1
-                    # TODO: remove comments, refactoring
-                    main_id = 'scope__main__%s' % str(cnt)
-                    # scope_stack.append('')
-                    # add_fake_line('<span class="ETV_Fname">main</span>();', main_id)
-                    # scope_stack.pop()
-                    scope_stack.append(main_id)
+                    scope_stack.append('scope__klever_main__%s' % str(cnt))
                     scopes_to_show.append(scope_stack[-1])
-                    add_fake_line('main() {')
+                    add_fake_line('klever_main() {')
                     curr_offset += TAB_LENGTH
                     line_data['offset'] = ' ' * curr_offset
                     line_data['class'] = scope_stack[-1]
@@ -230,6 +225,15 @@ class GetETV(object):
                 line_data.update(fill_assumptions(curr_assumes))
                 lines_data.append(line_data)
             elif 'enterFunction' in n.attr:
+                if scope_stack[-1] == 'global':
+                    cnt += 1
+                    scope_stack.append('scope__klever_main__%s' % str(cnt))
+                    scopes_to_show.append(scope_stack[-1])
+                    add_fake_line('klever_main() {')
+                    curr_offset += TAB_LENGTH
+                    line_data['offset'] = ' ' * curr_offset
+                    line_data['class'] = scope_stack[-1]
+                    has_main = True
                 cnt += 1
                 scope_stack.append('scope__%s__%s' % (n['enterFunction'], str(cnt)))
                 line_data['hide_id'] = scope_stack[-1]
@@ -240,7 +244,6 @@ class GetETV(object):
                     '\g<1><span class="ETV_Fname">' + n['enterFunction'] + '</span>\g<2>',
                     line_data['code']
                 )
-                # line_data['code'] += ' {'
                 lines_data.append(line_data)
                 add_fake_line('{')
                 curr_offset += TAB_LENGTH
@@ -262,7 +265,11 @@ class GetETV(object):
                 if m is not None:
                     line_data['code'] = m.group(1)
                 if n['control'] == 'condition-false':
-                    line_data['code'] = '!(%s)' % line_data['code']
+                    m = re.match('^\s*!\((.*)\)\s*$', line_data['code'])
+                    if m is not None:
+                        line_data['code'] = m.group(1)
+                    else:
+                        line_data['code'] = '!(%s)' % line_data['code']
                 line_data['code'] = '<span class="ETV_CondAss">assume(</span>' + \
                                     str(line_data['code']) + '<span class="ETV_CondAss">);</span>'
                 lines_data.append(line_data)
@@ -275,6 +282,8 @@ class GetETV(object):
             add_fake_line('}')
             scope_stack.pop()
         for i in range(0, len(lines_data)):
+            other_line_offset = '\n  ' + lines_data[i]['offset'] + ' ' * max_line_length
+            lines_data[i]['code'] = other_line_offset.join(lines_data[i]['code'].split('\n'))
             lines_data[i]['code'] = self.__parse_code(lines_data[i]['code'])
             if 'class' not in lines_data[i]:
                 continue
