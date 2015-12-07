@@ -61,15 +61,17 @@ def get_task_status(request):
 
 # Case 3.1(5)
 @unparallel_group(['solution'])
-def download_solution(request, task_id):
+def download_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Just GET requests are supported'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Just POST requests are supported'})
+    if 'task id' not in request.POST:
+        return JsonResponse({'error': 'Task identifier is not specified'})
 
-    result = GetSolution(task_id)
+    result = GetSolution(request.POST['task id'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     if result.task.status == TASK_STATUS[3][0]:
@@ -136,14 +138,17 @@ def get_jobs_and_tasks(request):
 
 # Case 3.2(3)
 @unparallel_group(['service'])
-def download_task(request, task_id):
+def download_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Just GET requests are supported'})
-    result = GetTaskData(task_id)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Just POST requests are supported'})
+    if 'task id' not in request.POST:
+        return JsonResponse({'error': 'Task identifier is not specified'})
+
+    result = GetTaskData(request.POST['task id'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
 
