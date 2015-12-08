@@ -41,11 +41,11 @@ class EMG(psi.components.Component):
 
         # Import event categories specification
         self.logger.info("Import event categories specification")
-        event_spec = EventSpecification(self.event_spec)
+        event_spec = EventSpecification(self.logger, self.event_spec)
 
         # Import event categories specification
         self.logger.info("Prepare intermediate model")
-        EventModel(module_spec, event_spec)
+        EventModel(self.logger, module_spec, event_spec)
 
         self.mqs['abstract task description'].put(avt)
 
