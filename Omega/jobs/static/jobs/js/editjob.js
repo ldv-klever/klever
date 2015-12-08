@@ -900,4 +900,94 @@ $(document).ready(function () {
             }
         );
     });
+
+    if ($('#job_data_div').length) {
+        var interval = setInterval(function () {
+            if ($.active > 0) {
+                return false;
+            }
+            $.post(
+                job_ajax_url + 'get_job_data/',
+                {
+                    job_id: $('#job_pk').val(),
+                    view: collect_jobview_data()
+                },
+                function (data) {
+                    if (data.error) {
+                        err_notify(data.error);
+                        return false;
+                    }
+                    if ('jobdata' in data) {
+                        $('#job_data_div').html(data['jobdata']);
+                    }
+                    if (data['can_create']) {
+                        $('#copy_job_btn').removeClass('disabled');
+                    }
+                    else {
+                        $('#copy_job_btn').addClass('disabled');
+                    }
+                    if (data['can_download']) {
+                        $('#load_job_btn').removeClass('disabled');
+                    }
+                    else {
+                        $('#load_job_btn').addClass('disabled');
+                    }
+                    if (data['can_decide']) {
+                        $('#decide_job_btn').removeClass('disabled');
+                        $('#fast_job_start').removeClass('disabled');
+                    }
+                    else {
+                        $('#decide_job_btn').addClass('disabled');
+                        $('#fast_job_start').addClass('disabled');
+                    }
+                    if (data['can_stop']) {
+                        $('#stop_job_btn').removeClass('disabled');
+                    }
+                    else {
+                        $('#stop_job_btn').addClass('disabled');
+                    }
+                    if (data['can_edit']) {
+                        $('#edit_job_btn').removeClass('disabled');
+                        $('#edit_versions').removeClass('disabled');
+                    }
+                    else {
+                        $('#edit_job_btn').addClass('disabled');
+                        $('#edit_versions').addClass('disabled');
+                    }
+                    if (data['can_delete']) {
+                        $('#show_remove_job_popup').removeClass('disabled');
+                    }
+                    else {
+                        $('#show_remove_job_popup').addClass('disabled');
+                    }
+                    if ('jobstatus' in data) {
+                        if ('jobstatus_href' in data) {
+                            if ($('#job_status_p').length) {
+                                $('#job_status_p').parent().append($('<a>', {
+                                    id: 'job_status_link',
+                                    text: data['jobstatus_text']
+                                }));
+                                $('#job_status_p').remove();
+                            }
+                            $('#job_status_link').attr('href', data['jobstatus_href']);
+                            $('#job_status_link').attr('class', 'status-link status' + data['jobstatus'] + '-link');
+                        }
+                        else {
+                            if ($('#job_status_link').length) {
+                                $('#job_status_link').parent().append($('<p>', {
+                                    id: 'job_status_p',
+                                    style: 'color:#f1ffff;'
+                                }));
+                                $('#job_status_link').remove();
+                            }
+                            $('#job_status_p').text(data['jobstatus_text']);
+                        }
+                    }
+                }
+            ).fail(function (x) {
+                console.log(x.responseText);
+                    clearInterval(interval);
+            });
+        }, 3000);
+    }
 });

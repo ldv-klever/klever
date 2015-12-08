@@ -6,6 +6,7 @@ from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
+from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from Omega.vars import VIEW_TYPES, PRIORITY
@@ -197,16 +198,15 @@ def show_job(request, job_id=None):
             'name': child.name,
         })
 
-    reportdata = None
+    view_args = [request.user]
     try:
         report = ReportComponent.objects.get(root__job=job, parent=None)
-        view_args = [request.user, report]
-        if request.method == 'POST':
-            view_args.append(request.POST.get('view', None))
-            view_args.append(request.POST.get('view_id', None))
-        reportdata = ViewJobData(*view_args)
     except ObjectDoesNotExist:
-        pass
+        report = None
+    if request.method == 'POST':
+        view_args.append(request.POST.get('view', None))
+        view_args.append(request.POST.get('view_id', None))
+    view_args.append(report)
 
     return render(
         request,
@@ -216,7 +216,7 @@ def show_job(request, job_id=None):
             'last_version': job.versions.get(version=job.version),
             'parents': parents,
             'children': children,
-            'reportdata': reportdata,
+            'reportdata': ViewJobData(*view_args),
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),
@@ -226,6 +226,44 @@ def show_job(request, job_id=None):
             'can_stop': job_access.can_stop()
         }
     )
+
+
+@login_required
+def get_job_data(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'job_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        job = Job.objects.get(pk=int(request.POST['job_id']))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'Unknown error'})
+    job_access = JobAccess(request.user, job)
+    try:
+        report = ReportComponent.objects.get(root__job=job, parent=None)
+    except ObjectDoesNotExist:
+        report = None
+    except ValueError:
+        return JsonResponse({'error': 'Unknown error'})
+
+    data = {
+        'can_delete': job_access.can_delete(),
+        'can_edit': job_access.can_edit(),
+        'can_create': job_access.can_create(),
+        'can_decide': job_access.can_decide(),
+        'can_download': job_access.can_download(),
+        'can_stop': job_access.can_stop(),
+        'jobstatus': job.status,
+        'jobstatus_text': job.get_status_display() + ''
+    }
+    if report is not None:
+        data['jobstatus_href'] = reverse('reports:component', args=[job.pk, report.pk])
+        data['jobdata'] = get_template('jobs/jobData.html').render({
+            'reportdata': ViewJobData(request.user, report, view=request.POST.get('view', None))
+        })
+    return JsonResponse(data)
 
 
 @login_required

@@ -21,7 +21,7 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Download' %}</p>
                 </div>
-                <a href="{% url 'jobs:prepare_run' job.pk %}" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play icon"></i></a>
+                <a id="decide_job_btn" href="{% url 'jobs:prepare_run' job.pk %}" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play icon"></i></a>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
                 </div>
@@ -127,8 +127,8 @@
                     <tr id="job_status_popup_activator">
                         <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
-                            {% if reportdata %}
-                                <a class="
+                            {% if reportdata.report %}
+                                <a id="job_status_link" class="
                                 {% if job.status == '0' %}
                                     status-link status0-link
                                 {% elif job.status == '1' %}
@@ -148,7 +148,7 @@
                                 {% endif %}
                                 " href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
                             {% else %}
-                                <p style="color: #f1ffff">{{ job.get_status_display }}</p>
+                                <p id="job_status_p" style="color: #f1ffff">{{ job.get_status_display }}</p>
                             {% endif %}
                         </td>
                     </tr>
@@ -161,9 +161,13 @@
                 </div>
             {% endif %}
             <br>
-            {% if reportdata %}
-                {% include 'jobs/jobData.html' %}
-            {% endif %}
+            {% include 'jobs/viewJobFilters.html' %}
+            <br>
+            <div id="job_data_div">
+                {% if reportdata %}
+                    {% include 'jobs/jobData.html' %}
+                {% endif %}
+            </div>
         </div>
         <div id="edit_job_div" class="eight wide column"></div>
     </div>
