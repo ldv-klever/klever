@@ -9,12 +9,12 @@ from psi.avtg.emg.events import EventSpecification, EventModel
 
 
 class EMG(psi.components.Component):
-    module_interface_spec = {}
-    interface_spec = {}
-    event_spec = {}
 
     def generate_environment(self):
         self.logger.info("Start environment model generator instance {}".format(self.id))
+        self.module_interface_spec = {}
+        self.interface_spec = {}
+        self.event_spec = {}
 
         self.logger.debug("Receive abstract verification task")
         avt = self.mqs['abstract task description'].get()

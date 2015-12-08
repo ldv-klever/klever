@@ -23,15 +23,14 @@ def extract_full_identifier(string):
 
 
 class CategorySpecification:
-    categories = {}
-    interfaces = {}
-    kernel_functions = {}
-    kernel_macro_functions = {}
-    kernel_macros = {}
-    _logger = None
 
     def __init__(self, logger):
         self.logger = logger
+        self.categories = {}
+        self.interfaces = {}
+        self.kernel_functions = {}
+        self.kernel_macro_functions = {}
+        self.kernel_macros = {}
 
     def import_specification(self, specification):
         self.logger.info("Import interface categories specification")
@@ -189,10 +188,10 @@ class CategorySpecification:
 
 
 class ModuleSpecification(CategorySpecification):
-    implementations = {}
-    analysis = {}
 
     def import_specification(self, specification={}, categories=None, analysis={}):
+        self.implementations = {}
+
         # Import categories
         self.categories = categories.categories
         self.interfaces = categories.interfaces
@@ -521,17 +520,6 @@ class ModuleSpecification(CategorySpecification):
 
 
 class Interface:
-    identifier = None
-    category = None
-    signature = None
-    header = None
-    implemented_in_kernel = None
-    resource = False
-    callback = False
-    container = False
-    kernel_interface = False
-    fields = {}
-    implementations = {}
 
     def __init__(self, signature, category, identifier, header, implemented_in_kernel=False):
         self.signature = Signature(signature)
@@ -539,6 +527,12 @@ class Interface:
         self.category = category
         self.identifier = identifier
         self.implemented_in_kernel = implemented_in_kernel
+        self.resource = False
+        self.callback = False
+        self.container = False
+        self.kernel_interface = False
+        self.fields = {}
+        self.implementations = {}
 
     @property
     def role(self, role=None):
@@ -565,16 +559,6 @@ class Interface:
 
 
 class Signature:
-    expression = None
-    type_class = None
-    pointer = False
-    array = False
-    return_value = None
-    interface = None
-    function_name = None
-    return_value = None
-    parameters = None
-    fields = None
 
     @staticmethod
     def copy_signature(old, new):
@@ -638,6 +622,15 @@ class Signature:
         :return:
         """
         self.expression = expression
+        self.type_class = None
+        self.pointer = False
+        self.array = False
+        self.return_value = None
+        self.interface = None
+        self.function_name = None
+        self.return_value = None
+        self.parameters = None
+        self.fields = None
 
         ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
         identifier_re = "(?:(?:(\*?)%s)|(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
