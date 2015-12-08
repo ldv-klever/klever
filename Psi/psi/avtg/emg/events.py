@@ -26,7 +26,6 @@ class EventModel:
 
     def _import_kernel_models(self):
         self.logger.info("Add kernel models to an intermediate environment model")
-
         for function in self.events["kernel model"]:
             if function in self.analysis.analysis["kernel functions"]:
                 self.logger.debug("Add model of '{}' to en environment model".format(function))
@@ -42,6 +41,17 @@ class EventModel:
                         if not self.models[function].labels[label].signature:
                             raise ValueError("Cannot find suitable signature for label '{}' at function model '{}'".
                                              format(label, function))
+
+        self.logger.info("Add refrences to given label interfaces in environment processes")
+        for process in self.events["environment processes"]:
+            for label in self.events["environment processes"][process].labels:
+                if self.events["environment processes"][process].labels[label].interface:
+                    intf = self.events["environment processes"][process].labels[label].interface
+                    if intf in self.analysis.interfaces:
+                        self.events["environment processes"][process].labels[label].signature = \
+                            self.analysis.interfaces[intf].signature
+                    else:
+                        raise ValueError("Cannot find interface {} in interface categories specification".format(intf))
 
     def __import_processes(self, raw, category):
         if "kernel model" in raw:
@@ -149,7 +159,6 @@ class Process:
                                " receive or subprocess at once".format(subprocess_name, self.name))
             else:
                 self.subprocesses[subprocess_name].type = process_type
-
 
 class Subprocess(Process):
 
