@@ -41,7 +41,7 @@ class CategorySpecification:
         if "kernel functions" in specification:
             self.logger.info("Import kernel functions")
             for intf in self.__import_kernel_interfaces("kernel functions", specification):
-                self.kernel_functions[intf.full_identifier] = intf
+                self.kernel_functions[intf.identifier] = intf
         else:
             self.logger.warning("Kernel functions are not provided in interface categories specification, "
                                 "expect 'kernel functions' attribute")
@@ -49,7 +49,7 @@ class CategorySpecification:
         if "kernel macro-functions" in specification:
             self.logger.info("Import kernel macro-functions")
             for intf in self.__import_kernel_interfaces("kernel macro-functions", specification):
-                self.kernel_functions[intf.full_identifier] = intf
+                self.kernel_macro_functions[intf.identifier] = intf
         else:
             self.logger.warning("Kernel functions are not provided in interface categories specification, "
                                 "expect 'kernel macro-functions' attribute")
@@ -63,6 +63,7 @@ class CategorySpecification:
             if not self.interfaces[intf].container and self.interfaces[intf].signature.type_class == "struct":
                 # Fields matter for containers only, do not keep unnecessary date
                 self.interfaces[intf].signature.fields = {}
+
         for function in self.kernel_functions:
             self.kernel_functions[function].signature = \
                 self._process_signature(self.kernel_functions, self.kernel_functions[function].signature)
@@ -71,10 +72,10 @@ class CategorySpecification:
         # Replace string interface definition by reference
         if signature.interface and type(signature.interface) is str:
             signature.interface = collection[signature.interface]
-        # Replace INterface signature
+        # Replace Interface signature
         if signature.type_class == "interface":
             if signature.interface.signature.type_class == "interface":
-                raise RuntimeError("Attampt to replace interface signature with an interface signature")
+                raise RuntimeError("Attempt to replace interface signature with an interface signature")
             signature = Signature.copy_signature(signature, signature.interface.signature)
         # Process return value and parameters in case of function
         if signature.type_class == "function":
@@ -105,7 +106,7 @@ class CategorySpecification:
                              collection[category_name][identifier]["header"],
                              True)
             intf.category = category_name
-            intf.signature.interface = intf.full_identifier
+            intf.signature.interface = intf.identifier
             if intf.signature.function_name and intf.signature.function_name != identifier:
                 raise ValueError("Kernel function name {} does not correspond its signature {}".
                                  format(identifier, intf.signature.expression))
@@ -457,7 +458,18 @@ class ModuleSpecification(CategorySpecification):
         for function in self.analysis["kernel functions"]:
             if function in self.kernel_functions:
                 self.analysis["kernel functions"][function]["signature"].interface = self.kernel_functions[function]
+                if self.analysis["kernel functions"][function]["signature"].return_value and \
+                   not self.analysis["kernel functions"][function]["signature"].return_value.interface and \
+                   self.kernel_functions[function].signature.return_value and \
+                   self.kernel_functions[function].signature.return_value.interface:
+                    self.analysis["kernel functions"][function]["signature"].return_value.interface = \
+                        self.kernel_functions[function].signature.return_value.interface
 
+                for index in range(len(self.analysis["kernel functions"][function]["signature"].parameters)):
+                    if not self.analysis["kernel functions"][function]["signature"].parameters[index].interface and \
+                       self.kernel_functions[function].signature.parameters[index].interface:
+                        self.analysis["kernel functions"][function]["signature"].parameters[index].interface = \
+                            self.kernel_functions[function].signature.parameters[index].interface
         self.logger.debug("Mark already described containers as existing interfaces")
         for path in self.analysis["global variable initializations"]:
             for variable in self.analysis["global variable initializations"][path]:
@@ -571,6 +583,7 @@ class Signature:
         cp = copy.deepcopy(new)
         cp.array = old.array
         cp.pointer = old.pointer
+        cp.interface = old.interface
         return cp
 
     def compare_signature(self, signature):

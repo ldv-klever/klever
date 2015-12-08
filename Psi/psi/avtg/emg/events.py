@@ -1,42 +1,55 @@
 import re
 
-from psi.avtg.emg.interfaces import Interface, Signature
+from psi.avtg.emg.interfaces import *
 
 
 class EventModel:
 
-    def __init__(self, logger, analysis, events):
+    def __init__(self, logger, analysis, raw):
+        self.logger = logger
+        self.analysis = analysis
+        self.models = {}
+        self.events = {
+            "kernel model": {},
+            "environment processes": {}
+        }
+
+        for category in self.events:
+            # Import kernel models
+            self.logger.info("Import {}".format(category))
+            self.__import_processes(raw, category)
+
+        # Import necessary kernel models
+        self._import_kernel_models()
+
         return
 
+    def _import_kernel_models(self):
+        self.logger.info("Add kernel models to an intermediate environment model")
 
-class EventSpecification:
-    raw = {}
-    funсtions = {}
-    processes = {}
+        for function in self.events["kernel model"]:
+            if function in self.analysis.analysis["kernel functions"]:
+                self.logger.debug("Add model of '{}' to en environment model".format(function))
+                self.models[function] = self.events["kernel model"][function]
 
-    def __init__(self, logger, raw_spec):
-        self.raw = raw_spec
-        self.logger = logger
+                for label in self.models[function].labels:
+                    if self.models[function].labels[label].parameter and \
+                            not self.models[function].labels[label].signature:
+                        for parameter in self.analysis.analysis["kernel functions"][function]["signature"].parameters:
+                            if parameter.interface and self.models[function].labels[label].interface == \
+                                    parameter.interface.full_identifier:
+                                self.models[function].labels[label].signature = parameter
+                        if not self.models[function].labels[label].signature:
+                            raise ValueError("Cannot find suitable signature for label '{}' at function model '{}'".
+                                             format(label, function))
 
-        # Import kernel models
-        self.logger.info("Import functions and macro-functions models")
-        self.__import_models()
-
-        # Import other processes
-        self.logger.info("Import functions and macro-functions models")
-        self.__import_processes()
-
-    def __import_models(self):
-        if "kernel model" in self.raw:
-            for name_list in self.raw["kernel model"]:
+    def __import_processes(self, raw, category):
+        if "kernel model" in raw:
+            for name_list in raw[category]:
                 names = name_list.split(", ")
                 for name in names:
-                    # TODO: fix name
-                    process = Process(name_list, self.raw["kernel model"][name_list])
-                    self.funсtions[name] = process
-
-    def __import_processes(self):
-        pass
+                    process = Process(name, raw[category][name_list])
+                    self.events[category][name] = process
 
 
 class Label:
@@ -53,15 +66,9 @@ class Label:
         self.name = name
 
     def _import_json(self, dic):
-        for att in ["container", "resource", "callback", "parameter"]:
+        for att in ["container", "resource", "callback", "parameter", "interface", "value"]:
             if att in dic:
                 setattr(self, att, dic[att])
-
-        if "value" in dic:
-            self.value = dic["value"]
-
-        if "interface" in dic:
-            self.interface = dic["interface"]
 
         if "signature" in dic:
             self.signature = Signature(dic["signature"])
@@ -107,9 +114,9 @@ class Process:
             self.__determine_subprocess_types()
 
     def __determine_subprocess_types(self):
-        dispatch_template = "\[{}(?:\(\d+\))?\]"
-        receive_template = "\(!?{}(?:\(\d+\))?\)"
-        subprocess_template = "{}(?:\(\d+\))?"
+        dispatch_template = "\[{}(?:\([^)]+\))?\]"
+        receive_template = "\(!?{}(?:\([^)]+\))?\)"
+        subprocess_template = "{}(?:\([^)]+\))?"
 
         processes = [self.subprocesses[process_name].process for process_name in self.subprocesses
                      if self.subprocesses[process_name].process]
@@ -135,10 +142,11 @@ class Process:
                         break
 
             if match == 0:
-                raise KeyError("Subprocess {} from process {} is not used actually".format(subprocess_name, self.name))
+                raise KeyError("Subprocess '{}' from process '{}' is not used actually".
+                               format(subprocess_name, self.name))
             elif match > 1:
-                raise KeyError("Subprocess {} from process {} was used in different actions but it can be dispatch, "
-                               "receive or subprocess at once".format(subprocess_name, self.name))
+                raise KeyError("Subprocess '{}' from process '{}' was used in different actions but it can be dispatch,"
+                               " receive or subprocess at once".format(subprocess_name, self.name))
             else:
                 self.subprocesses[subprocess_name].type = process_type
 
