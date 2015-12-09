@@ -26,6 +26,17 @@ _cmd_opts = {
            'opts discarding in files': (),
            'opts discarding out file': ()}}
 
+# Architecture name to search for architecture specific header files can differ from the target architecture.
+# See Linux kernel Makefile for details. Mapping below was extracted from Linux 3.5.
+_arch_hdr_arch = {
+    'i386': 'x86',
+    'x86_64': 'x86',
+    'sparc32': 'sparc',
+    'sparc64': 'sparc',
+    'sh64': 'sh',
+    'tilepro': 'tile',
+    'tilegx': 'tile',
+}
 
 
 class LKBCE(psi.components.Component):
@@ -33,14 +44,16 @@ class LKBCE(psi.components.Component):
         self.linux_kernel = {}
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
+        psi.utils.invoke_callbacks(self.extract_src_tree_root)
         self.clean_linux_kernel_work_src_tree()
         psi.utils.invoke_callbacks(self.extract_linux_kernel_attrs)
+        psi.utils.invoke_callbacks(self.extract_hdr_arch)
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,
                           'attrs': self.linux_kernel['attrs']},
                          self.mqs['report files'],
-                         self.conf['root id'])
+                         self.conf['main working directory'])
         # This file should be specified to collect build commands during configuring and building of the Linux kernel.
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
         self.configure_linux_kernel()
@@ -150,8 +163,14 @@ class LKBCE(psi.components.Component):
                               {'architecture': self.linux_kernel['arch']},
                               {'configuration': self.linux_kernel['conf shortcut']}]}]
 
+    def extract_hdr_arch(self):
+        self.hdr_arch = _arch_hdr_arch[self.linux_kernel['arch']]
+
+    def extract_src_tree_root(self):
+        self.src_tree_root = os.path.abspath(self.linux_kernel['work src tree'])
+
     def fetch_linux_kernel_work_src_tree(self):
-        self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['root id'], 'linux'))
+        self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['main working directory'], 'linux'))
 
         self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel['work src tree']))
 
@@ -167,7 +186,7 @@ class LKBCE(psi.components.Component):
         elif o[0]:
             raise ValueError('Linux kernel source code is provided in unsupported form "{0}"'.format(o[0]))
 
-        self.linux_kernel['src'] = psi.utils.find_file_or_dir(self.logger, self.conf['root id'],
+        self.linux_kernel['src'] = psi.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                               self.linux_kernel['src'])
 
         if os.path.isdir(self.linux_kernel['src']):

@@ -4,22 +4,38 @@ import copy
 import json
 import multiprocessing
 import os
+import queue
 
 import psi.components
 import psi.utils
 
-# ATVG plugins.
+# TODO: try to use modulefinder package to avoid explicit enumerating of these plugins here and setting list of these
+# plugins below.
+# AVTG plugins.
 from psi.avtg.emg import EMG
-from psi.avtg.ri import RI
+from psi.avtg.ase import ASE
+from psi.avtg.tr import TR
+from psi.avtg.rsg import RSG
+from psi.avtg.weaver import Weaver
 
 
 def before_launch_all_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj descs'] = multiprocessing.Queue()
+    context.mqs['AVTG src tree root'] = multiprocessing.Queue()
+    context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
 def after_extract_common_prj_attrs(context):
     context.mqs['AVTG common prj attrs'].put(context.common_prj_attrs)
+
+
+def after_extract_src_tree_root(context):
+    context.mqs['AVTG src tree root'].put(context.src_tree_root)
+
+
+def after_extract_hdr_arch(context):
+    context.mqs['hdr arch'].put(context.hdr_arch)
 
 
 def after_generate_verification_obj_desc(context):
@@ -37,7 +53,7 @@ def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
 
     # Read rule specification descriprions DB.
-    with open(psi.utils.find_file_or_dir(logger, conf['root id'], conf['rule specifications DB'])) as fp:
+    with open(psi.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB'])) as fp:
         descs = json.load(fp)
 
     rule_spec_descs = []
@@ -70,8 +86,10 @@ def _extract_rule_spec_descs(conf, logger):
         else:
             rule_spec_desc = descs['rule specifications'][rule_spec_id]
 
+        rule_spec_desc['id'] = rule_spec_id
+
         # Get rid of useless information.
-        for attr in ('aliases', 'desc'):
+        for attr in ('aliases', 'description'):
             if attr in rule_spec_desc:
                 del (rule_spec_desc[attr])
 
@@ -107,7 +125,7 @@ def _extract_rule_spec_descs(conf, logger):
         rule_spec_plugin_names = []
         for attr in rule_spec_desc:
             # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-            if attr not in ('aliases', 'desc', 'bug kinds', 'template'):
+            if attr not in ('id', 'bug kinds'):
                 plugin_name = attr
                 rule_spec_plugin_names.append(plugin_name)
                 is_plugin_specified = False
@@ -115,9 +133,9 @@ def _extract_rule_spec_descs(conf, logger):
                 for plugin_desc in plugin_descs:
                     if plugin_name == plugin_desc['name']:
                         is_plugin_specified = True
-                        if 'opts' not in plugin_desc['name']:
-                            plugin_desc['opts'] = {}
-                        plugin_desc['opts'].update(rule_spec_desc[plugin_name])
+                        if 'options' not in plugin_desc:
+                            plugin_desc['options'] = {}
+                        plugin_desc['options'].update(rule_spec_desc[plugin_name])
                         logger.debug(
                             'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(plugin_name,
                                                                                                           rule_spec_id,
@@ -134,13 +152,13 @@ def _extract_rule_spec_descs(conf, logger):
             del (rule_spec_desc[plugin_name])
         rule_spec_desc['plugins'] = plugin_descs
 
-        rule_spec_descs.append({'id': rule_spec_id, 'plugins': plugin_descs})
+        rule_spec_descs.append(rule_spec_desc)
 
     return rule_spec_descs
 
 
 _rule_spec_descs = None
-_plugins = (EMG, RI)
+_plugins = (EMG, ASE, TR, RSG, Weaver)
 
 
 def get_subcomponent_callbacks(conf, logger):
@@ -171,15 +189,21 @@ def get_subcomponent_callbacks(conf, logger):
 
 class AVTG(psi.components.Component):
     def generate_abstract_verification_tasks(self):
+        # TODO: get rid of these variables.
         self.common_prj_attrs = {}
         self.plugins_work_dir = None
+        self.abstract_task_desc = None
+
+        # TODO: combine extracting and reporting of attributes.
         self.extract_common_prj_attrs()
         psi.utils.report(self.logger,
                          'attrs',
                          {'id': self.name,
                           'attrs': self.common_prj_attrs},
                          self.mqs['report files'],
-                         self.conf['root id'])
+                         self.conf['main working directory'])
+        self.extract_src_tree_root()
+        self.extract_hdr_arch()
         self.rule_spec_descs = _rule_spec_descs
         psi.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
 
@@ -192,8 +216,31 @@ class AVTG(psi.components.Component):
 
         self.mqs['AVTG common prj attrs'].close()
 
+    def extract_hdr_arch(self):
+        self.logger.info('Extract architecture name to search for architecture specific header files')
+
+        self.conf['sys']['hdr arch'] = self.mqs['hdr arch'].get()
+
+        self.mqs['hdr arch'].close()
+
+        self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
+            self.conf['sys']['hdr arch']))
+
+    def extract_src_tree_root(self):
+        self.logger.info('Extract source tree root')
+
+        self.conf['source tree root'] = self.mqs['AVTG src tree root'].get()
+
+        self.mqs['AVTG src tree root'].close()
+
+        self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
+
     def generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
+
+        # TODO: use different MQs for different workers when abstract verification task descriptions will be generated
+        # in parallel (see below).
+        self.mqs.update({'abstract task description': multiprocessing.Queue()})
 
         while True:
             verification_obj_desc = self.mqs['verification obj descs'].get()
@@ -205,35 +252,61 @@ class AVTG(psi.components.Component):
 
             # TODO: specification requires to do this in parallel...
             for rule_spec_desc in self.rule_spec_descs:
-                self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
+                psi.utils.invoke_callbacks(self.generate_abstact_verification_task_desc,
+                                           (verification_obj_desc, rule_spec_desc))
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
+        initial_attrs = (
+            {'verification object': verification_obj_desc['id']},
+            {'rule specification': rule_spec_desc['id']}
+        )
+        initial_attr_vals = tuple(attr[name] for attr in initial_attrs for name in attr)
+
         # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
         self.logger.info(
             'Generate abstract verification task description for {0}'.format(
-                'verification object "{0}" and rule specification "{1}"'.format(
-                    verification_obj_desc['id'], rule_spec_desc['id'])))
+                'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals)))
 
         self.plugins_work_dir = os.path.relpath(
-            os.path.join(self.conf['root id'], '{0}.task'.format(verification_obj_desc['id']), rule_spec_desc['id']))
+            os.path.join(self.conf['main working directory'], '{0}.task'.format(verification_obj_desc['id']),
+                         rule_spec_desc['id']))
         os.makedirs(self.plugins_work_dir)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
 
+        # Initial abstract verification task looks like corresponding verification object.
+        initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
+        initial_abstract_task_desc['id'] = '{0}/{1}'.format(*initial_attr_vals)
+        initial_abstract_task_desc['attrs'] = initial_attrs
+        for grp in initial_abstract_task_desc['grps']:
+            grp['cc extra full desc files'] = [{'cc full desc file': cc_full_desc_file} for cc_full_desc_file in
+                                               grp['cc full desc files']]
+            del (grp['cc full desc files'])
+        self.mqs['abstract task description'].put(initial_abstract_task_desc)
+        if self.conf['debug']:
+            initial_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'initial abstract task.json')
+            self.logger.debug('Create initial abstract verification task description file "{0}"'.format(
+                initial_abstract_task_desc_file))
+            with open(initial_abstract_task_desc_file, 'w') as fp:
+                json.dump(initial_abstract_task_desc, fp, sort_keys=True, indent=4)
+
         # Invoke all plugins one by one.
+        is_plugin_failed = False
         for plugin_desc in rule_spec_desc['plugins']:
             self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
-            # Get plugin configuration on the basis of common configuration and plugin options specific for rule
-            # specification.
+            # Get plugin configuration on the basis of common configuration, plugin options specific for rule
+            # specification and information on rule specification itself.
             plugin_conf = copy.deepcopy(self.conf)
-            plugin_conf.update(plugin_desc['opts'])
+            if 'options' in plugin_desc:
+                plugin_conf.update(plugin_desc['options'])
+            plugin_conf.update({'rule spec id': rule_spec_desc['id']})
+            if 'bug kinds' in rule_spec_desc:
+                plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
 
             p = plugin_desc['plugin'](plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
-                                      '{0}/{1}/{2}'.format(verification_obj_desc['id'], rule_spec_desc['id'],
-                                                           plugin_desc['name']),
+                                      '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
                                       os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
-                                      [{'verification object': verification_obj_desc['id']},
-                                       {'rule specification': rule_spec_desc['id']}], True, True)
+                                      initial_attrs, True, True)
 
             # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
             # verification objects or/and rule specifications.
@@ -241,6 +314,14 @@ class AVTG(psi.components.Component):
                 p.start()
                 p.join()
             except psi.components.ComponentError:
+                # Clean up interplugin MQ to prevent intermixing of data for different abstract tasks. Check that
+                # queue is not empty is required since some plugin can get abstract verification task descriptionand
+                # then fail without putting it back to queue. Although documentation says that empty() operation is not
+                # reliable we likely can rely on it here because above we safely wait for plugin termination that is
+                # likely preceded by all queue operations that are performed in that plugin.
+                if not self.mqs['abstract task description'].empty():
+                    self.mqs['abstract task description'].get()
+                is_plugin_failed = True
                 break
 
             # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
@@ -250,3 +331,32 @@ class AVTG(psi.components.Component):
                 self.logger.debug('Create configuration file "{0}"'.format(plugin_conf_file))
                 with open(plugin_conf_file, 'w') as fp:
                     json.dump(plugin_conf, fp, sort_keys=True, indent=4)
+
+                cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(),
+                                                           'abstract task.json')
+                self.logger.debug('Create current abstract verification task description file "{0}"'.format(
+                    cur_abstract_task_desc_file))
+                # Temporarily get current abstract verification task description.
+                cur_abstract_task_desc = self.mqs['abstract task description'].get()
+                with open(cur_abstract_task_desc_file, 'w') as fp:
+                    json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
+                # Return current abstract verification task description back.
+                self.mqs['abstract task description'].put(cur_abstract_task_desc)
+
+        # Finalize generation of abstract verification task description.
+        if is_plugin_failed:
+            self.abstract_task_desc = None
+        else:
+            # Note that we can't use get_nowait() here since above we get and put final abstract verification task
+            # description if debugging.
+            final_abstract_task_desc = self.mqs['abstract task description'].get()
+
+            if self.conf['debug']:
+                final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
+                self.logger.debug('Create final abstract verification task description file "{0}"'.format(
+                    final_abstract_task_desc_file))
+                with open(final_abstract_task_desc_file, 'w') as fp:
+                    json.dump(final_abstract_task_desc, fp, sort_keys=True, indent=4)
+
+            # VTG will consume this abstract verification task description.
+            self.abstract_task_desc = final_abstract_task_desc

@@ -34,7 +34,8 @@ def after_process_linux_kernel_raw_build_cmd(context):
             'Dump Linux kernel CC full description to file "{0}"'.format(
                 context.linux_kernel['build cmd']['full desc file']))
         with open(
-                os.path.join(context.conf['root id'], 'linux', context.linux_kernel['build cmd']['full desc file']),
+                os.path.join(context.conf['main working directory'], 'linux',
+                             context.linux_kernel['build cmd']['full desc file']),
                 'w') as fp:
             json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
                       sort_keys=True, indent=4)
@@ -67,7 +68,7 @@ class LKVOG(psi.components.Component):
                          {'id': self.name,
                           'attrs': self.linux_kernel_verification_objs_gen['attrs']},
                          self.mqs['report files'],
-                         self.conf['root id'])
+                         self.conf['main working directory'])
         self.launch_subcomponents((self.process_all_linux_kernel_build_cmd_descs,
                                    self.generate_all_verification_obj_descs))
 
@@ -128,7 +129,7 @@ class LKVOG(psi.components.Component):
                 self.logger.debug(
                     'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                         self.module['name'], verification_obj_desc_file))
-                with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
+                with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
         else:
             raise NotImplementedError(

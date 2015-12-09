@@ -69,6 +69,27 @@ class Session:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
 
+    def schedule_task(self, task_desc):
+        resp = self.__request('service/schedule_task/',
+                              {'description': json.dumps(task_desc)},
+                              files={'file': open('task files.tar.gz', 'rb')})
+        return resp.json()['task id']
+
+    def get_task_status(self, task_id):
+        resp = self.__request('service/get_task_status/', {'task id': task_id})
+        return resp.json()['task status']
+
+    def get_task_error(self, task_id):
+        resp = self.__request('service/download_solution/{0}/'.format(task_id), data=None)
+        return resp.json()['task error']
+
+    def download_decision(self, task_id):
+        resp = self.__request('service/download_solution/{0}/'.format(task_id), data=None)
+
+        with open('decision result files.tar.gz', 'wb') as fp:
+            for chunk in resp.iter_content(1024):
+                fp.write(chunk)
+
     def sign_out(self):
         self.logger.info('Finish session')
         self.__request('users/psi_signout/')
