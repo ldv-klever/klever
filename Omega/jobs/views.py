@@ -203,10 +203,10 @@ def show_job(request, job_id=None):
         report = ReportComponent.objects.get(root__job=job, parent=None)
     except ObjectDoesNotExist:
         report = None
+    view_args.append(report)
     if request.method == 'POST':
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
-    view_args.append(report)
 
     return render(
         request,

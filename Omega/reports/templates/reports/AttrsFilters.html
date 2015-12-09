@@ -2,7 +2,7 @@
 
 <div class="ui styled accordion fluid">
     <div class="title">
-        <i class="filter icon"></i>{% trans 'View' %}
+        <i class="filter icon"></i>{% trans 'View' %} ({% if view_id == 'default' %}{% trans 'default' %}{% elif view_id %}{% for v in views %}{% if v.id == view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
     </div>
     <div class="content ui small form">
         <h4 class="header">{% trans 'Component name' %}</h4>

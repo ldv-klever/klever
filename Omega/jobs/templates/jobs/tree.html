@@ -386,7 +386,7 @@
         <i class="setting icon"></i>
     </button>
     <div class="ui popup bottom right transition hidden">
-        <span>{% trans 'View' %}</span>
+        <span>{% trans 'View' %}</span> ({% if FF.view_id == 'default' %}{% trans 'default' %}{% elif FF.view_id %}{% for v in FF.user_views %}{% if v.id == FF.view_id %}{{ v.title }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
     </div>
     <br><br>
     <div class="tableScroll" id="jobtable">
