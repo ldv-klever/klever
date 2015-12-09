@@ -191,8 +191,6 @@ class CategorySpecification:
 class ModuleSpecification(CategorySpecification):
 
     def import_specification(self, specification={}, categories=None, analysis={}):
-        self.implementations = {}
-
         # Import categories
         self.categories = categories.categories
         self.interfaces = categories.interfaces
@@ -200,6 +198,9 @@ class ModuleSpecification(CategorySpecification):
         self.kernel_macro_functions = categories.kernel_macro_functions
         self.kernel_macros = categories.kernel_macros
         self.analysis = analysis
+        self.inits = None
+        self.exits = None
+        self.modules_functions = None
 
         # Import categories from modules specification
         super().import_specification(specification)
@@ -208,6 +209,39 @@ class ModuleSpecification(CategorySpecification):
 
         # Import source analysis
         self.__import_source_analysis()
+
+        # Remove categories without implementations
+        categories = list(self.categories.keys())
+        for category in categories:
+            relevant_functions = []
+            for name in self.kernel_functions:
+                if self.kernel_functions[name]["signature"].return_value.interface and \
+                        self.kernel_functions[name]["signature"].return_value.interface.category == category:
+                    relevant_functions.append(name)
+                else:
+                    for parameter in self.kernel_functions[name]["signature"].parameters:
+                        if parameter.interface and \
+                                parameter.interface.category == category:
+                            relevant_functions.append(name)
+                            break
+            if len(relevant_functions) == 0:
+                self.logger.debug("Remove from consideration category '{}'".format(category))
+                intfs = [intf for intf in (list(self.categories[category]["containers"].keys()) +
+                                           list(self.categories[category]["resources"].keys()) +
+                                           list(self.categories[category]["callbacks"].keys()))]
+                for intf in intfs:
+                    if self.interfaces["{}.{}".format(category, intf)]:
+                        del self.interfaces["{}.{}".format(category, intf)]
+                del self.categories[category]
+
+            #if len(self.categories[category]["containers"]) > 0:
+            #    cn = [container for container in self.categories[category]["containers"] if
+            #          len(self.categories[category]["containers"][container].implementations) > 0]
+            #    if len(cn) == 0:
+            #        self.logger.debug("Remove from consideration category '{}'".format(category))
+            #        del self.categories[category]
+
+        return
 
     def __import_source_analysis(self):
         self.logger.info("Start processing source code amnalysis data")
@@ -228,8 +262,35 @@ class ModuleSpecification(CategorySpecification):
         return
 
     def __add_implementations_from_analysis(self):
-        # TODO: Implement import of implementations
-        return
+        self.logger.info("Add global variables as interface implementations")
+        for path in self.analysis["global variable initializations"]:
+            for variable in self.analysis["global variable initializations"][path]:
+                signature = self.analysis["global variable initializations"][path][variable]
+                if signature.interface:
+                    var = copy.copy(self.analysis["global variable initializations"][path][variable])
+                    if path not in self.interfaces[signature.interface.full_identifier].implementations:
+                        self.interfaces[signature.interface.full_identifier].implementations[path] = []
+                    self.interfaces[signature.interface.full_identifier].implementations[path].append(var)
+        del self.analysis["global variable initializations"]
+
+        self.logger.info("Move kernel functions descriptions")
+        self.kernel_functions = self.analysis["kernel functions"]
+        del self.analysis["kernel functions"]
+
+        self.logger.info("Move modules functions descriptions")
+        self.modules_functions = self.analysis["modules functions"]
+        del self.analysis["modules functions"]
+
+        self.logger.info("Move module initilizations functions")
+        self.inits = self.analysis["init"]
+        del self.analysis["init"]
+
+        self.logger.info("Move module exit functions")
+        self.exits = self.analysis["exit"]
+        del self.analysis["exit"]
+
+        self.logger.info("Drops source code analysis")
+        del self.analysis
 
     def __add_more_interfaces(self):
         # Extract more containers from structures with callbacks
@@ -543,6 +604,7 @@ class Interface:
         self.callback = False
         self.container = False
         self.kernel_interface = False
+        self.called_in_model = False
         self.fields = {}
         self.implementations = {}
 
