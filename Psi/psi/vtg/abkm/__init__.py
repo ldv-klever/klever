@@ -15,7 +15,7 @@ class ABKM(psi.components.Component):
         self.logger.info('Generate one verification task by merging all bug kinds')
 
         self.prepare_common_verification_task_desc()
-        self.prepare_verification_task_files_archive()
+        self.prepare_property_file()
 
         session = psi.session.Session(self.logger, self.conf['Omega'], self.conf['identifier'])
         task_id = session.schedule_task(self.task_desc)
@@ -47,6 +47,13 @@ class ABKM(psi.components.Component):
             self.logger.debug('Create verification task description file "task.json"')
             with open('task.json', 'w') as fp:
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
+    def prepare_property_file(self):
+        self.logger.info('Prepare verifier property file')
+        with open('unreach-call.prp', 'w') as fp:
+            # TODO: replace usb_serial_bus_register() with entry point name.
+            fp.write('CHECK( init(usb_serial_bus_register()), LTL(G ! call(__VERIFIER_error())) )')
+        self.task_desc['property file'] = 'unreach-call.prp'
+        self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
