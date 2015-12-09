@@ -80,11 +80,11 @@ class Session:
         return resp.json()['task status']
 
     def get_task_error(self, task_id):
-        resp = self.__request('service/download_solution/{0}/'.format(task_id), data=None)
+        resp = self.__request('service/download_solution/', {'task id': task_id})
         return resp.json()['task error']
 
     def download_decision(self, task_id):
-        resp = self.__request('service/download_solution/{0}/'.format(task_id), data=None)
+        resp = self.__request('service/download_solution/', {'task id': task_id})
 
         with open('decision result files.tar.gz', 'wb') as fp:
             for chunk in resp.iter_content(1024):

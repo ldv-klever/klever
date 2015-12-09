@@ -40,7 +40,7 @@ class Server(server.AbstractServer):
         :param identifier: Verification task identifier.
         :param archive: Path to the zip archive to save.
         """
-        self.session.get_archive("service/download_task/{0}".format(identifier), archive)
+        self.session.get_archive("service/download_task/", {"task id": identifier}, archive)
 
 
     def submit_solution(self, identifier, description, archive):

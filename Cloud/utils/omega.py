@@ -67,8 +67,8 @@ class Session:
                 logging.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 time.sleep(1)
 
-    def get_archive(self, endpoint, archive):
-        resp = self.__request(endpoint, 'GET', stream=True)
+    def get_archive(self, endpoint, data, archive):
+        resp = self.__request(endpoint, 'POST', data, stream=True)
 
         logging.debug('Write an archive to {}'.format(archive))
         with open(archive, 'wb') as fp:
