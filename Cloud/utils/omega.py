@@ -68,16 +68,15 @@ class Session:
                 time.sleep(1)
 
     def get_archive(self, endpoint, archive):
-        with open(archive) as fp:
-            resp = self.__request(endpoint, 'GET', stream=True)
+        resp = self.__request(endpoint, 'GET', stream=True)
 
         logging.debug('Write an archive to {}'.format(archive))
         with open(archive, 'wb') as fp:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
 
-    def push_archive(self):
-        pass
+    def push_archive(self, endpoint, data, archive):
+        self.__request(endpoint, 'POST', data, files={'file': open(archive, 'rb')})
 
     def json_exchange(self, endpoint, json_data):
         response = self.__request(endpoint, 'POST', json_data)

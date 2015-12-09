@@ -9,14 +9,17 @@ class Server(server.AbstractServer):
 
     session = None
 
-    def register(self, scheduler_type):
+    def register(self, scheduler_type=None):
         """
         Send unique ID to the Verification Gateway with the other properties to enable receiving tasks.
         :param scheduler_type: Scheduler scheduler_type.
         :param require_login: Flag indicating whether or not user should authorize to send tasks.
         """
         # Create session
-        data = {"scheduler": scheduler_type}
+        if scheduler_type:
+            data = {"scheduler": scheduler_type}
+        else:
+            data = {}
         self.session = omega.Session(self.conf["name"], self.conf["user"], self.conf["password"], data)
 
     def exchange(self, tasks):
@@ -30,15 +33,14 @@ class Server(server.AbstractServer):
         ret = self.session.json_exchange("service/get_jobs_and_tasks/", data)
         return json.loads(ret["jobs and tasks status"])
 
-    def pull_task(self, identifier, description, archive):
+    def pull_task(self, identifier, archive):
         """
         Download verification task data from the verification gateway.
 
         :param identifier: Verification task identifier.
-        :param description: Path to the description JSON file to save.
         :param archive: Path to the zip archive to save.
         """
-        pass
+        self.session.get_archive("service/download_task/{0}".format(identifier), archive)
 
 
     def submit_solution(self, identifier, description, archive):
@@ -49,8 +51,9 @@ class Server(server.AbstractServer):
         :param description: Path to the JSON file to send.
         :param archive: Path to the zip archive to send.
         """
-        # Create session
-        pass
+        self.session.push_archive("service/upload_solution/",
+                                  {"task id": identifier, "description": json.dumps(description)},
+                                  archive)
 
     def submit_nodes(self, nodes):
         """
