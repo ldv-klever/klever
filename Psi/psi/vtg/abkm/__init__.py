@@ -16,6 +16,7 @@ class ABKM(psi.components.Component):
 
         self.prepare_common_verification_task_desc()
         self.prepare_property_file()
+        self.prepare_source_files()
 
         session = psi.session.Session(self.logger, self.conf['Omega'], self.conf['identifier'])
         task_id = session.schedule_task(self.task_desc)
@@ -54,6 +55,48 @@ class ABKM(psi.components.Component):
             fp.write('CHECK( init(usb_serial_bus_register()), LTL(G ! call(__VERIFIER_error())) )')
         self.task_desc['property file'] = 'unreach-call.prp'
         self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
+
+    def prepare_source_files(self):
+        self.task_desc['files'] = []
+
+        if self.conf['VTG strategy']['merge source files']:
+            self.logger.info('Merge source files by means of CIL')
+
+            with open('cil input files.txt', 'w') as fp:
+                for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                    fp.write('{0}\n'.format(extra_c_file['C file']))
+
+            cil_out_file = os.path.relpath('cil.i', os.path.realpath(self.conf['source tree root']))
+
+            psi.utils.execute(self.logger,
+                              (
+                                  'cilly.asm.exe',
+                                  '--extrafiles', os.path.relpath('cil input files.txt',
+                                                                  os.path.realpath(self.conf['source tree root'])),
+                                  '--out', cil_out_file,
+                                  '--printCilAsIs',
+                                  '--domakeCFG',
+                                  '--decil',
+                                  '--noInsertImplicitCasts',
+                                  # Now supported by CPAchecker frontend.
+                                  '--useLogicalOperators',
+                                  '--ignore-merge-conflicts',
+                                  # Don't transform simple function calls to calls-by-pointers.
+                                  '--no-convert-direct-calls',
+                                  # Don't transform s->f to pointer arithmetic.
+                                  '--no-convert-field-offsets',
+                                  # Don't transform structure fields into variables or arrays.
+                                  '--no-split-structs',
+                                  '--rmUnusedInlines'
+                              ),
+                              cwd=self.conf['source tree root'])
+
+            self.task_desc['files'].append(cil_out_file)
+
+            self.logger.debug('Merged source files was outputted to "cil.i"')
+        else:
+            for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                self.task_desc['files'].append(extra_c_file['C file'])
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
