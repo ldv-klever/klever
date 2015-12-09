@@ -28,7 +28,7 @@ class Session:
 
         # Sign in.
         # TODO: Replace with proper signin
-        self.__request('users/psi_signin/', 'POST', parameters)
+        self.__request('users/service_signin/', 'POST', parameters)
         logging.debug('Session was created')
 
     def __request(self, path_url, method='GET', data=None, **kwargs):
@@ -90,6 +90,6 @@ class Session:
         :return: Nothing
         """
         logging.info('Finish session at {}'.format(self.name))
-        self.__request('users/psi_signout/')
+        self.__request('users/service_signout/')
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
