@@ -5,7 +5,7 @@
     "password": "password"
   },
   "client-controller": {
-    "consul": "tools/consul",
+    "consul": "/abs/path/to/consul",
     "script checks": [
       {
         "name": "docker",
