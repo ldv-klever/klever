@@ -66,8 +66,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             shutil.rmtree(work_dir)
         os.makedirs(work_dir, exist_ok=True)
 
-        if "iteration_timeout" in self.conf["scheduler"]:
-            self.__iteration_period = self.conf["scheduler"]["iteration_timeout"]
+        if "iteration timeout" in self.conf["scheduler"]:
+            self.__iteration_period = self.conf["scheduler"]["iteration timeout"]
 
         logging.info("Scheduler initialization has been successful")
 
