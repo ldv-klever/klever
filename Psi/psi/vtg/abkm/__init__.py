@@ -14,7 +14,7 @@ class ABKM(psi.components.Component):
     def generate_verification_tasks(self):
         self.logger.info('Generate one verification task by merging all bug kinds')
 
-        self.prepare_verification_task_desc()
+        self.prepare_common_verification_task_desc()
         self.prepare_verification_task_files_archive()
 
         session = psi.session.Session(self.logger, self.conf['Omega'], self.conf['identifier'])
@@ -28,8 +28,8 @@ class ABKM(psi.components.Component):
 
     main = generate_verification_tasks
 
-    def prepare_verification_task_desc(self):
-        self.logger.info('Prepare verification task description')
+    def prepare_common_verification_task_desc(self):
+        self.logger.info('Prepare common verification task description')
 
         self.task_desc = {
             # Safely use id of corresponding abstract verification task since all bug kinds will be merged and each
