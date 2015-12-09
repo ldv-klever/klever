@@ -22,14 +22,7 @@ class ABKM(psi.components.Component):
             self.logger.debug('Create verification task description file "task.json"')
             with open('task.json', 'w') as fp:
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
-        session = psi.session.Session(self.logger, self.conf['Omega'], self.conf['identifier'])
-        task_id = session.schedule_task(self.task_desc)
 
-        while True:
-            task_status = session.get_task_status(task_id)
-            if task_status == 'FINISHED':
-                break
-            time.sleep(1)
 
     main = generate_verification_tasks
 
