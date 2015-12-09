@@ -29,6 +29,12 @@ def solve_job(conf):
         os.environ["PATH"] = "{}:{}".format(conf["client"]["cif location"], os.environ["PATH"])
         logging.debug("Current PATH content is {}".format(os.environ["PATH"]))
 
+    # Add CIL path
+    if "cil location" in conf["client"]:
+        logging.info("Add CIL bin location to path {}".format(conf["client"]["cil location"]))
+        os.environ["PATH"] = "{}:{}".format(conf["client"]["cil location"], os.environ["PATH"])
+        logging.debug("Current PATH content is {}".format(os.environ["PATH"]))
+
     # Determine psi script path
     if "psi path" not in conf["client"]:
         logging.debug("There is no configuration option 'client''psi path'")
