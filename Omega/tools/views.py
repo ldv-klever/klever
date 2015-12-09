@@ -160,4 +160,4 @@ def recalculation(request):
     res = Recalculation(request.POST['type'], request.POST.get('jobs', None))
     if res.error is not None:
         return JsonResponse({'error': res.error + ''})
-    return JsonResponse({'message': _("Successfully recalculated")})
+    return JsonResponse({'message': _("Caches were successfully recalculated")})

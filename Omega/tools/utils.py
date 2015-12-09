@@ -342,7 +342,7 @@ class Recalculation(object):
                 self.error = 'Unknown error'
                 return None
         if len(jobs) == 0:
-            self.error = _('There are no jobs to recalculate')
+            self.error = _('Please select jobs to recalculate caches for them')
         return jobs
 
     def __recalc(self):
