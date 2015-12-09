@@ -174,8 +174,8 @@ manually the following configuration properties:
     * *keep working directory* attribute implies not to delete generated working directories. If you are going to debug psi or
       a verification tool it is recommended to set it as *true*, but it will cause problems in case of solving the same
       job or task twice.
-    * *job client configuration* attribute corresponds to an absolute path to a file with client configuration. You can
-      prepare such file on the base of :file:`Cloud/conf/client.json`.
+    * *job client configuration*/*task client configuration* attribute corresponds to an absolute path to a file with
+      job/task client configuration (see below).
     * *"verification tools"* contains names of verification tools, corresponding versions and absolute pathes to
       binaries of corresponding verification tools.
 
