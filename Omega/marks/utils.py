@@ -372,7 +372,7 @@ class ConnectReportWithMarks(object):
 
     def __connect_unknown(self):
         self.report.markreport_set.all().delete()
-        changes = {}
+        changes = {self.report: {}}
         for mark in MarkUnknown.objects.filter(
                 type=self.report.root.job.type,
                 component=self.report.component):
@@ -387,10 +387,9 @@ class ConnectReportWithMarks(object):
                 problem = 'Too long!'
                 print_err("Generated problem '%s' for mark %s is too long" % (problem, mark.identifier))
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
-            MarkUnknownReport.objects.create(
-                mark=mark, report=self.report, problem=problem)
+            MarkUnknownReport.objects.create(mark=mark, report=self.report, problem=problem)
             if self.report not in changes:
-                changes[self.report] = {'kind': '+'}
+                changes[self.report]['kind'] = '+'
         update_unknowns_cache(changes)
 
 
@@ -1336,8 +1335,11 @@ def update_unknowns_cache(changes):
             if component not in total_numbers:
                 total_numbers[component] = 0
             total_numbers[component] += problems[(component, problem)]['num']
-        for component in total_numbers:
-            unmarked = total_unknowns[component] - total_numbers[component]
+        for component in total_unknowns:
+            if component in total_numbers:
+                unmarked = total_unknowns[component] - total_numbers[component]
+            else:
+                unmarked = total_unknowns[component]
             if unmarked > 0:
                 ComponentMarkUnknownProblem.objects.create(
                     report=report,

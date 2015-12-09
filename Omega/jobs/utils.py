@@ -459,8 +459,9 @@ def update_job(kwargs):
         return _("Unknown error")
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
         return _("Change author is required")
-    if 'comment' in kwargs and len(kwargs['comment']) == 0:
-        return _("Change comment is required")
+    if 'comment' in kwargs:
+        if len(kwargs['comment']) == 0:
+            return _("Change comment is required")
     else:
         kwargs['comment'] = ''
     if 'parent' in kwargs:
