@@ -32,7 +32,18 @@ if args.mode == "JOB":
     logging.info("Exiting with psi exit code {}".format(exit_code))
     exit(int(exit_code))
 elif args.mode == "TASK":
-    exit(0)
+    # TODO: merge this code with almost the same code for JOB.
+    if args.file and os.path.isfile(args.file):
+        with open(args.file) as fh:
+            conf = json.loads(fh.read())
+    else:
+        conf = json.loads(str(args.conf))
+
+    conf = utils.common_initialization("Client controller", conf)
+    logging.info("Proceed to task solution")
+    exit_code = client.solve_task(conf)
+    logging.info("Exiting with exit code {}".format(exit_code))
+    exit(exit_code)
 else:
     NotImplementedError("Provided mode {} is not supported by the client".format(args.mode))
 
