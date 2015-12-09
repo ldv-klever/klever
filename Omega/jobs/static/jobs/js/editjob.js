@@ -963,14 +963,12 @@ $(document).ready(function () {
                     if ('jobstatus' in data) {
                         if ('jobstatus_href' in data) {
                             if ($('#job_status_p').length) {
-                                $('#job_status_p').parent().append($('<a>', {
-                                    id: 'job_status_link',
-                                    text: data['jobstatus_text']
-                                }));
+                                $('#job_status_p').parent().append($('<a>', {id: 'job_status_link'}));
                                 $('#job_status_p').remove();
                             }
                             $('#job_status_link').attr('href', data['jobstatus_href']);
                             $('#job_status_link').attr('class', 'status-link status' + data['jobstatus'] + '-link');
+                            $('#job_status_link').text(data['jobstatus_text']);
                         }
                         else {
                             if ($('#job_status_link').length) {
