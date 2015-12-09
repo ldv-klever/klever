@@ -18,6 +18,10 @@ class ABKM(psi.components.Component):
         self.prepare_property_file()
         self.prepare_source_files()
 
+        if self.conf['debug']:
+            self.logger.debug('Create verification task description file "task.json"')
+            with open('task.json', 'w') as fp:
+                json.dump(self.task_desc, fp, sort_keys=True, indent=4)
         session = psi.session.Session(self.logger, self.conf['Omega'], self.conf['identifier'])
         task_id = session.schedule_task(self.task_desc)
 
@@ -44,10 +48,6 @@ class ABKM(psi.components.Component):
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})
 
-        if self.conf['debug']:
-            self.logger.debug('Create verification task description file "task.json"')
-            with open('task.json', 'w') as fp:
-                json.dump(self.task_desc, fp, sort_keys=True, indent=4)
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
         with open('unreach-call.prp', 'w') as fp:
