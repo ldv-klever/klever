@@ -23,6 +23,7 @@ class ABKM(psi.components.Component):
             with open('task.json', 'w') as fp:
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
 
+        self.prepare_verification_task_files_archive()
 
     main = generate_verification_tasks
 
@@ -95,6 +96,7 @@ class ABKM(psi.components.Component):
         self.logger.info('Prepare archive with verification task files')
 
         with tarfile.open('task files.tar.gz', 'w:gz') as tar:
-            for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                tar.add(os.path.join(self.conf['source tree root'], extra_c_file['C file']),
-                        os.path.basename(extra_c_file['C file']))
+            tar.add('unreach-call.prp')
+            for file in self.task_desc['files']:
+                tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
+            self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
