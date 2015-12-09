@@ -25,6 +25,8 @@ class ABKM(psi.components.Component):
 
         self.prepare_verification_task_files_archive()
 
+        self.decide_verification_task()
+
     main = generate_verification_tasks
 
     def prepare_common_verification_task_desc(self):
@@ -100,3 +102,52 @@ class ABKM(psi.components.Component):
             for file in self.task_desc['files']:
                 tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
+
+    def decide_verification_task(self):
+        self.logger.info('Decide verification task')
+
+        session = psi.session.Session(self.logger, self.conf['Omega'], self.conf['identifier'])
+        task_id = session.schedule_task(self.task_desc)
+
+        while True:
+            task_status = session.get_task_status(task_id)
+
+            if task_status == 'ERROR':
+                task_error = session.get_task_error(task_id)
+                self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
+                break
+
+            if task_status == 'FINISHED':
+                self.logger.info('Verification task was successfully decided')
+
+                session.download_decision(task_id)
+
+                tar = tarfile.open("decision result files.tar.gz")
+                tar.extractall()
+                tar.close()
+
+                with open('decision results.json') as fp:
+                    decision_results = json.load(fp)
+
+                psi.utils.report(self.logger,
+                                 'verification',
+                                 {
+                                     # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                                     'id': '1',
+                                     'parent id': self.id,
+                                     'attrs': [],
+                                     'name': '{0} {1}'.format(*[self.conf['VTG strategy']['verifier'][name] for name in
+                                                                ('name', 'version')]),
+                                     'resources': decision_results['resources'],
+                                     'desc': decision_results['desc'],
+                                     'log': '__file:cil.i.log',
+                                     'data': ''
+                                 },
+                                 self.mqs['report files'],
+                                 self.conf['main working directory'])
+
+                # TODO: process safes, unsafes and unknowns.
+
+                break
+
+            time.sleep(1)
