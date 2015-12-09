@@ -179,15 +179,24 @@ manually the following configuration properties:
     * *"verification tools"* contains names of verification tools, corresponding versions and absolute pathes to
       binaries of corresponding verification tools.
 
-Scheduler client configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Scheduler job/task client configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Prototype for scheduler client configuration can be found in :file:`Cloud/conf/client.json`. It is recommended to set
-up manually the following configuration properties:
+Prototype for scheduler job/task client configuration can be found in :file:`Cloud/conf/job-client.json`/
+:file:`Cloud/conf/task-client.json`.
+It is recommended to set up manually the following configuration properties:
 
 * *client:benchexec location* configuration property corresponds to an absolute path to a root directory with
   downloaded BenchExec sources.
-* *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
+* for jobs:
+
+  * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
+  * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
+
+* for tasks:
+
+  * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
+  * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
 
 Psi installlation
 -----------------
