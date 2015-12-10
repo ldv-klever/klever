@@ -121,45 +121,5 @@ $(document).ready(function () {
             }
         });
     });
-
-    $('#upload_ETV_confirm').click(function () {
-        var et_name = $('#upload_ETV_et_name').val(),
-            file = $('#upload_ETV_file_input')[0].files[0],
-            data = new FormData();
-
-        if (et_name.length == 0) {
-            err_notify('Eror trace name is required');
-            return false;
-        }
-        if (file.length <= 0) {
-            err_notify('Eror trace archive is required');
-            return false;
-        }
-        data.append('file', file);
-        data.append('et_name', et_name);
-        data.append('report_id', $('#report_pk').val());
-        $('#upload_marks_popup').modal('hide');
-        $('#dimmer_of_page').addClass('active');
-        $.ajax({
-            url: '/reports/ajax/upload_etv/',
-            type: 'POST',
-            data: data,
-            dataType: 'json',
-            contentType: false,
-            processData: false,
-            mimeType: 'multipart/form-data',
-            xhr: function() {
-                return $.ajaxSettings.xhr();
-            },
-            success: function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                }
-                else {
-                    window.location.replace('');
-                }
-            }
-        });
-    });
 });
 

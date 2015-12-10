@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import tarfile
 import hashlib
@@ -12,12 +13,14 @@ from Omega.vars import JOB_CLASSES, FORMAT, JOB_STATUS, PRIORITY
 from Omega.utils import print_err
 from jobs.models import Job, File, JOBFILE_DIR
 from jobs.utils import create_job, update_job
-from reports.models import ReportComponent, ReportUnsafe, ReportSafe,\
-    ReportUnknown, ReportRoot, ETVFiles
+from reports.models import ReportComponent, ReportUnsafe, ReportSafe, ReportUnknown, ReportRoot
 from reports.UploadReport import UploadReport
 from service.models import SolvingProgress, Scheduler
 
-ET_FILE = 'omega-error-trace.graphml'
+ET_FILE = 'unsfae-error-trace.graphml'
+LOG_FILE = 'report.log'
+PROOF_FILE = 'safe-proof.txt'
+PROBLEM_DESCR_FILE = 'unknown-problem-description.txt'
 
 
 class PSIDownloadJob(object):
@@ -75,14 +78,15 @@ class DownloadJob(object):
 
     def __init__(self, job):
         self.tarname = ''
+        self.job = job
         self.memory = BytesIO()
         self.error = None
-        self.__create_tar(job)
+        self.__create_tar()
 
-    def __create_tar(self, job):
+    def __create_tar(self):
 
         files_in_tar = {}
-        self.tarname = 'Job-' + job.identifier[:10] + '.tar.gz'
+        self.tarname = 'Job-' + self.job.identifier[:10] + '.tar.gz'
         jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
 
         def write_file_str(file_name, file_content):
@@ -91,7 +95,7 @@ class DownloadJob(object):
             t.size = len(file_content)
             jobtar_obj.addfile(t, BytesIO(file_content))
 
-        for jobversion in job.versions.all():
+        for jobversion in self.job.versions.all():
             filedata = []
             for f in jobversion.filesystem_set.all():
                 filedata_element = {
@@ -116,40 +120,76 @@ class DownloadJob(object):
                 'global_role': jobversion.global_role,
                 'comment': jobversion.comment,
             }
-            write_file_str('version-%s' % jobversion.version,
-                           json.dumps(version_data))
-        unsafes_tars = {}
-        for unsafe in ReportUnsafe.objects.filter(root__job=job):
-            unsafes_tars[unsafe] = {
-                'memory': BytesIO(),
-                'tarobj': None
-            }
-            unsafes_tars[unsafe]['tarobj'] = tarfile.open(fileobj=unsafes_tars[unsafe]['memory'], mode='w:gz')
-        for f in ETVFiles.objects.filter(unsafe__root__job=job):
-            if f.unsafe in unsafes_tars:
-                unsafes_tars[f.unsafe]['tarobj'].add(
-                    os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name
-                )
-        for u in unsafes_tars:
-            tinfo = tarfile.TarInfo(ET_FILE)
-            tinfo.size = len(u.error_trace)
-            unsafes_tars[u]['tarobj'].addfile(tinfo, BytesIO(u.error_trace))
-            unsafes_tars[u]['tarobj'].close()
-            unsafes_tars[u]['memory'].seek(0)
-            tarname = 'unsafe_files__%s.tar.gz' % u.pk
-            tinfo = tarfile.TarInfo(tarname)
-            tinfo.size = unsafes_tars[u]['memory'].getbuffer().nbytes
-            jobtar_obj.addfile(tinfo, unsafes_tars[u]['memory'])
+            write_file_str('version-%s' % jobversion.version, json.dumps(version_data))
 
+        self.__add_safe_files(jobtar_obj)
+        self.__add_unsafe_files(jobtar_obj)
+        self.__add_unknown_files(jobtar_obj)
+        self.__add_other_files(jobtar_obj)
         common_data = {
-            'format': str(job.format),
-            'type': str(job.type),
-            'status': job.status,
+            'format': str(self.job.format),
+            'type': str(self.job.type),
+            'status': self.job.status,
             'filedata': json.dumps(files_in_tar),
-            'reports': ReportsData(job).reports
+            'reports': ReportsData(self.job).reports
         }
         write_file_str('jobdata', json.dumps(common_data))
         jobtar_obj.close()
+
+    def __add_unsafe_files(self, jobtar):
+        for unsafe in ReportUnsafe.objects.filter(root__job=self.job):
+            memory = BytesIO()
+            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
+            for f in unsafe.files.all():
+                tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
+            tinfo = tarfile.TarInfo(ET_FILE)
+            tinfo.size = len(unsafe.error_trace)
+            tarobj.addfile(tinfo, BytesIO(unsafe.error_trace))
+            tarobj.close()
+            memory.seek(0)
+            tarname = 'unsafe_files__%s.tar.gz' % unsafe.pk
+            tinfo = tarfile.TarInfo(tarname)
+            tinfo.size = memory.getbuffer().nbytes
+            jobtar.addfile(tinfo, memory)
+
+    def __add_safe_files(self, jobtar):
+        for safe in ReportSafe.objects.filter(root__job=self.job):
+            memory = BytesIO()
+            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
+            tinfo = tarfile.TarInfo(PROOF_FILE)
+            tinfo.size = len(safe.proof)
+            tarobj.addfile(tinfo, BytesIO(safe.proof))
+            tarobj.close()
+            memory.seek(0)
+            tinfo = tarfile.TarInfo('safe_files__%s.tar.gz' % safe.pk)
+            tinfo.size = memory.getbuffer().nbytes
+            jobtar.addfile(tinfo, memory)
+
+    def __add_unknown_files(self, jobtar):
+        for unknown in ReportUnknown.objects.filter(root__job=self.job):
+            memory = BytesIO()
+            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
+            tinfo = tarfile.TarInfo(PROBLEM_DESCR_FILE)
+            tinfo.size = len(unknown.problem_description)
+            tarobj.addfile(tinfo, BytesIO(unknown.problem_description))
+            tarobj.close()
+            memory.seek(0)
+            tinfo = tarfile.TarInfo('unknown_files__%s.tar.gz' % unknown.pk)
+            tinfo.size = memory.getbuffer().nbytes
+            jobtar.addfile(tinfo, memory)
+
+    def __add_other_files(self, jobtar):
+        for report in ReportComponent.objects.filter(root__job=self.job):
+            if report.log is None:
+                continue
+            memory = BytesIO()
+            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
+            tarobj.add(os.path.join(settings.MEDIA_ROOT, report.log.file.name), arcname=LOG_FILE)
+            tarobj.close()
+            memory.seek(0)
+            tinfo = tarfile.TarInfo('other_files__%s.tar.gz' % report.pk)
+            tinfo.size = memory.getbuffer().nbytes
+            jobtar.addfile(tinfo, memory)
 
 
 class ReportsData(object):
@@ -207,10 +247,10 @@ class ReverseReport(object):
 
     def __revert_finish_component(self):
         try:
-            report = ReportComponent.objects.get(root__job=self.job,
-                                                 parent=None)
+            report = ReportComponent.objects.get(root__job=self.job, parent=None)
         except ObjectDoesNotExist:
             return
+        self.report_data['omega_db_pk'] = report.pk
         self.report_data['id'] = '/'
         self.report_data['type'] = 'finish'
         self.report_data['resources'] = {
@@ -218,18 +258,17 @@ class ReverseReport(object):
             'max mem size': report.resource.memory,
             'wall time': report.resource.wall_time
         }
+
         if report.data is not None:
             self.report_data['data'] = report.data.decode('utf8')
-        else:
-            self.report_data['data'] = ''
-        self.report_data['log'] = ''
         if report.log is not None:
-            self.report_data['log'] = report.log.file.read().decode('utf8')
+            self.report_data['log'] = LOG_FILE
         if report.description is not None:
             self.report_data['desc'] = report.description.decode('utf8')
 
     def __revert_report_component(self):
         self.report_data['id'] = self.__get_report_id(self.report)
+        self.report_data['omega_db_pk'] = self.report.pk
         self.report_data['attrs'] = self.__get_attrs()
         self.report_data['comp'] = json.loads(self.report.computer.description)
         if self.report.description is not None:
@@ -247,28 +286,24 @@ class ReverseReport(object):
             self.report_data['type'] = 'verification'
             if self.report.data is not None:
                 self.report_data['data'] = self.report.data.decode('utf8')
-            else:
-                self.report_data['data'] = ''
             self.report_data['resources'] = {
                 'CPU time': self.report.resource.cpu_time,
                 'max mem size': self.report.resource.memory,
                 'wall time': self.report.resource.wall_time
             }
-            self.report_data['log'] = ''
             if self.report.log is not None:
-                self.report_data['log'] = self.report.log.file.read().decode('utf8')
+                self.report_data['log'] = LOG_FILE
 
     def __revert_leaf_report(self):
+        self.report_data['omega_db_pk'] = self.report.pk
         if isinstance(self.report, ReportUnsafe):
             self.report_data['error trace'] = ET_FILE
             self.report_data['type'] = 'unsafe'
-            self.report_data['omega_db_pk'] = self.report.pk
         elif isinstance(self.report, ReportSafe):
-            self.report_data['proof'] = self.report.proof.decode('utf8')
+            self.report_data['proof'] = PROOF_FILE
             self.report_data['type'] = 'safe'
         elif isinstance(self.report, ReportUnknown):
-            self.report_data['problem desc'] = self.report.problem_description\
-                .decode('utf8')
+            self.report_data['problem desc'] = PROBLEM_DESCR_FILE
             self.report_data['type'] = 'unknown'
         else:
             return
@@ -316,7 +351,7 @@ class UploadJob(object):
         jobdata = None
         files_in_db = {}
         versions_data = {}
-        unsafe_files = {}
+        report_files = {}
         for f in jobzip_file.getmembers():
             file_name = f.name
             file_obj = jobzip_file.extractfile(f)
@@ -344,13 +379,23 @@ class UploadJob(object):
                 version_id = int(file_name.replace('version-', ''))
                 versions_data[version_id] = json.loads(file_obj.read().decode('utf8'))
             elif file_name.startswith('unsafe_files__'):
-                import re
                 m = re.match('unsafe_files__(\d+)\.tar\.gz', file_name)
                 if m is not None:
-                    unsafe_files[int(m.group(1))] = jobzip_file.extractfile(f)
+                    report_files[('unsafe', int(m.group(1)))] = jobzip_file.extractfile(f)
+            elif file_name.startswith('safe_files__'):
+                m = re.match('safe_files__(\d+)\.tar\.gz', file_name)
+                if m is not None:
+                    report_files[('safe', int(m.group(1)))] = jobzip_file.extractfile(f)
+            elif file_name.startswith('unknown_files__'):
+                m = re.match('unknown_files__(\d+)\.tar\.gz', file_name)
+                if m is not None:
+                    report_files[('unknown', int(m.group(1)))] = jobzip_file.extractfile(f)
+            elif file_name.startswith('other_files__'):
+                m = re.match('other_files__(\d+)\.tar\.gz', file_name)
+                if m is not None:
+                    report_files[('other', int(m.group(1)))] = jobzip_file.extractfile(f)
 
-        if any(x not in jobdata for x in
-               ['format', 'type', 'status', 'filedata', 'reports']):
+        if any(x not in jobdata for x in ['format', 'type', 'status', 'filedata', 'reports']):
             return _("The job archive is corrupted")
         if int(jobdata['format']) != FORMAT:
             return _("The job format is not supported")
@@ -418,7 +463,7 @@ class UploadJob(object):
                                        configuration='{}'.encode('utf8'))
         self.job.status = JOB_STATUS[1][0]
         self.job.save()
-        if not self.__upload_reports(json.loads(jobdata['reports']), unsafe_files):
+        if not self.__upload_reports(json.loads(jobdata['reports']), report_files):
             self.job.delete()
             self.job = None
             return _("One of the reports was not uploaded")
@@ -430,12 +475,17 @@ class UploadJob(object):
         self.job.solvingprogress.delete()
         return None
 
-    def __upload_reports(self, reports, unsafe_files):
+    def __upload_reports(self, reports, files):
         for report in reports:
+            if any(x not in report for x in ['omega_db_pk', 'type']):
+                return False
+
             archive = None
-            if 'type' in report and report['type'] == 'unsafe' \
-                    and 'omega_db_pk' in report and report['omega_db_pk'] in unsafe_files:
-                archive = unsafe_files[report['omega_db_pk']]
+            if report['type'] in ['unsafe', 'safe', 'unknown'] \
+                    and (report['type'], report['omega_db_pk']) in files:
+                archive = files[(report['type'], report['omega_db_pk'])]
+            elif ('other', report['omega_db_pk']) in files:
+                archive = files[('other', report['omega_db_pk'])]
             error = UploadReport(self.job, report, archive).error
             if error is not None:
                 print_err(error)

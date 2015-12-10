@@ -8,7 +8,7 @@ from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
 from marks.models import UnsafeTag, SafeTag
-from reports.UploadReport import UploadReport, upload_unsafe_files
+from reports.UploadReport import UploadReport
 from marks.utils import MarkAccess
 from reports.models import *
 from reports.utils import *
@@ -198,7 +198,7 @@ def report_leaf(request, leaf_type, report_id):
 
     template = 'reports/report_leaf.html'
     etv = None
-    if leaf_type == 'unsafe' and len(report.error_trace) > 100:
+    if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
         etv = GetETV(report.error_trace)
         if etv.error is not None:
@@ -335,25 +335,3 @@ def get_source_code(request):
         'name': filename,
         'fullname': request.POST['file_name']
     })
-
-
-@login_required
-def upload_etv(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'et_name' not in request.POST:
-        return JsonResponse({'error': 'Error trace name is required'})
-    if 'report_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
-    archive = None
-    for f in request.FILES.getlist('file'):
-        archive = f
-    try:
-        unsafe = ReportUnsafe.objects.get(pk=int(request.POST['report_id']))
-    except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Unknown error'})
-    if archive is None:
-        return JsonResponse({'error': 'Error trace archive is required'})
-    upload_unsafe_files(unsafe, request.POST['et_name'], archive)
-    return JsonResponse({})
