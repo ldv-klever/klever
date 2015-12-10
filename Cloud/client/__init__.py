@@ -54,9 +54,8 @@ def solve_job(conf):
         raise FileExistsError("There is no psi execution script {}".format(bin))
 
     # Save psi configuration file
-    psi_config_file = os.path.abspath(os.path.join(os.path.curdir, "psi configuration.json"))
-    with open(psi_config_file, "w") as fh:
-        fh.write(json.dumps(conf["psi configuration"]))
+    with open("psi configuration.json", "w") as fh:
+        json.dump(conf["psi configuration"], fh, sort_keys=True, indent=4)
 
     # Import RunExec
     executor = RunExecutor()
@@ -81,8 +80,9 @@ def solve_job(conf):
     # Run psi within runexec
     # TODO: How to choose proper CPU core numbers?
 
-    logging.info("Run psi script {} with configuration file '{}'".format(bin, psi_config_file))
-    result = executor.execute_run(args=[bin, psi_config_file], output_filename="output.log",
+    logging.info("Run psi script {} with configuration file '{}'".format(bin, "psi configuration.json"))
+    result = executor.execute_run(args=[bin, "psi configuration.json"],
+                                  output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
                                   walltimelimit=conf["resource limits"]["wall time"],
                                   memlimit=conf["resource limits"]["memory size"])
