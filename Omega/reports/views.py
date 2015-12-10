@@ -203,7 +203,7 @@ def report_leaf(request, leaf_type, report_id):
         etv = GetETV(report.error_trace)
         if etv.error is not None:
             print_err(etv.error)
-            return HttpResponseRedirect(reverse('error', args=[500]))
+            return HttpResponseRedirect(reverse('error', args=[505]))
     return render(
         request, template,
         {
@@ -234,7 +234,7 @@ def report_etv_full(request, report_id):
     etv = GetETV(report.error_trace)
     if etv.error is not None:
         print_err(etv.error)
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return HttpResponseRedirect(reverse('error', args=[505]))
     return render(
         request, 'reports/etv_fullscreen.html',
         {

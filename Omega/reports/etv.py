@@ -88,7 +88,7 @@ class GetETV(object):
                 traces.append(path)
         if len(traces) != 1:
             self.error = _('Only error traces with one error path are supported')
-            return None
+            return []
         edge_trace1 = []
         edge_trace2 = []
         prev_node = traces[0][0]
@@ -104,7 +104,7 @@ class GetETV(object):
                         edge_trace2.append(e)
                 elif must_have_thread:
                     self.error = 'One of the edges does not have thread attribute'
-                    return None
+                    return []
                 else:
                     edge_trace1.append(e)
             prev_node = n

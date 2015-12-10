@@ -20,7 +20,8 @@ ERRORS = {
     650: _("Saving the mark failed"),
     704: _("The tag was not found"),
     804: _("The problem was not found"),
-    900: _("You don't have an access to this page")
+    900: _("You don't have an access to this page"),
+    505: _("Error trace is not supported")
 }
 
 LANGUAGES = (
