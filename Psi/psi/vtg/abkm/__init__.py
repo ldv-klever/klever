@@ -156,6 +156,19 @@ class ABKM(psi.components.Component):
                                  self.mqs['report files'],
                                  self.conf['main working directory'])
 
+                if decision_results['status'] == 'safe':
+                    psi.utils.report(self.logger,
+                                     'safe',
+                                     {
+                                         'id': 'safe',
+                                         'parent id': '1',
+                                         'attrs': [],
+                                         # TODO: just the same file as parent log, looks strange.
+                                         'proof': '__file:cil.i.log'
+                                     },
+                                     self.mqs['report files'],
+                                     self.conf['main working directory'])
+
                 # TODO: process safes, unsafes and unknowns.
 
                 break
