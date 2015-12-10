@@ -178,7 +178,7 @@ def solve_task(conf):
     # Actually there is the only output file, but benchexec is quite clever to add current date to its name.
     statuses_map = {
         'false(reach)': 'unsafe',
-        'true(unreach)': 'safe',
+        'true': 'safe',
         'ERROR': 'error',
         'TIMEOUT': 'CPU time exhausted',
         'OUT OF MEMORY': 'memory exhausted'
