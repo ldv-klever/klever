@@ -706,6 +706,7 @@ class Signature:
         self.return_value = None
         self.parameters = None
         self.fields = None
+        self.__body = None
 
         ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
         identifier_re = "(?:(?:(\*?)%s)|(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
@@ -807,5 +808,55 @@ class Signature:
                     self.parameters.append("None")
                 else:
                     self.parameters.append(Signature(arg))
+
+    @property
+    def body(self):
+        if self.type_class == "function" and not self.pointer:
+            if not self.__body:
+                self.__body = FunctionBody()
+            return self.__body
+        else:
+            raise TypeError("Signature '{}' with class '{}' is not a function or it is a function pointer".
+                            format(self.expression, self.type_class))
+
+    def get_definition(self):
+        if self.type_class == "function" and not self.pointer:
+            lines = []
+            lines.append(self.expression + "{\n")
+            lines.extend(self.body.get_lines(1))
+            lines.append("}\n")
+            return lines
+        else:
+            raise TypeError("Signature '{}' with class '{}' is not a function or it is a function pointer".
+                            format(self.expression, self.type_class))
+
+
+class FunctionBody:
+    indent_re = re.compile("^(\t*)([^\s]*.*)")
+
+    def __init__(self, body=[]):
+        self.__body = []
+
+        if len(body) > 0:
+            self.concatenate(body)
+
+    def _split_indent(self, string):
+        split = self.indent_re.match(string)
+        return {
+            "indent": len(split.group(1)),
+            "statement": split.group(2)
+        }
+
+    def concatenate(self, statements):
+        for line in statements:
+            splitted = self._split_indent(line)
+            self.__body.append(splitted)
+
+    def get_lines(self, start_indent=1):
+        lines = []
+        for splitted in self.__body:
+            line = (start_indent + splitted["indent"]) * "\t" + splitted["statement"] + "\n"
+            lines.append(line)
+        return lines
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

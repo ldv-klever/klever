@@ -6,6 +6,7 @@ import psi.utils
 
 from psi.avtg.emg.interfaces import CategorySpecification, ModuleSpecification
 from psi.avtg.emg.events import EventModel
+from psi.avtg.emg.translator import stub
 
 class EMG(psi.components.Component):
 
@@ -51,10 +52,12 @@ class EMG(psi.components.Component):
             translator_name = self.conf["translator"]
         else:
             translator_name = "stub"
-        self.logger.info("Try to import translator {}".format(translator_name))
-        translator = getattr(__import__(psi.avtg.emg.translator, fromlist=[translator_name]),
-                             translator_name)
-        self.translator = translator.Translator(self.logger, self.conf, avt, self.module_interface_spec, self.model)
+            self.logger.info("Try to import translator {}".format(translator_name))
+
+        if translator_name == "stub":
+            tr = stub.Translator(self.logger, self.conf, avt, self.module_interface_spec, self.model)
+        else:
+            raise NotImplementedError("Cannot use EMG translator '{}'".format(translator_name))
 
         self.mqs['abstract task description'].put(avt)
 
@@ -96,6 +99,5 @@ class EMG(psi.components.Component):
             raise FileNotFoundError("EMG requires event categories specification but it is missed")
 
     main = generate_environment
-
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
