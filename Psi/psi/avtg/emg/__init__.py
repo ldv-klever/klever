@@ -7,14 +7,15 @@ import psi.utils
 from psi.avtg.emg.interfaces import CategorySpecification, ModuleSpecification
 from psi.avtg.emg.events import EventModel
 
-
 class EMG(psi.components.Component):
 
     def generate_environment(self):
         self.logger.info("Start environment model generator instance {}".format(self.id))
-        self.module_interface_spec = {}
-        self.interface_spec = {}
-        self.event_spec = {}
+        self.module_interface_spec = None
+        self.model = None
+        self.interface_spec = None
+        self.event_spec = None
+        self.translator = None
 
         self.logger.debug("Receive abstract verification task")
         avt = self.mqs['abstract task description'].get()
@@ -43,7 +44,17 @@ class EMG(psi.components.Component):
         # Import event categories specification
         self.logger.info("Prepare intermediate model")
         # TODO: Import existing environment model
-        EventModel(self.logger, self.module_interface_spec, self.event_spec)
+        self.model = EventModel(self.logger, self.module_interface_spec, self.event_spec)
+
+        translator_name = None
+        if "translator" in self.conf:
+            translator_name = self.conf["translator"]
+        else:
+            translator_name = "stub"
+        self.logger.info("Try to import translator {}".format(translator_name))
+        translator = getattr(__import__(psi.avtg.emg.translator, fromlist=[translator_name]),
+                             translator_name)
+        self.translator = translator.Translator(self.logger, self.conf, avt, self.module_interface_spec, self.model)
 
         self.mqs['abstract task description'].put(avt)
 
