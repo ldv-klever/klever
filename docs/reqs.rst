@@ -58,4 +58,5 @@ To run Psi you need:
   * `Jinja2 <http://jinja.pocoo.org/>`_ (just if you are going to verify source code against rule specifications using
     argument signatures).
 
+* `GNU make <https://www.gnu.org/software/make/>`_.
 * `CIF <http://forge.ispras.ru/projects/cif>`_.
