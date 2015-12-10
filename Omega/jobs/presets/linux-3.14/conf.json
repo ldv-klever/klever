@@ -15,22 +15,22 @@
   "rule specifications_": ["32", "linux:spinlock"],
   "rule specifications DB": "rule specs.json",
   "VTG strategy": {
-    "name": "merge bug kinds",
+    "name": "all bug kinds merge",
     "verifier": {
       "name": "CPAchecker",
       "version": "1.4",
       "options": [
-        {"name1": "value1"},
-        {"name2": "value2"}
+        {"-ldv": ""}
       ]
     },
     "resource limits": {
       "wall time": 1000,
       "CPU time": 1000,
-      "memory size": 1000000,
+      "memory size": 1000000000,
       "CPU model": null,
       "number of CPU cores": 1,
-      "resul size": 1000000
-    }
+      "result size": 1000000
+    },
+    "merge source files": true
   }
 }
