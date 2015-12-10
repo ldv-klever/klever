@@ -22,7 +22,7 @@
           "name": "EMG",
           "options": {
             "specifications directory": "emg",
-            "entry point": "entry point"
+            "entry point": "entry_point"
           }
         },
         {
@@ -71,7 +71,7 @@
           "name": "EMG",
           "options": {
             "specifications directory": "emg",
-            "entry point": "entry point"
+            "entry point": "entry_point"
           }
         },
         {
