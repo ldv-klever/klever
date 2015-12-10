@@ -115,6 +115,15 @@ class ABKM(psi.components.Component):
             if task_status == 'ERROR':
                 task_error = session.get_task_error(task_id)
                 self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
+                psi.utils.report(self.logger,
+                                 'unknown',
+                                 {
+                                     'id': 'unknown',
+                                     'parent id': self.id,
+                                     'problem desc': task_error
+                                 },
+                                 self.mqs['report files'],
+                                 self.conf['main working directory'])
                 break
 
             if task_status == 'FINISHED':
