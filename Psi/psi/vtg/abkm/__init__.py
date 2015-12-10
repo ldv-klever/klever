@@ -138,15 +138,16 @@ class ABKM(psi.components.Component):
                 with open('decision results.json') as fp:
                     decision_results = json.load(fp)
 
+                # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec.
                 psi.utils.report(self.logger,
                                  'verification',
                                  {
                                      # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
                                      'id': '1',
                                      'parent id': self.id,
+                                     # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
                                      'attrs': [],
-                                     'name': '{0} {1}'.format(*[self.conf['VTG strategy']['verifier'][name] for name in
-                                                                ('name', 'version')]),
+                                     'name': self.conf['VTG strategy']['verifier']['name'],
                                      'resources': decision_results['resources'],
                                      'desc': decision_results['desc'],
                                      'log': '__file:cil.i.log',
