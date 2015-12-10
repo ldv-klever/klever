@@ -168,7 +168,17 @@ class ABKM(psi.components.Component):
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
-
+                 elif decision_results['status'] == 'unsafe':
+                    psi.utils.report(self.logger,
+                                     'unsafe',
+                                     {
+                                         'id': 'unsafe',
+                                         'parent id': '1',
+                                         'attrs': [],
+                                         'error trace': '__file:witness.graphml'
+                                     },
+                                     self.mqs['report files'],
+                                     self.conf['main working directory'])
                 # TODO: process safes, unsafes and unknowns.
 
                 break
