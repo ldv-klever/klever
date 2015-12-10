@@ -192,7 +192,10 @@ class ABKM(psi.components.Component):
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
-                # TODO: process safes, unsafes and unknowns.
+                else:
+                    raise NotImplementedError(
+                        'Status "{0}" of verification task decision results is not supported'.format(
+                            decision_results['status']))
 
                 break
 
