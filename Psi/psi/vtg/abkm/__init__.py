@@ -168,7 +168,7 @@ class ABKM(psi.components.Component):
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
-                 elif decision_results['status'] == 'unsafe':
+                elif decision_results['status'] == 'unsafe':
                     psi.utils.report(self.logger,
                                      'unsafe',
                                      {
@@ -176,6 +176,17 @@ class ABKM(psi.components.Component):
                                          'parent id': '1',
                                          'attrs': [],
                                          'error trace': '__file:witness.graphml'
+                                     },
+                                     self.mqs['report files'],
+                                     self.conf['main working directory'])
+                elif decision_results['status'] == 'error':
+                    psi.utils.report(self.logger,
+                                     'unknown',
+                                     {
+                                         'id': 'unknown',
+                                         'parent id': '1',
+                                         # TODO: just the same file as parent log, looks strange.
+                                         'problem desc': '__file:cil.i.log'
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
