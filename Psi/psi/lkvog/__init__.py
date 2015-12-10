@@ -110,7 +110,7 @@ class LKVOG(psi.components.Component):
         elif strategy_name == 'scotch':
             self.module_deps = self.mqs['Linux kernel module deps'].get()
 
-            scotch_dir_path = os.path.join(self.conf['root id'], 'scotch')
+            scotch_dir_path = os.path.join(self.conf['main working directory'], 'scotch')
             if not os.path.isdir(scotch_dir_path):
                 os.mkdir(scotch_dir_path)
             else:
@@ -203,7 +203,7 @@ class LKVOG(psi.components.Component):
                 self.logger.debug(
                     'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                         self.module['name'], verification_obj_desc_file))
-                with open(os.path.join(self.conf['root id'], verification_obj_desc_file), 'w') as fp:
+                with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
 

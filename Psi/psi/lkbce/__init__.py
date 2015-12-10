@@ -120,7 +120,7 @@ class LKBCE(psi.components.Component):
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
                 and 'build kernel' in self.conf['Linux kernel']:
             #Install modules
-            self.linux_kernel['modules install'] = os.path.join(self.conf['root id'], 'linux-modules')
+            self.linux_kernel['modules install'] = os.path.join(self.conf['main working directory'], 'linux-modules')
             os.mkdir(self.linux_kernel['modules install'])
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'],
                         jobs_num=psi.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
@@ -134,7 +134,7 @@ class LKBCE(psi.components.Component):
 
     def extract_all_linux_kernel_mod_deps(self):
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
-                and 'build kernel' in self.conf['Linux kernel']:
+                and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
             path = os.path.join(self.linux_kernel['modules install'], "lib/modules", self.linux_kernel['version'], "modules.dep")
 
             with open(path, 'r') as fp:
