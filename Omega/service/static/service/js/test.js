@@ -97,7 +97,7 @@ $(document).ready(function () {
             err_notify("Set task id");
             return false;
         }
-        window.open('/service/download_solution/' + task_id);
+        $.redirectPost('/service/download_solution/', {'task id': task_id});
     });
 
     $('#cancel_task_submit').click(function () {
@@ -169,7 +169,7 @@ $(document).ready(function () {
             err_notify("Set task id");
             return false;
         }
-        window.open('/service/download_task/' + task_id);
+        $.redirectPost('/service/download_task/', {'task id': task_id});
     });
 
     $('#upload_solution_submit').click(function () {

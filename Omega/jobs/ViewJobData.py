@@ -21,6 +21,8 @@ class ViewJobData(object):
         self.user = user
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
+        if self.report is None:
+            return
         self.unknowns_total = None
         self.show_verdicts = False
         self.show_tags = False
@@ -47,8 +49,7 @@ class ViewJobData(object):
         for view in self.user.view_set.filter(type='2'):
             views.append({
                 'id': view.pk,
-                'name': view.name,
-                'selected': lambda: (view.pk == self.view_id)
+                'name': view.name
             })
         return views
 

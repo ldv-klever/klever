@@ -28,7 +28,7 @@ class Session:
 
         # Sign in.
         # TODO: Replace with proper signin
-        self.__request('users/psi_signin/', 'POST', parameters)
+        self.__request('users/service_signin/', 'POST', parameters)
         logging.debug('Session was created')
 
     def __request(self, path_url, method='GET', data=None, **kwargs):
@@ -67,17 +67,16 @@ class Session:
                 logging.warning('Could not send "{0}" request to "{1}"'.format(method, err.request.url))
                 time.sleep(1)
 
-    def get_archive(self, endpoint, archive):
-        with open(archive) as fp:
-            resp = self.__request(endpoint, 'GET', stream=True)
+    def get_archive(self, endpoint, data, archive):
+        resp = self.__request(endpoint, 'POST', data, stream=True)
 
         logging.debug('Write an archive to {}'.format(archive))
         with open(archive, 'wb') as fp:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
 
-    def push_archive(self):
-        pass
+    def push_archive(self, endpoint, data, archive):
+        self.__request(endpoint, 'POST', data, files={'file': open(archive, 'rb')})
 
     def json_exchange(self, endpoint, json_data):
         response = self.__request(endpoint, 'POST', json_data)
@@ -91,6 +90,6 @@ class Session:
         :return: Nothing
         """
         logging.info('Finish session at {}'.format(self.name))
-        self.__request('users/psi_signout/')
+        self.__request('users/service_signout/')
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

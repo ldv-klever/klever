@@ -1,7 +1,5 @@
 {% load i18n %}
 
-{% include 'jobs/viewJobFilters.html' %}
-<br>
 <div class="ui grid">
     {% if reportdata.view_data.unsafes|length %}
         <div class="eight wide column">
@@ -98,7 +96,7 @@
 {% endif %}
 
 {% if reportdata.view_data.resources|length %}
-    <h4 class="header ui violet" id="resource_title_span">{% trans 'Consumed resources' %}*</h4>
+    <h4 class="header ui violet">{% trans 'Consumed resources' %}*</h4>
     <div class="ui list">
         {% for res_data in reportdata.view_data.resources %}
             <div class="item">
@@ -113,9 +111,6 @@
             </div>
         {% endfor %}
     </div>
-{% endif %}
-
-<div id="resource_star_div">
     <div class="ui divider"></div>
     <small style="color: #867684">*{% trans "Wall time, CPU time and maximum memory size" %}</small>
-</div>
+{% endif %}

@@ -35,7 +35,7 @@ def prepare_node_info(node_info):
     if result["available disk memory"] > result["disk memory"]:
         raise ValueError("Node has {} bytes of disk memory but {} is attempted to reserve".
                          format(result["disk memory"], result["available disk memory"]))
-    if result["available CPU number"] >= result["CPU number"]:
+    if result["available CPU number"] > result["CPU number"]:
         raise ValueError("Node has {} CPU cores but {} is attempted to reserve".
                          format(result["CPU number"], result["available CPU number"]))
 

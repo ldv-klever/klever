@@ -54,10 +54,3 @@ def population(request):
         'need_manager': (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0),
         'need_service': (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0),
     })
-
-
-def fake_request(request):
-    import time
-    import random
-    time.sleep(random.random())
-    return JsonResponse({})

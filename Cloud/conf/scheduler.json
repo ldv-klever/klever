@@ -10,12 +10,14 @@
     "process pool": false,
     "controller address": "http://localhost:8500",
     "keep working directory": false,
-    "job client configuration": "conf/client.json",
+    "job client configuration": "/abs/path/to/job-client.json",
+    "task client configuration": "/abs/path/to/task-client.json",
     "verification tools": {
       "CPAchecker": {
         "trunk@17959": "cpachecker/scripts/cpa.sh"
       }
-    }
+    },
+    "iteration timeout": 3
   },
   "common": {
     "working directory": "scheduler-work-dir",

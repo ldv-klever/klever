@@ -1,7 +1,7 @@
 {
   "client": {
-    "benchexec location": "benchexec/",
-    "cif location": "cif/bin/"
+    "benchexec location": "/abs/path/to/benchexec/",
+    "cpachecker location": "/abs/path/to/scripts"
   },
   "common": {
     "working directory": null,

@@ -248,7 +248,7 @@ class MarkUnknown(models.Model):
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
-    component = models.ForeignKey(Component)
+    component = models.ForeignKey(Component, on_delete=models.PROTECT)
     function = models.TextField()
     problem_pattern = models.CharField(max_length=15)
     link = models.URLField(null=True)
@@ -284,11 +284,9 @@ class MarkUnknownReport(models.Model):
 
 
 class ComponentMarkUnknownProblem(models.Model):
-    report = models.ForeignKey(ReportComponent,
-                               related_name='mark_unknowns_cache')
-    component = models.ForeignKey(Component, related_name='+')
-    problem = models.ForeignKey(UnknownProblem, null=True,
-                                related_name='+', on_delete=models.PROTECT)
+    report = models.ForeignKey(ReportComponent, related_name='mark_unknowns_cache')
+    component = models.ForeignKey(Component, related_name='+', on_delete=models.PROTECT)
+    problem = models.ForeignKey(UnknownProblem, null=True, related_name='+', on_delete=models.PROTECT)
     number = models.PositiveIntegerField(default=0)
 
     class Meta:

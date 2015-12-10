@@ -16,8 +16,8 @@ urlpatterns = [
     url(r'^remove_task/$', views.remove_task),
     url(r'^cancel_task/$', views.cancel_task),
     url(r'^upload_solution/$', views.upload_solution),
-    url(r'^download_solution/(?P<task_id>[0-9]+)/$', views.download_solution),
-    url(r'^download_task/(?P<task_id>[0-9]+)/$', views.download_task),
+    url(r'^download_solution/$', views.download_solution),
+    url(r'^download_task/$', views.download_task),
     url(r'^update_nodes/$', views.update_nodes),
     url(r'^schedulers/$', views.schedulers_info, name='schedulers'),
     url(r'^ajax/add_scheduler_user/$', views.add_scheduler_user)

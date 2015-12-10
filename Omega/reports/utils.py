@@ -133,8 +133,7 @@ class ReportTable(object):
         for view in self.user.view_set.filter(type=self.type):
             views.append({
                 'id': view.pk,
-                'name': view.name,
-                'selected': lambda: (view.pk == self.view_id)
+                'name': view.name
             })
         return views
 

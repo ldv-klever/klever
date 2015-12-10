@@ -11,7 +11,6 @@ from marks.CompareTrace import DEFAULT_COMPARE
 from marks.ConvertTrace import DEFAULT_CONVERT
 
 
-NO_ACCESS_COLOR = '#666666'
 MARK_TITLES = {
     'mark_num': '№',
     'change_kind': _('Change kind'),

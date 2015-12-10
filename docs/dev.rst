@@ -247,7 +247,11 @@ the steps:
    :file:`Cloud/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
    that you have chosen clean working directory outside of sources for an execution.
 
-#. Before running any tasks be sure that you have properly configured machine with swap accounting (or better disable
+   .. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JAVA` to run CPAchecker, e.g.
+          :file:`/usr/lib64/jvm/java-1.7.0-openjdk/jre/bin/java`.
+
+#. TODO: not only this command but 3 more! Moreover this should be placed somewhere else as well as all run instructions.
+   Before running any tasks be sure that you have properly configured machine with swap accounting (or better disable
    swap runnning *sudo swapoff -a*) and available cgroup subsystems (it is often necessary to run
    *sudo chmod o+wt '/sys/fs/cgroup/cpuset/'*).
 

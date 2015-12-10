@@ -20,7 +20,7 @@ from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
 from service.models import Scheduler
 
-JOB_SETTINGS_FILE = 'job-settings.json'
+JOB_SETTINGS_FILE = 'settings.json'
 
 
 class Population(object):
@@ -124,6 +124,8 @@ class Population(object):
         return password
 
     def __populate_jobs(self):
+        if not isinstance(self.manager, User):
+            return None
         args = {
             'author': self.manager,
             'global_role': JOB_ROLES[1][0],
@@ -144,7 +146,9 @@ class Population(object):
                     self.changes['jobs'] = True
 
     def __populate_default_jobs(self):
-        default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'default-jobs')
+        if not isinstance(self.manager, User):
+            return None
+        default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
                 print_err('There is default job without settings file')
@@ -156,7 +160,7 @@ class Population(object):
                 print_err(e)
                 print_err('The default job was not created')
                 continue
-            if any(x not in job_settings for x in ['name', 'type']):
+            if any(x not in job_settings for x in ['name', 'type', 'description']):
                 print_err('Default job settings must contain name, type and description')
                 continue
             if job_settings['type'] not in list(x[0] for x in JOB_CLASSES):
@@ -171,7 +175,7 @@ class Population(object):
                 print_err('Main jobs were not created')
                 continue
             job = create_job({
-                'author': self.user,
+                'author': self.manager,
                 'global_role': '1',
                 'name': job_settings['name'],
                 'description': job_settings['description'],

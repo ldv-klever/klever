@@ -87,7 +87,7 @@ class Component(multiprocessing.Process):
                                  'start',
                                  report,
                                  self.mqs['report files'],
-                                 self.conf['root id'])
+                                 self.conf['main working directory'])
 
             psi.utils.invoke_callbacks(self.main)
         finally:
@@ -109,7 +109,7 @@ class Component(multiprocessing.Process):
                                       'parent id': self.id,
                                       'problem desc': '__file:problem desc'},
                                      self.mqs['report files'],
-                                     self.conf['root id'])
+                                     self.conf['main working directory'])
 
                 self.logger.info('Terminate child resources message queue')
                 self.mqs['child resources'].put(None)
@@ -137,7 +137,7 @@ class Component(multiprocessing.Process):
                                   'log': '__file:log',
                                   'data': ''},
                                  self.mqs['report files'],
-                                 self.conf['root id'])
+                                 self.conf['main working directory'])
             else:
                 self.mqs['child resources'].put(
                     {self.name: psi.utils.count_consumed_resources(self.logger, self.start_time,

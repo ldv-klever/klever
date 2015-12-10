@@ -13,50 +13,39 @@
     <div class="ui grid">
         <div id="view_job_1st_part" class="eight wide column">
             <div class="ui small icon buttons top attached">
-                {% if can_create %}
-                    <button id="copy_job_btn" class="ui teal button normal-popup"><i class="file outline icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Make copy' %}</p>
-                    </div>
-                {% endif %}
-                {% if can_download %}
-                    <button id="load_job_btn" class="ui olive button normal-popup"><i class="download icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Download' %}</p>
-                    </div>
-                {% endif %}
-                {% if can_decide %}
-                    <a href="{% url 'jobs:prepare_run' job.pk %}" class="ui purple button normal-popup"><i class="play icon"></i></a>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
-                    </div>
-                    <button id="fast_job_start" class="ui pink button normal-popup"><i class="play forward icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Start decision with default values' %}</p>
-                    </div>
-                {% endif %}
-                {% if can_stop %}
-                    <button id="stop_job_btn" class="ui orange button normal-popup"><i class="stop icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Stop decision' %}</p>
-                    </div>
-                {% endif %}
-                {% if can_edit %}
-                    <button id="edit_job_btn" class="ui blue button normal-popup"><i class="write icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Edit' %}</p>
-                    </div>
-                    <button id="edit_versions" class="ui brown button normal-popup"><i class="recycle icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Delete versions' %}</p>
-                    </div>
-                {% endif %}
-                {% if can_delete %}
-                    <button id="show_remove_job_popup" class="ui red button normal-popup"><i class="remove icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Delete' %}</p>
-                    </div>
-                {% endif %}
+                <button id="copy_job_btn" class="ui teal button normal-popup{% if not can_create %} disabled{% endif %}"><i class="file outline icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Make copy' %}</p>
+                </div>
+                <button id="load_job_btn" class="ui olive button normal-popup{% if not can_download %} disabled{% endif %}"><i class="download icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Download' %}</p>
+                </div>
+                <a id="decide_job_btn" href="{% url 'jobs:prepare_run' job.pk %}" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play icon"></i></a>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
+                </div>
+                <button id="fast_job_start" class="ui pink button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Start decision with default values' %}</p>
+                </div>
+
+                <button id="stop_job_btn" class="ui orange button normal-popup{% if not can_stop %} disabled{% endif %}"><i class="stop icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Stop decision' %}</p>
+                </div>
+                <button id="edit_job_btn" class="ui blue button normal-popup{% if not can_edit %} disabled{% endif %}"><i class="write icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Edit' %}</p>
+                </div>
+                <button id="edit_versions" class="ui brown button normal-popup{% if not can_edit %} disabled{% endif %}"><i class="recycle icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Delete versions' %}</p>
+                </div>
+                <button id="show_remove_job_popup" class="ui red button normal-popup{% if not can_delete %} disabled{% endif %}"><i class="remove icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Delete' %}</p>
+                </div>
             </div>
             <table class="ui selectable compact inverted violet table attached">
                 <thead>
@@ -138,8 +127,8 @@
                     <tr id="job_status_popup_activator">
                         <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
-                            {% if reportdata %}
-                                <a class="
+                            {% if reportdata.report %}
+                                <a id="job_status_link" class="
                                 {% if job.status == '0' %}
                                     status-link status0-link
                                 {% elif job.status == '1' %}
@@ -159,7 +148,7 @@
                                 {% endif %}
                                 " href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
                             {% else %}
-                                <p style="color: #f1ffff">{{ job.get_status_display }}</p>
+                                <p id="job_status_p" style="color: #f1ffff">{{ job.get_status_display }}</p>
                             {% endif %}
                         </td>
                     </tr>
@@ -172,9 +161,13 @@
                 </div>
             {% endif %}
             <br>
-            {% if reportdata %}
-                {% include 'jobs/jobData.html' %}
-            {% endif %}
+            {% include 'jobs/viewJobFilters.html' %}
+            <br>
+            <div id="job_data_div">
+                {% if reportdata %}
+                    {% include 'jobs/jobData.html' %}
+                {% endif %}
+            </div>
         </div>
         <div id="edit_job_div" class="eight wide column"></div>
     </div>

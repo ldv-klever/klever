@@ -80,34 +80,30 @@ class ReportComponent(Report):
     log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
     data = models.BinaryField(null=True)
 
-    def delete(self, *args, **kwargs):
-        computer = self.computer
-        resource = self.resource
-        super(ReportComponent, self).delete(*args, **kwargs)
-        if len(computer.reportcomponent_set.all()) == 0:
-            computer.delete()
-        if len(resource.reportcomponent_set.all()) == 0 \
-                and len(resource.componentresource_set.all()) == 0:
-            resource.delete()
-
     class Meta:
         db_table = 'report_component'
 
 
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
-    error_trace_processed = models.BinaryField()
-    verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS,
-                               default='5')
+    verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
     class Meta:
         db_table = 'report_unsafe'
 
 
+class ETVFiles(models.Model):
+    unsafe = models.ForeignKey(ReportUnsafe, related_name='files')
+    file = models.ForeignKey(File)
+    name = models.CharField(max_length=1024)
+
+    class Meta:
+        db_table = 'etv_files'
+
+
 class ReportSafe(Report):
     proof = models.BinaryField()
-    verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS,
-                               default='4')
+    verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
 
     class Meta:
         db_table = 'report_safe'
@@ -154,16 +150,8 @@ class Verdict(models.Model):
 
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='resources_cache')
-    component = models.ForeignKey(Component, null=True, blank=True,
-                                  on_delete=models.PROTECT)
+    component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
     resource = models.ForeignKey(Resource)
-
-    def delete(self, *args, **kwargs):
-        resource = self.resource
-        super(ComponentResource, self).delete(*args, **kwargs)
-        if len(resource.reportcomponent_set.all()) == 0 \
-                and len(resource.componentresource_set.all()) == 0:
-            resource.delete()
 
     class Meta:
         db_table = 'cache_report_component_resource'

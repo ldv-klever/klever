@@ -11,8 +11,8 @@
                 <div class="eight wide column">
                     <div class="ui violet segment">
                         <h2 class="ui violet header">{% trans 'A new Manager was created' %}</h2>
-                        <p><strong>{% trans 'Username' %}:</strong> {{ population.manager.username }}</p>
-                        <p><strong>{% trans 'Password' %}:</strong> {{ population.manager.password }}</p>
+                        <p><strong>{% trans 'Username' %}:</strong> {{ changes.manager.username }}</p>
+                        <p><strong>{% trans 'Password' %}:</strong> {{ changes.manager.password }}</p>
                         <p style="color: #ce6f64">{% trans 'Please save this data and give it to the user who will be the Manager' %}</p>
                     </div>
                 </div>
@@ -36,12 +36,12 @@
         {% endif %}
         {% if changes.jobs %}
             <div class="ui green segment">
-                <h2 class="ui green header">{% trans 'New main jobs were uploaded' %}</h2>
+                <h2 class="ui green header">{% trans 'New root jobs were uploaded' %}</h2>
             </div>
         {% endif %}
         {% if changes.default_jobs %}
             <div class="ui green segment">
-                <h2 class="ui green header">{% trans 'New default jobs were uploaded' %}:</h2>
+                <h2 class="ui green header">{% trans 'New preset jobs were uploaded' %}:</h2>
                 <ul>
                     {% for j in changes.default_jobs %}
                         <li><span style="color: #3fd148">{{ j.0 }}</span> ({{ j.1 }})</li>

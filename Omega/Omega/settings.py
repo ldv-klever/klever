@@ -145,8 +145,8 @@ DEF_PSI_FORMATTERS = {
 }
 
 DEF_PSI_CONFIGURATION = {
-    'debug': False,
-    'allow_local_dir': False,  # Allow use of local source directories
+    'debug': True,
+    'allow_local_dir': True,  # Allow use of local source directories
     'priority': 'IDLE',  # See Omega.vars.PRIORITY for more options
     'avtg_priority': 'balance'  # See service.utils.AVTG_PRIORITY for more options
 }

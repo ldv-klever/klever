@@ -60,7 +60,7 @@ class ScheduleTask(object):
             self.error = 'Job was not found was not found' % job_id
             return
         except ValueError:
-            self.error = 'Wrong job id format'
+            self.error = 'Unknown error'
             return
 
     def __create_task(self, description, archive):
@@ -301,13 +301,11 @@ class GetTasks(object):
             self.error = "Unknown error"
 
     def __get_scheduler(self, sch_type):
-        type_map = {}
-        for st in SCHEDULER_TYPE:
-            type_map[st[1]] = st[0]
         try:
-            return Scheduler.objects.get(type=type_map[sch_type])
+            return Scheduler.objects.get(type=sch_type)
         except ObjectDoesNotExist:
-            self.error = "Scheduler was not found, check its type"
+            self.error = "The scheduler was not found"
+            return None
 
     def __get_tasks(self, data):
         data = json.loads(data)
@@ -645,9 +643,6 @@ class SetNodes(object):
 class UpdateTools(object):
     def __init__(self, sch_type, tools_data):
         self.error = None
-        for sch in SCHEDULER_TYPE:
-            if sch[1] == sch_type:
-                sch_type = sch[0]
         try:
             self.scheduler = Scheduler.objects.get(type=sch_type)
         except ObjectDoesNotExist:
@@ -853,13 +848,8 @@ class StartJobDecision(object):
         self.job.save()
 
     def __get_psi_data(self):
-        try:
-            job = Job.objects.get(pk=int(self.data['job_id']))
-        except ObjectDoesNotExist:
-            self.error = _("The job was not found")
-            return None
         conf = {
-            'identifier': job.identifier,
+            'identifier': self.job.identifier,
             'priority': self.data['priority'],
             'debug': self.data['debug'],
             'allow local source directories use': self.data['allow_local_dir'],

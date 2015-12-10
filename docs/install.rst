@@ -174,20 +174,29 @@ manually the following configuration properties:
     * *keep working directory* attribute implies not to delete generated working directories. If you are going to debug psi or
       a verification tool it is recommended to set it as *true*, but it will cause problems in case of solving the same
       job or task twice.
-    * *job client configuration* attribute corresponds to an absolute path to a file with client configuration. You can
-      prepare such file on the base of :file:`Cloud/conf/client.json`.
+    * *job client configuration*/*task client configuration* attribute corresponds to an absolute path to a file with
+      job/task client configuration (see below).
     * *"verification tools"* contains names of verification tools, corresponding versions and absolute pathes to
       binaries of corresponding verification tools.
 
-Scheduler client configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Scheduler job/task client configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Prototype for scheduler client configuration can be found in :file:`Cloud/conf/client.json`. It is recommended to set
-up manually the following configuration properties:
+Prototype for scheduler job/task client configuration can be found in :file:`Cloud/conf/job-client.json`/
+:file:`Cloud/conf/task-client.json`.
+It is recommended to set up manually the following configuration properties:
 
 * *client:benchexec location* configuration property corresponds to an absolute path to a root directory with
   downloaded BenchExec sources.
-* *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
+* for jobs:
+
+  * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
+  * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
+
+* for tasks:
+
+  * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
+  * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
 
 Psi installlation
 -----------------

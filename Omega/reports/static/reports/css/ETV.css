@@ -1,61 +1,91 @@
 #ETV_source_code {
-    height: 90%;
     width: 100%;
     position: absolute;
     left: 0;
-    top: 10%;
+    top: 35px;
+    bottom: 0;
     line-height: normal;
     font-size: 12px;
     border-top: 1px solid #ca8f1d;
 }
-#ETV_error_trace {
-    height: 90%;
+.ETV_error_trace {
     width: 100%;
     position: absolute;
     left: 0;
-    top: 10%;
+    top: 35px;
+    bottom: 0;
     line-height: normal;
     font-size: 12px;
+    font-family: monospace;
     border-top: 1px solid #ca8f1d;
+    overflow: auto;
+    white-space: nowrap
 }
-
+#ETV_assumes {
+    position: absolute;
+    padding: 5px;
+    height: 100%;
+    width: 100%;
+    font-family: monospace;
+    line-height: normal;
+    font-size: 12px;
+    overflow-x: auto;
+    overflow-y: auto;
+}
 #ETVTitleBlock {
-    height: 10%;
+    height: 50px;
 }
 
 #etv {
-    width: 99%;
     height: 550px;
     position: relative;
 }
-#etv-trace, #etv-source, #etv-divider {
+
+.fullscreen {
+    height: 85vh!important;
+}
+
+#etv-source {
     position: absolute;
     top: 0;
-    height: 100%;
-}
-#etv-trace {
-    left: 0;
-    width: 40%;
-    background-color: #fff8e9;
-}
-#etv-source {
     right: 0;
-    width: 59.7%;
+    width: 54.7%;
+    height: 70%;
     background-color: #fff8e9;
 }
 #etv-divider {
-    left: 40%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 45%;
     width: 0.3%;
     background-color: #f2711c;
     cursor: move;
 }
+#etv-divider-2 {
+    position: absolute;
+    right: 0;
+    top: 70%;
+    height: 0.5%;
+    width: 54.7%;
+    background-color: #f2711c;
+    cursor: move;
+}
+#etv-assumes {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 54.7%;
+    height: 29.5%;
+    background-color: #fff8e9;
+}
 
-.ETVSrcC {
+.ETVComment {
     color: #b1b4b7;
 }
 
-.ETVSrcN {
-    color: #68e8e6;
+.ETVNumber {
+    color: #3bbbbc;
 }
 
 .ETVSrcL {
@@ -64,16 +94,69 @@
     padding-right: 5px;
 }
 
-.ETVSrcT {
+/* Error trace: Line number object */
+.ETV_LN {
+    white-space: pre;
+    background-color: #f3ecd2;
+    padding-left: 5px;
+    padding-right: 5px;
+    cursor: pointer;
+}
+.ETV_LN:hover {
+    background-color: #dcd5bb;
+}
+
+.ETV_LC {
+    white-space: pre;
+}
+.ETV_HideLink {
+    cursor: pointer;
+}
+
+.ETVText {
     color: #20d467;
 }
 
-.ETVSrcI {
+.ETVKey1 {
     color: #1f984c;
     font-weight: bold;
 }
 
-.ETVSrcO {
+.ETVKey2 {
     color: #291fbf;
+    font-weight: bold;
+}
+
+.ETVSelectedLine {
+    background-color: #ffc8e0;
+}
+
+.ETV_CondAss {
+    color: #9928b4;
+    font-weight: bold;
+    font-style: italic;
+}
+
+.ETV_GlobalExpander {
+    color: #005f81;
+}
+.ETV_GlobalExpanderLink {
+    cursor: pointer;
+}
+
+.ETV_NoteText, .ETV_WarnText {
+    font-style: italic;
+    white-space: pre;
+}
+.ETV_WarnText {
+    color: #f0828f;
+    font-weight: bold;
+}
+.ETV_NoteText {
+    color: #6fb5bd;
+    font-weight: bold;
+}
+.ETV_Fname {
+    color: #67238f;
     font-weight: bold;
 }
