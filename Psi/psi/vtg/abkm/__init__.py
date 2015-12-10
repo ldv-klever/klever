@@ -156,6 +156,8 @@ class ABKM(psi.components.Component):
                                  self.mqs['report files'],
                                  self.conf['main working directory'])
 
+                self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
+
                 if decision_results['status'] == 'safe':
                     psi.utils.report(self.logger,
                                      'safe',
