@@ -175,7 +175,8 @@ class ABKM(psi.components.Component):
                                          'id': 'unsafe',
                                          'parent id': '1',
                                          'attrs': [],
-                                         'error trace': '__file:witness.graphml'
+                                         'error trace': 'witness.graphml',
+                                         'files': ['witness.graphml']
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
