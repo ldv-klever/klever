@@ -166,13 +166,15 @@
                     </tbody>
                 </table>
                 </div>
+            {% else %}
+                <h3 class="italic" style="text-align:center;color: #7b7f8c;">{% trans 'There is no children, please wait for them or change the view' %}</h3>
             {% endif %}
         </div>
         <div class="ui orange segment">
             <h3 class="header ui violet italic">{% trans 'Statistics on component and its children' %}</h3>
-            {% if reportdata %}
-                {% include 'jobs/jobData.html' with reportdata=reportdata %}
-            {% endif %}
+            {% include 'jobs/viewJobFilters.html' %}
+            <br>
+            {% include 'jobs/jobData.html' %}
         </div>
     </div>
 </div>

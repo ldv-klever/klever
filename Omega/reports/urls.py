@@ -17,6 +17,7 @@ urlpatterns = [
 
     url(r'^(?P<leaf_type>unsafe|safe|unknown)/(?P<report_id>[0-9]+)/$',
         views.report_leaf, name='leaf'),
+    url(r'^unsafe/(?P<report_id>[0-9]+)/etv/$', views.report_etv_full, name='etv'),
     url(r'^component/(?P<report_id>[0-9]+)/unknowns/(?P<component_id>[0-9]+)/$',
         views.report_unknowns, name='unknowns'),
     url(r'^component/(?P<report_id>[0-9]+)/unknowns/(?P<component_id>[0-9]+)/'
@@ -24,5 +25,6 @@ urlpatterns = [
         name='unknowns_problem'),
     url(r'^upload/$', views.upload_report),
 
-    url(r'^ajax/get_source/$', views.get_source_code)
+    url(r'^ajax/get_source/$', views.get_source_code),
+    url(r'^ajax/upload_etv/$', views.upload_etv)
 ]

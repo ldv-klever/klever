@@ -1,26 +1,11 @@
 {
-  "Omega": {
-    "name": "localhost:8998",
-    "user": "user",
-    "password": "password"
-  },
-  "scheduler": {
-    "type": "native",
-    "processes": 4,
-    "process pool": false,
-    "controller address": "http://localhost:8500",
-    "keep working directory": false,
-    "job client configuration": "/abs/path/to/job-client.json",
-    "task client configuration": "/abs/path/to/task-client.json",
-    "verification tools": {
-      "CPAchecker": {
-        "trunk@17959": "cpachecker/scripts/cpa.sh"
-      }
-    },
-    "iteration timeout": 3
+  "client": {
+    "benchexec location": "/abs/path/to/benchexec/",
+    "cif location": "/abs/path/to/cif/bin/",
+    "cil location": "/abs/path/to/cil/obj/x86_LINUX"
   },
   "common": {
-    "working directory": "scheduler-work-dir",
+    "working directory": null,
     "keep working directory": false,
     "logging": {
       "version": 1,

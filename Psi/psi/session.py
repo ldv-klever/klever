@@ -13,10 +13,10 @@ class Session:
 
         # TODO: try to autentificate like with httplib2.Http().add_credentials().
         # Get initial value of CSRF token via useless GET request.
-        self.__request('users/psi_signin/')
+        self.__request('users/service_signin/')
 
         # Sign in.
-        self.__request('users/psi_signin/', {
+        self.__request('users/service_signin/', {
             'username': omega['user'],
             'password': omega['password'],
             'job identifier': job_id
@@ -69,9 +69,30 @@ class Session:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
 
+    def schedule_task(self, task_desc):
+        resp = self.__request('service/schedule_task/',
+                              {'description': json.dumps(task_desc)},
+                              files={'file': open('task files.tar.gz', 'rb')})
+        return resp.json()['task id']
+
+    def get_task_status(self, task_id):
+        resp = self.__request('service/get_task_status/', {'task id': task_id})
+        return resp.json()['task status']
+
+    def get_task_error(self, task_id):
+        resp = self.__request('service/download_solution/', {'task id': task_id})
+        return resp.json()['task error']
+
+    def download_decision(self, task_id):
+        resp = self.__request('service/download_solution/', {'task id': task_id})
+
+        with open('decision result files.tar.gz', 'wb') as fp:
+            for chunk in resp.iter_content(1024):
+                fp.write(chunk)
+
     def sign_out(self):
         self.logger.info('Finish session')
-        self.__request('users/psi_signout/')
+        self.__request('users/service_signout/')
 
     def upload_report(self, report):
         # TODO: report is likely should be compressed.

@@ -1,5 +1,6 @@
 import json
 import hashlib
+import tarfile
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
@@ -14,8 +15,9 @@ from service.utils import PSIFinishDecision, PSIStartDecision
 
 class UploadReport(object):
 
-    def __init__(self, job, data):
+    def __init__(self, job, data, archive=None):
         self.job = job
+        self.archive = archive
         self.data = {}
         self.ordered_attrs = []
         self.error = self.__check_data(data)
@@ -27,8 +29,7 @@ class UploadReport(object):
         if self.error is not None:
             self.__job_failed(self.error)
             return
-        self.root = None
-        self.__get_root_report()
+        self.root = self.__get_root_report()
         if self.error is not None:
             self.__job_failed(self.error)
             return
@@ -46,11 +47,9 @@ class UploadReport(object):
             return 'Type and id are required'
 
         if 'resources' in data:
-            if not isinstance(data['resources'], dict) and all(
-                    x in data['resources'] for x in [
-                        'wall time', 'CPU time', 'max mem size']):
-                return 'Resources has wrong format: %s' % json.dumps(
-                    data['resources'])
+            if not isinstance(data['resources'], dict) \
+                    or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'max mem size']):
+                return 'Resources has wrong format: %s' % json.dumps(data['resources'])
 
         self.data = {'type': data['type'], 'id': data['id']}
         if 'desc' in data:
@@ -59,10 +58,6 @@ class UploadReport(object):
             err = self.__check_comp(data['comp'])
             if err is not None:
                 return err
-        # if 'attrs' in data:
-        #     err = self.__check_attrs(data['attrs'])
-        #     if err is not None:
-        #         return err
         if 'name' in data and len(data['name']) > 15:
             return 'Component name is too long (max 15 symbols expected)'
 
@@ -163,21 +158,12 @@ class UploadReport(object):
                 return 'Wrong computer description format'
         return None
 
-    def __check_attrs(self, attrs):
-        self.ccc = 0
-        if not isinstance(attrs, list):
-            return 'Wrong attributes format'
-        for a in attrs:
-            if not isinstance(a, dict):
-                return 'Wrong attributes format'
-        return None
-
     def __get_root_report(self):
         try:
-            self.root = self.job.reportroot
+            return self.job.reportroot
         except ObjectDoesNotExist:
             self.error = "Can't find report root"
-            return
+            return None
 
     def __get_parent(self):
         if 'parent id' in self.data:
@@ -237,9 +223,8 @@ class UploadReport(object):
             if attr not in single_attrs_order:
                 single_attrs_order.insert(0, attr)
             elif self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-                self.__job_failed("Got double attribute: '%s' for report"
-                                  " with type '%s' and id '%s'" %
-                                  (attr, self.data['type'], self.data['id']))
+                self.__job_failed("Got double attribute: '%s' for report with type"
+                                  " '%s' and id '%s'" % (attr, self.data['type'], self.data['id']))
         for attr_name in single_attrs_order:
             ReportAttrOrder.objects.get_or_create(
                 name=AttrName.objects.get_or_create(name=attr_name)[0],
@@ -259,7 +244,7 @@ class UploadReport(object):
         component_name = 'Psi'
         if 'name' in self.data:
             component_name = self.data['name']
-        component, tmp = Component.objects.get_or_create(name=component_name)
+        component = Component.objects.get_or_create(name=component_name)[0]
         report.component = component
 
         if 'comp' in self.data:
@@ -292,14 +277,13 @@ class UploadReport(object):
                 file_in_db.hash_sum = check_sum
                 file_in_db.save()
             report.log = file_in_db
-        if 'data' in self.data:
-            report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.start_date = now()
 
         if self.data['type'] == 'verification':
             report.finish_date = report.start_date
+            report.data = self.data['data'].encode('utf8')
         report.save()
 
         self.__add_attrs(report)
@@ -348,21 +332,20 @@ class UploadReport(object):
                 file_in_db.hash_sum = check_sum
                 file_in_db.save()
             report.log = file_in_db
-        if 'data' in self.data:
-            report.data = self.data['data'].encode('utf8')
+        report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.finish_date = now()
         report.save()
 
         self.__add_attrs(report)
-
-        if 'resources' in self.data:
-            self.__update_parent_resources(report)
+        self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            if len(ReportComponent.objects.filter(finish_date=None,
-                                                  root=self.root)):
+            for rep in ReportComponent.objects.filter(root__job=self.job):
+                if len(ReportComponent.objects.filter(parent_id=rep.pk)) == 0:
+                    rep.resources_cache.filter(component=None).delete()
+            if len(ReportComponent.objects.filter(finish_date=None, root=self.root)):
                 self.__job_failed("There are unfinished reports")
             elif self.job.status != JOB_STATUS[5][0]:
                 PSIFinishDecision(self.job)
@@ -388,17 +371,15 @@ class UploadReport(object):
         component = report.component
         parent = self.parent
         while parent is not None:
-            verdict, created = Verdict.objects.get_or_create(report=parent)
+            verdict = Verdict.objects.get_or_create(report=parent)[0]
             verdict.unknown += 1
             verdict.save()
 
-            comp_unknown, created = ComponentUnknown.objects.get_or_create(
-                report=parent, component=component)
+            comp_unknown = ComponentUnknown.objects.get_or_create(report=parent, component=component)[0]
             comp_unknown.number += 1
             comp_unknown.save()
 
-            ReportComponentLeaf.objects.get_or_create(
-                report=parent, unknown=report)
+            ReportComponentLeaf.objects.get_or_create(report=parent, unknown=report)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
@@ -424,13 +405,12 @@ class UploadReport(object):
 
         parent = self.parent
         while parent is not None:
-            verdict, created = Verdict.objects.get_or_create(report=parent)
+            verdict = Verdict.objects.get_or_create(report=parent)[0]
             verdict.safe += 1
             verdict.safe_unassociated += 1
             verdict.save()
 
-            ReportComponentLeaf.objects.get_or_create(
-                report=parent, safe=report)
+            ReportComponentLeaf.objects.get_or_create(report=parent, safe=report)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
@@ -449,23 +429,20 @@ class UploadReport(object):
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.error_trace = self.data['error trace'].encode('utf8')
-
-        # TODO: get processed trace
-        report.error_trace_processed = self.data['error trace'].encode('utf8')
         report.save()
+        upload_unsafe_files(report, self.data['error trace'], self.archive)
 
         self.__add_attrs(report)
         self.__collect_attrs(report)
 
         parent = self.parent
         while parent is not None:
-            verdict, created = Verdict.objects.get_or_create(report=parent)
+            verdict = Verdict.objects.get_or_create(report=parent)[0]
             verdict.unsafe += 1
             verdict.unsafe_unassociated += 1
             verdict.save()
 
-            ReportComponentLeaf.objects.get_or_create(
-                report=parent, unsafe=report)
+            ReportComponentLeaf.objects.get_or_create(report=parent, unsafe=report)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
@@ -507,20 +484,13 @@ class UploadReport(object):
             res_set = rep.resources_cache.filter(~Q(component=None))
             if len(res_set) > 0:
                 new_res = Resource()
-                if rep.resource is None:
-                    new_res.wall_time = 0
-                    new_res.cpu_time = 0
-                    new_res.memory = 0
-                else:
-                    new_res.wall_time = rep.resource.wall_time
-                    new_res.cpu_time = rep.resource.cpu_time
-                    new_res.memory = rep.resource.memory
-
+                new_res.wall_time = 0
+                new_res.cpu_time = 0
+                new_res.memory = 0
                 for comp_res in res_set:
                     new_res.wall_time += comp_res.resource.wall_time
                     new_res.cpu_time += comp_res.resource.cpu_time
-                    new_res.memory = max(comp_res.resource.memory,
-                                         new_res.memory)
+                    new_res.memory = max(comp_res.resource.memory, new_res.memory)
                 new_res.save()
                 try:
                     total_compres = rep.resources_cache.get(component=None)
@@ -531,14 +501,11 @@ class UploadReport(object):
                 total_compres.resource = new_res
                 total_compres.save()
 
-        update_total_resources(report)
-        component = report.component
-
         try:
-            report.resources_cache.get(component=component)
+            report.resources_cache.get(component=report.component)
         except ObjectDoesNotExist:
-            report.resources_cache.create(component=component,
-                                          resource=report.resource)
+            report.resources_cache.create(component=report.component, resource=report.resource)
+        update_total_resources(report)
 
         parent = self.parent
         while parent is not None:
@@ -547,15 +514,14 @@ class UploadReport(object):
             new_resource.cpu_time = report.resource.cpu_time
             new_resource.memory = report.resource.memory
             try:
-                compres = parent.resources_cache.get(component=component)
+                compres = parent.resources_cache.get(component=report.component)
                 new_resource.wall_time += compres.resource.wall_time
                 new_resource.cpu_time += compres.resource.cpu_time
-                new_resource.memory = max(compres.resource.memory,
-                                          new_resource.memory)
+                new_resource.memory = max(compres.resource.memory, new_resource.memory)
                 compres.resource.delete()
             except ObjectDoesNotExist:
                 compres = ComponentResource()
-                compres.component = component
+                compres.component = report.component
                 compres.report = parent
             new_resource.save()
             compres.resource = new_resource
@@ -565,3 +531,35 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
+
+
+def upload_unsafe_files(unsafe, et_name, archive):
+    if archive is None:
+        return
+    import os
+    from django.core.files import File as NewFile
+    inmemory = BytesIO(archive.read())
+    zipfile = tarfile.open(fileobj=inmemory, mode='r')
+    for f in zipfile.getmembers():
+        file_name = f.name
+        try:
+            ETVFiles.objects.get(name=file_name, unsafe=unsafe)
+            continue
+        except ObjectDoesNotExist:
+            pass
+        if f.isreg():
+            file_obj = zipfile.extractfile(f)
+            if et_name == file_name:
+                unsafe.error_trace = file_obj.read()
+                unsafe.save()
+            else:
+                file_content = BytesIO(file_obj.read())
+                check_sum = hashlib.md5(file_content.read()).hexdigest()
+                try:
+                    db_file = File.objects.get(hash_sum=check_sum)
+                except ObjectDoesNotExist:
+                    db_file = File()
+                    db_file.file.save(os.path.basename(file_name), NewFile(file_content))
+                    db_file.hash_sum = check_sum
+                    db_file.save()
+                ETVFiles.objects.create(file=db_file, name=file_name, unsafe=unsafe)

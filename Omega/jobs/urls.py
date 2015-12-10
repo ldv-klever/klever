@@ -30,6 +30,7 @@ urlpatterns = [
     url(r'^ajax/stop_decision/$', views.stop_decision),
     url(r'^ajax/run_decision/$', views.run_decision),
     url(r'^ajax/fast_run_decision/$', views.fast_run_decision),
+    url(r'^ajax/get_job_data/$', views.get_job_data),
 
     # For psi
     url(r'^decide_job/$', views.decide_job),

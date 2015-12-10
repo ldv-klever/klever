@@ -25,6 +25,7 @@ class Scheduler(schedulers.SchedulerExchange):
     __disk_memory = None
     __pool = None
     __job_conf_prototype = {}
+    __task_conf_prototype = {}
     __reserved_ram_memory = 0
     __reserved_disk_memory = 0
     __running_tasks = 0
@@ -43,6 +44,8 @@ class Scheduler(schedulers.SchedulerExchange):
         # Import job configuration prototype
         with open(self.conf["scheduler"]["job client configuration"], "r") as fh:
             self.__job_conf_prototype = json.loads(fh.read())
+        with open(self.conf["scheduler"]["task client configuration"], "r") as fh:
+            self.__task_conf_prototype = json.loads(fh.read())
         if "Omega" not in self.__job_conf_prototype:
             logging.debug("Add Omega settings to client job configuration")
             self.__job_conf_prototype["Omega"] = self.conf["Omega"]
@@ -129,30 +132,62 @@ class Scheduler(schedulers.SchedulerExchange):
 
         return new_tasks, new_jobs
 
-    def prepare_task(self, identifier, description):
-        pass
+    def __check_resource_limits(self, desc):
+        logging.debug("Check resource limits")
 
-    def prepare_job(self, identifier, configuration):
+        if desc["resource limits"]["CPU model"] and desc["resource limits"]["CPU model"] != self.__cpu_model:
+            raise schedulers.SchedulerException(
+                "Host CPU model is not {} (has only {})".
+                format(desc["resource limits"]["CPU model"]), self.__cpu_model)
+
+        if desc["resource limits"]["memory size"] >= self.__ram_memory:
+            raise schedulers.SchedulerException(
+                "Host does not have {} bytes of RAM memory (has only {} bytes)".
+                format(desc["resource limits"]["memory size"], self.__ram_memory))
+
+        # TODO: Disk space check
+
+    def __create_work_dir(self, entities, identifier):
+        work_dir = os.path.join(self.work_dir, entities, identifier)
+        logging.debug("Create working directory {}/{}".format(entities, identifier))
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
+            os.makedirs(work_dir, exist_ok=True)
+        else:
+            os.makedirs(work_dir, exist_ok=False)
+
+    # TODO: what these functions are intended for?
+    def prepare_task(self, identifier, desc):
+        self.__check_resource_limits(desc)
+        self.__create_work_dir('tasks', identifier)
+
+    def prepare_job(self, identifier, desc):
         """
         Prepare working directory before starting solution.
         :param identifier: Verification task identifier.
         :param configuration: Job configuration.
         """
-        # Check resource limitiations
-        logging.debug("Check resource limitations for the job {}".format(identifier))
-        if configuration["resource limits"]["CPU model"] and \
-           configuration["resource limits"]["CPU model"] != self.__cpu_model:
-            raise schedulers.SchedulerException(
-                "There is no node with CPU model {} for job {}, has only {}".
-                format(configuration["resource limits"]["CPU model"]), identifier, self.__cpu_model)
-        if configuration["resource limits"]["memory size"] >= self.__ram_memory:
-            raise schedulers.SchedulerException(
-                "Node does not have {} bytes of RAM memory for job {}, has only {} bytes".
-                format(configuration["resource limits"]["memory size"]), identifier, self.__ram_memory)
-        # TODO: Disk space check
+        self.__check_resource_limits(desc)
+        self.__create_work_dir('jobs', identifier)
 
-    def solve_task(self, identifier, description, user, password):
-        pass
+    def solve_task(self, identifier, desc, user, password):
+        # TODO: copy-paste from solve_job(). But it is worse. First we need to perform all preparation in prepare_job/task(). Second we shouldn't pass so many command-line arguments. Instead they could be stored in file, that has either default name or its name could be passed to client.
+        client_conf = self.__task_conf_prototype.copy()
+        task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
+        client_conf["Omega"] = self.conf["Omega"]
+        client_conf["identifier"] = identifier
+        client_conf["common"]["working directory"] = task_work_dir
+        for name in ("resource limits", "verifier", "property file", "files"):
+            client_conf[name] = desc[name]
+        with open(os.path.join(task_work_dir, 'client.json'), 'w') as fp:
+            json.dump(client_conf, fp, sort_keys=True, indent=4)
+
+        client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
+
+        args = [client_bin, "TASK", json.dumps(client_conf)]
+
+        logging.debug("Start task: {}".format(str(args)))
+
+        return self.__pool.submit(subprocess.call, args)
 
     def solve_job(self, identifier, configuration):
         """
@@ -163,22 +198,10 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         logging.info("Going to start execution of the job {}".format(identifier))
 
-        # Create working directory
-        job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
-        logging.debug("Create working directory {}".format(identifier))
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            os.makedirs(job_work_dir, exist_ok=True)
-        else:
-            os.makedirs(job_work_dir, exist_ok=False)
-
         # Generate configuration
         psi_conf = configuration.copy()
         del psi_conf["resource limits"]
-        psi_conf["Omega"] = {
-            "name": self.conf["Omega"]["name"],
-            "user": self.conf["Omega"]["user"],
-            "password": self.conf["Omega"]["password"]
-        }
+        psi_conf["Omega"] = self.conf["Omega"]
         psi_conf["working directory"] = "psi-work-dir"
         self.__reserved[identifier]["configuration"] = psi_conf
 
@@ -200,8 +223,31 @@ class Scheduler(schedulers.SchedulerExchange):
         """Start solution explicitly of all recently submitted tasks."""
         super(Scheduler, self).flush()
 
-    def process_task_result(self, identifier, result):
-        pass
+    def process_task_result(self, identifier, future):
+        # TODO: merge with process_job_result().
+        # Job finished and resources should be marked as released
+        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
+        self.__running_tasks -= 1
+        del self.__reserved[identifier]
+
+        if "keep working directory" not in self.conf["scheduler"] or \
+                not self.conf["scheduler"]["keep working directory"]:
+            task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
+            logging.debug("Clean task working directory {} for {}".format(task_work_dir, identifier))
+            shutil.rmtree(task_work_dir)
+
+        try:
+            result = future.result()
+            if result == 0:
+                return "FINISHED"
+            else:
+                error_msg = "Task finished with non-zero exit code: {}".format(result)
+                raise schedulers.SchedulerException(error_msg)
+        except Exception as err:
+            # TODO: this error holds some useless text.
+            error_msg = "Task {} terminated with an exception: {}".format(identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
 
     def process_job_result(self, identifier, future):
         """
@@ -229,12 +275,25 @@ class Scheduler(schedulers.SchedulerExchange):
                 error_msg = "Job finished with non-zero exit code: {}".format(result)
                 raise schedulers.SchedulerException(error_msg)
         except Exception as err:
+            # TODO: this error holds some useless text.
             error_msg = "Job {} terminated with an exception: {}".format(identifier, err)
             logging.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
 
     def cancel_task(self, identifier):
-        pass
+        # TODO: merge with cancel_job()
+        super(Scheduler, self).cancel_task(identifier)
+
+        logging.debug("Mark resources reserved for task {} as free".format(identifier))
+        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
+        self.__running_tasks -= 1
+        del self.__reserved[identifier]
+
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
+            return
+        task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
+        logging.debug("Clean job working directory {} for {}".format(task_work_dir, identifier))
+        shutil.rmtree(task_work_dir)
 
     def cancel_job(self, identifier):
         """

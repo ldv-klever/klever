@@ -16,6 +16,5 @@ urlpatterns = [
     url(r'^media/(?P<path>.*)$', 'django.views.static.serve',
         {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),
     url(r'^error/(?P<err_code>[0-9]+)/$', views.omega_error, name='error'),
-    url(r'^population/$', views.population, name='population'),
-    url(r'^ajax/fake/$', views.fake_request, name='fake'),
+    url(r'^population/$', views.population, name='population')
 ]

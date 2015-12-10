@@ -19,15 +19,8 @@ def schedule_task(request):
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
-    if 'job identifier' not in request.session:
+    if 'job id' not in request.session:
         return JsonResponse({'error': 'Session does not have job id'})
-    try:
-        job = Job.objects.get(identifier__startswith=request.session['job identifier'])
-    except ObjectDoesNotExist:
-        return JsonResponse({
-            'error': 'Job with the specified identifier "%s" was not found' % request.session['job identifier']
-        })
-    request.session['job id'] = job.pk
     if request.method != 'POST':
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'description' not in request.POST:
@@ -36,9 +29,7 @@ def schedule_task(request):
     for f in request.FILES.getlist('file'):
         archive = f
     if archive is None:
-        return JsonResponse({
-            'error': 'The task archive was not got'
-        })
+        return JsonResponse({'error': 'The task archive was not got'})
     result = ScheduleTask(request.session['job id'], request.POST['description'], archive)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
@@ -63,15 +54,17 @@ def get_task_status(request):
 
 # Case 3.1(5)
 @unparallel_group(['solution'])
-def download_solution(request, task_id):
+def download_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Just GET requests are supported'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Just POST requests are supported'})
+    if 'task id' not in request.POST:
+        return JsonResponse({'error': 'Task identifier is not specified'})
 
-    result = GetSolution(task_id)
+    result = GetSolution(request.POST['task id'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     if result.task.status == TASK_STATUS[3][0]:
@@ -126,10 +119,6 @@ def get_jobs_and_tasks(request):
         return JsonResponse({'error': 'No access'})
     if 'scheduler' not in request.session:
         return JsonResponse({'error': 'The scheduler was not found in session'})
-    if request.session['scheduler'] not in [x[1] for x in SCHEDULER_TYPE]:
-        return JsonResponse({
-            'error': "The scheduler '%s' is not supported" % request.session['scheduler']
-        })
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'jobs and tasks status' not in request.POST:
@@ -142,14 +131,17 @@ def get_jobs_and_tasks(request):
 
 # Case 3.2(3)
 @unparallel_group(['service'])
-def download_task(request, task_id):
+def download_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': 'No access'})
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Just GET requests are supported'})
-    result = GetTaskData(task_id)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Just POST requests are supported'})
+    if 'task id' not in request.POST:
+        return JsonResponse({'error': 'Task identifier is not specified'})
+
+    result = GetTaskData(request.POST['task id'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
 
@@ -211,10 +203,6 @@ def update_tools(request):
         return JsonResponse({'error': 'No access'})
     if 'scheduler' not in request.session:
         return JsonResponse({'error': 'The scheduler was not found in session'})
-    if request.session['scheduler'] not in [x[1] for x in SCHEDULER_TYPE]:
-        return JsonResponse({
-            'error': "The scheduler '%s' is not supported" % request.session['scheduler']
-        })
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'tools data' not in request.POST:
@@ -283,12 +271,14 @@ def process_job(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'job id' not in request.POST:
-        return JsonResponse({'error': 'Job identifier is not specified'})
+        return JsonResponse({'error': 'Job id is not specified'})
     try:
-        job = Job.objects.get(identifier=request.POST.get('job id', 'null'))
+        job = Job.objects.get(pk=int(request.POST['job id']))
         request.session['job id'] = job.pk
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Job was not found'})
+    except ValueError:
+        return JsonResponse({'error': 'Unknown error'})
 
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Job is not PENDING'})

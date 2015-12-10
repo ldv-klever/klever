@@ -47,15 +47,9 @@ input[type=checkbox] {
     color: #ef4a4a;
 }
 .status6-link:link {
-    color: #ef4a4a;
-}
-.status6-link:visited {
-    color: #ef4a4a;
-}
-.status7-link:link {
     color: #ff853d;
 }
-.status7-link:visited {
+.status6-link:visited {
     color: #ff853d;
 }
 .status-link:hover {

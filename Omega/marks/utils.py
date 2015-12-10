@@ -119,8 +119,7 @@ class NewMark(object):
             mark.is_modifiable = args['is_modifiable']
 
         if 'verdict' in args:
-            if self.type == 'unsafe' and \
-                    args['verdict'] in list(x[0] for x in MARK_UNSAFE):
+            if self.type == 'unsafe' and args['verdict'] in list(x[0] for x in MARK_UNSAFE):
                 mark.verdict = args['verdict']
             elif args['verdict'] in list(x[0] for x in MARK_SAFE):
                 mark.verdict = args['verdict']
@@ -373,7 +372,7 @@ class ConnectReportWithMarks(object):
 
     def __connect_unknown(self):
         self.report.markreport_set.all().delete()
-        changes = {}
+        changes = {self.report: {}}
         for mark in MarkUnknown.objects.filter(
                 type=self.report.root.job.type,
                 component=self.report.component):
@@ -388,10 +387,9 @@ class ConnectReportWithMarks(object):
                 problem = 'Too long!'
                 print_err("Generated problem '%s' for mark %s is too long" % (problem, mark.identifier))
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
-            MarkUnknownReport.objects.create(
-                mark=mark, report=self.report, problem=problem)
+            MarkUnknownReport.objects.create(mark=mark, report=self.report, problem=problem)
             if self.report not in changes:
-                changes[self.report] = {'kind': '+'}
+                changes[self.report]['kind'] = '+'
         update_unknowns_cache(changes)
 
 
@@ -1108,8 +1106,7 @@ class UpdateTags(object):
     def __update_tags_for_report(self, report):
         for mark_rep in report.markreport_set.all():
             tag_data = []
-            for mtag in mark_rep.mark.versions.order_by('-version')[0]\
-                    .tags.all():
+            for mtag in mark_rep.mark.versions.order_by('-version')[0].tags.all():
                 rtag, created = mark_rep.report.tags.get_or_create(tag=mtag.tag)
                 if created:
                     tag_data.append({
@@ -1288,7 +1285,7 @@ class MatchUnknown(object):
 
     def __match_description(self):
         for l in self.description.split('\n'):
-            m = re.match(self.function, l)
+            m = re.search(self.function, l)
             if m is not None:
                 if self.max_pn is not None and len(self.numbers) > 0:
                     group_elements = []
@@ -1338,8 +1335,11 @@ def update_unknowns_cache(changes):
             if component not in total_numbers:
                 total_numbers[component] = 0
             total_numbers[component] += problems[(component, problem)]['num']
-        for component in total_numbers:
-            unmarked = total_unknowns[component] - total_numbers[component]
+        for component in total_unknowns:
+            if component in total_numbers:
+                unmarked = total_unknowns[component] - total_numbers[component]
+            else:
+                unmarked = total_unknowns[component]
             if unmarked > 0:
                 ComponentMarkUnknownProblem.objects.create(
                     report=report,
