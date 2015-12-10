@@ -1,23 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.utils.translation import ugettext_lazy as _
-from Omega.vars import LANGUAGES, USER_ROLES, VIEW_TYPES
+from Omega.vars import LANGUAGES, USER_ROLES, VIEW_TYPES, DATAFORMAT
+from Omega.settings import DEF_USER_DATAFORMAT, DEF_USER_LANGUAGE, DEF_USER_TIMEZONE, DEF_USER_ACCURACY
 
 
 class Extended(models.Model):
-    DATAFORMAT = (
-        ('raw', _('Raw')),
-        ('hum', _('Human-readable')),
-    )
     user = models.OneToOneField(User)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
-    accuracy = models.SmallIntegerField(default=2)
-    data_format = models.CharField(max_length=3, choices=DATAFORMAT,
-                                   default='hum')
-    language = models.CharField(max_length=2, choices=LANGUAGES, default='en')
+    accuracy = models.SmallIntegerField(default=DEF_USER_ACCURACY)
+    data_format = models.CharField(max_length=3, choices=DATAFORMAT, default=DEF_USER_DATAFORMAT)
+    language = models.CharField(max_length=2, choices=LANGUAGES, default=DEF_USER_LANGUAGE)
     role = models.CharField(max_length=1, choices=USER_ROLES, default='0')
-    timezone = models.CharField(max_length=255, default='UTC')
+    timezone = models.CharField(max_length=255, default=DEF_USER_TIMEZONE)
 
     def __str__(self):
         return self.user.username

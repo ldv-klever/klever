@@ -119,18 +119,17 @@ class DownloadJob(object):
             write_file_str('version-%s' % jobversion.version,
                            json.dumps(version_data))
         unsafes_tars = {}
+        for unsafe in ReportUnsafe.objects.filter(root__job=job):
+            unsafes_tars[unsafe] = {
+                'memory': BytesIO(),
+                'tarobj': None
+            }
+            unsafes_tars[unsafe]['tarobj'] = tarfile.open(fileobj=unsafes_tars[unsafe]['memory'], mode='w:gz')
         for f in ETVFiles.objects.filter(unsafe__root__job=job):
-            if f.unsafe not in unsafes_tars:
-                unsafes_tars[f.unsafe] = {
-                    'memory': BytesIO(),
-                    'tarobj': None
-                }
-                unsafes_tars[f.unsafe]['tarobj'] = tarfile.open(
-                    fileobj=unsafes_tars[f.unsafe]['memory'], mode='w:gz')
-            unsafes_tars[f.unsafe]['tarobj'].add(
-                os.path.join(settings.MEDIA_ROOT, f.file.file.name),
-                arcname=f.name
-            )
+            if f.unsafe in unsafes_tars:
+                unsafes_tars[f.unsafe]['tarobj'].add(
+                    os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name
+                )
         for u in unsafes_tars:
             tinfo = tarfile.TarInfo(ET_FILE)
             tinfo.size = len(u.error_trace)

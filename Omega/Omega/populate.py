@@ -9,7 +9,7 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import override
 from django.utils.timezone import now
-from Omega.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
+from Omega.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, FORMAT, MARK_STATUS
 from Omega.settings import DEFAULT_LANGUAGE, BASE_DIR
 from Omega.utils import print_err
 from users.models import Extended
@@ -41,6 +41,7 @@ class Population(object):
         if len(Job.objects.filter(parent=None)) < 3:
             self.__populate_jobs()
         self.__populate_default_jobs()
+        self.__populate_unknown_marks()
         sch_crtd1 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[0][0])[1]
         sch_crtd2 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[1][0])[1]
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
@@ -228,3 +229,73 @@ class Population(object):
                     fdata += get_fdata(f)
             return fdata
         return get_fdata(d)
+
+    def __populate_unknown_marks(self):
+        if not isinstance(self.manager, User):
+            return None
+        from marks.models import MarkUnknown, MarkUnknownHistory, Component
+        from marks.utils import ConnectMarkWithReports
+        presets_dir = os.path.join(BASE_DIR, 'marks', 'presets')
+        for mark_settings in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
+            fname = os.path.basename(mark_settings)
+            f = open(mark_settings, 'r')
+            try:
+                data = json.loads(''.join(f.read().split('\n')))
+            except Exception as e:
+                print_err(e)
+                continue
+            needed_data = ['type', 'function', 'pattern', 'link', 'status',
+                           'description', 'format', 'component', 'is_modifiable']
+            if not isinstance(data, dict) or any(x not in data for x in needed_data):
+                print_err('Wrong unknown mark data format: %s' % fname)
+                continue
+            if data['format'] != FORMAT:
+                print_err('Mark format is old (%s)' % fname)
+                continue
+            if data['type'] not in list(x[0] for x in JOB_CLASSES) \
+                    or data['status'] not in list(x[0] for x in MARK_STATUS) \
+                    or len(data['function']) == 0 \
+                    or not 0 < len(data['pattern']) <= 15 \
+                    or not 0 < len(data['component']) <= 15 \
+                    or not isinstance(data['is_modifiable'], bool):
+                print_err('Wrong unknown mark data format: %s' % fname)
+            try:
+                MarkUnknown.objects.get(
+                    type=data['type'],
+                    component__name=data['component'],
+                    function=data['function'],
+                    problem_pattern=data['pattern']
+                    # status=data['status'],
+                    # link=data['link'],
+                    # description=data['description']
+                )
+                continue
+            except ObjectDoesNotExist:
+                create_args = {
+                    'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
+                    'component': Component.objects.get_or_create(name=data['component'])[0],
+                    'type': data['type'],
+                    'author': self.manager,
+                    'status': data['status'],
+                    'is_modifiable': data['is_modifiable'],
+                    'function': data['function'],
+                    'problem_pattern': data['pattern'],
+                    'description': data['description']
+                }
+                if len(data['link']) > 0:
+                    create_args['link'] = data['link']
+                try:
+                    mark = MarkUnknown.objects.create(**create_args)
+                except Exception as e:
+                    print_err(e)
+                    continue
+                MarkUnknownHistory.objects.create(
+                    mark=mark, version=mark.version, author=mark.author, status=mark.status,
+                    function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
+                    change_date=mark.change_date, description=mark.description, comment=''
+                )
+                ConnectMarkWithReports(mark)
+                self.changes['marks'] = True
+
+
+

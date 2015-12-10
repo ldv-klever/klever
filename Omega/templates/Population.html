@@ -49,6 +49,11 @@
                 </ul>
             </div>
         {% endif %}
+        {% if changes.marks %}
+            <div class="ui green segment">
+                <h2 class="ui green header">{% trans 'New unknown marks were uploaded' %}</h2>
+            </div>
+        {% endif %}
         {% if changes|length == 0 %}
             <h1 class="ui brown header">{% trans 'Nothing changed' %}</h1>
         {% endif %}

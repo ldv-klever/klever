@@ -150,3 +150,11 @@ DEF_PSI_CONFIGURATION = {
     'priority': 'IDLE',  # See Omega.vars.PRIORITY for more options
     'avtg_priority': 'balance'  # See service.utils.AVTG_PRIORITY for more options
 }
+
+DEF_USER_DATAFORMAT = 'hum'  # See Omega.vars.DATAFORMAT for options
+
+DEF_USER_LANGUAGE = 'en'  # See Omega.vars.LANGUAGES for options
+
+DEF_USER_TIMEZONE = 'Europe/Moscow'  # See pytz.common_timezones for options
+
+DEF_USER_ACCURACY = 2  # 0 - 10
