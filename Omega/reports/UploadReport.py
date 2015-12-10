@@ -1,10 +1,11 @@
+import os
 import json
 import hashlib
 import tarfile
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.files import File as NewFile
 from django.db.models import Q
-from django.core.files import File as Newfile
 from django.utils.timezone import now
 from Omega.vars import JOB_STATUS
 from reports.models import *
@@ -267,16 +268,10 @@ class UploadReport(object):
             resources.save()
             report.resource = resources
         if 'log' in self.data:
-            file_content = BytesIO(self.data['log'].encode('utf8'))
-            check_sum = hashlib.md5(file_content.read()).hexdigest()
-            try:
-                file_in_db = File.objects.get(hash_sum=check_sum)
-            except ObjectDoesNotExist:
-                file_in_db = File()
-                file_in_db.file.save(component_name + '.log', Newfile(file_content))
-                file_in_db.hash_sum = check_sum
-                file_in_db.save()
-            report.log = file_in_db
+            uf = UploadReportFiles(self.archive, log=self.data['log'])
+            if uf.log is None:
+                return None
+            report.log = uf.log
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.start_date = now()
@@ -321,17 +316,10 @@ class UploadReport(object):
             resources.save()
             report.resource = resources
         if 'log' in self.data:
-            file_content = BytesIO(self.data['log'].encode('utf8'))
-            check_sum = hashlib.md5(file_content.read()).hexdigest()
-            try:
-                file_in_db = File.objects.get(hash_sum=check_sum)
-            except ObjectDoesNotExist:
-                file_in_db = File()
-                file_in_db.file.save(report.component.name + '.log',
-                                     Newfile(file_content))
-                file_in_db.hash_sum = check_sum
-                file_in_db.save()
-            report.log = file_in_db
+            uf = UploadReportFiles(self.archive, log=self.data['log'])
+            if uf.log is None:
+                return None
+            report.log = uf.log
         report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
@@ -361,8 +349,11 @@ class UploadReport(object):
         report.root = self.root
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
-        report.problem_description = self.data['problem desc'].encode('utf8')
         report.component = self.parent.component
+        uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
+        if uf.file_content is None:
+            return None
+        report.problem_description = uf.file_content
         report.save()
 
         self.__add_attrs(report)
@@ -398,6 +389,10 @@ class UploadReport(object):
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.proof = self.data['proof'].encode('utf8')
+        uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
+        if uf.file_content is None:
+            return None
+        report.proof = uf.file_content
         report.save()
 
         self.__add_attrs(report)
@@ -429,8 +424,15 @@ class UploadReport(object):
         if 'description' in self.data:
             report.description = self.data['description'].encode('utf8')
         report.error_trace = self.data['error trace'].encode('utf8')
+        uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
+        if uf.file_content is None:
+            return None
+        report.error_trace = uf.file_content
         report.save()
-        upload_unsafe_files(report, self.data['error trace'], self.archive)
+
+        if len(uf.other_files) > 0:
+            for src_f in uf.other_files:
+                ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
 
         self.__add_attrs(report)
         self.__collect_attrs(report)
@@ -533,33 +535,45 @@ class UploadReport(object):
                 parent = None
 
 
-def upload_unsafe_files(unsafe, et_name, archive):
-    if archive is None:
-        return
-    import os
-    from django.core.files import File as NewFile
-    inmemory = BytesIO(archive.read())
-    zipfile = tarfile.open(fileobj=inmemory, mode='r')
-    for f in zipfile.getmembers():
-        file_name = f.name
-        try:
-            ETVFiles.objects.get(name=file_name, unsafe=unsafe)
-            continue
-        except ObjectDoesNotExist:
-            pass
-        if f.isreg():
-            file_obj = zipfile.extractfile(f)
-            if et_name == file_name:
-                unsafe.error_trace = file_obj.read()
-                unsafe.save()
-            else:
-                file_content = BytesIO(file_obj.read())
-                check_sum = hashlib.md5(file_content.read()).hexdigest()
-                try:
-                    db_file = File.objects.get(hash_sum=check_sum)
-                except ObjectDoesNotExist:
-                    db_file = File()
-                    db_file.file.save(os.path.basename(file_name), NewFile(file_content))
-                    db_file.hash_sum = check_sum
-                    db_file.save()
-                ETVFiles.objects.create(file=db_file, name=file_name, unsafe=unsafe)
+class UploadReportFiles(object):
+    def __init__(self, archive, log=None, file_name=None, need_other=False):
+        self.log = None
+        self.file_content = None
+        self.archive = archive
+        self.need_other = need_other
+        self.other_files = []
+        self.__read_archive(archive, log, file_name)
+
+    def __read_archive(self, archive, logname, report_filename):
+        if archive is None:
+            return
+        inmemory = BytesIO(archive.read())
+        zipfile = tarfile.open(fileobj=inmemory, mode='r')
+        for f in zipfile.getmembers():
+            file_name = f.name
+            if f.isreg():
+                file_obj = zipfile.extractfile(f)
+                if logname is not None and file_name == logname:
+                    file_content = BytesIO(file_obj.read())
+                    check_sum = hashlib.md5(file_content.read()).hexdigest()
+                    try:
+                        db_file = File.objects.get(hash_sum=check_sum)
+                    except ObjectDoesNotExist:
+                        db_file = File()
+                        db_file.file.save(os.path.basename(file_name), NewFile(file_content))
+                        db_file.hash_sum = check_sum
+                        db_file.save()
+                    self.log = db_file
+                elif report_filename is not None and file_name == report_filename:
+                    self.file_content = file_obj.read()
+                elif self.need_other:
+                    file_content = BytesIO(file_obj.read())
+                    check_sum = hashlib.md5(file_content.read()).hexdigest()
+                    try:
+                        db_file = File.objects.get(hash_sum=check_sum)
+                    except ObjectDoesNotExist:
+                        db_file = File()
+                        db_file.file.save(os.path.basename(file_name), NewFile(file_content))
+                        db_file.hash_sum = check_sum
+                        db_file.save()
+                    self.other_files.append({'name': file_name, 'file': db_file})
