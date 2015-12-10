@@ -2,6 +2,11 @@ from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
 FORMAT = 1
 
+DATAFORMAT = (
+    ('raw', _('Raw')),
+    ('hum', _('Human-readable')),
+)
+
 ERRORS = {
     404: _('The job was not found'),
     400: _("You don't have an access to this job"),

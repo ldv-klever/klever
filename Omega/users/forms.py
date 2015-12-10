@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.models import User
-from users.models import Extended
 from django.utils.translation import ugettext_lazy as _
+from users.models import Extended
+from Omega.settings import DEF_USER_ACCURACY
 
 
 class UserForm(forms.ModelForm):
@@ -76,9 +77,7 @@ class EditUserForm(forms.ModelForm):
 
 
 class UserExtendedForm(forms.ModelForm):
-    accuracy = forms.IntegerField(
-        widget=forms.NumberInput(), min_value=0, max_value=10, initial=2
-    )
+    accuracy = forms.IntegerField(widget=forms.NumberInput(), min_value=0, max_value=10, initial=DEF_USER_ACCURACY)
 
     def __init__(self, *args, **kwargs):
         super(UserExtendedForm, self).__init__(*args, **kwargs)
@@ -90,8 +89,7 @@ class UserExtendedForm(forms.ModelForm):
 
     class Meta:
         model = Extended
-        fields = ('accuracy', 'data_format', 'language',
-                  'first_name', 'last_name')
+        fields = ('accuracy', 'data_format', 'language', 'first_name', 'last_name')
         widgets = {
             'data_format': forms.Select(attrs={'class': 'ui selection dropdown'}),
             'language': forms.Select(attrs={'class': 'ui selection dropdown'}),
