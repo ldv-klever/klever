@@ -179,14 +179,16 @@ class ABKM(psi.components.Component):
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
-                elif decision_results['status'] == 'error':
+                elif decision_results['status'] in ('error', 'CPU time exhausted', 'memory exhausted'):
                     psi.utils.report(self.logger,
                                      'unknown',
                                      {
                                          'id': 'unknown',
                                          'parent id': '1',
                                          # TODO: just the same file as parent log, looks strange.
-                                         'problem desc': '__file:cil.i.log'
+                                         'problem desc':
+                                             '__file:cil.i.log' if decision_results['status'] == 'error'
+                                             else decision_results['status']
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
