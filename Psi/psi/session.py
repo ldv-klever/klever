@@ -94,6 +94,11 @@ class Session:
         self.logger.info('Finish session')
         self.__request('users/service_signout/')
 
-    def upload_report(self, report):
+    def upload_report(self, report, archive=None):
         # TODO: report is likely should be compressed.
-        self.__request('reports/upload/', {'report': report})
+        if archive:
+            self.__request('reports/upload/',
+                           {'report': report},
+                           files={'file': open(archive, 'rb')})
+        else:
+            self.__request('reports/upload/', {'report': report})

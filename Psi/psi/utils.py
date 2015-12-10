@@ -6,6 +6,7 @@ import re
 import resource
 import subprocess
 import sys
+import tarfile
 import threading
 import time
 import queue
@@ -374,11 +375,24 @@ def invoke_callbacks(event, args=None):
     return ret
 
 
+# TODO: replace report file with report everywhere.
 def report(logger, type, report, mq=None, dir=None, suffix=None):
     logger.debug('Create {0} report'.format(type))
 
     # Specify report type.
     report.update({'type': type})
+
+    # Add all report files to archive. It is assumed that all files are placed in current working directory.
+    rel_report_files_archive = None
+    if 'files' in report:
+        report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
+        rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
+        with tarfile.open(report_files_archive, 'w:gz') as tar:
+            for file in report['files']:
+                tar.add(file)
+        del (report['files'])
+        logger.debug(
+            '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))
 
     # Create report file in current working directory.
     report_file = '{0}{1} report.json'.format(type, suffix or '')
@@ -392,6 +406,6 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
     # Put report to message queue if it is specified.
     if mq:
-        mq.put(rel_report_file)
+        mq.put({'report file': rel_report_file, 'report files archive': rel_report_files_archive})
 
     return report_file

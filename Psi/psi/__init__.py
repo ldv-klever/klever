@@ -237,15 +237,18 @@ class Psi:
     def send_reports(self):
         try:
             while True:
-                report_file = self.mqs['report files'].get()
+                # TODO: replace MQ with "reports and report files archives".
+                report_and_report_file_archive = self.mqs['report files'].get()
 
-                if report_file is None:
+                if report_and_report_file_archive is None:
                     self.logger.debug('Report files message queue was terminated')
                     # Note that this and all other closing of message queues aren't strictly necessary and everything
                     # will work without them as well, but this potentially can save some memory since closing explicitly
                     # notifies that corresponding message queue won't be used any more and its memory could be freed.
                     self.mqs['report files'].close()
                     break
+
+                report_file = report_and_report_file_archive['report file']
 
                 self.logger.debug('Upload report file "{0}"'.format(report_file))
                 with open(report_file) as fp:
@@ -260,7 +263,8 @@ class Psi:
                             # As well these files may not exist.
                             with open(file) if os.path.isfile(file) else io.StringIO('') as fp:
                                 report[key] = fp.read()
-                self.session.upload_report(json.dumps(report))
+                self.session.upload_report(json.dumps(report),
+                                           report_and_report_file_archive.get('report files archive'))
         except Exception as e:
             # If we can't send reports to Omega by some reason we can just silently die.
             self.logger.exception('Catch exception when sending reports to Omega')
