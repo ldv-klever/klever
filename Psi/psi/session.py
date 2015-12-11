@@ -96,9 +96,10 @@ class Session:
 
     def upload_report(self, report, archive=None):
         # TODO: report is likely should be compressed.
-        if archive:
-            self.__request('reports/upload/',
-                           {'report': report},
-                           files={'file': open(archive, 'rb')})
-        else:
-            self.__request('reports/upload/', {'report': report})
+        with open(report) as fp:
+            if archive:
+                self.__request('reports/upload/',
+                               {'report': fp.read()},
+                               files={'file': open(archive, 'rb')})
+            else:
+                self.__request('reports/upload/', {'report': fp.read()})

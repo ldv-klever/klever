@@ -114,13 +114,19 @@ class ABKM(psi.components.Component):
 
             if task_status == 'ERROR':
                 task_error = session.get_task_error(task_id)
+
                 self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
+
+                with open('task error.txt', 'w') as fp:
+                    fp.write(task_error)
+
                 psi.utils.report(self.logger,
                                  'unknown',
                                  {
                                      'id': 'unknown',
                                      'parent id': self.id,
-                                     'problem desc': task_error
+                                     'problem desc': 'task error.txt',
+                                     'files': ['task error.txt']
                                  },
                                  self.mqs['report files'],
                                  self.conf['main working directory'])
@@ -150,8 +156,9 @@ class ABKM(psi.components.Component):
                                      'name': self.conf['VTG strategy']['verifier']['name'],
                                      'resources': decision_results['resources'],
                                      'desc': decision_results['desc'],
-                                     'log': '__file:cil.i.log',
-                                     'data': ''
+                                     'log': 'cil.i.log',
+                                     'data': '',
+                                     'files': ['cil.i.log']
                                  },
                                  self.mqs['report files'],
                                  self.conf['main working directory'])
@@ -166,7 +173,8 @@ class ABKM(psi.components.Component):
                                          'parent id': '1',
                                          'attrs': [],
                                          # TODO: just the same file as parent log, looks strange.
-                                         'proof': '__file:cil.i.log'
+                                         'proof': 'cil.i.log',
+                                         'files': ['cil.i.log']
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
@@ -183,6 +191,10 @@ class ABKM(psi.components.Component):
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
                 elif decision_results['status'] in ('error', 'CPU time exhausted', 'memory exhausted'):
+                    # Prepare file to send it with unknown report.
+                    if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
+                        with open('error.txt', 'w') as fp:
+                            fp.write(decision_results['status'])
                     psi.utils.report(self.logger,
                                      'unknown',
                                      {
@@ -190,8 +202,10 @@ class ABKM(psi.components.Component):
                                          'parent id': '1',
                                          # TODO: just the same file as parent log, looks strange.
                                          'problem desc':
-                                             '__file:cil.i.log' if decision_results['status'] == 'error'
-                                             else decision_results['status']
+                                             'cil.i.log' if decision_results['status'] == 'error'
+                                             else 'error.txt',
+                                         'files': ['cil.i.log' if decision_results['status'] == 'error'
+                                                   else 'error.txt']
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])

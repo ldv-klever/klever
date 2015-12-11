@@ -84,15 +84,18 @@ class Psi:
             self.wait_for_components()
         except Exception:
             if self.mqs:
-                with open('problem desc', 'w') as fp:
+                with open('problem desc.txt', 'w') as fp:
                     traceback.print_exc(file=fp)
 
-                if os.path.isfile('problem desc'):
+                if os.path.isfile('problem desc.txt'):
                     psi.utils.report(self.logger,
                                      'unknown',
-                                     {'id': 'unknown',
-                                      'parent id': self.id,
-                                      'problem desc': '__file:problem desc'},
+                                     {
+                                         'id': 'unknown',
+                                         'parent id': self.id,
+                                         'problem desc': 'problem desc.txt',
+                                         'files': ['problem desc.txt']
+                                     },
                                      self.mqs['report files'])
 
             if self.logger:
@@ -111,13 +114,16 @@ class Psi:
                 if self.mqs:
                     psi.utils.report(self.logger,
                                      'finish',
-                                     {'id': self.id,
-                                      'resources': psi.utils.count_consumed_resources(
-                                          self.logger,
-                                          self.start_time),
-                                      'desc': '__file:{0}'.format(self.conf_file),
-                                      'log': '__file:log',
-                                      'data': ''},
+                                     {
+                                         'id': self.id,
+                                         'resources': psi.utils.count_consumed_resources(
+                                             self.logger,
+                                             self.start_time),
+                                         'desc': self.conf_file,
+                                         'log': 'log',
+                                         'data': '',
+                                         'files': [self.conf_file, 'log']
+                                     },
                                      self.mqs['report files'])
 
                     self.logger.info('Terminate report files message queue')
@@ -238,9 +244,9 @@ class Psi:
         try:
             while True:
                 # TODO: replace MQ with "reports and report files archives".
-                report_and_report_file_archive = self.mqs['report files'].get()
+                report_and_report_files_archive = self.mqs['report files'].get()
 
-                if report_and_report_file_archive is None:
+                if report_and_report_files_archive is None:
                     self.logger.debug('Report files message queue was terminated')
                     # Note that this and all other closing of message queues aren't strictly necessary and everything
                     # will work without them as well, but this potentially can save some memory since closing explicitly
@@ -248,23 +254,16 @@ class Psi:
                     self.mqs['report files'].close()
                     break
 
-                report_file = report_and_report_file_archive['report file']
+                report_file = report_and_report_files_archive['report file']
+                report_files_archive = report_and_report_files_archive.get('report files archive')
 
-                self.logger.debug('Upload report file "{0}"'.format(report_file))
-                with open(report_file) as fp:
-                    report = json.load(fp)
-                # Read content of files specified via "__file:".
-                for key in report:
-                    if isinstance(report[key], str):
-                        match = re.search(r'^__file:(.+)$', report[key])
-                        if match:
-                            # All these files should be placed in the same directory as uploaded report file.
-                            file = os.path.join(os.path.dirname(report_file), match.groups()[0])
-                            # As well these files may not exist.
-                            with open(file) if os.path.isfile(file) else io.StringIO('') as fp:
-                                report[key] = fp.read()
-                self.session.upload_report(json.dumps(report),
-                                           report_and_report_file_archive.get('report files archive'))
+                self.logger.debug('Upload report file "{0}"{1}'
+                                  .format(report_file,
+                                          ' with report files archive "{0}"'.format(report_files_archive)
+                                          if report_files_archive
+                                          else ''))
+
+                self.session.upload_report(report_file, report_files_archive)
         except Exception as e:
             # If we can't send reports to Omega by some reason we can just silently die.
             self.logger.exception('Catch exception when sending reports to Omega')
