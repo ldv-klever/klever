@@ -78,9 +78,11 @@ class Component(multiprocessing.Process):
                 # Get component specific logger.
                 self.logger = psi.utils.get_logger(self.name, self.conf['logging'])
 
-                report = {'id': self.id,
-                          'parent id': self.parent_id,
-                          'name': self.name}
+                report = {
+                    'id': self.id,
+                    'parent id': self.parent_id,
+                    'name': self.name
+                }
                 if self.attrs:
                     report.update({'attrs': self.attrs})
                 psi.utils.report(self.logger,
@@ -96,7 +98,7 @@ class Component(multiprocessing.Process):
                 exception_info = '{0}Raise exception:\n{1}'.format(self.__get_subcomponent_name(),
                                                                    traceback.format_exc().rstrip())
                 self.logger.error(exception_info)
-                with open('problem desc', 'a') as fp:
+                with open('problem desc.txt', 'a') as fp:
                     if fp.tell():
                         fp.write('\n')
                     fp.write(exception_info)
@@ -105,9 +107,12 @@ class Component(multiprocessing.Process):
                 if os.path.isfile('problem desc'):
                     psi.utils.report(self.logger,
                                      'unknown',
-                                     {'id': 'unknown',
-                                      'parent id': self.id,
-                                      'problem desc': '__file:problem desc'},
+                                     {
+                                         'id': 'unknown',
+                                         'parent id': self.id,
+                                         'problem desc': 'problem desc.txt',
+                                         'files': ['problem desc.txt']
+                                     },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
 
@@ -127,15 +132,18 @@ class Component(multiprocessing.Process):
 
                 psi.utils.report(self.logger,
                                  'finish',
-                                 {'id': self.id,
-                                  'resources': psi.utils.count_consumed_resources(
-                                      self.logger,
-                                      self.start_time,
-                                      self.include_child_resources,
-                                      all_child_resources),
-                                  'desc': '__file:desc',
-                                  'log': '__file:log',
-                                  'data': ''},
+                                 {
+                                     'id': self.id,
+                                     'resources': psi.utils.count_consumed_resources(
+                                         self.logger,
+                                         self.start_time,
+                                         self.include_child_resources,
+                                         all_child_resources),
+                                     'desc': 'desc.txt' if os.path.isfile('desc.txt') else '',
+                                     'log': 'log',
+                                     'data': '',
+                                     'files': (['desc.txt'] if os.path.isfile('desc.txt') else []) + ['log']
+                                 },
                                  self.mqs['report files'],
                                  self.conf['main working directory'])
             else:
@@ -170,7 +178,7 @@ class Component(multiprocessing.Process):
 
         self.logger.error('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
 
-        with open('problem desc', 'a') as fp:
+        with open('problem desc.txt', 'a') as fp:
             if fp.tell():
                 fp.write('\n')
             fp.write(
