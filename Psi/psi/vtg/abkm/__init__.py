@@ -2,8 +2,10 @@
 
 import json
 import os
+import shutil
 import tarfile
 import time
+from xml.dom import minidom
 
 import psi.components
 import psi.session
@@ -204,6 +206,26 @@ class ABKM(psi.components.Component):
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
                 elif decision_results['status'] == 'unsafe':
+                    self.logger.info('Get source files referred by error trace')
+
+                    source_files = set()
+                    with open('witness.graphml') as fp:
+                        dom = minidom.parse(fp)
+                        graphml = dom.getElementsByTagName("graphml")[0]
+                        graph = graphml.getElementsByTagName("graph")[0]
+                        for edge in graph.getElementsByTagName('edge'):
+                            for data in edge.getElementsByTagName('data'):
+                                if data.getAttribute('key') == 'originfile':
+                                    source_files.add(data.firstChild.data)
+
+                    # Copy all source files to working directory.
+                    if source_files:
+                        self.logger.debug('Source files referred by error trace are: "{}"'.format(source_files))
+                        for source_file in source_files:
+                            # Each file is specified either via absolute path or path relative to source tree root.
+                            shutil.copy(source_file if os.path.isabs(source_file) else os.path.join(
+                                self.conf['source tree root'], source_file), os.path.basename(source_file))
+
                     psi.utils.report(self.logger,
                                      'unsafe',
                                      {
@@ -211,7 +233,8 @@ class ABKM(psi.components.Component):
                                          'parent id': '1',
                                          'attrs': [],
                                          'error trace': 'witness.graphml',
-                                         'files': ['witness.graphml']
+                                         'files': ['witness.graphml'] + [os.path.basename(source_file) for source_file
+                                                                         in source_files]
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
