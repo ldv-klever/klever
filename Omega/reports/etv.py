@@ -118,16 +118,11 @@ class GetETV(object):
     def __html_trace(self, trace):
         lines_data = []
 
-        max_line_length = 1
-        for n in trace:
-            if 'startline' in n.attr:
-                if len(n['startline']) > max_line_length:
-                    max_line_length = len(n['startline'])
-
         cnt = 0
         file = None
         has_main = False
         curr_offset = 1
+        max_line_length = 1
         scope_stack = ['global']
         assume_scopes = {'global': []}
         scopes_to_show = []
@@ -137,7 +132,6 @@ class GetETV(object):
             lines_data.append({
                 'code': fake_code,
                 'line': None,
-                'line_offset': ' ' * max_line_length,
                 'offset': curr_offset * ' ',
                 'class': scope_stack[-1],
                 'hide_id': hide_id
@@ -159,34 +153,33 @@ class GetETV(object):
         lines_data.append({
             'code': '<span class="ETV_GlobalExpander">Global initialization</span>',
             'line': None,
-            'line_offset': ' ' * max_line_length,
             'offset': curr_offset * ' ',
             'hide_id': 'global_scope'
         })
 
         for n in trace:
             line = n.attr.get('startline', None)
-            if line is None:
-                line_offset = max_line_length
-            else:
+            if line is not None:
                 line = line.value
-                line_offset = max_line_length - len(line)
             if 'sourcecode' in n.attr:
                 code = n.attr['sourcecode'].value
             else:
                 code = ''
+            if 'originFileName' in n.attr:
+                file = n['originFileName']
+            if file is None:
+                line = None
+
+            if line is not None and len(line) > max_line_length:
+                max_line_length = len(line)
+
             line_data = {
-                'line_offset': ' ' * line_offset,
                 'line': line,
+                'file': file,
                 'code': code,
                 'offset': curr_offset * ' ',
                 'class': scope_stack[-1]
             }
-            if 'originFileName' in n.attr:
-                file = n['originFileName']
-            if file is None:
-                line_data['line'] = None
-            line_data['file'] = file
             if line_data['line'] is not None and 'assumption' not in n.attr:
                 line_data.update(fill_assumptions())
             if 'note' in n.attr:
@@ -276,6 +269,10 @@ class GetETV(object):
             add_fake_line('}')
             scope_stack.pop()
         for i in range(0, len(lines_data)):
+            if lines_data[i]['line'] is None:
+                lines_data[i]['line_offset'] = ' ' * max_line_length
+            else:
+                lines_data[i]['line_offset'] = ' ' * (max_line_length - len(lines_data[i]['line']))
             other_line_offset = '\n  ' + lines_data[i]['offset'] + ' ' * max_line_length
             lines_data[i]['code'] = other_line_offset.join(lines_data[i]['code'].split('\n'))
             lines_data[i]['code'] = self.__parse_code(lines_data[i]['code'])
@@ -297,6 +294,7 @@ class GetETV(object):
                 lines_data[i]['commented'] = True
             if b and c:
                 lines_data[i]['note_hidden'] = True
+            print(len(lines_data[i]['line_offset']))
         lines_data.append({'class': 'ETV_End_of_trace'})
         self.html_traces.append(lines_data)
 
