@@ -148,7 +148,10 @@ def solve_task(conf):
         "memlimit": str(round(conf["resource limits"]["memory size"] / (1024 ** 2))),
     })
     rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
-    for opt in conf["verifier"]["options"] + [{"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"}]:
+    for opt in conf["verifier"]["options"] + [
+        {"-setprop": "parser.readLineDirectives=true"},
+        {"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"}
+    ]:
         for name in opt:
             ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
     ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
