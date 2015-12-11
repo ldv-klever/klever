@@ -46,10 +46,16 @@ class ABKM(psi.components.Component):
 
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
+
+        if len(self.conf['abstract task desc']['entry points']) > 1:
+            raise NotImplementedError('Several entry points are not supported')
+
         with open('unreach-call.prp', 'w') as fp:
-            # TODO: replace usb_serial_bus_register() with entry point name.
-            fp.write('CHECK( init(usb_serial_bus_register()), LTL(G ! call(__VERIFIER_error())) )')
+            fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
+                self.conf['abstract task desc']['entry points'][0]))
+
         self.task_desc['property file'] = 'unreach-call.prp'
+
         self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
 
     def prepare_source_files(self):
