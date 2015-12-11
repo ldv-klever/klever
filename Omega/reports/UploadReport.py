@@ -430,9 +430,8 @@ class UploadReport(object):
         report.error_trace = uf.file_content
         report.save()
 
-        if len(uf.other_files) > 0:
-            for src_f in uf.other_files:
-                ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
+        for src_f in uf.other_files:
+            ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
 
         self.__add_attrs(report)
         self.__collect_attrs(report)
