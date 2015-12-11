@@ -24,6 +24,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._generate_entry_point()
         self._generate_aspects()
         self._add_aspects()
+        self._add_entry_points()
         return
 
     @abc.abstractmethod
@@ -72,7 +73,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         }
                     )
 
-
+    def _add_entry_points(self):
+        self.task["entry points"] = [self.entry_point_name]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 
