@@ -13,7 +13,8 @@
       "labels": {
         "usb_driver": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "usb.usb_driver"
         }
       },
       "process": "[register]",
@@ -30,7 +31,8 @@
       "labels": {
         "usb_driver": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "usb.usb_driver"
         }
       },
       "process": "[deregister]",
@@ -45,7 +47,8 @@
     "alloc_etherdev": {
       "labels": {
         "netdev": {
-          "container": true
+          "container": true,
+          "interface": "net.net_device"
         }
       },
       "process": "({alloc}.{init}.{success} | {fail})",
@@ -76,7 +79,8 @@
       "labels": {
         "netdev": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "net.net_device"
         }
       },
       "process": "{free}",
@@ -92,7 +96,8 @@
       "labels": {
         "netdev": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "net.net_device"
         }
       },
       "process": "[start].(ret_start).[register]",
@@ -118,18 +123,19 @@
       "labels": {
         "netdev": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "net.net_device"
         }
       },
       "process": "[stop].(ret_stop).[deregister]",
       "subprocesses": {
-        "start": {
+        "stop": {
           "callback": "%netdev.net_device_ops.stop%",
           "parameters": [
             "%netdev%"
           ]
         },
-        "ret_start": {
+        "ret_stop": {
           "callback": "%netdev.net_device_ops.stop%"
         },
         "deregister": {
@@ -143,7 +149,8 @@
       "labels": {
         "platform_driver": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "platform.platform_driver"
         }
       },
       "process": "[register]",
@@ -160,11 +167,13 @@
       "labels": {
         "platform_driver": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "platform.platform_driver"
         },
         "probe": {
           "callback": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "platform.probe"
         }
       },
       "process": "{assign_probe}.[register]",
@@ -186,7 +195,8 @@
       "labels": {
         "platform_driver": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "platform.platform_driver"
         }
       },
       "process": "[deregister]",
@@ -202,12 +212,13 @@
       "labels": {
         "timer_list": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "timer.platform_driver"
         }
       },
       "process": "[instance_register]",
       "subprocesses": {
-        "register": {
+        "instance_register": {
           "guard": "$RET == 0",
           "parameters": [
             "%timer_list%"
@@ -219,15 +230,18 @@
       "labels": {
         "timer_list": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "timer.timer_list"
         },
         "data": {
           "resource": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "timer.data"
         },
         "function": {
           "callback": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "timer.callback"
         }
       },
       "process": "{assign_data}.[instance_register]",
@@ -239,7 +253,7 @@
             "%timer_list.function=%function%%"
           ]
         },
-        "register": {
+        "instance_register": {
           "parameters": [
             "%timer_list%"
           ]
@@ -250,7 +264,8 @@
       "labels": {
         "timer_list": {
           "container": true,
-          "parameter": true
+          "parameter": true,
+          "interface": "timer.timer_list"
         }
       },
       "process": "[deregister]",
@@ -266,19 +281,23 @@
       "labels": {
         "thread": {
           "callback": true,
-          "interface": "interrupt.thread"
+          "interface": "interrupt.thread",
+          "parameter": true
         },
         "callback": {
           "callback": true,
-          "interface": "interrupt.handler"
+          "interface": "interrupt.handler",
+          "parameter": true
         },
         "line": {
           "resource": true,
-          "interface": "interrupt.line"
+          "interface": "interrupt.line",
+          "parameter": true
         },
         "data": {
           "resource": true,
-          "interface": "interrupt.data"
+          "interface": "interrupt.data",
+          "parameter": true
         }
       },
       "process": "[irq_register]",
@@ -298,7 +317,8 @@
       "labels": {
         "line": {
           "resource": true,
-          "interface": "interrupt.line"
+          "interface": "interrupt.line",
+          "parameter": true
         }
       },
       "process": "[irq_deregister]",
@@ -379,7 +399,7 @@
           "process": "([probe].(ret_probe).([suspend].{reset_scenario}.(ret_suspend).{resume_inst} | 0).([disconnect].(ret_disconnect) | 0)).({inst} | 0)"
         },
         "reset_scenario": {
-          "process": "((reset).<[pre].(pre).[post].(post).{set_reset_flag}> | 0)"
+          "process": "((reset).<[pre].(ret_pre).[post].(ret_post).{set_reset_flag}> | 0)"
         },
         "resume_inst": {
           "process": "([reset_resume].(ret_reset_resume) | [resume].(ret_resume))"
@@ -575,7 +595,7 @@
           "signature": "int %s"
         }
       },
-      "process": "(!irq_register).([handler].(ret_handler).([thread].(thread)) | 0).(irq_deregister)",
+      "process": "(!irq_register).([handler].(ret_handler).([thread].(ret_thread)) | 0).(irq_deregister)",
       "subprocesses": {
         "irq_register": {
            "guard": "$RET == 0",
@@ -592,7 +612,7 @@
             "%line%"
           ]
         },
-        "callback": {
+        "handler": {
           "callback": "%handler%",
           "parameters": [
             "%resource%"
@@ -604,13 +624,13 @@
         },
         "thread": {
           "guard": "%ret_val% == IRQ_WAKE_THREAD",
-          "thread": "%thread%",
+          "callback": "%thread%",
           "parameters": [
             "%resource%"
           ]
         },
         "ret_thread": {
-          "thread": "%thread%"
+          "callback": "%thread%"
         }
       }
     }
