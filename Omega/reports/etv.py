@@ -294,7 +294,6 @@ class GetETV(object):
                 lines_data[i]['commented'] = True
             if b and c:
                 lines_data[i]['note_hidden'] = True
-            print(len(lines_data[i]['line_offset']))
         lines_data.append({'class': 'ETV_End_of_trace'})
         self.html_traces.append(lines_data)
 

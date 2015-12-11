@@ -24,15 +24,7 @@
     background-color: #f2711c;
     cursor: move;
 }
-.ETV_error_trace_2 {
-    width: 100%;
-    position: absolute;
-    left: 0;
+
+.ETV_BottomTrace {
     top: 0;
-    bottom: 0;
-    line-height: normal;
-    font-size: 12px;
-    font-family: monospace;
-    overflow: auto;
-    white-space: nowrap
 }

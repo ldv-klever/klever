@@ -12,15 +12,19 @@
     width: 100%;
     position: absolute;
     left: 0;
-    top: 35px;
     bottom: 0;
     line-height: normal;
     font-size: 12px;
     font-family: monospace;
-    border-top: 1px solid #ca8f1d;
     overflow: auto;
     white-space: nowrap
 }
+
+.ETV_TopTrace {
+    border-top: 1px solid #ca8f1d;
+    top: 35px;
+}
+
 #ETV_assumes {
     position: absolute;
     padding: 5px;
