@@ -155,8 +155,8 @@
           "signature": "struct net_device_ops %s",
           "header": "include/linux/netdevice.h",
           "fields": {
-            "ndo_open": "net.open",
-            "ndo_stop": "net.stop"
+            "ndo_open": "open",
+            "ndo_stop": "stop"
           }
         },
         "ethtool_ops": {
@@ -166,13 +166,13 @@
       },
       "callbacks": {
         "open": {
-          "signature": "int %s (*%net.open%)(*%net.net_device%)"
+          "signature": "int %s (*%open%)(*%net_device%)"
         },
         "stop": {
-          "signature": "int %s (*%net.stop%)(*%net.net_device%)"
+          "signature": "int %s (*%stop%)(*%net_device%)"
         },
         "setup": {
-          "signature": "$ (*%net.setup%)(*%net.net_device%)"
+          "signature": "$ (*%setup%)(*%net_device%)"
         }
       },
       "resources": {
@@ -200,6 +200,7 @@
           "signature": "struct platform_driver %s",
           "header": "include/linux/platform_device.h",
           "fields": {
+            "driver": "device_driver",
             "probe": "probe"
           }
         }
@@ -213,7 +214,17 @@
       },
       "callbacks": {
         "probe": {
-          "signature": "int %s (*%platform.probe%)(*%platform.platform_device%)"
+          "signature": "int %s (*%probe%)(*%platform_device%)"
+        }
+      }
+    },
+    "module": {
+      "callbacks": {
+        "init": {
+          "signature": "int %s (*%init%)(void)"
+        },
+        "exit": {
+          "signature": "void (*%exit%)(void)"
         }
       }
     },
@@ -235,7 +246,7 @@
       },
       "callbacks": {
         "handler": {
-          "signature": "void (*%timer.handler%)(%timer.data%)",
+          "signature": "void (*%handler%)(%data%)",
           "interrupt context": true
         }
       }
@@ -252,11 +263,11 @@
       },
       "callbacks": {
         "handler": {
-          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.irq_line%, %interrupt.data%)",
+          "signature": "irqreturn_t %s (*%handler%)(%irq_line%, %data%)",
           "interrupt context": true
         },
         "thread": {
-          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.irq_line%, %interrupt.data%)"
+          "signature": "irqreturn_t %s (*%handler%)(%irq_line%, %data%)"
         }
       }
     }

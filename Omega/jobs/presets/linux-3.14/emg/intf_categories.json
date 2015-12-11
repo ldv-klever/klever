@@ -65,15 +65,15 @@
       "header": "include/linux/timer.h"
     },
     "request_threaded_irq": {
-      "signature": "int %s request_threaded_irq(%interrupt.irq_line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+      "signature": "int %s request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
       "header": "include/linux/timer.h"
     },
     "devm_request_threaded_irq": {
-      "signature": "int %s devm_request_threaded_irq($, %interrupt.irq_line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+      "signature": "int %s devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
       "header": "include/linux/timer.h"
     },
     "free_irq": {
-      "signature": "$ free_irq(%interrupt.irq_line%, %interrupt.data%)",
+      "signature": "$ free_irq(%interrupt.line%, %interrupt.data%)",
       "header": "include/linux/timer.h"
     }
   },
@@ -155,8 +155,8 @@
           "signature": "struct net_device_ops %s",
           "header": "include/linux/netdevice.h",
           "fields": {
-            "ndo_open": "net.open",
-            "ndo_stop": "net.stop"
+            "ndo_open": "open",
+            "ndo_stop": "stop"
           }
         },
         "ethtool_ops": {
@@ -217,6 +217,16 @@
         }
       }
     },
+    "module": {
+      "callbacks": {
+        "init": {
+          "signature": "int %s (*%module.init%)(void)"
+        },
+        "exit": {
+          "signature": "void (*%module.exit%)(void)"
+        }
+      }
+    },
     "timer": {
       "containers": {
         "timer_list": {
@@ -235,7 +245,7 @@
       },
       "callbacks": {
         "handler": {
-          "signature": "void (*%timer.handler%)(%timer.data%)",
+          "signature": "void (*%interrupt.handler%)(%interrupt.data%)",
           "interrupt context": true
         }
       }
@@ -243,7 +253,7 @@
     "interrupt": {
       "containers": {},
       "resources": {
-        "irq_line": {
+        "line": {
           "signature": "unsigned int %s"
         },
         "data": {
@@ -252,11 +262,11 @@
       },
       "callbacks": {
         "handler": {
-          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.irq_line%, %interrupt.data%)",
+          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, %interrupt.data%)",
           "interrupt context": true
         },
         "thread": {
-          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.irq_line%, %interrupt.data%)"
+          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, %interrupt.data%)"
         }
       }
     }
