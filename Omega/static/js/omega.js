@@ -340,6 +340,9 @@ $(document).ready(function () {
                         err_notify(data.message);
                     }
                 }
+            },
+            error: function (x) {
+                console.log(x.responseText);
             }
         });
         return false;
