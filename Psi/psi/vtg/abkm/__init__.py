@@ -64,6 +64,25 @@ class ABKM(psi.components.Component):
         if self.conf['VTG strategy']['merge source files']:
             self.logger.info('Merge source files by means of CIL')
 
+            # CIL doesn't support asm goto (https://forge.ispras.ru/issues/1323).
+            self.logger.info('Ignore asm goto expressions')
+
+            for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(extra_c_file['C file'])[0])
+                with open(os.path.join(self.conf['source tree root'], trimmed_c_file), 'w') as fp:
+                    # Each such expression occupies individual line, so just get rid of them.
+                    stdout = psi.utils.execute(self.logger,
+                                               (
+                                                   'sed',
+                                                   '-r',
+                                                   r's@asm volatile goto.*;$@@g',
+                                                   extra_c_file['C file']
+                                               ),
+                                               cwd=self.conf['source tree root'],
+                                               collect_all_stdout=True)
+                    fp.writelines(['{0}\n'.format(line) for line in stdout])
+                extra_c_file['C file'] = trimmed_c_file
+
             with open('cil input files.txt', 'w') as fp:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
                     fp.write('{0}\n'.format(extra_c_file['C file']))
