@@ -179,6 +179,7 @@ def solve_task(conf):
     statuses_map = {
         'false(reach)': 'unsafe',
         'true': 'safe',
+        'EXCEPTION': 'error',
         'ERROR': 'error',
         'TIMEOUT': 'CPU time exhausted',
         'OUT OF MEMORY': 'memory exhausted'
