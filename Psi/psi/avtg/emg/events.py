@@ -79,31 +79,45 @@ class EventModel:
                                    if not self.analysis.categories[category]["callbacks"][callback].called_in_model]
 
             if len(unmatched_callbacks) > 0:
-                # Try to establish references between dispatches and receives
+                # Add processes matching input and output signals
                 success = self.__populate_model(self.models)
-                if not success:
-                    success = self.__populate_model(self.processes)
-                if not success:
-                    success = self.__try_match_more_labels(category, unmatched_callbacks)
-                if not success:
-                    success = self.__try_match_according_kernel_models(category, unmatched_callbacks)
-                if not success:
-                    success = self.__try_match_according_default_models(category, unmatched_callbacks)
-
-    def __try_match_more_labels(self, category, callbacks):
-        success = False
-        if success:
-            self.__normalize_model()
-        return success
+                # Add processes matching input and output signals
+                success = self.__populate_model(self.processes)
+                # Attempt to add more interfaces to existing processes
+                success = self.__try_match_more_labels(category, unmatched_callbacks)
+                success = self.__try_match_according_kernel_models(category, unmatched_callbacks)
+                success = self.__try_match_according_default_models(category, unmatched_callbacks)
 
     def __try_match_according_kernel_models(self, category, callbacks):
         success = False
+
         if success:
             self.__normalize_model()
         return success
 
     def __try_match_according_default_models(self, category, callbacks):
         success = False
+        if success:
+            self.__normalize_model()
+        return success
+
+    def __try_match_more_labels(self, category, callbacks):
+        success = False
+
+        max_map = {}
+        max_process = None
+        for process in self.events["environment processes"]:
+            label_map = self._match_labels(self.events["environment processes"][process], category)
+            if len(label_map) > len(max_map):
+                max_process = process
+                max_map = label_map
+
+        if max_process:
+            self.add_process(max_process)
+            for label in max_map:
+                self.processes[max_process].labels[label].interface = max_map[label]
+            success = True
+
         if success:
             self.__normalize_model()
         return success
@@ -129,7 +143,18 @@ class EventModel:
         return success
 
     def __normalize_model(self):
-        pass
+        # Peer processes with models
+        for model in self.models:
+            for process in self.processes:
+                self.models[model].establish_peers(self.processes[process])
+
+        # Peer processes with each other
+        keys = list(self.processes.keys())
+        for index1 in range(len(keys)):
+            p1 = self.processes[keys[index1]]
+            for index2 in range(index1 + 1, len(keys)):
+                p2 = self.processes[keys[index2]]
+                p1.establish_peers(p2)
 
     def add_process(self, name):
         process = copy.deepcopy(self.events["environment processes"][name])
@@ -143,6 +168,103 @@ class EventModel:
         process = copy.deepcopy(self.events["environment processes"][name])
         peered.establish_peers(process)
         self.processes[name] = process
+
+    def _get_final_intf(self):
+        pass
+
+    def _match_labels(self, process, category):
+        label_map = {}
+
+        # Trivial match
+        for subprocess in process.subprocesses:
+            if process.subprocesses[subprocess].callback:
+                label, tail = process.extract_label_with_tail(process.subprocesses[subprocess].callback)
+
+                if label.name not in process.labels:
+                    raise KeyError("Label '{}' is undefined in process description {}".format(label.name, process.name))
+                elif label.name in process.labels and label.interface and label.name not in label_map:
+                    if label.interface in self.analysis.interfaces and self.analysis.interfaces[label.interface].category == category:
+                        label_map[label.name] = label.interface
+                elif label.name in process.labels and not label.interface and label.name not in label_map:
+                    if tail and len(tail) > 0:
+                        for container in self.analysis.categories[category]["containers"]:
+                            interfaces = self._resolve_interface(self.analysis.categories[category]["containers"][container],
+                                                                 tail)
+                            if interfaces:
+                                label_map[label.name] = self.analysis.categories[category]["containers"][container].full_identifier
+                    else:
+                        if label.callback and label.name in self.analysis.categories[category]["callbacks"]:
+                            label_map[label.name] = self.analysis.categories[category]["callbacks"][label].full_identifier
+                        elif label.callback and len(self.analysis.categories[category]["callbacks"]) == 1:
+                            keys = list(self.analysis.categories[category]["callbacks"].keys())
+                            label_map[label.name] = self.analysis.categories[category]["callbacks"][keys[0]].full_identifier
+                        #else:
+                        #    random_match.append(label)
+
+        # Parameters match
+        for subprocess in process.subprocesses:
+            if process.subprocesses[subprocess].callback and process.subprocesses[subprocess].parameters:
+                function = None
+                container, tail = process.extract_label_with_tail(process.subprocesses[subprocess].callback)
+                if tail and len(tail) > 0 and container.name in label_map:
+                    intfs = self._resolve_interface(self.analysis.interfaces[label_map[container.name]], tail)
+                    if intfs:
+                        function = intfs[-1]
+
+                for parameter in process.subprocesses[subprocess].parameters:
+                    label, tail = process.extract_label_with_tail(parameter)
+
+                    if label.name not in process.labels:
+                        raise KeyError("Label '{}' is undefined in process description {}".format(label.name, process.name))
+                    elif label.name in label_map or \
+                            (label.interface and label.interface in self.analysis.interfaces and self.analysis.interfaces[label.interface].category != category):
+                        pass
+                    elif label.interface:
+                        if label.interface in self.analysis.interfaces and self.analysis.interfaces[label.interface].category == category:
+                            label_map[label.name] = label.interface
+                    else:
+                        if tail and len(tail) > 0:
+                            for container in self.analysis.categories[category]["containers"]:
+                                if self._resolve_interface(self.analysis.categories[category]["containers"][container],
+                                                           tail):
+                                    label_map[label.name] = self.analysis.categories[category]["containers"][container].full_identifier
+                        else:
+                            if label.resource and label.name in self.analysis.categories[category]["resources"]:
+                                label_map[label.name] = self.analysis.categories[category]["resources"][label].full_identifier
+                            elif label.callback and label.name in self.analysis.categories[category]["callbacks"]:
+                                label_map[label.name] = self.analysis.categories[category]["callbacks"][label].full_identifier
+                            elif label.container and label.name in self.analysis.categories[category]["containers"]:
+                                label_map[label.name] = self.analysis.categories[category]["resources"][label].full_identifier
+                            elif label.resource and function:
+                                for pr in function.signature.parameters:
+                                    if pr.interface and pr.interface.resource and pr.interface not in label_map.values():
+                                        label_map[label.name] = pr.interface.full_identifier
+                                        break
+
+        return label_map
+
+    def _resolve_interface(self, interface, string):
+        tail = string.split(".")
+        # todo: get rid of starting dot
+        if len(tail) == 1:
+            raise RuntimeError("Cannot resolve interfae for access '{}'".format(string))
+        else:
+            tail = tail[1:]
+
+        matched = [interface]
+        for index in range(len(tail)):
+            field = tail[index]
+            if field not in matched[-1].fields.values():
+                return None
+            else:
+                if index == (len(tail) - 1):
+                    matched.append(self.analysis.interfaces["{}.{}".format(matched[-1].category, field)])
+                elif self.analysis.interfaces["{}.{}".format(matched[-1].category, field)].container:
+                    matched.append(self.analysis.interfaces["{}.{}".format(matched[-1].category, field)])
+                else:
+                    return None
+
+        return matched
 
 
 class Label:
@@ -174,7 +296,7 @@ class Label:
             else:
                 return "equal"
         elif self.interface and label.interface:
-            if self.interface.full_identifier == label.interface.full_identifier:
+            if self.interface == label.interface:
                 return "equal"
             else:
                 return "different"
@@ -190,7 +312,7 @@ class Label:
 
 class Process:
 
-    label_re = re.compile("%(\w+)%")
+    label_re = re.compile("%(\w+)((?:\.\w*)*)%")
 
     def __init__(self, name, dic={}):
         # Default values
@@ -286,19 +408,47 @@ class Process:
                      if not self.labels[label].interface]
         return unmatched
 
-    def extract_label(self, string):
+    def _extract_label(self, string):
+        name, tail = self.extract_label_with_tail(string)
+        return name
+
+    def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
             name = self.label_re.fullmatch(string).group(1)
+            tail = self.label_re.fullmatch(string).group(2)
             if name not in self.labels:
-                raise ValueError("Cannot extract label name from string '{}': not such label".format(string))
+                raise ValueError("Cannot extract label name from string '{}': no such label".format(string))
             else:
-                return self.labels[name]
+                return self.labels[name], tail
         else:
             return None
 
     def establish_peers(self, process):
         peers = self.get_available_peers(process)
-        pass
+        for signals in peers:
+            for index in range(len(self.subprocesses[signals[0]].parameters)):
+                label1 = self._extract_label(self.subprocesses[signals[0]].parameters[index])
+                label2 = process._extract_label(process.subprocesses[signals[1]].parameters[index])
+
+                if (label1.interface or label2.interface) and not (label1.interface and label2.interface):
+                    if label1.interface:
+                        label2.interface = label1.interface
+                    else:
+                        label1.interface = label2.interface
+
+            self.subprocesses[signals[0]].peers.append({"process": process, "subprocess": signals[1]})
+            process.subprocesses[signals[1]].peers.append({"process": self, "subprocess": signals[0]})
+
+    def establish_my_peers(self, process):
+        peers = self.get_available_peers(process)
+        for signals in peers:
+            for index in range(len(self.subprocesses[signals[0]].parameters)):
+                label1 = self._extract_label(self.subprocesses[signals[0]].parameters[index])
+                label2 = process._extract_label(process.subprocesses[signals[1]].parameters[index])
+
+                if (label1.interface or label2.interface) and not (label1.interface and label2.interface):
+                    if not label1.interface:
+                        label1.interface = label2.interface
 
     def get_available_peers(self, process):
         ret = []
@@ -308,18 +458,26 @@ class Process:
             for receive in process.unmatched_receives:
                 match = self.compare_params(process, dispatch, receive)
                 if match:
-                    ret.append([self.unmatched_dispatches[dispatch], process.unmatched_receives[receive]])
+                    ret.append([dispatch.name, receive.name])
+
+        # Match receives
+        for receive in self.unmatched_receives:
+            for dispatch in process.unmatched_dispatches:
+                match = self.compare_params(process, receive, dispatch)
+                if match:
+                    ret.append([receive.name, dispatch.name])
+
         return ret
 
     def compare_params(self, process, first, second):
         if first.name == second.name and len(first.parameters) == len(second.parameters):
             match = True
             for index in range(len(first.parameters)):
-                label = self.extract_label(first.parameters[index])
+                label = self._extract_label(first.parameters[index])
                 if not label:
                     raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
                                      format(first.name, index, self.name))
-                pair = process.extract_label(second.parameters[index])
+                pair = process._extract_label(second.parameters[index])
                 if not pair:
                     raise ValueError("Provide label in subprocess '{}' at position '{}'".
                                      format(second.name, index, process.name))
@@ -339,8 +497,13 @@ class Subprocess(Process):
         self.type = None
         self.name = name
         self.process = None
+        self.callback = None
+        self.parameters = []
         self._import_dictionary(dic)
         self.peers = []
+
+        if "callback" in dic:
+            self.callback = dic["callback"]
 
     def _import_dictionary(self, dic):
         super()._import_dictionary(dic)

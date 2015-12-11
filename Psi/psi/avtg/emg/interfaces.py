@@ -315,6 +315,10 @@ class ModuleSpecification(CategorySpecification):
                 elif structure.fields[field].type_class == "struct":
                     self.__process_unmatched_structure(structure.fields[field])
 
+                if structure.fields[field].interface and field not in structure.interface.fields:
+                    structure.interface.fields[field] = structure.fields[field].interface.identifier
+                # todo: Check that no conflicts can occur there
+
         self.logger.debug("Analize resources of matched function pointers")
         for callback_id in self.categories[structure.interface.category]["callbacks"]:
             callback = self.categories[structure.interface.category]["callbacks"][callback_id]
