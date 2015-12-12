@@ -44,8 +44,10 @@ class UploadReport(object):
     def __check_data(self, data):
         if not isinstance(data, dict):
             return 'Data is not a dictionary'
-        if 'type' not in data or 'id' not in data or len(data['id']) == 0:
-            return 'Type and id are required'
+        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0:
+            return 'Type and id are required or have wrong format'
+        if 'parent id' in data and not isinstance(data['parent id'], str):
+            return 'Parent id has wrong format'
 
         if 'resources' in data:
             if not isinstance(data['resources'], dict) \
@@ -59,7 +61,7 @@ class UploadReport(object):
             err = self.__check_comp(data['comp'])
             if err is not None:
                 return err
-        if 'name' in data and len(data['name']) > 15:
+        if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 15:
             return 'Component name is too long (max 15 symbols expected)'
 
         if data['type'] == 'start':
