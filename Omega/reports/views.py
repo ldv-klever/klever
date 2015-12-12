@@ -323,8 +323,7 @@ def get_source_code(request):
     if 'file_name' not in request.POST:
         return JsonResponse({'error': 'Unknown error'})
 
-    # TODO: request.POST['file_name'] instead 'default-file.c'
-    result = GetSource(request.POST['report_id'], '123/default-file.c')
+    result = GetSource(request.POST['report_id'], request.POST['file_name'])
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     filename = request.POST['file_name']
