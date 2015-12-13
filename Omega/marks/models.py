@@ -1,5 +1,7 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
+from django.db.models.signals import post_init
+from django.dispatch.dispatcher import receiver
 from Omega.vars import FORMAT, JOB_CLASSES, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent,\
     Component, ReportUnknown, AttrName
@@ -120,6 +122,13 @@ class MarkUnsafe(Mark):
 
     class Meta:
         db_table = 'mark_unsafe'
+
+
+@receiver(post_init, sender=MarkUnsafe)
+def get_mark_trace(**kwargs):
+    mark = kwargs['instance']
+    if mark.error_trace is not None and not isinstance(mark.error_trace, bytes):
+        mark.error_trace = mark.error_trace.tobytes()
 
 
 class UnsafeMarkAttrOrder(models.Model):

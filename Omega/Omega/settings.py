@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import json
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -87,12 +88,11 @@ WSGI_APPLICATION = 'Omega.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'Omega/db.cnf')},
-    }
-}
+DATABASES = {'default': {'ENGINE': 'django.db.backends.postgresql_psycopg2'}}
+
+DATABASES['default'].update(
+    json.loads(''.join(open(os.path.join(BASE_DIR, 'Omega', 'postgres-db.json'), 'r').read().split('\n')))
+)
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/

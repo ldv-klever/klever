@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import post_init
+from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from Omega.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.models import File, Job
@@ -38,6 +40,13 @@ class Report(models.Model):
 
     class Meta:
         db_table = 'report'
+
+
+@receiver(post_init, sender=Report)
+def get_report_description(**kwargs):
+    report = kwargs['instance']
+    if report.description is not None and not isinstance(report.description, bytes):
+        report.description = report.description.tobytes()
 
 
 class ReportAttrOrder(models.Model):
@@ -84,12 +93,30 @@ class ReportComponent(Report):
         db_table = 'report_component'
 
 
+@receiver(post_init, sender=ReportComponent)
+def get_report_data(**kwargs):
+    report = kwargs['instance']
+    if report.data is not None and not isinstance(report.data, bytes):
+        report.data = report.data.tobytes()
+    if report.description is not None and not isinstance(report.description, bytes):
+        report.description = report.description.tobytes()
+
+
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
     class Meta:
         db_table = 'report_unsafe'
+
+
+@receiver(post_init, sender=ReportUnsafe)
+def get_unsafe_trace(**kwargs):
+    report = kwargs['instance']
+    if not isinstance(report.error_trace, bytes):
+        report.error_trace = report.error_trace.tobytes()
+    if report.description is not None and not isinstance(report.description, bytes):
+        report.description = report.description.tobytes()
 
 
 class ETVFiles(models.Model):
@@ -109,12 +136,30 @@ class ReportSafe(Report):
         db_table = 'report_safe'
 
 
+@receiver(post_init, sender=ReportSafe)
+def get_safe_proof(**kwargs):
+    report = kwargs['instance']
+    if not isinstance(report.proof, bytes):
+        report.proof = report.proof.tobytes()
+    if report.description is not None and not isinstance(report.description, bytes):
+        report.description = report.description.tobytes()
+
+
 class ReportUnknown(Report):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
     problem_description = models.BinaryField()
 
     class Meta:
         db_table = 'report_unknown'
+
+
+@receiver(post_init, sender=ReportUnknown)
+def get_unknown_problem(**kwargs):
+    report = kwargs['instance']
+    if not isinstance(report.problem_description, bytes):
+        report.problem_description = report.problem_description.tobytes()
+    if report.description is not None and not isinstance(report.description, bytes):
+        report.description = report.description.tobytes()
 
 
 class ReportComponentLeaf(models.Model):
