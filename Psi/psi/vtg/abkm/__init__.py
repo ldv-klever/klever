@@ -216,15 +216,30 @@ class ABKM(psi.components.Component):
                         for edge in graph.getElementsByTagName('edge'):
                             for data in edge.getElementsByTagName('data'):
                                 if data.getAttribute('key') == 'originfile':
+                                    # Each file is specified either via absolute path or path relative to source tree
+                                    # root. Make all paths relative to source tree root.
+                                    if os.path.isabs(data.firstChild.data):
+                                        data.firstChild.data = os.path.relpath(data.firstChild.data,
+                                                                               os.path.realpath(
+                                                                                   self.conf['source tree root']))
+                                    if not os.path.isfile(
+                                            os.path.join(self.conf['source tree root'], data.firstChild.data)):
+                                        raise FileNotFoundError(
+                                            'File "{0}" referred by error trace does not exist'.format(
+                                                data.firstChild.data))
                                     source_files.add(data.firstChild.data)
 
-                    # Copy all source files to working directory.
+                    self.logger.info('Create processed error trace file "witness.processed.graphml"')
+                    with open('witness.processed.graphml', 'w') as fp:
+                        graphml.writexml(fp)
+
+                    # TODO: copy is done just to create unsafe report later, so get rid of it sometime.
+                    # Copy all source files referred by error trace to working directory.
                     if source_files:
                         self.logger.debug('Source files referred by error trace are: "{}"'.format(source_files))
                         for source_file in source_files:
-                            # Each file is specified either via absolute path or path relative to source tree root.
-                            shutil.copy(source_file if os.path.isabs(source_file) else os.path.join(
-                                self.conf['source tree root'], source_file), os.path.basename(source_file))
+                            os.makedirs(os.path.dirname(source_file), exist_ok=True)
+                            shutil.copy(os.path.join(self.conf['source tree root'], source_file), source_file)
 
                     psi.utils.report(self.logger,
                                      'unsafe',
@@ -232,9 +247,8 @@ class ABKM(psi.components.Component):
                                          'id': 'unsafe',
                                          'parent id': self.task_desc['id'],
                                          'attrs': [],
-                                         'error trace': 'witness.graphml',
-                                         'files': ['witness.graphml'] + [os.path.basename(source_file) for source_file
-                                                                         in source_files]
+                                         'error trace': 'witness.processed.graphml',
+                                         'files': ['witness.processed.graphml'] + list(source_files)
                                      },
                                      self.mqs['report files'],
                                      self.conf['main working directory'])
