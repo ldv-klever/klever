@@ -176,7 +176,7 @@ class ABKM(psi.components.Component):
                                  'verification',
                                  {
                                      # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                                     'id': '1',
+                                     'id': self.task_desc['id'],
                                      'parent id': self.id,
                                      # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
                                      'attrs': [],
@@ -197,7 +197,7 @@ class ABKM(psi.components.Component):
                                      'safe',
                                      {
                                          'id': 'safe',
-                                         'parent id': '1',
+                                         'parent id': self.task_desc['id'],
                                          'attrs': [],
                                          # TODO: just the same file as parent log, looks strange.
                                          'proof': 'cil.i.log',
@@ -230,7 +230,7 @@ class ABKM(psi.components.Component):
                                      'unsafe',
                                      {
                                          'id': 'unsafe',
-                                         'parent id': '1',
+                                         'parent id': self.task_desc['id'],
                                          'attrs': [],
                                          'error trace': 'witness.graphml',
                                          'files': ['witness.graphml'] + [os.path.basename(source_file) for source_file
@@ -247,7 +247,7 @@ class ABKM(psi.components.Component):
                                      'unknown',
                                      {
                                          'id': 'unknown',
-                                         'parent id': '1',
+                                         'parent id': self.task_desc['id'],
                                          # TODO: just the same file as parent log, looks strange.
                                          'problem desc':
                                              'cil.i.log' if decision_results['status'] == 'error'
