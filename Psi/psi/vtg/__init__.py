@@ -240,4 +240,5 @@ class VTG(psi.components.Component):
                           '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
                           work_dir, abstract_task_desc['attrs'], True, True)
         p.start()
+        # TODO: do not fail if strategy fails (see AVTG implementation).
         p.join()
