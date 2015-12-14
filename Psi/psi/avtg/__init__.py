@@ -282,7 +282,6 @@ class AVTG(psi.components.Component):
                     in_file = command["in files"][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})
             del (grp['cc full desc files'])
-        self.mqs['abstract task description'].put(initial_abstract_task_desc)
         if self.conf['debug']:
             initial_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'initial abstract task.json')
             self.logger.debug('Create initial abstract verification task description file "{0}"'.format(
@@ -291,9 +290,13 @@ class AVTG(psi.components.Component):
                 json.dump(initial_abstract_task_desc, fp, sort_keys=True, indent=4)
 
         # Invoke all plugins one by one.
+        cur_abstract_task_desc = initial_abstract_task_desc
         is_plugin_failed = False
         for plugin_desc in rule_spec_desc['plugins']:
             self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+
+            # Put either initial or current description of abstract verification task.
+            self.mqs['abstract task description'].put(cur_abstract_task_desc)
 
             # Get plugin configuration on the basis of common configuration, plugin options specific for rule
             # specification and information on rule specification itself.
@@ -311,15 +314,28 @@ class AVTG(psi.components.Component):
             # verification objects or/and rule specifications.
             try:
                 p.start()
+                # See "Joining processes that use queues" in multiprocessing documentation.
+                while True:
+                    p.join(0.5)
+                    try:
+                        cur_abstract_task_desc = self.mqs['abstract task description'].get_nowait()
+                        break
+                    except queue.Empty:
+                        if not p.is_alive():
+                            raise RuntimeError(
+                                '{0} did not put abstract verification task description back to queue on termination'.format(
+                                    plugin_desc['name']))
+                # Wait for plugin after it put abstract verification task description back to queue, in particular catch
+                # exceptions that may happen.
                 p.join()
             except psi.components.ComponentError:
-                # Clean up interplugin MQ to prevent intermixing of data for different abstract tasks. Check that
-                # queue is not empty is required since some plugin can get abstract verification task descriptionand
-                # then fail without putting it back to queue. Although documentation says that empty() operation is not
-                # reliable we likely can rely on it here because above we safely wait for plugin termination that is
-                # likely preceded by all queue operations that are performed in that plugin.
-                if not self.mqs['abstract task description'].empty():
-                    self.mqs['abstract task description'].get()
+                # Clean up message queue to prevent intermixing of data for different abstract verification tasks.
+                self.mqs['abstract task description'].put(None)
+                while True:
+                    cur_abstract_task_desc = self.mqs['abstract task description'].get()
+
+                    if cur_abstract_task_desc is None:
+                        break
                 is_plugin_failed = True
                 break
 
@@ -335,27 +351,22 @@ class AVTG(psi.components.Component):
                                                            'abstract task.json')
                 self.logger.debug('Create current abstract verification task description file "{0}"'.format(
                     cur_abstract_task_desc_file))
-                # Temporarily get current abstract verification task description.
-                cur_abstract_task_desc = self.mqs['abstract task description'].get()
                 with open(cur_abstract_task_desc_file, 'w') as fp:
                     json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
-                # Return current abstract verification task description back.
-                self.mqs['abstract task description'].put(cur_abstract_task_desc)
 
         # Finalize generation of abstract verification task description.
         if is_plugin_failed:
             self.abstract_task_desc = None
         else:
-            # Note that we can't use get_nowait() here since above we get and put final abstract verification task
-            # description if debugging.
-            final_abstract_task_desc = self.mqs['abstract task description'].get()
-
+            # Dump final abstract verification task description that equals to abstract verification task description
+            # received from last plugin. But corresponding file will be put not to plugin working directory - it will
+            # be put near initial abstract verification task description.
             if self.conf['debug']:
                 final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
                 self.logger.debug('Create final abstract verification task description file "{0}"'.format(
                     final_abstract_task_desc_file))
                 with open(final_abstract_task_desc_file, 'w') as fp:
-                    json.dump(final_abstract_task_desc, fp, sort_keys=True, indent=4)
+                    json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
 
             # VTG will consume this abstract verification task description.
-            self.abstract_task_desc = final_abstract_task_desc
+            self.abstract_task_desc = cur_abstract_task_desc
