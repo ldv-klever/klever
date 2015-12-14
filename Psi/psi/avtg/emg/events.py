@@ -73,20 +73,26 @@ class EventModel:
                 self.add_process(process)
 
     def __complete_model(self):
-        for category in self.analysis.categories:
-            unmatched_callbacks = [self.analysis.categories[category]["callbacks"][callback] for callback in
-                                   self.analysis.categories[category]["callbacks"]
-                                   if not self.analysis.categories[category]["callbacks"][callback].called_in_model]
+        success = True
+        while success:
+            success = False
+            # Do until processes can be added to the model
+            for category in self.analysis.categories:
+                unmatched_callbacks = [self.analysis.categories[category]["callbacks"][callback] for callback in
+                                       self.analysis.categories[category]["callbacks"]
+                                       if not self.analysis.categories[category]["callbacks"][callback].called_in_model]
 
-            if len(unmatched_callbacks) > 0:
-                # Add processes matching input and output signals
-                success = self.__populate_model(self.models)
-                # Add processes matching input and output signals
-                success = self.__populate_model(self.processes)
-                # Attempt to add more interfaces to existing processes
-                success = self.__try_match_more_labels(category, unmatched_callbacks)
-                success = self.__try_match_according_kernel_models(category, unmatched_callbacks)
-                success = self.__try_match_according_default_models(category, unmatched_callbacks)
+                if len(unmatched_callbacks) > 0:
+                    # Add processes matching input and output signals
+                    success = success or self.__populate_model(self.models)
+                    # Add processes matching input and output signals
+                    success = success or self.__populate_model(self.processes)
+                    # Attempt to add more interfaces to existing processes
+                    success = success or self.__try_match_more_labels(category, unmatched_callbacks)
+                    success = success or self.__try_match_according_kernel_models(category, unmatched_callbacks)
+                    success = success or self.__try_match_according_default_models(category, unmatched_callbacks)
+
+        return
 
     def __try_match_according_kernel_models(self, category, callbacks):
         success = False
@@ -183,21 +189,26 @@ class EventModel:
                 if label.name not in process.labels:
                     raise KeyError("Label '{}' is undefined in process description {}".format(label.name, process.name))
                 elif label.name in process.labels and label.interface and label.name not in label_map:
-                    if label.interface in self.analysis.interfaces and self.analysis.interfaces[label.interface].category == category:
+                    if label.interface in self.analysis.interfaces \
+                            and self.analysis.interfaces[label.interface].category == category:
                         label_map[label.name] = label.interface
                 elif label.name in process.labels and not label.interface and label.name not in label_map:
                     if tail and len(tail) > 0:
                         for container in self.analysis.categories[category]["containers"]:
-                            interfaces = self._resolve_interface(self.analysis.categories[category]["containers"][container],
+                            interfaces = \
+                                self._resolve_interface(self.analysis.categories[category]["containers"][container],
                                                                  tail)
                             if interfaces:
-                                label_map[label.name] = self.analysis.categories[category]["containers"][container].full_identifier
+                                label_map[label.name] = \
+                                    self.analysis.categories[category]["containers"][container].full_identifier
                     else:
                         if label.callback and label.name in self.analysis.categories[category]["callbacks"]:
-                            label_map[label.name] = self.analysis.categories[category]["callbacks"][label].full_identifier
+                            label_map[label.name] = \
+                                self.analysis.categories[category]["callbacks"][label].full_identifier
                         elif label.callback and len(self.analysis.categories[category]["callbacks"]) == 1:
                             keys = list(self.analysis.categories[category]["callbacks"].keys())
-                            label_map[label.name] = self.analysis.categories[category]["callbacks"][keys[0]].full_identifier
+                            label_map[label.name] = \
+                                self.analysis.categories[category]["callbacks"][keys[0]].full_identifier
                         #else:
                         #    random_match.append(label)
 
@@ -215,29 +226,36 @@ class EventModel:
                     label, tail = process.extract_label_with_tail(parameter)
 
                     if label.name not in process.labels:
-                        raise KeyError("Label '{}' is undefined in process description {}".format(label.name, process.name))
+                        raise KeyError("Undefined label '{}' in process '{}'".format(label.name, process.name))
                     elif label.name in label_map or \
-                            (label.interface and label.interface in self.analysis.interfaces and self.analysis.interfaces[label.interface].category != category):
+                            (label.interface and label.interface in self.analysis.interfaces \
+                             and self.analysis.interfaces[label.interface].category != category):
                         pass
                     elif label.interface:
-                        if label.interface in self.analysis.interfaces and self.analysis.interfaces[label.interface].category == category:
+                        if label.interface in self.analysis.interfaces \
+                                and self.analysis.interfaces[label.interface].category == category:
                             label_map[label.name] = label.interface
                     else:
                         if tail and len(tail) > 0:
                             for container in self.analysis.categories[category]["containers"]:
                                 if self._resolve_interface(self.analysis.categories[category]["containers"][container],
                                                            tail):
-                                    label_map[label.name] = self.analysis.categories[category]["containers"][container].full_identifier
+                                    label_map[label.name] = \
+                                        self.analysis.categories[category]["containers"][container].full_identifier
                         else:
                             if label.resource and label.name in self.analysis.categories[category]["resources"]:
-                                label_map[label.name] = self.analysis.categories[category]["resources"][label].full_identifier
+                                label_map[label.name] = \
+                                    self.analysis.categories[category]["resources"][label].full_identifier
                             elif label.callback and label.name in self.analysis.categories[category]["callbacks"]:
-                                label_map[label.name] = self.analysis.categories[category]["callbacks"][label].full_identifier
+                                label_map[label.name] = \
+                                    self.analysis.categories[category]["callbacks"][label].full_identifier
                             elif label.container and label.name in self.analysis.categories[category]["containers"]:
-                                label_map[label.name] = self.analysis.categories[category]["resources"][label].full_identifier
+                                label_map[label.name] = \
+                                    self.analysis.categories[category]["resources"][label].full_identifier
                             elif label.resource and function:
                                 for pr in function.signature.parameters:
-                                    if pr.interface and pr.interface.resource and pr.interface not in label_map.values():
+                                    if pr.interface and pr.interface.resource \
+                                            and pr.interface not in label_map.values():
                                         label_map[label.name] = pr.interface.full_identifier
                                         break
 
