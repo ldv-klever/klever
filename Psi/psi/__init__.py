@@ -38,9 +38,16 @@ class Psi:
         self.mqs = {}
         self.uploading_reports_process = None
         self.job_class_components = {
-            'Verification of Linux kernel modules': [LKBCE, LKVOG],
+            'Verification of Linux kernel modules': [
+                LKBCE,
+                LKVOG,
+            ],
             # These components are likely appropriate for all job classes.
-            'Common': [AVTG, VTG]}
+            'Common': [
+                AVTG,
+                VTG,
+            ]
+        }
         self.components = []
         self.components_conf = None
         self.callbacks = {}
