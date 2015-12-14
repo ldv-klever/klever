@@ -24,7 +24,6 @@ To run Omega you need:
 
   * `mysqlclient <https://github.com/PyMySQL/mysqlclient-python>`_ (requires Python and MySQL development headers and
     libraries).
-  * `pygraphml <https://github.com/hadim/pygraphml/>`_.
 
 * `MySQL <https://www.mysql.com/>`_/`MariaDB <https://mariadb.org/>`_ (server).
 
