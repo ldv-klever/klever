@@ -9,26 +9,27 @@ class EventModel:
     def __init__(self, logger, analysis, raw):
         self.logger = logger
         self.analysis = analysis
-        self.models = {}
-        self.processes = {}
-        self.functions = {}
+        self.model = {
+            "models": {},
+            "processes": []
+        }
         self.events = {
             "kernel model": {},
             "environment processes": {}
         }
 
-        for category in self.events:
+        for collection in self.events:
             # Import kernel models
-            self.logger.info("Import {}".format(category))
-            self.__import_processes(raw, category)
+            self.logger.info("Import {}".format(collection))
+            self.__import_processes(raw, collection)
 
         # Import necessary kernel models
+        self.logger.info("Add all relevant function models to an environment model")
         self.__import_kernel_models()
 
         # Complete model
+        self.logger.info("Add rest processes for each interface category an its callbacks")
         self.__complete_model()
-
-        return
 
     def __import_processes(self, raw, category):
         if "kernel model" in raw:
@@ -39,141 +40,250 @@ class EventModel:
                     self.events[category][name] = process
 
     def __import_kernel_models(self):
-        self.logger.info("Add kernel models to an intermediate environment model")
         for function in self.events["kernel model"]:
             if function in self.analysis.kernel_functions:
                 self.logger.debug("Add model of '{}' to an environment model".format(function))
-                self.models[function] = copy.deepcopy(self.events["kernel model"][function])
+                self.model["models"][function] = copy.deepcopy(self.events["kernel model"][function])
 
-                for label in self.models[function].labels:
-                    if self.models[function].labels[label].parameter and \
-                            not self.models[function].labels[label].signature:
+                for label in self.model["models"][function].labels:
+                    if self.model["models"][function].labels[label].parameter and \
+                            not self.model["models"][function].labels[label].signature:
                         for parameter in self.analysis.kernel_functions[function]["signature"].parameters:
-                            if parameter.interface and self.models[function].labels[label].interface == \
+                            if parameter.interface and self.model["models"][function].labels[label].interface == \
                                     parameter.interface.full_identifier:
-                                self.models[function].labels[label].signature = parameter
-                        if not self.models[function].labels[label].signature:
+                                self.model["models"][function].labels[label].signature = parameter
+                        if not self.model["models"][function].labels[label].signature:
                             raise ValueError("Cannot find suitable signature for label '{}' at function model '{}'".
                                              format(label, function))
 
         self.logger.info("Add references to given label interfaces in environment processes")
-        for process in self.events["environment processes"]:
+        for process in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
             matched = 0
-            for label in self.events["environment processes"][process].labels:
-                if self.events["environment processes"][process].labels[label].interface:
-                    intf = self.events["environment processes"][process].labels[label].interface
+            category = None
+            for label in process.labels:
+                if self.events["environment processes"][process.name].labels[label].interface:
+                    intf = self.events["environment processes"][process.name].labels[label].interface
                     if intf in self.analysis.interfaces:
                         matched += 1
-                        self.events["environment processes"][process].labels[label].signature = \
+                        category = self.analysis.interfaces[intf].category
+                        self.events["environment processes"][process.name].labels[label].signature = \
                             self.analysis.interfaces[intf].signature
 
             # If at least one interface is matched add this process
             if matched:
                 self.logger.debug("Add process '{}' to an environment model".format(process))
-                self.add_process(process)
+                self.add_process(process, category)
 
     def __complete_model(self):
         success = True
+        self.__normalize_model()
         while success:
             success = False
             # Do until processes can be added to the model
             for category in self.analysis.categories:
-                unmatched_callbacks = [self.analysis.categories[category]["callbacks"][callback] for callback in
-                                       self.analysis.categories[category]["callbacks"]
-                                       if not self.analysis.categories[category]["callbacks"][callback].called_in_model]
+                # Add processes matching input and output signals
+                success = self.__populate_model(category) or success
 
-                if len(unmatched_callbacks) > 0:
-                    # Add processes matching input and output signals
-                    success = success or self.__populate_model(self.models)
-                    # Add processes matching input and output signals
-                    success = success or self.__populate_model(self.processes)
-                    # Attempt to add more interfaces to existing processes
-                    success = success or self.__try_match_more_labels(category, unmatched_callbacks)
-                    success = success or self.__try_match_according_kernel_models(category, unmatched_callbacks)
-                    success = success or self.__try_match_according_default_models(category, unmatched_callbacks)
+                # Add processes matching them by labels
+                success = self.__try_match_more_labels(category) or success
+
+            # Add environmental processes which need peered
+            success = self.__restore_process_chains() or success
+
+        # Assign more callbacks
+        self.__populate_callbacks()
 
         return
 
-    def __try_match_according_kernel_models(self, category, callbacks):
-        success = False
+    def __populate_callbacks(self):
+        for category in self.analysis.categories:
+            uncalled_callbacks = [self.analysis.categories[category]["callbacks"][callback] for callback
+                                  in self.analysis.categories[category]["callbacks"]
+                                  if not self.analysis.categories[category]["callbacks"][callback].called_in_model]
 
-        if success:
-            self.__normalize_model()
-        return success
+            processes = [process for process in self.model["processes"] if process.category == category]
 
-    def __try_match_according_default_models(self, category, callbacks):
-        success = False
-        if success:
-            self.__normalize_model()
-        return success
+            while(len(uncalled_callbacks) > 0):
+                if len(uncalled_callbacks) > 0 and len(processes) > 0:
+                    for process in processes:
+                        unmatched = [process.labels[name] for name in process.labels if not process.labels[name].interface
+                                     and process.labels[name].callback]
+                        if unmatched:
+                            containers = [process.labels[name] for name in process.labels
+                                          if process.labels[name].container and process.labels[name].interface
+                                          and process.labels[name].interface in self.analysis.interfaces and
+                                          self.analysis.interfaces[process.labels[name].interface].category == category]
+                            if containers:
+                                for container in containers:
+                                    suitable = [callback for callback in uncalled_callbacks
+                                                if callback.full_identifier
+                                                in self.analysis.interfaces[container.interface].fields.values]
+                                    unmatched[0].add_interfaces(suitable)
+                                    for callback in suitable:
+                                        callback.called_in_model = True
+                            else:
+                                unmatched[0].add_interfaces(uncalled_callbacks)
+                                for callback in uncalled_callbacks:
+                                    callback.called_in_model = True
 
-    def __try_match_more_labels(self, category, callbacks):
+                            uncalled_callbacks = \
+                                [self.analysis.categories[category]["callbacks"][callback]
+                                 for callback in self.analysis.categories[category]["callbacks"]
+                                 if not self.analysis.categories[category]["callbacks"][callback].called_in_model]
+                        else:
+                            raise RuntimeError("Cannot find process to call callbacks {}".
+                                               format(str([callback.full_identifier for callback in unmatched])))
+                elif len(uncalled_callbacks) > 0 and len(processes) == 0:
+                    raise RuntimeError("Cannot call callbacks '{}' because no process were selected for interface category".
+                                       format(str([process.full_identifier for process in processes])))
+        return
+
+    def __try_match_more_labels(self, category):
         success = False
 
         max_map = {}
         max_process = None
-        for process in self.events["environment processes"]:
-            label_map = self._match_labels(self.events["environment processes"][process], category)
-            if len(label_map) > len(max_map):
+        max_index = 0
+        min_unmatched = 100
+        for process in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
+            label_map = self._match_labels(process, category)
+
+            index = 0
+            for label in label_map:
+                intf = self.analysis.interfaces[label_map[label]]
+                if intf.callback and not intf.called_in_model:
+                    index += 1
+                elif intf.container:
+                    for field in intf.fields.values():
+                        name = "{}.{}".format(category, field)
+                        if name in self.analysis.interfaces and self.analysis.interfaces[name].callback and \
+                                not self.analysis.interfaces[name].called_in_model:
+                            index += 1
+
+            unmatched = len([name for name in process.labels if name not in label_map])
+
+            if unmatched <= min_unmatched and index > max_index:
                 max_process = process
                 max_map = label_map
+                max_index = index
+                min_unmatched = unmatched
 
         if max_process:
-            self.add_process(max_process)
-            for label in max_map:
-                self.processes[max_process].labels[label].interface = max_map[label]
-            success = True
+            added = self.add_process(max_process, category)
+            if added:
+                for label in max_map:
+                    added.labels[label].interface = max_map[label]
+                success = True
 
         if success:
             self.__normalize_model()
         return success
 
-    def __populate_model(self, collection):
-        success = False
-
-        for model in collection:
-            if len(collection[model].unmatched_dispatches) > 0 or len(collection[model].unmatched_receives) > 0:
-                peer = None
-                max_peer = 0
-                for process in self.events["environment processes"]:
-                    peers = len(collection[model].get_available_peers(self.events["environment processes"][process]))
-                    if max_peer < peers:
-                        peer = process
-                        max_peer = peers
-                if peer:
-                    self.add_process_peered(peer, collection[model])
-                    success = True
+    def __populate_model(self, category):
+        success = self.__peer_check(self.model["models"].values(), category)
 
         if success:
             self.__normalize_model()
+        return success
+
+    def __restore_process_chains(self):
+        success = self.__peer_check(self.model["processes"])
+
+        if success:
+            self.__normalize_model()
+        return success
+
+    def __peer_check(self, collection, category=None):
+        success = False
+        for process in collection:
+            relevant_labels = [label for label in process.labels if process.labels[label].interface
+                               and self.analysis.interfaces[process.labels[label].interface]
+                               and (not category 
+                                    or self.analysis.interfaces[process.labels[label].interface].category == category)]
+                
+            if len(relevant_labels) and len(process.unmatched_dispatches) > 0 or len(process.unmatched_receives) > 0:
+                peer = None
+                max_peer = 0
+                for ep in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
+                    peers = len(process.get_available_peers(ep))
+                    if max_peer < peers:
+                        peer = ep
+                        max_peer = peers
+                if peer:
+                    new = self.add_process_peered(peer, process, category)
+                    if new:
+                        success = True
         return success
 
     def __normalize_model(self):
         # Peer processes with models
-        for model in self.models:
-            for process in self.processes:
-                self.models[model].establish_peers(self.processes[process])
+        for model in self.model["models"]:
+            for process in self.model["processes"]:
+                self.model["models"][model].establish_peers(process)
 
         # Peer processes with each other
-        keys = list(self.processes.keys())
-        for index1 in range(len(keys)):
-            p1 = self.processes[keys[index1]]
-            for index2 in range(index1 + 1, len(keys)):
-                p2 = self.processes[keys[index2]]
+        for index1 in range(len(self.model["processes"])):
+            p1 = self.model["processes"][index1]
+            for index2 in range(index1 + 1, len(self.model["processes"])):
+                p2 = self.model["processes"][index2]
                 p1.establish_peers(p2)
 
-    def add_process(self, name):
-        process = copy.deepcopy(self.events["environment processes"][name])
-        # Keep signature and interface references
-        for label in self.events["environment processes"][name].labels:
-            process.labels[label].signature = self.events["environment processes"][name].labels[label].signature
+        # Calculate callbacks which can be called in the model at the moment
+        self._mark_called_callbacks()
 
-        self.processes[name] = process
+    def _mark_called_callbacks(self):
+        for process in [self.model["models"][name] for name in self.model["models"]] +\
+                       [process for process in self.model["processes"]]:
+            for callback_name in set([process.subprocesses[name].callback for name in process.subprocesses
+                                      if process.subprocesses[name].callback
+                                      and process.subprocesses[name].type == "dispatch"]):
+                label, tail = process.extract_label_with_tail(callback_name)
 
-    def add_process_peered(self, name, peered):
-        process = copy.deepcopy(self.events["environment processes"][name])
-        peered.establish_peers(process)
-        self.processes[name] = process
+                if label.interface:
+                    interface = self.analysis.interfaces[label.interface]
+                    if interface.container and len(tail) > 0:
+                        intfs = self._resolve_interface(interface, tail)
+                        if intfs and len(intfs) > 1:
+                            callback = intfs[-1]
+                        else:
+                            self.logger.warning("Cannot resolve callback '{}' in description of process '{}'".
+                                                format(callback_name, process.name))
+                    elif interface.callback:
+                        callback = interface
+                    else:
+                        raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
+                                         format(callback_name, process.name))
+
+                # If it is exact callback
+                if callback and not callback.called_in_model:
+                    callback.called_in_model = True
+
+    def add_process(self, process, category=None):
+        if not category or (category and process.name not in self.analysis.categories[category]["processes black list"]):
+            new = copy.deepcopy(process)
+            # Keep signature and interface references
+            for label in new.labels:
+                new.labels[label].signature = process.labels[label].signature
+
+            self.model["processes"].append(new)
+            if category:
+                self.analysis.categories[category]["processes black list"].append(process.name)
+                new.category = category
+            return new
+        else:
+            return None
+
+    def add_process_peered(self, process, peered, category=None):
+        if not category or (category and process.name not in self.analysis.categories[category]["processes black list"]):
+            new = copy.deepcopy(process)
+            peered.establish_peers(new)
+            self.model["processes"].append(new)
+            if category:
+                self.analysis.categories[category]["processes black list"].append(process.name)
+                new.category = category
+            return new
+        else:
+            return None
 
     def _get_final_intf(self):
         pass
@@ -197,7 +307,7 @@ class EventModel:
                         for container in self.analysis.categories[category]["containers"]:
                             interfaces = \
                                 self._resolve_interface(self.analysis.categories[category]["containers"][container],
-                                                                 tail)
+                                                        tail)
                             if interfaces:
                                 label_map[label.name] = \
                                     self.analysis.categories[category]["containers"][container].full_identifier
@@ -209,8 +319,6 @@ class EventModel:
                             keys = list(self.analysis.categories[category]["callbacks"].keys())
                             label_map[label.name] = \
                                 self.analysis.categories[category]["callbacks"][keys[0]].full_identifier
-                        #else:
-                        #    random_match.append(label)
 
         # Parameters match
         for subprocess in process.subprocesses:
@@ -307,13 +415,7 @@ class Label:
             self.signature = Signature(dic["signature"])
 
     def compare_with(self, label):
-        if self.signature and label.signature:
-            ret = self.signature.compare_signature(label.signature)
-            if not ret:
-                return "different"
-            else:
-                return "equal"
-        elif self.interface and label.interface:
+        if self.interface and label.interface:
             if self.interface == label.interface:
                 return "equal"
             else:
@@ -324,6 +426,12 @@ class Label:
                 return "сompatible"
             else:
                 return "different"
+        elif self.signature and label.signature:
+            ret = self.signature.compare_signature(label.signature)
+            if not ret:
+                return "different"
+            else:
+                return "equal"
         else:
             raise NotImplementedError("Cannot compare label '{}' with label '{}'".format(label.name, label.name))
 
@@ -337,6 +445,7 @@ class Process:
         self.process = None
         self.labels = {}
         self.subprocesses = {}
+        self.category = None
 
         self.type = "process"
         self.name = name
@@ -410,20 +519,22 @@ class Process:
     def unmatched_receives(self):
         unmatched = [self.subprocesses[subprocess] for subprocess in self.subprocesses
                      if self.subprocesses[subprocess].type == "receive"
-                     and len(self.subprocesses[subprocess].peers) == 0]
+                     and len(self.subprocesses[subprocess].peers) == 0
+                     and not self.subprocesses[subprocess].callback]
         return unmatched
 
     @property
     def unmatched_dispatches(self):
         unmatched = [self.subprocesses[subprocess] for subprocess in self.subprocesses
                      if self.subprocesses[subprocess].type == "dispatch"
-                     and len(self.subprocesses[subprocess].peers) == 0]
+                     and len(self.subprocesses[subprocess].peers) == 0
+                     and not self.subprocesses[subprocess].callback]
         return unmatched
 
     @property
     def unmatched_labels(self):
         unmatched = [self.labels[label] for label in self.labels
-                     if not self.labels[label].interface]
+                     if not self.labels[label].interface and not self.labels[label].signature]
         return unmatched
 
     def _extract_label(self, string):
@@ -456,17 +567,6 @@ class Process:
 
             self.subprocesses[signals[0]].peers.append({"process": process, "subprocess": signals[1]})
             process.subprocesses[signals[1]].peers.append({"process": self, "subprocess": signals[0]})
-
-    def establish_my_peers(self, process):
-        peers = self.get_available_peers(process)
-        for signals in peers:
-            for index in range(len(self.subprocesses[signals[0]].parameters)):
-                label1 = self._extract_label(self.subprocesses[signals[0]].parameters[index])
-                label2 = process._extract_label(process.subprocesses[signals[1]].parameters[index])
-
-                if (label1.interface or label2.interface) and not (label1.interface and label2.interface):
-                    if not label1.interface:
-                        label1.interface = label2.interface
 
     def get_available_peers(self, process):
         ret = []
@@ -501,7 +601,7 @@ class Process:
                                      format(second.name, index, process.name))
 
                 ret = label.compare_with(pair)
-                if ret not in ["compatible", "equal"]:
+                if ret != "сompatible" and ret != "equal":
                     match = False
                     break
             return match

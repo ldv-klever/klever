@@ -150,7 +150,8 @@ class CategorySpecification:
             self.categories[category_name] = {
                 "containers": {},
                 "resources": {},
-                "callbacks": {}
+                "callbacks": {},
+                "processes black list": []
             }
 
         if "containers" in dictionary:
@@ -663,8 +664,12 @@ class Signature:
 
         if self.type_class != signature.type_class:
             return False
-        if self.interface and signature.interface and self.interface != signature.interface:
+        if self.interface and signature.interface and self.interface.full_identifier != \
+                signature.interface.full_identifier:
             return False
+        elif self.interface and signature.interface \
+                and self.interface.full_identifier == signature.interface.full_identifier:
+            return True
 
         if self.expression != signature.expression:
             if self.type_class == "function":
