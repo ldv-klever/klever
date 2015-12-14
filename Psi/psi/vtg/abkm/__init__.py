@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import tarfile
 import time
@@ -71,18 +72,11 @@ class ABKM(psi.components.Component):
 
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
                 trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(extra_c_file['C file'])[0])
-                with open(os.path.join(self.conf['source tree root'], trimmed_c_file), 'w') as fp:
+                with open(os.path.join(self.conf['source tree root'], extra_c_file['C file'])) as fp_in, open(
+                        os.path.join(self.conf['source tree root'], trimmed_c_file), 'w') as fp_out:
                     # Each such expression occupies individual line, so just get rid of them.
-                    stdout = psi.utils.execute(self.logger,
-                                               (
-                                                   'sed',
-                                                   '-r',
-                                                   r's@asm volatile goto.*;$@@g',
-                                                   extra_c_file['C file']
-                                               ),
-                                               cwd=self.conf['source tree root'],
-                                               collect_all_stdout=True)
-                    fp.writelines(['{0}\n'.format(line) for line in stdout])
+                    for line in fp_in:
+                        fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
                 extra_c_file['C file'] = trimmed_c_file
 
             with open('cil input files.txt', 'w') as fp:
