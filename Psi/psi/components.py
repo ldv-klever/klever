@@ -104,7 +104,7 @@ class Component(multiprocessing.Process):
                     fp.write(exception_info)
 
             if self.separate_from_parent:
-                if os.path.isfile('problem desc'):
+                if os.path.isfile('problem desc.txt'):
                     psi.utils.report(self.logger,
                                      'unknown',
                                      {
