@@ -17,7 +17,6 @@ from psi.lkbce import LKBCE
 from psi.lkvog import LKVOG
 from psi.avtg import AVTG
 from psi.vtg import VTG
-from psi.vtsc import VTSC
 
 
 class Psi:
@@ -41,7 +40,7 @@ class Psi:
         self.job_class_components = {
             'Verification of Linux kernel modules': [LKBCE, LKVOG],
             # These components are likely appropriate for all job classes.
-            'Common': [AVTG, VTG, VTSC]}
+            'Common': [AVTG, VTG]}
         self.components = []
         self.components_conf = None
         self.callbacks = {}
