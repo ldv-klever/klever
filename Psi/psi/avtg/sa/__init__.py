@@ -45,6 +45,7 @@ class SA(psi.components.Component):
 
         # Save data to abstract task
         self.logger.info("Add extracted data to abstract verification task {}".format(avt["id"]))
+        # TODO: pass model itself rather than file with it. It is possible now because of framework was fixed. Nevertheless saving model to file can be still used for debug.
         avt["source analysis"] = os.path.relpath("model.json", os.path.realpath(self.conf["main working directory"]))
 
         # Put edited task and terminate
