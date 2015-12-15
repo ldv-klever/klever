@@ -2,10 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../Cloud/.idea/Cloud.iml" filepath="$PROJECT_DIR$/../Cloud/.idea/Cloud.iml" />
       <module fileurl="file://$PROJECT_DIR$/../Core/.idea/Core.iml" filepath="$PROJECT_DIR$/../Core/.idea/Core.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/Omega.iml" filepath="$PROJECT_DIR$/.idea/Omega.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../Psi/.idea/Psi.iml" filepath="$PROJECT_DIR$/../Psi/.idea/Psi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Scheduler/.idea/Scheduler.iml" filepath="$PROJECT_DIR$/../Scheduler/.idea/Scheduler.iml" />
       <module fileurl="file://$PROJECT_DIR$/../docs/.idea/docs.iml" filepath="$PROJECT_DIR$/../docs/.idea/docs.iml" />
     </modules>
   </component>

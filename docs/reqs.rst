@@ -33,8 +33,8 @@ To run a production server you additionally need `apache2 <http://httpd.apache.o
 To translate Omega (i.e. to execute :command:`manage.py compilemessages`) you additionally need
 `gettext <https://www.gnu.org/software/gettext/>`_.
 
-Cloud
------
+Klever Scheduler
+----------------
 
 If you are going to execute on your machine scheduler or the other Klever Cloud tools you need:
 

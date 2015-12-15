@@ -25,6 +25,7 @@
     <orderEntry type="module" module-name="Cloud" />
     <orderEntry type="module" module-name="docs" />
     <orderEntry type="module" module-name="Core" />
+    <orderEntry type="module" module-name="Scheduler" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />

@@ -133,7 +133,7 @@ Configuring the Python interpreter
 #. Select Python 3.4.x from the list and press :kbd:`Enter`.
 #. Input *Python 3.4* in field :guilabel:`name`.
 #. :menuselection:`OK`.
-#. Ditto for *Core*, *Cloud* and *docs*.
+#. Ditto for *Core*, *Scheduler* and *docs*.
 
 Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -238,13 +238,13 @@ the steps:
    Do it after you have working Omega server. All additional tools and configuration files should be outside from
    the Klever sources and corresponding working directories.
 
-#. Run client-controller. Use script :file:`Cloud/bin/client-controller.py` and path to a prepared client-controller
+#. Run client-controller. Use script :file:`Scheduler/bin/client-controller.py` and path to a prepared client-controller
    configuration file as the first argument. Be sure that you have chosen clean working directory outside of sources
    for an execution. If you would turn on web-UI in configuration and place necessary files in the consul
    directory you will get a visualization of all checks at *http://localhost:8500/ui*.
 
 #. Run native scheduler after you have running controller and Omega server. Run script
-   :file:`Cloud/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
+   :file:`Scheduler/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
    that you have chosen clean working directory outside of sources for an execution.
 
    .. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JAVA` to run CPAchecker, e.g.
