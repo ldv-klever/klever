@@ -117,30 +117,33 @@ class CategorySpecification:
 
     def __import_interfaces(self, category_name, collection):
         for intf_identifier in collection:
-            implmented_flag = False
-            if "implemented in kernel" in collection[intf_identifier]:
-                implmented_flag = True
-            if "header" in collection[intf_identifier]:
-                header = collection[intf_identifier]["header"]
-            else:
-                header = None
-
-            if "signature" in collection[intf_identifier]:
-                intf = Interface(collection[intf_identifier]["signature"],
-                                 category_name,
-                                 intf_identifier,
-                                 header,
-                                 implmented_flag)
-                if "fields" in collection[intf_identifier]:
-                    intf.fields = collection[intf_identifier]["fields"]
-
-                yield intf
-            elif "signature" not in collection[intf_identifier] and \
-                 "{}.{}".format(category_name, intf_identifier) in self.interfaces:
+            if "{}.{}".format(category_name, intf_identifier) in self.interfaces:
                 yield self.interfaces["{}.{}".format(category_name, intf_identifier)]
             else:
-                raise TypeError("Provide 'signature' for interface {} at {} or define it as a container".
-                                format(intf_identifier, category_name))
+                implmented_flag = False
+                if "implemented in kernel" in collection[intf_identifier]:
+                    implmented_flag = True
+                if "header" in collection[intf_identifier]:
+                    header = collection[intf_identifier]["header"]
+                else:
+                    header = None
+
+                if "signature" in collection[intf_identifier]:
+                    intf = Interface(collection[intf_identifier]["signature"],
+                                     category_name,
+                                     intf_identifier,
+                                     header,
+                                     implmented_flag)
+                    if "fields" in collection[intf_identifier]:
+                        intf.fields = collection[intf_identifier]["fields"]
+
+                    yield intf
+                elif "signature" not in collection[intf_identifier] and \
+                     "{}.{}".format(category_name, intf_identifier) in self.interfaces:
+                    yield self.interfaces["{}.{}".format(category_name, intf_identifier)]
+                else:
+                    raise TypeError("Provide 'signature' for interface {} at {} or define it as a container".
+                                    format(intf_identifier, category_name))
 
     def __import_category_interfaces(self, category_name, dictionary):
         if category_name in self.categories:
@@ -150,8 +153,7 @@ class CategorySpecification:
             self.categories[category_name] = {
                 "containers": {},
                 "resources": {},
-                "callbacks": {},
-                "processes black list": []
+                "callbacks": {}
             }
 
         if "containers" in dictionary:
@@ -164,6 +166,7 @@ class CategorySpecification:
                     self.categories[intf.category]["containers"][intf.identifier] = intf
                 elif intf and intf.full_identifier in self.interfaces:
                     self.logger.debug("Imported existing identifier description {}".format(intf.full_identifier))
+                    self.categories[intf.category]["containers"][intf.identifier] = intf
                     intf.container = True
         if "resources" in dictionary:
             self.logger.debug("Import resources of the interface category {}".format(category_name))
@@ -175,6 +178,7 @@ class CategorySpecification:
                     self.categories[intf.category]["resources"][intf.identifier] = intf
                 elif intf and intf.full_identifier in self.interfaces:
                     self.logger.debug("Imported existing identifier description {}".format(intf.full_identifier))
+                    self.categories[intf.category]["resources"][intf.identifier] = intf
                     intf.resource = True
         if "callbacks" in dictionary:
             self.logger.debug("Import callbacks of the interface category {}".format(category_name))
@@ -186,6 +190,7 @@ class CategorySpecification:
                     self.categories[intf.category]["callbacks"][intf.identifier] = intf
                 elif intf and intf.full_identifier in self.interfaces:
                     self.logger.debug("Imported existing identifier description {}".format(intf.full_identifier))
+                    self.categories[intf.category]["callbacks"][intf.identifier] = intf
                     intf.callback = True
 
 
@@ -235,15 +240,6 @@ class ModuleSpecification(CategorySpecification):
                         del self.interfaces["{}.{}".format(category, intf)]
                 del self.categories[category]
 
-            #if len(self.categories[category]["containers"]) > 0:
-            #    cn = [container for container in self.categories[category]["containers"] if
-            #          len(self.categories[category]["containers"][container].implementations) > 0]
-            #    if len(cn) == 0:
-            #        self.logger.debug("Remove from consideration category '{}'".format(category))
-            #        del self.categories[category]
-
-        return
-
     def __import_source_analysis(self):
         self.logger.info("Start processing source code amnalysis data")
         self.__parse_signatures_as_is()
@@ -252,15 +248,13 @@ class ModuleSpecification(CategorySpecification):
         self.__mark_existing_interfaces()
 
         self.logger.debug("Determine more interfaces from existng data in source analysis data")
-        self.__add_more_interfaces()
+        self.__add_new_interfaces()
 
         self.logger.debug("Finally mark all types as interfaces if there are already specified")
         self.__mark_existing_interfaces()
 
         self.logger.debug("Add implementations to existing interfaces from source code analysis")
         self.__add_implementations_from_analysis()
-
-        return
 
     def __add_implementations_from_analysis(self):
         self.logger.info("Add global variables as interface implementations")
@@ -293,7 +287,7 @@ class ModuleSpecification(CategorySpecification):
         self.logger.info("Drops source code analysis")
         del self.analysis
 
-    def __add_more_interfaces(self):
+    def __add_new_interfaces(self):
         # Extract more containers from structures with callbacks
         self.logger.info("Extract more interfaces from matched containers")
         for path in self.analysis["global variable initializations"]:
@@ -309,16 +303,20 @@ class ModuleSpecification(CategorySpecification):
         self.logger.debug("Analize function pointers and structure in structure variable fields")
         for field in structure.fields:
             if not structure.fields[field].interface:
-                if structure.fields[field].type_class == "function":
-                    intf = self.__make_intf_from_signature(structure.fields[field], structure.interface.category, field)
-                    intf.callback = True
-                    self.categories[intf.category]["callbacks"][intf.identifier] = intf
-                elif structure.fields[field].type_class == "struct":
-                    self.__process_unmatched_structure(structure.fields[field])
+                if field in structure.interface.fields:
+                    structure.fields[field].interface = \
+                        self.categories[structure.interface.category]["callbacks"][structure.interface.fields[field]]
+                else:
+                    if structure.fields[field].type_class == "function":
+                        intf = self.__make_intf_from_signature(structure.fields[field], structure.interface.category, field)
+                        intf.callback = True
+                        self.categories[intf.category]["callbacks"][intf.identifier] = intf
+                    elif structure.fields[field].type_class == "struct":
+                        self.__process_unmatched_structure(structure.fields[field])
 
-                if structure.fields[field].interface and field not in structure.interface.fields:
-                    structure.interface.fields[field] = structure.fields[field].interface.identifier
-                # todo: Check that no conflicts can occur there
+                    if structure.fields[field].interface and field not in structure.interface.fields:
+                        structure.interface.fields[field] = structure.fields[field].interface.identifier
+                    # todo: Check that no conflicts can occur there
 
         self.logger.debug("Analize resources of matched function pointers")
         for callback_id in self.categories[structure.interface.category]["callbacks"]:
@@ -565,36 +563,6 @@ class ModuleSpecification(CategorySpecification):
                                 break
                         if self.analysis["global variable initializations"][path][variable].interface:
                             break
-
-    def __establish_references(self):
-        # Import confirmed container implementations
-        name_re = re.compile("%name%")
-        for file in self.analysis["global variable initializations"]:
-            for var_name in self.analysis["global variable initializations"][file]:
-                variable = self.analysis["global variable initializations"][file][var_name]
-                for intf in self.interfaces:
-                    if variable["signature"] == self.interfaces[intf].signature.expression:
-                        if file not in self.interfaces[intf].implementations:
-                            self.interfaces[intf].implementations[file] = {}
-                        if var_name not in self.interfaces[intf].implementations[file]:
-                            # Extend field types
-                            # Submit implementation
-                            for field in [field for field in variable["fields"] if
-                                          variable["fields"][field]["type"] == "function pointer"]:
-                                identifier = "{}.{}".format(self.interfaces[intf].category, field)
-                                # Replace function name
-                                new_expr = name_re.sub("%{}%".format(identifier),
-                                                       variable["fields"][field]["signature"])
-                                if identifier not in self.interfaces:
-                                    new = Interface(new_expr,
-                                                    self.interfaces[intf].category,
-                                                    field,
-                                                    None)
-                                    new.callback = True
-                                    new.category = self.interfaces[intf].category
-                                    new.full_identifier = identifier
-                                    new.identifier = field
-                                    self.interfaces[new.full_identifier] = new
 
 
 class Interface:
