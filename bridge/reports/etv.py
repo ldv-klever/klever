@@ -318,6 +318,15 @@ class GetETV(object):
                 m.group(2),
                 self.__parse_code(m.group(3))
             )
+        m = re.match('(.*?)<(.*)', code)
+        while m is not None:
+            code = m.group(1) + '&lt;' + m.group(2)
+            m = re.match('(.*?)<(.*)', code)
+        m = re.match('(.*?)>(.*)', code)
+        while m is not None:
+            code = m.group(1) + '&gt;' + m.group(2)
+            m = re.match('(.*?)>(.*)', code)
+
         m = re.match('(.*?)(/\*.*?\*/)(.*)', code)
         if m is not None:
             return "%s%s%s" % (
@@ -392,7 +401,19 @@ class GetSource(object):
             cnt += 1
         return data
 
+    def parse_line(self, line):
+        return self.__parse_line(line)
+
     def __parse_line(self, line):
+        m = re.match('(.*?)<(.*)', line)
+        while m is not None:
+            line = m.group(1) + '&lt;' + m.group(2)
+            m = re.match('(.*?)<(.*)', line)
+        m = re.match('(.*?)>(.*)', line)
+        while m is not None:
+            line = m.group(1) + '&gt;' + m.group(2)
+            m = re.match('(.*?)>(.*)', line)
+
         if self.is_comment:
             m = re.match('(.*?)\*/(.*)', line)
             if m is None:
