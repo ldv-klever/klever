@@ -17,7 +17,7 @@ from core.avtg import AVTG
 from core.vtg import VTG
 
 
-class KleverCore:
+class Core:
     def __init__(self):
         self.exit_code = 0
         self.start_time = 0
