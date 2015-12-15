@@ -357,6 +357,10 @@ class GraphMLParser:
                             n[node_attrs[attr_key]['name']] = ''
                     else:
                         n[attr_key] = ''
+            for attr_key in node_attrs:
+                if node_attrs[attr_key]['name'] not in n.attr and 'default' in node_attrs[attr_key]:
+                    n[node_attrs[attr_key]['name']] = node_attrs[attr_key]['default']
+                    n.attr[node_attrs[attr_key]['name']].type = node_attrs[attr_key]['type']
 
         # Get edges
         for edge in graph.getElementsByTagName("edge"):
@@ -383,5 +387,9 @@ class GraphMLParser:
                             e[edge_attrs[attr_key]['name']] = ''
                     else:
                         e[attr_key] = ''
+            for attr_key in edge_attrs:
+                if edge_attrs[attr_key]['name'] not in e.attr and 'default' in edge_attrs[attr_key]:
+                    e[edge_attrs[attr_key]['name']] = edge_attrs[attr_key]['default']
+                    e.attr[edge_attrs[attr_key]['name']].type = edge_attrs[attr_key]['type']
 
         return g
