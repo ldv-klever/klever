@@ -215,6 +215,79 @@ class ABKM(psi.components.Component):
                             if data.getAttribute('key') == 'originfile':
                                 source_files.add(self.__normalize_path(data.firstChild))
 
+                    self.logger.info('Extract notes and warnings from source files referred by error trace')
+                    notes = {}
+                    warns = {}
+                    for source_file in source_files:
+                        with open(os.path.join(self.conf['source tree root'], source_file)) as fp:
+                            i = 0
+                            for line in fp:
+                                i += 1
+                                match = re.search(
+                                    r'/\*\s+(MODEL_FUNC_DEF|ASSERT|CHANGE_STATE|RETURN|MODEL_FUNC_CALL|OTHER)\s+(.*)\s+\*/',
+                                    line)
+                                if match:
+                                    kind, comment = match.groups()
+
+                                    if kind == 'MODEL_FUNC_DEF':
+                                        # Get necessary function name located on following line.
+                                        try:
+                                            line = next(fp)
+                                            # Don't forget to increase counter.
+                                            i += 1
+                                            match = re.search(r'(ldv_\w+)', line)
+                                            if match:
+                                                func_name = match.groups()[0]
+                                            else:
+                                                raise ValueError(
+                                                    'Model function definition is not specified in "{0}"'.format(line))
+                                        except StopIteration:
+                                            raise ValueError('Model function definition does not exist')
+                                        notes[func_name] = comment
+                                    else:
+                                        if source_file not in notes:
+                                            notes[source_file] = {}
+                                        notes[source_file][i + 1] = comment
+                                        # Some assert(s) will become warning(s).
+                                        if kind == 'ASSERT':
+                                            if source_file not in warns:
+                                                warns[source_file] = {}
+                                            warns[source_file][i + 1] = comment
+
+                    self.logger.info('Add notes and warnings to error trace')
+                    for edge in graph.getElementsByTagName('edge'):
+                        src_node_id = edge.getAttribute('source')
+                        dst_node_id = edge.getAttribute('target')
+                        source_file, i, func_name = (None, None, None)
+
+                        for data in edge.getElementsByTagName('data'):
+                            if data.getAttribute('key') == 'originfile':
+                                source_file = data.firstChild.data
+                            elif data.getAttribute('key') == 'startline':
+                                i = int(data.firstChild.data)
+                            elif data.getAttribute('key') == 'enterFunction':
+                                func_name = data.firstChild.data
+
+                        if source_file and i:
+                            if source_file in notes and i in notes[source_file]:
+                                self.logger.debug(
+                                    'Add note "{0}" from "{1}:{2}"'.format(notes[source_file][i], source_file, i))
+                                note = dom.createElement('data')
+                                txt = dom.createTextNode(notes[source_file][i])
+                                note.appendChild(txt)
+                                note.setAttribute('key', 'note')
+                                edge.appendChild(note)
+
+                            if func_name and func_name in notes:
+                                self.logger.debug(
+                                    'Add note "{0}" for call of model function "{1}" from "{2}"'.format(
+                                        notes[func_name], func_name, source_file))
+                                note = dom.createElement('data')
+                                txt = dom.createTextNode(notes[func_name])
+                                note.appendChild(txt)
+                                note.setAttribute('key', 'note')
+                                edge.appendChild(note)
+
                     self.logger.info('Create processed error trace file "witness.processed.graphml"')
                     with open('witness.processed.graphml', 'w') as fp:
                         graphml.writexml(fp)
