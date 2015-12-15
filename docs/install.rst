@@ -171,9 +171,9 @@ manually the following configuration properties:
 * *Scheduler* section describes scheduling configuration with the following major attributes:
     * *controller address* - address which is used to access consul (do not change it if you use default consul
       configuration).
-    * *keep working directory* attribute implies not to delete generated working directories. If you are going to debug psi or
-      a verification tool it is recommended to set it as *true*, but it will cause problems in case of solving the same
-      job or task twice.
+    * *keep working directory* attribute implies not to delete generated working directories.
+      If you are going to debug Klever Core or a verification tool it is recommended to set it as *true*, but it will
+      cause problems in case of solving the same job or task twice.
     * *job client configuration*/*task client configuration* attribute corresponds to an absolute path to a file with
       job/task client configuration (see below).
     * *"verification tools"* contains names of verification tools, corresponding versions and absolute pathes to
@@ -198,7 +198,7 @@ It is recommended to set up manually the following configuration properties:
   * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
   * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
 
-Psi installlation
------------------
+Klever Core installation
+------------------------
 
 Enjoy!

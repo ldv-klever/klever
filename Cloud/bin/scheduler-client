@@ -29,7 +29,7 @@ if args.mode == "JOB":
     conf = utils.common_initialization("Client controller", conf)
     logging.info("Proceed to job solution")
     exit_code = client.solve_job(conf)
-    logging.info("Exiting with psi exit code {}".format(exit_code))
+    logging.info("Exiting with Klever Core exit code {}".format(exit_code))
     exit(int(exit_code))
 elif args.mode == "TASK":
     # TODO: merge this code with almost the same code for JOB.

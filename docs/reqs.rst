@@ -47,10 +47,10 @@ If you are going to execute on your machine scheduler or the other Klever Cloud 
 * `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_. Download binary file and UI-files
   directory and place them nearby in a an arbitrary directory. Building or installation are not required.
 
-Psi
----
+Klever Core
+-----------
 
-To run Psi you need:
+To run Klever Core you need:
 
 * `Python 3.4.x <https://www.python.org/>`_ and its packages:
 

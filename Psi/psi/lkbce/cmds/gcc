@@ -1,7 +1,0 @@
-#!/usr/bin/python3
-
-import sys
-
-import psi.lkbce.cmds.cmds
-
-psi.lkbce.cmds.cmds.Command(sys.argv).launch()

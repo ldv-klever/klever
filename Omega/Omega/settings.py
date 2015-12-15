@@ -128,7 +128,7 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-DEF_PSI_RESTRICTIONS = {
+DEF_KLEVER_CORE_RESTRICTIONS = {
     'max_ram': '2.0',
     'max_cpus': '2',
     'max_disk': '100.0',
@@ -139,12 +139,12 @@ DEF_PSI_RESTRICTIONS = {
 
 DEF_LINUX_KERNEL_BUILD_PARALLELISM = 1.0
 
-DEF_PSI_FORMATTERS = {
+DEF_KLEVER_CORE_FORMATTERS = {
     'console': "%(name)s %(levelname)5s> %(message)s",
     'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
 }
 
-DEF_PSI_CONFIGURATION = {
+DEF_KLEVER_CORE_CONFIGURATION = {
     'debug': True,
     'allow_local_dir': True,  # Allow use of local source directories
     'priority': 'IDLE',  # See Omega.vars.PRIORITY for more options

@@ -32,6 +32,6 @@ urlpatterns = [
     url(r'^ajax/fast_run_decision/$', views.fast_run_decision),
     url(r'^ajax/get_job_data/$', views.get_job_data),
 
-    # For psi
+    # For Klever Core
     url(r'^decide_job/$', views.decide_job),
 ]

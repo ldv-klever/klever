@@ -23,7 +23,7 @@ PROOF_FILE = 'safe-proof.txt'
 PROBLEM_DESCR_FILE = 'unknown-problem-description.txt'
 
 
-class PSIDownloadJob(object):
+class KleverCoreDownloadJob(object):
     def __init__(self, job):
         self.error = None
         self.tarname = ''

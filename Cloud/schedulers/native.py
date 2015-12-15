@@ -199,17 +199,17 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.info("Going to start execution of the job {}".format(identifier))
 
         # Generate configuration
-        psi_conf = configuration.copy()
-        del psi_conf["resource limits"]
-        psi_conf["Omega"] = self.conf["Omega"]
-        psi_conf["working directory"] = "psi-work-dir"
-        self.__reserved[identifier]["configuration"] = psi_conf
+        klever_core_conf = configuration.copy()
+        del klever_core_conf["resource limits"]
+        klever_core_conf["Omega"] = self.conf["Omega"]
+        klever_core_conf["working directory"] = "klever-core-work-dir"
+        self.__reserved[identifier]["configuration"] = klever_core_conf
 
         client_conf = self.__job_conf_prototype.copy()
         job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
         logging.debug("Use working directory {} for job {}".format(job_work_dir, identifier))
         client_conf["common"]["working directory"] = job_work_dir
-        client_conf["psi configuration"] = self.__reserved[identifier]["configuration"]
+        client_conf["Klever Core conf"] = self.__reserved[identifier]["configuration"]
         client_conf["resource limits"] = configuration["resource limits"]
 
         # Prepare command

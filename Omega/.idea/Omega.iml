@@ -23,8 +23,8 @@
     <orderEntry type="jdk" jdkName="Python 3.4" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Cloud" />
-    <orderEntry type="module" module-name="Psi" />
     <orderEntry type="module" module-name="docs" />
+    <orderEntry type="module" module-name="Core" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />

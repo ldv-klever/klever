@@ -11,7 +11,7 @@ from Omega.vars import JOB_STATUS
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
-from service.utils import PSIFinishDecision, PSIStartDecision
+from service.utils import KleverCoreFinishDecision, KleverCoreStartDecision
 
 
 class UploadReport(object):
@@ -39,7 +39,7 @@ class UploadReport(object):
             self.__job_failed(self.error)
 
     def __job_failed(self, error=None):
-        PSIFinishDecision(self.job, error)
+        KleverCoreFinishDecision(self.job, error)
 
     def __check_data(self, data):
         if not isinstance(data, dict):
@@ -66,7 +66,7 @@ class UploadReport(object):
 
         if data['type'] == 'start':
             if data['id'] == '/':
-                result = PSIStartDecision(self.job)
+                result = KleverCoreStartDecision(self.job)
                 if result.error is not None:
                     return result.error
                 try:
@@ -244,7 +244,7 @@ class UploadReport(object):
         report.parent = self.parent
         report.root = self.root
 
-        component_name = 'Psi'
+        component_name = 'KleverCore'
         if 'name' in self.data:
             component_name = self.data['name']
         component = Component.objects.get_or_create(name=component_name)[0]
@@ -338,7 +338,7 @@ class UploadReport(object):
             if len(ReportComponent.objects.filter(finish_date=None, root=self.root)):
                 self.__job_failed("There are unfinished reports")
             elif self.job.status != JOB_STATUS[5][0]:
-                PSIFinishDecision(self.job)
+                KleverCoreFinishDecision(self.job)
         return report
 
     def __create_report_unknown(self, identifier):

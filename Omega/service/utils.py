@@ -4,7 +4,7 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from Omega.vars import JOB_STATUS
 from Omega.utils import print_err
-from Omega.settings import DEF_PSI_RESTRICTIONS, DEF_PSI_FORMATTERS, DEF_PSI_CONFIGURATION,\
+from Omega.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_FORMATTERS, DEF_KLEVER_CORE_CONFIGURATION,\
     DEF_LINUX_KERNEL_BUILD_PARALLELISM
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown
@@ -195,7 +195,7 @@ class CancelTask(object):
 
 
 # Case 3.1(8)
-class PSIFinishDecision(object):
+class KleverCoreFinishDecision(object):
     def __init__(self, job, error=None):
         self.error = None
         try:
@@ -223,7 +223,7 @@ class PSIFinishDecision(object):
 
 
 # Case 3.1(2)
-class PSIStartDecision(object):
+class KleverCoreStartDecision(object):
     def __init__(self, job):
         self.error = None
         self.job = job
@@ -826,7 +826,7 @@ class StartJobDecision(object):
         if self.error is not None:
             return
         try:
-            self.psidata = self.__get_psi_data()
+            self.klever_core_data = self.__get_klever_core_data()
         except ValueError or KeyError:
             self.error = _('Unknown error')
             return
@@ -847,7 +847,7 @@ class StartJobDecision(object):
         self.job.status = JOB_STATUS[1][0]
         self.job.save()
 
-    def __get_psi_data(self):
+    def __get_klever_core_data(self):
         conf = {
             'identifier': self.job.identifier,
             'priority': self.data['priority'],
@@ -928,7 +928,7 @@ class StartJobDecision(object):
         return SolvingProgress.objects.create(
             job=self.job, priority=self.data['priority'],
             scheduler=self.job_scheduler,
-            configuration=self.psidata.encode('utf8')
+            configuration=self.klever_core_data.encode('utf8')
         )
 
     def __check_schedulers(self):
@@ -968,11 +968,11 @@ class StartDecisionData(object):
         except ObjectDoesNotExist:
             self.need_auth = True
 
-        self.restrictions = DEF_PSI_RESTRICTIONS
+        self.restrictions = DEF_KLEVER_CORE_RESTRICTIONS
         self.gen_priorities = AVTG_PRIORITY
         self.parallelism = str(DEF_LINUX_KERNEL_BUILD_PARALLELISM)
-        self.logging = DEF_PSI_FORMATTERS
-        self.def_config = DEF_PSI_CONFIGURATION
+        self.logging = DEF_KLEVER_CORE_FORMATTERS
+        self.def_config = DEF_KLEVER_CORE_CONFIGURATION
 
     def __get_schedulers(self):
         try:
@@ -1000,11 +1000,11 @@ class StartDecisionData(object):
 
 def get_default_data():
     data = {
-        'console_log_formatter': DEF_PSI_FORMATTERS['console'],
-        'file_log_formatter': DEF_PSI_FORMATTERS['file'],
+        'console_log_formatter': DEF_KLEVER_CORE_FORMATTERS['console'],
+        'file_log_formatter': DEF_KLEVER_CORE_FORMATTERS['file'],
         'parallelism': str(DEF_LINUX_KERNEL_BUILD_PARALLELISM),
         'scheduler': SCHEDULER_TYPE[0][0]
     }
-    data.update(DEF_PSI_CONFIGURATION)
-    data.update(DEF_PSI_RESTRICTIONS)
+    data.update(DEF_KLEVER_CORE_CONFIGURATION)
+    data.update(DEF_KLEVER_CORE_RESTRICTIONS)
     return data

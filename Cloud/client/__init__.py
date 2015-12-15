@@ -41,21 +41,21 @@ def solve_job(conf):
         os.environ["PATH"] = "{}:{}".format(conf["client"]["cil location"], os.environ["PATH"])
         logging.debug("Current PATH content is {}".format(os.environ["PATH"]))
 
-    # Determine psi script path
-    if "psi path" not in conf["client"]:
-        logging.debug("There is no configuration option 'client''psi path'")
-        bin = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../Psi/bin/psi")
+    # Determine Klever Core script path
+    if "Klever Core path" not in conf["client"]:
+        logging.debug("There is no configuration option 'client''Klever Core path'")
+        bin = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../Core/bin/klever-core")
     else:
-        bin = conf["client"]["psi path"]
+        bin = conf["client"]["Klever Core path"]
 
     # Check existence of the file
-    logging.info("Going to use psi from {}".format(bin))
+    logging.info("Going to use Klever Core from {}".format(bin))
     if not os.path.isfile(bin):
-        raise FileExistsError("There is no psi execution script {}".format(bin))
+        raise FileExistsError("There is no Klever Core executable script {}".format(bin))
 
-    # Save psi configuration file
-    with open("psi configuration.json", "w") as fh:
-        json.dump(conf["psi configuration"], fh, sort_keys=True, indent=4)
+    # Save Klever Core configuration file
+    with open("klever core conf.json", "w") as fh:
+        json.dump(conf["Klever Core conf"], fh, sort_keys=True, indent=4)
 
     # Import RunExec
     executor = RunExecutor()
@@ -77,11 +77,11 @@ def solve_job(conf):
     else:
         logging.info("Memory limit: {} bytes".format(conf["resource limits"]["memory size"]))
 
-    # Run psi within runexec
+    # Run Klever Core within runexec
     # TODO: How to choose proper CPU core numbers?
 
-    logging.info("Run psi script {} with configuration file '{}'".format(bin, "psi configuration.json"))
-    result = executor.execute_run(args=[bin, "psi configuration.json"],
+    logging.info("Run Klever Core {} with configuration file '{}'".format(bin, "klever core conf.json"))
+    result = executor.execute_run(args=[bin, "klever core conf.json"],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
                                   walltimelimit=conf["resource limits"]["wall time"],

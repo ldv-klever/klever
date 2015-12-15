@@ -100,7 +100,7 @@ class JobAccess(object):
             pass
         self.__get_prop(user)
 
-    def psi_access(self):
+    def klever_core_access(self):
         if self.job is None:
             return False
         return self.__is_manager or self.__is_service

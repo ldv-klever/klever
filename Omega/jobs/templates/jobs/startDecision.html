@@ -45,7 +45,7 @@
                 </div>
             {% endif %}
             <div class="five wide column need-auth">
-                <h4 class="ui header">{% trans 'Resource limits for Psi' %}</h4>
+                <h4 class="ui header">{% trans 'Resource limits for Klever Core' %}</h4>
                 <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GiB' %}), {% trans 'e.g.' %} 2.0</label>
                 <div class="ui input fluid">
                     <input id="max_ram" type="number" value="{{ data.restrictions.max_ram }}" pattern="[0-9]+([\.|,][0-9]+)?">
@@ -82,7 +82,7 @@
         <div class="ui divider need-auth"></div>
         <div class="ui grid need-auth">
             <div class="five wide column">
-                <h4 class="ui header">{% trans 'Psi configuration' %}</h4>
+                <h4 class="ui header">{% trans 'Klever Core configuration' %}</h4>
                 <label for="avtg_priority">{% trans 'Abstract tasks generation priority' %}</label>
                 <select id="avtg_priority" class="ui dropdown fluid normal-dropdown">
                     {% for p in data.gen_priorities %}

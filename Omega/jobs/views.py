@@ -17,7 +17,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
-from jobs.Download import UploadJob, DownloadJob, PSIDownloadJob
+from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
 from service.utils import StartJobDecision, StartDecisionData, StopDecision, get_default_data
 
@@ -695,7 +695,7 @@ def decide_job(request):
     except ValueError:
         return JsonResponse({'error': 'Unknown error'})
 
-    if not JobAccess(request.user, job).psi_access():
+    if not JobAccess(request.user, job).klever_core_access():
         return JsonResponse({
             'error': 'User "{0}" doesn\'t have access to decide job "{1}"'.format(
                 request.user, job.identifier
@@ -704,7 +704,7 @@ def decide_job(request):
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
 
-    jobtar = PSIDownloadJob(job)
+    jobtar = KleverCoreDownloadJob(job)
     if jobtar.error is not None:
         return JsonResponse({
             'error': "Couldn't prepare archive for the job '%s'" % job.identifier

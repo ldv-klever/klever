@@ -63,7 +63,7 @@ Fixing bugs and implementing new features
 
 #. One must create a new branch to fix/implement each individual bug or new feature::
 
-    master $ git checkout -b fix-psi-conf
+    master $ git checkout -b fix-conf
 
    .. warning:: Do not intermix fixes and implementations of completely different bugs and features in one branch.
                 Otherwise users will need to wait or to make some tricky things like cherry-picking and merging of
@@ -76,18 +76,18 @@ Fixing bugs and implementing new features
 #. Push all new branches to the main developer repository.
    As well re-push them at least one time a day if you make some commits::
 
-    fix-psi-conf $ git push origin fix-psi-conf
+    fix-conf $ git push origin fix-conf
 
 #. Merge the master branch into your new branches if you need some recent bug fixes or features::
 
-    fix-psi-conf $ git merge master
+    fix-conf $ git merge master
 
    .. note:: Do not forget to update the master branch from the main developer repository.
 
 #. Merge branches to the master branch when corresponding bugs/features are fixed/implemented::
 
-    fix-psi-conf $ git checkout master
-    master $ git merge fix-psi-conf
+    fix-conf $ git checkout master
+    master $ git merge fix-conf
 
    .. note:: Do not forget to update the master branch from the main developer repository.
 
@@ -97,8 +97,8 @@ Fixing bugs and implementing new features
 
 #. Delete merged branches locally and remotely::
 
-    master $ git branch -d fix-psi-conf
-    master $ git push origin :fix-psi-conf
+    master $ git branch -d fix-conf
+    master $ git push origin :fix-conf
 
 Using PyCharm IDE
 -----------------
@@ -133,7 +133,7 @@ Configuring the Python interpreter
 #. Select Python 3.4.x from the list and press :kbd:`Enter`.
 #. Input *Python 3.4* in field :guilabel:`name`.
 #. :menuselection:`OK`.
-#. Ditto for *Psi*, *Cloud* and *docs*.
+#. Ditto for *Core*, *Cloud* and *docs*.
 
 Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -151,13 +151,13 @@ Omega run/debug configuration
 
 .. note:: To make your Omega accessible from the local network you might need to set up your firewall accordingly.
 
-Psi run/debug configuration
-"""""""""""""""""""""""""""
+Klever Core run/debug configuration
+"""""""""""""""""""""""""""""""""""
 
 #. Select :menuselection:`Python`.
-#. Input *Psi* in field :guilabel:`Name`.
-#. Specify :file:`Psi/bin/psi` in field :guilabel:`Script`.
-#. Select project *Psi* in field :guilabel:`Project`.
+#. Input *Core* in field :guilabel:`Name`.
+#. Specify :file:`Core/bin/klever-core` in field :guilabel:`Script`.
+#. Select project *Core* in field :guilabel:`Project`.
 #. Extend existing value of :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and Aspectator
    (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
 #. Specify working directory somewhere outside the repository (**work_dir**) in field :guilabel:`Working directory`.
@@ -174,22 +174,22 @@ Documentation run/debug configuration
 #. Select project *docs* in field :guilabel:`Project`.
 #. :menuselection:`OK`.
 
-Creating Psi working directory
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Creating Klever Core working directory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Create **work_dir**.
 
-Specifying Psi configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Specifying Klever Core configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Copy :file:`Psi/psi-conf.json` to **work_dir**.
+#. Copy :file:`Core/klever core conf.json` to **work_dir**.
 #. Edit the copied file:
     * Specify the identifier of the job you are going to solve (the value of property *identifier*).
     * Specify the name of Omega and your credentials (values of properties *Omega.name*, *Omega.user* and
       *Omega.password* correspondingly).
       If the value of *Omega.user* will be left *"null"* your OS user name will be used.
       If the value of *Omega.password* will be left *"null"* you will be asked to secretly enter your password when you
-      will run Psi.
+      will run Klever Core.
       The specified Omega user should have service rights.
     * Switch values of properties *debug* and *allow local source directories use* to *true*.
 
@@ -206,8 +206,8 @@ Run
 
 To run press :kbd:`Shift+F10`.
 
-.. note:: If Psi will fatally fail or you will kill Psi, you might need to manually remove :file:`is solving` inside
-          **work_dir** to run Psi fot the next time.
+.. note:: If Klever Core will fatally fail or you will hardly kill Klever Core, you might need to manually remove
+          :file:`is solving` inside **work_dir** to run Klever Core fot the next time.
 
 Debug
 ^^^^^
