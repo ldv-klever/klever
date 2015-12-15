@@ -236,66 +236,67 @@ class Population(object):
         from marks.models import MarkUnknown, MarkUnknownHistory, Component
         from marks.utils import ConnectMarkWithReports
         presets_dir = os.path.join(BASE_DIR, 'marks', 'presets')
-        for mark_settings in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
-            fname = os.path.basename(mark_settings)
-            f = open(mark_settings, 'r')
-            try:
-                data = json.loads(''.join(f.read().split('\n')))
-            except Exception as e:
-                print_err(e)
-                continue
-            needed_data = ['type', 'function', 'pattern', 'link', 'status',
-                           'description', 'format', 'component', 'is_modifiable']
-            if not isinstance(data, dict) or any(x not in data for x in needed_data):
-                print_err('Wrong unknown mark data format: %s' % fname)
-                continue
-            if data['format'] != FORMAT:
-                print_err('Mark format is old (%s)' % fname)
-                continue
-            if data['type'] not in list(x[0] for x in JOB_CLASSES) \
-                    or data['status'] not in list(x[0] for x in MARK_STATUS) \
-                    or len(data['function']) == 0 \
-                    or not 0 < len(data['pattern']) <= 15 \
-                    or not 0 < len(data['component']) <= 15 \
-                    or not isinstance(data['is_modifiable'], bool):
-                print_err('Wrong unknown mark data format: %s' % fname)
-            try:
-                MarkUnknown.objects.get(
-                    type=data['type'],
-                    component__name=data['component'],
-                    function=data['function'],
-                    problem_pattern=data['pattern']
-                    # status=data['status'],
-                    # link=data['link'],
-                    # description=data['description']
-                )
-                continue
-            except ObjectDoesNotExist:
-                create_args = {
-                    'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
-                    'component': Component.objects.get_or_create(name=data['component'])[0],
-                    'type': data['type'],
-                    'author': self.manager,
-                    'status': data['status'],
-                    'is_modifiable': data['is_modifiable'],
-                    'function': data['function'],
-                    'problem_pattern': data['pattern'],
-                    'description': data['description']
-                }
-                if len(data['link']) > 0:
-                    create_args['link'] = data['link']
+        for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
+            component = os.path.basename(component_dir)
+            if 0 < len(component) <= 15:
+                print_err('Wrong component length: %s' % component)
+            for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
+                fname = os.path.basename(mark_settings)
+                f = open(mark_settings, 'r')
                 try:
-                    mark = MarkUnknown.objects.create(**create_args)
+                    data = json.loads(''.join(f.read().split('\n')))
                 except Exception as e:
                     print_err(e)
                     continue
-                MarkUnknownHistory.objects.create(
-                    mark=mark, version=mark.version, author=mark.author, status=mark.status,
-                    function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
-                    change_date=mark.change_date, description=mark.description, comment=''
-                )
-                ConnectMarkWithReports(mark)
-                self.changes['marks'] = True
-
-
-
+                needed_data = ['type', 'function', 'pattern', 'link', 'status',
+                               'description', 'format', 'is_modifiable']
+                if not isinstance(data, dict) or any(x not in data for x in needed_data):
+                    print_err('Wrong unknown mark data: %s' % fname)
+                    continue
+                if data['format'] != FORMAT:
+                    print_err('Mark format is old (%s)' % fname)
+                    continue
+                if data['type'] not in list(x[0] for x in JOB_CLASSES) \
+                        or data['status'] not in list(x[0] for x in MARK_STATUS) \
+                        or len(data['function']) == 0 \
+                        or not 0 < len(data['pattern']) <= 15 \
+                        or not isinstance(data['is_modifiable'], bool):
+                    print_err('Wrong unknown mark data: %s' % fname)
+                    continue
+                try:
+                    MarkUnknown.objects.get(
+                        type=data['type'],
+                        component__name=component,
+                        function=data['function'],
+                        problem_pattern=data['pattern']
+                        # status=data['status'],
+                        # link=data['link'],
+                        # description=data['description']
+                    )
+                    continue
+                except ObjectDoesNotExist:
+                    create_args = {
+                        'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
+                        'component': Component.objects.get_or_create(name=component)[0],
+                        'type': data['type'],
+                        'author': self.manager,
+                        'status': data['status'],
+                        'is_modifiable': data['is_modifiable'],
+                        'function': data['function'],
+                        'problem_pattern': data['pattern'],
+                        'description': data['description']
+                    }
+                    if len(data['link']) > 0:
+                        create_args['link'] = data['link']
+                    try:
+                        mark = MarkUnknown.objects.create(**create_args)
+                    except Exception as e:
+                        print_err(e)
+                        continue
+                    MarkUnknownHistory.objects.create(
+                        mark=mark, version=mark.version, author=mark.author, status=mark.status,
+                        function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
+                        change_date=mark.change_date, description=mark.description, comment=''
+                    )
+                    ConnectMarkWithReports(mark)
+                    self.changes['marks'] = True

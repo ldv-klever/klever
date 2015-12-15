@@ -55,7 +55,7 @@
     right: 0;
     width: 54.7%;
     height: 70%;
-    background-color: #fff8e9;
+    background-color: #f5ffff;
 }
 #etv-divider {
     position: absolute;
@@ -81,7 +81,7 @@
     bottom: 0;
     width: 54.7%;
     height: 29.5%;
-    background-color: #fff8e9;
+    background-color: #faf3ff;
 }
 
 .ETVComment {
@@ -93,7 +93,7 @@
 }
 
 .ETVSrcL {
-    background-color: #f3ecd2;
+    background-color: #d7f0f0;
     padding-left: 5px;
     padding-right: 5px;
 }
@@ -101,13 +101,13 @@
 /* Error trace: Line number object */
 .ETV_LN {
     white-space: pre;
-    background-color: #f3ecd2;
+    background-color: #ffe6d7;
     padding-left: 5px;
     padding-right: 5px;
     cursor: pointer;
 }
 .ETV_LN:hover {
-    background-color: #dcd5bb;
+    background-color: #efd6c8;
 }
 
 .ETV_LC {
@@ -132,7 +132,7 @@
 }
 
 .ETVSelectedLine {
-    background-color: #ffc8e0;
+    background-color: #ffd4ed;
 }
 
 .ETV_CondAss {

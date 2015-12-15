@@ -156,6 +156,9 @@ $(document).ready(function () {
         if (next_code.length > 0) {
             if (next_code.is(':hidden')) {
                 next_code.show();
+                if (next_code.find('.ETV_HideLink').find('i').hasClass('right')) {
+                    next_code.find('.ETV_HideLink').click();
+                }
             }
             else {
                 if (next_code.find('.ETV_HideLink').find('i').hasClass('down')) {

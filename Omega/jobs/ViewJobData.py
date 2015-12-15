@@ -24,8 +24,8 @@ class ViewJobData(object):
         if self.report is None:
             return
         self.unknowns_total = None
-        self.show_verdicts = False
-        self.show_tags = False
+        self.safes_total = None
+        self.unsafes_total = None
         self.view_data = {}
         self.__get_view_data()
 
@@ -67,13 +67,8 @@ class ViewJobData(object):
         for d in self.view['data']:
             if d in actions:
                 self.view_data[d] = actions[d]()
-            if d in ['safes', 'unsafes']:
-                self.show_verdicts = True
-            if d in ['tags_safe', 'tags_unsafe']:
-                self.show_tags = True
 
     def __safe_tags_info(self):
-
         safe_tag_filter = {}
         if 'safe_tag' in self.view['filters']:
             ft = 'tag__tag__' + self.view['filters']['safe_tag']['type']
@@ -238,32 +233,27 @@ class ViewJobData(object):
             if s == 'missed_bug':
                 val = verdicts.safe_missed_bug
                 color = COLORS['red']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'safes', '2'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '2'])
             elif s == 'incorrect':
                 val = verdicts.safe_incorrect_proof
                 color = COLORS['orange']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'safes', '1'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '1'])
             elif s == 'unknown':
                 val = verdicts.safe_unknown
                 color = COLORS['purple']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'safes', '0'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '0'])
             elif s == 'inconclusive':
                 val = verdicts.safe_inconclusive
                 color = COLORS['red']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'safes', '3'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '3'])
             elif s == 'unassociated':
                 val = verdicts.safe_unassociated
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'safes', '4'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '4'])
             elif s == 'total':
-                val = verdicts.safe
-                href = reverse('reports:list',
-                               args=[self.report.pk, 'safes'])
-            if val > 0:
+                if verdicts.safe > 0:
+                    self.safes_total = (verdicts.safe, reverse('reports:list', args=[self.report.pk, 'safes']))
+                continue
+            if val != 0:
                 safes_data.append({
                     'title': TITLES[safe_name],
                     'value': val,
@@ -287,37 +277,31 @@ class ViewJobData(object):
             if s == 'bug':
                 val = verdicts.unsafe_bug
                 color = COLORS['red']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'unsafes', '1'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '1'])
             elif s == 'target_bug':
                 val = verdicts.unsafe_target_bug
                 color = COLORS['red']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'unsafes', '2'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '2'])
             elif s == 'false_positive':
                 val = verdicts.unsafe_false_positive
                 color = COLORS['orange']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'unsafes', '3'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '3'])
             elif s == 'unknown':
                 val = verdicts.unsafe_unknown
                 color = COLORS['purple']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'unsafes', '0'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '0'])
             elif s == 'inconclusive':
                 val = verdicts.unsafe_inconclusive
                 color = COLORS['red']
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'unsafes', '4'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '4'])
             elif s == 'unassociated':
                 val = verdicts.unsafe_unassociated
-                href = reverse('reports:list_verdict',
-                               args=[self.report.pk, 'unsafes', '5'])
+                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '5'])
             elif s == 'total':
-                val = verdicts.unsafe
-                href = reverse('reports:list',
-                               args=[self.report.pk, 'unsafes'])
-            if val > 0:
+                if verdicts.unsafe > 0:
+                    self.unsafes_total = (verdicts.unsafe, reverse('reports:list', args=[self.report.pk, 'unsafes']))
+                continue
+            if val != 0:
                 unsafes_data.append({
                     'title': TITLES[unsafe_name],
                     'value': val,

@@ -6,6 +6,5 @@
   "status": "1",
   "description": "Fatal error.\nIt is description...",
   "format": 1,
-  "component": "WRAPPER",
   "is_modifiable": true
 }

@@ -22,7 +22,8 @@
                         <span class="{{ l.class }}"{% if l.note_hidden %} style="display: none"{% endif %}>
                             <a class="ui mini blue label ETV_ShowCommentCode">{% trans 'Note' %}</a><span class="ETV_NoteText">{{ l.offset }}{{ l.note }}</span><br>
                         </span>
-                    {% elif l.warning %}
+                    {% endif %}
+                    {% if l.warning %}
                         <span class="{{ l.class }}">
                             <a class="ui mini red label ETV_ShowCommentCode">{% trans 'Warning' %}</a><span class="ETV_WarnText">{{ l.offset }}{{ l.warning }}</span><br>
                         </span>
