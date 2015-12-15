@@ -255,9 +255,39 @@ class ABKM(psi.components.Component):
                                             warns[source_file][i + 1] = comment
 
                     self.logger.info('Add notes and warnings to error trace')
+                    # Find out sequence of edges (violation path) from entry node to violation node.
+                    violation_edges = []
+                    entry_node_id = None
+                    violation_node_id = None
+                    for node in graph.getElementsByTagName('node'):
+                        for data in node.getElementsByTagName('data'):
+                            if data.getAttribute('key') == 'entry' and data.firstChild.data == 'true':
+                                entry_node_id = node.getAttribute('id')
+                            elif data.getAttribute('key') == 'violation' and data.firstChild.data == 'true':
+                                violation_node_id = node.getAttribute('id')
+                    src_edges = {}
                     for edge in graph.getElementsByTagName('edge'):
                         src_node_id = edge.getAttribute('source')
                         dst_node_id = edge.getAttribute('target')
+                        src_edges[dst_node_id] = (src_node_id, edge)
+                    cur_src_edge = src_edges[violation_node_id]
+                    violation_edges.append(cur_src_edge[1])
+                    ignore_edges_of_func = None
+                    while True:
+                        cur_src_edge = src_edges[cur_src_edge[0]]
+                        # Do not add edges of intermediate functions.
+                        for data in cur_src_edge[1].getElementsByTagName('data'):
+                            if data.getAttribute('key') == 'returnFrom' and not ignore_edges_of_func:
+                                ignore_edges_of_func = data.firstChild.data
+                        if not ignore_edges_of_func:
+                            violation_edges.append(cur_src_edge[1])
+                        for data in cur_src_edge[1].getElementsByTagName('data'):
+                            if data.getAttribute('key') == 'enterFunction' and ignore_edges_of_func:
+                                if ignore_edges_of_func == data.firstChild.data:
+                                    ignore_edges_of_func = None
+                        if cur_src_edge[0] == entry_node_id:
+                            break
+                    for edge in graph.getElementsByTagName('edge'):
                         source_file, i, func_name = (None, None, None)
 
                         for data in edge.getElementsByTagName('data'):
@@ -279,14 +309,34 @@ class ABKM(psi.components.Component):
                                 edge.appendChild(note)
 
                             if func_name and func_name in notes:
-                                self.logger.debug(
-                                    'Add note "{0}" for call of model function "{1}" from "{2}"'.format(
-                                        notes[func_name], func_name, source_file))
+                                self.logger.debug('Add note "{0}" for call of model function "{1}" from "{2}"'.format(
+                                    notes[func_name], func_name, source_file))
                                 note = dom.createElement('data')
                                 txt = dom.createTextNode(notes[func_name])
                                 note.appendChild(txt)
                                 note.setAttribute('key', 'note')
                                 edge.appendChild(note)
+
+                            if source_file in warns and i in warns[source_file] and edge.getAttribute('target') == violation_node_id:
+                                self.logger.debug(
+                                    'Add warning "{0}" from "{1}:{2}"'.format(warns[source_file][i], source_file, i))
+                                warn = dom.createElement('data')
+                                txt = dom.createTextNode(warns[source_file][i])
+                                warn.appendChild(txt)
+                                warn.setAttribute('key', 'warning')
+                                # Add warning either to edge itself or to first edge with note at violation path. If
+                                # don't do the latter warning will be hidden by error trace visualizer.
+                                warn_edge = edge
+                                for cur_src_edge in violation_edges:
+                                    for data in cur_src_edge.getElementsByTagName('data'):
+                                        if data.getAttribute('key') == 'note':
+                                            warn_edge = cur_src_edge
+                                # Remove note from node for what we are going to add warning if so. Otherwise error
+                                # trace visualizer will be confused.
+                                for data in warn_edge.getElementsByTagName('data'):
+                                    if data.getAttribute('key') == 'note':
+                                        warn_edge.removeChild(data)
+                                warn_edge.appendChild(warn)
 
                     self.logger.info('Create processed error trace file "witness.processed.graphml"')
                     with open('witness.processed.graphml', 'w') as fp:
