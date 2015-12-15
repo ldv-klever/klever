@@ -201,27 +201,19 @@ class ABKM(psi.components.Component):
                                      self.conf['main working directory'])
                 elif decision_results['status'] == 'unsafe':
                     self.logger.info('Get source files referred by error trace')
-
                     source_files = set()
                     with open('witness.graphml') as fp:
                         dom = minidom.parse(fp)
-                        graphml = dom.getElementsByTagName("graphml")[0]
-                        graph = graphml.getElementsByTagName("graph")[0]
-                        for edge in graph.getElementsByTagName('edge'):
-                            for data in edge.getElementsByTagName('data'):
-                                if data.getAttribute('key') == 'originfile':
-                                    # Each file is specified either via absolute path or path relative to source tree
-                                    # root. Make all paths relative to source tree root.
-                                    if os.path.isabs(data.firstChild.data):
-                                        data.firstChild.data = os.path.relpath(data.firstChild.data,
-                                                                               os.path.realpath(
-                                                                                   self.conf['source tree root']))
-                                    if not os.path.isfile(
-                                            os.path.join(self.conf['source tree root'], data.firstChild.data)):
-                                        raise FileNotFoundError(
-                                            'File "{0}" referred by error trace does not exist'.format(
-                                                data.firstChild.data))
-                                    source_files.add(data.firstChild.data)
+                    graphml = dom.getElementsByTagName('graphml')[0]
+                    for key in graphml.getElementsByTagName('key'):
+                        if key.getAttribute('id') == 'originfile':
+                            default = key.getElementsByTagName('default')[0]
+                            source_files.add(self.__normalize_path(default.firstChild))
+                    graph = graphml.getElementsByTagName('graph')[0]
+                    for edge in graph.getElementsByTagName('edge'):
+                        for data in edge.getElementsByTagName('data'):
+                            if data.getAttribute('key') == 'originfile':
+                                source_files.add(self.__normalize_path(data.firstChild))
 
                     self.logger.info('Create processed error trace file "witness.processed.graphml"')
                     with open('witness.processed.graphml', 'w') as fp:
@@ -273,3 +265,14 @@ class ABKM(psi.components.Component):
                 break
 
             time.sleep(1)
+
+    def __normalize_path(self, path):
+        # Each file is specified either via absolute path or path relative to source tree root.
+        # Make all paths relative to source tree root.
+        if os.path.isabs(path.data):
+            path.data = os.path.relpath(path.data, os.path.realpath(self.conf['source tree root']))
+
+        if not os.path.isfile(os.path.join(self.conf['source tree root'], path.data)):
+            raise FileNotFoundError('File "{0}" referred by error trace does not exist'.format(path.data))
+
+        return path.data
