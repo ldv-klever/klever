@@ -46,11 +46,11 @@ class Scheduler(schedulers.SchedulerExchange):
             self.__job_conf_prototype = json.loads(fh.read())
         with open(self.conf["scheduler"]["task client configuration"], "r") as fh:
             self.__task_conf_prototype = json.loads(fh.read())
-        if "Omega" not in self.__job_conf_prototype:
-            logging.debug("Add Omega settings to client job configuration")
-            self.__job_conf_prototype["Omega"] = self.conf["Omega"]
+        if "Klever Bridge" not in self.__job_conf_prototype:
+            logging.debug("Add Klever Bridge settings to client job configuration")
+            self.__job_conf_prototype["Klever Bridge"] = self.conf["Klever Bridge"]
         else:
-            logging.debug("Use provided in configuration prototype Omega settings for jobs")
+            logging.debug("Use provided in configuration prototype Klever Bridge settings for jobs")
         if "common" not in self.__job_conf_prototype:
             logging.debug("Use the same 'common' options for jobs which is used for the scheduler")
         else:
@@ -173,7 +173,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # TODO: copy-paste from solve_job(). But it is worse. First we need to perform all preparation in prepare_job/task(). Second we shouldn't pass so many command-line arguments. Instead they could be stored in file, that has either default name or its name could be passed to client.
         client_conf = self.__task_conf_prototype.copy()
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
-        client_conf["Omega"] = self.conf["Omega"]
+        client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
         client_conf["identifier"] = identifier
         client_conf["common"]["working directory"] = task_work_dir
         for name in ("resource limits", "verifier", "property file", "files"):
@@ -201,7 +201,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Generate configuration
         klever_core_conf = configuration.copy()
         del klever_core_conf["resource limits"]
-        klever_core_conf["Omega"] = self.conf["Omega"]
+        klever_core_conf["Klever Bridge"] = self.conf["Klever Bridge"]
         klever_core_conf["working directory"] = "klever-core-work-dir"
         self.__reserved[identifier]["configuration"] = klever_core_conf
 

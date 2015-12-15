@@ -6,7 +6,7 @@ import shutil
 import time
 
 import server.testgenerator as testgenerator
-import server.omega as omega
+import server.bridge as bridge
 
 
 def get_gateway(conf, work_dir):
@@ -19,7 +19,7 @@ def get_gateway(conf, work_dir):
     if "debug with testgenerator" in conf["scheduler"] and conf["scheduler"]["debug with testgenerator"]:
         return testgenerator.Server(conf["testgenerator"], work_dir)
     else:
-        return omega.Server(conf["Omega"], work_dir)
+        return bridge.Server(conf["Klever Bridge"], work_dir)
 
 
 class SchedulerException(RuntimeError):

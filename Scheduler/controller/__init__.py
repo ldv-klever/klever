@@ -98,7 +98,7 @@ def setup_consul(conf):
     logging.info("Save node configuration file {}".format(node_configuration))
     data = {
         "node configuration": conf["node configuration"],
-        "Omega": conf["Omega"]
+        "Klever Bridge": conf["Klever Bridge"]
     }
     with open(node_configuration, "w") as fh:
         fh.write(json.dumps(data, sort_keys=True, indent=4))

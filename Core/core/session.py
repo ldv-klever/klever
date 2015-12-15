@@ -4,11 +4,11 @@ import time
 
 
 class Session:
-    def __init__(self, logger, omega, job_id):
-        logger.info('Create session for user "{0}" at Omega "{1}"'.format(omega['user'], omega['name']))
+    def __init__(self, logger, bridge, job_id):
+        logger.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(bridge['user'], bridge['name']))
 
         self.logger = logger
-        self.name = omega['name']
+        self.name = bridge['name']
         self.session = requests.Session()
 
         # TODO: try to autentificate like with httplib2.Http().add_credentials().
@@ -17,8 +17,8 @@ class Session:
 
         # Sign in.
         self.__request('users/service_signin/', {
-            'username': omega['user'],
-            'password': omega['password'],
+            'username': bridge['user'],
+            'password': bridge['password'],
             'job identifier': job_id
         })
         logger.debug('Session was created')

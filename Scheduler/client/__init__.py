@@ -8,7 +8,7 @@ import tarfile
 from xml.etree import ElementTree
 from xml.dom import minidom
 
-import server.omega as omega
+import server.bridge as bridge
 import utils as utils
 
 
@@ -134,7 +134,7 @@ def solve_task(conf):
     logging.info("Memory limit: {} bytes".format(conf["resource limits"]["memory size"]))
 
     logging.info("Download task")
-    server = omega.Server(conf["Omega"], os.curdir)
+    server = bridge.Server(conf["Klever Bridge"], os.curdir)
     server.register()
     server.pull_task(conf["identifier"], "task files.tar.gz")
     tar = tarfile.open("task files.tar.gz")

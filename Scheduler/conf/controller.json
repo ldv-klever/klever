@@ -1,5 +1,5 @@
 {
-  "Omega": {
+  "Klever Bridge": {
     "name": "localhost:8998",
     "user": "user",
     "password": "password"
@@ -30,8 +30,8 @@
     ],
     "service checks": [
       {
-        "id": "Omega",
-        "name": "Omega on port 8998",
+        "id": "Klever Bridge",
+        "name": "Klever Bridge on port 8998",
         "http": "http://localhost:8998/",
         "interval": "10s",
         "timeout": "1s"

@@ -9,10 +9,10 @@ To build this documentation you need:
 * `Python 3.4.x <https://www.python.org/>`_.
 * `Sphinx <http://sphinx-doc.org>`_
 
-Omega
------
+Klever Bridge
+-------------
 
-To run Omega you need:
+To run Klever Bridge you need:
 
 * `Python 3.4.x <https://www.python.org/>`_ and its packages:
 
@@ -30,7 +30,7 @@ To run Omega you need:
 To run a production server you additionally need `apache2 <http://httpd.apache.org/>`_ and its module
 `mod_wsgi <https://code.google.com/p/modwsgi/>`_.
 
-To translate Omega (i.e. to execute :command:`manage.py compilemessages`) you additionally need
+To translate Klever Bridge (i.e. to execute :command:`manage.py compilemessages`) you additionally need
 `gettext <https://www.gnu.org/software/gettext/>`_.
 
 Klever Scheduler

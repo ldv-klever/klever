@@ -7,14 +7,14 @@ import consulate
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 import utils as utils
-import utils.omega as omega
+import utils.bridge as bridge
 
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
 with open(expect_file) as fh:
     conf = json.load(fh)
 
 # Sign in
-session = omega.Session(conf["Omega"]["name"], conf["Omega"]["user"], conf["Omega"]["password"])
+session = bridge.Session(conf["Klever Bridge"]["name"], conf["Klever Bridge"]["user"], conf["Klever Bridge"]["password"])
 
 # Submit scheduler status
 status = {

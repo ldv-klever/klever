@@ -27,7 +27,7 @@ class KleverCore:
         self.is_solving_file = None
         self.is_solving_file_fp = None
         self.logger = None
-        self.omega = {}
+        self.bridge = {}
         self.version = None
         self.job = None
         self.comp = []
@@ -68,9 +68,9 @@ class KleverCore:
                                                    'attrs': [{'Klever Core version': self.version}],
                                                    'comp': [{attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
                                                             for attr in self.comp for attr_shortcut in attr]})
-            self.session = core.session.Session(self.logger, self.conf['Omega'], self.job.id)
+            self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.job.id)
             self.session.decide_job(self.job, start_report_file)
-            # TODO: create parallel process to send requests about successful operation to Omega.
+            # TODO: create parallel process to send requests about successful operation to Klever Bridge.
             self.mqs['report files'] = multiprocessing.Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
@@ -266,8 +266,8 @@ class KleverCore:
 
                 self.session.upload_report(report_file, report_files_archive)
         except Exception as e:
-            # If we can't send reports to Omega by some reason we can just silently die.
-            self.logger.exception('Catch exception when sending reports to Omega')
+            # If we can't send reports to Klever Bridge by some reason we can just silently die.
+            self.logger.exception('Catch exception when sending reports to Klever Bridge')
             exit(1)
 
     def get_components(self):

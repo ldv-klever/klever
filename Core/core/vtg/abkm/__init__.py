@@ -127,7 +127,7 @@ class ABKM(core.components.Component):
     def decide_verification_task(self):
         self.logger.info('Decide verification task')
 
-        session = core.session.Session(self.logger, self.conf['Omega'], self.conf['identifier'])
+        session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         task_id = session.schedule_task(self.task_desc)
 
         while True:

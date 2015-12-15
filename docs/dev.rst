@@ -123,13 +123,13 @@ Setting project
 At the "Welcome to PyCharm" window:
 
 #. :menuselection:`Open`.
-#. Specify :file:`Omega`.
+#. Specify :file:`Bridge`.
 #. :menuselection:`OK`.
 
 Configuring the Python interpreter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. :menuselection:`File --> Settings --> Project: Omega --> Project Interpreter --> Settings --> More..`.
+#. :menuselection:`File --> Settings --> Project: Bridge --> Project Interpreter --> Settings --> More..`.
 #. Select Python 3.4.x from the list and press :kbd:`Enter`.
 #. Input *Python 3.4* in field :guilabel:`name`.
 #. :menuselection:`OK`.
@@ -140,16 +140,16 @@ Setting run/debug configuration
 
 #. :menuselection:`Run --> Edit Configurations... --> Add New Configuration`.
 
-Omega run/debug configuration
-"""""""""""""""""""""""""""""
+Klever Bridge run/debug configuration
+"""""""""""""""""""""""""""""""""""""
 
 #. Select :menuselection:`Django server`.
-#. Input *Omega* in field :guilabel:`Name`.
-#. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Omega in the local network.
+#. Input *Bridge* in field :guilabel:`Name`.
+#. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge in the local network.
 #. Specify *8998* in field :guilabel:`Port`.
 #. :menuselection:`OK`.
 
-.. note:: To make your Omega accessible from the local network you might need to set up your firewall accordingly.
+.. note:: To make your Klever Bridge accessible from the local network you might need to set up your firewall accordingly.
 
 Klever Core run/debug configuration
 """""""""""""""""""""""""""""""""""
@@ -185,12 +185,9 @@ Specifying Klever Core configuration
 #. Copy :file:`Core/klever core conf.json` to **work_dir**.
 #. Edit the copied file:
     * Specify the identifier of the job you are going to solve (the value of property *identifier*).
-    * Specify the name of Omega and your credentials (values of properties *Omega.name*, *Omega.user* and
-      *Omega.password* correspondingly).
-      If the value of *Omega.user* will be left *"null"* your OS user name will be used.
-      If the value of *Omega.password* will be left *"null"* you will be asked to secretly enter your password when you
-      will run Klever Core.
-      The specified Omega user should have service rights.
+    * Specify the name of Klever Bridge and your credentials (values of properties *Klever Bridge.name*,
+      *Klever Bridge.user* and *Klever Bridge.password* correspondingly).
+      The specified Klever Bridge user should have service rights.
     * Switch values of properties *debug* and *allow local source directories use* to *true*.
 
 Fetching Linux kernel source code
@@ -214,13 +211,13 @@ Debug
 
 To debug press :kbd:`Shift+F9`.
 
-Run Omega manage.py tasks
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Run Klever Bridge manage.py tasks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To run manage.py tasks:
 
 #. :menuselection:`Tools --> Run manage.py Task...`.
-#. Some manage.py tasks are described in the :ref:`omega-install` section.
+#. Some manage.py tasks are described in the :ref:`klever-bridge-install` section.
 
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -235,15 +232,16 @@ To be able to solve tasks on your machine you need to run Klever client-controll
 the steps:
 
 #. First install all requirements and prepare configuration properties according to the installation documentation.
-   Do it after you have working Omega server. All additional tools and configuration files should be outside from
-   the Klever sources and corresponding working directories.
+   Do it after you have working Klever Bridge server.
+   All additional tools and configuration files should be outside from the Klever sources and corresponding working
+   directories.
 
 #. Run client-controller. Use script :file:`Scheduler/bin/client-controller.py` and path to a prepared client-controller
    configuration file as the first argument. Be sure that you have chosen clean working directory outside of sources
    for an execution. If you would turn on web-UI in configuration and place necessary files in the consul
    directory you will get a visualization of all checks at *http://localhost:8500/ui*.
 
-#. Run native scheduler after you have running controller and Omega server. Run script
+#. Run native scheduler after you have running controller and Klever Bridge server. Run script
    :file:`Scheduler/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
    that you have chosen clean working directory outside of sources for an execution.
 
