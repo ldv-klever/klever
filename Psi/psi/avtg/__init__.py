@@ -279,7 +279,7 @@ class AVTG(psi.components.Component):
             for cc_full_desc_file in grp['cc full desc files']:
                 with open(os.path.join(self.conf["source tree root"], cc_full_desc_file), "r") as fh:
                     command = json.load(fh)
-                    in_file = command["in files"][0]
+                in_file = command["in files"][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})
             del (grp['cc full desc files'])
         if self.conf['debug']:
