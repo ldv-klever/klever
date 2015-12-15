@@ -216,8 +216,7 @@ class GetETV(object):
                     assume_scopes[ass_scope].append(assume)
                     curr_assumes.append('%s_%s' % (ass_scope, str(len(assume_scopes[ass_scope]) - 1)))
                 line_data.update(fill_assumptions(curr_assumes))
-                lines_data.append(line_data)
-            elif 'enterFunction' in n.attr:
+            if 'enterFunction' in n.attr:
                 if scope_stack[-1] == 'global':
                     cnt += 1
                     scope_stack.append('scope__klever_main__%s' % str(cnt))
