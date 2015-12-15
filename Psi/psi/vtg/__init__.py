@@ -122,6 +122,10 @@ class VTG(psi.components.Component):
         p = self.strategy(self.conf, self.logger, self.name, self.callbacks, self.mqs,
                           '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
                           work_dir, abstract_task_desc['attrs'], True, True)
-        p.start()
-        # TODO: do not fail if strategy fails (see AVTG implementation).
-        p.join()
+        try:
+            p.start()
+            p.join()
+        # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification tasks.
+        # Do not print information on failure since it will be printed automatically by psi.components.
+        except psi.components.ComponentError:
+            pass
