@@ -203,6 +203,7 @@ class ABKM(psi.components.Component):
                     self.logger.info('Get source files referred by error trace')
                     source_files = set()
                     with open('witness.graphml') as fp:
+                        # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
                         dom = minidom.parse(fp)
                     graphml = dom.getElementsByTagName('graphml')[0]
                     for key in graphml.getElementsByTagName('key'):
