@@ -83,8 +83,10 @@ class SA(psi.components.Component):
         self.aspect = os.path.realpath(os.path.join(os.getcwd(), new_aspect_file))
 
     def _perform_info_requests(self, abstract_task):
+        # TODO: after this information message there is quite long period of time when something other is done but without any corresponding information message.
         self.logger.info("Import source build commands")
         for group in abstract_task["grps"]:
+            # TODO: do not extend abstract verification task description in such the way! This information isn't required for other AVTG plugins.
             group["build commands"] = []
             for section in group["cc extra full desc files"]:
                 file = os.path.join(self.conf["source tree root"],
