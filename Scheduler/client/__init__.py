@@ -44,7 +44,7 @@ def solve_job(conf):
     # Determine Klever Core script path
     if "Klever Core path" not in conf["client"]:
         logging.debug("There is no configuration option 'client''Klever Core path'")
-        bin = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../Core/bin/klever-core")
+        bin = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../core/bin/klever-core")
     else:
         bin = conf["client"]["Klever Core path"]
 

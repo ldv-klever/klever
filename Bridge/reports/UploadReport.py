@@ -244,7 +244,7 @@ class UploadReport(object):
         report.parent = self.parent
         report.root = self.root
 
-        component_name = 'KleverCore'
+        component_name = 'Core'
         if 'name' in self.data:
             component_name = self.data['name']
         component = Component.objects.get_or_create(name=component_name)[0]
