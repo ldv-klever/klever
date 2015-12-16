@@ -117,7 +117,7 @@ Installation
 #. Activate the PyCharm license.
 #. Specify your preferences at the "Welcome to PyCharm" window.
 
-.. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JDK_HOME`, e.g.
+.. note:: At least on openSUSE 13.2 to run PyCharm one needs to specify :envvar:`JDK_HOME`, e.g.
           :file:`/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/`.
 
 Setting project
