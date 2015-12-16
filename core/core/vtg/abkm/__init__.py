@@ -19,7 +19,7 @@ class ABKM(core.components.Component):
 
         self.prepare_common_verification_task_desc()
         self.prepare_property_file()
-        self.prepare_source_files()
+        self.prepare_src_files()
 
         if self.conf['debug']:
             self.logger.debug('Create verification task description file "task.json"')
@@ -61,7 +61,7 @@ class ABKM(core.components.Component):
 
         self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
 
-    def prepare_source_files(self):
+    def prepare_src_files(self):
         self.task_desc['files'] = []
 
         if self.conf['VTG strategy']['merge source files']:
@@ -201,7 +201,7 @@ class ABKM(core.components.Component):
                                       self.conf['main working directory'])
                 elif decision_results['status'] == 'unsafe':
                     self.logger.info('Get source files referred by error trace')
-                    source_files = set()
+                    src_files = set()
                     with open('witness.graphml') as fp:
                         # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
                         dom = minidom.parse(fp)
@@ -209,19 +209,19 @@ class ABKM(core.components.Component):
                     for key in graphml.getElementsByTagName('key'):
                         if key.getAttribute('id') == 'originfile':
                             default = key.getElementsByTagName('default')[0]
-                            default_source_file = self.__normalize_path(default.firstChild)
-                            source_files.add(default_source_file)
+                            default_src_file = self.__normalize_path(default.firstChild)
+                            src_files.add(default_src_file)
                     graph = graphml.getElementsByTagName('graph')[0]
                     for edge in graph.getElementsByTagName('edge'):
                         for data in edge.getElementsByTagName('data'):
                             if data.getAttribute('key') == 'originfile':
-                                source_files.add(self.__normalize_path(data.firstChild))
+                                src_files.add(self.__normalize_path(data.firstChild))
 
                     self.logger.info('Extract notes and warnings from source files referred by error trace')
                     notes = {}
                     warns = {}
-                    for source_file in source_files:
-                        with open(os.path.join(self.conf['source tree root'], source_file)) as fp:
+                    for src_file in src_files:
+                        with open(os.path.join(self.conf['source tree root'], src_file)) as fp:
                             i = 0
                             for line in fp:
                                 i += 1
@@ -247,14 +247,14 @@ class ABKM(core.components.Component):
                                             raise ValueError('Model function definition does not exist')
                                         notes[func_name] = comment
                                     else:
-                                        if source_file not in notes:
-                                            notes[source_file] = {}
-                                        notes[source_file][i + 1] = comment
+                                        if src_file not in notes:
+                                            notes[src_file] = {}
+                                        notes[src_file][i + 1] = comment
                                         # Some assert(s) will become warning(s).
                                         if kind == 'ASSERT':
-                                            if source_file not in warns:
-                                                warns[source_file] = {}
-                                            warns[source_file][i + 1] = comment
+                                            if src_file not in warns:
+                                                warns[src_file] = {}
+                                            warns[src_file][i + 1] = comment
 
                     self.logger.info('Add notes and warnings to error trace')
                     # Find out sequence of edges (violation path) from entry node to violation node.
@@ -290,44 +290,44 @@ class ABKM(core.components.Component):
                         if cur_src_edge[0] == entry_node_id:
                             break
                     for edge in graph.getElementsByTagName('edge'):
-                        source_file, i, func_name = (None, None, None)
+                        src_file, i, func_name = (None, None, None)
 
                         for data in edge.getElementsByTagName('data'):
                             if data.getAttribute('key') == 'originfile':
-                                source_file = data.firstChild.data
+                                src_file = data.firstChild.data
                             elif data.getAttribute('key') == 'startline':
                                 i = int(data.firstChild.data)
                             elif data.getAttribute('key') == 'enterFunction':
                                 func_name = data.firstChild.data
 
-                        if not source_file:
-                            source_file = default_source_file
+                        if not src_file:
+                            src_file = default_src_file
 
-                        if source_file and i:
-                            if source_file in notes and i in notes[source_file]:
+                        if src_file and i:
+                            if src_file in notes and i in notes[src_file]:
                                 self.logger.debug(
-                                    'Add note "{0}" from "{1}:{2}"'.format(notes[source_file][i], source_file, i))
+                                    'Add note "{0}" from "{1}:{2}"'.format(notes[src_file][i], src_file, i))
                                 note = dom.createElement('data')
-                                txt = dom.createTextNode(notes[source_file][i])
+                                txt = dom.createTextNode(notes[src_file][i])
                                 note.appendChild(txt)
                                 note.setAttribute('key', 'note')
                                 edge.appendChild(note)
 
                             if func_name and func_name in notes:
                                 self.logger.debug('Add note "{0}" for call of model function "{1}" from "{2}"'.format(
-                                    notes[func_name], func_name, source_file))
+                                    notes[func_name], func_name, src_file))
                                 note = dom.createElement('data')
                                 txt = dom.createTextNode(notes[func_name])
                                 note.appendChild(txt)
                                 note.setAttribute('key', 'note')
                                 edge.appendChild(note)
 
-                            if source_file in warns and i in warns[source_file] and edge.getAttribute(
+                            if src_file in warns and i in warns[src_file] and edge.getAttribute(
                                     'target') == violation_node_id:
                                 self.logger.debug(
-                                    'Add warning "{0}" from "{1}:{2}"'.format(warns[source_file][i], source_file, i))
+                                    'Add warning "{0}" from "{1}:{2}"'.format(warns[src_file][i], src_file, i))
                                 warn = dom.createElement('data')
-                                txt = dom.createTextNode(warns[source_file][i])
+                                txt = dom.createTextNode(warns[src_file][i])
                                 warn.appendChild(txt)
                                 warn.setAttribute('key', 'warning')
                                 # Add warning either to edge itself or to first edge with note at violation path. If
@@ -350,11 +350,11 @@ class ABKM(core.components.Component):
 
                     # TODO: copy is done just to create unsafe report later, so get rid of it sometime.
                     # Copy all source files referred by error trace to working directory.
-                    if source_files:
-                        self.logger.debug('Source files referred by error trace are: "{}"'.format(source_files))
-                        for source_file in source_files:
-                            os.makedirs(os.path.dirname(source_file), exist_ok=True)
-                            shutil.copy(os.path.join(self.conf['source tree root'], source_file), source_file)
+                    if src_files:
+                        self.logger.debug('Source files referred by error trace are: "{}"'.format(src_files))
+                        for src_file in src_files:
+                            os.makedirs(os.path.dirname(src_file), exist_ok=True)
+                            shutil.copy(os.path.join(self.conf['source tree root'], src_file), src_file)
 
                     core.utils.report(self.logger,
                                       'unsafe',
@@ -363,7 +363,7 @@ class ABKM(core.components.Component):
                                           'parent id': self.task_desc['id'],
                                           'attrs': [],
                                           'error trace': 'witness.processed.graphml',
-                                          'files': ['witness.processed.graphml'] + list(source_files)
+                                          'files': ['witness.processed.graphml'] + list(src_files)
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
