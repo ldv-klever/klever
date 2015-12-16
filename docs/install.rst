@@ -133,8 +133,13 @@ Update for development purposes
 TODO: Update for production purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Install Cloud tools
--------------------
+Klever Core installation
+------------------------
+
+Enjoy!
+
+TODO: Install Cloud tools
+-------------------------
 
 Cloud tools after all requirements installation do not need specific installation, but each tool requires configuration
 file to prepare. All tools have section *common* in corresponfing configuration files. The following configuration
@@ -198,8 +203,3 @@ It is recommended to set up manually the following configuration properties:
 
   * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
   * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
-
-Klever Core installation
-------------------------
-
-Enjoy!
