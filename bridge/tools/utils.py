@@ -22,13 +22,14 @@ def clear_job_files():
         else:
             file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))
             files_in_the_system.append(file_path)
-            if not(os.path.isfile(file_path) and os.path.exists(file_path)):
+            if not(os.path.exists(file_path) and os.path.isfile(file_path)):
                 print_err('Deleted from DB (file not exists): %s' % f.file.name)
                 f.delete()
     files_directory = os.path.join(MEDIA_ROOT, JOBFILE_DIR)
-    for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
-        if f not in files_in_the_system:
-            os.remove(f)
+    if os.path.exists(files_directory):
+        for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
+            if f not in files_in_the_system:
+                os.remove(f)
 
 
 def clear_service_files():
@@ -39,9 +40,10 @@ def clear_service_files():
     for s in Task.objects.all():
         files_in_the_system.append(os.path.abspath(os.path.join(MEDIA_ROOT, s.archive.name)))
     files_directory = os.path.join(MEDIA_ROOT, FILE_DIR)
-    for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
-        if f not in files_in_the_system:
-            os.remove(f)
+    if os.path.exists(files_directory):
+        for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
+            if f not in files_in_the_system:
+                os.remove(f)
 
 
 def clear_resources():
