@@ -148,11 +148,12 @@ Klever Bridge run/debug configuration
 
 #. Select :menuselection:`Django server`.
 #. Input *Bridge* in field :guilabel:`Name`.
-#. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge in the local network.
+#. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge to the local network.
 #. Specify *8998* in field :guilabel:`Port`.
 #. :menuselection:`OK`.
 
-.. note:: To make your Klever Bridge accessible from the local network you might need to set up your firewall accordingly.
+.. note:: To make your Klever Bridge accessible from the local network you might need to set up your firewall
+          accordingly.
 
 Klever Core run/debug configuration
 """""""""""""""""""""""""""""""""""
