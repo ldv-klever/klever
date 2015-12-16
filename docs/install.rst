@@ -28,7 +28,7 @@ Klever Bridge installation
     MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
     MariaDB [(none)]> FLUSH PRIVILEGES;
 
-#. Create :file:`Bridge/Bridge/db.cnf`::
+#. Create :file:`bridge/bridge/mysql-db.cnf`::
 
     [client]
     database = db_name
