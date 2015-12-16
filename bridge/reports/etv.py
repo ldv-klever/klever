@@ -1,7 +1,7 @@
 import re
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from Bridge.utils import print_err
+from bridge.utils import print_err
 from reports.models import ReportUnsafe
 from reports.graphml_parser import GraphMLParser
 

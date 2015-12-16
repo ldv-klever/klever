@@ -3,13 +3,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
-from Bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
+from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.utils import get_resource_data
 from reports.models import ReportComponent, Attr, AttrName
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from marks.models import UnknownProblem
-from Bridge.tableHead import Header
+from bridge.tableHead import Header
 
 
 REP_MARK_TITLES = {

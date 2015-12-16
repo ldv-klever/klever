@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from Bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.models import File, Job
 
 LOG_DIR = 'ReportLogs'

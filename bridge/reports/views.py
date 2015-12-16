@@ -2,8 +2,8 @@ from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
-from Bridge.vars import JOB_STATUS
-from Bridge.utils import unparallel_group, print_err
+from bridge.vars import JOB_STATUS
+from bridge.utils import unparallel_group, print_err
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable

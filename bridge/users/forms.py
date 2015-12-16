@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from users.models import Extended
-from Bridge.settings import DEF_USER_ACCURACY
+from bridge.settings import DEF_USER_ACCURACY
 
 
 class UserForm(forms.ModelForm):

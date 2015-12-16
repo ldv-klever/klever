@@ -3,7 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
-from Bridge.vars import VIEWJOB_DEF_VIEW
+from bridge.vars import VIEWJOB_DEF_VIEW
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
 
 

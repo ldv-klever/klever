@@ -11,8 +11,8 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
-from Bridge.vars import LANGUAGES, SCHEDULER_TYPE
-from Bridge.settings import DEF_USER_TIMEZONE
+from bridge.vars import LANGUAGES, SCHEDULER_TYPE
+from bridge.settings import DEF_USER_TIMEZONE
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
 from jobs.models import Job

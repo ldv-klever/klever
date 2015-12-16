@@ -1,6 +1,6 @@
 import time
 from django.utils.timezone import now
-from Bridge.settings import DEBUG
+from bridge.settings import DEBUG
 
 BLOCKER = {}
 GROUP_BLOCKER = {}

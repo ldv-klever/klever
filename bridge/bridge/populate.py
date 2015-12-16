@@ -9,9 +9,9 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import override
 from django.utils.timezone import now
-from Bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, FORMAT, MARK_STATUS
-from Bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
-from Bridge.utils import print_err
+from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, FORMAT, MARK_STATUS
+from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
+from bridge.utils import print_err
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job, File

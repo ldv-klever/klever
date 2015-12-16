@@ -3,8 +3,8 @@ import json
 from django.db.models import Q, ProtectedError
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from Bridge.settings import MEDIA_ROOT
-from Bridge.utils import print_err
+from bridge.settings import MEDIA_ROOT
+from bridge.utils import print_err
 from reports.models import *
 from marks.models import ReportUnsafeTag, UnsafeReportTag, MarkUnsafeReport,\
     ReportSafeTag, SafeReportTag, MarkSafeReport, MarkUnknownReport, ComponentMarkUnknownProblem, UnknownProblem

@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404, render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
-from Bridge.vars import VIEW_TYPES, PRIORITY
-from Bridge.utils import unparallel, unparallel_group
+from bridge.vars import VIEW_TYPES, PRIORITY
+from bridge.utils import unparallel, unparallel_group
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree

@@ -2,8 +2,8 @@ from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
-from Bridge.formatChecker import RestrictedFileField
-from Bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
+from bridge.formatChecker import RestrictedFileField
+from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
 from jobs.models import Job
 
 FILE_DIR = 'Service'

@@ -9,8 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
-from Bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, PRIORITY
-from Bridge.utils import print_err
+from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, PRIORITY
+from bridge.utils import print_err
 from jobs.models import Job, File, JOBFILE_DIR
 from jobs.utils import create_job, update_job
 from reports.models import ReportComponent, ReportUnsafe, ReportSafe, ReportUnknown, ReportRoot

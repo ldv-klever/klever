@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
-from Bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
+from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
 from jobs.models import Job
 from marks.models import ReportSafeTag, ReportUnsafeTag,\
     ComponentMarkUnknownProblem

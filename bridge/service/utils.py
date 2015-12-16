@@ -2,9 +2,9 @@ import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
-from Bridge.vars import JOB_STATUS
-from Bridge.utils import print_err
-from Bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_FORMATTERS, DEF_KLEVER_CORE_CONFIGURATION,\
+from bridge.vars import JOB_STATUS
+from bridge.utils import print_err
+from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_FORMATTERS, DEF_KLEVER_CORE_CONFIGURATION,\
     DEF_LINUX_KERNEL_BUILD_PARALLELISM
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown

@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from Bridge.vars import FORMAT, JOB_CLASSES, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
+from bridge.vars import FORMAT, JOB_CLASSES, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent,\
     Component, ReportUnknown, AttrName
 from jobs.models import Job

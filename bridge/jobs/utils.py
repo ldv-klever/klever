@@ -5,8 +5,8 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
-from Bridge.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
-from Bridge.utils import print_err
+from bridge.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from bridge.utils import print_err
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
 

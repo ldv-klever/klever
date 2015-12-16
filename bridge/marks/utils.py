@@ -7,8 +7,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from Bridge.vars import USER_ROLES, JOB_ROLES
-from Bridge.utils import print_err
+from bridge.vars import USER_ROLES, JOB_ROLES
+from bridge.utils import print_err
 from marks.models import *
 from reports.models import ReportComponent, Attr, AttrName
 from marks.ConvertTrace import ConvertTrace

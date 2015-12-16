@@ -4,9 +4,9 @@ from django.core.urlresolvers import reverse
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
-from Bridge.populate import Population
-from Bridge.vars import ERRORS, USER_ROLES
-from Bridge.utils import unparallel
+from bridge.populate import Population
+from bridge.vars import ERRORS, USER_ROLES
+from bridge.utils import unparallel
 from users.models import Extended
 
 

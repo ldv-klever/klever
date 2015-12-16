@@ -1,7 +1,7 @@
 from django.conf.urls import include, url
 from django.contrib import admin
 from django.conf import settings
-from Bridge import views
+from bridge import views
 
 urlpatterns = [
     url(r'^i18n/', include('django.conf.urls.i18n')),

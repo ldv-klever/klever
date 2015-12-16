@@ -60,7 +60,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
 )
 
-ROOT_URLCONF = 'Bridge.urls'
+ROOT_URLCONF = 'bridge.urls'
 
 TEMPLATES = [
     {
@@ -79,9 +79,9 @@ TEMPLATES = [
     },
 ]
 
-# TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'Bridge/templates'),)
+# TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'bridge/templates'),)
 
-WSGI_APPLICATION = 'Bridge.wsgi.application'
+WSGI_APPLICATION = 'bridge.wsgi.application'
 
 
 # Database
@@ -90,7 +90,7 @@ WSGI_APPLICATION = 'Bridge.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'Bridge/db.cnf')},
+        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'bridge/db.cnf')},
     }
 }
 
@@ -147,13 +147,13 @@ DEF_KLEVER_CORE_FORMATTERS = {
 DEF_KLEVER_CORE_CONFIGURATION = {
     'debug': True,
     'allow_local_dir': True,  # Allow use of local source directories
-    'priority': 'IDLE',  # See Bridge.vars.PRIORITY for more options
+    'priority': 'IDLE',  # See bridge.vars.PRIORITY for more options
     'avtg_priority': 'balance'  # See service.utils.AVTG_PRIORITY for more options
 }
 
-DEF_USER_DATAFORMAT = 'hum'  # See Bridge.vars.DATAFORMAT for options
+DEF_USER_DATAFORMAT = 'hum'  # See bridge.vars.DATAFORMAT for options
 
-DEF_USER_LANGUAGE = 'en'  # See Bridge.vars.LANGUAGES for options
+DEF_USER_LANGUAGE = 'en'  # See bridge.vars.LANGUAGES for options
 
 DEF_USER_TIMEZONE = 'Europe/Moscow'  # See pytz.common_timezones for options
 

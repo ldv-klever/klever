@@ -5,8 +5,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, activate
-from Bridge.vars import JOB_ROLES, USER_ROLES
-from Bridge.utils import print_err
+from bridge.vars import JOB_ROLES, USER_ROLES
+from bridge.utils import print_err
 from jobs.models import Job
 
 

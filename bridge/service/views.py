@@ -6,8 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
-from Bridge.vars import USER_ROLES
-from Bridge.utils import unparallel_group, unparallel
+from bridge.vars import USER_ROLES
+from bridge.utils import unparallel_group, unparallel
 from service.utils import *
 from service.test import *
 

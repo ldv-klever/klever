@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.timezone import now
-from Bridge.vars import JOB_STATUS
+from bridge.vars import JOB_STATUS
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks

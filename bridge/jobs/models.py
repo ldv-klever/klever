@@ -2,8 +2,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from Bridge.formatChecker import RestrictedFileField
-from Bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
+from bridge.formatChecker import RestrictedFileField
+from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
 
 
 JOBFILE_DIR = 'Files'

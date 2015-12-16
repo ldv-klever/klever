@@ -9,8 +9,8 @@ from django.shortcuts import render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
-from Bridge.vars import USER_ROLES
-from Bridge.utils import print_err, unparallel_group, unparallel
+from bridge.vars import USER_ROLES
+from bridge.utils import print_err, unparallel_group, unparallel
 from users.models import View
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, TagsInfo, DeleteMark
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList

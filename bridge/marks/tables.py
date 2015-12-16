@@ -3,8 +3,8 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
-from Bridge.tableHead import Header
-from Bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW
+from bridge.tableHead import Header
+from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW
 from marks.models import *
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE

@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
-from Bridge.vars import LANGUAGES, USER_ROLES, VIEW_TYPES, DATAFORMAT
-from Bridge.settings import DEF_USER_DATAFORMAT, DEF_USER_LANGUAGE, DEF_USER_TIMEZONE, DEF_USER_ACCURACY
+from bridge.vars import LANGUAGES, USER_ROLES, VIEW_TYPES, DATAFORMAT
+from bridge.settings import DEF_USER_DATAFORMAT, DEF_USER_LANGUAGE, DEF_USER_TIMEZONE, DEF_USER_ACCURACY
 
 
 class Extended(models.Model):
