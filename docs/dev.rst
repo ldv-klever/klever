@@ -61,14 +61,15 @@ Update
 Fixing bugs and implementing new features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. One must create a new branch to fix/implement each individual bug or new feature::
+#. One must create a new branch to fix each individual bug or implement a new feature::
 
     master $ git checkout -b fix-conf
 
-   .. warning:: Do not intermix fixes and implementations of completely different bugs and features in one branch.
-                Otherwise users will need to wait or to make some tricky things like cherry-picking and merging of
-                non-master branches.
-                Eventually this can lead to very unpleasant consequences, e.g. the master branch can be broken.
+   .. warning:: Do not intermix fixes and implementation of completely different bugs and features into one branch.
+                Otherwise other developers will need to wait or to make some tricky things like cherry-picking and
+                merging of non-master branches.
+                Eventually this can lead to very unpleasant consequences, e.g. the master branch can be broken because
+                of one will suddenly add bad code their by merging his/her branch based on another non working branch.
 
    .. note:: Trivial bugs/features can be fixed/implemented directly in the master branch.
              Most likely you will not have any conflict but you will save some time.
@@ -84,12 +85,14 @@ Fixing bugs and implementing new features
 
    .. note:: Do not forget to update the master branch from the main developer repository.
 
+   .. note:: Do not merge remote-tracking branches.
+
 #. Merge branches to the master branch when corresponding bugs/features are fixed/implemented::
 
     fix-conf $ git checkout master
     master $ git merge fix-conf
 
-   .. note:: Do not forget to update the master branch from the main developer repository.
+   .. note:: Do not forget to update the master branch from the main developer repository before merging.
 
 #. Push the master branch to the main developer repository::
 
