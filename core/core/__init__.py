@@ -292,7 +292,7 @@ class Core:
         self.logger.info('Create components configuration')
 
         # Components configuration is based on job configuration.
-        with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'conf.json')) as fp:
+        with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json')) as fp:
             self.components_conf = json.load(fp)
 
         # Convert list of primitive dictionaries to one dictionary to simplify code below.
