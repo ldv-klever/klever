@@ -42,7 +42,7 @@ This section describes just rules specific for the given project.
 Update
 ^^^^^^
 
-#. Periodically synchronize your local repository with the main developer repository::
+#. Periodically synchronize your local repository with the main development repository::
 
     branch $ git fetch origin
     branch $ git remote prune origin
@@ -74,7 +74,7 @@ Fixing bugs and implementing new features
    .. note:: Trivial bugs/features can be fixed/implemented directly in the master branch.
              Most likely you will not have any conflict but you will save some time.
 
-#. Push all new branches to the main developer repository.
+#. Push all new branches to the main development repository.
    As well re-push them at least one time a day if you make some commits::
 
     fix-conf $ git push origin fix-conf
@@ -83,7 +83,7 @@ Fixing bugs and implementing new features
 
     fix-conf $ git merge master
 
-   .. note:: Do not forget to update the master branch from the main developer repository.
+   .. note:: Do not forget to update the master branch from the main development repository.
 
    .. note:: Do not merge remote-tracking branches.
 
@@ -92,9 +92,9 @@ Fixing bugs and implementing new features
     fix-conf $ git checkout master
     master $ git merge fix-conf
 
-   .. note:: Do not forget to update the master branch from the main developer repository before merging.
+   .. note:: Do not forget to update the master branch from the main development repository before merging.
 
-#. Push the master branch to the main developer repository::
+#. Push the master branch to the main development repository::
 
     master $ git push origin master
 
