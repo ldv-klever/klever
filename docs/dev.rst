@@ -136,7 +136,7 @@ Configuring the Python interpreter
 #. Select Python 3.4.x from the list and press :kbd:`Enter`.
 #. Input *Python 3.4* in field :guilabel:`name`.
 #. :menuselection:`OK`.
-#. Ditto for *Core*, *Scheduler* and *docs*.
+#. Ditto for *core*, *docs* and *scheduler*.
 
 Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
