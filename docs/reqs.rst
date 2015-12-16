@@ -20,7 +20,7 @@ To run Klever Bridge you need:
   * `pytz <http://pythonhosted.org/pytz/>`_.
 
     .. note:: The corresponding openSUSE RPM package is likely broken since it couldn't be updated properly.
-              Please, uninstall it and the *pytz* python package and install the latest version of *pytz*.
+              Please, uninstall it and install the latest version of *pytz*.
 
   * `mysqlclient <https://github.com/PyMySQL/mysqlclient-python>`_ (requires Python and MySQL development headers and
     libraries).
