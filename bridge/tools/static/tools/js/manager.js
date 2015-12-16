@@ -108,7 +108,9 @@ $(document).ready(function () {
                     success_notify(data.message);
                 }
             }
-        );
+        ).fail(function (x) {
+            console.log(x.responseText);
+        });
     });
     $('#recalc_for_all_jobs_checkbox').checkbox({
         onChecked: function () {
