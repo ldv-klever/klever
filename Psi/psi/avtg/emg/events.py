@@ -26,7 +26,11 @@ class EventModel:
 
         # Generate intermediate model
         self.logger.info("Generate an intermediate model")
-        self.__complete_model()
+        self.__select_processes_and_models()
+
+        # Fill all signatures carefully
+        self.logger.info("Assign process signatures")
+        self.__assign_signatures()
 
     def __import_processes(self, raw, category):
         if "kernel model" in raw:
@@ -36,7 +40,7 @@ class EventModel:
                     process = Process(name, raw[category][name_list])
                     self.events[category][name] = process
 
-    def __complete_model(self):
+    def __select_processes_and_models(self):
         # Import necessary kernel models
         self.logger.info("First, add relevant models of kernel functions")
         self.__import_kernel_models()
@@ -45,16 +49,22 @@ class EventModel:
             uncalled_callbacks = self.__get_uncalled_callbacks(category)
             if uncalled_callbacks:
                 self.logger.info("Try to find processes to call callbacks from interface category {}".format(category))
-                self.__choose_processes(category)
+                new = self.__choose_processes(category)
+
+                # Sanity check
+                uncalled_callbacks = self.__get_uncalled_callbacks(category)
+                if uncalled_callbacks:
+                    names = str([callback.full_identifier for callback in uncalled_callbacks])
+                    raise RuntimeError("There are callbacks from category {} which are not called at all in the "
+                                       "model: {}".format(category, names))
+
+                if new.unmatched_dispatches or new.unmatched_receives:
+                    self.logger.info("Added process {} have unmatched signals, need to find factory or registration "
+                                     "and deregistration functions")
+                    self.__establish_signal_peers(new)
             else:
                 self.logger.info("Ignore interface category {}, since it does not have callbacks to call".
                                  format(category))
-        success = True
-        while(success):
-            success = self.__peer_check(self.model["models"])
-            success = self.__peer_check(self.model["processes"]) or success
-
-        return
 
     def __import_kernel_models(self):
         for function in self.events["kernel model"]:
@@ -101,8 +111,9 @@ class EventModel:
         for process in [self.events["environment processes"][name] for name in estimations]:
             label_map = estimations[process.name]
             if label_map and len(label_map["matched callbacks"]) > 0:
-                if (len(label_map["unmatched labels"]) == 0 \
-                        and (not best_process or len(process.subprocesses) > len(best_process.subprocesses)))\
+                if (len(label_map["unmatched labels"]) == 0\
+                        and (not best_process or len(process.subprocesses) > len(best_process.subprocesses))
+                        and label_map["native interfaces"] >= best_map["native interfaces"])\
                         or label_map["native interfaces"] > best_map["native interfaces"]:
                     best_map = label_map
                     best_process = process
@@ -111,7 +122,7 @@ class EventModel:
             raise RuntimeError("Cannot find suitable process in event categories specification for category {}"
                                .format(category))
         else:
-            new = self.__add_process_with_map(best_process, best_map)
+            new = self.__add_process(best_process, False, best_map)
             return new
 
     def __estimate_processes(self, category):
@@ -122,7 +133,7 @@ class EventModel:
             maps[process.name] = self.__match_labels(process, category)
         return maps
 
-    def __add_process(self, process, model=False):
+    def __add_process(self, process, model=False, label_map=None, peer=None):
         self.logger.info("Add process {} to the model".format(process.name))
         self.logger.debug("Make process {} copy before adding to the model".format(process.name))
         new = copy.deepcopy(process)
@@ -141,57 +152,18 @@ class EventModel:
         else:
             self.model["processes"].append(new)
 
-        self.logger.info("Check is there exist any dispatches or receives after process addiction to tie".
-                         format(process.name))
-        self.__normalize_model()
-        return new
+        if label_map:
+            self.logger.debug("Set interfaces for given labels")
+            for label in label_map["matched labels"]:
+                new.labels[label].interface = label_map["matched labels"][label]
 
-    def __add_process_peered(self, process, peered):
-        self.logger.info("Add process {} to the model".format(process.name))
-        self.logger.debug("Make process {} copy before adding to the model".format(process.name))
-        new = copy.deepcopy(process)
-
-        # Keep signature and interface references
-        for label in new.labels:
-            self.logger.debug("Copy signature reference to label {} from original prcess {} to its copy".
-                              format(label, process.name))
-            new.labels[label].signature = process.labels[label].signature
-
-        new.identifier = len(self.model["models"]) + len(self.model["processes"])
-        self.logger.info("Finally add process {} to the model with identifier {}".
-                         format(process.name, process.identifier))
-
-        self.logger.debug("Tie new process with given {}".format(peered.name))
-        peered.establish_peers(new)
+        if peer:
+            self.logger.debug("Match signals with signals of process {} with identifier {}".
+                              format(peer.name, peer.identifier))
+            new.establish_peers(peer)
 
         self.logger.info("Check is there exist any dispatches or receives after process addiction to tie".
                          format(process.name))
-        self.model["processes"].append(new)
-        self.__normalize_model()
-        return new
-
-    def __add_process_with_map(self, process, label_map):
-        self.logger.info("Add process {} to the model".format(process.name))
-        self.logger.debug("Make process {} copy before adding to the model".format(process.name))
-        new = copy.deepcopy(process)
-
-        # Keep signature and interface references
-        for label in new.labels:
-            self.logger.debug("Copy signature reference to label {} from original prcess {} to its copy".
-                              format(label, process.name))
-            new.labels[label].signature = process.labels[label].signature
-
-        new.identifier = len(self.model["models"]) + len(self.model["processes"])
-        self.logger.info("Finally add process {} to the model with identifier {}".
-                         format(process.name, process.identifier))
-
-        self.logger.debug("Set interfaces for given labels")
-        for label in label_map["matched labels"]:
-            new.labels[label].interface = label_map["matched labels"][label]
-
-        self.logger.info("Check is there exist any dispatches or receives after process addiction to tie".
-                         format(process.name))
-        self.model["processes"].append(new)
         self.__normalize_model()
         return new
 
@@ -222,6 +194,8 @@ class EventModel:
                        [process for process in self.model["processes"]]:
             self.logger.debug("Check process callback calls at process {} with identifier {}".
                               format(process.name, process.identifier))
+
+            called = []
             for callback_name in set([process.subprocesses[name].callback for name in process.subprocesses
                                       if process.subprocesses[name].callback
                                       and process.subprocesses[name].type == "dispatch"]):
@@ -237,22 +211,16 @@ class EventModel:
                     for interface in [self.analysis.interfaces[name] for name in intfs]:
                         if interface.container and len(tail) > 0:
                             intfs = self.__resolve_interface(interface, tail)
-                            if intfs and len(intfs) > 1:
-                                callback = intfs[-1]
+                            if intfs and intfs[-1] not in called:
+                                intfs[-1].called_in_model = True
                             else:
                                 self.logger.warning("Cannot resolve callback '{}' in description of process '{}'".
                                                     format(callback_name, process.name))
-                        elif interface.callback:
-                            callback = interface
+                        elif interface.callback and interface not in called:
+                            interface.called_in_model = True
                         else:
                             raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
                                              format(callback_name, process.name))
-
-                # If it is exact callback
-                self.logger.debug("Callback {} can be called within process {} with identifier {}".
-                                  format(callback.full_identifier, process.name, process.identifier))
-                if callback and not callback.called_in_model:
-                    callback.called_in_model = True
 
     def __match_labels(self, process, category):
         label_map = {
@@ -316,7 +284,7 @@ class EventModel:
                             self.logger.debug("Try to match parameters of function '{}'".
                                               format(function.full_identifier))
                             for parameter in subprocess.parameters:
-                                pl, tail = process.extract_label_with_tail(parameter)
+                                pl = process.extract_label(parameter)
 
                                 for pr in function.signature.parameters:
                                     if pr.interface and pr.interface.resource and pl.resource \
@@ -418,22 +386,64 @@ class EventModel:
 
         return matched
 
-    def __peer_check(self, collection):
-        success = False
-        for process in collection:
-            if len(process.unmatched_dispatches) > 0 or len(process.unmatched_receives) > 0:
-                peer = None
-                max_peer = 0
-                for ep in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
-                    peers = len(process.get_available_peers(ep))
-                    if max_peer < peers:
-                        peer = ep
-                        max_peer = peers
-                if peer:
-                    new = self.__add_process_peered(peer, process)
-                    if new:
-                        success = True
-        return success
+    def __establish_signal_peers(self, process):
+        for candidate in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
+            peers = process.get_available_peers(candidate)
+            if peers:
+                self.logger.debug("Establish signal references between process {} with identifier {} and process {}".
+                                  format(process.name, process.identifier, candidate.name))
+                new = self.__add_process(candidate, model=False, label_map=None, peer=process)
+                if new.unmatched_receives or new.unmatched_dispatches:
+                    self.__establish_signal_peers(new)
+
+        if process.unmatched_receives:
+            for receive in process.unmatched_receives:
+                if receive.name == "register":
+                    pass
+                elif receive.name == "deregister":
+                    pass
+                else:
+                    self.logger.warning("Signal {} cannot be received by process {} with identifier {}, "
+                                        "since nobody can send it".
+                                        format(receive.name, process.name, process.identifier))
+        for dispatch in process.unmatched_dispatches:
+            self.logger.warning("Signal {} cannot be send by process {} with identifier {}, "
+                                "since nobody can receive it".format(dispatch.name, process.name, process.identifier))
+
+    def __assign_signatures(self):
+        for process in self.model["models"] + self.model["processes"]:
+            self.logger.debug("Analyze signatures of process {} with an identifier {}".
+                              format(process.name, process.identifier))
+            for subprocess in [process.subprocesses[name] for name in process.subprocesses
+                               if process.subprocesses[name].type in ["dispatch", "receive"]]:
+                for peer in subprocess.peers:
+                    peer_subprocess = peer["process"].subprocesses[peer["subprocess"]]
+                    if peer["process"].name in self.events["kernel model"]:
+                        for index in range(len(peer_subprocess.parameters)):
+                            peer_parameter = peer_subprocess.parameters[index]
+                            peer_label = peer["process"].extract_label(peer_parameter)
+                            parameter = subprocess.parameters[index]
+                            label = process.extract_label(parameter)
+                            if label and peer_label and label.signature:
+                                if not peer_label.signature.compare_signature(label.signature):
+                                    raise ValueError("Sgnatures of parameters at {} position of subprocess {} from "
+                                                     "process {} with an identifier {} and same subprocess from process"
+                                                     " {} with an identifier {} should be equal".
+                                                     format(index, subprocess.name, process.name, process.identifier,
+                                                            peer["process"].name, peer["process"].identifier))
+                            elif label and peer_label and not label.signature:
+                                label.signature = peer_label.signature
+                    else:
+                        for index in range(len(peer_subprocess.parameters)):
+                            peer_parameter = peer_subprocess.parameters[index]
+                            peer_label = peer["process"].extract_label(peer_parameter)
+                            parameter = subprocess.parameters[index]
+                            label = process.extract_label(parameter)
+                            if label and peer_label:
+                                peer_label.signature = label.signature
+
+
+
 
 
 class Label:
@@ -581,7 +591,7 @@ class Process:
                      if not self.labels[label].interface and not self.labels[label].signature]
         return unmatched
 
-    def _extract_label(self, string):
+    def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
         return name
 
@@ -600,8 +610,8 @@ class Process:
         peers = self.get_available_peers(process)
         for signals in peers:
             for index in range(len(self.subprocesses[signals[0]].parameters)):
-                label1 = self._extract_label(self.subprocesses[signals[0]].parameters[index])
-                label2 = process._extract_label(process.subprocesses[signals[1]].parameters[index])
+                label1 = self.extract_label(self.subprocesses[signals[0]].parameters[index])
+                label2 = process.extract_label(process.subprocesses[signals[1]].parameters[index])
 
                 if (label1.interface or label2.interface) and not (label1.interface and label2.interface):
                     if label1.interface:
@@ -618,28 +628,28 @@ class Process:
         # Match dispatches
         for dispatch in self.unmatched_dispatches:
             for receive in process.unmatched_receives:
-                match = self.compare_params(process, dispatch, receive)
+                match = self.__compare_signals(process, dispatch, receive)
                 if match:
                     ret.append([dispatch.name, receive.name])
 
         # Match receives
         for receive in self.unmatched_receives:
             for dispatch in process.unmatched_dispatches:
-                match = self.compare_params(process, receive, dispatch)
+                match = self.__compare_signals(process, receive, dispatch)
                 if match:
                     ret.append([receive.name, dispatch.name])
 
         return ret
 
-    def compare_params(self, process, first, second):
+    def __compare_signals(self, process, first, second):
         if first.name == second.name and len(first.parameters) == len(second.parameters):
             match = True
             for index in range(len(first.parameters)):
-                label = self._extract_label(first.parameters[index])
+                label = self.extract_label(first.parameters[index])
                 if not label:
                     raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
                                      format(first.name, index, self.name))
-                pair = process._extract_label(second.parameters[index])
+                pair = process.extract_label(second.parameters[index])
                 if not pair:
                     raise ValueError("Provide label in subprocess '{}' at position '{}'".
                                      format(second.name, index, process.name))
@@ -651,6 +661,7 @@ class Process:
             return match
         else:
             return False
+
 
 class Subprocess(Process):
 
