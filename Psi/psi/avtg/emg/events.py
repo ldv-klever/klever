@@ -424,14 +424,14 @@ class EventModel:
                             peer_label = peer["process"].extract_label(peer_parameter)
                             parameter = subprocess.parameters[index]
                             label = process.extract_label(parameter)
-                            if label and peer_label and label.signature:
+                            if label and peer_label and label.signature and peer_label.signature:
                                 if not peer_label.signature.compare_signature(label.signature):
                                     raise ValueError("Sgnatures of parameters at {} position of subprocess {} from "
                                                      "process {} with an identifier {} and same subprocess from process"
                                                      " {} with an identifier {} should be equal".
                                                      format(index, subprocess.name, process.name, process.identifier,
                                                             peer["process"].name, peer["process"].identifier))
-                            elif label and peer_label and not label.signature:
+                            elif label and peer_label and not label.signature and peer_label.signature:
                                 label.signature = peer_label.signature
                     else:
                         for index in range(len(peer_subprocess.parameters)):

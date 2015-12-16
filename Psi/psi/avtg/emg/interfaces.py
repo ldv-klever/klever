@@ -517,23 +517,37 @@ class ModuleSpecification(CategorySpecification):
 
     def __mark_existing_interfaces(self):
         self.logger.debug("Mark already described kernel functions as existing interfaces")
+        structs_and_funcs = [self.interfaces[name] for name in self.interfaces
+                             if self.interfaces[name].signature.type_class == "struct" or
+                             self.interfaces[name].signature.type_class == "function"]
 
         self.logger.debug("Mark function arguments of already described kernel functions as existing interfaces")
         for function in self.analysis["kernel functions"]:
+            function_signature = self.analysis["kernel functions"][function]["signature"]
             if function in self.kernel_functions:
-                self.analysis["kernel functions"][function]["signature"].interface = self.kernel_functions[function]
-                if self.analysis["kernel functions"][function]["signature"].return_value and \
-                   not self.analysis["kernel functions"][function]["signature"].return_value.interface and \
-                   self.kernel_functions[function].signature.return_value and \
-                   self.kernel_functions[function].signature.return_value.interface:
-                    self.analysis["kernel functions"][function]["signature"].return_value.interface = \
-                        self.kernel_functions[function].signature.return_value.interface
+                existing_signature = self.kernel_functions[function].signature
+                function_signature.interface = self.kernel_functions[function]
+                if function_signature.return_value and not function_signature.return_value.interface and \
+                   existing_signature.return_value and existing_signature.return_value.interface:
+                    function_signature.return_value.interface = existing_signature.return_value.interface
 
-                for index in range(len(self.analysis["kernel functions"][function]["signature"].parameters)):
-                    if not self.analysis["kernel functions"][function]["signature"].parameters[index].interface and \
-                       self.kernel_functions[function].signature.parameters[index].interface:
-                        self.analysis["kernel functions"][function]["signature"].parameters[index].interface = \
-                            self.kernel_functions[function].signature.parameters[index].interface
+                for index in range(len(function_signature.parameters)):
+                    if not function_signature.parameters[index].interface and \
+                       existing_signature.parameters[index].interface:
+                        function_signature.parameters[index].interface = existing_signature.parameters[index].interface
+            else:
+                if not function_signature.return_value.interface:
+                    for intf in structs_and_funcs:
+                        if intf.signature.compare_signature(function_signature.return_value):
+                            function_signature.return_value.interface = intf
+                            break
+                for parameter in function_signature.parameters:
+                    if not parameter.interface:
+                        for intf in structs_and_funcs:
+                            if intf.signature.compare_signature(parameter):
+                                parameter.interface = intf
+                                break
+
         self.logger.debug("Mark already described containers as existing interfaces")
         for path in self.analysis["global variable initializations"]:
             for variable in self.analysis["global variable initializations"][path]:
@@ -641,18 +655,24 @@ class Signature:
 
         if self.expression != signature.expression:
             if self.type_class == "function":
-                if self.return_value.compare_signature(signature.return_value):
-                    if len(self.parameters) == len(signature.parameters):
-                        for param in range(len(self.parameters)):
-                            if not self.parameters[param].compare_signature(signature.parameters[param]):
-                                return False
-                        return True
-                    else:
-                        return False
+                if self.return_value and signature.return_value \
+                        and not self.return_value.compare_signature(signature.return_value):
+                    return False
+                elif (self.return_value and not signature.return_value) or \
+                        (not self.return_value and signature.return_value):
+                    return False
+
+                if len(self.parameters) == len(signature.parameters):
+                    for param in range(len(self.parameters)):
+                        if not self.parameters[param].compare_signature(signature.parameters[param]):
+                            return False
+                    return True
                 else:
                     return False
             elif self.type_class == "struct":
-                if len(self.fields.keys()) > 0 and len(signature.fields.keys()) > 0 \
+                if self.structure_name == signature.structure_name:
+                    return True
+                elif len(self.fields.keys()) > 0 and len(signature.fields.keys()) > 0 \
                         and len(set(signature.fields.keys()).intersection(self.fields.keys())) > 0:
                     for param in self.fields:
                         if param in signature.fields:
@@ -782,7 +802,7 @@ class Signature:
         if args != "void":
             for arg in args.split(", "):
                 if arg in ["$", "..."] or "%" not in arg:
-                    self.parameters.append("None")
+                    self.parameters.append(None)
                 else:
                     self.parameters.append(Signature(arg))
 
