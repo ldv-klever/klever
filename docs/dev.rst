@@ -186,6 +186,17 @@ Documentation run/debug configuration
    :guilabel:`Working directory`.
 #. :menuselection:`OK`.
 
+Additional documentation
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
+available at the official `PyCharm documentation site <https://www.jetbrains.com/pycharm/documentation/>`_.
+
+TODO
+----
+
+The rest should be totally revised!
+
 Creating Klever Core working directory
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -215,7 +226,7 @@ Run
 
 To run press :kbd:`Shift+F10`.
 
-.. note:: If Klever Core will fatally fail or you will hardly kill Klever Core, you might need to manually remove
+.. note:: If Klever Core will fatally fail or you will hardly kill Klever Core, you might need to manually remove file
           :file:`is solving` inside **work_dir** to run Klever Core fot the next time.
 
 Debug
@@ -230,12 +241,6 @@ To run manage.py tasks:
 
 #. :menuselection:`Tools --> Run manage.py Task...`.
 #. Some manage.py tasks are described in the :ref:`klever-bridge-install` section.
-
-Additional documentation
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
-available at the official `PyCharm documentation site <https://www.jetbrains.com/pycharm/documentation/>`_.
 
 Run cloud tools in PyCharm
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
