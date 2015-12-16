@@ -126,7 +126,7 @@ Setting project
 At the "Welcome to PyCharm" window:
 
 #. :menuselection:`Open`.
-#. Specify :file:`Bridge`.
+#. Specify the absolute path to directory :file:`bridge` from the root directory of the main development repository.
 #. :menuselection:`OK`.
 
 Configuring the Python interpreter
