@@ -10,7 +10,7 @@ Documentation installation
 
     $ make -C docs html
 
-#. Find the generated documenation index in :file:`docs/_build/index.html`.
+#. Open generated documenation index :file:`docs/_build/index.html`.
 
 .. _klever-bridge-install:
 
@@ -45,17 +45,16 @@ Klever Bridge installation
 
    .. note:: Execution of :command:`manage.py migrate` can take quite much time.
 
-#. The last command will prompt you to create an Klever Bridge administrator **klever_bridge_admin** identified by a
+#. The last command will prompt you to create a Klever Bridge administrator **klever_bridge_admin** identified by a
    password **klever_bridge_admin_passwd**.
    An email address could be omitted.
-
 #. Proceed with either :ref:`klever-bridge-dev-install` or :ref:`klever-bridge-production-install`.
 #. Sign in at `<http://127.0.0.1:8998/>`_ with username (**klever_bridge_admin**) and password
    (**klever_bridge_admin_passwd**).
 #. Create a new Klever Bridge Manager (**klever_bridge_manager**) and a new service user
    (**klever_bridge_service_user**).
 #. Remember their passwords (**klever_bridge_manager_passwd** and **klever_bridge_service_user_passwd** respectively).
-#. Sign out and sign in on behalf of **klever_bridge_manager**.
+#. Sign out and sign in on behalf of **klever_bridge_manager** with password **klever_bridge_manager_passwd**.
 #. Enjoy!
 
 .. _klever-bridge-dev-install:
@@ -69,8 +68,8 @@ Installation for development purposes
 
 .. _klever-bridge-production-install:
 
-Installation for production purposes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TODO: Installation for production purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Add to the file :file:`/etc/apache2/sites-available/000-default.conf` next lines::
 
@@ -131,10 +130,8 @@ Update for development purposes
 #. Repeat all steps of normal installation starting from execution of manage.py tasks (rerunning of the server might be
    not required).
 
-Update for production purposes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-#. TODO: how to update production server?
+TODO: Update for production purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Install Cloud tools
 -------------------
