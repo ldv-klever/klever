@@ -209,7 +209,8 @@ class ABKM(core.components.Component):
                     for key in graphml.getElementsByTagName('key'):
                         if key.getAttribute('id') == 'originfile':
                             default = key.getElementsByTagName('default')[0]
-                            source_files.add(self.__normalize_path(default.firstChild))
+                            default_source_file = self.__normalize_path(default.firstChild)
+                            source_files.add(default_source_file)
                     graph = graphml.getElementsByTagName('graph')[0]
                     for edge in graph.getElementsByTagName('edge'):
                         for data in edge.getElementsByTagName('data'):
@@ -298,6 +299,9 @@ class ABKM(core.components.Component):
                                 i = int(data.firstChild.data)
                             elif data.getAttribute('key') == 'enterFunction':
                                 func_name = data.firstChild.data
+
+                        if not source_file:
+                            source_file = default_source_file
 
                         if source_file and i:
                             if source_file in notes and i in notes[source_file]:
