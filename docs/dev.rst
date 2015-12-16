@@ -111,14 +111,14 @@ To use PyCharm IDE to develop Klever follow the following steps.
 Installation
 ^^^^^^^^^^^^
 
-#. Download the PyCharm Professional Edition 4.5.x from `<https://www.jetbrains.com/pycharm/download/>`_ (other versions
+#. Download PyCharm Professional Edition 4.5.x from `<https://www.jetbrains.com/pycharm/download/>`_ (other versions
    weren't tested, below all settings are given for version 4.5.3).
 #. Follow installation instructions provided at that site.
 #. Activate the PyCharm license.
 #. Specify your preferences at the "Welcome to PyCharm" window.
 
-.. note:: At least on openSUSE 13.2 to run PyCharm one needs to specify :envvar:`JDK_HOME`, e.g.
-          :file:`/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/`.
+.. note:: At least on openSUSE 13.2 to run PyCharm one needs to specify environment variable :envvar:`JDK_HOME`, e.g.
+          *JDK_HOME=/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/*.
 
 Setting project
 ^^^^^^^^^^^^^^^
