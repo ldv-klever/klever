@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -56,15 +57,10 @@ TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'bridge/templates'),)
 
 WSGI_APPLICATION = 'bridge.wsgi.application'
 
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dbname',
-        'USER': 'username',
-        'PASSWORD': 'password',
-        'HOST': '127.0.0.1',
-        'PORT': '3306'
+        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'bridge/mysql-db.cnf')},
     }
 }
 

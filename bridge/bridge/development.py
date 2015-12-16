@@ -67,11 +67,9 @@ LANGUAGE_CODE = 'en-us'
 LANGUAGES = (
     ('ru', 'Русский'),
 )
-
 LOCALE_PATHS = (
     os.path.join(BASE_DIR,  'locale'),
 )
-
 DEFAULT_LANGUAGE = 'en-us'
 
 TIME_ZONE = 'UTC'
