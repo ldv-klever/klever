@@ -74,13 +74,13 @@ class GetETV(object):
             return GraphMLParser().parse(graphml_file)
         except Exception as e:
             print_err(e)
-            self.error = _('Wrong error trace file format')
+            self.error = _('The error trace has incorrect format')
         return None
 
     def __get_traces(self):
         traces = []
         if self.g.set_root_by_attribute('true', 'isEntryNode') is None:
-            self.error = _('Trace entry was not found')
+            self.error = _('Could not find the entry point was in the error trace')
             return traces
 
         for path in self.g.bfs():
@@ -247,10 +247,10 @@ class GetETV(object):
                 try:
                     scope_stack.pop()
                     if len(scope_stack) == 0:
-                        self.error = _('Error trace is corrupted')
+                        self.error = _('The error trace is corrupted')
                         return None
                 except IndexError:
-                    self.error = _('Error trace is corrupted')
+                    self.error = _('The error trace is corrupted')
                     return None
             elif 'control' in n.attr:
                 m = re.match('^\s*\[(.*)\]\s*$', line_data['code'])
@@ -377,7 +377,7 @@ class GetSource(object):
         try:
             return ReportUnsafe.objects.get(pk=int(report_id))
         except ObjectDoesNotExist:
-            self.error = _("Report was not found")
+            self.error = _("Could not find the corresponding unsafe")
             return None
         except ValueError:
             self.error = _("Unknown error")
@@ -388,7 +388,7 @@ class GetSource(object):
         try:
             src = self.report.files.get(name=file_name)
         except ObjectDoesNotExist:
-            self.error = _("Source code was not found")
+            self.error = _("Could not find the source file")
             return
         cnt = 1
         lines = src.file.file.read().decode('utf8').split('\n')

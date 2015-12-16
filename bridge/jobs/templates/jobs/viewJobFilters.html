@@ -2,7 +2,7 @@
 
 <div class="ui styled accordion fluid">
     <div class="title">
-        <i class="filter icon"></i>{% trans 'View' %} ({% if reportdata.view_id == 'default' %}{% trans 'default' %}{% elif reportdata.view_id %}{% for v in reportdata.views %}{% if v.id == reportdata.view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
+        <i class="filter icon"></i>{% trans 'View' %} ({% if reportdata.view_id == 'default' %}{% trans 'Default' %}{% elif reportdata.view_id %}{% for v in reportdata.views %}{% if v.id == reportdata.view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
     </div>
     <div class="content ui small form">
         <div class="ui grid">

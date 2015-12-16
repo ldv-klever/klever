@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-12-15 16:48+0000\n"
+"POT-Creation-Date: 2015-12-16 11:02+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,258 +18,256 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: Bridge/formatChecker.py:39
+#: bridge/formatChecker.py:39
 msgid "The file type is not supported"
 msgstr "Тип файла не поддерживается"
 
-#: Bridge/formatChecker.py:42
+#: bridge/formatChecker.py:42
 #, python-brace-format
 msgid "Please keep the file size under {0} (the current file size is {1})"
 msgstr ""
 "Пожалуйста, не загружайте файлы размером больше {0} (текущий размер файла - "
 "{1})"
 
-#: Bridge/vars.py:6
+#: bridge/vars.py:6
 msgid "Raw"
 msgstr "Без обработки"
 
-#: Bridge/vars.py:7
+#: bridge/vars.py:7
 msgid "Human-readable"
 msgstr "Удобочитаемый"
 
-#: Bridge/vars.py:11 jobs/views.py:337 jobs/views.py:359 jobs/views.py:434
+#: bridge/vars.py:11 jobs/views.py:337 jobs/views.py:359 jobs/views.py:434
 #: jobs/views.py:494 jobs/views.py:754 service/utils.py:913
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
-#: Bridge/vars.py:12
+#: bridge/vars.py:12
 msgid "You don't have an access to this job"
 msgstr "У Вас нет прав на данное задание"
 
-#: Bridge/vars.py:13
+#: bridge/vars.py:13
 msgid "You don't have an access to one of the selected jobs"
 msgstr "У Вас нет прав для одного из отмеченных заданий"
 
-#: Bridge/vars.py:14
+#: bridge/vars.py:14
 msgid "You specified wrong parameters, please reload the page and try again"
 msgstr ""
 "Вы указали Некорректные параметры, пожалуйста, обновите страницу и "
 "попробуйте еще раз"
 
-#: Bridge/vars.py:15
+#: bridge/vars.py:15
 msgid "The report was not found"
 msgstr "Отчет не был найден"
 
-#: Bridge/vars.py:16 marks/views.py:379 marks/views.py:420
+#: bridge/vars.py:16 marks/views.py:379 marks/views.py:420
 msgid "The mark was not found"
 msgstr "Оценка не была найдена"
 
-#: Bridge/vars.py:17
+#: bridge/vars.py:17
 msgid "You don't have an access to this mark"
 msgstr "У Вас нет прав на данную оценку"
 
-#: Bridge/vars.py:18
+#: bridge/vars.py:18
 msgid "You don't have an access to create new marks"
 msgstr "У Вас нет прав создавать новые оценки"
 
-#: Bridge/vars.py:19
+#: bridge/vars.py:19
 msgid "You don't have an access to delete this mark"
 msgstr "У Вас нет прав удалить данную оценку"
 
-#: Bridge/vars.py:20
+#: bridge/vars.py:20
 msgid "Saving the mark failed"
 msgstr "Сохранение оценки провалилось"
 
-#: Bridge/vars.py:21
+#: bridge/vars.py:21
 msgid "The tag was not found"
 msgstr "Тег не был найден"
 
-#: Bridge/vars.py:22 tools/views.py:103
+#: bridge/vars.py:22 tools/views.py:103
 msgid "The problem was not found"
 msgstr "Проблема не была найдена"
 
-#: Bridge/vars.py:23
+#: bridge/vars.py:23
 msgid "You don't have an access to this page"
 msgstr "У Вас нет прав на данную страницу"
 
-#: Bridge/vars.py:24
-#, fuzzy
-#| msgid "The job archive is corrupted"
-msgid "Error trace is not supported"
-msgstr "Архив задания поврежден"
+#: bridge/vars.py:24
+msgid "Couldn't visualize the error trace"
+msgstr "Не удалось визуализировать трассу ошибки"
 
-#: Bridge/vars.py:33 Bridge/vars.py:47
+#: bridge/vars.py:33 bridge/vars.py:47
 #: tools/templates/tools/ManagerPanel.html:12 tools/views.py:28
 #: tools/views.py:77 tools/views.py:96 tools/views.py:123 tools/views.py:142
 #: tools/views.py:157
 msgid "No access"
 msgstr "Нет доступа"
 
-#: Bridge/vars.py:34 users/notifications.py:222
+#: bridge/vars.py:34 users/notifications.py:222
 msgid "Producer"
 msgstr "Постановщик"
 
-#: Bridge/vars.py:35 users/notifications.py:223
+#: bridge/vars.py:35 users/notifications.py:223
 msgid "Manager"
 msgstr "Руководитель"
 
-#: Bridge/vars.py:36 Bridge/vars.py:49 users/notifications.py:222
+#: bridge/vars.py:36 bridge/vars.py:49 users/notifications.py:222
 msgid "Expert"
 msgstr "Эксперт"
 
-#: Bridge/vars.py:37
+#: bridge/vars.py:37
 msgid "Service user"
 msgstr "Служебный пользователь"
 
-#: Bridge/vars.py:41
+#: bridge/vars.py:41
 msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
-#: Bridge/vars.py:42
+#: bridge/vars.py:42
 msgid "Verification of commits in Linux kernel Git repositories"
 msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
-#: Bridge/vars.py:43
+#: bridge/vars.py:43
 msgid "Verification of C programs"
 msgstr "Верификация Си-программ"
 
-#: Bridge/vars.py:48 users/notifications.py:222
+#: bridge/vars.py:48 users/notifications.py:222
 msgid "Observer"
 msgstr "Обозреватель"
 
-#: Bridge/vars.py:50
+#: bridge/vars.py:50
 msgid "Observer and Operator"
 msgstr "Обозреватель и оператор"
 
-#: Bridge/vars.py:51
+#: bridge/vars.py:51
 msgid "Expert and Operator"
 msgstr "Эксперт и оператор"
 
-#: Bridge/vars.py:55
+#: bridge/vars.py:55
 msgid "Not solved"
 msgstr "Не решено"
 
-#: Bridge/vars.py:56 Bridge/vars.py:358
+#: bridge/vars.py:56 bridge/vars.py:358
 msgid "Pending"
 msgstr "Ожидает"
 
-#: Bridge/vars.py:57
+#: bridge/vars.py:57
 msgid "Is solving"
 msgstr "Решается"
 
-#: Bridge/vars.py:58
+#: bridge/vars.py:58
 msgid "Solved"
 msgstr "Решено"
 
-#: Bridge/vars.py:59 reports/templates/reports/ReportMain.html:33
+#: bridge/vars.py:59 reports/templates/reports/ReportMain.html:33
 msgid "Failed"
 msgstr "Провалено"
 
-#: Bridge/vars.py:60
+#: bridge/vars.py:60
 msgid "Corrupted"
 msgstr "Повреждено"
 
-#: Bridge/vars.py:61 Bridge/vars.py:362
+#: bridge/vars.py:61 bridge/vars.py:362
 msgid "Cancelled"
 msgstr "Отменено"
 
-#: Bridge/vars.py:121
+#: bridge/vars.py:121
 msgid "Unreported"
 msgstr "Не сообщена"
 
-#: Bridge/vars.py:122
+#: bridge/vars.py:122
 msgid "Reported"
 msgstr "Сообщена"
 
-#: Bridge/vars.py:123
+#: bridge/vars.py:123
 msgid "Fixed"
 msgstr "Исправлена"
 
-#: Bridge/vars.py:124
+#: bridge/vars.py:124
 msgid "Rejected"
 msgstr "Отклонена"
 
-#: Bridge/vars.py:128 Bridge/vars.py:135 Bridge/vars.py:141 Bridge/vars.py:150
+#: bridge/vars.py:128 bridge/vars.py:135 bridge/vars.py:141 bridge/vars.py:150
 #: jobs/utils.py:44 jobs/utils.py:52 reports/utils.py:32
 msgid "Unknown"
 msgstr "Неизвестно"
 
-#: Bridge/vars.py:129 Bridge/vars.py:142
+#: bridge/vars.py:129 bridge/vars.py:142
 msgid "Bug"
 msgstr "Ошибка"
 
-#: Bridge/vars.py:130 Bridge/vars.py:143
+#: bridge/vars.py:130 bridge/vars.py:143
 msgid "Target bug"
 msgstr "Целевая ошибка"
 
-#: Bridge/vars.py:131 Bridge/vars.py:144
+#: bridge/vars.py:131 bridge/vars.py:144
 msgid "False positive"
 msgstr "Ложное сообщение об ошибке"
 
-#: Bridge/vars.py:136 Bridge/vars.py:151 jobs/utils.py:43
+#: bridge/vars.py:136 bridge/vars.py:151 jobs/utils.py:43
 msgid "Incorrect proof"
 msgstr "Некорректное доказательство"
 
-#: Bridge/vars.py:137 Bridge/vars.py:152
+#: bridge/vars.py:137 bridge/vars.py:152
 msgid "Missed target bug"
 msgstr "Пропуск целевой ошибки"
 
-#: Bridge/vars.py:145 Bridge/vars.py:153 jobs/utils.py:45 jobs/utils.py:53
+#: bridge/vars.py:145 bridge/vars.py:153 jobs/utils.py:45 jobs/utils.py:53
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: Bridge/vars.py:146 Bridge/vars.py:154 jobs/JobTableProperties.py:588
-#: jobs/JobTableProperties.py:593 jobs/ViewJobData.py:190 jobs/utils.py:46
+#: bridge/vars.py:146 bridge/vars.py:154 jobs/JobTableProperties.py:588
+#: jobs/JobTableProperties.py:593 jobs/ViewJobData.py:185 jobs/utils.py:46
 #: jobs/utils.py:54
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: Bridge/vars.py:333 Bridge/vars.py:352
+#: bridge/vars.py:333 bridge/vars.py:352
 #: service/templates/service/scheduler.html:27
 msgid "Healthy"
 msgstr "Здоровый"
 
-#: Bridge/vars.py:334 Bridge/vars.py:353
+#: bridge/vars.py:334 bridge/vars.py:353
 #: service/templates/service/scheduler.html:29
 msgid "Ailing"
 msgstr "Нездоровый"
 
-#: Bridge/vars.py:335 Bridge/vars.py:354
+#: bridge/vars.py:335 bridge/vars.py:354
 #: service/templates/service/scheduler.html:31
 msgid "Disconnected"
 msgstr "Отключенный"
 
-#: Bridge/vars.py:344
+#: bridge/vars.py:344
 msgid "Urgent"
 msgstr "Срочный"
 
-#: Bridge/vars.py:345
+#: bridge/vars.py:345
 msgid "High"
 msgstr "Высокий"
 
-#: Bridge/vars.py:346
+#: bridge/vars.py:346
 msgid "Low"
 msgstr "Низкий"
 
-#: Bridge/vars.py:347
+#: bridge/vars.py:347
 msgid "Idle"
 msgstr "Незанятый"
 
-#: Bridge/vars.py:351
+#: bridge/vars.py:351
 msgid "User occupied"
 msgstr "Занятый пользователем"
 
-#: Bridge/vars.py:359
+#: bridge/vars.py:359
 msgid "Processing"
 msgstr "Решается"
 
-#: Bridge/vars.py:361 templates/error.html:5
+#: bridge/vars.py:361 templates/error.html:5
 msgid "Error"
 msgstr "Ошибка"
 
-#: Bridge/views.py:33 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:765
+#: bridge/views.py:33 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:765
 #: marks/utils.py:823 marks/utils.py:973 marks/views.py:209 marks/views.py:375
-#: marks/views.py:405 marks/views.py:416 reports/etv.py:374
+#: marks/views.py:405 marks/views.py:416 reports/etv.py:383
 #: service/utils.py:823 service/utils.py:831 service/utils.py:916
 #: service/utils.py:938 service/utils.py:981 service/utils.py:985
 #: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
@@ -338,7 +336,7 @@ msgstr "Дата завершение работы"
 msgid "Last change date"
 msgstr "Дата последнего изменения"
 
-#: jobs/JobTableProperties.py:44 jobs/templates/jobs/jobData.html:99
+#: jobs/JobTableProperties.py:44 jobs/templates/jobs/jobData.html:97
 #: jobs/templates/jobs/viewJobFilters.html:28
 #: jobs/templates/jobs/viewJobFilters.html:95 jobs/utils.py:58
 msgid "Consumed resources"
@@ -377,8 +375,8 @@ msgid "Priority"
 msgstr "Приоритет"
 
 #: jobs/JobTableProperties.py:594 jobs/JobTableProperties.py:608
-#: jobs/JobTableProperties.py:616 jobs/ViewJobData.py:138
-#: jobs/ViewJobData.py:203 jobs/utils.py:47 jobs/utils.py:55 jobs/utils.py:57
+#: jobs/JobTableProperties.py:616 jobs/ViewJobData.py:133
+#: jobs/ViewJobData.py:198 jobs/utils.py:47 jobs/utils.py:55 jobs/utils.py:57
 #: jobs/utils.py:59 service/templates/service/scheduler.html:103
 msgid "Total"
 msgstr "Всего"
@@ -646,7 +644,7 @@ msgstr "Предупреждения об ошибках"
 msgid "Safes"
 msgstr "Доказательства корректности"
 
-#: jobs/templates/jobs/jobData.html:61
+#: jobs/templates/jobs/jobData.html:60
 #: jobs/templates/jobs/viewJobFilters.html:33
 #: jobs/templates/jobs/viewJobFilters.html:38
 #: jobs/templates/jobs/viewJobFilters.html:119 jobs/utils.py:60
@@ -654,17 +652,17 @@ msgstr "Доказательства корректности"
 msgid "Tags"
 msgstr "Теги"
 
-#: jobs/templates/jobs/jobData.html:65
+#: jobs/templates/jobs/jobData.html:64
 #: jobs/templates/jobs/viewJobFilters.html:38
 msgid "Unsafe"
 msgstr "Предупреждение об ошибке"
 
-#: jobs/templates/jobs/jobData.html:80
+#: jobs/templates/jobs/jobData.html:79
 #: jobs/templates/jobs/viewJobFilters.html:33
 msgid "Safe"
 msgstr "Доказательство корректности"
 
-#: jobs/templates/jobs/jobData.html:115
+#: jobs/templates/jobs/jobData.html:113
 msgid "Wall time, CPU time and maximum memory size"
 msgstr ""
 "Астрономическое время, процессорное время и максимальный объем оперативной "
@@ -943,7 +941,12 @@ msgstr "Показать"
 msgid "New view name"
 msgstr "Название нового представления"
 
-#: jobs/templates/jobs/tree.html:356 jobs/views.py:89
+#: jobs/templates/jobs/tree.html:356 jobs/templates/jobs/tree.html.py:389
+#: jobs/templates/jobs/viewJobFilters.html:5 jobs/views.py:89
+#: marks/templates/marks/filters.html:5
+#: reports/templates/reports/AttrsFilters.html:5
+#: reports/templates/reports/ListFilters.html:5
+#: reports/templates/reports/UnknownsFilters.html:5
 #: templates/viewButtons.html:23
 msgid "Default"
 msgstr "По умолчанию"
@@ -981,20 +984,8 @@ msgstr "Представление"
 #: reports/templates/reports/AttrsFilters.html:5
 #: reports/templates/reports/ListFilters.html:5
 #: reports/templates/reports/UnknownsFilters.html:5
-#, fuzzy
-#| msgid "Default"
-msgid "default"
-msgstr "По умолчанию"
-
-#: jobs/templates/jobs/tree.html:389 jobs/templates/jobs/viewJobFilters.html:5
-#: marks/templates/marks/filters.html:5
-#: reports/templates/reports/AttrsFilters.html:5
-#: reports/templates/reports/ListFilters.html:5
-#: reports/templates/reports/UnknownsFilters.html:5
-#, fuzzy
-#| msgid "Saved"
 msgid "unsaved"
-msgstr "Сохранено"
+msgstr "не сохранено"
 
 #: jobs/templates/jobs/tree.html:399 jobs/templates/jobs/viewJob.html:178
 #: jobs/templates/jobs/viewVersions.html:23
@@ -1695,105 +1686,91 @@ msgid "You don't have access to create new marks"
 msgstr "У Вас нет прав создавать новые оценки"
 
 #: reports/etv.py:77
-msgid "Wrong error trace file format"
-msgstr ""
+msgid "The error trace has incorrect format"
+msgstr "Формат трассы ошибки некорректный"
 
 #: reports/etv.py:83
-#, fuzzy
-#| msgid "The tag was not found"
-msgid "Trace entry was not found"
-msgstr "Тег не был найден"
+msgid "Could not find the entry point was in the error trace"
+msgstr "Не удалось найти точку входа в трассе ошибки"
 
 #: reports/etv.py:90
 msgid "Only error traces with one error path are supported"
-msgstr ""
+msgstr "Поддерживаются только трассы ошибок с одним путем к ошибке"
 
 #: reports/etv.py:250 reports/etv.py:253
-#, fuzzy
-#| msgid "The job archive is corrupted"
-msgid "Error trace is corrupted"
-msgstr "Архив задания поврежден"
+msgid "The error trace is corrupted"
+msgstr "Трасса ошибки повреждена"
 
-#: reports/etv.py:371
-#, fuzzy
-#| msgid "The report was not found"
-msgid "Report was not found"
-msgstr "Отчет не был найден"
+#: reports/etv.py:380
+msgid "Could not find the corresponding unsafe"
+msgstr "Не удалось найти соответствующие предупреждение об ошибке"
 
-#: reports/etv.py:382
-#, fuzzy
-#| msgid "The job was not found"
-msgid "Source code was not found"
-msgstr "Задание не было найдено"
+#: reports/etv.py:391
+msgid "Could not find the source file"
+msgstr "Не удалось найти файл с исходным кодом"
 
 #: reports/templates/reports/ETV.html:20
-msgid "Backward"
-msgstr ""
+msgid "Play one line backward"
+msgstr "Играть одну строку назад"
 
 #: reports/templates/reports/ETV.html:25
-msgid "Start from first string"
-msgstr ""
+msgid "Play"
+msgstr "Играть"
 
 #: reports/templates/reports/ETV.html:30
-msgid "Forward"
-msgstr ""
+msgid "Play one line forward"
+msgstr "Играть одну строку вперед"
 
 #: reports/templates/reports/ETV.html:34
-msgid "Play from selected string"
-msgstr ""
+msgid "Play from the selected line"
+msgstr "Играть с выбранной строки"
 
 #: reports/templates/reports/ETV.html:38
-msgid "Play backward from selected string"
-msgstr ""
+msgid "Play backward from the selected line"
+msgstr "Играть назад с выбранной строки"
 
 #: reports/templates/reports/ETV.html:42
 msgid "Pause"
-msgstr ""
+msgstr "Остановить"
 
 #: reports/templates/reports/ETV.html:47
-msgid "second for string"
-msgstr ""
+msgid "second per a line"
+msgstr "секунда на строку"
 
 #: reports/templates/reports/ETV.html:48 reports/templates/reports/ETV.html:49
 #: reports/templates/reports/ETV.html:50 reports/templates/reports/ETV.html:51
 #: reports/templates/reports/ETV.html:52
-msgid "seconds for string"
-msgstr ""
+msgid "seconds per a line"
+msgstr "секунды на строку"
 
 #: reports/templates/reports/ETV.html:99
-#, fuzzy
-#| msgid "The file was not found"
-msgid "The line was not found"
-msgstr "Файл не был найден"
+msgid "Could not find the specified line"
+msgstr "Не удалось найти указанную строку"
 
 #: reports/templates/reports/ETV.html:100
-#, fuzzy
-#| msgid "Please choose the file"
-msgid "Please select the line first"
-msgstr "Пожалуйста, выберете файл"
+msgid "Please, select the line first"
+msgstr "Пожалуйста, сначала выберете строку"
 
 #: reports/templates/reports/ETV.html:101
-msgid "Error trace autoselect finished"
-msgstr ""
+msgid "Play of the error trace was completed"
+msgstr "Проигрывание трассы ошибки завершено"
 
 #: reports/templates/reports/ETV_double.html:8
 #: reports/templates/reports/ETV_single.html:8
-#, fuzzy
-#| msgid "Error"
 msgid "Error trace"
-msgstr "Ошибка"
+msgstr "Трасса ошибки"
 
 #: reports/templates/reports/ETV_double.html:23
 #: reports/templates/reports/ETV_double.html:60
 #: reports/templates/reports/ETV_single.html:23
 msgid "Note"
-msgstr ""
+msgstr "Примечание"
 
 #: reports/templates/reports/ETV_double.html:27
 #: reports/templates/reports/ETV_double.html:64
-#: reports/templates/reports/ETV_single.html:27
+#: reports/templates/reports/ETV_single.html:28
 msgid "Warning"
-msgstr ""
+msgstr "Предупреждение"
 
 #: reports/templates/reports/ReportMain.html:35
 msgid "In progress"
@@ -2022,10 +1999,8 @@ msgid "New preset jobs were uploaded"
 msgstr "Были загружены новые предустановленные задания"
 
 #: templates/Population.html:54
-#, fuzzy
-#| msgid "New root jobs were uploaded"
 msgid "New unknown marks were uploaded"
-msgstr "Были загружены новые корневые задания"
+msgstr "Были загружены новые оценки проблем в компонентах"
 
 #: templates/Population.html:58
 msgid "Nothing changed"
@@ -2510,8 +2485,3 @@ msgstr "Изменение"
 #: users/views.py:315
 msgid "Saved"
 msgstr "Сохранено"
-
-#, fuzzy
-#~| msgid "There are no problems yet"
-#~ msgid "There are no jobs to recalculate"
-#~ msgstr "Проблем еще нет"

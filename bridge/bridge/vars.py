@@ -21,7 +21,7 @@ ERRORS = {
     704: _("The tag was not found"),
     804: _("The problem was not found"),
     900: _("You don't have an access to this page"),
-    505: _("Error trace is not supported")
+    505: _("Couldn't visualize the error trace")
 }
 
 LANGUAGES = (
