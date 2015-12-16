@@ -179,9 +179,11 @@ Documentation run/debug configuration
 
 #. Select :menuselection:`Python docs --> Sphinx task`.
 #. Input *docs* in field :guilabel:`Name`.
-#. Specify :file:`docs` in field :guilabel:`Input`.
-#. Specify :file:`docs/_build/html` in field :guilabel:`Output`.
+#. Specify *docs* in field :guilabel:`Input`.
+#. Specify *docs/_build/html* in field :guilabel:`Output`.
 #. Select project *docs* in field :guilabel:`Project`.
+#. Specify the absolute path to the root directory of the main development repository in field
+   :guilabel:`Working directory`.
 #. :menuselection:`OK`.
 
 Creating Klever Core working directory
