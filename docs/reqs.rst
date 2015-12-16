@@ -33,20 +33,6 @@ To run a production server you additionally need `apache2 <http://httpd.apache.o
 To translate Klever Bridge (i.e. to execute :command:`manage.py compilemessages`) you additionally need
 `gettext <https://www.gnu.org/software/gettext/>`_.
 
-Klever Scheduler
-----------------
-
-If you are going to execute on your machine scheduler or the other Klever Cloud tools you need:
-
-* `Python 3.4.x <https://www.python.org/>`_ and its packages:
-
-  * `consulate <https://pypi.python.org/pypi/consulate>`_.
-  * `requests <https://pypi.python.org/pypi/requests/>`_.
-
-* `BenchExec sources <http://github.com/dbeyer/benchexec>`_.
-* `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_. Download binary file and UI-files
-  directory and place them nearby in a an arbitrary directory. Building or installation are not required.
-
 Klever Core
 -----------
 
@@ -59,3 +45,17 @@ To run Klever Core you need:
 
 * `GNU make <https://www.gnu.org/software/make/>`_.
 * `CIF <http://forge.ispras.ru/projects/cif>`_.
+
+TODO: Klever Scheduler
+----------------------
+
+If you are going to execute on your machine scheduler or the other Klever Cloud tools you need:
+
+* `Python 3.4.x <https://www.python.org/>`_ and its packages:
+
+  * `consulate <https://pypi.python.org/pypi/consulate>`_.
+  * `requests <https://pypi.python.org/pypi/requests/>`_.
+
+* `BenchExec sources <http://github.com/dbeyer/benchexec>`_.
+* `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_. Download binary file and UI-files
+  directory and place them nearby in a an arbitrary directory. Building or installation are not required.
