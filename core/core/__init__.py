@@ -21,7 +21,7 @@ class Core:
     def __init__(self):
         self.exit_code = 0
         self.start_time = 0
-        self.default_conf_file = 'klever core conf.json'
+        self.default_conf_file = 'core.json'
         self.conf_file = None
         self.conf = {}
         self.is_solving_file = None

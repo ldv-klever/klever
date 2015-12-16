@@ -159,13 +159,15 @@ Klever Core run/debug configuration
 
 #. Select :menuselection:`Python`.
 #. Input *Core* in field :guilabel:`Name`.
-#. Specify :file:`Core/bin/klever-core` in field :guilabel:`Script`.
-#. Select project *Core* in field :guilabel:`Project`.
+#. Specify :file:`core/bin/klever-core` in field :guilabel:`Script`.
+#. Select project *core* in field :guilabel:`Project`.
 #. Extend existing value of :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and Aspectator
    (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
 #. Specify working directory somewhere outside the repository (**work_dir**) in field :guilabel:`Working directory`.
 #. :menuselection:`OK`.
 
+.. note:: Klever Core will search for its configuration file :file:`core.json` in the specified working directory.
+          Besides you can provide this file by passing its name as a first parameter to the script.
 
 Documentation run/debug configuration
 """""""""""""""""""""""""""""""""""""
@@ -185,7 +187,7 @@ Create **work_dir**.
 Specifying Klever Core configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Copy :file:`Core/klever core conf.json` to **work_dir**.
+#. Copy Klever Core configuration file :file:`core/core.json` to **work_dir**.
 #. Edit the copied file:
     * Specify the identifier of the job you are going to solve (the value of property *identifier*).
     * Specify the name of Klever Bridge and your credentials (values of properties *Klever Bridge.name*,

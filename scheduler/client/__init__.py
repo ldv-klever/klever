@@ -53,8 +53,8 @@ def solve_job(conf):
     if not os.path.isfile(bin):
         raise FileExistsError("There is no Klever Core executable script {}".format(bin))
 
-    # Save Klever Core configuration file
-    with open("klever core conf.json", "w") as fh:
+    # Save Klever Core configuration to default configuration file
+    with open("core.json", "w") as fh:
         json.dump(conf["Klever Core conf"], fh, sort_keys=True, indent=4)
 
     # Import RunExec
@@ -80,8 +80,8 @@ def solve_job(conf):
     # Run Klever Core within runexec
     # TODO: How to choose proper CPU core numbers?
 
-    logging.info("Run Klever Core {} with configuration file '{}'".format(bin, "klever core conf.json"))
-    result = executor.execute_run(args=[bin, "klever core conf.json"],
+    logging.info("Run Klever Core {}".format(bin))
+    result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
                                   walltimelimit=conf["resource limits"]["wall time"],
