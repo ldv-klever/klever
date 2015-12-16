@@ -3,4 +3,3 @@ bridge/postgres-db.json
 locale/ru/LC_MESSAGES/django.mo
 media
 migrations/
-

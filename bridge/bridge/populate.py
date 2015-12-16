@@ -9,7 +9,7 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import override
 from django.utils.timezone import now
-from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, FORMAT, MARK_STATUS
+from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
 from bridge.utils import print_err
 from users.models import Extended
@@ -140,7 +140,7 @@ class Population(object):
                 with override(DEFAULT_LANGUAGE):
                     args['name'] = JOB_CLASSES[i][1]
                     args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
-                    args['pk'] = i + 1
+                    # args['pk'] = i + 1
                     args['type'] = JOB_CLASSES[i][0]
                     create_job(args)
                     sleep(0.1)
@@ -278,7 +278,9 @@ class Population(object):
                             continue
                         except ObjectDoesNotExist:
                             create_args = {
-                                'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
+                                'identifier': hashlib.md5(
+                                    now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
+                                ).hexdigest(),
                                 'component': component,
                                 'type': data['type'],
                                 'author': self.manager,

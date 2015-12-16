@@ -188,7 +188,7 @@ def show_job(request, job_id=None):
         })
 
     children = []
-    for child in job.children.all():
+    for child in job.children.all().order_by('change_date'):
         if JobAccess(request.user, child).can_view():
             job_id = child.pk
         else:
