@@ -159,9 +159,7 @@ class ViewJobData(object):
                 unknowns_data[cmup.component.name] = {}
             unknowns_data[cmup.component.name][cmup.problem.name] = (
                 cmup.number,
-                reverse('reports:unknowns_problem',
-                        args=[self.report.pk, cmup.component.pk,
-                              cmup.problem_id])
+                reverse('reports:unknowns_problem', args=[self.report.pk, cmup.component_id, cmup.problem_id])
             )
 
         unknowns_sorted = {}

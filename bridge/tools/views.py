@@ -147,7 +147,7 @@ def clear_system(request):
     return JsonResponse({'message': _("All unused files and DB rows were deleted")})
 
 
-@unparallel_group(['report', 'job', 'mark', 'task', 'solution'])
+@unparallel_group(['report', 'job', 'mark'])
 @login_required
 def recalculation(request):
     activate(request.user.extended.language)
