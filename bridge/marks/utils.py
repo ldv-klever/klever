@@ -373,9 +373,7 @@ class ConnectReportWithMarks(object):
     def __connect_unknown(self):
         self.report.markreport_set.all().delete()
         changes = {self.report: {}}
-        for mark in MarkUnknown.objects.filter(
-                type=self.report.root.job.type,
-                component=self.report.component):
+        for mark in MarkUnknown.objects.filter(type=self.report.root.job.type, component=self.report.component):
             problem = MatchUnknown(
                 self.report.problem_description.decode('utf8'),
                 mark.function,
@@ -417,8 +415,7 @@ class ConnectMarkWithReports(object):
                 'verdict1': mark_unsafe.report.verdict,
             }
         self.mark.markreport_set.all().delete()
-        for unsafe in ReportUnsafe.objects.filter(
-                root__job__type=self.mark.type):
+        for unsafe in ReportUnsafe.objects.filter(root__job__type=self.mark.type):
             for attr in last_version.attrs.all():
                 if attr.is_compare:
                     try:
@@ -478,8 +475,7 @@ class ConnectMarkWithReports(object):
         for mark_unknown in self.mark.markreport_set.all():
             self.changes[mark_unknown.report] = {'kind': '-'}
         self.mark.markreport_set.all().delete()
-        for unknown in ReportUnknown.objects.filter(
-                component=self.mark.component):
+        for unknown in ReportUnknown.objects.filter(component=self.mark.component, root__job__type=self.mark.type):
             problem = MatchUnknown(
                 unknown.problem_description.decode('utf8'),
                 self.mark.function,
