@@ -160,11 +160,15 @@ Klever Core run/debug configuration
 
 #. Select :menuselection:`Python`.
 #. Input *Core* in field :guilabel:`Name`.
-#. Specify :file:`core/bin/klever-core` in field :guilabel:`Script`.
+#. Specify the absolute path to script :file:`core/bin/klever-core` from the root directory of the main development
+   repository in field :guilabel:`Script`.
 #. Select project *core* in field :guilabel:`Project`.
-#. Extend existing value of :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and Aspectator
-   (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
-#. Specify working directory somewhere outside the repository (**work_dir**) in field :guilabel:`Working directory`.
+#. Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and
+   Aspectator (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
+#. Specify the absolute path to the working directory in field :guilabel:`Working directory`.
+
+   .. note:: Place Klever Core working directory somewhere outside the main development repository.
+
 #. :menuselection:`OK`.
 
 .. note:: Klever Core will search for its configuration file :file:`core.json` in the specified working directory.
