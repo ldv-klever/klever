@@ -68,45 +68,31 @@ Installation for development purposes
 
 .. _klever-bridge-production-install:
 
-TODO: Installation for production purposes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Installation for production purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Add to the file :file:`/etc/apache2/sites-available/000-default.conf` next lines::
+Below instructions are given just for Debian (Ubuntu).
+Adapt them for your Linux distribution by yourself.
 
-    WSGIScriptAlias / /var/www/KleverBridge/Bridge/wsgi.py
-    WSGIDaemonProcess localhost python-path=/var/www/KleverBridge
-    WSGIProcessGroup localhost
-    <Directory /var/www/KleverBridge/Bridge>
-        <Files wsgi.py>
-            Require all granted
-        </Files>
-    </Directory>
+#. Copy Apache2 configuration file :file:`bridge/conf/debian-apache2.conf` to file
+   :file:`/etc/apache2/sites-enabled/bridge.conf`.
+#. Copy directory :file:`bridge` to directory :file:`/var/www/bridge`.
+#. Replace content of file :file:`/var/www/bridge/bridge/settings.py` with *from bridge.production import **::
 
-    Alias /static/ /var/www/KleverBridge/static/
-    <Location "/static/">
-        Options -Indexes
-    </Location>
-
-    Alias /media/ /var/www/KleverBridge/media/
-    <Location "/media/">
-        Options -Indexes -FollowSymLinks -Includes -ExecCGI
-        Allowoverride All
-        Require all granted
-        Allow from all
-    </Location>
-
-#. Copy Klever Bridge to :file:`/var/www/`
-#. Create path: :file:`/var/www/KleverBridge/media/` and make www-data owner of the new folder.
-#. Edit :file:`KleverBridge/Bridge/settings.py`:
-
-   * Comment lines: 26, 30, 123.
-   * Uncomment lines: 28, 32, 125.
+    $ echo "from bridge.production import *" > /var/www/bridge/bridge/settings.py
 
 #. Execute the following manage.py task::
 
-    $ python3.4 manage.py collectstatic
+    $ python3.4 /var/www/bridge/manage.py collectstatic
 
-#. Restart service apache2
+#. Create directory :file:`/var/www/bridge/media` and make www-data:www-data its owner::
+
+    $ mkdir -p /var/www/bridge/media
+    $ chown www-data:www-data /var/www/bridge/media
+
+#. Restart service apache2::
+
+    $ service apache2 restart
 
 Update for development purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
