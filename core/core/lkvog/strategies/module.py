@@ -1,4 +1,4 @@
-import json
+
 
 class Module:
     def __init__(self, id):
@@ -39,10 +39,10 @@ class Cluster:
     def __hash__(self):
         return hash(frozenset(self.modules))
 
+
 class Graph:
     def __init__(self, modules):
         self.modules = modules
-        #TODO: здесь нет root
         self.root = self.modules[0]
         self.size = len(self.modules)
 

@@ -98,6 +98,7 @@ class LKVOG(core.components.Component):
         self.logger.info('Generate all Linux kernel verification object decriptions')
 
         strategy_name = self.conf['LKVOG strategy']['name']
+        strategy = None
 
         if strategy_name == 'closure':
             self.module_deps = self.mqs['Linux kernel module deps'].get()
@@ -120,13 +121,16 @@ class LKVOG(core.components.Component):
                     os.remove(os.path.join(scotch_dir_path, file_name))
 
             #TODO: check params?
-            task_size = self.conf['LKVOG strategy']['task size']
-            balance_tolerance = self.conf['LKVOG strategy']['balance tolerance']
+            task_size = self.conf['LKVOG strategy']['cluster size']
+            balance_tolerance = self.conf['LKVOG strategy'].get('balance tolerance', 0.05)
             scotch_bin_path = self.conf['LKVOG strategy']['scotch path']
             strategy = scotch.Scotch(self.logger, self.module_deps, task_size, balance_tolerance, scotch_bin_path,
                                     os.path.join(scotch_dir_path, 'graph_file'),
                                     os.path.join(scotch_dir_path, 'scotch_log'),
                                     os.path.join(scotch_dir_path, 'scotch_out'))
+
+        else:
+            raise NotImplementedError("Strategy not implemented {0}".format(strategy_name))
 
 
         while True:

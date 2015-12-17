@@ -1,6 +1,7 @@
 from core.lkvog.strategies.module import Module
 from core.lkvog.strategies.module import Cluster
 
+
 class Closure:
     def __init__(self, logger, module_deps, cluster_size):
         self.logger = logger
@@ -18,66 +19,66 @@ class Closure:
                 self.modules[module].add_predecessor(self.modules[pred])
 
     def divide(self, module_name):
-         #Auxiliary function for preparation groups of modules with
-         #its dependencies taking into account size restrictions of
-         #verification objects
+        """Auxiliary function for preparation groups of modules with
+        its dependencies taking into account size restrictions of
+        verification objects"""
 
-         #Calculation
-         clusters = []
-         self.logger.debug('Calculate dependencies for these "top" modules')
-         root = Module(module_name)
-         #Will be created own graph
-         cluster = Cluster(root)
+        # Calculation
+        clusters = []
+        self.logger.debug('Calculate dependencies for these "top" modules')
+        root = self.modules[module_name]
+        # Will be created own graph
+        cluster = Cluster(root)
+        if self.cluster_size != 0:
+            if cluster.size > self.cluster_size:
+                self.logger.debug('Module', root.id,
+                                  'has too much dependencies, going to divide this verificatoin object')
+                shatters = self.divide_cluster(cluster)
+                clusters.extend(shatters)
+            else:
 
-         if self.cluster_size != 0:
-             if cluster.size > self.cluster_size:
-                 self.logger.debug('Module', root.id, 'has too much dependencies, going to divide this verificatoin object')
-                 shatters = self.divide_cluster(cluster)
-                 clusters.extend(shatters)
-             else:
+                clusters.append(cluster)
+        else:
+            clusters.append(cluster)
 
-                 clusters.append(cluster)
-         else:
-             clusters.append(cluster)
+        # Return only not checked clusters
+        ret_clusters = []
+        for cluster in clusters:
+            hash_num = hash(cluster)
+            if hash_num not in self.checked_clusters:
+                self.checked_clusters.add(hash_num)
+                ret_clusters.append(cluster)
 
-         #Return only not checked clusters
-         ret_clusters = []
-         for cluster in clusters:
-             hash_num = hash(cluster)
-             if hash_num not in self.checked_clusters:
-                 self.checked_clusters.add(hash_num)
-                 ret_clusters.append(cluster)
-
-         return ret_clusters
+        return ret_clusters
 
     def divide_cluster(self, cluster_d):
 
-        # Get simple hash
-        hash = {}
+        # Get simple task_hash
+        task_hash = {}
         for module in cluster_d.modules:
             for pred in module.predecessors:
-                hash.setdefault(module.id, {}).setdefault(pred.id, 0)
-                hash[module.id][pred.id] += 1
+                task_hash.setdefault(module.id, {}).setdefault(pred.id, 0)
+                task_hash[module.id][pred.id] += 1
 
-        # Use hash to keep only unque tasks
+        # Use task_hash to keep only unque tasks
         task_list = {}
         rest_list = [{'root': cluster_d.root.id,
-                      'hash': hash,
+                      'task_hash': task_hash,
                       'size': 1,
                       'modules': [cluster_d.root.id]}]
         while rest_list:
             task = rest_list.pop(0)
 
             # Trying to add all children
-            children = list(task['hash'].get(task['root'], {}).keys())
+            children = list(task['task_hash'].get(task['root'], {}).keys())
             while children and task['size'] < self.cluster_size:
                 # Add child to group
                 child = children.pop(0)
                 task['modules'].append(child)
                 task['size'] += 1
-                if child in task['hash'] and len(task['hash'][child]) > 0:
+                if child in task['task_hash'] and len(task['task_hash'][child]) > 0:
                     new_task = {'root': child,
-                                'hash': task['hash'],
+                                'task_hash': task['task_hash'],
                                 'size': 1,
                                 'modules': [child]}
                     rest_list.append(new_task)
@@ -86,33 +87,33 @@ class Closure:
                 # Reach limit, rebuild graph without selected edges
                 new_hash = {}
                 exclude = {x: 1 for x in task['modules']}
-                for module in task['hash'].keys():
+                for module in task['task_hash'].keys():
                     if module == task['root']:
-                        for child in task['hash'][module]:
+                        for child in task['task_hash'][module]:
                             if child not in exclude:
                                 new_hash.setdefault(module, {})
                                 new_hash[module][child] = 1
                     else:
-                        new_hash[module] = task['hash'][module]
+                        new_hash[module] = task['task_hash'][module]
 
                 if children:
 
-                    # Limit reached ? Proceed with same values but new hash
+                    # Limit reached ? Proceed with same values but new task_hash
                     new_task = {'root': task['root'],
-                                'hash': new_hash,
+                                'task_hash': new_hash,
                                 'size': 1,
                                 'modules': [task['root']]}
                     rest_list.append(new_task)
 
-                    id = " ".join(list(sorted(task['modules'])))
-                    task_list[id] = task
+                    task_id = " ".join(list(sorted(task['modules'])))
+                    task_list[task_id] = task
                 else:
 
                     # Limit wasn't reached ? Find new root
                     for m in task['modules']:
-                        if m != task['root'] and m in task['hash'] and task['hash'][m].keys():
+                        if m != task['root'] and m in task['task_hash'] and task['task_hash'][m].keys():
                             new_task = {'root': m,
-                                        'hash': new_hash,
+                                        'task_hash': new_hash,
                                         'size': len(task['modules']),
                                         'modules': task['modules']}
                             if 'origin' in task:
@@ -121,8 +122,8 @@ class Closure:
                                 new_task['origin'] = task['root']
                             rest_list.append(new_task)
             else:
-                id = " ".join(list(sorted(task['modules'])))
-                task_list[id] = task
+                task_id = " ".join(list(sorted(task['modules'])))
+                task_list[task_id] = task
 
         # Prepare Cluster objects
         ret = []
@@ -135,11 +136,11 @@ class Closure:
 
             # Add edges
             for obj in modules.values():
-                for predecessor in hash.get(obj.id, {}).keys():
+                for predecessor in task_hash.get(obj.id, {}).keys():
                     if predecessor in modules:
                         obj.add_predecessor(modules[predecessor])
             # If root was shifted down during calculation - use original one
-            if ('origin' in task):
+            if 'origin' in task:
                 root = modules[task['origin']]
             else:
                 root = modules[task['root']]
