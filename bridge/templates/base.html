@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+
+{% load staticfiles %}
+
+{% load i18n %}
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-COMPATIBLE" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="">
+        <meta name="author" content="">
+        <link rel="icon" href="/static/images/klever.ico">
+        <title>{% block title %}{% trans 'Sign in' %}{% endblock %} | Klever</title>
+        <script type="text/javascript" src="{% static "js/jquery-2.1.4.min.js" %}"></script>
+        <script type="text/javascript" src="/static/js/notify.min.js"></script>
+        <script type="text/javascript" src="/static/semantic/semantic.min.js"></script>
+        <script type="text/javascript" src="/static/js/bridge.js"></script>
+        <script type="text/javascript" src="/static/js/treetable.js"></script>
+        <link href="/static/semantic/semantic.min.css" rel="stylesheet">
+        <link href="/static/css/bridge.css" rel="stylesheet">
+        {% block head_block %}{% endblock %}
+    </head>
+    <body>
+        <div id="dimmer_of_page" class="ui dimmer">
+            <div class="ui text loader">{% trans 'Please wait' %}</div>
+        </div>
+
+        <div id="page_header" class="ui fixed inverted menu">
+            <div class="item">
+                <a href="{% url 'jobs:tree' %}">
+                    <img height="30" width="105" src="/static/images/klever.png" alt="Klever">
+                </a>
+            </div>
+        {% if user.is_authenticated %}
+            <a class="browse item">{% trans 'Menu' %}<i class="dropdown icon"></i></a>
+            <div class="ui fluid inverted popup bottom left transition hidden" style="max-width: 50%;">
+                <div class="ui two column relaxed equeal height divided grid">
+                    <div class="column">
+                        <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
+                        <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
+                        <a class="item" href="{% url 'service:schedulers' %}">{% trans 'Schedulers' %}</a>
+                        <a class="item" id="show_upload_job_popup">{% trans 'Upload' %}</a>
+                    </div>
+                    <div class="column">
+                        <h3 class="ui purple header">{% trans 'Marks' %}</h3>
+                        <a class="item" href="{% url 'marks:mark_list' 'unsafe' %}">{% trans 'Unsafes' %}</a>
+                        <a class="item" href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a>
+                        <a class="item" href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a>
+                        <a class="item" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
+                    </div>
+                </div>
+            </div>
+        {% if user.is_staff %}
+            <a class="item" href="/admin/">{% trans 'Admin Tools' %}</a>
+            <a class="item" href="{% url 'population' %}">{% trans 'Population' %}</a>
+        {% endif %}
+            {% if user.extended and user.extended.role == '2' %}
+                <a class="item" href="{% url 'tools:manager' %}">{% trans 'Manager Tools' %}</a>
+            {% endif %}
+        {% endif %}
+            <div class="right menu">
+            {% if user.is_authenticated %}
+                <a class="item" href="{% url 'users:show_profile' user.pk %}">{{ user.username }}</a>
+                <a class="item" href="{% url 'users:edit_profile' %}">{% trans 'Settings' %}</a>
+                <a class="item" href="{% url 'users:logout' %}">{% trans 'Sign Out' %}</a>
+            {% else %}
+                <a class="item" href="{% url 'users:register' %}">{% trans 'Register' %}</a>
+                <a class="item" href="{% url 'users:login' %}">{% trans 'Sign In' %}</a>
+            {% endif %}
+            </div>
+        </div>
+        <br>
+        {% block body_block %}{% endblock %}
+        <div id="upload_marks_popup" class="ui modal">
+            <div class="header">{% trans 'Upload marks' %}</div>
+            <div class="content">
+                <div class="ui grid">
+                    <div class="row">
+                        <div class="four wide column right aligned">
+                            <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_marks_file_input" type="file" multiple></span>
+                        </div>
+                        <div class="twelve wide column">
+                            <span id="upload_marks_filename"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="upload_marks_start" type="button" class="ui positive left button">{% trans 'Upload' %}</button>
+                <button id="upload_marks_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+        <div id="upload_job_popup" class="ui modal">
+            <div class="header">{% trans 'Upload jobs' %}</div>
+            <div class="content">
+                <p>{% trans "Set parent identifier (keep in mind that job class will be inherited from parent). All file or folder names with non-ASCII characters will be truncated to 30 characters." %}</p>
+                <div class="ui grid">
+                    <div class="row">
+                        <div class="five wide column">
+                            <div class="ui fluid input">
+                                <input id="upload_job_parent_id" type="text" placeholder="{% trans 'Identifier' %}">
+                            </div>
+                        </div>
+                        <div class="three wide column right aligned">
+                            <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_job_file_input" type="file" multiple></span>
+                        </div>
+                        <div class="eight wide column">
+                            <span id="upload_job_filename"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="upload_jobs_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
+                <button id="upload_job_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+        <span id="error__parent_required" hidden>{% trans 'The parent identifier is required' %}</span>
+        <span id="error__no_file_chosen" hidden>{% trans 'No file is chosen' %}</span>
+    </body>
+</html>

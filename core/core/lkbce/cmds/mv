@@ -1,0 +1,7 @@
+#!/usr/bin/python3
+
+import sys
+
+import core.lkbce.cmds.cmds
+
+core.lkbce.cmds.cmds.Command(sys.argv).launch()

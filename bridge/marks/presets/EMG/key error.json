@@ -1,0 +1,10 @@
+{
+  "type": "0",
+  "function": "KeyError:",
+  "pattern": "Key Error",
+  "link": "https://docs.python.org/3/library/exceptions.html#KeyError",
+  "status": "0",
+  "description": "",
+  "format": 1,
+  "is_modifiable": true
+}

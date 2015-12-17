@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% load i18n %}
+
+{% block title %}{% trans 'Population' %}{% endblock %}
+
+{% block body_block %}
+    {% if changes %}
+        <div class="ui grid">
+            {% if changes.manager %}
+                <div class="eight wide column">
+                    <div class="ui violet segment">
+                        <h2 class="ui violet header">{% trans 'A new Manager was created' %}</h2>
+                        <p><strong>{% trans 'Username' %}:</strong> {{ changes.manager.username }}</p>
+                        <p><strong>{% trans 'Password' %}:</strong> {{ changes.manager.password }}</p>
+                        <p style="color: #ce6f64">{% trans 'Please save this data and give it to the user who will be the Manager' %}</p>
+                    </div>
+                </div>
+            {% endif %}
+            {% if changes.service %}
+                <div class="eight wide column">
+                    <div class="ui violet segment">
+                        <h2 class="ui violet header">{% trans 'A new service user was created' %}</h2>
+                        <p><strong>{% trans 'Username' %}:</strong> {{ changes.service.username }}</p>
+                        <p><strong>{% trans 'Password' %}:</strong> {{ changes.service.password }}</p>
+                        <p style="color: #ce6f64">{% trans 'Please save this data and give it to the service user' %}</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        {% if changes.functions %}
+            <div class="ui teal segment">
+                <h2 class="ui teal header">{% trans 'Error traces conversion and comparison functions were updated' %}</h2>
+            </div>
+        {% endif %}
+        {% if changes.jobs %}
+            <div class="ui green segment">
+                <h2 class="ui green header">{% trans 'New root jobs were uploaded' %}</h2>
+            </div>
+        {% endif %}
+        {% if changes.default_jobs %}
+            <div class="ui green segment">
+                <h2 class="ui green header">{% trans 'New preset jobs were uploaded' %}:</h2>
+                <ul>
+                    {% for j in changes.default_jobs %}
+                        <li><span style="color: #3fd148">{{ j.0 }}</span> ({{ j.1 }})</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        {% if changes.marks %}
+            <div class="ui green segment">
+                <h2 class="ui green header">{% trans 'New unknown marks were uploaded' %}</h2>
+            </div>
+        {% endif %}
+        {% if changes|length == 0 %}
+            <h1 class="ui brown header">{% trans 'Nothing changed' %}</h1>
+        {% endif %}
+        <a href="{% url 'jobs:tree' %}" class="ui green button">{% trans 'OK' %}</a>
+    {% else %}
+        <h1 class="ui violet header">{% trans 'Welcome to Klever Bridge!' %}</h1>
+        <form method="post">
+            {% csrf_token %}
+            <div class="ui grid">
+            {% if need_manager %}
+                <div class="nine wide column">
+                    <div class="ui orange segment">
+                        <h5 class="ui orange header">{% trans "Create the Manager with the specified username and jobs of all classes on behalf of that Manager" %}</h5>
+                        <div class="ui input">
+                            <input id="manager_username" name="manager_username" type="text" placeholder="{% trans 'Manager username' %}">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            {% if need_service %}
+                <div class="seven wide column">
+                    <div class="ui teal segment">
+                        <h5 class="ui teal header">{% trans "Create the service user with the specified username" %}</h5>
+                        <div class="ui input">
+                            <input id="service_username" name="service_username" type="text" placeholder="{% trans 'Service username' %}">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            </div>
+            <br><br>
+            <button type="submit" id="populate_button" class="ui green button">{% trans 'Populate' %}</button>
+        </form>
+    {% endif %}
+{% endblock %}

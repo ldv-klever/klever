@@ -9,10 +9,10 @@ To build this documentation you need:
 * `Python 3.4.x <https://www.python.org/>`_.
 * `Sphinx <http://sphinx-doc.org>`_
 
-Omega
------
+Klever Bridge
+-------------
 
-To run Omega you need:
+To run Klever Bridge you need:
 
 * `Python 3.4.x <https://www.python.org/>`_ and its packages:
 
@@ -20,22 +20,34 @@ To run Omega you need:
   * `pytz <http://pythonhosted.org/pytz/>`_.
 
     .. note:: The corresponding openSUSE RPM package is likely broken since it couldn't be updated properly.
-              Please, uninstall it and the *pytz* python package and install the latest version of *pytz*.
+              Please, uninstall it and install the latest version of *pytz*.
 
   * `mysqlclient <https://github.com/PyMySQL/mysqlclient-python>`_ (requires Python and MySQL development headers and
     libraries).
-  * `pygraphml <https://github.com/hadim/pygraphml/>`_.
 
 * `MySQL <https://www.mysql.com/>`_/`MariaDB <https://mariadb.org/>`_ (server).
 
 To run a production server you additionally need `apache2 <http://httpd.apache.org/>`_ and its module
 `mod_wsgi <https://code.google.com/p/modwsgi/>`_.
 
-To translate Omega (i.e. to execute :command:`manage.py compilemessages`) you additionally need
+To translate Klever Bridge (i.e. to execute :command:`manage.py compilemessages`) you additionally need
 `gettext <https://www.gnu.org/software/gettext/>`_.
 
-Cloud
------
+Klever Core
+-----------
+
+To run Klever Core you need:
+
+* `Python 3.4.x <https://www.python.org/>`_ and its packages:
+
+  * `Jinja2 <http://jinja.pocoo.org/>`_ (just if you are going to verify source code against rule specifications using
+    argument signatures).
+
+* `GNU make <https://www.gnu.org/software/make/>`_.
+* `CIF <http://forge.ispras.ru/projects/cif>`_.
+
+TODO: Klever Scheduler
+----------------------
 
 If you are going to execute on your machine scheduler or the other Klever Cloud tools you need:
 
@@ -47,15 +59,3 @@ If you are going to execute on your machine scheduler or the other Klever Cloud 
 * `BenchExec sources <http://github.com/dbeyer/benchexec>`_.
 * `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_. Download binary file and UI-files
   directory and place them nearby in a an arbitrary directory. Building or installation are not required.
-
-Psi
----
-
-To run Psi you need:
-
-* `Python 3.4.x <https://www.python.org/>`_ and its packages:
-
-  * `Jinja2 <http://jinja.pocoo.org/>`_ (just if you are going to verify source code against rule specifications using
-    argument signatures).
-
-* `CIF <http://forge.ispras.ru/projects/cif>`_.

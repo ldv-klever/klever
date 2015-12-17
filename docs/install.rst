@@ -10,12 +10,12 @@ Documentation installation
 
     $ make -C docs html
 
-#. Find the generated documenation index in :file:`docs/_build/index.html`.
+#. Open generated documenation index :file:`docs/_build/index.html`.
 
-.. _omega-install:
+.. _klever-bridge-install:
 
-Omega installation
-------------------
+Klever Bridge installation
+--------------------------
 
 #. Create a new MySQL/MariaDB user (**db_user**) identified by a password (**db_user_passwd**)::
 
@@ -28,7 +28,7 @@ Omega installation
     MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
     MariaDB [(none)]> FLUSH PRIVILEGES;
 
-#. Create :file:`Omega/Omega/db.cnf`::
+#. Create :file:`bridge/bridge/mysql-db.cnf`::
 
     [client]
     database = db_name
@@ -45,18 +45,19 @@ Omega installation
 
    .. note:: Execution of :command:`manage.py migrate` can take quite much time.
 
-#. The last command will prompt you to create an Omega administrator **omega_admin** identified by a password
-   **omega_admin_passwd**.
+#. The last command will prompt you to create a Klever Bridge administrator **klever_bridge_admin** identified by a
+   password **klever_bridge_admin_passwd**.
    An email address could be omitted.
-
-#. Proceed with either :ref:`omega-dev-install` or :ref:`omega-production-install`.
-#. Sign in at `<http://127.0.0.1:8998/>`_ with username (**omega_admin**) and password (**omega_admin_passwd**).
-#. Create a new Omega Manager (**omega_manager**) and a new service user (**omega_service_user**).
-#. Remember their passwords (**omega_manager_passwd** and **omega_service_user_passwd** respectively).
-#. Sign out and sign in on behalf of **omega_manager**.
+#. Proceed with either :ref:`klever-bridge-dev-install` or :ref:`klever-bridge-production-install`.
+#. Sign in at `<http://127.0.0.1:8998/>`_ with username (**klever_bridge_admin**) and password
+   (**klever_bridge_admin_passwd**).
+#. Create a new Klever Bridge Manager (**klever_bridge_manager**) and a new service user
+   (**klever_bridge_service_user**).
+#. Remember their passwords (**klever_bridge_manager_passwd** and **klever_bridge_service_user_passwd** respectively).
+#. Sign out and sign in on behalf of **klever_bridge_manager** with password **klever_bridge_manager_passwd**.
 #. Enjoy!
 
-.. _omega-dev-install:
+.. _klever-bridge-dev-install:
 
 Installation for development purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -65,28 +66,28 @@ Installation for development purposes
 
     $ python3 manage.py runserver 8998
 
-.. _omega-production-install:
+.. _klever-bridge-production-install:
 
-Installation for production purposes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TODO: Installation for production purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Add to the file :file:`/etc/apache2/sites-available/000-default.conf` next lines::
 
-    WSGIScriptAlias / /var/www/Omega/Omega/wsgi.py
-    WSGIDaemonProcess localhost python-path=/var/www/Omega
+    WSGIScriptAlias / /var/www/KleverBridge/Bridge/wsgi.py
+    WSGIDaemonProcess localhost python-path=/var/www/KleverBridge
     WSGIProcessGroup localhost
-    <Directory /var/www/Omega/Omega>
+    <Directory /var/www/KleverBridge/Bridge>
         <Files wsgi.py>
             Require all granted
         </Files>
     </Directory>
 
-    Alias /static/ /var/www/Omega/static/
+    Alias /static/ /var/www/KleverBridge/static/
     <Location "/static/">
         Options -Indexes
     </Location>
 
-    Alias /media/ /var/www/Omega/media/
+    Alias /media/ /var/www/KleverBridge/media/
     <Location "/media/">
         Options -Indexes -FollowSymLinks -Includes -ExecCGI
         Allowoverride All
@@ -94,9 +95,9 @@ Installation for production purposes
         Allow from all
     </Location>
 
-#. Copy Omega to :file:`/var/www/`
-#. Create path: :file:`/var/www/Omega/media/` and make www-data owner of the new folder.
-#. Edit :file:`Omega/Omega/settings.py`:
+#. Copy Klever Bridge to :file:`/var/www/`
+#. Create path: :file:`/var/www/KleverBridge/media/` and make www-data owner of the new folder.
+#. Edit :file:`KleverBridge/Bridge/settings.py`:
 
    * Comment lines: 26, 30, 123.
    * Uncomment lines: 28, 32, 125.
@@ -129,13 +130,16 @@ Update for development purposes
 #. Repeat all steps of normal installation starting from execution of manage.py tasks (rerunning of the server might be
    not required).
 
-Update for production purposes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TODO: Update for production purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. TODO: how to update production server?
+Klever Core installation
+------------------------
 
-Install Cloud tools
--------------------
+Enjoy!
+
+TODO: Install Cloud tools
+-------------------------
 
 Cloud tools after all requirements installation do not need specific installation, but each tool requires configuration
 file to prepare. All tools have section *common* in corresponfing configuration files. The following configuration
@@ -153,10 +157,11 @@ Controller configuration
 Prototype for client controller configuration can be found in :file:`Cloud/conf/controller.json`. It is recommended to
 set up manually the following configuration properties:
 
-* *Omega* section contains *name*, *user*, *password* attributes which should be set according to Omega service user.
+* *Klever Bridge* section contains *name*, *user*, *password* attributes which should be set according to Klever Bridge
+  service user.
 * *client-controller* section contains consul configuration properties and an absoulute path to a directory with consul
-  binary and directory with web-UI files in it. It is better to provide your own *Omega* service check and turn-on or
-  off consul web-UI.
+  binary and directory with web-UI files in it.
+  It is better to provide your own *Klever Bridge* service check and turn-on or off consul web-UI.
 * *node configuration* section contains configuration options which tell a controller which resources of your computer
   are available for a scheduler. It is recommended to leave enough RAM memory for the other programms running on the
   computer and to choose partition with enough disk space before running controller.
@@ -167,13 +172,14 @@ Scheduler configuration
 Prototype for scheduler configuration can be found in :file:`Cloud/conf/scheduler.json`. It is recommended to set up
 manually the following configuration properties:
 
-* *Omega* section contains *name*, *user*, *password* attributes which should be set according to Omega service user.
+* *Klever Bridge* section contains *name*, *user*, *password* attributes which should be set according to Klever Bridge
+  service user.
 * *Scheduler* section describes scheduling configuration with the following major attributes:
     * *controller address* - address which is used to access consul (do not change it if you use default consul
       configuration).
-    * *keep working directory* attribute implies not to delete generated working directories. If you are going to debug psi or
-      a verification tool it is recommended to set it as *true*, but it will cause problems in case of solving the same
-      job or task twice.
+    * *keep working directory* attribute implies not to delete generated working directories.
+      If you are going to debug Klever Core or a verification tool it is recommended to set it as *true*, but it will
+      cause problems in case of solving the same job or task twice.
     * *job client configuration*/*task client configuration* attribute corresponds to an absolute path to a file with
       job/task client configuration (see below).
     * *"verification tools"* contains names of verification tools, corresponding versions and absolute pathes to
@@ -197,8 +203,3 @@ It is recommended to set up manually the following configuration properties:
 
   * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
   * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
-
-Psi installlation
------------------
-
-Enjoy!

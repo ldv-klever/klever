@@ -42,7 +42,7 @@ This section describes just rules specific for the given project.
 Update
 ^^^^^^
 
-#. Periodically synchronize your local repository with the main developer repository::
+#. Periodically synchronize your local repository with the main development repository::
 
     branch $ git fetch origin
     branch $ git remote prune origin
@@ -61,44 +61,47 @@ Update
 Fixing bugs and implementing new features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. One must create a new branch to fix/implement each individual bug or new feature::
+#. One must create a new branch to fix each individual bug or implement a new feature::
 
-    master $ git checkout -b fix-psi-conf
+    master $ git checkout -b fix-conf
 
-   .. warning:: Do not intermix fixes and implementations of completely different bugs and features in one branch.
-                Otherwise users will need to wait or to make some tricky things like cherry-picking and merging of
-                non-master branches.
-                Eventually this can lead to very unpleasant consequences, e.g. the master branch can be broken.
+   .. warning:: Do not intermix fixes and implementation of completely different bugs and features into one branch.
+                Otherwise other developers will need to wait or to make some tricky things like cherry-picking and
+                merging of non-master branches.
+                Eventually this can lead to very unpleasant consequences, e.g. the master branch can be broken because
+                of one will suddenly add bad code their by merging his/her branch based on another non working branch.
 
    .. note:: Trivial bugs/features can be fixed/implemented directly in the master branch.
              Most likely you will not have any conflict but you will save some time.
 
-#. Push all new branches to the main developer repository.
+#. Push all new branches to the main development repository.
    As well re-push them at least one time a day if you make some commits::
 
-    fix-psi-conf $ git push origin fix-psi-conf
+    fix-conf $ git push origin fix-conf
 
 #. Merge the master branch into your new branches if you need some recent bug fixes or features::
 
-    fix-psi-conf $ git merge master
+    fix-conf $ git merge master
 
-   .. note:: Do not forget to update the master branch from the main developer repository.
+   .. note:: Do not forget to update the master branch from the main development repository.
+
+   .. note:: Do not merge remote-tracking branches.
 
 #. Merge branches to the master branch when corresponding bugs/features are fixed/implemented::
 
-    fix-psi-conf $ git checkout master
-    master $ git merge fix-psi-conf
+    fix-conf $ git checkout master
+    master $ git merge fix-conf
 
-   .. note:: Do not forget to update the master branch from the main developer repository.
+   .. note:: Do not forget to update the master branch from the main development repository before merging.
 
-#. Push the master branch to the main developer repository::
+#. Push the master branch to the main development repository::
 
     master $ git push origin master
 
 #. Delete merged branches locally and remotely::
 
-    master $ git branch -d fix-psi-conf
-    master $ git push origin :fix-psi-conf
+    master $ git branch -d fix-conf
+    master $ git push origin :fix-conf
 
 Using PyCharm IDE
 -----------------
@@ -108,14 +111,14 @@ To use PyCharm IDE to develop Klever follow the following steps.
 Installation
 ^^^^^^^^^^^^
 
-#. Download the PyCharm Professional Edition 4.5.x from `<https://www.jetbrains.com/pycharm/download/>`_ (other versions
+#. Download PyCharm Professional Edition 4.5.x from `<https://www.jetbrains.com/pycharm/download/>`_ (other versions
    weren't tested, below all settings are given for version 4.5.3).
 #. Follow installation instructions provided at that site.
 #. Activate the PyCharm license.
 #. Specify your preferences at the "Welcome to PyCharm" window.
 
-.. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JDK_HOME`, e.g.
-          :file:`/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/`.
+.. note:: At least on openSUSE 13.2 to run PyCharm one needs to specify environment variable :envvar:`JDK_HOME`, e.g.
+          *JDK_HOME=/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/*.
 
 Setting project
 ^^^^^^^^^^^^^^^
@@ -123,74 +126,91 @@ Setting project
 At the "Welcome to PyCharm" window:
 
 #. :menuselection:`Open`.
-#. Specify :file:`Omega`.
+#. Specify the absolute path to directory :file:`bridge` from the root directory of the main development repository.
 #. :menuselection:`OK`.
 
 Configuring the Python interpreter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. :menuselection:`File --> Settings --> Project: Omega --> Project Interpreter --> Settings --> More..`.
+#. :menuselection:`File --> Settings --> Project: Bridge --> Project Interpreter --> Settings --> More..`.
 #. Select Python 3.4.x from the list and press :kbd:`Enter`.
 #. Input *Python 3.4* in field :guilabel:`name`.
 #. :menuselection:`OK`.
-#. Ditto for *Psi*, *Cloud* and *docs*.
+#. Ditto for *core*, *docs* and *scheduler*.
 
 Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. :menuselection:`Run --> Edit Configurations... --> Add New Configuration`.
 
-Omega run/debug configuration
-"""""""""""""""""""""""""""""
+Klever Bridge run/debug configuration
+"""""""""""""""""""""""""""""""""""""
 
 #. Select :menuselection:`Django server`.
-#. Input *Omega* in field :guilabel:`Name`.
-#. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Omega in the local network.
+#. Input *Bridge* in field :guilabel:`Name`.
+#. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge to the local network.
 #. Specify *8998* in field :guilabel:`Port`.
 #. :menuselection:`OK`.
 
-.. note:: To make your Omega accessible from the local network you might need to set up your firewall accordingly.
+.. note:: To make your Klever Bridge accessible from the local network you might need to set up your firewall
+          accordingly.
 
-Psi run/debug configuration
-"""""""""""""""""""""""""""
+Klever Core run/debug configuration
+"""""""""""""""""""""""""""""""""""
 
 #. Select :menuselection:`Python`.
-#. Input *Psi* in field :guilabel:`Name`.
-#. Specify :file:`Psi/bin/psi` in field :guilabel:`Script`.
-#. Select project *Psi* in field :guilabel:`Project`.
-#. Extend existing value of :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and Aspectator
-   (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
-#. Specify working directory somewhere outside the repository (**work_dir**) in field :guilabel:`Working directory`.
+#. Input *Core* in field :guilabel:`Name`.
+#. Specify the absolute path to script :file:`core/bin/klever-core` from the root directory of the main development
+   repository in field :guilabel:`Script`.
+#. Select project *core* in field :guilabel:`Project`.
+#. Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and
+   Aspectator (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
+#. Specify the absolute path to the working directory in field :guilabel:`Working directory`.
+
+   .. note:: Place Klever Core working directory somewhere outside the main development repository.
+
 #. :menuselection:`OK`.
 
+.. note:: Klever Core will search for its configuration file :file:`core.json` in the specified working directory.
+          Besides you can provide this file by passing its name as a first parameter to the script.
 
 Documentation run/debug configuration
 """""""""""""""""""""""""""""""""""""
 
 #. Select :menuselection:`Python docs --> Sphinx task`.
 #. Input *docs* in field :guilabel:`Name`.
-#. Specify :file:`docs` in field :guilabel:`Input`.
-#. Specify :file:`docs/_build/html` in field :guilabel:`Output`.
+#. Specify *docs* in field :guilabel:`Input`.
+#. Specify *docs/_build/html* in field :guilabel:`Output`.
 #. Select project *docs* in field :guilabel:`Project`.
+#. Specify the absolute path to the root directory of the main development repository in field
+   :guilabel:`Working directory`.
 #. :menuselection:`OK`.
 
-Creating Psi working directory
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Additional documentation
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
+available at the official `PyCharm documentation site <https://www.jetbrains.com/pycharm/documentation/>`_.
+
+TODO
+----
+
+The rest should be totally revised!
+
+Creating Klever Core working directory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Create **work_dir**.
 
-Specifying Psi configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Specifying Klever Core configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Copy :file:`Psi/psi-conf.json` to **work_dir**.
+#. Copy Klever Core configuration file :file:`core/core.json` to **work_dir**.
 #. Edit the copied file:
     * Specify the identifier of the job you are going to solve (the value of property *identifier*).
-    * Specify the name of Omega and your credentials (values of properties *Omega.name*, *Omega.user* and
-      *Omega.password* correspondingly).
-      If the value of *Omega.user* will be left *"null"* your OS user name will be used.
-      If the value of *Omega.password* will be left *"null"* you will be asked to secretly enter your password when you
-      will run Psi.
-      The specified Omega user should have service rights.
+    * Specify the name of Klever Bridge and your credentials (values of properties *Klever Bridge.name*,
+      *Klever Bridge.user* and *Klever Bridge.password* correspondingly).
+      The specified Klever Bridge user should have service rights.
     * Switch values of properties *debug* and *allow local source directories use* to *true*.
 
 Fetching Linux kernel source code
@@ -206,27 +226,21 @@ Run
 
 To run press :kbd:`Shift+F10`.
 
-.. note:: If Psi will fatally fail or you will kill Psi, you might need to manually remove :file:`is solving` inside
-          **work_dir** to run Psi fot the next time.
+.. note:: If Klever Core will fatally fail or you will hardly kill Klever Core, you might need to manually remove file
+          :file:`is solving` inside **work_dir** to run Klever Core fot the next time.
 
 Debug
 ^^^^^
 
 To debug press :kbd:`Shift+F9`.
 
-Run Omega manage.py tasks
-^^^^^^^^^^^^^^^^^^^^^^^^^
+Run Klever Bridge manage.py tasks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To run manage.py tasks:
 
 #. :menuselection:`Tools --> Run manage.py Task...`.
-#. Some manage.py tasks are described in the :ref:`omega-install` section.
-
-Additional documentation
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
-available at the official `PyCharm documentation site <https://www.jetbrains.com/pycharm/documentation/>`_.
+#. Some manage.py tasks are described in the :ref:`klever-bridge-install` section.
 
 Run cloud tools in PyCharm
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -235,16 +249,17 @@ To be able to solve tasks on your machine you need to run Klever client-controll
 the steps:
 
 #. First install all requirements and prepare configuration properties according to the installation documentation.
-   Do it after you have working Omega server. All additional tools and configuration files should be outside from
-   the Klever sources and corresponding working directories.
+   Do it after you have working Klever Bridge server.
+   All additional tools and configuration files should be outside from the Klever sources and corresponding working
+   directories.
 
-#. Run client-controller. Use script :file:`Cloud/bin/client-controller.py` and path to a prepared client-controller
+#. Run client-controller. Use script :file:`Scheduler/bin/client-controller.py` and path to a prepared client-controller
    configuration file as the first argument. Be sure that you have chosen clean working directory outside of sources
    for an execution. If you would turn on web-UI in configuration and place necessary files in the consul
    directory you will get a visualization of all checks at *http://localhost:8500/ui*.
 
-#. Run native scheduler after you have running controller and Omega server. Run script
-   :file:`Cloud/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
+#. Run native scheduler after you have running controller and Klever Bridge server. Run script
+   :file:`Scheduler/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
    that you have chosen clean working directory outside of sources for an execution.
 
    .. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JAVA` to run CPAchecker, e.g.
