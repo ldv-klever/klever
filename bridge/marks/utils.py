@@ -32,8 +32,8 @@ class NewMark(object):
         :param user: instance of User (author of mark change/creation)
         :param mark_type: 'safe' or 'unsafe'
         :param args: dictionary with keys:
-            'status': see MARK_STATUS from Bridge.vars, default - '0'.
-            'verdict': see MARK_UNSAFE/MARK_SAFE from Bridge.vars, default - '0'
+            'status': see MARK_STATUS from bridge.vars, default - '0'.
+            'verdict': see MARK_UNSAFE/MARK_SAFE from bridge.vars, default - '0'
             'convert_id': MarkUnsafeCompare id (only for creating unsafe mark)
             'compare_id': MarkUnsafeConvert id (only for unsafe mark)
             'attrs': list of dictionaries with required keys:

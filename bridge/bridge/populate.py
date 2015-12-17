@@ -165,7 +165,7 @@ class Population(object):
                 print_err('Default job settings must contain name, type and description')
                 continue
             if job_settings['type'] not in list(x[0] for x in JOB_CLASSES):
-                print_err('Default job type is wrong. See Bridge.vars.JOB_CLASSES for choice ("0", "1" or "2")')
+                print_err('Default job type is wrong. See bridge.vars.JOB_CLASSES for choice ("0", "1" or "2")')
                 continue
             if len(job_settings['name']) == 0:
                 print_err('Default job name is required')
