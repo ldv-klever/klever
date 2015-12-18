@@ -207,6 +207,7 @@ class ModuleSpecification(CategorySpecification):
         self.inits = None
         self.exits = None
         self.modules_functions = None
+        self.implementations = {}
 
         # Import categories from modules specification
         super().import_specification(specification)
@@ -491,13 +492,19 @@ class ModuleSpecification(CategorySpecification):
 
                 # Parse arrays and structures
                 # todo: implement array parsing
+
+                # Add implementations
+                if path not in self.implementations:
+                    self.implementations[path] = {}
+                self.implementations[path][variable] = {}
+
                 self.__parse_elements_signatures(
                     self.analysis["global variable initializations"][path][variable]["fields"])
                 for field in self.analysis["global variable initializations"][path][variable]["fields"]:
+                    self.implementations[path][variable][field] = \
+                        self.analysis["global variable initializations"][path][variable]["fields"][field]["value"]
                     self.analysis["global variable initializations"][path][variable]["signature"].fields[field] = \
                         self.analysis["global variable initializations"][path][variable]["fields"][field]["signature"]
-                    self.analysis["global variable initializations"][path][variable]["signature"].fields[field].value =\
-                        self.analysis["global variable initializations"][path][variable]["fields"][field]["value"]
                 del self.analysis["global variable initializations"][path][variable]["fields"]
 
                 # Keep only signature
@@ -704,8 +711,6 @@ class Signature:
         self.return_value = None
         self.parameters = None
         self.fields = None
-        # TODO: Remove value from signature
-        self.value = None
 
         ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
         identifier_re = "(?:(?:(\*?)%s)|(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
