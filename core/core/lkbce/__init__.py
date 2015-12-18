@@ -115,17 +115,16 @@ class LKBCE(core.components.Component):
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
                         specify_arch=True, invoke_build_cmd_wrappers=True, collect_build_cmds=True)
 
-         #TODO external module
         self.linux_kernel['module deps'] = {}
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
                 and 'build kernel' in self.conf['Linux kernel']:
-            #Install modules
+            # Install modules
             self.linux_kernel['modules install'] = os.path.join(self.conf['main working directory'], 'linux-modules')
             os.mkdir(self.linux_kernel['modules install'])
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'],
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
                         specify_arch=False, invoke_build_cmd_wrappers=False, collect_build_cmds=False)
-            #Extract mod deps
+            # Extract mod deps
             self.extract_all_linux_kernel_mod_deps()
         elif 'dep file' in self.conf['Linux kernel']:
             self.extract_all_linux_kernel_mod_deps()
@@ -135,13 +134,14 @@ class LKBCE(core.components.Component):
             fp.write(core.lkbce.cmds.cmds.Command.cmds_separator)
 
     def extract_all_linux_kernel_mod_deps(self):
-        if ('modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
-                and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel'])\
+        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
+                and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']\
                 or 'dep file' in self.conf['Linux kernel']:
             if 'dep file' in self.conf['Linux kernel']:
                 path = self.conf['Linux kernel']['dep file']
             else:
-                path = os.path.join(self.linux_kernel['modules install'], "lib/modules", self.linux_kernel['version'], "modules.dep")
+                path = os.path.join(self.linux_kernel['modules install'], "lib/modules",
+                                    self.linux_kernel['version'], "modules.dep")
 
             with open(path, 'r') as fp:
                 for line in fp:

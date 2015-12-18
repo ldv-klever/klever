@@ -6,7 +6,7 @@ class Closure:
     def __init__(self, logger, module_deps, cluster_size):
         self.logger = logger
         self.cluster_size = cluster_size
-        self.logger.debug('Calculate graph of all dependencies between modules')
+        self.logger.info('Calculate graph of all dependencies between modules')
         self.modules = {}
         self.checked_clusters = set()
 
@@ -25,14 +25,14 @@ class Closure:
 
         # Calculation
         clusters = []
+        self.logger.info("Start verificaton multimodule task extraction based on closure partitioning")
         self.logger.debug('Calculate dependencies for these "top" modules')
-        root = self.modules[module_name]
+        root = self.modules.get(module_name, Module(module_name))
         # Will be created own graph
         cluster = Cluster(root)
         if self.cluster_size != 0:
             if cluster.size > self.cluster_size:
-                self.logger.debug('Module', root.id,
-                                  'has too much dependencies, going to divide this verificatoin object')
+                self.logger.info('Module {0} has too much dependencies, going to divide this verificatoin object'.format(root.id))
                 shatters = self.divide_cluster(cluster)
                 clusters.extend(shatters)
             else:
@@ -51,21 +51,21 @@ class Closure:
 
         return ret_clusters
 
-    def divide_cluster(self, cluster_d):
+    def divide_cluster(self, input_cluster):
 
         # Get simple task_hash
         task_hash = {}
-        for module in cluster_d.modules:
+        for module in input_cluster.modules:
             for pred in module.predecessors:
                 task_hash.setdefault(module.id, {}).setdefault(pred.id, 0)
                 task_hash[module.id][pred.id] += 1
 
         # Use task_hash to keep only unque tasks
         task_list = {}
-        rest_list = [{'root': cluster_d.root.id,
+        rest_list = [{'root': input_cluster.root.id,
                       'task_hash': task_hash,
                       'size': 1,
-                      'modules': [cluster_d.root.id]}]
+                      'modules': [input_cluster.root.id]}]
         while rest_list:
             task = rest_list.pop(0)
 
@@ -86,7 +86,7 @@ class Closure:
 
                 # Reach limit, rebuild graph without selected edges
                 new_hash = {}
-                exclude = {x: 1 for x in task['modules']}
+                exclude = {module: 1 for module in task['modules']}
                 for module in task['task_hash'].keys():
                     if module == task['root']:
                         for child in task['task_hash'][module]:
@@ -110,9 +110,9 @@ class Closure:
                 else:
 
                     # Limit wasn't reached ? Find new root
-                    for m in task['modules']:
-                        if m != task['root'] and m in task['task_hash'] and task['task_hash'][m].keys():
-                            new_task = {'root': m,
+                    for module in task['modules']:
+                        if module != task['root'] and module in task['task_hash'] and task['task_hash'][module].keys():
+                            new_task = {'root': module,
                                         'task_hash': new_hash,
                                         'size': len(task['modules']),
                                         'modules': task['modules']}
@@ -147,4 +147,5 @@ class Closure:
             cluster = Cluster(root)
             ret.append(cluster)
 
+        self.logger.info("The nuber of clusters is {0}".format(len(ret)))
         return ret

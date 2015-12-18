@@ -22,6 +22,7 @@ def before_launch_all_components(context):
 def after_extract_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
+
 def after_build_linux_kernel(context):
     context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
 
@@ -115,12 +116,11 @@ class LKVOG(core.components.Component):
             if not os.path.isdir(scotch_dir_path):
                 os.mkdir(scotch_dir_path)
             else:
-                #Clean scotch directory
+                # Clear scotch directory
                 file_list = os.listdir(scotch_dir_path)
                 for file_name in file_list:
                     os.remove(os.path.join(scotch_dir_path, file_name))
 
-            #TODO: check params?
             task_size = self.conf['LKVOG strategy']['cluster size']
             balance_tolerance = self.conf['LKVOG strategy'].get('balance tolerance', 0.05)
             scotch_bin_path = self.conf['LKVOG strategy']['scotch path']
@@ -131,7 +131,6 @@ class LKVOG(core.components.Component):
 
         else:
             raise NotImplementedError("Strategy not implemented {0}".format(strategy_name))
-
 
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
@@ -192,8 +191,8 @@ class LKVOG(core.components.Component):
             self.verification_obj_desc['grps'] = []
             self.verification_obj_desc['deps'] = {}
             for module in self.cluster.modules:
-                self.verification_obj_desc['grps'].append({'id' : module.id,
-                                                          'cc full desc files' : self.__find_cc_full_desc_files(module.id)})
+                self.verification_obj_desc['grps'].append({'id': module.id,
+                                                      'cc full desc files': self.__find_cc_full_desc_files(module.id)})
                 self.verification_obj_desc['deps'][module.id] = [predecessor.id for predecessor in module.predecessors]
 
             self.logger.debug(
@@ -209,7 +208,6 @@ class LKVOG(core.components.Component):
                         self.module['name'], verification_obj_desc_file))
                 with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file), 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
-
 
         else:
             raise NotImplementedError(

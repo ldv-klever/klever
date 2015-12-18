@@ -8,10 +8,10 @@ class Module:
         self.deep = 0
         self.size = 1
 
-    def add_predecessor(self, pred):
-        if pred:
-            self.predecessors.append(pred)
-            pred.successors.append(self)
+    def add_predecessor(self, predecessor):
+        if predecessor:
+            self.predecessors.append(predecessor)
+            predecessor.successors.append(self)
             return 1
         else:
             return 0
