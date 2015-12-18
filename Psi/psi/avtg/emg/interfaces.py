@@ -264,8 +264,8 @@ class ModuleSpecification(CategorySpecification):
                 if signature.interface:
                     var = copy.copy(self.analysis["global variable initializations"][path][variable])
                     if path not in self.interfaces[signature.interface.full_identifier].implementations:
-                        self.interfaces[signature.interface.full_identifier].implementations[path] = []
-                    self.interfaces[signature.interface.full_identifier].implementations[path].append(var)
+                        self.interfaces[signature.interface.full_identifier].implementations[path] = {}
+                    self.interfaces[signature.interface.full_identifier].implementations[path][variable] = var
         del self.analysis["global variable initializations"]
 
         self.logger.info("Move kernel functions descriptions")
@@ -324,7 +324,7 @@ class ModuleSpecification(CategorySpecification):
             for parameter in callback.signature.parameters:
                 if not parameter.interface:
                     self.logger.debug("Check suitable resource interface for parameter {} of callback {}".
-                                      format(parameter, callback.full_identifier))
+                                      format(parameter.expression, callback.full_identifier))
                     if parameter.type_class == "struct" \
                             and parameter.structure_name in self.categories[callback.category]["resources"]:
                         intf_name = parameter.structure_name
@@ -345,8 +345,7 @@ class ModuleSpecification(CategorySpecification):
                         self.logger.debug("Introduce new resource on base of parameter {} of callback {}".
                                           format(parameter, callback.full_identifier))
                         new_identifier = self._yield_new_identifier(callback.category, parameter)
-                        interface = self.__make_intf_from_signature(callback.signature,
-                                                                    callback.category, new_identifier)
+                        interface = self.__make_intf_from_signature(parameter, callback.category, new_identifier)
                         interface.resource = True
                         self.categories[interface.category]["resources"][interface.identifier] = interface
 
@@ -418,7 +417,7 @@ class ModuleSpecification(CategorySpecification):
         if not name:
             name = "klever_intf"
 
-        final_name = name
+        final_name = "emg_{}".format(name)
         cnt = 0
         while "{}.{}".format(category, final_name) in self.interfaces:
             cnt += 1
@@ -477,7 +476,6 @@ class ModuleSpecification(CategorySpecification):
         for function in self.analysis["modules functions"]:
             for path in self.analysis["modules functions"][function]["files"]:
                 self.logger.debug("Parse signature of function {} from file {}".format(function, path))
-                self.logger.debug("Parse signature of function {}".format(function))
                 self.analysis["modules functions"][function]["files"][path]["signature"] = \
                     Signature(self.analysis["modules functions"][function]["files"][path]["signature"])
                 self.__process_function_signature(self.analysis["modules functions"][function]["files"][path])
@@ -498,9 +496,12 @@ class ModuleSpecification(CategorySpecification):
                 for field in self.analysis["global variable initializations"][path][variable]["fields"]:
                     self.analysis["global variable initializations"][path][variable]["signature"].fields[field] = \
                         self.analysis["global variable initializations"][path][variable]["fields"][field]["signature"]
+                    self.analysis["global variable initializations"][path][variable]["signature"].fields[field].value =\
+                        self.analysis["global variable initializations"][path][variable]["fields"][field]["value"]
                 del self.analysis["global variable initializations"][path][variable]["fields"]
 
                 # Keep only signature
+                # todo: Save values
                 self.analysis["global variable initializations"][path][variable] = \
                     self.analysis["global variable initializations"][path][variable]["signature"]
 
@@ -703,7 +704,8 @@ class Signature:
         self.return_value = None
         self.parameters = None
         self.fields = None
-        self.__body = None
+        # TODO: Remove value from signature
+        self.value = None
 
         ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
         identifier_re = "(?:(?:(\*?)%s)|(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
@@ -805,55 +807,5 @@ class Signature:
                     self.parameters.append(None)
                 else:
                     self.parameters.append(Signature(arg))
-
-    @property
-    def body(self):
-        if self.type_class == "function" and not self.pointer:
-            if not self.__body:
-                self.__body = FunctionBody()
-            return self.__body
-        else:
-            raise TypeError("Signature '{}' with class '{}' is not a function or it is a function pointer".
-                            format(self.expression, self.type_class))
-
-    def get_definition(self):
-        if self.type_class == "function" and not self.pointer:
-            lines = []
-            lines.append(self.expression + "{\n")
-            lines.extend(self.body.get_lines(1))
-            lines.append("}\n")
-            return lines
-        else:
-            raise TypeError("Signature '{}' with class '{}' is not a function or it is a function pointer".
-                            format(self.expression, self.type_class))
-
-
-class FunctionBody:
-    indent_re = re.compile("^(\t*)([^\s]*.*)")
-
-    def __init__(self, body=[]):
-        self.__body = []
-
-        if len(body) > 0:
-            self.concatenate(body)
-
-    def _split_indent(self, string):
-        split = self.indent_re.match(string)
-        return {
-            "indent": len(split.group(1)),
-            "statement": split.group(2)
-        }
-
-    def concatenate(self, statements):
-        for line in statements:
-            splitted = self._split_indent(line)
-            self.__body.append(splitted)
-
-    def get_lines(self, start_indent=1):
-        lines = []
-        for splitted in self.__body:
-            line = (start_indent + splitted["indent"]) * "\t" + splitted["statement"] + "\n"
-            lines.append(line)
-        return lines
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
