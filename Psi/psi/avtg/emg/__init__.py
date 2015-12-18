@@ -6,7 +6,8 @@ import psi.utils
 
 from psi.avtg.emg.interfaces import CategorySpecification, ModuleSpecification
 from psi.avtg.emg.events import EventModel
-from psi.avtg.emg.translator import stub
+from psi.avtg.emg.translator import stub, sequential
+
 
 class EMG(psi.components.Component):
 
@@ -45,7 +46,7 @@ class EMG(psi.components.Component):
         # Import event categories specification
         self.logger.info("Prepare intermediate model")
         # TODO: Import existing environment model
-        self.model = EventModel(self.logger, self.module_interface_spec, self.event_spec)
+        self.model = EventModel(self.logger, self.module_interface_spec, self.event_spec).model
 
         translator_name = None
         if "translator" in self.conf:
@@ -56,6 +57,8 @@ class EMG(psi.components.Component):
 
         if translator_name == "stub":
             tr = stub.Translator(self.logger, self.conf, avt, self.module_interface_spec, self.model)
+        elif translator_name == "sequential":
+            tr = sequential.Translator(self.logger, self.conf, avt, self.module_interface_spec, self.model)
         else:
             raise NotImplementedError("Cannot use EMG translator '{}'".format(translator_name))
 

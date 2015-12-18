@@ -32,6 +32,10 @@ class EventModel:
         self.logger.info("Assign process signatures")
         self.__assign_signatures()
 
+        # Convert callback access according to container fields
+        self.logger.info("Convert callback accesses")
+        self.__convert_accesses()
+
     def __import_processes(self, raw, category):
         if "kernel model" in raw:
             for name_list in raw[category]:
@@ -235,7 +239,7 @@ class EventModel:
         old_size = 0
         new_size = 0
         start = True
-        while((new_size - old_size) > 0 or start):
+        while (new_size - old_size) > 0 or start:
             # Match interfaces and containers
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
                                if process.subprocesses[name].callback
@@ -399,9 +403,9 @@ class EventModel:
         if process.unmatched_receives:
             for receive in process.unmatched_receives:
                 if receive.name == "register":
-                    pass
+                    raise NotImplementedError("Generate default registration")
                 elif receive.name == "deregister":
-                    pass
+                    raise NotImplementedError("Generate default deregistration")
                 else:
                     self.logger.warning("Signal {} cannot be received by process {} with identifier {}, "
                                         "since nobody can send it".
@@ -442,8 +446,64 @@ class EventModel:
                             if label and peer_label:
                                 peer_label.signature = label.signature
 
+            for label in [process.labels[name] for name in process.labels if not process.labels[name].signature]:
+                if label.interface and type(label.interface) is str:
+                    label.signature = self.analysis.interfaces[label.interface].signature
+                elif not label.interface:
+                    raise RuntimeError("Label {} of process {} with identifier {} has no interface nor it has "
+                                       "signature".format(label.name, process.name, process.identifier))
 
+    def __resolve_access(self, process, string):
+        self.logger.debug("Try to convert access '{}' from process {} with an identifier {}".
+                          format(string, process.name, process.identifier))
+        ret = None
+        label, tail = process.extract_label_with_tail(string)
+        if not label:
+            ret = string
+        elif type(label) is Label and (not tail or len(tail) == 0):
+            ret = [label.name]
+        elif type(label) is Label and tail and len(tail) > 0:
+            if label.interface and type(label.interface) is str:
+                intfs = self.__resolve_interface(self.analysis.interfaces[label.interface], tail)
+                if not intfs:
+                    ret = None
+                else:
+                    ret = []
+                    for index in range(len(intfs)):
+                        if index == 0:
+                            ret.append(label.name)
+                        else:
+                            field = list(intfs[index - 1].fields.keys())[list(intfs[index - 1].fields.values()).
+                                                                              index(intfs[index].identifier)]
+                            ret.append(field)
+            elif label.interface and type(label.interface) is list:
+                raise NotImplementedError("Do not expect list of containers for label")
+            else:
+                raise ValueError("Cannot identify interface of label {} at process description {}".
+                                 format(label.name, process.name))
+        else:
+            raise TypeError("Cannot identify expression '{}'".format(string))
 
+        self.logger.debug("Convert access '{}' from process {} with an identifier {} to '{}'".
+                          format(string, process.name, process.identifier, ret))
+        return ret
+
+    def __convert_accesses(self):
+        self.logger.info("Convert interfaces access by expressions on base of containers and their fields")
+        for process in self.model["models"] + self.model["processes"]:
+            self.logger.debug("Analyze subprocesses of process {} with an identifier {}".
+                              format(process.name, process.identifier))
+            for subprocess in [process.subprocesses[name] for name in process.subprocesses]:
+                if subprocess.callback:
+                    subprocess.callback = self.__resolve_access(process, subprocess.callback)
+                if subprocess.parameters:
+                    for index in range(len(subprocess.parameters)):
+                        subprocess.parameters[index] = self.__resolve_access(process, subprocess.parameters[index])
+                if subprocess.callback_retval:
+                    subprocess.callback_retval = self.__resolve_access(process, subprocess.callback_retval)
+                if subprocess.guard:
+                    # todo: implement replacing labels in arbitrary string and then implement this section
+                    pass
 
 
 class Label:
@@ -495,18 +555,14 @@ class Process:
 
     def __init__(self, name, dic={}):
         # Default values
-        self.process = None
         self.labels = {}
         self.subprocesses = {}
-        self.category = None
-
         self.type = "process"
         self.name = name
-        self._import_dictionary(dic)
+        self.category = None
+        self.process = None
         self.identifier = None
-
-    def _parse_process(self, root, expression):
-        pass
+        self._import_dictionary(dic)
 
     def _import_dictionary(self, dic):
         # Import labels
@@ -526,8 +582,17 @@ class Process:
         if "process" in dic:
             self.process = dic["process"]
 
+        # Add parameters
         if "parameters" in dic:
             self.parameters = dic["parameters"]
+
+        # Add callback return value
+        if "callback return value" in dic:
+            self.callback_retval = dic["callback return value"]
+
+        # Import guard
+        if "guard" in dic:
+            self.guard = dic["guard"]
 
         if self.type and self.type == "process" and len(self.subprocesses.keys()) > 0:
             self.__determine_subprocess_types()
@@ -662,6 +727,34 @@ class Process:
         else:
             return False
 
+    def collect_relevant_interfaces(self):
+        relevant_interfaces = {
+            "callbacks": [],
+            "parameters": [],
+            "containers": [self.labels[name] for name in self.labels if self.labels[name].container],
+            "resources": [self.labels[name] for name in self.labels if self.labels[name].resource
+                          if self.labels[name].signature.type_class == "struct"]
+        }
+        # Extract callbacks
+        for subprocess in [self.subprocesses[name] for name in self.subprocesses
+                           if self.subprocesses[name].type == "dispatch" and self.subprocesses[name].callback]:
+            if type(subprocess.callback) is list and subprocess.callback not in relevant_interfaces["callbacks"]:
+                relevant_interfaces["callbacks"].append(subprocess.callback)
+        # Extract total parameters
+        for subprocess in [self.subprocesses[name] for name in self.subprocesses
+                           if self.subprocesses[name].parameters]:
+            for parameter in [parameter for parameter in subprocess.parameters if type(parameter) is list]:
+                if parameter not in relevant_interfaces["parameters"]:
+                    relevant_interfaces["parameters"].append(parameter)
+
+        return relevant_interfaces
+
+    def labels_in_string(self, string):
+        raise NotImplementedError
+
+    def replace_label_access(self, label, string):
+        raise NotImplementedError
+
 
 class Subprocess(Process):
 
@@ -669,10 +762,12 @@ class Subprocess(Process):
         self.type = None
         self.name = name
         self.process = None
-        self.callback = None
         self.parameters = []
+        self.callback = None
+        self.callback_retval = None
         self._import_dictionary(dic)
         self.peers = []
+        self.guard = None
 
         if "callback" in dic:
             self.callback = dic["callback"]
@@ -681,6 +776,5 @@ class Subprocess(Process):
         super()._import_dictionary(dic)
         self.labels = {}
         self.subprocesses = {}
-        return
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
