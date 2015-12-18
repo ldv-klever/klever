@@ -67,8 +67,8 @@
                 </table>
                 {% if reports.values|length %}
                 <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
-                <div style="overflow-x: auto; max-height: 400px;">
-                    <table class="ui compact teal celled table" style="width:auto;">
+                <div style="direction:rtl;overflow-x: auto; max-height: 400px;">
+                    <table class="ui compact teal celled table" style="width:auto;direction:ltr;float:left; margin-left: 25px;">
                         <thead>
                             {% for column_row in reports.header %}
                                 <tr>

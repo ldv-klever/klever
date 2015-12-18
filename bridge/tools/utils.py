@@ -4,11 +4,11 @@ from django.db.models import Q, ProtectedError
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
-from bridge.utils import print_err
+from bridge.utils import print_err, print_exec_time
 from reports.models import *
 from marks.models import ReportUnsafeTag, UnsafeReportTag, MarkUnsafeReport,\
     ReportSafeTag, SafeReportTag, MarkSafeReport, MarkUnknownReport, ComponentMarkUnknownProblem, UnknownProblem
-from marks.utils import ConnectReportWithMarks
+from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 
 
 def clear_job_files():
@@ -64,6 +64,7 @@ class RecalculateVerdicts(object):
         self.jobs = jobs
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
 
+    @print_exec_time
     def __recalc_for_jobs(self):
         ReportComponentLeaf.objects.filter(report__root__job__in=self.jobs).delete()
         Verdict.objects.filter(report__root__job__in=self.jobs).delete()
@@ -74,6 +75,7 @@ class RecalculateVerdicts(object):
             self.__update_safe(s)
         for u in ReportUnknown.objects.filter(root__job__in=self.jobs):
             self.__update_unknown(u)
+        print('Verdicts')
 
     def __recalc_all(self):
         ReportComponentLeaf.objects.all().delete()
@@ -177,10 +179,12 @@ class RecalculateResources(object):
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
         clear_resources()
 
+    @print_exec_time
     def __recalc_for_jobs(self):
         ComponentResource.objects.filter(report__root__job__in=self.jobs).delete()
         for rep in ReportComponent.objects.filter(root__job__in=self.jobs):
             self.__update_cache(rep)
+        print('Resources')
 
     def __recalc_all(self):
         self.ccc = 0
@@ -253,12 +257,14 @@ class RecalculateUnsafeMarkConnections(object):
         self.jobs = jobs
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
 
+    @print_exec_time
     def __recalc_for_jobs(self):
         ReportUnsafeTag.objects.filter(report__root__job__in=self.jobs).delete()
         UnsafeReportTag.objects.filter(report__root__job__in=self.jobs).delete()
         MarkUnsafeReport.objects.filter(report__root__job__in=self.jobs).delete()
         for unsafe in ReportUnsafe.objects.filter(root__job__in=self.jobs):
             ConnectReportWithMarks(unsafe)
+        print('UnsafeMark')
 
     def __recalc_all(self):
         self.ccc = 0
@@ -275,12 +281,14 @@ class RecalculateSafeMarkConnections(object):
         self.jobs = jobs
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
 
+    @print_exec_time
     def __recalc_for_jobs(self):
         ReportSafeTag.objects.filter(report__root__job__in=self.jobs).delete()
         SafeReportTag.objects.filter(report__root__job__in=self.jobs).delete()
         MarkSafeReport.objects.filter(report__root__job__in=self.jobs).delete()
         for safe in ReportSafe.objects.filter(root__job__in=self.jobs):
             ConnectReportWithMarks(safe)
+        print('SafeMark')
 
     def __recalc_all(self):
         self.ccc = 0
@@ -302,18 +310,22 @@ class RecalculateUnknownMarkConnections(object):
             except ProtectedError:
                 pass
 
+    @print_exec_time
     def __recalc_for_jobs(self):
         MarkUnknownReport.objects.filter(report__root__job__in=self.jobs).delete()
         ComponentMarkUnknownProblem.objects.filter(report__root__job__in=self.jobs).delete()
         for unknown in ReportUnknown.objects.filter(root__job__in=self.jobs):
-            ConnectReportWithMarks(unknown)
+            ConnectReportWithMarks(unknown, False)
+        update_unknowns_cache(ReportUnknown.objects.filter(root__job__in=self.jobs))
+        print('UnknownMark')
 
     def __recalc_all(self):
         self.ccc = 0
         MarkUnknownReport.objects.all().delete()
         ComponentMarkUnknownProblem.objects.all().delete()
         for unknown in ReportUnknown.objects.all():
-            ConnectReportWithMarks(unknown)
+            ConnectReportWithMarks(unknown, False)
+        update_unknowns_cache(ReportUnknown.objects.all())
 
 
 class Recalculation(object):
@@ -347,6 +359,7 @@ class Recalculation(object):
             self.error = _('Please select jobs to recalculate caches for them')
         return jobs
 
+    @print_exec_time
     def __recalc(self):
         args = {}
         if self.jobs is not None:

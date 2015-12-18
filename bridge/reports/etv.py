@@ -184,8 +184,10 @@ class GetETV(object):
                 line_data.update(fill_assumptions())
             if 'note' in n.attr:
                 line_data['note'] = n['note']
-                if all(ss not in scopes_to_hide for ss in scope_stack) and scope_stack[-1] not in scopes_to_show:
-                    scopes_to_show.append(scope_stack[-1])
+                if all(ss not in scopes_to_hide for ss in scope_stack):
+                    for ss in scope_stack[1:]:
+                        if ss not in scopes_to_show:
+                            scopes_to_show.append(ss)
             if 'warning' in n.attr:
                 line_data['warning'] = n['warning']
                 for ss in scope_stack[1:]:

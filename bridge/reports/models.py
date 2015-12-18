@@ -58,6 +58,9 @@ class Computer(models.Model):
 class Component(models.Model):
     name = models.CharField(max_length=15, unique=True)
 
+    def __str__(self):
+        return self.name
+
     class Meta:
         db_table = 'component'
 

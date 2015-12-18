@@ -1,4 +1,5 @@
 import time
+from django.utils.timezone import now
 from bridge.settings import DEBUG
 
 BLOCKER = {}
@@ -8,6 +9,15 @@ GROUP_BLOCKER = {}
 def print_err(message):
     if DEBUG:
         print(message)
+
+
+def print_exec_time(f):
+    def wrapper(*args, **kwargs):
+        start = now()
+        res = f(*args, **kwargs)
+        print_err('%s: %s' % (f.__name__, now() - start))
+        return res
+    return wrapper
 
 
 def unparallel(f):

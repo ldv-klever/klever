@@ -9,7 +9,7 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import override
 from django.utils.timezone import now
-from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, FORMAT, MARK_STATUS
+from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
 from bridge.utils import print_err
 from users.models import Extended
@@ -248,7 +248,7 @@ class Population(object):
                 except Exception as e:
                     print_err(e)
                     continue
-                if not isinstance(data, dict) or any(x not in data for x in ['type', 'function', 'pattern']):
+                if not isinstance(data, dict) or any(x not in data for x in ['class', 'function', 'pattern']):
                     print_err('Wrong unknown mark data: %s' % fname)
                     continue
                 if 'link' not in data:
@@ -259,7 +259,7 @@ class Population(object):
                     data['status'] = MARK_STATUS[0][0]
                 if 'is_modifiable' not in data:
                     data['is_modifiable'] = True
-                if data['type'] not in list(x[0] for x in JOB_CLASSES) \
+                if data['class'] not in list(x[0] for x in JOB_CLASSES) \
                         or data['status'] not in list(x[0] for x in MARK_STATUS) \
                         or len(data['function']) == 0 \
                         or not 0 < len(data['pattern']) <= 15 \
@@ -270,7 +270,7 @@ class Population(object):
                     for component in Component.objects.all():
                         try:
                             MarkUnknown.objects.get(
-                                type=data['type'],
+                                type=data['class'],
                                 component=component,
                                 function=data['function'],
                                 problem_pattern=data['pattern']
@@ -278,9 +278,10 @@ class Population(object):
                             continue
                         except ObjectDoesNotExist:
                             create_args = {
-                                'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
+                                'identifier': hashlib.md5(
+                                    now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
                                 'component': component,
-                                'type': data['type'],
+                                'type': data['class'],
                                 'author': self.manager,
                                 'status': data['status'],
                                 'is_modifiable': data['is_modifiable'],
@@ -305,7 +306,7 @@ class Population(object):
                 else:
                     try:
                         MarkUnknown.objects.get(
-                            type=data['type'],
+                            type=data['class'],
                             component__name=component,
                             function=data['function'],
                             problem_pattern=data['pattern']
@@ -315,7 +316,7 @@ class Population(object):
                         create_args = {
                             'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
                             'component': Component.objects.get_or_create(name=component)[0],
-                            'type': data['type'],
+                            'type': data['class'],
                             'author': self.manager,
                             'status': data['status'],
                             'is_modifiable': data['is_modifiable'],

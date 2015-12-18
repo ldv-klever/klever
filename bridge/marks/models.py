@@ -9,6 +9,9 @@ from jobs.models import Job
 class UnknownProblem(models.Model):
     name = models.CharField(max_length=15)
 
+    def __str__(self):
+        return self.name
+
     class Meta:
         db_table = 'cache_mark_unknown_problem'
 

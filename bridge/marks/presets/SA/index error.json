@@ -1,5 +1,5 @@
 {
-  "type": "0",
+  "class": "0",
   "function": "IndexError:",
   "pattern": "Index Error",
   "link": "https://docs.python.org/3/library/exceptions.html#IndexError",

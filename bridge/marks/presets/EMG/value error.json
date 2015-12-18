@@ -1,5 +1,5 @@
 {
-  "type": "0",
+  "class": "0",
   "function": "ValueError:",
   "pattern": "Value Error",
   "link": "https://docs.python.org/3/library/exceptions.html#ValueError",

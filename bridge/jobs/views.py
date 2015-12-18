@@ -10,7 +10,7 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES, PRIORITY
-from bridge.utils import unparallel, unparallel_group
+from bridge.utils import unparallel, unparallel_group, print_exec_time
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
@@ -636,6 +636,7 @@ def check_access(request):
     return JsonResponse({})
 
 
+@print_exec_time
 @unparallel_group(['job'])
 @login_required
 def upload_job(request, parent_id=None):

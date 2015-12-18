@@ -1,5 +1,5 @@
 {
-  "type": "0",
+  "class": "0",
   "function": "core.utils.CommandError: \"cif\" failed",
   "pattern": "CIF failure",
   "link": "",

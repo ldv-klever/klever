@@ -1,7 +1,7 @@
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
@@ -235,8 +235,7 @@ class ReportTable(object):
             leaf_filter[list_types[self.type] + '__verdict'] = self.verdict
 
         attr_order = []
-        for leaf in self.report.leaves.filter(
-                Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
+        for leaf in self.report.leaves.filter(Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
             report = getattr(leaf, list_types[self.type])
             if not self.__has_tag(report):
                 continue
@@ -262,8 +261,7 @@ class ReportTable(object):
                 reports_ordered.append(
                     (data[self.view['order']][report], report)
                 )
-            reports_ordered = \
-                [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
+            reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
         else:
             for attr in data:
                 for report in data[attr]:
@@ -284,8 +282,7 @@ class ReportTable(object):
                         break
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:leaf',
-                                   args=[list_types[self.type], report.pk])
+                    href = reverse('reports:leaf', args=[list_types[self.type], report.pk])
                 elif col == 'marks_number':
                     broken = 0
                     num_of_connects = len(report.markreport_set.all())
@@ -345,40 +342,27 @@ class ReportTable(object):
 
     def __unknowns_data(self):
 
-        def filter_component(component_name):
-            if 'component' in self.view['filters']:
-                filter_type = self.view['filters']['component']['type']
-                filter_value = self.view['filters']['component']['value']
-                if filter_type == 'iexact':
-                    if component_name.lower() == filter_value.lower():
-                        return True
-                elif filter_type == 'istartswith':
-                    if component_name.lower().startswith(filter_value.lower()):
-                        return True
-                elif filter_type == 'icontains':
-                    if filter_value.lower() in component_name.lower():
-                        return True
-                return False
-            return True
-
         data = {}
         components = {}
         attr_order = []
-        for leaf in self.report.leaves.filter(~Q(unknown=None)):
+        filters = {}
+        if self.component_id is not None:
+            filters['unknown__component_id'] = int(self.component_id)
+        if 'component' in self.view['filters'] \
+                and self.view['filters']['component']['type'] in ['iexact', 'istartswith', 'icontains']:
+            ftype = 'unknown__component__name__%s' % self.view['filters']['component']['type']
+            filters[ftype] = self.view['filters']['component']['value']
+        if self.problem == 0:
+            filters['mr_set_len'] = 0
+        for leaf in self.report.leaves.annotate(mr_set_len=Count('unknown__markreport_set'))\
+                .filter(~Q(unknown=None) & Q(**filters)):
+            if isinstance(self.problem, UnknownProblem) and len(
+                    leaf.unknown.markreport_set.filter(problem=self.problem)) == 0:
+                continue
             report = leaf.unknown
             for new_a in report.attrorder.order_by('id'):
                 if new_a.name.name not in attr_order:
                     attr_order.append(new_a.name.name)
-            if self.component_id is not None and \
-                    report.component_id != int(self.component_id):
-                continue
-            if isinstance(self.problem, UnknownProblem) and len(
-                    report.markreport_set.filter(problem=self.problem)) == 0:
-                continue
-            elif self.problem == 0 and len(report.markreport_set.all()) > 0:
-                continue
-            if not filter_component(report.component.name):
-                continue
             for attr in report.attr.all():
                 if attr.name.name not in data:
                     data[attr.name.name] = {}

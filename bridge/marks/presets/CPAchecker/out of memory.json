@@ -1,5 +1,5 @@
 {
-  "type": "0",
+  "class": "0",
   "function": "memory exhausted",
   "pattern": "Out of memory",
   "link": "",

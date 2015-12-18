@@ -547,19 +547,14 @@ class TableTree(object):
     def __resource_columns(self):
         components = {}
         for job in self.jobdata:
-            cr_set = ComponentResource.objects.filter(
-                report__root__job=job['job'])
+            filters = {
+                'report__root__job': job['job'],
+                'report__parent': None
+            }
             if 'resource_component' in self.head_filters:
-                compres_set = cr_set.filter(
-                    **self.head_filters['resource_component']
-                )
-            else:
-                compres_set = cr_set.all()
-            for compres in compres_set:
-                comp = compres.component
-                if comp is not None:
-                    comp_id = 'resource:component_' + str(comp.pk)
-                    components[comp_id] = comp.name
+                filters.update(self.head_filters['resource_component'])
+            for compres in ComponentResource.objects.filter(~Q(component=None) & Q(**filters)):
+                components['resource:component_' + str(compres.component.pk)] = compres.component.name
         self.titles.update(components)
         components = list(sorted(components, key=components.get))
         components.append('resource:total')

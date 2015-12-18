@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import print_err
+from bridge.utils import print_err, print_exec_time
 from marks.models import *
 from reports.models import ReportComponent, Attr, AttrName
 from marks.ConvertTrace import ConvertTrace
@@ -320,7 +320,8 @@ class NewMark(object):
 
 
 class ConnectReportWithMarks(object):
-    def __init__(self, report):
+    def __init__(self, report, update_cache=True):
+        self.update_cache = update_cache
         self.report = report
         if isinstance(self.report, ReportUnsafe):
             self.__connect_unsafe()
@@ -362,8 +363,7 @@ class ConnectReportWithMarks(object):
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
                     try:
-                        if self.report.attr.get(name__name=attr.attr.name.name)\
-                                .value != attr.attr.value:
+                        if self.report.attr.get(name__name=attr.attr.name.name).value != attr.attr.value:
                             break
                     except ObjectDoesNotExist:
                         pass
@@ -388,7 +388,8 @@ class ConnectReportWithMarks(object):
             MarkUnknownReport.objects.create(mark=mark, report=self.report, problem=problem)
             if self.report not in changes:
                 changes[self.report]['kind'] = '+'
-        update_unknowns_cache(changes)
+        if self.update_cache:
+            update_unknowns_cache(changes)
 
 
 class ConnectMarkWithReports(object):
@@ -1295,7 +1296,8 @@ class MatchUnknown(object):
         return None
 
 
-def update_unknowns_cache(changes):
+@print_exec_time
+def update_unknowns_cache_old(changes):
     reports_to_recalc = []
     for unknown in changes:
         for report in unknown.leaves.all():
@@ -1343,3 +1345,43 @@ def update_unknowns_cache(changes):
                     problem=None,
                     number=unmarked
                 )
+
+
+@print_exec_time
+def update_unknowns_cache(changes):
+    from reports.models import ReportComponentLeaf
+    reports_to_recalc = []
+    for leaf in ReportComponentLeaf.objects.filter(unknown__in=list(changes)):
+        if leaf.report not in reports_to_recalc:
+            reports_to_recalc.append(leaf.report)
+    for report in reports_to_recalc:
+        data = {}
+        for leaf in report.leaves.filter(~Q(unknown=None)):
+            if leaf.unknown.component not in data:
+                data[leaf.unknown.component] = {'unmarked': 0}
+            mark_reports = leaf.unknown.markreport_set.all()
+            if len(mark_reports) > 0:
+                for mr in mark_reports:
+                    if mr.problem not in data[leaf.unknown.component]:
+                        data[leaf.unknown.component][mr.problem] = 0
+                    data[leaf.unknown.component][mr.problem] += 1
+            else:
+                data[leaf.unknown.component]['unmarked'] += 1
+        simplified_data = []
+        for c in data:
+            for problem in data[c]:
+                if data[c][problem] > 0:
+                    simplified_data.append({
+                        'number': data[c][problem],
+                        'component': c,
+                        'problem': problem if isinstance(problem, UnknownProblem) else None
+                    })
+        cache_ids = []
+        for d in simplified_data:
+            cachedata = ComponentMarkUnknownProblem.objects.get_or_create(
+                report=report, component=d['component'], problem=d['problem']
+            )[0]
+            cachedata.number = d['number']
+            cachedata.save()
+            cache_ids.append(cachedata.pk)
+        ComponentMarkUnknownProblem.objects.filter(Q(report=report) & ~Q(id__in=cache_ids)).delete()
