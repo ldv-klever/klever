@@ -63,8 +63,7 @@ class Mark(models.Model):
 
 class MarkHistory(models.Model):
     version = models.PositiveSmallIntegerField()
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL,
-                               related_name="%(class)s")
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     change_date = models.DateTimeField()
     comment = models.TextField()
@@ -80,14 +79,6 @@ class MarkSafe(Mark):
 
     class Meta:
         db_table = 'mark_safe'
-
-
-class SafeMarkAttrOrder(models.Model):
-    name = models.ForeignKey(AttrName)
-    mark = models.ForeignKey(MarkSafe, related_name='attrorder')
-
-    class Meta:
-        db_table = 'marks_safe_attr_order'
 
 
 class MarkSafeHistory(MarkHistory):
@@ -123,14 +114,6 @@ class MarkUnsafe(Mark):
 
     class Meta:
         db_table = 'mark_unsafe'
-
-
-class UnsafeMarkAttrOrder(models.Model):
-    name = models.ForeignKey(AttrName)
-    mark = models.ForeignKey(MarkUnsafe, related_name='attrorder')
-
-    class Meta:
-        db_table = 'marks_unsafe_attr_order'
 
 
 class MarkUnsafeHistory(MarkHistory):

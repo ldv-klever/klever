@@ -31,17 +31,17 @@ ORDER_TITLES = {
     'finish_date': _('Finish date')
 }
 
-ALL_FILTERS = ['name', 'change_author', 'change_date', 'status',
-               'resource_component', 'problem_component', 'problem_problem',
-               'format', 'priority']
+ALL_FILTERS = [
+    'name', 'change_author', 'change_date', 'status', 'resource_component',
+    'problem_component', 'problem_problem', 'format', 'priority'
+]
 
 FILTER_TITLES = {
     'name': _('Title'),
     'change_author': _('Author'),
     'change_date': _('Last change date'),
     'status': _('Decision status'),
-    'resource_component': string_concat(
-        _('Consumed resources'), '/', _('Component name')),
+    'resource_component': string_concat(_('Consumed resources'), '/', _('Component name')),
     'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
     'format': _('Format'),
@@ -56,11 +56,11 @@ def all_user_columns():
     columns.append('safe')
     for safe in SAFES:
         columns.append("safe:%s" % safe)
-    columns.extend(['problem', 'resource', 'tag', 'tag:safe', 'tag:unsafe',
-                    'identifier', 'format', 'version', 'type', 'parent_id',
-                    'priority', 'start_date', 'finish_date', 'solution_wall_time',
-                    'operator', 'tasks_pending', 'tasks_processing', 'tasks_finished',
-                    'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress'])
+    columns.extend([
+        'problem', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version', 'type', 'parent_id',
+        'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending', 'tasks_processing',
+        'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress'
+    ])
     return columns
 
 
@@ -862,18 +862,15 @@ class TableTree(object):
                     )
 
         def collect_resourses():
-            for cr in ComponentResource.objects.filter(
-                    report__root__job_id__in=job_pks, report__parent=None):
+            for cr in ComponentResource.objects.filter(report__root__job_id__in=job_pks, report__parent=None):
                 job_pk = cr.report.root.job_id
                 if job_pk in values_data:
-                    rd = get_resource_data(self.user, cr.resource)
+                    rd = get_resource_data(self.user, cr)
                     resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
                     if cr.component_id is None:
                         values_data[job_pk]['resource:total'] = resourses_value
                     else:
-                        values_data[job_pk][
-                            'resource:component_' + str(cr.component_id)
-                        ] = resourses_value
+                        values_data[job_pk]['resource:component_' + str(cr.component_id)] = resourses_value
 
         def collect_unknowns():
             for cmup in ComponentMarkUnknownProblem.objects.filter(

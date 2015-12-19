@@ -636,9 +636,9 @@ def check_access(request):
     return JsonResponse({})
 
 
-@print_exec_time
 @unparallel_group(['job'])
 @login_required
+@print_exec_time
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
@@ -670,9 +670,7 @@ def upload_job(request, parent_id=None):
             'status': False,
             'messages': failed_jobs
         })
-    return JsonResponse({
-        'status': True
-    })
+    return JsonResponse({'status': True})
 
 
 @unparallel_group(['job', 'report'])

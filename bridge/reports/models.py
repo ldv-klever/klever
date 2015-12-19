@@ -33,19 +33,18 @@ class Report(models.Model):
     root = models.ForeignKey(ReportRoot)
     parent = models.ForeignKey('self', null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
-    attr = models.ManyToManyField(Attr)
     description = models.BinaryField(null=True)
 
     class Meta:
         db_table = 'report'
 
 
-class ReportAttrOrder(models.Model):
-    name = models.ForeignKey(AttrName)
-    report = models.ForeignKey(Report, related_name='attrorder')
+class ReportAttr(models.Model):
+    attr = models.ForeignKey(Attr)
+    report = models.ForeignKey(Report, related_name='attrs')
 
     class Meta:
-        db_table = 'reports_attr_order'
+        db_table = 'report_attrs'
 
 
 class Computer(models.Model):
@@ -65,19 +64,12 @@ class Component(models.Model):
         db_table = 'component'
 
 
-class Resource(models.Model):
-    cpu_time = models.BigIntegerField()
-    wall_time = models.BigIntegerField()
-    memory = models.BigIntegerField()
-
-    class Meta:
-        db_table = 'resource'
-
-
 class ReportComponent(Report):
     computer = models.ForeignKey(Computer)
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
-    resource = models.ForeignKey(Resource, null=True)
+    cpu_time = models.BigIntegerField(null=True)
+    wall_time = models.BigIntegerField(null=True)
+    memory = models.BigIntegerField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
     log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
@@ -154,7 +146,9 @@ class Verdict(models.Model):
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='resources_cache')
     component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
-    resource = models.ForeignKey(Resource)
+    cpu_time = models.BigIntegerField()
+    wall_time = models.BigIntegerField()
+    memory = models.BigIntegerField()
 
     class Meta:
         db_table = 'cache_report_component_resource'

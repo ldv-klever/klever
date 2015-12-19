@@ -142,7 +142,6 @@ def clear_system(request):
         return JsonResponse({'error': _("No access")})
     clear_job_files()
     clear_service_files()
-    clear_resources()
     clear_computers()
     return JsonResponse({'message': _("All unused files and DB rows were deleted")})
 

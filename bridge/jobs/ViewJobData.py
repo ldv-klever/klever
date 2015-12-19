@@ -110,27 +110,22 @@ class ViewJobData(object):
 
         resource_filters = {}
         if 'resource_component' in self.view['filters']:
-            ft = 'component__name__' + \
-                 self.view['filters']['resource_component']['type']
+            ft = 'component__name__' + self.view['filters']['resource_component']['type']
             fv = self.view['filters']['resource_component']['value']
             resource_filters = {ft: fv}
 
         for cr in self.report.resources_cache.filter(~Q(component=None) & Q(**resource_filters)):
-            if cr.resource is not None:
-                if cr.component.name not in res_data:
-                    res_data[cr.component.name] = {}
-                rd = get_resource_data(self.user, cr.resource)
-                res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
+            if cr.component.name not in res_data:
+                res_data[cr.component.name] = {}
+            rd = get_resource_data(self.user, cr)
+            res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
 
-        resource_data = [
-            {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
+        resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 
-        if 'resource_total' not in self.view['filters'] or \
-                self.view['filters']['resource_total']['type'] == 'show':
-            res_total = self.report.resources_cache.filter(
-                component=None)
-            if len(res_total):
-                rd = get_resource_data(self.user, res_total[0].resource)
+        if 'resource_total' not in self.view['filters'] or self.view['filters']['resource_total']['type'] == 'show':
+            res_total = self.report.resources_cache.filter(component=None).first()
+            if res_total is not None:
+                rd = get_resource_data(self.user, res_total)
                 resource_data.append({
                     'component': _('Total'),
                     'val': "%s %s %s" % (rd[0], rd[1], rd[2]),

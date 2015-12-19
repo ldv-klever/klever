@@ -11,11 +11,12 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
-from bridge.utils import print_err, print_exec_time
+from bridge.utils import print_err
 from jobs.models import JOBFILE_DIR
 from jobs.utils import create_job, update_job
 from reports.UploadReport import UploadReportFiles
 from reports.models import *
+from reports.utils import AttrData
 
 ET_FILE = 'unsafe-error-trace.graphml'
 
@@ -80,7 +81,6 @@ class DownloadJob(object):
         self.error = None
         self.__create_tar()
 
-    @print_exec_time
     def __create_tar(self):
 
         files_in_tar = {}
@@ -175,18 +175,8 @@ class ReportsData(object):
         self.job = job
         self.reports = json.dumps(self.__reports_data())
 
-    def __get_attrs(self, report):
-        self.ccc = 0
-        attrs = []
-        for attr_name in report.attrorder.order_by('id'):
-            try:
-                attr = report.attr.get(name__name=attr_name.name.name)
-            except ObjectDoesNotExist:
-                continue
-            attrs.append((attr.name.name, attr.value))
-        return attrs
-
     def __report_component_data(self, report):
+        self.ccc = 0
 
         def get_date(d):
             return [d.year, d.month, d.day, d.hour, d.minute, d.second, d.microsecond] if d is not None else None
@@ -198,24 +188,25 @@ class ReportsData(object):
             'computer': report.computer.description,
             'component': report.component.name,
             'resource': {
-                'cpu_time': report.resource.cpu_time,
-                'wall_time': report.resource.wall_time,
-                'memory': report.resource.memory,
-            } if report.resource is not None else None,
+                'cpu_time': report.cpu_time,
+                'wall_time': report.wall_time,
+                'memory': report.memory,
+            } if all(x is not None for x in [report.cpu_time, report.wall_time, report.memory]) else None,
             'start_date': get_date(report.start_date),
             'finish_date': get_date(report.finish_date),
             'data': report.data.decode('utf8') if report.data is not None else None,
             'description': report.description.decode('utf8') if report.description is not None else None,
-            'attrs': self.__get_attrs(report)
+            'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
 
     def __report_leaf_data(self, report):
+        self.ccc = 0
         return {
             'pk': report.pk,
             'parent': report.parent_id,
             'identifier': report.identifier,
             'description': report.description.decode('utf8') if report.description is not None else None,
-            'attrs': self.__get_attrs(report)
+            'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
 
     def __reports_data(self):
@@ -252,7 +243,6 @@ class UploadJob(object):
         self.zip_file = zip_archive
         self.err_message = self.__create_job_from_tar()
 
-    @print_exec_time
     def __create_job_from_tar(self):
         inmemory = BytesIO(self.zip_file.read())
         jobzip_file = tarfile.open(fileobj=inmemory, mode='r')
@@ -309,6 +299,8 @@ class UploadJob(object):
             return _("The job format is not supported")
         if jobdata['type'] != self.parent.type:
             return _("The job class does not equal to the parent class")
+        if jobdata['status'] not in list(x[0] for x in JOB_STATUS):
+            return _("The job status is wrong")
         files_map = json.loads(jobdata['filedata'])
         for f_id in files_map:
             if files_map[f_id] in files_in_db:
@@ -365,33 +357,29 @@ class UploadJob(object):
                 job.delete()
                 return updated_job
         self.job = job
+        self.job.status = jobdata['status']
+        self.job.save()
         ReportRoot.objects.create(user=self.user, job=self.job)
         try:
             UploadReports(self.job, json.loads(jobdata['reports']), report_files)
         except Exception as e:
-            print_err(e)
+            print_err("ERROR:%s" % e)
             # self.job.delete()
             # self.job = None
             return _("One of the reports was not uploaded")
-        if jobdata['status'] in list(JOB_STATUS[x][0] for x in [2, 6]):
-            self.job.status = JOB_STATUS[5][0]
-        else:
-            self.job.status = jobdata['status']
-        self.job.save()
         return None
 
 
 class UploadReports(object):
     def __init__(self, job, data, files):
-        print(list(files))
         self.error = None
         self.job = job
         self.data = data
         self.files = files
         self._pk_map = {}
+        self._attrs = AttrData()
         self.__upload_all()
 
-    @print_exec_time
     def __upload_all(self):
         curr_func = self.__create_report_component
         for data in self.data:
@@ -404,16 +392,17 @@ class UploadReports(object):
             if isinstance(data, dict):
                 curr_func(data)
             elif isinstance(data, str) and data == 'safes':
-                print('Start safes uploading')
-                curr_func = self.__report_safe_for_save
+                curr_func = self.__create_report_safe
             elif isinstance(data, str) and data == 'unsafes':
-                print('Start unsafes uploading')
-                curr_func = self.__report_unsafe_for_save
+                curr_func = self.__create_report_unsafe
             elif isinstance(data, str) and data == 'unknowns':
-                print('Start unknowns uploading')
-                curr_func = self.__report_unknown_for_save
+                curr_func = self.__create_report_unknown
+        self._attrs.upload()
+        Verdict.objects.bulk_create(list(
+            Verdict(report=self._pk_map[rep_id]) for rep_id in self._pk_map
+        ))
+
         from tools.utils import Recalculation
-        print('Start recalc')
         Recalculation('all', json.dumps([self.job.pk]))
 
     def __create_report_component(self, data):
@@ -422,7 +411,7 @@ class UploadReports(object):
             if data['parent'] in self._pk_map:
                 parent = self._pk_map[data['parent']]
             else:
-                print('No parent')
+                print_err('Report component parent was not found')
                 return
         self._pk_map[data['pk']] = ReportComponent.objects.create(
             root=self.job.reportroot,
@@ -431,20 +420,19 @@ class UploadReports(object):
             description=data['description'].encode('utf8') if data['description'] is not None else None,
             computer=Computer.objects.get_or_create(description=data['computer'])[0],
             component=Component.objects.get_or_create(name=data['component'])[0],
-            resource=Resource.objects.create(
-                cpu_time=data['resource']['cpu_time'],
-                wall_time=data['resource']['wall_time'],
-                memory=data['resource']['memory']
-            ) if data['resource'] is not None else None,
+            cpu_time=data['resource']['cpu_time'] if data['resource'] is not None else None,
+            wall_time=data['resource']['wall_time'] if data['resource'] is not None else None,
+            memory=data['resource']['memory'] if data['resource'] is not None else None,
             start_date=datetime(*data['start_date'], tzinfo=pytz.timezone('UTC')),
             finish_date=datetime(*data['finish_date'], tzinfo=pytz.timezone('UTC'))
             if data['finish_date'] is not None else None,
             log=self.__get_log(data['pk'], data['component']),
             data=data['data'].encode('utf8') if data['data'] is not None else None
         )
-        self.__add_attrs(self._pk_map[data['pk']], data['attrs'])
+        for attr in data['attrs']:
+            self._attrs.add(self._pk_map[data['pk']].pk, attr[0], attr[1])
 
-    def __report_safe_for_save(self, data):
+    def __create_report_safe(self, data):
         if ('safe', data['pk']) not in self.files:
             print_err('Safe without proof was found')
             return
@@ -458,10 +446,10 @@ class UploadReports(object):
             description=data['description'].encode('utf8') if data['description'] is not None else None,
             proof=self.files[('safe', data['pk'])].read()
         )
-        self.__add_attrs(report, data['attrs'])
+        for attr in data['attrs']:
+            self._attrs.add(report.pk, attr[0], attr[1])
 
-    def __report_unknown_for_save(self, data):
-        print('Creating report unsafe')
+    def __create_report_unknown(self, data):
         if ('unknown', data['pk']) not in self.files:
             print_err('Unknown without problem description was found')
             return
@@ -473,12 +461,13 @@ class UploadReports(object):
             parent=parent,
             identifier=data['identifier'],
             description=data['description'].encode('utf8') if data['description'] is not None else None,
-            problem_description=self.files[('safe', data['pk'])].read(),
+            problem_description=self.files[('unknown', data['pk'])].read(),
             component=parent.component
         )
-        self.__add_attrs(report, data['attrs'])
+        for attr in data['attrs']:
+            self._attrs.add(report.pk, attr[0], attr[1])
 
-    def __report_unsafe_for_save(self, data):
+    def __create_report_unsafe(self, data):
         if ('unsafe', data['pk']) not in self.files:
             print_err('Unsafe without files was found')
             return
@@ -497,18 +486,10 @@ class UploadReports(object):
             description=data['description'],
             error_trace=uf.file_content
         )
-        self.__add_attrs(report, data['attrs'])
+        for attr in data['attrs']:
+            self._attrs.add(report.pk, attr[0], attr[1])
         for src_f in uf.other_files:
             ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
-
-    def __add_attrs(self, report, attrs):
-        self.ccc = 0
-        for attr in attrs:
-            aname = AttrName.objects.get_or_create(name=attr[0])[0]
-            report.attr.add(
-                Attr.objects.get_or_create(name=aname, value=attr[1])[0]
-            )
-            ReportAttrOrder.objects.get_or_create(name=aname, report_id=report.pk)
 
     def __get_log(self, rep_id, component):
         if ('log', rep_id) in self.files:

@@ -20,7 +20,6 @@ class UploadReport(object):
         self.job = job
         self.archive = archive
         self.data = {}
-        self.ordered_attrs = []
         self.error = self.__check_data(data)
         if self.error is not None:
             self.__job_failed(self.error)
@@ -221,18 +220,9 @@ class UploadReport(object):
         report = actions[self.data['type']](identifier)
         if report is None:
             return 'Error while saving report'
-        single_attrs_order = []
-        for attr in list(reversed(self.ordered_attrs)):
-            if attr not in single_attrs_order:
-                single_attrs_order.insert(0, attr)
-            elif self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-                self.__job_failed("Got double attribute: '%s' for report with type"
-                                  " '%s' and id '%s'" % (attr, self.data['type'], self.data['id']))
-        for attr_name in single_attrs_order:
-            ReportAttrOrder.objects.get_or_create(
-                name=AttrName.objects.get_or_create(name=attr_name)[0],
-                report_id=report.pk
-            )
+        if len(self.ordered_attrs) != len(set(self.ordered_attrs))\
+                and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
+            self.__job_failed("Attributes for the component report with id '%s' are not unique" % self.data['id'])
         return None
 
     def __create_report_component(self, identifier):
@@ -263,12 +253,9 @@ class UploadReport(object):
             report.computer = self.parent.computer
 
         if 'resources' in self.data:
-            resources = Resource()
-            resources.cpu_time = int(self.data['resources']['CPU time'])
-            resources.memory = int(self.data['resources']['max mem size'])
-            resources.wall_time = int(self.data['resources']['wall time'])
-            resources.save()
-            report.resource = resources
+            report.cpu_time = int(self.data['resources']['CPU time'])
+            report.memory = int(self.data['resources']['max mem size'])
+            report.wall_time = int(self.data['resources']['wall time'])
         if 'log' in self.data:
             uf = UploadReportFiles(self.archive, log=self.data['log'])
             if uf.log is None:
@@ -283,7 +270,7 @@ class UploadReport(object):
             report.data = self.data['data'].encode('utf8')
         report.save()
 
-        self.__add_attrs(report)
+        self.ordered_attrs = save_attrs(report, self.data['attrs'])
 
         if 'resources' in self.data:
             self.__update_parent_resources(report)
@@ -299,7 +286,7 @@ class UploadReport(object):
             return None
         report.save()
 
-        self.__add_attrs(report)
+        self.ordered_attrs = save_attrs(report, self.data['attrs'])
         return report
 
     def __finish_report_component(self, identifier):
@@ -311,12 +298,9 @@ class UploadReport(object):
             return None
 
         if 'resources' in self.data:
-            resources = Resource()
-            resources.cpu_time = int(self.data['resources']['CPU time'])
-            resources.memory = int(self.data['resources']['max mem size'])
-            resources.wall_time = int(self.data['resources']['wall time'])
-            resources.save()
-            report.resource = resources
+            report.cpu_time = int(self.data['resources']['CPU time'])
+            report.memory = int(self.data['resources']['max mem size'])
+            report.wall_time = int(self.data['resources']['wall time'])
         if 'log' in self.data:
             uf = UploadReportFiles(self.archive, log=self.data['log'])
             if uf.log is None:
@@ -328,7 +312,7 @@ class UploadReport(object):
         report.finish_date = now()
         report.save()
 
-        self.__add_attrs(report)
+        self.ordered_attrs = save_attrs(report, self.data['attrs'])
         self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
@@ -358,8 +342,8 @@ class UploadReport(object):
         report.problem_description = uf.file_content
         report.save()
 
-        self.__add_attrs(report)
         self.__collect_attrs(report)
+        self.ordered_attrs += save_attrs(report, self.data['attrs'])
 
         component = report.component
         parent = self.parent
@@ -397,8 +381,8 @@ class UploadReport(object):
         report.proof = uf.file_content
         report.save()
 
-        self.__add_attrs(report)
         self.__collect_attrs(report)
+        self.ordered_attrs += save_attrs(report, self.data['attrs'])
 
         parent = self.parent
         while parent is not None:
@@ -435,8 +419,8 @@ class UploadReport(object):
         for src_f in uf.other_files:
             ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
 
-        self.__add_attrs(report)
         self.__collect_attrs(report)
+        self.ordered_attrs += save_attrs(report, self.data['attrs'])
 
         parent = self.parent
         while parent is not None:
@@ -453,81 +437,69 @@ class UploadReport(object):
         ConnectReportWithMarks(report)
         return report
 
-    def __add_attrs(self, report):
-        self.ordered_attrs = []
-        for attr in report.attrorder.order_by('id'):
-            self.ordered_attrs.append(attr.name.name)
-        if 'attrs' not in self.data:
-            return
-        for attr in save_attrs(self.data['attrs']):
-            if not report.attr.filter(pk=attr.pk).exists():
-                report.attr.add(attr)
-                self.ordered_attrs.append(attr.name.name)
-        report.save()
-
     def __collect_attrs(self, report):
         parent = self.parent
+        attrs_ids = []
         while parent is not None:
             parent_attrs = []
-            for attr in parent.attrorder.order_by('id'):
-                parent_attrs.append(attr.name.name)
+            new_ids = []
+            for rep_attr in parent.attrs.order_by('id'):
+                parent_attrs.append(rep_attr.attr.name.name)
+                try:
+                    ReportAttr.objects.get(attr_id=rep_attr.attr_id, report=report)
+                except ObjectDoesNotExist:
+                    new_ids.append(rep_attr.attr_id)
+            attrs_ids = new_ids + attrs_ids
             self.ordered_attrs = parent_attrs + self.ordered_attrs
-            for p_attr in parent.attr.all():
-                if not report.attr.filter(pk=p_attr.pk).exists():
-                    report.attr.add(p_attr)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
-        report.save()
+        ReportAttr.objects.bulk_create(list(ReportAttr(attr_id=a_id, report=report) for a_id in attrs_ids))
 
     def __update_parent_resources(self, report):
 
         def update_total_resources(rep):
             res_set = rep.resources_cache.filter(~Q(component=None))
             if len(res_set) > 0:
-                new_res = Resource()
-                new_res.wall_time = 0
-                new_res.cpu_time = 0
-                new_res.memory = 0
-                for comp_res in res_set:
-                    new_res.wall_time += comp_res.resource.wall_time
-                    new_res.cpu_time += comp_res.resource.cpu_time
-                    new_res.memory = max(comp_res.resource.memory, new_res.memory)
-                new_res.save()
                 try:
                     total_compres = rep.resources_cache.get(component=None)
-                    total_compres.resource.delete()
                 except ObjectDoesNotExist:
                     total_compres = ComponentResource()
                     total_compres.report = rep
-                total_compres.resource = new_res
+                total_compres.cpu_time = sum(list(cr.cpu_time for cr in res_set))
+                total_compres.wall_time = sum(list(cr.wall_time for cr in res_set))
+                total_compres.memory = max(list(cr.memory for cr in res_set))
                 total_compres.save()
 
         try:
             report.resources_cache.get(component=report.component)
         except ObjectDoesNotExist:
-            report.resources_cache.create(component=report.component, resource=report.resource)
+            report.resources_cache.create(
+                component=report.component,
+                wall_time=report.wall_time,
+                cpu_time=report.cpu_time,
+                memory=report.memory
+            )
         update_total_resources(report)
 
         parent = self.parent
         while parent is not None:
-            new_resource = Resource()
-            new_resource.wall_time = report.resource.wall_time
-            new_resource.cpu_time = report.resource.cpu_time
-            new_resource.memory = report.resource.memory
+            wall_time = report.wall_time
+            cpu_time = report.cpu_time
+            memory = report.memory
             try:
                 compres = parent.resources_cache.get(component=report.component)
-                new_resource.wall_time += compres.resource.wall_time
-                new_resource.cpu_time += compres.resource.cpu_time
-                new_resource.memory = max(compres.resource.memory, new_resource.memory)
-                compres.resource.delete()
+                wall_time += compres.wall_time
+                cpu_time += compres.cpu_time
+                memory = max(compres.memory, memory)
             except ObjectDoesNotExist:
                 compres = ComponentResource()
                 compres.component = report.component
                 compres.report = parent
-            new_resource.save()
-            compres.resource = new_resource
+            compres.cpu_time = cpu_time
+            compres.wall_time = wall_time
+            compres.memory = memory
             compres.save()
             update_total_resources(parent)
             try:
