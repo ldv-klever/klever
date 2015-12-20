@@ -518,6 +518,7 @@ def showjobdata(request):
     })
 
 
+@unparallel
 @login_required
 def upload_file(request):
     activate(request.user.extended.language)

@@ -410,7 +410,7 @@ def save_attrs(report, attrs):
         return attr_data
 
     if not isinstance(attrs, list):
-        return None
+        return []
     attrdata = AttrData()
     attrorder = []
     for attr, value in children('', attrs):

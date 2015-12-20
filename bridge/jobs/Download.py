@@ -24,7 +24,7 @@ ET_FILE = 'unsafe-error-trace.graphml'
 class KleverCoreDownloadJob(object):
     def __init__(self, job):
         self.error = None
-        self.tarname = ''
+        self.tarname = 'VJ__' + job.identifier + '.tar.gz'
         self.memory = BytesIO()
         self.__create_tar(job)
 
@@ -42,19 +42,17 @@ class KleverCoreDownloadJob(object):
             if len(f.children.all()) == 0:
                 src = None
                 if f.file is not None:
-                    src = os.path.join(
-                        settings.MEDIA_ROOT, f.file.file.name)
+                    src = os.path.join(settings.MEDIA_ROOT, f.file.file.name)
                 file_path = f.name
                 file_parent = f.parent
                 while file_parent is not None:
-                    file_path = file_parent.name + '/' + file_path
+                    file_path = os.path.join(file_parent.name, file_path)
                     file_parent = file_parent.parent
                 files_for_tar.append({
                     'path': os.path.join('root', file_path),
                     'src': src
                 })
 
-        self.tarname = 'VJ__' + job.identifier + '.tar.gz'
         jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
         write_file_str(jobtar_obj, 'format', str(job.format))
         for job_class in JOB_CLASSES:
@@ -106,10 +104,7 @@ class DownloadJob(object):
                     filedata_element['file'] = f.file.pk
                     if f.file.pk not in files_in_tar:
                         files_in_tar[f.file.pk] = f.file.file.name
-                        jobtar_obj.add(
-                            os.path.join(settings.MEDIA_ROOT, f.file.file.name),
-                            f.file.file.name
-                        )
+                        jobtar_obj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), f.file.file.name)
                 filedata.append(filedata_element)
             version_data = {
                 'filedata': filedata,
@@ -363,9 +358,9 @@ class UploadJob(object):
         try:
             UploadReports(self.job, json.loads(jobdata['reports']), report_files)
         except Exception as e:
-            print_err("ERROR:%s" % e)
-            # self.job.delete()
-            # self.job = None
+            print_err("ERROR: %s" % e)
+            self.job.delete()
+            self.job = None
             return _("One of the reports was not uploaded")
         return None
 

@@ -270,7 +270,8 @@ class UploadReport(object):
             report.data = self.data['data'].encode('utf8')
         report.save()
 
-        self.ordered_attrs = save_attrs(report, self.data['attrs'])
+        if 'attrs' in self.data:
+            self.ordered_attrs = save_attrs(report, self.data['attrs'])
 
         if 'resources' in self.data:
             self.__update_parent_resources(report)
@@ -312,7 +313,8 @@ class UploadReport(object):
         report.finish_date = now()
         report.save()
 
-        self.ordered_attrs = save_attrs(report, self.data['attrs'])
+        if 'attrs' in self.data:
+            self.ordered_attrs = save_attrs(report, self.data['attrs'])
         self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
