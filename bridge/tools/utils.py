@@ -52,7 +52,7 @@ def clear_computers():
 
 
 class RecalculateLeaves(object):
-    def __init__(self, jobs=None):
+    def __init__(self, jobs):
         self.jobs = jobs
         self.leaves = LeavesData()
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
