@@ -990,5 +990,4 @@ $(document).ready(function () {
             });
         }, 3000);
     }
-    clearInterval(interval);
 });
