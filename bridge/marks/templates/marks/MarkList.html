@@ -4,7 +4,19 @@
 {% block title %}{% trans 'Marks' %}{% endblock %}
 {% block body_block %}
     <input id="view_type" type="hidden" value="{{ view_type }}">
-    {% include 'marks/filters.html' %}
+    <input id="marks_type" type="hidden" value="{{ type }}">
+    <div class="ui grid">
+        <div class="one wide column right aligned">
+            <button class="ui basic icon red button normal-popup" id="show_remove_marks_popup"><i class="ui remove icon"></i></button>
+            <div class="ui popup">
+                <p style="white-space: nowrap">{% trans 'Delete selected marks' %}</p>
+            </div>
+        </div>
+        <div class="fifteen wide column">
+            {% include 'marks/filters.html' %}
+        </div>
+    </div>
+
     {% if tabledata.values|length %}
         <h2 class="header" style="text-align:center">{{ title }}</h2>
         <div style="overflow-x:auto;max-height: 1000px;overflow-y:auto;">
@@ -22,8 +34,13 @@
                     {% for row_data in tabledata.values %}
                         <tr>
                             {% for v in row_data %}
-                                <td class="collapsing">
-                                    {% if v.href %}
+                                <td class="collapsing{% if v.checkbox %} one wide{% endif %}"{% if v.checkbox %} style="text-align: right"{% endif %}>
+                                    {% if v.checkbox %}
+                                        <div class="ui checkbox">
+                                            <input type="checkbox" id="mark_checkbox__{{ v.checkbox }}">
+                                            <label for="mark_checkbox__{{ v.checkbox }}"></label>
+                                        </div>
+                                    {% elif v.href %}
                                         <a href="{{ v.href }}">{{ v.value }}</a>
                                     {% else %}
                                         <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
@@ -39,4 +56,22 @@
     {% else %}
         <h2 class="header" style="text-align:center;">{% trans 'List of marks ot the given type is empty, please create them or change the view' %}</h2>
     {% endif %}
+    <div id="remove_marks_popup" class="ui basic modal">
+        <div class="ui icon header">
+            <i class="warning sign icon"></i>
+            {% trans 'Are you sure' %}?
+        </div>
+        <div class="content">
+            <div class="ui center aligned grid">
+                <p>{% trans 'All versions and all data of the selected marks will be deleted' %}!</p>
+            </div>
+        </div>
+        <div class="actions">
+            <div class="ui center aligned grid">
+                <button id="cancel_remove_marks" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                <button id="confirm_remove_marks" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+            </div>
+        </div>
+    </div>
+    <span id="no_marks_selected" hidden>{% trans 'Please select marks you want to delete' %}</span>
 {% endblock %}

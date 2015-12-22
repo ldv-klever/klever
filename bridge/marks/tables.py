@@ -26,7 +26,8 @@ MARK_TITLES = {
     'num_of_links': _('Number of associated leaf reports'),
     'problem': _("Problem"),
     'component': _('Component'),
-    'pattern': _('Problem pattern')
+    'pattern': _('Problem pattern'),
+    'checkbox': ''
 }
 
 STATUS_COLOR = {
@@ -427,7 +428,7 @@ class MarksList(object):
         return def_views[self.type], 'default'
 
     def __get_columns(self):
-        columns = ['mark_num']
+        columns = ['checkbox', 'mark_num']
         if self.type == 'unknown':
             for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern']:
                 if col in self.view['columns']:
@@ -546,7 +547,10 @@ class MarksList(object):
                     val = mark.component.name
                 elif col == 'pattern':
                     val = mark.problem_pattern
-                values_str.append({'color': color, 'value': val, 'href': href})
+                if col == 'checkbox':
+                    values_str.append({'checkbox': mark.pk})
+                else:
+                    values_str.append({'color': color, 'value': val, 'href': href})
             else:
                 values.append((order_by_value, values_str))
 

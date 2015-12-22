@@ -335,6 +335,55 @@ $(document).ready(function () {
         $('#remove_mark_popup').modal('hide');
     });
 
+    $('#remove_marks_popup').modal({transition: 'fly up', autofocus: false, closable: false});
+    $('#show_remove_marks_popup').click(function () {
+        var ids_for_del = [];
+        $('input[id^="mark_checkbox__"]').each(function () {
+            if ($(this).is(':checked')) {
+                ids_for_del.push($(this).attr('id').replace('mark_checkbox__', ''));
+            }
+        });
+        if (ids_for_del.length > 0) {
+            $('#remove_marks_popup').modal('show');
+        }
+        else {
+            err_notify($('#no_marks_selected').text())
+        }
+    });
+    $('#cancel_remove_marks').click(function () {
+        $('#remove_marks_popup').modal('hide');
+    });
+    $('#confirm_remove_marks').click(function () {
+        var ids_for_del = [];
+        $('input[id^="mark_checkbox__"]').each(function () {
+            if ($(this).is(':checked')) {
+                ids_for_del.push($(this).attr('id').replace('mark_checkbox__', ''));
+            }
+        });
+        if (ids_for_del.length == 0) {
+            $('#remove_marks_popup').modal('hide');
+            err_notify($('#no_marks_selected').text());
+        }
+        else {
+            $.ajax({
+                url: marks_ajax_url + 'delete/',
+                data: {
+                    'type': $('#marks_type').val(),
+                    ids: JSON.stringify(ids_for_del)
+                },
+                type: 'POST',
+                success: function (data) {
+                    if (data.error) {
+                        err_notify(data.error);
+                    }
+                    else {
+                        window.location.replace('');
+                    }
+                }
+            });
+        }
+    });
+
     $('#save_new_mark_btn').click(function () {
         $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: encodeData(collect_new_markdata())});
     });
