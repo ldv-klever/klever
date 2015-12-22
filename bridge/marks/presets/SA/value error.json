@@ -2,9 +2,5 @@
   "class": "0",
   "function": "ValueError:",
   "pattern": "Value Error",
-  "link": "https://docs.python.org/3/library/exceptions.html#ValueError",
-  "status": "0",
-  "description": "",
-  "format": 1,
-  "is_modifiable": true
+  "link": "https://docs.python.org/3/library/exceptions.html#ValueError"
 }

@@ -1,10 +1,5 @@
 {
   "class": "0",
   "function": "core.utils.CommandError: \"cilly.asm.exe\" failed",
-  "pattern": "CIL failure",
-  "link": "",
-  "status": "0",
-  "description": "",
-  "format": 1,
-  "is_modifiable": true
+  "pattern": "CIL failure"
 }

@@ -1,10 +1,5 @@
 {
   "class": "0",
   "function": "memory exhausted",
-  "pattern": "Out of memory",
-  "link": "",
-  "status": "0",
-  "description": "",
-  "format": 1,
-  "is_modifiable": true
+  "pattern": "Out of memory"
 }

@@ -1,10 +1,5 @@
 {
   "class": "0",
   "function": "Function entry_point not found",
-  "pattern": "No entry point",
-  "link": "",
-  "status": "0",
-  "description": "",
-  "format": 1,
-  "is_modifiable": true
+  "pattern": "No entry point"
 }
