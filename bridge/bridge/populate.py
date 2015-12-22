@@ -161,17 +161,17 @@ class Population(object):
                 print_err(e)
                 print_err('The default job was not created')
                 continue
-            if any(x not in job_settings for x in ['name', 'type', 'description']):
-                print_err('Default job settings must contain name, type and description')
+            if any(x not in job_settings for x in ['name', 'class', 'description']):
+                print_err('Default job settings must contain name, class and description')
                 continue
-            if job_settings['type'] not in list(x[0] for x in JOB_CLASSES):
-                print_err('Default job type is wrong. See bridge.vars.JOB_CLASSES for choice ("0", "1" or "2")')
+            if job_settings['class'] not in list(x[0] for x in JOB_CLASSES):
+                print_err('Default job class is wrong. See bridge.vars.JOB_CLASSES for choice ("0", "1" or "2")')
                 continue
             if len(job_settings['name']) == 0:
                 print_err('Default job name is required')
                 continue
             try:
-                parent = Job.objects.get(parent=None, type=job_settings['type'])
+                parent = Job.objects.get(parent=None, type=job_settings['class'])
             except ObjectDoesNotExist:
                 print_err('Main jobs were not created')
                 continue
