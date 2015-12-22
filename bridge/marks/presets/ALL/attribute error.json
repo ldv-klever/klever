@@ -1,6 +1,6 @@
 {
   "class": "0",
   "function": "AttributeError:",
-  "pattern": "Attribute Error",
+  "pattern": "Attribute error",
   "link": "https://docs.python.org/3/library/exceptions.html#AttributeError"
 }
