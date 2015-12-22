@@ -20,12 +20,12 @@ class UploadReport(object):
         self.job = job
         self.archive = archive
         self.data = {}
+        self.ordered_attrs = []
         self.error = self.__check_data(data)
         if self.error is not None:
             self.__job_failed(self.error)
             return
-        self.parent = None
-        self.error = self.__get_parent()
+        self.parent = self.__get_parent()
         if self.error is not None:
             self.__job_failed(self.error)
             return
@@ -33,7 +33,7 @@ class UploadReport(object):
         if self.error is not None:
             self.__job_failed(self.error)
             return
-        self.error = self.__upload()
+        self.__upload()
         if self.error is not None:
             self.__job_failed(self.error)
 
@@ -171,33 +171,30 @@ class UploadReport(object):
         if 'parent id' in self.data:
             if self.data['parent id'] == '/':
                 try:
-                    self.parent = ReportComponent.objects.get(
-                        root=self.job.reportroot,
-                        identifier=self.job.identifier
-                    )
+                    return ReportComponent.objects.get(root=self.job.reportroot, identifier=self.job.identifier)
                 except ObjectDoesNotExist:
-                    return 'Parent was not found'
+                    self.error = 'Report parent was not found'
             else:
                 try:
-                    self.parent = ReportComponent.objects.get(
+                    return ReportComponent.objects.get(
                         root=self.job.reportroot,
                         identifier__endswith=('##' + self.data['parent id'])
                     )
                 except ObjectDoesNotExist:
-                    return 'Parent was not found'
+                    self.error = 'Report parent was not found'
                 except MultipleObjectsReturned:
-                    return 'Identifiers are not unique'
+                    self.error = 'Identifiers are not unique'
         elif self.data['id'] == '/':
             return None
         else:
             try:
                 curr_report = ReportComponent.objects.get(
                     identifier__startswith=self.job.identifier,
-                    identifier__endswith=("##%s" % self.data['id']))
-                self.parent = ReportComponent.objects.get(
-                    root=self.job.reportroot, pk=curr_report.parent_id)
+                    identifier__endswith=("##%s" % self.data['id'])
+                )
+                return ReportComponent.objects.get(pk=curr_report.parent_id)
             except ObjectDoesNotExist:
-                return None
+                self.error = 'Report parent was not found'
         return None
 
     def __upload(self):
@@ -210,45 +207,37 @@ class UploadReport(object):
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown
         }
-        identifier = self.data['id']
-        if identifier == '/':
+        if self.parent is None:
             identifier = self.job.identifier
-        elif self.parent is not None:
-            identifier = "%s##%s" % (self.parent.identifier, identifier)
         else:
-            identifier = "##%s" % identifier
-        report = actions[self.data['type']](identifier)
-        if report is None:
-            return 'Error while saving report'
-        if len(self.ordered_attrs) != len(set(self.ordered_attrs))\
-                and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-            self.__job_failed("Attributes for the component report with id '%s' are not unique" % self.data['id'])
-        return None
+            identifier = "%s##%s" % (self.parent.identifier, self.data['id'])
+        actions[self.data['type']](identifier)
+        if self.error is None:
+            if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
+                    and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
+                self.__job_failed("Attributes for the component report with id '%s' are not unique" % self.data['id'])
 
     def __create_report_component(self, identifier):
         try:
-            return ReportComponent.objects.get(identifier=identifier)
+            ReportComponent.objects.get(identifier=identifier)
+            self.error = 'The report with specified identifier already exists'
+            return
         except ObjectDoesNotExist:
-            report = ReportComponent(identifier=identifier)
+            report = ReportComponent(
+                identifier=identifier,
+                parent=self.parent,
+                root=self.root,
+                start_date=now(),
+                data=self.data['data'].encode('utf8') if 'data' in self.data else None,
+                component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0],
+                description=self.data['description'].encode('utf8') if 'description' in self.data else None
+            )
 
-        report.parent = self.parent
-        report.root = self.root
-
-        component_name = 'Core'
-        if 'name' in self.data:
-            component_name = self.data['name']
-        component = Component.objects.get_or_create(name=component_name)[0]
-        report.component = component
+        if self.data['type'] == 'verification':
+            report.finish_date = report.start_date
 
         if 'comp' in self.data:
-            computer_desc = json.dumps(self.data['comp'])
-            try:
-                computer = Computer.objects.get(description=computer_desc)
-            except ObjectDoesNotExist:
-                computer = Computer()
-                computer.description = computer_desc
-                computer.save()
-            report.computer = computer
+            report.computer = Computer.objects.get_or_create(description=json.dumps(self.data['comp']))[0]
         else:
             report.computer = self.parent.computer
 
@@ -259,15 +248,10 @@ class UploadReport(object):
         if 'log' in self.data:
             uf = UploadReportFiles(self.archive, log=self.data['log'])
             if uf.log is None:
-                return None
+                self.error = 'The report log was not found in archive'
+                return
             report.log = uf.log
-        if 'description' in self.data:
-            report.description = self.data['description'].encode('utf8')
-        report.start_date = now()
 
-        if self.data['type'] == 'verification':
-            report.finish_date = report.start_date
-            report.data = self.data['data'].encode('utf8')
         report.save()
 
         if 'attrs' in self.data:
@@ -276,36 +260,28 @@ class UploadReport(object):
         if 'resources' in self.data:
             self.__update_parent_resources(report)
 
-        return report
-
     def __update_attrs(self, identifier):
         try:
-            report = ReportComponent.objects.get(
-                identifier__startswith=self.job.identifier,
-                identifier__endswith=identifier)
+            report = ReportComponent.objects.get(identifier=identifier)
+            self.ordered_attrs = save_attrs(report, self.data['attrs'])
         except ObjectDoesNotExist:
-            return None
-        report.save()
-
-        self.ordered_attrs = save_attrs(report, self.data['attrs'])
-        return report
+            self.error = 'Updated report does not exist'
 
     def __finish_report_component(self, identifier):
         try:
-            report = ReportComponent.objects.get(
-                identifier__startswith=self.job.identifier,
-                identifier__endswith=identifier)
+            report = ReportComponent.objects.get(identifier=identifier)
         except ObjectDoesNotExist:
-            return None
+            self.error = 'Updated report does not exist'
+            return
 
-        if 'resources' in self.data:
-            report.cpu_time = int(self.data['resources']['CPU time'])
-            report.memory = int(self.data['resources']['max mem size'])
-            report.wall_time = int(self.data['resources']['wall time'])
+        report.cpu_time = int(self.data['resources']['CPU time'])
+        report.memory = int(self.data['resources']['max mem size'])
+        report.wall_time = int(self.data['resources']['wall time'])
         if 'log' in self.data:
             uf = UploadReportFiles(self.archive, log=self.data['log'])
             if uf.log is None:
-                return None
+                self.error = 'The report log was not found in archive'
+                return
             report.log = uf.log
         report.data = self.data['data'].encode('utf8')
         if 'description' in self.data:
@@ -325,61 +301,65 @@ class UploadReport(object):
                 self.__job_failed("There are unfinished reports")
             elif self.job.status != JOB_STATUS[5][0]:
                 KleverCoreFinishDecision(self.job)
-        return report
 
     def __create_report_unknown(self, identifier):
         try:
-            return ReportUnknown.objects.get(identifier=identifier)
+            ReportUnknown.objects.get(identifier=identifier)
+            self.error = 'The report with specified identifier already exists'
+            return
         except ObjectDoesNotExist:
-            report = ReportUnknown(identifier=identifier)
+            report = ReportUnknown(
+                identifier=identifier,
+                parent=self.parent,
+                root=self.root,
+                description=self.data['description'].encode('utf8') if 'description' in self.data else None,
+                component=self.parent.component
+            )
 
-        report.parent = self.parent
-        report.root = self.root
-        if 'description' in self.data:
-            report.description = self.data['description'].encode('utf8')
-        report.component = self.parent.component
         uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
         if uf.file_content is None:
-            return None
+            self.error = 'The unknown report problem description was not found in the archive'
+            return
         report.problem_description = uf.file_content
         report.save()
 
         self.__collect_attrs(report)
         self.ordered_attrs += save_attrs(report, self.data['attrs'])
 
-        component = report.component
         parent = self.parent
         while parent is not None:
             verdict = Verdict.objects.get_or_create(report=parent)[0]
             verdict.unknown += 1
             verdict.save()
 
-            comp_unknown = ComponentUnknown.objects.get_or_create(report=parent, component=component)[0]
+            comp_unknown = ComponentUnknown.objects.get_or_create(report=parent, component=report.component)[0]
             comp_unknown.number += 1
             comp_unknown.save()
 
-            ReportComponentLeaf.objects.get_or_create(report=parent, unknown=report)
+            ReportComponentLeaf.objects.create(report=parent, unknown=report)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
         ConnectReportWithMarks(report)
-        return report
 
     def __create_report_safe(self, identifier):
         try:
-            return ReportSafe.objects.get(identifier=identifier)
+            ReportSafe.objects.get(identifier=identifier)
+            self.error = 'The report with specified identifier already exists'
+            return
         except ObjectDoesNotExist:
-            report = ReportSafe(identifier=identifier)
+            report = ReportSafe(
+                identifier=identifier,
+                parent=self.parent,
+                root=self.root,
+                description=self.data['description'].encode('utf8') if 'description' in self.data else None
+            )
 
-        report.parent = self.parent
-        report.root = self.root
-        if 'description' in self.data:
-            report.description = self.data['description'].encode('utf8')
-        report.proof = self.data['proof'].encode('utf8')
         uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
         if uf.file_content is None:
-            return None
+            self.error = 'The safe report proof was not found in teh archive'
+            return
         report.proof = uf.file_content
         report.save()
 
@@ -393,28 +373,30 @@ class UploadReport(object):
             verdict.safe_unassociated += 1
             verdict.save()
 
-            ReportComponentLeaf.objects.get_or_create(report=parent, safe=report)
+            ReportComponentLeaf.objects.create(report=parent, safe=report)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
         ConnectReportWithMarks(report)
-        return report
 
     def __create_report_unsafe(self, identifier):
         try:
-            return ReportUnsafe.objects.get(identifier=identifier)
+            ReportUnsafe.objects.get(identifier=identifier)
+            self.error = 'The report with specified identifier already exists'
+            return
         except ObjectDoesNotExist:
-            report = ReportUnsafe(identifier=identifier)
+            report = ReportUnsafe(
+                identifier=identifier,
+                parent=self.parent,
+                root=self.root,
+                description=self.data['description'].encode('utf8') if 'description' in self.data else None
+            )
 
-        report.parent = self.parent
-        report.root = self.root
-        if 'description' in self.data:
-            report.description = self.data['description'].encode('utf8')
-        report.error_trace = self.data['error trace'].encode('utf8')
         uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
         if uf.file_content is None:
-            return None
+            self.error = 'The unsafe error trace was not found in the archive'
+            return
         report.error_trace = uf.file_content
         report.save()
 
@@ -431,13 +413,12 @@ class UploadReport(object):
             verdict.unsafe_unassociated += 1
             verdict.save()
 
-            ReportComponentLeaf.objects.get_or_create(report=parent, unsafe=report)
+            ReportComponentLeaf.objects.create(report=parent, unsafe=report)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
         ConnectReportWithMarks(report)
-        return report
 
     def __collect_attrs(self, report):
         parent = self.parent
@@ -514,7 +495,6 @@ class UploadReportFiles(object):
     def __init__(self, archive, log=None, file_name=None, need_other=False):
         self.log = None
         self.file_content = None
-        self.archive = archive
         self.need_other = need_other
         self.other_files = []
         self.__read_archive(archive, log, file_name)
