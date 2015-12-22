@@ -1,5 +1,6 @@
 import re
 import copy
+import grako
 
 from psi.avtg.emg.interfaces import *
 
@@ -552,6 +553,40 @@ class Label:
 class Process:
 
     label_re = re.compile("%(\w+)((?:\.\w*)*)%")
+    process_grammar = """
+    (* Main expression *)
+    FinalProcess = (Operators | OptBracket | Bracket)$;
+    Operators = Switch | Sequence;
+
+    (* Signle process *)
+    Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | OptBracket | Bracket;
+    Null = null:"0";
+    ReceiveProcess = receive:Receive;
+    SendProcess = send:Send;
+    SubprocessProcess = subprocess:Subprocess;
+    Receive = "("[replicative:"!"]name:identifier[number:Repetition]")";
+    Send = "["[broadcast:"@"]name:identifier[number:Repetition]"]";
+    Subprocess = "{"name:identifier[number:Repetition]"}";
+
+    (* Operators *)
+    Sequence = sequence:SequenceExpr;
+    Switch = options:SwitchExpr;
+    SequenceExpr = @+:Process{"."@+:Process}*;
+    SwitchExpr = @+:Sequence{"|"@+:Sequence}+;
+
+    (* Brackets *)
+    Bracket = process:BracketExpr;
+    OptBracket = opt_process:OptBracketExpr;
+    BracketExpr = "("@:Operators")";
+    OptBracketExpr = "<"@:Operators">";
+
+    (* Basic expressions and terminals *)
+    Repetition = "["@:(number | label)"]";
+    identifier = /\w+/;
+    number = /\d+/;
+    label = /%\w+%/;
+    """
+    process_model = grako.genmodel('process', process_grammar)
 
     def __init__(self, name, dic={}):
         # Default values
@@ -563,6 +598,7 @@ class Process:
         self.process = None
         self.identifier = None
         self._import_dictionary(dic)
+        self.process_ast
 
     def _import_dictionary(self, dic):
         # Import labels
@@ -580,6 +616,7 @@ class Process:
 
         # Import process
         if "process" in dic:
+            # Parse process and save AST instead of string
             self.process = dic["process"]
 
         # Add parameters
@@ -594,13 +631,18 @@ class Process:
         if "guard" in dic:
             self.guard = dic["guard"]
 
+        # Check subprocess type
         if self.type and self.type == "process" and len(self.subprocesses.keys()) > 0:
             self.__determine_subprocess_types()
 
+        # Parse process
+        if self.process:
+            self.process_ast = self.process_model.parse(self.process, ignorecase=True)
+
     def __determine_subprocess_types(self):
-        dispatch_template = "\[{}(?:\([^)]+\))?\]"
-        receive_template = "\(!?{}(?:\([^)]+\))?\)"
-        subprocess_template = "{}(?:\([^)]+\))?"
+        dispatch_template = "\[@?{}(?:\[[^)]+\])?\]"
+        receive_template = "\(!?{}(?:\[[^)]+\])?\)"
+        subprocess_template = "{}(?:\[[^)]+\])?"
 
         processes = [self.subprocesses[process_name].process for process_name in self.subprocesses
                      if self.subprocesses[process_name].process]
