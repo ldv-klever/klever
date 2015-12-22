@@ -307,7 +307,7 @@ MARKS_UNSAFE_VIEW = {
 # status [is, isnot] (<status id>)
 # author [is] (<author id>)
 MARKS_UNKNOWN_VIEW = {
-    'columns': ['num_of_links', 'status', 'component', 'author', 'format'],
+    'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
     # 'order': 'num_of_links',
     'filters': {
         # 'status': {

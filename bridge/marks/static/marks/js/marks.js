@@ -4,7 +4,7 @@ function encodeData(s) {
 
 function collect_filters_data() {
     var view_values = {columns: []}, filter_values = {},
-        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format'],
+        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format', 'pattern'],
         order_type = $('input[name=marks_enable_order]:checked').val();
     $.each(columns, function (index, val) {
         var column_checkbox = $('#marks_filter_checkbox__' + val);

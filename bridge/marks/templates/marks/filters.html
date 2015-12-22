@@ -41,6 +41,13 @@
                     <label for="marks_filter_checkbox__format">{% trans 'Format' %}</label>
                 </div>
                 <br>
+            {% if tabledata.type == 'unknown' %}
+                <div class="ui checkbox">
+                    <input type="checkbox" id="marks_filter_checkbox__pattern"{% if 'pattern' in tabledata.view.columns %} checked{% endif %}>
+                    <label for="marks_filter_checkbox__pattern">{% trans 'Problem pattern' %}</label>
+                </div>
+                <br>
+            {% endif %}
                 <h4 class="header">{% trans 'Order' %}</h4>
                 {% if tabledata.type != 'unknown' %}
                     <div class="ui radio checkbox">

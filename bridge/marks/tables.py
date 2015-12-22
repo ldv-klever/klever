@@ -25,7 +25,8 @@ MARK_TITLES = {
     'number': '№',
     'num_of_links': _('Number of associated leaf reports'),
     'problem': _("Problem"),
-    'component': _('Component')
+    'component': _('Component'),
+    'pattern': _('Problem pattern')
 }
 
 STATUS_COLOR = {
@@ -428,13 +429,11 @@ class MarksList(object):
     def __get_columns(self):
         columns = ['mark_num']
         if self.type == 'unknown':
-            for col in ['num_of_links', 'status', 'component', 'author',
-                        'format']:
+            for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern']:
                 if col in self.view['columns']:
                     columns.append(col)
         else:
-            for col in ['num_of_links', 'verdict', 'status',
-                        'author', 'format']:
+            for col in ['num_of_links', 'verdict', 'status', 'author', 'format']:
                 if col in self.view['columns']:
                     columns.append(col)
         return columns
@@ -545,6 +544,8 @@ class MarksList(object):
                     val = mark.format
                 elif col == 'component':
                     val = mark.component.name
+                elif col == 'pattern':
+                    val = mark.problem_pattern
                 values_str.append({'color': color, 'value': val, 'href': href})
             else:
                 values.append((order_by_value, values_str))
