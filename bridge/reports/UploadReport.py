@@ -324,7 +324,6 @@ class UploadReport(object):
         report.save()
 
         self.__collect_attrs(report)
-        self.ordered_attrs += save_attrs(report, self.data['attrs'])
 
         parent = self.parent
         while parent is not None:
