@@ -47,7 +47,7 @@ class GetETV(object):
             return
 
         if len(self.traces) == 0:
-            self.error = 'Wrong error trace file format'
+            self.error = 'Wrong error trace file format - no taces got'
             return
         elif len(self.traces) > 2:
             self.error = 'Error trace with more than one threads are not supported'
@@ -74,20 +74,20 @@ class GetETV(object):
             return GraphMLParser().parse(graphml_file)
         except Exception as e:
             print_err(e)
-            self.error = _('The error trace has incorrect format')
+            self.error = 'The error trace has incorrect format'
         return None
 
     def __get_traces(self):
         traces = []
         if self.g.set_root_by_attribute('true', 'isEntryNode') is None:
-            self.error = _('Could not find the entry point was in the error trace')
+            self.error = 'Could not find the entry point was in the error trace'
             return traces
 
         for path in self.g.bfs():
             if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
                 traces.append(path)
         if len(traces) != 1:
-            self.error = _('Only error traces with one error path are supported')
+            self.error = 'Only error traces with one error path are supported'
             return []
         edge_trace1 = []
         edge_trace2 = []
@@ -249,10 +249,10 @@ class GetETV(object):
                 try:
                     scope_stack.pop()
                     if len(scope_stack) == 0:
-                        self.error = _('The error trace is corrupted')
+                        self.error = 'The error trace is corrupted'
                         return None
                 except IndexError:
-                    self.error = _('The error trace is corrupted')
+                    self.error = 'The error trace is corrupted'
                     return None
             elif 'control' in n.attr:
                 m = re.match('^\s*\[(.*)\]\s*$', line_data['code'])
