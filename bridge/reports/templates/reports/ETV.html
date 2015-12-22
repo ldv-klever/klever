@@ -20,9 +20,13 @@
                 <p style="white-space: nowrap">{% trans 'Play one line backward' %}</p>
             </div>
             {% if etv.html_traces|length == 1 %}
+                <button id="etv_start_backward" class="ui button normal-popup"><i class="play icon revedrted-icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space:nowrap">{% trans 'Play backward' %}</p>
+                </div>
                 <button id="etv_start" class="ui button normal-popup"><i class="play icon"></i></button>
                 <div class="ui popup">
-                    <p style="white-space: nowrap">{% trans 'Play' %}</p>
+                    <p style="white-space:nowrap">{% trans 'Play' %}</p>
                 </div>
             {% endif %}
             <button id="etv_next_step" class="ui button normal-popup"><i class="step forward icon"></i></button>
