@@ -928,8 +928,7 @@ class TableTree(object):
             collect_unsafe_tags()
         if 'role' in self.columns:
             collect_roles()
-        if 'priority' in self.columns:
-            collect_progress_data()
+        collect_progress_data()
 
         table_rows = []
         for job in self.jobdata:
