@@ -7,7 +7,7 @@ from bridge.utils import unparallel_group, print_err
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
-from marks.models import UnsafeTag, SafeTag
+from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe, MarkUnknown
 from reports.UploadReport import UploadReport
 from marks.utils import MarkAccess
 from reports.models import *
@@ -77,7 +77,7 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=None, problem=None):
+def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=None, problem=None, mark=None):
     activate(request.user.extended.language)
 
     try:
@@ -96,6 +96,7 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
 
     if ltype == 'safes':
         title = _("All safes")
+        page_title = _('Safes')
         if tag is not None:
             title = string_concat(_("Safes"), ': ', tag.tag)
         elif verdict is not None:
@@ -103,8 +104,11 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
                 if s[0] == verdict:
                     title = string_concat(_("Safes"), ': ', s[1])
                     break
+        elif mark is not None:
+            title = _('Safe reports marked by')
     elif ltype == 'unsafes':
         title = _("All unsafes")
+        page_title = _('Unsafes')
         if tag is not None:
             title = string_concat(_("Unsafes"), ': ', tag.tag)
         elif verdict is not None:
@@ -112,12 +116,22 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
                 if s[0] == verdict:
                     title = string_concat(_("Unsafes"), ': ', s[1])
                     break
+        elif mark is not None:
+            title = _('Unsafe reports marked by')
     else:
         title = _("All unknowns")
+        page_title = _('Unknowns')
         if isinstance(problem, UnknownProblem):
             title = string_concat(_("Unknowns"), ': ', problem.name)
         elif problem == 0:
             title = string_concat(_("Unknowns without marks"))
+        elif mark is not None:
+            title = _('Unknown reports marked by')
+    if mark is not None:
+        mark_href = ' <a href="%s">%s</a>' % (
+            reverse('marks:edit_mark', args=[ltype[:-1], mark.pk]), mark.identifier[:10]
+        )
+        title = string_concat(title, mark_href)
 
     report_attrs_data = [request.user, report]
     if request.method == 'POST':
@@ -130,11 +144,11 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
         'reports/report_list.html',
         {
             'report': report,
+            'page_title': page_title,
             'parents': get_parents(report),
             'TableData': ReportTable(
                 *report_attrs_data, table_type=list_types[ltype],
-                component_id=component_id, verdict=verdict, tag=tag,
-                problem=problem),
+                component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark),
             'view_type': list_types[ltype],
             'title': title
         }
@@ -156,6 +170,20 @@ def report_list_tag(request, report_id, ltype, tag_id):
 @login_required
 def report_list_by_verdict(request, report_id, ltype, verdict):
     return report_list(request, report_id, ltype, verdict=verdict)
+
+
+@login_required
+def report_list_by_mark(request, report_id, ltype, mark_id):
+    tables = {
+        'safes': MarkSafe,
+        'unsafes': MarkUnsafe,
+        'unknowns': MarkUnknown
+    }
+    try:
+        mark = tables[ltype].objects.get(pk=mark_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[604]))
+    return report_list(request, report_id, ltype, mark=mark)
 
 
 @login_required

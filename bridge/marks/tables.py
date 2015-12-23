@@ -13,6 +13,7 @@ from marks.ConvertTrace import DEFAULT_CONVERT
 
 MARK_TITLES = {
     'mark_num': '№',
+    'report_num': _('Number of reports'),
     'change_kind': _('Change kind'),
     'verdict': _("Verdict"),
     'sum_verdict': _('Total verdict'),
@@ -708,15 +709,16 @@ class MarkData(object):
 # Table data for showing links between the specified mark and reports
 class MarkReportsTable(object):
     def __init__(self, user, mark):
-        self.columns = ['report', 'job']
         self.user = user
         if isinstance(mark, MarkUnsafe):
-            self.columns.append('result')
             self.type = 'unsafe'
+            self.columns = ['report', 'job', 'result']
         elif isinstance(mark, MarkSafe):
             self.type = 'safe'
+            self.columns = ['job', 'report_num']
         elif isinstance(mark, MarkUnknown):
             self.type = 'unknown'
+            self.columns = ['job', 'report_num']
         else:
             return
         self.mark = mark
@@ -726,29 +728,44 @@ class MarkReportsTable(object):
     def __get_values(self):
         values = []
         cnt = 0
-        for mark_report in self.mark.markreport_set.all():
-            report = mark_report.report
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                val = '-'
-                color = None
-                href = None
-                if col == 'report':
-                    val = cnt
-                    if JobAccess(self.user, report.root.job).can_view():
-                        href = reverse('reports:leaf', args=[self.type, report.pk])
-                elif col == 'result':
-                    if mark_report.broken:
-                        val = _("Comparison failed")
-                        color = result_color(0)
-                    else:
-                        val = "{:.0%}".format(mark_report.result)
-                        color = result_color(mark_report.result)
-                elif col == 'job':
-                    val = report.root.job.name
-                    if JobAccess(self.user, report.root.job).can_view():
-                        href = reverse('jobs:job', args=[report.root.job.pk])
-                values_str.append({'value': val, 'href': href, 'color': color})
-            values.append(values_str)
+        report_filters = {
+            'parent': None,
+            'leaves__%s__markreport_set__mark' % self.type: self.mark
+        }
+        if self.type == 'unsafe':
+            for mark_report in self.mark.markreport_set.all():
+                report = mark_report.report
+                cnt += 1
+                values_str = []
+                for col in self.columns:
+                    val = '-'
+                    color = None
+                    href = None
+                    if col == 'report':
+                        val = cnt
+                        if JobAccess(self.user, report.root.job).can_view():
+                            href = reverse('reports:leaf', args=[self.type, report.pk])
+                    elif col == 'result':
+                        if mark_report.broken:
+                            val = _("Comparison failed")
+                            color = result_color(0)
+                        else:
+                            val = "{:.0%}".format(mark_report.result)
+                            color = result_color(mark_report.result)
+                    elif col == 'job':
+                        val = report.root.job.name
+                        if JobAccess(self.user, report.root.job).can_view():
+                            href = reverse('jobs:job', args=[report.root.job.pk])
+                    values_str.append({'value': val, 'href': href, 'color': color})
+                values.append(values_str)
+        else:
+            for report in ReportComponent.objects.filter(**report_filters).distinct().order_by('root__job__name'):
+                len_filter = {self.type + '__markreport_set__mark': self.mark}
+                values.append([
+                    {'value': report.root.job.name, 'href': reverse('jobs:job', args=[report.root.job_id])},
+                    {
+                        'value': len(report.leaves.filter(**len_filter)),
+                        'href': reverse('reports:list_mark', args=[report.pk, self.type + 's', self.mark.pk])
+                    }
+                ])
         return values

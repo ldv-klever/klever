@@ -8,7 +8,7 @@ from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
 from jobs.utils import get_resource_data
 from reports.models import ReportComponent, Attr, AttrName, ReportAttr
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
-from marks.models import UnknownProblem
+from marks.models import UnknownProblem, MarkSafe, MarkUnknown, MarkUnsafe
 from bridge.tableHead import Header
 
 
@@ -83,7 +83,7 @@ def report_resources(report, user):
 class ReportTable(object):
 
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
-                 component_id=None, verdict=None, tag=None, problem=None):
+                 component_id=None, verdict=None, tag=None, problem=None, mark=None):
         self.component_id = component_id
         self.report = report
         self.user = user
@@ -91,6 +91,7 @@ class ReportTable(object):
         self.verdict = verdict
         self.tag = tag
         self.problem = problem
+        self.mark = mark
         self.columns = []
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
@@ -212,15 +213,21 @@ class ReportTable(object):
             return None, None
 
         data = {}
-        leaf_filter = {}
-        if self.verdict is not None:
-            leaf_filter[list_types[self.type] + '__verdict'] = self.verdict
 
         columns = ['number', 'marks_number']
         if self.verdict is None:
             columns.append('report_verdict')
 
-        for leaf in self.report.leaves.filter(Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
+        if self.verdict is not None:
+            leaf_filter = {list_types[self.type] + '__verdict': self.verdict}
+            leaves_set = self.report.leaves.filter(Q(**leaf_filter) & ~Q(**{list_types[self.type]: None}))
+        elif self.mark is not None:
+            leaf_filter = {list_types[self.type] + '__markreport_set__mark': self.mark}
+            leaves_set = self.report.leaves.filter(**leaf_filter).distinct().filter(~Q(**{list_types[self.type]: None}))
+        else:
+            leaves_set = self.report.leaves.filter(~Q(**{list_types[self.type]: None}))
+
+        for leaf in leaves_set:
             report = getattr(leaf, list_types[self.type])
             if not self.__has_tag(report):
                 continue
@@ -327,6 +334,9 @@ class ReportTable(object):
             filters[ftype] = self.view['filters']['component']['value']
         if isinstance(self.problem, UnknownProblem):
             leaf_set = self.report.leaves.filter(unknown__markreport_set__problem=self.problem).distinct()\
+                .filter(~Q(unknown=None) & Q(**filters))
+        elif isinstance(self.mark, MarkUnknown):
+            leaf_set = self.report.leaves.filter(unknown__markreport_set__mark=self.mark).distinct()\
                 .filter(~Q(unknown=None) & Q(**filters))
         else:
             if self.problem == 0:
