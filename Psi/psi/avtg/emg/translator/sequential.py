@@ -1,4 +1,6 @@
 import copy
+import os
+import graphviz
 
 from psi.avtg.emg.translator import AbstractTranslator
 from psi.avtg.emg.interfaces import Signature
@@ -9,7 +11,6 @@ class Translator(AbstractTranslator):
     automata = []
 
     def _generate_entry_point(self):
-
         ri = {}
         for process in self.model["models"] + self.model["processes"]:
             ri[process.identifier] = process.collect_relevant_interfaces()
@@ -22,6 +23,13 @@ class Translator(AbstractTranslator):
             else:
                 self.automata.append(Automata(self.logger, len(self.automata), self.entry_file, process))
 
+        # Create directory for automata
+        self.logger.info("Create working directory for automata '{}'".format("automata"))
+        os.makedirs("automata", exist_ok=True)
+
+        # Generate states
+        for automata in self.automata:
+            automata.generate_automata()
         return
 
     def __generate_automata(self, ri, process):
@@ -117,10 +125,161 @@ class Automata:
         self.file = file
         self.process = process
         self.label_map = {}
-        self.subprocess_map = {}
-        self.automata = {}
         self.state_variable = {}
+        self.__state_transitions = []
+        self.__state_counter = 0
+        self.__checked_ast = {}
+        self.__ast_counter = 0
+        self.__checked_subprocesses = {}
 
+    def generate_automata(self):
+        # Enumerate AST
+        self.logger.info("Enumerate AST nodes of automata {}".format(self.identifier))
+        nodes = [self.process.subprocesses[name].process_ast for name in self.process.subprocesses
+                 if self.process.subprocesses[name].process_ast] + [self.process.process_ast]
+        while len(nodes) > 0:
+            ast = nodes.pop()
+            new = self.__enumerate_ast(ast)
+            nodes.extend(new)
 
+        # Generate states
+        self.logger.info("Generate states for automata {}".format(self.identifier))
+        transitions = [[self.process.process_ast, None]]
+        while len(transitions) > 0:
+            ast, predecessor = transitions.pop()
+            new = self.__process_ast(ast, predecessor)
+            transitions.extend(new)
+
+        self.logger.info("Generate graph in the working directory automata {}".format(self.identifier))
+        graph = graphviz.Digraph(
+            name="{}_{}_{}".format(self.process.name, self.process.identifier, self.identifier),
+            comment="Process {} with identifier {} which corresponds to automata {}".
+                    format(self.process.name, self.process.identifier, self.identifier),
+            format="png"
+        )
+        graph.node("process", self.process.process)
+        for index in range(self.__state_counter):
+            graph.node(str(index), "State {}".format(index))
+        for transition in self.__state_transitions:
+            graph.edge(
+                str(transition["in"]),
+                str(transition["out"]),
+                "{}: {}".format(transition["subprocess"].type, transition["subprocess"].name)
+            )
+        graph.save("automata/{}.dot".format(graph.name))
+        graph.render()
+
+        return
+
+    def __enumerate_ast(self, ast):
+        key = list(ast.keys())[0]
+        to_process = []
+
+        if key in ["sequence", "options"]:
+            for action in reversed(ast[key]):
+                to_process.append(action)
+        elif key in ["process"]:
+            to_process.append(ast[key])
+        elif key not in ["subprocess", "receive", "dispatch", "condition", "null"]:
+            raise RuntimeError("Unknown operator in process AST: {}".format(key))
+
+        ast["identifier"] = self.__ast_counter
+        self.__ast_counter += 1
+        return to_process
+
+    def __process_ast(self, ast, predecessor):
+        key = list(ast.keys())[0]
+        to_process = []
+
+        if key == "sequence":
+            new = []
+            previous = predecessor
+            for action in ast[key]:
+                new.append([action, previous])
+                previous = action["identifier"]
+            self.__checked_ast[ast["identifier"]] = {"sequence": True, "last": new[-1][0]["identifier"]}
+            to_process.extend(reversed(new))
+        elif key == "options":
+            for option in ast[key]:
+                to_process.append([option, predecessor])
+            self.__checked_ast[ast["identifier"]] = {
+                "options": True,
+                "children": [option["identifier"] for option in ast[key]]
+            }
+        elif key == "process":
+            to_process.append([ast[key], predecessor])
+            value = list(ast[key].values())[0]
+            self.__checked_ast[ast["identifier"]] = {"brackets": True, "follower": value["identifier"]}
+        elif key == "subprocess":
+            if ast[key]["name"] in self.__checked_subprocesses:
+                state = self.__checked_subprocesses[ast[key]["name"]]
+                for origin in self.__resolve_state(predecessor):
+                    transition = {
+                        "ast": ast[key],
+                        "subprocess": self.process.subprocesses[ast[key]["name"]],
+                        "in": origin,
+                        "out": state
+                    }
+                    self.__state_transitions.append(transition)
+            else:
+                self.__state_counter += 1
+                for origin in self.__resolve_state(predecessor):
+                    transition = {
+                        "ast": ast[key],
+                        "subprocess": self.process.subprocesses[ast[key]["name"]],
+                        "in": origin,
+                        "out": self.__state_counter
+                    }
+                    self.__state_transitions.append(transition)
+                self.__checked_subprocesses[ast[key]["name"]] = self.__state_counter
+                self.__checked_ast[ast["identifier"]] = self.__state_counter
+            self.__checked_ast[ast["identifier"]] = {"process": True}
+        elif key in ["receive", "dispatch", "condition"]:
+            number = ast[key]["number"]
+            self.__state_counter += 1
+            for origin in self.__resolve_state(predecessor):
+                transition = {
+                    "ast": ast[key],
+                    "subprocess": self.process.subprocesses[ast[key]["name"]],
+                    "in": origin,
+                    "out": self.__state_counter
+                }
+                self.__state_transitions.append(transition)
+
+            if number and number > 1:
+                for index in range(number - 1):
+                    transition = {
+                        "ast": ast[key],
+                        "subprocess": self.process.subprocesses[ast[key]["name"]],
+                        "in": self.__state_counter,
+                        "out": self.__state_counter + 1
+                    }
+                    self.__state_counter += 1
+                    self.__state_transitions.append(transition)
+                    
+            self.__checked_ast[ast["identifier"]] = {"terminal": True, "state": self.__state_counter}
+        elif key != "null":
+            raise RuntimeError("Unknown operator in process AST: {}".format(key))
+        return to_process
+
+    def __resolve_state(self, identifier):
+        ret = []
+        if not identifier:
+            ret = []
+        elif identifier not in self.__checked_ast:
+            raise TypeError("Cannot find state {} in processed automaton states".format(identifier))
+        else:
+            if "sequence" in self.__checked_ast[identifier]:
+                ret = self.__resolve_state(self.__checked_ast[identifier]["last"])
+            elif "options" in self.__checked_ast[identifier]:
+                for child in self.__checked_ast[identifier]["children"]:
+                    ret.append(self.__resolve_state(child))
+            elif "brackets" in self.__checked_ast[identifier]:
+                ret = self.__resolve_state(self.__checked_ast[identifier]["follower"])
+            elif "terminal" in self.__checked_ast[identifier]:
+                ret = [self.__checked_ast[identifier]["state"]]
+            else:
+                raise ValueError("Unknown AST type {}".format(str(self.__checked_ast[identifier])))
+        return ret
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
