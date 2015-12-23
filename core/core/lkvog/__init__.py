@@ -128,6 +128,8 @@ class LKVOG(core.components.Component):
                                     os.path.join(scotch_dir_path, 'graph_file'),
                                     os.path.join(scotch_dir_path, 'scotch_log'),
                                     os.path.join(scotch_dir_path, 'scotch_out'))
+        elif strategy_name == 'separate modules':
+            pass
 
         else:
             raise NotImplementedError("Strategy not implemented {0}".format(strategy_name))

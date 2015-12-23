@@ -126,8 +126,6 @@ class LKBCE(core.components.Component):
                         specify_arch=False, invoke_build_cmd_wrappers=False, collect_build_cmds=False)
             # Extract mod deps
             self.extract_all_linux_kernel_mod_deps()
-        elif 'dep file' in self.conf['Linux kernel']:
-            self.extract_all_linux_kernel_mod_deps()
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a') as fp:
@@ -135,12 +133,8 @@ class LKBCE(core.components.Component):
 
     def extract_all_linux_kernel_mod_deps(self):
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
-                and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']\
-                or 'dep file' in self.conf['Linux kernel']:
-            if 'dep file' in self.conf['Linux kernel']:
-                path = self.conf['Linux kernel']['dep file']
-            else:
-                path = os.path.join(self.linux_kernel['modules install'], "lib/modules",
+                and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
+            path = os.path.join(self.linux_kernel['modules install'], "lib/modules",
                                     self.linux_kernel['version'], "modules.dep")
 
             with open(path, 'r') as fp:
