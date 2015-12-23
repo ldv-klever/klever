@@ -25,7 +25,7 @@ JOB_SETTINGS_FILE = 'settings.json'
 
 class Population(object):
 
-    def __init__(self, user, manager=None, service=None):
+    def __init__(self, user=None, manager=None, service=None):
         self.changes = {}
         self.user = user
         self.manager = self.__get_manager(manager)
@@ -33,10 +33,11 @@ class Population(object):
         self.__add_service_user(service)
 
     def __population(self):
-        try:
-            self.user.extended
-        except ObjectDoesNotExist:
-            self.__extend_user(self.user)
+        if self.user is not None:
+            try:
+                self.user.extended
+            except ObjectDoesNotExist:
+                self.__extend_user(self.user)
         self.__populate_functions()
         if len(Job.objects.filter(parent=None)) < 3:
             self.__populate_jobs()
