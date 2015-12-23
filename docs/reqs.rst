@@ -45,6 +45,7 @@ To run Klever Core you need:
   * `requests <https://pypi.python.org/pypi/requests/>`_.
 
 * `GNU make <https://www.gnu.org/software/make/>`_.
+* `GNU bc <https://www.gnu.org/software/bc/>`_.
 * `CIF <http://forge.ispras.ru/projects/cif>`_.
 
 TODO: Klever Scheduler
@@ -57,6 +58,7 @@ If you are going to execute on your machine scheduler or the other Klever Cloud 
   * `consulate <https://pypi.python.org/pypi/consulate>`_.
   * `requests <https://pypi.python.org/pypi/requests/>`_.
 
+* `GNU bc <https://www.gnu.org/software/bc/>`_.
 * `BenchExec sources <http://github.com/dbeyer/benchexec>`_.
 * `Consul binaries and optionally UI <http://www.consul.io/downloads.html>`_. Download binary file and UI-files
   directory and place them nearby in a an arbitrary directory. Building or installation are not required.
