@@ -39,7 +39,7 @@ Klever Bridge installation
 #. Execute the following manage.py tasks::
 
     $ python3 manage.py compilemessages
-    $ python3 manage.py makemigrations users jobs reports marks service tools
+    $ python3 manage.py makemigrations jobs marks reports service users
     $ python3 manage.py migrate
     $ python3 manage.py createsuperuser
 
@@ -100,7 +100,7 @@ Update for development purposes
 #. Execute the following manage.py tasks::
 
     $ python3 manage.py compilemessages
-    $ python3 manage.py makemigrations users jobs reports marks service tools
+    $ python3 manage.py makemigrations jobs marks reports service users
     $ python3 manage.py migrate
 
 #. If some of previous commands failed it is recommended to do the following steps.
