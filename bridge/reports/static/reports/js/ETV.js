@@ -175,7 +175,7 @@ $(document).ready(function () {
             var next_line = selected_line.next(),
                 next_line_link;
             while (next_line.length) {
-                if (next_line.find('a.ETV_La') && next_line.is(':visible')) {
+                if (next_line.find('a.ETV_La').length && next_line.is(':visible')) {
                     next_line_link = next_line.find('a.ETV_La');
                     if (next_line_link.length) {
                         next_line_link.click();
@@ -193,7 +193,7 @@ $(document).ready(function () {
             var prev_line = selected_line.prev(),
                 prev_line_link;
             while (prev_line.length) {
-                if (prev_line.find('a.ETV_La') && prev_line.is(':visible')) {
+                if (prev_line.find('a.ETV_La').length && prev_line.is(':visible')) {
                     prev_line_link = prev_line.find('a.ETV_La');
                     if (prev_line_link.length) {
                         prev_line_link.click();

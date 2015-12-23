@@ -272,6 +272,7 @@ def mark_list(request, marks_type):
 
     return render(request, 'marks/MarkList.html', {
         'tabledata': MarksList(*table_args),
+        'type': marks_type,
         'title': titles[marks_type],
         'statuses': MARK_STATUS,
         'verdicts': verdicts[marks_type],
@@ -353,6 +354,34 @@ def delete_mark(request, mark_type, mark_id):
         return HttpResponseRedirect(reverse('error', args=[602]))
     DeleteMark(mark)
     return HttpResponseRedirect(reverse('marks:mark_list', args=[mark_type]))
+
+
+@unparallel_group(['mark'])
+@login_required
+def delete_marks(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'type' not in request.POST or 'ids' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        mark_ids = json.loads(request.POST['ids'])
+    except Exception as e:
+        print_err(e)
+        return JsonResponse({'error': 'Unknown error'})
+    if request.POST['type'] == 'unsafe':
+        marks = MarkUnsafe.objects.filter(id__in=mark_ids)
+    elif request.POST['type'] == 'safe':
+        marks = MarkSafe.objects.filter(id__in=mark_ids)
+    elif request.POST['type'] == 'unknown':
+        marks = MarkUnknown.objects.filter(id__in=mark_ids)
+    else:
+        return JsonResponse({'error': 'Unknown error'})
+
+    if not all(MarkAccess(request.user, mark=mark).can_delete() for mark in marks):
+        return JsonResponse({'error': _("You can't delete one of the selected mark")})
+    for mark in marks:
+        DeleteMark(mark)
+    return JsonResponse({})
 
 
 @unparallel

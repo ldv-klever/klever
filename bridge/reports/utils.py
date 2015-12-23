@@ -1,12 +1,12 @@
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.utils import get_resource_data
-from reports.models import ReportComponent, Attr, AttrName
+from reports.models import ReportComponent, Attr, AttrName, ReportAttr
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from marks.models import UnknownProblem
 from bridge.tableHead import Header
@@ -59,8 +59,8 @@ def get_parents(report):
         except ObjectDoesNotExist:
             continue
         parent_attrs = []
-        for attr in parent.attr.all().order_by('name__name'):
-            parent_attrs.append([attr.name.name, attr.value])
+        for rep_attr in parent.attrs.order_by('attr__name__name'):
+            parent_attrs.append([rep_attr.attr.name.name, rep_attr.attr.value])
 
         title = parent.component.name
         href = reverse('reports:component',
@@ -74,15 +74,10 @@ def get_parents(report):
 
 
 def report_resources(report, user):
-    resources = None
-    if report.resource is not None:
-        rd = get_resource_data(user, report.resource)
-        resources = {
-            'wall_time': rd[0],
-            'cpu_time': rd[1],
-            'memory': rd[2],
-        }
-    return resources
+    if all(x is not None for x in [report.wall_time, report.cpu_time, report.memory]):
+        rd = get_resource_data(user, report)
+        return {'wall_time': rd[0], 'cpu_time': rd[1], 'memory': rd[2]}
+    return None
 
 
 class ReportTable(object):
@@ -157,40 +152,27 @@ class ReportTable(object):
     def __self_data(self):
         columns = []
         values = []
-        for name in self.report.attrorder.order_by('id'):
-            try:
-                attr = self.report.attr.get(name__name=name.name.name)
-            except ObjectDoesNotExist:
-                continue
-            columns.append(attr.name.name)
-            values.append(attr.value)
+        for rep_attr in self.report.attrs.order_by('id'):
+            columns.append(rep_attr.attr.name.name)
+            values.append(rep_attr.attr.value)
         return columns, values
 
     def __component_data(self):
         data = {}
         components = {}
-        component_filters = {
-            'parent': self.report,
-        }
+        columns = []
+        component_filters = {'parent': self.report}
         if 'component' in self.view['filters']:
             component_filters[
                 'component__name__' + self.view['filters']['component']['type']
                 ] = self.view['filters']['component']['value']
-        attr_order = []
         for report in ReportComponent.objects.filter(**component_filters):
-            for new_a in report.attrorder.order_by('id'):
-                if new_a.name.name not in attr_order:
-                    attr_order.append(new_a.name.name)
-            for attr in report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][report.pk] = attr.value
+            for rep_attr in report.attrs.order_by('id'):
+                if rep_attr.attr.name.name not in data:
+                    columns.append(rep_attr.attr.name.name)
+                    data[rep_attr.attr.name.name] = {}
+                data[rep_attr.attr.name.name][report.pk] = rep_attr.attr.value
             components[report.pk] = report.component
-
-        columns = []
-        for name in attr_order:
-            if name in data:
-                columns.append(name)
 
         comp_data = []
         for pk in components:
@@ -234,27 +216,19 @@ class ReportTable(object):
         if self.verdict is not None:
             leaf_filter[list_types[self.type] + '__verdict'] = self.verdict
 
-        attr_order = []
-        for leaf in self.report.leaves.filter(
-                Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
-            report = getattr(leaf, list_types[self.type])
-            if not self.__has_tag(report):
-                continue
-            for new_a in report.attrorder.order_by('id'):
-                if new_a.name.name not in attr_order:
-                    attr_order.append(new_a.name.name)
-            for attr in report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][report] = attr.value
-
         columns = ['number', 'marks_number']
         if self.verdict is None:
             columns.append('report_verdict')
 
-        for name in attr_order:
-            if name in data:
-                columns.append(name)
+        for leaf in self.report.leaves.filter(Q(**leaf_filter) & ~Q(**{list_types[self.type]: None})):
+            report = getattr(leaf, list_types[self.type])
+            if not self.__has_tag(report):
+                continue
+            for rep_attr in report.attrs.order_by('id'):
+                if rep_attr.attr.name.name not in data:
+                    columns.append(rep_attr.attr.name.name)
+                    data[rep_attr.attr.name.name] = {}
+                data[rep_attr.attr.name.name][report] = rep_attr.attr.value
 
         reports_ordered = []
         if 'order' in self.view and self.view['order'] in data:
@@ -262,8 +236,7 @@ class ReportTable(object):
                 reports_ordered.append(
                     (data[self.view['order']][report], report)
                 )
-            reports_ordered = \
-                [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
+            reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
         else:
             for attr in data:
                 for report in data[attr]:
@@ -284,8 +257,7 @@ class ReportTable(object):
                         break
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:leaf',
-                                   args=[list_types[self.type], report.pk])
+                    href = reverse('reports:leaf', args=[list_types[self.type], report.pk])
                 elif col == 'marks_number':
                     broken = 0
                     num_of_connects = len(report.markreport_set.all())
@@ -344,51 +316,32 @@ class ReportTable(object):
         return has_tag
 
     def __unknowns_data(self):
-
-        def filter_component(component_name):
-            if 'component' in self.view['filters']:
-                filter_type = self.view['filters']['component']['type']
-                filter_value = self.view['filters']['component']['value']
-                if filter_type == 'iexact':
-                    if component_name.lower() == filter_value.lower():
-                        return True
-                elif filter_type == 'istartswith':
-                    if component_name.lower().startswith(filter_value.lower()):
-                        return True
-                elif filter_type == 'icontains':
-                    if filter_value.lower() in component_name.lower():
-                        return True
-                return False
-            return True
-
         data = {}
         components = {}
-        attr_order = []
-        for leaf in self.report.leaves.filter(~Q(unknown=None)):
-            report = leaf.unknown
-            for new_a in report.attrorder.order_by('id'):
-                if new_a.name.name not in attr_order:
-                    attr_order.append(new_a.name.name)
-            if self.component_id is not None and \
-                    report.component_id != int(self.component_id):
-                continue
-            if isinstance(self.problem, UnknownProblem) and len(
-                    report.markreport_set.filter(problem=self.problem)) == 0:
-                continue
-            elif self.problem == 0 and len(report.markreport_set.all()) > 0:
-                continue
-            if not filter_component(report.component.name):
-                continue
-            for attr in report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][report.pk] = attr.value
-            components[report.pk] = report.component.name
-
+        filters = {}
+        if self.component_id is not None:
+            filters['unknown__component_id'] = int(self.component_id)
+        if 'component' in self.view['filters'] \
+                and self.view['filters']['component']['type'] in ['iexact', 'istartswith', 'icontains']:
+            ftype = 'unknown__component__name__%s' % self.view['filters']['component']['type']
+            filters[ftype] = self.view['filters']['component']['value']
+        if isinstance(self.problem, UnknownProblem):
+            leaf_set = self.report.leaves.filter(unknown__markreport_set__problem=self.problem).distinct()\
+                .filter(~Q(unknown=None) & Q(**filters))
+        else:
+            if self.problem == 0:
+                filters['mr_set_len'] = 0
+            leaf_set = self.report.leaves.annotate(mr_set_len=Count('unknown__markreport_set'))\
+                .filter(~Q(unknown=None) & Q(**filters))
         columns = ['component']
-        for name in attr_order:
-            if name in data:
-                columns.append(name)
+        for leaf in leaf_set:
+            report = leaf.unknown
+            for rep_attr in report.attrs.order_by('id'):
+                if rep_attr.attr.name.name not in data:
+                    columns.append(rep_attr.attr.name.name)
+                    data[rep_attr.attr.name.name] = {}
+                data[rep_attr.attr.name.name][report.pk] = rep_attr.attr.value
+            components[report.pk] = report.component.name
 
         report_ids = []
         if 'order' in self.view and self.view['order'] in data:
@@ -439,7 +392,7 @@ class ReportTable(object):
         return True
 
 
-def save_attrs(attrs):
+def save_attrs(report, attrs):
     def children(name, val):
         attr_data = []
         if isinstance(val, list):
@@ -456,16 +409,43 @@ def save_attrs(attrs):
             attr_data = [(name, val)]
         return attr_data
 
-    created_attrs = []
-    if isinstance(attrs, list):
-        attrs_data = children('', attrs)
-    elif isinstance(attrs, dict) and 'values' in attrs:
-        attrs_data = attrs['values']
-    else:
-        return created_attrs
-    for attr, value in attrs_data:
-        new_attr_name, created = AttrName.objects.get_or_create(name=attr)
-        new_attr, created = Attr.objects.get_or_create(
-            name=new_attr_name, value=value)
-        created_attrs.append(new_attr)
-    return created_attrs
+    if not isinstance(attrs, list):
+        return []
+    attrdata = AttrData()
+    attrorder = []
+    for attr, value in children('', attrs):
+        attrorder.append(attr)
+        attrdata.add(report.pk, attr, value)
+    attrdata.upload()
+    return attrorder
+
+
+class AttrData(object):
+    def __init__(self):
+        self._data = []
+        self._name = {}
+        self._attrs = {}
+
+    def add(self, report_id, name, value):
+        self._data.append((report_id, name, value))
+        if name not in self._name:
+            self._name[name] = None
+        if (name, value) not in self._attrs:
+            self._attrs[(name, value)] = None
+
+    def upload(self):
+        self.__upload_names()
+        self.__upload_attrs()
+        ReportAttr.objects.bulk_create(
+            list(ReportAttr(report_id=d[0], attr=self._attrs[(d[1], d[2])]) for d in self._data)
+        )
+        self.__init__()
+
+    def __upload_names(self):
+        for name in self._name:
+            self._name[name] = AttrName.objects.get_or_create(name=name)[0]
+
+    def __upload_attrs(self):
+        for attr in self._attrs:
+            if attr[0] in self._name:
+                self._attrs[attr] = Attr.objects.get_or_create(name=self._name[attr[0]], value=attr[1])[0]

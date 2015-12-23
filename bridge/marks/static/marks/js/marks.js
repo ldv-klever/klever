@@ -4,7 +4,7 @@ function encodeData(s) {
 
 function collect_filters_data() {
     var view_values = {columns: []}, filter_values = {},
-        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format'],
+        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format', 'pattern'],
         order_type = $('input[name=marks_enable_order]:checked').val();
     $.each(columns, function (index, val) {
         var column_checkbox = $('#marks_filter_checkbox__' + val);
@@ -333,6 +333,55 @@ $(document).ready(function () {
         .modal('attach events', '#show_remove_mark_popup', 'show');
     $('#cancel_remove_mark').click(function () {
         $('#remove_mark_popup').modal('hide');
+    });
+
+    $('#remove_marks_popup').modal({transition: 'fly up', autofocus: false, closable: false});
+    $('#show_remove_marks_popup').click(function () {
+        var ids_for_del = [];
+        $('input[id^="mark_checkbox__"]').each(function () {
+            if ($(this).is(':checked')) {
+                ids_for_del.push($(this).attr('id').replace('mark_checkbox__', ''));
+            }
+        });
+        if (ids_for_del.length > 0) {
+            $('#remove_marks_popup').modal('show');
+        }
+        else {
+            err_notify($('#no_marks_selected').text())
+        }
+    });
+    $('#cancel_remove_marks').click(function () {
+        $('#remove_marks_popup').modal('hide');
+    });
+    $('#confirm_remove_marks').click(function () {
+        var ids_for_del = [];
+        $('input[id^="mark_checkbox__"]').each(function () {
+            if ($(this).is(':checked')) {
+                ids_for_del.push($(this).attr('id').replace('mark_checkbox__', ''));
+            }
+        });
+        if (ids_for_del.length == 0) {
+            $('#remove_marks_popup').modal('hide');
+            err_notify($('#no_marks_selected').text());
+        }
+        else {
+            $.ajax({
+                url: marks_ajax_url + 'delete/',
+                data: {
+                    'type': $('#marks_type').val(),
+                    ids: JSON.stringify(ids_for_del)
+                },
+                type: 'POST',
+                success: function (data) {
+                    if (data.error) {
+                        err_notify(data.error);
+                    }
+                    else {
+                        window.location.replace('');
+                    }
+                }
+            });
+        }
     });
 
     $('#save_new_mark_btn').click(function () {

@@ -55,12 +55,32 @@ $(document).ready(function () {
             if ($(this).is(':visible')) {
                 var line_link = $(this).find('a.ETV_La');
                 var etv_window = $(this).closest('.ETV_error_trace');
-                etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 1/10);
+                etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
                 if (line_link.length) {
                     line_link.click();
                     return false;
                 }
             }
         });
+        $('#etv_play_forward').click();
+    });
+
+    $('#etv_start_backward').click(function () {
+        var etv_window = $('.ETV_error_trace'),
+            next_child = etv_window.first().children().last();
+        while (next_child) {
+            if (next_child.is(':visible')) {
+                var line_link = next_child.find('a.ETV_La');
+                if (line_link.length) {
+                    etv_window.scrollTop(etv_window.scrollTop() + next_child.position().top - etv_window.height() * 7/10);
+                    line_link.click();
+                    next_child = null;
+                }
+            }
+            if (next_child) {
+                next_child = next_child.prev();
+            }
+        }
+        $('#etv_play_backward').click();
     });
 });

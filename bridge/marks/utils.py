@@ -10,7 +10,7 @@ from django.utils.timezone import now
 from bridge.vars import USER_ROLES, JOB_ROLES
 from bridge.utils import print_err
 from marks.models import *
-from reports.models import ReportComponent, Attr, AttrName
+from reports.models import ReportComponent, Attr, AttrName, Verdict
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
 
@@ -32,8 +32,8 @@ class NewMark(object):
         :param user: instance of User (author of mark change/creation)
         :param mark_type: 'safe' or 'unsafe'
         :param args: dictionary with keys:
-            'status': see MARK_STATUS from Bridge.vars, default - '0'.
-            'verdict': see MARK_UNSAFE/MARK_SAFE from Bridge.vars, default - '0'
+            'status': see MARK_STATUS from bridge.vars, default - '0'.
+            'verdict': see MARK_UNSAFE/MARK_SAFE from bridge.vars, default - '0'
             'convert_id': MarkUnsafeCompare id (only for creating unsafe mark)
             'compare_id': MarkUnsafeConvert id (only for unsafe mark)
             'attrs': list of dictionaries with required keys:
@@ -138,15 +138,6 @@ class NewMark(object):
         except Exception as e:
             return e
 
-        if self.type != 'unknown':
-            for attr in report.attrorder.order_by('id'):
-                if self.type == 'safe':
-                    SafeMarkAttrOrder.objects.create(
-                        name=attr.name, mark_id=mark.pk)
-                else:
-                    UnsafeMarkAttrOrder.objects.create(
-                        name=attr.name, mark_id=mark.pk)
-
         self.__update_mark(mark, tags=tags)
         if 'attrs' in args and self.type != 'unknown':
             res = self.__create_attributes(report, args['attrs'])
@@ -167,7 +158,9 @@ class NewMark(object):
         old_tags = []
         last_v = None
         if self.type != 'unknown':
-            last_v = mark.versions.order_by('-version')[0]
+            last_v = mark.versions.order_by('-version').first()
+            if last_v is None:
+                return 'No mark versions found'
             for tag in last_v.tags.all():
                 old_tags.append(tag.tag)
         mark.author = self.user
@@ -285,10 +278,9 @@ class NewMark(object):
         if not isinstance(attrs, list):
             return 'Wrong attributes'
         for a in attrs:
-            if not isinstance(a, dict) or \
-                    any(x not in a for x in ['attr', 'is_compare']):
+            if not isinstance(a, dict) or any(x not in a for x in ['attr', 'is_compare']):
                 return 'Wrong args'
-        for a in old_mark.attrs.all():
+        for a in old_mark.attrs.order_by('id'):
             create_args = {
                 'attr': a.attr,
                 'is_compare': a.is_compare
@@ -299,28 +291,28 @@ class NewMark(object):
                         self.do_recalk = True
                     create_args['is_compare'] = u_at['is_compare']
                     break
-            self.mark_version.attrs.get_or_create(**create_args)
+            self.mark_version.attrs.create(**create_args)
         return None
 
     def __create_attributes(self, report, attrs):
         if not isinstance(attrs, list):
             return 'Wrong attributes'
         for a in attrs:
-            if not isinstance(a, dict) or \
-                    any(x not in a for x in ['attr', 'is_compare']):
+            if not isinstance(a, dict) or any(x not in a for x in ['attr', 'is_compare']):
                 return 'Wrong args'
-        for a in report.attr.all():
-            create_args = {'attr': a}
+        for rep_attr in report.attrs.order_by('id'):
+            create_args = {'attr': rep_attr.attr}
             for u_at in attrs:
-                if u_at['attr'] == a.name.name:
+                if u_at['attr'] == rep_attr.attr.name.name:
                     create_args['is_compare'] = u_at['is_compare']
                     break
-            self.mark_version.attrs.get_or_create(**create_args)
+            self.mark_version.attrs.create(**create_args)
         return None
 
 
 class ConnectReportWithMarks(object):
-    def __init__(self, report):
+    def __init__(self, report, update_cache=True):
+        self.update_cache = update_cache
         self.report = report
         if isinstance(self.report, ReportUnsafe):
             self.__connect_unsafe()
@@ -337,8 +329,7 @@ class ConnectReportWithMarks(object):
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
                     try:
-                        if self.report.attr.get(name__name=attr.attr.name.name)\
-                                .value != attr.attr.value:
+                        if self.report.attrs.get(attr__name__name=attr.attr.name.name).attr.value != attr.attr.value:
                             break
                     except ObjectDoesNotExist:
                         pass
@@ -362,8 +353,7 @@ class ConnectReportWithMarks(object):
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
                     try:
-                        if self.report.attr.get(name__name=attr.attr.name.name)\
-                                .value != attr.attr.value:
+                        if self.report.attrs.get(attr__name__name=attr.attr.name.name).attr.value != attr.attr.value:
                             break
                     except ObjectDoesNotExist:
                         pass
@@ -388,7 +378,8 @@ class ConnectReportWithMarks(object):
             MarkUnknownReport.objects.create(mark=mark, report=self.report, problem=problem)
             if self.report not in changes:
                 changes[self.report]['kind'] = '+'
-        update_unknowns_cache(changes)
+        if self.update_cache:
+            update_unknowns_cache(changes)
 
 
 class ConnectMarkWithReports(object):
@@ -419,8 +410,7 @@ class ConnectMarkWithReports(object):
             for attr in last_version.attrs.all():
                 if attr.is_compare:
                     try:
-                        if unsafe.attr.get(name__name=attr.attr.name.name)\
-                                .value != attr.attr.value:
+                        if unsafe.attrs.get(attr__name__name=attr.attr.name.name).attr.value != attr.attr.value:
                             break
                     except ObjectDoesNotExist:
                         pass
@@ -459,8 +449,7 @@ class ConnectMarkWithReports(object):
             for attr in last_version.attrs.all():
                 if attr.is_compare:
                     try:
-                        if safe.attr.get(name__name=attr.attr.name.name)\
-                                .value != attr.attr.value:
+                        if safe.attrs.get(attr__name__name=attr.attr.name.name).attr.value != attr.attr.value:
                             break
                     except ObjectDoesNotExist:
                         pass
@@ -575,9 +564,7 @@ class UpdateVerdict(object):
             try:
                 verdict = parent.verdict
             except ObjectDoesNotExist:
-                # Case when upload report havn't saved the verdicts (total=0)
-                # (Error in upload report)
-                return
+                verdict = Verdict.objects.create(report=parent)
             if unsafe.verdict == '0' and verdict.unsafe_unknown > 0:
                 verdict.unsafe_unknown -= 1
             elif unsafe.verdict == '1' and verdict.unsafe_bug > 0:
@@ -621,7 +608,7 @@ class UpdateVerdict(object):
             try:
                 verdict = parent.verdict
             except ObjectDoesNotExist:
-                return
+                verdict = Verdict.objects.create(report=parent)
             if safe.verdict == '0' and verdict.safe_unknown > 0:
                 verdict.safe_unknown -= 1
             elif safe.verdict == '1' and verdict.safe_incorrect_proof > 0:
@@ -718,7 +705,7 @@ class CreateMarkTar(object):
                     version_data['function'] = markversion.function.name
                 for tag in markversion.tags.all():
                     version_data['tags'].append(tag.tag.tag)
-                for attr in markversion.attrs.all():
+                for attr in markversion.attrs.order_by('id'):
                     version_data['attrs'].append({
                         'attr': attr.attr.name.name,
                         'value': attr.attr.value,
@@ -820,7 +807,7 @@ class ReadTarMark(object):
 
             self.__update_mark(mark, tags=tags)
             if self.type != 'unknown':
-                res = self.__create_attributes(args['attrs'], mark)
+                res = self.__create_attributes(args['attrs'])
                 if res is not None:
                     mark.delete()
                     return res
@@ -863,18 +850,15 @@ class ReadTarMark(object):
                                                      mark_version=new_version)
             self.mark_version = new_version
 
-        def __create_attributes(self, attrs, mark):
-            attr_order = []
+        def __create_attributes(self, attrs):
             if not isinstance(attrs, list):
                 return _('The attributes have wrong format')
             for a in attrs:
                 if any(x not in a for x in ['attr', 'value', 'is_compare']):
                     return _('The attributes have wrong format')
             for a in attrs:
-                attr_order.append(a['attr'])
                 attr_name = AttrName.objects.get_or_create(name=a['attr'])[0]
-                attr = Attr.objects\
-                    .get_or_create(name=attr_name, value=a['value'])[0]
+                attr = Attr.objects.get_or_create(name=attr_name, value=a['value'])[0]
                 create_args = {
                     'mark': self.mark_version,
                     'attr': attr,
@@ -884,17 +868,6 @@ class ReadTarMark(object):
                     MarkUnsafeAttr.objects.get_or_create(**create_args)
                 else:
                     MarkSafeAttr.objects.get_or_create(**create_args)
-            for attr in attr_order:
-                if self.type == 'safe':
-                    SafeMarkAttrOrder.objects.create(
-                        name=AttrName.objects.get_or_create(name=attr)[0],
-                        mark_id=mark.pk
-                    )
-                else:
-                    UnsafeMarkAttrOrder.objects.create(
-                        name=AttrName.objects.get_or_create(name=attr)[0],
-                        mark_id=mark.pk
-                    )
             return None
 
     def __create_mark_from_tar(self):
@@ -947,8 +920,7 @@ class ReadTarMark(object):
                 return _("The mark archive is corrupted")
             if self.type == 'unsafe' and 'function' not in version:
                 return _("The mark archive is corrupted")
-            if self.type != 'unknown' and any(
-                    x not in version for x in ['verdict', 'attrs', 'tags']):
+            if self.type != 'unknown' and any(x not in version for x in ['verdict', 'attrs', 'tags']):
                 return _("The mark archive is corrupted")
             if self.type == 'unknown' \
                     and any(x not in version for x in ['problem', 'function']):
@@ -1296,50 +1268,39 @@ class MatchUnknown(object):
 
 
 def update_unknowns_cache(changes):
+    from reports.models import ReportComponentLeaf
     reports_to_recalc = []
-    for unknown in changes:
-        for report in unknown.leaves.all():
-            if report.report not in reports_to_recalc:
-                reports_to_recalc.append(report.report)
+    for leaf in ReportComponentLeaf.objects.filter(unknown__in=list(changes)):
+        if leaf.report not in reports_to_recalc:
+            reports_to_recalc.append(leaf.report)
     for report in reports_to_recalc:
-        problems = {}
-        report.mark_unknowns_cache.all().delete()
-        total_unknowns = {}
+        data = {}
         for leaf in report.leaves.filter(~Q(unknown=None)):
-            component = leaf.unknown.component
-            if component not in total_unknowns:
-                total_unknowns[component] = 0
-            total_unknowns[component] += 1
-            for mark_report in leaf.unknown.markreport_set.all():
-                new_id = (component, mark_report.problem)
-                if new_id not in problems:
-                    problems[new_id] = {
-                        'num': 0,
-                        'unknowns': []
-                    }
-                if leaf.unknown not in problems[new_id]['unknowns']:
-                    problems[new_id]['num'] += 1
-                    problems[new_id]['unknowns'].append(leaf.unknown)
-        total_numbers = {}
-        for component, problem in problems:
-            ComponentMarkUnknownProblem.objects.create(
-                report=report,
-                component=component,
-                problem=problem,
-                number=problems[(component, problem)]['num']
-            )
-            if component not in total_numbers:
-                total_numbers[component] = 0
-            total_numbers[component] += problems[(component, problem)]['num']
-        for component in total_unknowns:
-            if component in total_numbers:
-                unmarked = total_unknowns[component] - total_numbers[component]
+            if leaf.unknown.component not in data:
+                data[leaf.unknown.component] = {'unmarked': 0}
+            mark_reports = leaf.unknown.markreport_set.all()
+            if len(mark_reports) > 0:
+                for mr in mark_reports:
+                    if mr.problem not in data[leaf.unknown.component]:
+                        data[leaf.unknown.component][mr.problem] = 0
+                    data[leaf.unknown.component][mr.problem] += 1
             else:
-                unmarked = total_unknowns[component]
-            if unmarked > 0:
-                ComponentMarkUnknownProblem.objects.create(
-                    report=report,
-                    component=component,
-                    problem=None,
-                    number=unmarked
-                )
+                data[leaf.unknown.component]['unmarked'] += 1
+        simplified_data = []
+        for c in data:
+            for problem in data[c]:
+                if data[c][problem] > 0:
+                    simplified_data.append({
+                        'number': data[c][problem],
+                        'component': c,
+                        'problem': problem if isinstance(problem, UnknownProblem) else None
+                    })
+        cache_ids = []
+        for d in simplified_data:
+            cachedata = ComponentMarkUnknownProblem.objects.get_or_create(
+                report=report, component=d['component'], problem=d['problem']
+            )[0]
+            cachedata.number = d['number']
+            cachedata.save()
+            cache_ids.append(cachedata.pk)
+        ComponentMarkUnknownProblem.objects.filter(Q(report=report) & ~Q(id__in=cache_ids)).delete()

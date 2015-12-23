@@ -49,6 +49,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': DEBUG
         },
     },
 ]
@@ -58,7 +59,7 @@ WSGI_APPLICATION = 'bridge.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'bridge/mysql-db.cnf')},
+        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'bridge', 'mysql-db.cnf')},
     }
 }
 

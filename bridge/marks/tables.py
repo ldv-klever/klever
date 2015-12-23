@@ -25,7 +25,9 @@ MARK_TITLES = {
     'number': '№',
     'num_of_links': _('Number of associated leaf reports'),
     'problem': _("Problem"),
-    'component': _('Component')
+    'component': _('Component'),
+    'pattern': _('Problem pattern'),
+    'checkbox': ''
 }
 
 STATUS_COLOR = {
@@ -95,30 +97,24 @@ class MarkChangesTable(object):
 
     def __add_attrs(self):
         data = {}
-        attr_order = []
-        for report in self.changes:
-            for new_a in report.attrorder.order_by('id'):
-                if new_a.name.name not in attr_order:
-                    attr_order.append(new_a.name.name)
-            for attr in report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][report] = attr.value
         columns = []
-        for name in attr_order:
-            if name in data:
-                columns.append(name)
-
-        values_data = {}
         for report in self.changes:
-            values_data[report] = {}
+            for rep_attr in report.attrs.order_by('id'):
+                if rep_attr.attr.name.name not in columns:
+                    columns.append(rep_attr.attr.name.name)
+                if rep_attr.attr.name.name not in data:
+                    data[rep_attr.attr.name.name] = {}
+                data[rep_attr.attr.name.name][report] = rep_attr.attr.value
+        values = {}
+        for report in self.changes:
+            values[report] = {}
             for col in columns:
                 cell_val = '-'
                 if report in data[col]:
                     cell_val = data[col][report]
-                values_data[report][col] = cell_val
+                values[report][col] = cell_val
         self.columns.extend(columns)
-        return values_data
+        return values
 
     def __get_unsafe_values(self):
 
@@ -432,15 +428,13 @@ class MarksList(object):
         return def_views[self.type], 'default'
 
     def __get_columns(self):
-        columns = ['mark_num']
+        columns = ['checkbox', 'mark_num']
         if self.type == 'unknown':
-            for col in ['num_of_links', 'status', 'component', 'author',
-                        'format']:
+            for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern']:
                 if col in self.view['columns']:
                     columns.append(col)
         else:
-            for col in ['num_of_links', 'verdict', 'status',
-                        'author', 'format']:
+            for col in ['num_of_links', 'verdict', 'status', 'author', 'format']:
                 if col in self.view['columns']:
                     columns.append(col)
         return columns
@@ -475,32 +469,28 @@ class MarksList(object):
 
     def __get_attrs(self):
         data = {}
-        attr_order = []
-        for mark in self.marks:
-            for new_a in mark.attrorder.order_by('id'):
-                if new_a.name.name not in attr_order:
-                    attr_order.append(new_a.name.name)
-            for attr in mark.versions.get(version=mark.version).attrs.all():
-                if attr.is_compare:
-                    if attr.attr.name.name not in data:
-                        data[attr.attr.name.name] = {}
-                    data[attr.attr.name.name][mark] = attr.attr.value
-
         columns = []
-        for name in attr_order:
-            if name in data:
-                columns.append(name)
-
-        values_data = {}
         for mark in self.marks:
-            values_data[mark] = {}
+            try:
+                for attr in mark.versions.get(version=mark.version).attrs.order_by('id'):
+                    if attr.is_compare:
+                        if attr.attr.name.name not in columns:
+                            columns.append(attr.attr.name.name)
+                        if attr.attr.name.name not in data:
+                            data[attr.attr.name.name] = {}
+                        data[attr.attr.name.name][mark] = attr.attr.value
+            except ObjectDoesNotExist:
+                pass
+        values = {}
+        for mark in self.marks:
+            values[mark] = {}
             for col in columns:
                 cell_val = '-'
                 if mark in data[col]:
                     cell_val = data[col][mark]
-                values_data[mark][col] = cell_val
+                values[mark][col] = cell_val
         self.columns.extend(columns)
-        return values_data
+        return values
 
     def __get_values(self):
         values = []
@@ -519,8 +509,7 @@ class MarksList(object):
                     val = self.attr_values[mark][col]
                     if 'order' in self.view and self.view['order'] == col:
                         order_by_value = val
-                    if 'filters' in self.view and \
-                            not self.__filter_attr(col, val):
+                    if 'filters' in self.view and not self.__filter_attr(col, val):
                         break
                 elif col == 'mark_num':
                     val = cnt
@@ -528,8 +517,7 @@ class MarksList(object):
                                    args=[self.type, mark.pk])
                 elif col == 'num_of_links':
                     val = len(mark.markreport_set.all())
-                    if 'order' in self.view \
-                            and self.view['order'] == 'num_of_links':
+                    if 'order' in self.view and self.view['order'] == 'num_of_links':
                         order_by_value = val
                     if self.type == 'unsafe':
                         broken = len(mark.markreport_set.filter(broken=True))
@@ -557,7 +545,12 @@ class MarksList(object):
                     val = mark.format
                 elif col == 'component':
                     val = mark.component.name
-                values_str.append({'color': color, 'value': val, 'href': href})
+                elif col == 'pattern':
+                    val = mark.problem_pattern
+                if col == 'checkbox':
+                    values_str.append({'checkbox': mark.pk})
+                else:
+                    values_str.append({'color': color, 'value': val, 'href': href})
             else:
                 values.append((order_by_value, values_str))
 
@@ -573,54 +566,14 @@ class MarksList(object):
         return ordered_values
 
     def __filter_attr(self, attribute, value):
-        if 'attr' in self.view['filters'] and \
-                self.view['filters']['attr']['attr'] == attribute:
+        if 'attr' in self.view['filters'] and self.view['filters']['attr']['attr'] == attribute:
             fvalue = self.view['filters']['attr']['value']
             ftype = self.view['filters']['attr']['type']
             if ftype == 'iexact' and fvalue.lower() != value.lower():
                 return False
-            elif ftype == 'istartswith' and \
-                    not value.lower().startswith(fvalue.lower()):
+            elif ftype == 'istartswith' and not value.lower().startswith(fvalue.lower()):
                 return False
         return True
-
-
-# TODO: remove after marks tests
-class MarkAttrTable(object):
-
-    def __init__(self, report=None, mark_version=None):
-        if isinstance(report, ReportUnknown) \
-                or isinstance(mark_version, MarkUnknownHistory):
-            return
-        self.report = report
-        self.mark_version = mark_version
-        self.header, self.values = self.__self_attrs()
-
-    def __self_attrs(self):
-        columns = []
-        values = []
-        if isinstance(self.mark_version, (MarkUnsafeHistory, MarkSafeHistory)):
-            for name in self.mark_version.mark.attrorder.order_by('id'):
-                try:
-                    attr = self.mark_version.attrs.get(
-                        attr__name__name=name.name.name)
-                except ObjectDoesNotExist:
-                    continue
-                columns.append(attr.attr.name.name)
-                values.append(
-                    (attr.attr.name.name, attr.attr.value, attr.is_compare)
-                )
-        elif isinstance(self.report, (ReportUnsafe, ReportSafe)):
-            for name in self.report.attrorder.order_by('id'):
-                try:
-                    attr = self.report.attr.get(name__name=name.name.name)
-                except ObjectDoesNotExist:
-                    continue
-                columns.append(attr.name.name)
-                values.append((attr.name.name, attr.value, True))
-        else:
-            return None, None
-        return Header(columns, {}).struct, values
 
 
 class MarkData(object):
@@ -642,22 +595,11 @@ class MarkData(object):
     def __get_attributes(self, report):
         values = []
         if isinstance(self.mark_version, (MarkUnsafeHistory, MarkSafeHistory)):
-            for name in self.mark_version.mark.attrorder.order_by('id'):
-                try:
-                    attr = self.mark_version.attrs.get(
-                        attr__name__name=name.name.name)
-                except ObjectDoesNotExist:
-                    continue
-                values.append(
-                    (attr.attr.name.name, attr.attr.value, attr.is_compare)
-                )
+            for attr in self.mark_version.attrs.order_by('id'):
+                values.append((attr.attr.name.name, attr.attr.value, attr.is_compare))
         elif isinstance(report, (ReportUnsafe, ReportSafe)):
-            for name in report.attrorder.order_by('id'):
-                try:
-                    attr = report.attr.get(name__name=name.name.name)
-                except ObjectDoesNotExist:
-                    continue
-                values.append((attr.name.name, attr.value, True))
+            for rep_attr in report.attrs.order_by('id'):
+                values.append((rep_attr.attr.name.name, rep_attr.attr.value, True))
         else:
             return None
         return values
@@ -795,8 +737,7 @@ class MarkReportsTable(object):
                 if col == 'report':
                     val = cnt
                     if JobAccess(self.user, report.root.job).can_view():
-                        href = reverse('reports:leaf',
-                                       args=[self.type, report.pk])
+                        href = reverse('reports:leaf', args=[self.type, report.pk])
                 elif col == 'result':
                     if mark_report.broken:
                         val = _("Comparison failed")
@@ -808,110 +749,6 @@ class MarkReportsTable(object):
                     val = report.root.job.name
                     if JobAccess(self.user, report.root.job).can_view():
                         href = reverse('jobs:job', args=[report.root.job.pk])
-                values_str.append({'value': val, 'href': href, 'color': color})
-            values.append(values_str)
-        return values
-
-
-# Table data for showing links between the specified mark and reports,
-# old version
-class MarkReportsTable2(object):
-    def __init__(self, user, mark):
-        self.columns = ['report', 'verdict']
-        self.type = 'safe'
-        self.user = user
-        if isinstance(mark, MarkUnsafe):
-            self.columns.append('result')
-            self.type = 'unsafe'
-        elif not isinstance(mark, MarkSafe):
-            return
-        self.columns.extend(['status', 'author', 'job', 'format'])
-        self.mark = mark
-        self.attr_values_data, self.reports = self.__add_attrs()
-        self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_values()
-
-    def __add_attrs(self):
-        data = {}
-        reports = []
-        attr_order = []
-        for mark_report in self.mark.markreport_set.all():
-            report = mark_report.report
-            if not JobAccess(self.user, report.root.job).can_view():
-                continue
-            for new_a in report.attrorder.order_by('id'):
-                if new_a.name.name not in attr_order:
-                    attr_order.append(new_a.name.name)
-            for attr in report.attr.all():
-                if attr.name.name not in data:
-                    data[attr.name.name] = {}
-                data[attr.name.name][report] = attr.value
-            reports.append(report)
-
-        columns = []
-        for name in attr_order:
-            if name in data:
-                columns.append(name)
-
-        values_data = {}
-        for report in reports:
-            values_data[report] = {}
-            for col in columns:
-                cell_val = '-'
-                if report in data[col]:
-                    cell_val = data[col][report]
-                values_data[report][col] = cell_val
-        self.columns.extend(columns)
-        return values_data, reports
-
-    def __get_values(self):
-        values = []
-        cnt = 0
-        for report in self.reports:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                try:
-                    report_mark = self.mark.markreport_set.get(report=report)
-                except ObjectDoesNotExist:
-                    continue
-                val = '-'
-                color = None
-                href = None
-                if col in self.attr_values_data[report]:
-                    val = self.attr_values_data[report][col]
-                elif col == 'report':
-                    val = cnt
-                    if JobAccess(self.user, report.root.job).can_view():
-                        href = reverse('reports:leaf',
-                                       args=[self.type, report.pk])
-                elif col == 'verdict':
-                    val = report.get_verdict_display()
-                    color = UNSAFE_COLOR[report.verdict]
-                elif col == 'status':
-                    last_v = self.mark.versions.get(version=self.mark.version)
-                    val = last_v.get_status_display()
-                    color = STATUS_COLOR[last_v.status]
-                elif col == 'result':
-                    if report_mark.broken:
-                        val = _("Comparison failed")
-                        color = result_color(0)
-                    else:
-                        val = "{:.0%}".format(report_mark.result)
-                        color = result_color(report_mark.result)
-                elif col == 'author':
-                    val = "%s %s" % (
-                        report_mark.mark.author.extended.last_name,
-                        report_mark.mark.author.extended.first_name
-                    )
-                    href = reverse('users:show_profile',
-                                   args=[report_mark.mark.author.pk])
-                elif col == 'job':
-                    val = report.root.job.name
-                    if JobAccess(self.user, report.root.job).can_view():
-                        href = reverse('jobs:job', args=[report.root.job.pk])
-                elif col == 'format':
-                    val = report.root.job.format
                 values_str.append({'value': val, 'href': href, 'color': color})
             values.append(values_str)
         return values

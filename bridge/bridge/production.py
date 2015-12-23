@@ -8,7 +8,7 @@ LOGIN_URL = '/users/signin/'
 
 SECRET_KEY = '-u7-e699vgy%8uu_ng%%h68v7k8txs&=(ki+6eh88y-yb9mspw'
 
-DEBUG = TEMPLATE_DEBUG = False
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -39,7 +39,7 @@ ROOT_URLCONF = 'bridge.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR,  'bridge', 'templates'), os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -49,11 +49,10 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': DEBUG
         },
     },
 ]
-
-TEMPLATE_DIRS = (os.path.join(BASE_DIR,  'bridge/templates'),)
 
 WSGI_APPLICATION = 'bridge.wsgi.application'
 

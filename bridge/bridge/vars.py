@@ -63,8 +63,7 @@ JOB_STATUS = (
 
 # Default view of the table
 JOB_DEF_VIEW = {
-    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe', 'problem',
-                'safe', 'resource'],
+    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe', 'problem', 'safe', 'resource'],
     # Available orders: ['date', 'status', 'name', 'author']
     'orders': ['-date'],
 
@@ -155,14 +154,8 @@ SAFE_VERDICTS = (
 )
 
 VIEWJOB_DEF_VIEW = {
-    'data': [
-        'unsafes',
-        'safes',
-        'unknowns',
-        'resources',
-        # 'tags_safe',
-        # 'tags_unsafe'
-    ],
+    # Available data: 'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'
+    'data': ['unsafes', 'safes', 'unknowns', 'resources'],
     # Available filters (id [types], (example value)):
     # unknown_component [iexact, istartswith, icontains] (<any text>)
     # unknown_problem [iexact, istartswith, icontains] (<any text>)
@@ -314,7 +307,7 @@ MARKS_UNSAFE_VIEW = {
 # status [is, isnot] (<status id>)
 # author [is] (<author id>)
 MARKS_UNKNOWN_VIEW = {
-    'columns': ['num_of_links', 'status', 'component', 'author', 'format'],
+    'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
     # 'order': 'num_of_links',
     'filters': {
         # 'status': {

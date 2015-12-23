@@ -1,0 +1,6 @@
+{
+  "class": "0",
+  "function": "ValueError:",
+  "pattern": "Value error",
+  "link": "https://docs.python.org/3/library/exceptions.html#ValueError"
+}

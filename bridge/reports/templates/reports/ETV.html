@@ -15,27 +15,33 @@
 <div class="ui grid">
     <div class="thirteen wide column">
         <div class="ui icon orange small buttons right attached">
-            <button id="etv_prev_step" class="ui button normal-popup"><i class="step backward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play one line backward' %}</p>
-            </div>
             {% if etv.html_traces|length == 1 %}
-                <button id="etv_start" class="ui button normal-popup"><i class="play icon"></i></button>
+                <button id="etv_start" class="ui button normal-popup"><i class="forward icon"></i></button>
                 <div class="ui popup">
-                    <p style="white-space: nowrap">{% trans 'Play' %}</p>
+                    <p style="white-space:nowrap">{% trans 'Play' %}</p>
                 </div>
             {% endif %}
+            <button id="etv_play_forward" class="ui button normal-popup"><i class="fast forward icon"></i></button>
+            <div class="ui popup">
+                <p style="white-space: nowrap">{% trans 'Play from the selected line' %}</p>
+            </div>
+            {% if etv.html_traces|length == 1 %}
+                <button id="etv_start_backward" class="ui button normal-popup"><i class="backward icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space:nowrap">{% trans 'Play backward' %}</p>
+                </div>
+            {% endif %}
+            <button id="etv_play_backward" class="ui button normal-popup"><i class="fast backward icon"></i></button>
+            <div class="ui popup">
+                <p style="white-space: nowrap">{% trans 'Play backward from the selected line' %}</p>
+            </div>
             <button id="etv_next_step" class="ui button normal-popup"><i class="step forward icon"></i></button>
             <div class="ui popup">
                 <p style="white-space: nowrap">{% trans 'Play one line forward' %}</p>
             </div>
-            <button id="etv_play_forward" class="ui button normal-popup"><i class="forward icon"></i></button>
+            <button id="etv_prev_step" class="ui button normal-popup"><i class="step backward icon"></i></button>
             <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play from the selected line' %}</p>
-            </div>
-            <button id="etv_play_backward" class="ui button normal-popup"><i class="backward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play backward from the selected line' %}</p>
+                <p style="white-space: nowrap">{% trans 'Play one line backward' %}</p>
             </div>
             <button id="etv_pause_play" class="ui button normal-popup"><i class="pause icon"></i></button>
             <div class="ui popup">

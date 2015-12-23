@@ -10,7 +10,7 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES, PRIORITY
-from bridge.utils import unparallel, unparallel_group
+from bridge.utils import unparallel, unparallel_group, print_exec_time
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
@@ -518,6 +518,7 @@ def showjobdata(request):
     })
 
 
+@unparallel
 @login_required
 def upload_file(request):
     activate(request.user.extended.language)
@@ -638,6 +639,7 @@ def check_access(request):
 
 @unparallel_group(['job'])
 @login_required
+@print_exec_time
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
@@ -669,9 +671,7 @@ def upload_job(request, parent_id=None):
             'status': False,
             'messages': failed_jobs
         })
-    return JsonResponse({
-        'status': True
-    })
+    return JsonResponse({'status': True})
 
 
 @unparallel_group(['job', 'report'])

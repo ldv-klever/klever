@@ -27,7 +27,10 @@ class ViewJobData(object):
         self.safes_total = None
         self.unsafes_total = None
         self.view_data = {}
-        self.__get_view_data()
+        try:
+            self.__get_view_data()
+        except ObjectDoesNotExist:
+            return
 
     def __get_view(self, view, view_id):
         if view is not None:
@@ -107,28 +110,22 @@ class ViewJobData(object):
 
         resource_filters = {}
         if 'resource_component' in self.view['filters']:
-            ft = 'component__name__' + \
-                 self.view['filters']['resource_component']['type']
+            ft = 'component__name__' + self.view['filters']['resource_component']['type']
             fv = self.view['filters']['resource_component']['value']
             resource_filters = {ft: fv}
 
-        for cr in self.report.resources_cache.filter(
-                ~Q(component=None) & Q(**resource_filters)):
-            if cr.resource is not None:
-                if cr.component.name not in res_data:
-                    res_data[cr.component.name] = {}
-                rd = get_resource_data(self.user, cr.resource)
-                res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
+        for cr in self.report.resources_cache.filter(~Q(component=None) & Q(**resource_filters)):
+            if cr.component.name not in res_data:
+                res_data[cr.component.name] = {}
+            rd = get_resource_data(self.user, cr)
+            res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
 
-        resource_data = [
-            {'component': x, 'val': res_data[x]} for x in sorted(res_data)]
+        resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 
-        if 'resource_total' not in self.view['filters'] or \
-                self.view['filters']['resource_total']['type'] == 'show':
-            res_total = self.report.resources_cache.filter(
-                component=None)
-            if len(res_total):
-                rd = get_resource_data(self.user, res_total[0].resource)
+        if 'resource_total' not in self.view['filters'] or self.view['filters']['resource_total']['type'] == 'show':
+            res_total = self.report.resources_cache.filter(component=None).first()
+            if res_total is not None:
+                rd = get_resource_data(self.user, res_total)
                 resource_data.append({
                     'component': _('Total'),
                     'val': "%s %s %s" % (rd[0], rd[1], rd[2]),
@@ -140,21 +137,18 @@ class ViewJobData(object):
         unknowns_filters = {}
         components_filters = {}
         if 'unknown_component' in self.view['filters']:
-            ft = 'component__name__' + \
-                 self.view['filters']['unknown_component']['type']
+            ft = 'component__name__' + self.view['filters']['unknown_component']['type']
             fv = self.view['filters']['unknown_component']['value']
             components_filters[ft] = fv
             unknowns_filters.update(components_filters)
 
         if 'unknown_problem' in self.view['filters']:
-            ft = 'problem__name__' + \
-                 self.view['filters']['unknown_problem']['type']
+            ft = 'problem__name__' + self.view['filters']['unknown_problem']['type']
             fv = self.view['filters']['unknown_problem']['value']
             unknowns_filters[ft] = fv
 
         unknowns_data = {}
-        for cmup in self.report.mark_unknowns_cache.filter(
-                ~Q(problem=None) & Q(**unknowns_filters)):
+        for cmup in self.report.mark_unknowns_cache.filter(~Q(problem=None) & Q(**unknowns_filters)):
             if cmup.component.name not in unknowns_data:
                 unknowns_data[cmup.component.name] = {}
             unknowns_data[cmup.component.name][cmup.problem.name] = (
@@ -173,37 +167,30 @@ class ViewJobData(object):
                 })
             unknowns_sorted[comp] = problems_sorted
 
-        if 'unknowns_nomark' not in self.view['filters'] or \
-                self.view['filters']['unknowns_nomark']['type'] == 'show':
-            for cmup in self.report.mark_unknowns_cache.filter(
-                    Q(problem=None) & Q(**components_filters)):
+        if 'unknowns_nomark' not in self.view['filters'] or self.view['filters']['unknowns_nomark']['type'] == 'show':
+            for cmup in self.report.mark_unknowns_cache.filter(Q(problem=None) & Q(**components_filters)):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({
                     'problem': _('Without marks'),
                     'num': cmup.number,
-                    'href': reverse('reports:unknowns_problem',
-                                    args=[self.report.pk, cmup.component.pk, 0])
+                    'href': reverse('reports:unknowns_problem', args=[self.report.pk, cmup.component.pk, 0])
                 })
 
-        if 'unknowns_total' not in self.view['filters'] or \
-                self.view['filters']['unknowns_total']['type'] == 'show':
-            for cmup in self.report.unknowns_cache.filter(
-                    **components_filters):
+        if 'unknowns_total' not in self.view['filters'] or self.view['filters']['unknowns_total']['type'] == 'show':
+            for cmup in self.report.unknowns_cache.filter(**components_filters):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({
-                    'problem': _('Total'),
+                    'problem': 'total',
                     'num': cmup.number,
-                    'href': reverse('reports:unknowns',
-                                    args=[self.report.pk, cmup.component.pk])
+                    'href': reverse('reports:unknowns', args=[self.report.pk, cmup.component.pk])
                 })
             try:
                 verdicts = self.report.verdict
                 self.unknowns_total = {
                     'num': verdicts.unknown,
-                    'href': reverse('reports:list',
-                                    args=[self.report.pk, 'unknowns'])
+                    'href': reverse('reports:list', args=[self.report.pk, 'unknowns'])
                 }
             except ObjectDoesNotExist:
                 self.unknowns_total = None

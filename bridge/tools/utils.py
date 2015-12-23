@@ -1,14 +1,13 @@
 import os
 import json
-from django.db.models import Q, ProtectedError
+from django.db.models import ProtectedError
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
 from bridge.utils import print_err
 from reports.models import *
-from marks.models import ReportUnsafeTag, UnsafeReportTag, MarkUnsafeReport,\
-    ReportSafeTag, SafeReportTag, MarkSafeReport, MarkUnknownReport, ComponentMarkUnknownProblem, UnknownProblem
-from marks.utils import ConnectReportWithMarks
+from marks.models import *
+from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 
 
 def clear_job_files():
@@ -46,210 +45,68 @@ def clear_service_files():
                 os.remove(f)
 
 
-def clear_resources():
-    for r in Resource.objects.all():
-        if len(r.reportcomponent_set.all()) == 0 and len(r.componentresource_set.all()) == 0:
-            r.delete()
-
-
 def clear_computers():
     for c in Computer.objects.all():
         if len(c.reportcomponent_set.all()) == 0:
             c.delete()
 
 
-class RecalculateVerdicts(object):
-    def __init__(self, jobs=None):
-        self.error = None
+class RecalculateLeaves(object):
+    def __init__(self, jobs):
         self.jobs = jobs
+        self.leaves = LeavesData()
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
 
     def __recalc_for_jobs(self):
         ReportComponentLeaf.objects.filter(report__root__job__in=self.jobs).delete()
-        Verdict.objects.filter(report__root__job__in=self.jobs).delete()
-        ComponentUnknown.objects.filter(report__root__job__in=self.jobs).delete()
+        for u in ReportComponent.objects.filter(root__job__in=self.jobs).order_by('id'):
+            self.leaves.add(u)
         for u in ReportUnsafe.objects.filter(root__job__in=self.jobs):
-            self.__update_unsafe(u)
+            self.leaves.add(u)
         for s in ReportSafe.objects.filter(root__job__in=self.jobs):
-            self.__update_safe(s)
+            self.leaves.add(s)
         for u in ReportUnknown.objects.filter(root__job__in=self.jobs):
-            self.__update_unknown(u)
+            self.leaves.add(u)
+        self.leaves.upload()
 
     def __recalc_all(self):
         ReportComponentLeaf.objects.all().delete()
-        Verdict.objects.all().delete()
-        ComponentUnknown.objects.all().delete()
+        for u in ReportComponent.objects.order_by('id'):
+            self.leaves.add(u)
         for u in ReportUnsafe.objects.all():
-            self.__update_unsafe(u)
+            self.leaves.add(u)
         for s in ReportSafe.objects.all():
-            self.__update_safe(s)
+            self.leaves.add(s)
         for u in ReportUnknown.objects.all():
-            self.__update_unknown(u)
-
-    def __update_unsafe(self, u):
-        self.ccc = 0
-        try:
-            parent = ReportComponent.objects.get(pk=u.parent_id)
-        except ObjectDoesNotExist:
-            u.delete()
-            return
-        while parent is not None:
-            verdict = Verdict.objects.get_or_create(report=parent)[0]
-            verdict.unsafe += 1
-            if u.verdict == UNSAFE_VERDICTS[0][0]:
-                verdict.unsafe_unknown += 1
-            elif u.verdict == UNSAFE_VERDICTS[1][0]:
-                verdict.unsafe_bug += 1
-            elif u.verdict == UNSAFE_VERDICTS[2][0]:
-                verdict.unsafe_target_bug += 1
-            elif u.verdict == UNSAFE_VERDICTS[3][0]:
-                verdict.unsafe_false_positive += 1
-            elif u.verdict == UNSAFE_VERDICTS[4][0]:
-                verdict.unsafe_inconclusive += 1
-            elif u.verdict == UNSAFE_VERDICTS[5][0]:
-                verdict.unsafe_unassociated += 1
-            verdict.save()
-            ReportComponentLeaf.objects.create(report=parent, unsafe=u)
-            if parent.parent_id is None:
-                return
-            try:
-                parent = ReportComponent.objects.get(pk=parent.parent_id)
-            except ObjectDoesNotExist:
-                return
-
-    def __update_safe(self, s):
-        self.ccc = 0
-        try:
-            parent = ReportComponent.objects.get(pk=s.parent_id)
-        except ObjectDoesNotExist:
-            s.delete()
-            return
-        while parent is not None:
-            verdict = Verdict.objects.get_or_create(report=parent)[0]
-            verdict.safe += 1
-            if s.verdict == SAFE_VERDICTS[0][0]:
-                verdict.safe_unknown += 1
-            elif s.verdict == SAFE_VERDICTS[1][0]:
-                verdict.safe_incorrect_proof += 1
-            elif s.verdict == SAFE_VERDICTS[2][0]:
-                verdict.safe_missed_bug += 1
-            elif s.verdict == SAFE_VERDICTS[3][0]:
-                verdict.safe_inconclusive += 1
-            elif s.verdict == SAFE_VERDICTS[4][0]:
-                verdict.safe_unassociated += 1
-            verdict.save()
-            ReportComponentLeaf.objects.create(report=parent, safe=s)
-            if parent.parent_id is None:
-                return
-            try:
-                parent = ReportComponent.objects.get(pk=parent.parent_id)
-            except ObjectDoesNotExist:
-                return
-
-    def __update_unknown(self, u):
-        self.ccc = 0
-        component = u.component
-        try:
-            parent = ReportComponent.objects.get(pk=u.parent_id)
-        except ObjectDoesNotExist:
-            u.delete()
-            return
-        while parent is not None:
-            verdict = Verdict.objects.get_or_create(report=parent)[0]
-            verdict.unknown += 1
-            verdict.save()
-            ReportComponentLeaf.objects.create(report=parent, unknown=u)
-            comp_unknown = ComponentUnknown.objects.get_or_create(report=parent, component=component)[0]
-            comp_unknown.number += 1
-            comp_unknown.save()
-            if parent.parent_id is None:
-                return
-            try:
-                parent = ReportComponent.objects.get(pk=parent.parent_id)
-            except ObjectDoesNotExist:
-                return
+            self.leaves.add(u)
+        self.leaves.upload()
 
 
-class RecalculateResources(object):
-    def __init__(self, jobs=None):
-        self.error = None
+class RecalculateVerdicts(object):
+    def __init__(self, jobs):
         self.jobs = jobs
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
-        clear_resources()
 
     def __recalc_for_jobs(self):
-        ComponentResource.objects.filter(report__root__job__in=self.jobs).delete()
-        for rep in ReportComponent.objects.filter(root__job__in=self.jobs):
-            self.__update_cache(rep)
+        Verdict.objects.filter(report__root__job__in=self.jobs).delete()
+        ComponentUnknown.objects.filter(report__root__job__in=self.jobs).delete()
+        data = VerdictsData()
+        for leaf in ReportComponentLeaf.objects.filter(report__root__job__in=self.jobs):
+            data.add(leaf)
+        data.upload()
 
     def __recalc_all(self):
         self.ccc = 0
-        ComponentResource.objects.all().delete()
-        for rep in ReportComponent.objects.all():
-            self.__update_cache(rep)
-
-    def __update_cache(self, report):
-        self.ccc = 0
-
-        def update_total_resources(rep):
-            res_set = rep.resources_cache.filter(~Q(component=None))
-            if len(res_set) > 0:
-                nres = Resource()
-                nres.wall_time = 0
-                nres.cpu_time = 0
-                nres.memory = 0
-                for comp_res in res_set:
-                    nres.wall_time += comp_res.resource.wall_time
-                    nres.cpu_time += comp_res.resource.cpu_time
-                    nres.memory = max(comp_res.resource.memory, nres.memory)
-                nres.save()
-                try:
-                    total_compres = rep.resources_cache.get(component=None)
-                    total_compres.resource.delete()
-                except ObjectDoesNotExist:
-                    total_compres = ComponentResource()
-                    total_compres.report = rep
-                total_compres.resource = nres
-                total_compres.save()
-
-        update_total_resources(report)
-        try:
-            report.resources_cache.get(component=report.component)
-        except ObjectDoesNotExist:
-            report.resources_cache.create(component=report.component, resource=report.resource)
-
-        try:
-            parent = ReportComponent.objects.get(pk=report.parent_id)
-        except ObjectDoesNotExist:
-            parent = None
-        while parent is not None:
-            new_res = Resource()
-            new_res.wall_time = report.resource.wall_time
-            new_res.cpu_time = report.resource.cpu_time
-            new_res.memory = report.resource.memory
-            try:
-                compres = parent.resources_cache.get(component=report.component)
-                new_res.wall_time += compres.resource.wall_time
-                new_res.cpu_time += compres.resource.cpu_time
-                new_res.memory = max(compres.resource.memory, new_res.memory)
-                compres.resource.delete()
-            except ObjectDoesNotExist:
-                compres = ComponentResource()
-                compres.component = report.component
-                compres.report = parent
-            new_res.save()
-            compres.resource = new_res
-            compres.save()
-            update_total_resources(parent)
-            try:
-                parent = ReportComponent.objects.get(pk=parent.parent_id)
-            except ObjectDoesNotExist:
-                parent = None
+        Verdict.objects.all().delete()
+        ComponentUnknown.objects.all().delete()
+        data = VerdictsData()
+        for leaf in ReportComponentLeaf.objects.all():
+            data.add(leaf)
+        data.upload()
 
 
 class RecalculateUnsafeMarkConnections(object):
-    def __init__(self, jobs=None):
-        self.error = None
+    def __init__(self, jobs):
         self.jobs = jobs
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
 
@@ -270,8 +127,7 @@ class RecalculateUnsafeMarkConnections(object):
 
 
 class RecalculateSafeMarkConnections(object):
-    def __init__(self, jobs=None):
-        self.error = None
+    def __init__(self, jobs):
         self.jobs = jobs
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
 
@@ -292,8 +148,7 @@ class RecalculateSafeMarkConnections(object):
 
 
 class RecalculateUnknownMarkConnections(object):
-    def __init__(self, jobs=None):
-        self.error = None
+    def __init__(self, jobs):
         self.jobs = jobs
         self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
         for problem in UnknownProblem.objects.all():
@@ -306,14 +161,16 @@ class RecalculateUnknownMarkConnections(object):
         MarkUnknownReport.objects.filter(report__root__job__in=self.jobs).delete()
         ComponentMarkUnknownProblem.objects.filter(report__root__job__in=self.jobs).delete()
         for unknown in ReportUnknown.objects.filter(root__job__in=self.jobs):
-            ConnectReportWithMarks(unknown)
+            ConnectReportWithMarks(unknown, False)
+        update_unknowns_cache(ReportUnknown.objects.filter(root__job__in=self.jobs))
 
     def __recalc_all(self):
         self.ccc = 0
         MarkUnknownReport.objects.all().delete()
         ComponentMarkUnknownProblem.objects.all().delete()
         for unknown in ReportUnknown.objects.all():
-            ConnectReportWithMarks(unknown)
+            ConnectReportWithMarks(unknown, False)
+        update_unknowns_cache(ReportUnknown.objects.all())
 
 
 class Recalculation(object):
@@ -333,7 +190,7 @@ class Recalculation(object):
             job_ids = json.loads(job_ids)
         except ValueError:
             self.error = 'Unknown error'
-            return
+            return None
         for j_id in job_ids:
             try:
                 jobs.append(Job.objects.get(pk=int(j_id)))
@@ -348,44 +205,203 @@ class Recalculation(object):
         return jobs
 
     def __recalc(self):
-        args = {}
-        if self.jobs is not None:
-            args['jobs'] = self.jobs
         if self.type == 'verdicts':
-            res = RecalculateVerdicts(**args)
-            self.error = res.error
+            RecalculateVerdicts(self.jobs)
+        elif self.type == 'leaves':
+            RecalculateLeaves(self.jobs)
         elif self.type == 'unsafe':
-            res = RecalculateUnsafeMarkConnections(**args)
-            self.error = res.error
+            RecalculateUnsafeMarkConnections(self.jobs)
         elif self.type == 'safe':
-            res = RecalculateSafeMarkConnections(**args)
-            self.error = res.error
+            RecalculateSafeMarkConnections(self.jobs)
         elif self.type == 'unknown':
-            res = RecalculateUnknownMarkConnections(**args)
-            self.error = res.error
+            RecalculateUnknownMarkConnections(self.jobs)
         elif self.type == 'resources':
-            res = RecalculateResources(**args)
-            self.error = res.error
+            RecalculateResources(self.jobs)
         elif self.type == 'all':
-            res = RecalculateUnsafeMarkConnections(**args)
-            self.error = res.error
-            if self.error is not None:
-                return
-            res = RecalculateSafeMarkConnections(**args)
-            self.error = res.error
-            if self.error is not None:
-                return
-            res = RecalculateUnknownMarkConnections(**args)
-            self.error = res.error
-            if self.error is not None:
-                return
-            res = RecalculateVerdicts(**args)
-            self.error = res.error
-            if self.error is not None:
-                return
-            res = RecalculateResources(**args)
-            self.error = res.error
-            if self.error is not None:
-                return
+            RecalculateLeaves(self.jobs)
+            RecalculateUnsafeMarkConnections(self.jobs)
+            RecalculateSafeMarkConnections(self.jobs)
+            RecalculateUnknownMarkConnections(self.jobs)
+            RecalculateVerdicts(self.jobs)
+            RecalculateResources(self.jobs)
         else:
             self.error = 'Unknown error'
+
+
+class RecalculateResources(object):
+    def __init__(self, jobs):
+        self.jobs = jobs
+        self.__recalc_all() if self.jobs is None else self.__recalc_for_jobs()
+
+    def __recalc_for_jobs(self):
+        ComponentResource.objects.filter(report__root__job__in=self.jobs).delete()
+        self.__update_cache({'root__job__in': self.jobs})
+
+    def __recalc_all(self):
+        self.ccc = 0
+        ComponentResource.objects.all().delete()
+        self.__update_cache({})
+
+    def __update_cache(self, filters):
+        self.ccc = 0
+        rd = ResourceData()
+        for rep in ReportComponent.objects.filter(**filters).order_by('id'):
+            rd.add(rep)
+        ComponentResource.objects.bulk_create(rd.cache_for_db())
+
+
+class ResourceData(object):
+    def __init__(self):
+        self._data = {}
+        self._resources = self.ResourceCache()
+
+    class ResourceCache(object):
+        def __init__(self):
+            self._data = {}
+
+        def update(self, report_id, data):
+            if any(data[x] is None for x in ['ct', 'wt', 'm']):
+                return
+            self.__recalculate((report_id, data['component']), data)
+            self.__recalculate((report_id, 't'), data)
+
+        def get_all(self):
+            all_data = []
+            for d in self._data:
+                if d[1] == 't' and self._data[d][3]:
+                    continue
+                all_data.append({
+                    'report_id': d[0],
+                    'component_id': d[1] if d[1] != 't' else None,
+                    'cpu_time': self._data[d][0],
+                    'wall_time': self._data[d][1],
+                    'memory': self._data[d][2]
+                })
+            return all_data
+
+        def __recalculate(self, cache_id, data):
+            if cache_id not in self._data:
+                self._data[cache_id] = [data['ct'], data['wt'], data['m'], True]
+            else:
+                self._data[cache_id][0] += data['ct']
+                self._data[cache_id][1] += data['wt']
+                self._data[cache_id][2] = max(data['m'], self._data[cache_id][2])
+                self._data[cache_id][3] = False
+
+    def add(self, report):
+        if not isinstance(report, ReportComponent):
+            raise ValueError('Value must be class of ReportComponent')
+        self._data[report.pk] = {'id': report.pk, 'parent': report.parent_id}
+        self.__update_resources({
+            'id': report.pk,
+            'parent': report.parent_id,
+            'component': report.component_id,
+            'wt': report.wall_time,
+            'ct': report.cpu_time,
+            'm': report.memory
+        })
+
+    def __update_resources(self, newdata):
+        d = newdata
+        while d is not None:
+            if d['parent'] is not None and d['parent'] not in self._data:
+                print_err('ERROR_1')
+                return
+            self._resources.update(d['id'], newdata)
+            if d['parent'] is not None:
+                d = self._data[d['parent']]
+            else:
+                d = None
+
+    def cache_for_db(self):
+        return list(ComponentResource(**d) for d in self._resources.get_all())
+
+
+class LeavesData(object):
+    def __init__(self):
+        self._data = {}
+
+    def add(self, report):
+        if isinstance(report, ReportComponent):
+            self._data[report.pk] = {
+                'parent': report.parent_id,
+                'unsafes': [],
+                'safes': [],
+                'unknowns': []
+            }
+        else:
+            parent_id = report.parent_id
+            while parent_id is not None:
+                if parent_id in self._data:
+                    if isinstance(report, ReportSafe):
+                        self._data[parent_id]['safes'].append(report.pk)
+                    elif isinstance(report, ReportUnsafe):
+                        self._data[parent_id]['unsafes'].append(report.pk)
+                    elif isinstance(report, ReportUnknown):
+                        self._data[parent_id]['unknowns'].append(report.pk)
+                parent_id = self._data[parent_id]['parent']
+
+    def upload(self):
+        new_leaves = []
+        for rep_id in self._data:
+            for unsafe in self._data[rep_id]['unsafes']:
+                new_leaves.append(ReportComponentLeaf(report_id=rep_id, unsafe_id=unsafe))
+            for safe in self._data[rep_id]['safes']:
+                new_leaves.append(ReportComponentLeaf(report_id=rep_id, safe_id=safe))
+            for unknown in self._data[rep_id]['unknowns']:
+                new_leaves.append(ReportComponentLeaf(report_id=rep_id, unknown_id=unknown))
+        ReportComponentLeaf.objects.bulk_create(new_leaves)
+        self.__init__()
+
+
+class VerdictsData(object):
+    def __init__(self):
+        self._verdicts = {}
+        self._unknowns = {}
+
+    def add(self, leaf):
+        if not isinstance(leaf, ReportComponentLeaf):
+            return
+        if leaf.report_id not in self._verdicts:
+            self._verdicts[leaf.report_id] = Verdict(report_id=leaf.report_id)
+        if leaf.safe is not None:
+            self._verdicts[leaf.report_id].safe += 1
+            if leaf.safe.verdict == SAFE_VERDICTS[0][0]:
+                self._verdicts[leaf.report_id].safe_unknown += 1
+            elif leaf.safe.verdict == SAFE_VERDICTS[1][0]:
+                self._verdicts[leaf.report_id].safe_incorrect_proof += 1
+            elif leaf.safe.verdict == SAFE_VERDICTS[2][0]:
+                self._verdicts[leaf.report_id].safe_missed_bug += 1
+            elif leaf.safe.verdict == SAFE_VERDICTS[3][0]:
+                self._verdicts[leaf.report_id].safe_inconclusive += 1
+            elif leaf.safe.verdict == SAFE_VERDICTS[4][0]:
+                self._verdicts[leaf.report_id].safe_unassociated += 1
+        elif leaf.unsafe is not None:
+            self._verdicts[leaf.report_id].unsafe += 1
+            if leaf.unsafe.verdict == UNSAFE_VERDICTS[0][0]:
+                self._verdicts[leaf.report_id].unsafe_unknown += 1
+            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[1][0]:
+                self._verdicts[leaf.report_id].unsafe_bug += 1
+            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[2][0]:
+                self._verdicts[leaf.report_id].unsafe_target_bug += 1
+            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[3][0]:
+                self._verdicts[leaf.report_id].unsafe_false_positive += 1
+            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[4][0]:
+                self._verdicts[leaf.report_id].unsafe_inconclusive += 1
+            elif leaf.unsafe.verdict == UNSAFE_VERDICTS[5][0]:
+                self._verdicts[leaf.report_id].unsafe_unassociated += 1
+        elif leaf.unknown is not None:
+            self._verdicts[leaf.report_id].unknown += 1
+            if (leaf.report_id, leaf.unknown.component_id) not in self._unknowns:
+                self._unknowns[(leaf.report_id, leaf.unknown.component_id)] = 0
+            self._unknowns[(leaf.report_id, leaf.unknown.component_id)] += 1
+
+    def upload(self):
+        Verdict.objects.bulk_create(list(self._verdicts.values()))
+        unknowns_cache = []
+        for u in self._unknowns:
+            unknowns_cache.append(
+                ComponentUnknown(report_id=u[0], component_id=u[1], number=self._unknowns[u])
+            )
+        ComponentUnknown.objects.bulk_create(unknowns_cache)
+        self.__init__()

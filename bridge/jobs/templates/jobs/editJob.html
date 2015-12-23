@@ -26,7 +26,7 @@
             {% if job_id %}
                 <label for="job_parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>
                 <div class="ui input fluid">
-                    <input id="job_parent_identifier" type="text"{% if parent_id %} value="{{ parent_id }}"{% endif %}>
+                    <input id="job_parent_identifier" maxlength="32" type="text"{% if parent_id %} value="{{ parent_id }}"{% endif %}>
                 </div>
             {% else %}
                 <input id="job_parent_identifier" type="hidden" value="{{ parent_id }}">
