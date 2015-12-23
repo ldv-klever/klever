@@ -338,3 +338,58 @@ class Population(object):
                         )
                         ConnectMarkWithReports(mark)
                         self.changes['marks'] = True
+
+
+# Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
+# last_name and first_name are not required; username and password are required
+# Returns None if everything is OK, str (error text) in other cases.
+def populate_users(manager=None, service=None):
+    if manager is not None:
+        if not isinstance(manager, dict):
+            return 'Wrong manager format'
+        if 'password' not in manager or not isinstance(manager['password'], str):
+            return 'Manager password is required'
+        if 'username' not in manager or not isinstance(manager['password'], str):
+            return 'Manager username is required'
+        if 'last_name' not in manager:
+            manager['last_name'] = 'Lastname'
+        if 'first_name' not in manager:
+            manager['first_name'] = 'Firstname'
+        try:
+            User.objects.get(username=manager['username'])
+            return 'Manager with specified usrename already exists'
+        except ObjectDoesNotExist:
+            newuser = User.objects.create(username=manager['username'])
+            newuser.set_password(manager['password'])
+            newuser.save()
+            Extended.objects.create(
+                last_name=manager['last_name'],
+                first_name=manager['first_name'],
+                role=USER_ROLES[2][0],
+                user=newuser
+            )
+    if service is not None:
+        if not isinstance(service, dict):
+            return 'Wrong service format'
+        if 'password' not in service or not isinstance(service['password'], str):
+            return 'Service password is required'
+        if 'username' not in service or not isinstance(service['username'], str):
+            return 'Service username is required'
+        if 'last_name' not in service:
+            service['last_name'] = 'Lastname'
+        if 'first_name' not in service:
+            service['first_name'] = 'Firstname'
+        try:
+            User.objects.get(username=service['username'])
+            return 'Service with specified usrename already exists'
+        except ObjectDoesNotExist:
+            newuser = User.objects.create(username=service['username'])
+            newuser.set_password(service['password'])
+            newuser.save()
+            Extended.objects.create(
+                last_name=service['last_name'],
+                first_name=service['first_name'],
+                role=USER_ROLES[4][0],
+                user=newuser
+            )
+    return None
