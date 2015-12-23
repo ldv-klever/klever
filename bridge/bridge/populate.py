@@ -266,78 +266,40 @@ class Population(object):
                         or not isinstance(data['is_modifiable'], bool):
                     print_err('Wrong unknown mark data: %s' % fname)
                     continue
-                if component == 'ALL':
-                    for component in Component.objects.all():
-                        try:
-                            MarkUnknown.objects.get(
-                                type=data['class'],
-                                component=component,
-                                function=data['function'],
-                                problem_pattern=data['pattern']
-                            )
-                            continue
-                        except ObjectDoesNotExist:
-                            create_args = {
-                                'identifier': hashlib.md5(
-                                    now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
-                                'component': component,
-                                'type': data['class'],
-                                'author': self.manager,
-                                'status': data['status'],
-                                'is_modifiable': data['is_modifiable'],
-                                'function': data['function'],
-                                'problem_pattern': data['pattern'],
-                                'description': data['description']
-                            }
-                            if len(data['link']) > 0:
-                                create_args['link'] = data['link']
-                            try:
-                                mark = MarkUnknown.objects.create(**create_args)
-                            except Exception as e:
-                                print_err(e)
-                                continue
-                            MarkUnknownHistory.objects.create(
-                                mark=mark, version=mark.version, author=mark.author, status=mark.status,
-                                function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
-                                change_date=mark.change_date, description=mark.description, comment=''
-                            )
-                            ConnectMarkWithReports(mark)
-                            self.changes['marks'] = True
-                else:
+                try:
+                    MarkUnknown.objects.get(
+                        type=data['class'],
+                        component__name=component,
+                        function=data['function'],
+                        problem_pattern=data['pattern']
+                    )
+                    continue
+                except ObjectDoesNotExist:
+                    create_args = {
+                        'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
+                        'component': Component.objects.get_or_create(name=component)[0],
+                        'type': data['class'],
+                        'author': self.manager,
+                        'status': data['status'],
+                        'is_modifiable': data['is_modifiable'],
+                        'function': data['function'],
+                        'problem_pattern': data['pattern'],
+                        'description': data['description']
+                    }
+                    if len(data['link']) > 0:
+                        create_args['link'] = data['link']
                     try:
-                        MarkUnknown.objects.get(
-                            type=data['class'],
-                            component__name=component,
-                            function=data['function'],
-                            problem_pattern=data['pattern']
-                        )
+                        mark = MarkUnknown.objects.create(**create_args)
+                    except Exception as e:
+                        print_err(e)
                         continue
-                    except ObjectDoesNotExist:
-                        create_args = {
-                            'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
-                            'component': Component.objects.get_or_create(name=component)[0],
-                            'type': data['class'],
-                            'author': self.manager,
-                            'status': data['status'],
-                            'is_modifiable': data['is_modifiable'],
-                            'function': data['function'],
-                            'problem_pattern': data['pattern'],
-                            'description': data['description']
-                        }
-                        if len(data['link']) > 0:
-                            create_args['link'] = data['link']
-                        try:
-                            mark = MarkUnknown.objects.create(**create_args)
-                        except Exception as e:
-                            print_err(e)
-                            continue
-                        MarkUnknownHistory.objects.create(
-                            mark=mark, version=mark.version, author=mark.author, status=mark.status,
-                            function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
-                            change_date=mark.change_date, description=mark.description, comment=''
-                        )
-                        ConnectMarkWithReports(mark)
-                        self.changes['marks'] = True
+                    MarkUnknownHistory.objects.create(
+                        mark=mark, version=mark.version, author=mark.author, status=mark.status,
+                        function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
+                        change_date=mark.change_date, description=mark.description, comment=''
+                    )
+                    ConnectMarkWithReports(mark)
+                    self.changes['marks'] = True
 
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
