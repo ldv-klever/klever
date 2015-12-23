@@ -8,7 +8,8 @@ LOGIN_URL = '/users/signin/'
 
 SECRET_KEY = '-u7-e699vgy%8uu_ng%%h68v7k8txs&=(ki+6eh88y-yb9mspw'
 
-DEBUG = False
+# TODO: switch value to False when everything will work fine.
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
