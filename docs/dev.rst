@@ -163,8 +163,9 @@ Klever Core run/debug configuration
 #. Specify the absolute path to script :file:`core/bin/klever-core` from the root directory of the main development
    repository in field :guilabel:`Script`.
 #. Select project *core* in field :guilabel:`Project`.
-#. Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`) and
-   Aspectator (:file:`aspectator`) executables could be found (edit value of field :guilabel:`Environment variables`).
+#. Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`),
+   Aspectator (:file:`aspectator`) and CIL (:file:`cilly.asm.exe`) binaries could be found (edit value of field
+   :guilabel:`Environment variables`).
 #. Specify the absolute path to the working directory in field :guilabel:`Working directory`.
 
    .. note:: Place Klever Core working directory somewhere outside the main development repository.
