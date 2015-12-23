@@ -304,15 +304,34 @@ class Population(object):
 
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
-# last_name and first_name are not required; username and password are required
+# last_name and first_name are not required; username and password are required (for admin password is not required)z
 # Returns None if everything is OK, str (error text) in other cases.
-def populate_users(manager=None, service=None):
+def populate_users(admin=None, manager=None, service=None):
+    if admin is not None:
+        if not isinstance(admin, dict):
+            return 'Wrong administrator format'
+        if 'username' not in admin or not isinstance(admin['username'], str):
+            return 'Administator username is required'
+        if 'last_name' not in admin:
+            admin['last_name'] = 'Lastname'
+        if 'first_name' not in manager:
+            admin['first_name'] = 'Firstname'
+        try:
+            user = User.objects.get(username=admin['username'])
+            Extended.objects.create(
+                last_name=admin['last_name'],
+                first_name=admin['first_name'],
+                role=USER_ROLES[1][0],
+                user=user
+            )
+        except ObjectDoesNotExist:
+            return 'Administrator with specified username does not exist'
     if manager is not None:
         if not isinstance(manager, dict):
             return 'Wrong manager format'
         if 'password' not in manager or not isinstance(manager['password'], str):
             return 'Manager password is required'
-        if 'username' not in manager or not isinstance(manager['password'], str):
+        if 'username' not in manager or not isinstance(manager['username'], str):
             return 'Manager username is required'
         if 'last_name' not in manager:
             manager['last_name'] = 'Lastname'
@@ -320,7 +339,7 @@ def populate_users(manager=None, service=None):
             manager['first_name'] = 'Firstname'
         try:
             User.objects.get(username=manager['username'])
-            return 'Manager with specified usrename already exists'
+            return 'Manager with specified username already exists'
         except ObjectDoesNotExist:
             newuser = User.objects.create(username=manager['username'])
             newuser.set_password(manager['password'])
@@ -344,7 +363,7 @@ def populate_users(manager=None, service=None):
             service['first_name'] = 'Firstname'
         try:
             User.objects.get(username=service['username'])
-            return 'Service with specified usrename already exists'
+            return 'Service with specified username already exists'
         except ObjectDoesNotExist:
             newuser = User.objects.create(username=service['username'])
             newuser.set_password(service['password'])
