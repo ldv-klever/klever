@@ -6,10 +6,3 @@
     width: 45%;
     background-color: #fffaf0;
 }
-
-i.revedrted-icon {
-  -moz-transform: scaleX(-1);
-  -o-transform: scaleX(-1);
-  -webkit-transform: scaleX(-1);
-  transform: scaleX(-1);
-}
