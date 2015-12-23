@@ -502,7 +502,7 @@ class EventModel:
                         subprocess.parameters[index] = self.__resolve_access(process, subprocess.parameters[index])
                 if subprocess.callback_retval:
                     subprocess.callback_retval = self.__resolve_access(process, subprocess.callback_retval)
-                if subprocess.guard:
+                if subprocess.condition:
                     # todo: implement replacing labels in arbitrary string and then implement this section
                     pass
 
@@ -555,18 +555,20 @@ class Process:
     label_re = re.compile("%(\w+)((?:\.\w*)*)%")
     process_grammar = """
     (* Main expression *)
-    FinalProcess = (Operators | OptBracket | Bracket)$;
+    FinalProcess = (Operators | Bracket)$;
     Operators = Switch | Sequence;
 
     (* Signle process *)
-    Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | OptBracket | Bracket;
+    Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
     Null = null:"0";
     ReceiveProcess = receive:Receive;
-    SendProcess = send:Send;
+    SendProcess = dispatch:Send;
     SubprocessProcess = subprocess:Subprocess;
+    ConditionProcess = condition:Condition;
     Receive = "("[replicative:"!"]name:identifier[number:Repetition]")";
     Send = "["[broadcast:"@"]name:identifier[number:Repetition]"]";
-    Subprocess = "{"name:identifier[number:Repetition]"}";
+    Condition = "<"name:identifier[number:Repetition]">";
+    Subprocess = "{"name:identifier"}";
 
     (* Operators *)
     Sequence = sequence:SequenceExpr;
@@ -576,9 +578,7 @@ class Process:
 
     (* Brackets *)
     Bracket = process:BracketExpr;
-    OptBracket = opt_process:OptBracketExpr;
     BracketExpr = "("@:Operators")";
-    OptBracketExpr = "<"@:Operators">";
 
     (* Basic expressions and terminals *)
     Repetition = "["@:(number | label)"]";
@@ -627,9 +627,9 @@ class Process:
         if "callback return value" in dic:
             self.callback_retval = dic["callback return value"]
 
-        # Import guard
-        if "guard" in dic:
-            self.guard = dic["guard"]
+        # Import condition
+        if "condition" in dic:
+            self.condition = dic["condition"]
 
         # Check subprocess type
         if self.type and self.type == "process" and len(self.subprocesses.keys()) > 0:
@@ -642,7 +642,8 @@ class Process:
     def __determine_subprocess_types(self):
         dispatch_template = "\[@?{}(?:\[[^)]+\])?\]"
         receive_template = "\(!?{}(?:\[[^)]+\])?\)"
-        subprocess_template = "{}(?:\[[^)]+\])?"
+        condition_template = "<{}(?:\[[^)]+\])?>"
+        subprocess_template = "{}"
 
         processes = [self.subprocesses[process_name].process for process_name in self.subprocesses
                      if self.subprocesses[process_name].process]
@@ -652,10 +653,12 @@ class Process:
             subprocess_re = re.compile("\{" + subprocess_template.format(subprocess_name) + "\}")
             receive_re = re.compile(receive_template.format(subprocess_name))
             dispatch_re = re.compile(dispatch_template.format(subprocess_name))
+            condition_template_re = re.compile(condition_template.format(subprocess_name))
             regexes = [
                 {"regex": subprocess_re, "type": "subprocess"},
                 {"regex": dispatch_re, "type": "dispatch"},
-                {"regex": receive_re, "type": "receive"}
+                {"regex": receive_re, "type": "receive"},
+                {"regex": condition_template_re, "type": "condition"}
             ]
 
             match = 0
@@ -671,8 +674,7 @@ class Process:
                 raise KeyError("Subprocess '{}' from process '{}' is not used actually".
                                format(subprocess_name, self.name))
             elif match > 1:
-                raise KeyError("Subprocess '{}' from process '{}' was used in different actions but it can be dispatch,"
-                               " receive or subprocess at once".format(subprocess_name, self.name))
+                raise KeyError("Subprocess '{}' from process '{}' was used differently at once".format(subprocess_name, self.name))
             else:
                 self.subprocesses[subprocess_name].type = process_type
 
@@ -804,12 +806,13 @@ class Subprocess(Process):
         self.type = None
         self.name = name
         self.process = None
+        self.process_ast = None
         self.parameters = []
         self.callback = None
         self.callback_retval = None
         self._import_dictionary(dic)
         self.peers = []
-        self.guard = None
+        self.condition = None
 
         if "callback" in dic:
             self.callback = dic["callback"]
