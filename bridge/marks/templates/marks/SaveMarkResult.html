@@ -1,5 +1,6 @@
 {% extends 'marks/base.html' %}
 {% load i18n %}
+{% block title %}{% trans 'Changes in associations ' %}{% endblock %}
 {% block body_block %}
     {% if MarkTable.values|length %}
         <div style="overflow-x: auto; max-height: 1000px; overflow-y: auto;">

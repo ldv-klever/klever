@@ -83,4 +83,15 @@ $(document).ready(function () {
         }
         $('#etv_play_backward').click();
     });
+    $('.ETV_error_trace').first().children().each(function () {
+        if ($(this).is(':visible')) {
+            var line_link = $(this).find('a.ETV_La');
+            var etv_window = $(this).closest('.ETV_error_trace');
+            etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
+            if (line_link.length) {
+                line_link.click();
+                return false;
+            }
+        }
+    });
 });

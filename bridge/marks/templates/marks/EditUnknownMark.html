@@ -63,36 +63,39 @@
                         </tr>
                     </tbody>
                 </table>
-
-                <h4 class="header">{% trans 'Associated leaf reports' %}</h4>
-                <div>
-                    <table class="ui compact teal celled table" style="width:auto;">
-                        <thead>
-                            {% for column_row in reports.header %}
-                                <tr>
-                                {% for coldata in column_row %}
-                                    <th class="collapsing" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                                {% endfor %}
-                                </tr>
-                            {% endfor %}
-                        </thead>
-                        <tbody>
-                            {% for row_data in reports.values %}
-                                <tr>
-                                    {% for v in row_data %}
-                                        <td class="collapsing">
-                                            {% if v.href %}
-                                                <a href="{{ v.href }}">{{ v.value }}</a>
-                                            {% else %}
-                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
-                                            {% endif %}
-                                        </td>
+                {% if reports.values|length > 0 %}
+                    <h4 class="ui teal header">{% trans 'Associated leaf reports' %}</h4>
+                    <div>
+                        <table class="ui compact teal celled table" style="width:auto;">
+                            <thead>
+                                {% for column_row in reports.header %}
+                                    <tr>
+                                    {% for coldata in column_row %}
+                                        <th class="collapsing" colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                                     {% endfor %}
-                                </tr>
-                            {%  endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                    </tr>
+                                {% endfor %}
+                            </thead>
+                            <tbody>
+                                {% for row_data in reports.values %}
+                                    <tr>
+                                        {% for v in row_data %}
+                                            <td class="collapsing">
+                                                {% if v.href %}
+                                                    <a href="{{ v.href }}">{{ v.value }}</a>
+                                                {% else %}
+                                                    <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                                {% endif %}
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                {%  endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <h4 class="ui teal header">{% trans 'List of associated leaf reports is empty' %}</h4>
+                {% endif %}
             </div>
             <div id="div_for_version_list" class="nine wide column">
                 {% if versions|length %}
