@@ -133,14 +133,15 @@ class Automata:
         self.__checked_subprocesses = {}
 
     def generate_automata(self):
-        # Enumerate AST
-        self.logger.info("Enumerate AST nodes of automata {}".format(self.identifier))
-        nodes = [self.process.subprocesses[name].process_ast for name in self.process.subprocesses
-                 if self.process.subprocesses[name].process_ast] + [self.process.process_ast]
-        while len(nodes) > 0:
-            ast = nodes.pop()
-            new = self.__enumerate_ast(ast)
-            nodes.extend(new)
+        if "identifier" not in self.process.process_ast:
+            # Enumerate AST
+            self.logger.info("Enumerate AST nodes of automata {}".format(self.identifier))
+            nodes = [self.process.subprocesses[name].process_ast for name in self.process.subprocesses
+                     if self.process.subprocesses[name].process_ast] + [self.process.process_ast]
+            while len(nodes) > 0:
+                ast = nodes.pop()
+                new = self.__enumerate_ast(ast)
+                nodes.extend(new)
 
         # Generate states
         self.logger.info("Generate states for automata {}".format(self.identifier))
@@ -150,6 +151,7 @@ class Automata:
             new = self.__process_ast(ast, predecessor)
             transitions.extend(new)
 
+        # Generate graph
         self.logger.info("Generate graph in the working directory automata {}".format(self.identifier))
         graph = graphviz.Digraph(
             name="{}_{}_{}".format(self.process.name, self.process.identifier, self.identifier),
@@ -157,15 +159,40 @@ class Automata:
                     format(self.process.name, self.process.identifier, self.identifier),
             format="png"
         )
-        graph.node("process", self.process.process)
-        for index in range(self.__state_counter):
+
+        # Add process description
+        graph.node(
+            self.process.name,
+            "Process: {}".format(self.process.process),
+            {
+                "shape": "rectangle"
+            }
+        )
+
+        # Add subprocess description
+        for subprocess in [self.process.subprocesses[name] for name in self.process.subprocesses
+                           if self.process.subprocesses[name].process]:
+            graph.node(
+                subprocess.name,
+                "Subprocess {}: {}".format(subprocess.name, subprocess.process),
+                {
+                    "shape": "rectangle"
+                }
+            )
+
+        # Addd nodes
+        for index in range(self.__state_counter + 1):
             graph.node(str(index), "State {}".format(index))
+
+        # Add edges
         for transition in self.__state_transitions:
             graph.edge(
                 str(transition["in"]),
                 str(transition["out"]),
                 "{}: {}".format(transition["subprocess"].type, transition["subprocess"].name)
             )
+
+        # Save ad draw
         graph.save("automata/{}.dot".format(graph.name))
         graph.render()
 
@@ -183,7 +210,7 @@ class Automata:
         elif key not in ["subprocess", "receive", "dispatch", "condition", "null"]:
             raise RuntimeError("Unknown operator in process AST: {}".format(key))
 
-        ast["identifier"] = self.__ast_counter
+        ast["identifier"] = int(self.__ast_counter)
         self.__ast_counter += 1
         return to_process
 
@@ -208,8 +235,7 @@ class Automata:
             }
         elif key == "process":
             to_process.append([ast[key], predecessor])
-            value = list(ast[key].values())[0]
-            self.__checked_ast[ast["identifier"]] = {"brackets": True, "follower": value["identifier"]}
+            self.__checked_ast[ast["identifier"]] = {"brackets": True, "follower": ast[key]["identifier"]}
         elif key == "subprocess":
             if ast[key]["name"] in self.__checked_subprocesses:
                 state = self.__checked_subprocesses[ast[key]["name"]]
@@ -233,7 +259,10 @@ class Automata:
                     self.__state_transitions.append(transition)
                 self.__checked_subprocesses[ast[key]["name"]] = self.__state_counter
                 self.__checked_ast[ast["identifier"]] = self.__state_counter
-            self.__checked_ast[ast["identifier"]] = {"process": True}
+
+                # Add subprocess to process
+                to_process.append([self.process.subprocesses[ast[key]["name"]].process_ast, ast["identifier"]])
+            self.__checked_ast[ast["identifier"]] = {"process": True, "name": ast[key]["name"]}
         elif key in ["receive", "dispatch", "condition"]:
             number = ast[key]["number"]
             self.__state_counter += 1
@@ -246,8 +275,18 @@ class Automata:
                 }
                 self.__state_transitions.append(transition)
 
-            if number and number > 1:
-                for index in range(number - 1):
+            if number:
+                if type(number) is str:
+                    # Expect labe
+                    label = self.process.extract_label(number)
+                    if label.value:
+                        iterations = int(label.value) - 1
+                    else:
+                        raise ValueError("Provide exact value for label {} of ptocess {}".
+                                         format(label.name, self.process.name))
+                else:
+                    iterations = int(number - 1)
+                for index in range(iterations):
                     transition = {
                         "ast": ast[key],
                         "subprocess": self.process.subprocesses[ast[key]["name"]],
@@ -265,7 +304,7 @@ class Automata:
     def __resolve_state(self, identifier):
         ret = []
         if not identifier:
-            ret = []
+            ret = [0]
         elif identifier not in self.__checked_ast:
             raise TypeError("Cannot find state {} in processed automaton states".format(identifier))
         else:
@@ -273,11 +312,13 @@ class Automata:
                 ret = self.__resolve_state(self.__checked_ast[identifier]["last"])
             elif "options" in self.__checked_ast[identifier]:
                 for child in self.__checked_ast[identifier]["children"]:
-                    ret.append(self.__resolve_state(child))
+                    ret.extend(self.__resolve_state(child))
             elif "brackets" in self.__checked_ast[identifier]:
                 ret = self.__resolve_state(self.__checked_ast[identifier]["follower"])
             elif "terminal" in self.__checked_ast[identifier]:
                 ret = [self.__checked_ast[identifier]["state"]]
+            elif "process" in self.__checked_ast[identifier]:
+                ret = [self.__checked_subprocesses[self.__checked_ast[identifier]["name"]]]
             else:
                 raise ValueError("Unknown AST type {}".format(str(self.__checked_ast[identifier])))
         return ret
