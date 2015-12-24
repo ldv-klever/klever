@@ -69,7 +69,7 @@ LANGUAGES = (
     ('ru', 'Русский'),
 )
 LOCALE_PATHS = (
-    os.path.join(BASE_DIR,  'locale'),
+    os.path.join(BASE_DIR, 'locale'),
 )
 DEFAULT_LANGUAGE = 'en-us'
 
