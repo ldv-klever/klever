@@ -1,10 +1,9 @@
 {% extends 'marks/base.html' %}
 {% load i18n %}
-{% block title %}{% trans 'Changes in associations ' %}{% endblock %}
+{% block title %}{% trans 'Changes in associations of marks with leaf reports' %}{% endblock %}
 {% block body_block %}
     {% if MarkTable.values|length %}
         <div style="overflow-x: auto; max-height: 1000px; overflow-y: auto;">
-            <h1 class="header" style="text-align:center;">{% trans 'Changes in associations of marks with leaf reports' %}</h1>
             <table class="ui celled compact pink table tree">
                 <thead>
                     {% for column_row in MarkTable.header %}

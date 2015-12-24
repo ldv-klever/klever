@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-12-24 14:43+0000\n"
+"POT-Creation-Date: 2015-12-24 18:25+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -303,7 +303,7 @@ msgstr "Название"
 
 #: jobs/JobTableProperties.py:27 jobs/JobTableProperties.py:41
 #: jobs/JobTableProperties.py:826 jobs/utils.py:38 marks/tables.py:22
-#: marks/templates/marks/EditMark.html:48
+#: marks/templates/marks/EditMark.html:50
 #: marks/templates/marks/EditUnknownMark.html:46
 #: marks/templates/marks/ViewMark.html:27
 #: marks/templates/marks/filters.html:145
@@ -367,7 +367,7 @@ msgid "Problem name"
 msgstr "Название проблемы"
 
 #: jobs/JobTableProperties.py:47 jobs/templates/jobs/viewJob.html:64
-#: jobs/utils.py:64 marks/tables.py:25 marks/templates/marks/EditMark.html:43
+#: jobs/utils.py:64 marks/tables.py:25 marks/templates/marks/EditMark.html:45
 #: marks/templates/marks/EditUnknownMark.html:37
 #: marks/templates/marks/ViewMark.html:16
 #: marks/templates/marks/filters.html:41
@@ -394,8 +394,8 @@ msgstr "Задания"
 msgid "Job Copying"
 msgstr "Копирование задания"
 
-#: jobs/templates/jobs/editJob.html:5 marks/templates/marks/EditMark.html:102
-#: marks/templates/marks/EditUnknownMark.html:99
+#: jobs/templates/jobs/editJob.html:5 marks/templates/marks/EditMark.html:106
+#: marks/templates/marks/EditUnknownMark.html:102
 msgid "You can choose one of the previous versions"
 msgstr "Вы можете выбрать оду из предыдущих версий"
 
@@ -439,10 +439,10 @@ msgid "Change comment"
 msgstr "Комментарий к изменению"
 
 #: jobs/templates/jobs/editJob.html:99 jobs/templates/jobs/viewJob.html:123
-#: marks/templates/marks/EditMark.html:62
-#: marks/templates/marks/EditMark.html:123
+#: marks/templates/marks/EditMark.html:64
+#: marks/templates/marks/EditMark.html:127
 #: marks/templates/marks/EditUnknownMark.html:60
-#: marks/templates/marks/EditUnknownMark.html:118
+#: marks/templates/marks/EditUnknownMark.html:121
 #: marks/templates/marks/ViewMark.html:41
 msgid "Comment"
 msgstr "Комментарий"
@@ -452,8 +452,8 @@ msgstr "Комментарий"
 #: marks/templates/marks/CreateMark.html:112
 #: marks/templates/marks/CreateMark.html:188
 #: marks/templates/marks/CreateMark.html:248
-#: marks/templates/marks/EditMark.html:124
-#: marks/templates/marks/EditUnknownMark.html:119
+#: marks/templates/marks/EditMark.html:128
+#: marks/templates/marks/EditUnknownMark.html:122
 #: templates/viewButtons.html:13 users/templates/users/edit-profile.html:78
 #: users/templates/users/notifications.html:35
 msgid "Save"
@@ -471,8 +471,8 @@ msgstr "Сохранить"
 #: marks/templates/marks/CreateMark.html:111
 #: marks/templates/marks/CreateMark.html:187
 #: marks/templates/marks/CreateMark.html:247
-#: marks/templates/marks/EditMark.html:142
-#: marks/templates/marks/EditUnknownMark.html:138
+#: marks/templates/marks/EditMark.html:146
+#: marks/templates/marks/EditUnknownMark.html:141
 #: marks/templates/marks/MarkList.html:71
 #: marks/templates/marks/markVersions.html:18
 #: marks/templates/marks/markVersions.html:33 templates/base.html:92
@@ -481,8 +481,8 @@ msgid "Cancel"
 msgstr "Отменить"
 
 #: jobs/templates/jobs/editJob.html:126 jobs/utils.py:464
-#: marks/templates/marks/EditMark.html:129
-#: marks/templates/marks/EditUnknownMark.html:125
+#: marks/templates/marks/EditMark.html:133
+#: marks/templates/marks/EditUnknownMark.html:128
 msgid "Change comment is required"
 msgstr "Требуется написать комментарий к изменению"
 
@@ -519,10 +519,10 @@ msgstr "Заменить файл"
 #: jobs/templates/jobs/viewJob.html:188
 #: jobs/templates/jobs/viewVersions.html:17
 #: jobs/templates/jobs/viewVersions.html:33
-#: marks/templates/marks/EditMark.html:20
-#: marks/templates/marks/EditMark.html:143
+#: marks/templates/marks/EditMark.html:22
+#: marks/templates/marks/EditMark.html:147
 #: marks/templates/marks/EditUnknownMark.html:22
-#: marks/templates/marks/EditUnknownMark.html:139
+#: marks/templates/marks/EditUnknownMark.html:142
 #: marks/templates/marks/MarkList.html:72
 #: marks/templates/marks/markVersions.html:17
 #: marks/templates/marks/markVersions.html:34 templates/viewButtons.html:33
@@ -996,8 +996,8 @@ msgstr "не сохранено"
 
 #: jobs/templates/jobs/tree.html:399 jobs/templates/jobs/viewJob.html:178
 #: jobs/templates/jobs/viewVersions.html:23
-#: marks/templates/marks/EditMark.html:133
-#: marks/templates/marks/EditUnknownMark.html:129
+#: marks/templates/marks/EditMark.html:137
+#: marks/templates/marks/EditUnknownMark.html:132
 #: marks/templates/marks/MarkList.html:62
 #: marks/templates/marks/markVersions.html:24
 msgid "Are you sure"
@@ -1041,7 +1041,7 @@ msgstr "Задание"
 msgid "Make copy"
 msgstr "Создать копию"
 
-#: jobs/templates/jobs/viewJob.html:22 marks/templates/marks/EditMark.html:12
+#: jobs/templates/jobs/viewJob.html:22 marks/templates/marks/EditMark.html:14
 #: marks/templates/marks/EditUnknownMark.html:14
 #: marks/templates/marks/ViewMark.html:8
 msgid "Download"
@@ -1063,7 +1063,7 @@ msgstr "Остановить решение"
 msgid "Edit"
 msgstr "Редактировать"
 
-#: jobs/templates/jobs/viewJob.html:43 marks/templates/marks/EditMark.html:16
+#: jobs/templates/jobs/viewJob.html:43 marks/templates/marks/EditMark.html:18
 #: marks/templates/marks/EditUnknownMark.html:18
 msgid "Delete versions"
 msgstr "Удалить версии"
@@ -1073,7 +1073,7 @@ msgid "Class"
 msgstr "Класс"
 
 #: jobs/templates/jobs/viewJob.html:68 jobs/utils.py:63 jobs/utils.py:67
-#: marks/templates/marks/EditMark.html:39
+#: marks/templates/marks/EditMark.html:41
 #: marks/templates/marks/EditUnknownMark.html:33
 #: marks/templates/marks/ViewMark.html:12 templates/base.html:103
 #: tools/templates/tools/ManagerPanel.html:73
@@ -1093,7 +1093,7 @@ msgstr "Родители"
 msgid "Children"
 msgstr "Потомки"
 
-#: jobs/templates/jobs/viewJob.html:114 marks/templates/marks/EditMark.html:53
+#: jobs/templates/jobs/viewJob.html:114 marks/templates/marks/EditMark.html:55
 #: marks/templates/marks/EditUnknownMark.html:51
 #: marks/templates/marks/ViewMark.html:32
 msgid "Last change"
@@ -1524,8 +1524,8 @@ msgstr "Атрибуты"
 #: marks/templates/marks/CreateMark.html:107
 #: marks/templates/marks/CreateMark.html:183
 #: marks/templates/marks/CreateMark.html:243
-#: marks/templates/marks/EditMark.html:117
-#: marks/templates/marks/EditUnknownMark.html:112
+#: marks/templates/marks/EditMark.html:121
+#: marks/templates/marks/EditUnknownMark.html:115
 msgid "Editable"
 msgstr "Возможно ли редактирование"
 
@@ -1548,22 +1548,32 @@ msgstr "Требуется шаблон"
 msgid "The problem is required"
 msgstr "Требуется проблема"
 
-#: marks/templates/marks/EditMark.html:30 users/views.py:225
+#: marks/templates/marks/EditMark.html:5 marks/templates/marks/base.html:5
+#: reports/utils.py:16
+msgid "Mark"
+msgstr "Оценка"
+
+#: marks/templates/marks/EditMark.html:32 users/views.py:225
 msgid "Unsafes mark"
 msgstr "Оценка предупреждений об ошибках"
 
-#: marks/templates/marks/EditMark.html:32 users/views.py:204
+#: marks/templates/marks/EditMark.html:34 users/views.py:204
 msgid "Safes mark"
 msgstr "Оценка доказательств корректности"
 
-#: marks/templates/marks/EditMark.html:69
+#: marks/templates/marks/EditMark.html:71
 #: marks/templates/marks/EditUnknownMark.html:67
 #: marks/templates/marks/ViewMark.html:47
 msgid "Associated leaf reports"
 msgstr "Привязанные листовые отчеты"
 
-#: marks/templates/marks/EditMark.html:137
-#: marks/templates/marks/EditUnknownMark.html:133
+#: marks/templates/marks/EditMark.html:101
+#: marks/templates/marks/EditUnknownMark.html:97
+msgid "List of associated leaf reports is empty"
+msgstr "Список привязанных листовых отчетов пустой"
+
+#: marks/templates/marks/EditMark.html:141
+#: marks/templates/marks/EditUnknownMark.html:136
 msgid "All versions and all data of this mark will be deleted"
 msgstr "Все версии и все данные оценки будут удалены"
 
@@ -1595,7 +1605,7 @@ msgstr "Все версии и все данные отмеченных оцен
 msgid "Please select marks you want to delete"
 msgstr "Пожалуйста, отметьте оценки, которые Вы хотите удалить"
 
-#: marks/templates/marks/SaveMarkResult.html:6
+#: marks/templates/marks/SaveMarkResult.html:3
 msgid "Changes in associations of marks with leaf reports"
 msgstr "Изменения привязки оценок к листовым отчетам"
 
@@ -1618,10 +1628,6 @@ msgstr "Теги отсутствуют"
 #: marks/templates/marks/Tags.html:30
 msgid "Tags can't be more than 15 characters"
 msgstr "Теги не могут быть больше 15 символов"
-
-#: marks/templates/marks/base.html:5 reports/utils.py:16
-msgid "Mark"
-msgstr "Оценка"
 
 #: marks/templates/marks/filters.html:13
 msgid "The number of associated leaf reports"
