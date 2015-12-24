@@ -13,41 +13,50 @@ $(document).ready(function () {
     var ready_for_next_string = false;
     function get_source_code(line, filename) {
         ready_for_next_string = false;
-        $.ajax({
-            url: '/reports/ajax/get_source/',
-            type: 'POST',
-            data: {
-                report_id: $('#report_pk').val(),
-                file_name: filename
-            },
-            success: function (data) {
-                var source_code_window = $('#ETV_source_code');
-                if (data.error) {
-                    $('#ETVSourceTitle').empty();
-                    source_code_window.empty();
-                    err_notify(data.error);
-                }
-                else if (data.name && data.content) {
-                    var title_place = $('#ETVSourceTitle');
-                    title_place.text(data.name);
-                    $('#ETVSourceTitleFull').text(data['fullname']);
-                    title_place.popup();
-                    source_code_window.html(data.content);
-                    var selected_src_line = $('#ETVSrcL_' + line);
-                    if (selected_src_line.length) {
-                        source_code_window.scrollTop(source_code_window.scrollTop() + selected_src_line.position().top - source_code_window.height() * 3/10);
-                        selected_src_line.parent().addClass('ETVSelectedLine');
-                    }
-                    else {
-                        err_notify($('#error___line_not_found').text());
-                    }
-                    ready_for_next_string = true;
-                }
-            },
-            error: function (x) {
-                $('#ETV_source_code').html(x.responseText);
+        var source_code_window = $('#ETV_source_code');
+
+        function select_src_string() {
+            var selected_src_line = $('#ETVSrcL_' + line);
+            if (selected_src_line.length) {
+                source_code_window.scrollTop(source_code_window.scrollTop() + selected_src_line.position().top - source_code_window.height() * 3/10);
+                selected_src_line.parent().addClass('ETVSelectedLine');
             }
-        });
+            else {
+                err_notify($('#error___line_not_found').text());
+            }
+        }
+        if (filename == $('#ETVSourceTitleFull').text()) {
+            select_src_string();
+        }
+        else {
+            $.ajax({
+                url: '/reports/ajax/get_source/',
+                type: 'POST',
+                data: {
+                    report_id: $('#report_pk').val(),
+                    file_name: filename
+                },
+                success: function (data) {
+                    if (data.error) {
+                        $('#ETVSourceTitle').empty();
+                        source_code_window.empty();
+                        err_notify(data.error);
+                    }
+                    else if (data.name && data.content) {
+                        var title_place = $('#ETVSourceTitle');
+                        title_place.text(data.name);
+                        $('#ETVSourceTitleFull').text(data['fullname']);
+                        title_place.popup();
+                        source_code_window.html(data.content);
+                        select_src_string();
+                        ready_for_next_string = true;
+                    }
+                },
+                error: function (x) {
+                    $('#ETV_source_code').html(x.responseText);
+                }
+            });
+        }
     }
 
     $('.ETV_GlobalExpanderLink').click(function (event) {
