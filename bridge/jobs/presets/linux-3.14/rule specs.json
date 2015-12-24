@@ -3,9 +3,9 @@
     "Empty": {
       "description": "...",
       "plugins": [
-	{
-	  "name": "Weaver"
-	}
+        {
+          "name": "Weaver"
+        }
       ]
     },
     "Common for Linux kernel modules": {

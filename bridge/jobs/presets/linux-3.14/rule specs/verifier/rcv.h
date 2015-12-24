@@ -2,24 +2,15 @@
 #define _LDV_RCV_H_
 
 /* If expr evaluates to zero, ldv_assert() causes a program to reach the error
-   label like the standard assert(). */
-#define ldv_assert(expr) ((expr) ? 0 : ldv_error())
+   function call like the standard assert(). */
+#define ldv_assert(expr) ((expr) ? 0 : __VERIFIER_error())
 
-/* The error label wrapper. It is used because of some static verifiers (like
-   BLAST) don't accept multiple error labels through a program. */
-static inline void ldv_error(void)
-{
-  LDV_ERROR: goto LDV_ERROR;
-}
+/* http://sv-comp.sosy-lab.org/2015/rules.php */
+void __VERIFIER_error();
 
-/* If expr evaluates to zero, ldv_assume() causes an infinite loop that is
-   avoided by verifiers. */
-#define ldv_assume(expr) ((expr) ? 0 : ldv_stop())
-
-/* Infinite loop, that causes verifiers to skip such paths. */
-static inline void ldv_stop(void) {
-  LDV_STOP: goto LDV_STOP;
-}
+/* http://sv-comp.sosy-lab.org/2015/rules.php */
+#define ldv_assume(expr) __VERIFIER_assume(expr)
+void __VERIFIER_assume(int expr);
 
 /* Special nondeterministic functions. */
 int ldv_undef_int(void);
