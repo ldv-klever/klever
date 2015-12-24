@@ -12,7 +12,7 @@ $(document).ready(function () {
     $('.normal-popup').popup({position: 'bottom left'});
     var ready_for_next_string = false;
     function get_source_code(line, filename) {
-        ready_for_next_string = false;
+
         var source_code_window = $('#ETV_source_code');
 
         function select_src_string() {
@@ -27,9 +27,9 @@ $(document).ready(function () {
         }
         if (filename == $('#ETVSourceTitleFull').text()) {
             select_src_string();
-            ready_for_next_string = true;
         }
         else {
+            ready_for_next_string = false;
             $.ajax({
                 url: '/reports/ajax/get_source/',
                 type: 'POST',

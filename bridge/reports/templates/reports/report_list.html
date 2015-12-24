@@ -3,17 +3,21 @@
 {% load i18n %}
 
 {% load tz %}
-{% block title %}{{ page_title }}{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
         <div class="seven wide column">
-            <h2 class="header">{{ title|safe }}</h2>
-            <span class="purple-title">{% trans 'Author' %}: </span>
-            <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
-            <br>
-            <span class="purple-title">{% trans 'Job' %}: </span>
-            <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+            <div class="ui grid">
+                <div class="nine wide column">
+                    <span class="purple-title">{% trans 'Job' %}: </span>
+                    <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+                </div>
+                <div class="seven wide column">
+                    <span class="purple-title">{% trans 'Author' %}: </span>
+                    <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
+                </div>
+            </div>
         </div>
         <div class="nine wide column">
             <div class="ui breadcrumb">

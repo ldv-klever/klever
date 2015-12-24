@@ -7,7 +7,7 @@ from bridge.utils import unparallel_group, print_err
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
-from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe, MarkUnknown
+from marks.models import UnsafeTag, SafeTag
 from reports.UploadReport import UploadReport
 from marks.utils import MarkAccess
 from reports.models import *
@@ -96,7 +96,6 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
 
     if ltype == 'safes':
         title = _("All safes")
-        page_title = _('Safes')
         if tag is not None:
             title = string_concat(_("Safes"), ': ', tag.tag)
         elif verdict is not None:
@@ -108,7 +107,6 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
             title = _('Safes marked by')
     elif ltype == 'unsafes':
         title = _("All unsafes")
-        page_title = _('Unsafes')
         if tag is not None:
             title = string_concat(_("Unsafes"), ': ', tag.tag)
         elif verdict is not None:
@@ -120,7 +118,6 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
             title = _('Unsafes marked by')
     else:
         title = _("All unknowns")
-        page_title = _('Unknowns')
         if isinstance(problem, UnknownProblem):
             title = string_concat(_("Unknowns"), ': ', problem.name)
         elif problem == 0:
@@ -128,10 +125,7 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
         elif mark is not None:
             title = _('Unknowns marked by')
     if mark is not None:
-        mark_href = ' <a href="%s">%s</a>' % (
-            reverse('marks:edit_mark', args=[ltype[:-1], mark.pk]), mark.identifier[:10]
-        )
-        title = string_concat(title, mark_href)
+        title = string_concat(title, mark.identifier[:10])
 
     report_attrs_data = [request.user, report]
     if request.method == 'POST':
@@ -144,7 +138,6 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
         'reports/report_list.html',
         {
             'report': report,
-            'page_title': page_title,
             'parents': get_parents(report),
             'TableData': ReportTable(
                 *report_attrs_data, table_type=list_types[ltype],
@@ -236,7 +229,6 @@ def report_leaf(request, leaf_type, report_id):
         request, template,
         {
             'type': leaf_type,
-            'title': report.identifier.split('##')[-1],
             'report': report,
             'parents': get_parents(report),
             'SelfAttrsData': ReportTable(request.user, report).table_data,

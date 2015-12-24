@@ -4,12 +4,13 @@
 
 {% load tz %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{% trans 'Unsafe' %}{% endblock %}
 
 {% block body_block %}
 <div class="ui grid">
     <div class="five wide column">
-        <h2 class="header"><ins>{{ title }}</ins></h2>
+        <span class="purple-title">{% trans 'Job' %}: </span>
+        <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
     </div>
     <div class="four wide column">
         {% if report.root.user %}
@@ -17,8 +18,6 @@
             <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
             <br>
         {% endif %}
-        <span class="purple-title">{% trans 'Job' %}: </span>
-        <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
     </div>
     <div class="seven wide column">
         <div class="ui breadcrumb">
@@ -46,7 +45,7 @@
         </div>
     </div>
 </div>
-<br>
+<div class="ui divider"></div>
 {% include 'reports/ETV.html' %}
 
 <div class="ui grid">

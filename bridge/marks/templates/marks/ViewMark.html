@@ -1,6 +1,9 @@
 {% extends 'marks/base.html' %}
 
 {% load i18n %}
+{% block title %}
+{% if markdata.type == 'safe' %}{% trans 'Safes mark' %}{% elif markdata.type == 'unknown' %}{% trans 'Unknowns mark' %}{% else %}{% trans 'Unsafes mark' %}{% endif %}
+{% endblock %}
 {% load tz %}
 {% block body_block %}
     <div class="ui grid">
