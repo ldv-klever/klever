@@ -1,19 +1,15 @@
 {
   "Linux kernel": {
-    "source": "linux-3.14",
+    "source": "linux-3.14.tar.xz",
     "configuration": "allmodconfig",
     "build kernel": false,
-    "modules_": ["all"],
-    "modules_": ["drivers/usb/serial"],
-    "modules": ["drivers/usb/serial/usbserial.ko"],
-    "modules_": ["drivers/usb/core/usbcore.ko", "drivers/usb/usb-common.ko"]
+    "modules": ["drivers/block/cciss.ko"]
   },
   "LKVOG strategy": {
     "name": "separate modules"
   },
-  "rule specifications": ["linux:mutex:as"],
-  "rule specifications_": ["32", "linux:spinlock"],
   "rule specifications DB": "rule specs.json",
+  "rule specifications": ["linux:mutex"],
   "VTG strategy": {
     "name": "all bug kinds merge",
     "verifier": {
