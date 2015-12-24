@@ -554,13 +554,13 @@ def upload_file(request):
 @login_required
 def download_file(request, file_id):
     if request.method == 'POST':
-        return HttpResponse('')
+        return HttpResponseRedirect(reverse('error', args=[500]))
     try:
         source = FileSystem.objects.get(pk=int(file_id))
     except ObjectDoesNotExist:
-        return HttpResponse('')
+        return HttpResponseRedirect(reverse('error', args=[500]))
     if source.file is None:
-        return HttpResponse('')
+        return HttpResponseRedirect(reverse('error', args=[500]))
     mimetype = mimetypes.guess_type(os.path.basename(source.file.file.name))[0]
     response = HttpResponse(source.file.file.read(), content_type=mimetype)
     response['Content-Disposition'] = 'attachment; filename=%s' % quote(source.name)

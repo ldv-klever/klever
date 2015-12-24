@@ -359,6 +359,7 @@ def delete_mark(request, mark_type, mark_id):
 @unparallel_group(['mark'])
 @login_required
 def delete_marks(request):
+    activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     if 'type' not in request.POST or 'ids' not in request.POST:
@@ -460,5 +461,4 @@ def get_mark_versions(request):
             'version': m.version,
             'title': title
         })
-    return render(request, 'marks/markVersions.html',
-                  {'versions': mark_versions})
+    return render(request, 'marks/markVersions.html', {'versions': mark_versions})

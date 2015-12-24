@@ -344,6 +344,7 @@ def get_log_content(request, report_id):
 
 @login_required
 def get_source_code(request):
+    activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     if 'report_id' not in request.POST:
