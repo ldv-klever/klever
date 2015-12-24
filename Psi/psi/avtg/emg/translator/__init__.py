@@ -92,32 +92,47 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
 
 class Variable:
+    name_re = re.compile("%s")
 
-    def __init__(self, name, file, signature=Signature("void *%s")):
+    def __init__(self, name, file, signature=Signature("void *%s"), export=False):
         self.name = name
         self.file = file
         self.signature = signature
         self.value = None
+        self.export = export
+
+    def declare_with_init(self):
+        declaration = self.signature.expression
+        declaration = self.name_re.sub(self.name, declaration)
+        if self.signature.pointer and self.signature.type_class == "struct":
+            alloc = ModelMap.init_pointer(self.signature)
+            declaration += " = {}".format(alloc)
+        declaration += ";"
+        return declaration
+
+    def declare(self):
+        declaration = self.signature.expression
+        declaration = self.name_re.sub(self.name, declaration)
+        if self.value:
+            declaration += " = {}".format(self.value)
+        declaration += ";"
+        return declaration
 
 
 class Function:
 
-    def __init__(self, name, file, signature=Signature("void %s(void)")):
+    def __init__(self, name, file, signature=Signature("void %s(void)"), export=False):
         self.name = name
         self.file = file
         self.signature = signature
-        self.export = None
+        self.export = export
         self.__body = None
 
     @property
     def body(self):
-        if self.type_class == "function" and not self.pointer:
-            if not self.__body:
-                self.__body = FunctionBody()
-            return self.__body
-        else:
-            raise TypeError("Signature '{}' with class '{}' is not a function or it is a function pointer".
-                            format(self.expression, self.type_class))
+        if not self.__body:
+            self.__body = FunctionBody()
+        return self.__body
 
     def get_definition(self):
         if self.type_class == "function" and not self.pointer:
@@ -148,9 +163,16 @@ class FunctionBody:
         }
 
     def concatenate(self, statements):
-        for line in statements:
-            splitted = self._split_indent(line)
+        if type(statements) is list:
+            for line in statements:
+                splitted = self._split_indent(line)
+                self.__body.append(splitted)
+        if type(statements) is str:
+            splitted = self._split_indent(statements)
             self.__body.append(splitted)
+        else:
+            raise TypeError("Can add only string or list of strings to function body but given: {}".
+                            format(type(statements)))
 
     def get_lines(self, start_indent=1):
         lines = []
@@ -191,6 +213,53 @@ class Entry:
 
             self.marked[selected] = 1
             sorted_list.append(selected)
+
+
+class ModelMap:
+
+    # todo: implement all models
+    function_map = {
+        "ALLOC": "ldv_successful_malloc",
+        "ALLOC_RECURSIVELY": "ldv_successful_malloc",
+        "FREE": "free",
+        "FREE_RECURSIVELY": None,
+        "ZINIT": "ldv_init_zalloc",
+        "ZINIT_STRUCT": None,
+        "INIT_STRUCT": None,
+        "INIT_RECURSIVELY": None,
+        "ZINIT_RECURSIVELY": None,
+        "GET_CONTEXT": None,
+        "IRQ_CONTEXT": None,
+        "PROCESS_CONTEXT": None
+    }
+    function_re = re.compile("\$(\w+)\(%(\w+)%(?:,\s?(\w+))?\);")
+
+    @staticmethod
+    def init_pointer(signature):
+        if signature.type_class in ["struct", "primitive"] and signature.pointer:
+            return "{}(sizeof(struct {}));".format(ModelMap.function_map["ZINIT"], signature.structure_name)
+        else:
+            raise NotImplementedError("Cannot initialize label {} which is not pointer to structure or primitive".
+                                      format(signature.name, signature.type_class))
+
+    def __replace_mem_call(self, match):
+        function, label_name, flag = match.groups()
+        if function not in self.function_map:
+            raise NotImplementedError("Model of {} is not supported".format(function))
+
+        if label_name not in self.process.labels:
+            raise ValueError("Process {} has no label {}".format(self.process.name, label_name))
+        signature = self.process.signatures[label_name].signature
+        if signature.type_class in ["struct", "primitive"] and signature.pointer:
+            return "{}(sizeof(struct {}));".format(self.function_map[function], signature.structure_name)
+        else:
+            raise NotImplementedError("Cannot initialize signature {} which is not pointer to structure or primitive".
+                                      format(signature.name, signature.type_class))
+
+    def replace_models(self, process, string):
+        self.process = process
+        self.function_re.sub(self.__replace_mem_call, string)
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 

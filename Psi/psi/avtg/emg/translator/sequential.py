@@ -2,7 +2,7 @@ import copy
 import os
 import graphviz
 
-from psi.avtg.emg.translator import AbstractTranslator
+from psi.avtg.emg.translator import AbstractTranslator, Variable, Function
 from psi.avtg.emg.interfaces import Signature
 
 
@@ -28,12 +28,30 @@ class Translator(AbstractTranslator):
         os.makedirs("automata", exist_ok=True)
 
         # Generate states
-        for automata in self.automata:
-            automata.generate_automata()
-        return
+        for automaton in self.automata:
+            self.logger.info("Calculate states of automata and generate image with state transitions of automata {} "
+                             "with process {}".format(automaton.identifier, automaton.process.name))
+            automaton.generate_automata()
+
+        # Generate variables
+        for automaton in self.automata:
+            variables = automaton.variables
+            for variable in variables:
+                if variable.file not in self.files:
+                    self.files[variable.file] = {
+                        "variables": {},
+                        "functions": {}
+                    }
+                self.files[variable.file]["variables"][variable.name] = variable
+
+        # Generate automata control function
+        for automaton in self.automata:
+            cf = automaton.control_function
+            self.files[automaton.file]["functions"][cf.name] = cf
 
     def __generate_automata(self, ri, process):
         ri["implementations"] = {}
+        ri["signatures"] = {}
         process_automata = []
 
         # Set containers
@@ -43,14 +61,20 @@ class Translator(AbstractTranslator):
             else:
                 interfaces = [process.labels[callback[0]].interface]
             for interface in interfaces:
-                intfs = self.__get_interfaces(process, interface, callback)
-                for index in range(len(intfs)):
-                    ri["implementations"][intfs[index].full_identifier] = \
-                        self.__get_implementations(intfs[index].full_identifier)
+                intfs = self.__get_interfaces(interface, callback)
+                ri["implementations"][str(callback)] = self.__get_implementations(intfs[-1].full_identifier)
+                ri["signatures"][str(callback)] = intfs[-1].signature
 
-        # Set resources
-        for resource in ri["resources"]:
-            ri["implementations"][resource.interface] = self.__get_implementations(resource.interface)
+        # Get parameters and resources implementations
+        for label in ri["resources"]:
+            ri["implementations"][str([label.name])] = self.__get_implementations(label.interface)
+            ri["signatures"][str([label.name])] = label.signature
+
+        # Get parameters and resources implementations
+        for parameter in ri["parameters"]:
+            intf = self.__get_interfaces(process.labels[parameter[0]].interface, parameter)
+            ri["implementations"][str(parameter)] = self.__get_implementations(intf[-1].full_identifier)
+            ri["signatures"][str(parameter)] = intf[-1].signature
 
         # Copy processes
         labels = [process.labels[name] for name in process.labels if process.labels[name].container
@@ -100,14 +124,14 @@ class Translator(AbstractTranslator):
                 for path in container.implementations:
                     for variable in container.implementations[path]:
                         if field in self.analysis.implementations[path][variable]:
-                            retval.append(self.analysis.implementations[path][variable][field])
+                            retval.append([path, self.analysis.implementations[path][variable][field]])
 
         if len(retval) == 0:
             return None
         else:
             return retval
 
-    def __get_interfaces(self, process, interface, access):
+    def __get_interfaces(self, interface, access):
         ret = [self.analysis.interfaces[interface]]
         for index in range(1, len(access)):
             category = ret[-1].category
@@ -131,6 +155,9 @@ class Automata:
         self.__checked_ast = {}
         self.__ast_counter = 0
         self.__checked_subprocesses = {}
+        self.__control_function = None
+        self.__variables = []
+        self.__functions = []
 
     def generate_automata(self):
         if "identifier" not in self.process.process_ast:
@@ -197,6 +224,48 @@ class Automata:
         graph.render()
 
         return
+
+    @property
+    def variables(self):
+        if len(self.__variables) == 0:
+            # Generate state variable
+            statev = Variable("emg_sm_state_{}".format(self.identifier), self.file, Signature("int %s"), export=True)
+            self.state_variable = statev
+            self.logger.debug("Add state variable for automata {} with process {}: {}".
+                              format(self.identifier, self.process.name, statev.name))
+            self.__variables.append(statev)
+
+            # Generate variable for each label
+            self.label_map["labels"] = {}
+            for label in [self.process.labels[name] for name in self.process.labels]:
+                var = Variable("emg_sm_{}_{}".format(self.identifier, label.name), self.file,
+                               label.signature, export=True)
+                if label.value:
+                    var.value = label.value
+                self.label_map["labels"][label.name] = var
+                self.__variables.append(var)
+        return self.__variables
+
+    @property
+    def control_function(self):
+        if not self.__control_function:
+            self.logger.info("Generate control function for automata {} with process {}".
+                             format(self.identifier, self.process.name))
+
+            # Generate case for each transition
+            cases = []
+            for edge in self.__state_transitions:
+                case = self.__generate_case(edge)
+                cases.append(case)
+
+        return self.__control_function
+
+    @property
+    def functions(self):
+        if not self.__control_function:
+            self.control_function
+
+        return self.__functions
 
     def __enumerate_ast(self, ast):
         key = list(ast.keys())[0]
@@ -322,5 +391,124 @@ class Automata:
             else:
                 raise ValueError("Unknown AST type {}".format(str(self.__checked_ast[identifier])))
         return ret
+
+    def __generate_case(self, edge):
+        subprocess = edge["subprocess"]
+        case = {
+            "guard": "{} == {}".format(self.state_variable, edge["in"]),
+            "body": [],
+        }
+
+        if subprocess.type == "dispatch" and subprocess.callback:
+            fname = "emg_sm{}_callback_{}".format(self.identifier, subprocess.name)
+
+            # Check function with callback call
+            if fname not in [function.name for function in self.__functions]:
+                signature = None
+                invoke = None
+                file = None
+                params = []
+                vars = []
+
+                # Determine function
+                signature = self.label_map["signatures"][str(subprocess.callback)]
+                if str(subprocess.callback) in self.label_map["implementations"] \
+                        and self.label_map["implementations"][str(subprocess.callback)]:
+                    if len(self.label_map["implementations"][str(subprocess.callback)]) == 1:
+                        file = self.label_map["implementations"][str(subprocess.callback)][0][0]
+                        invoke = "({})".format(self.label_map["implementations"][str(subprocess.callback)][0][1])
+                    else:
+                        raise NotImplementedError("Do not expect several implementations for callback")
+                else:
+                    invoke = self.label_map["labels"][subprocess.callback[0]].name + ".".join(subprocess.callback[1:])
+
+                # Determine parameters
+                params = []
+                for index in range(len(signature.parameters)):
+                    param = None
+                    for key in self.label_map["signatures"]:
+                        if signature.parameters[index].compare_signature(self.label_map["signatures"][key]):
+                            access = [access for access in self.label_map["parameters"] if str(access) == key][0]
+                            if str(access) in self.label_map["implementations"] and \
+                                    self.label_map["implementations"][str(access)]:
+                                if not file:
+                                    file = self.label_map["implementations"][str(access)][0]
+                                param = self.label_map["implementations"][str(access)][1]
+                            else:
+                                param = self.label_map["labels"][access[0]].name + ".".join(access[1:])
+                            break
+                    if param:
+                        params.append(param)
+                    else:
+                        tmp = Variable("emg_param_{}".format(index), None, signature.parameters[index], False)
+                        vars.append(tmp)
+                        params.append(tmp.name)
+
+                # Be sure file is set
+                if not file:
+                    file = self.file
+
+                # Check return type to provide back returned value
+                if signature.return_value:
+                    ret_type = signature.return_value.expression
+                    ret_type = ret_type.replace("%s", "")
+                else:
+                    ret_type = "void"
+
+                # Generate special function with call
+                function = Function(fname, file, "{} {}(void)".format(ret_type, fname), True)
+                for var in vars:
+                    function.body.concatenate(var.declare_with_init())
+                function.body.concatenate("")
+                function.body.concatenate('return ' + invoke + '(' + ",".join(params) + ");")
+                self.__functions.append(function)
+
+            # Generate comment
+            case["body"].append("/* Call callback {} */".format(subprocess.name))
+            ret_subprocess = [self.process.subprocesses[name] for name in self.process.subprocesses
+                              if self.process.subprocesses[name].callback and
+                              self.process.subprocesses[name].callback == subprocess.callback and
+                              self.process.subprocesses[name].type == "receive" and
+                              self.process.subprocesses[name].callback_retval]
+            code = ""
+            if ret_subprocess:
+                code += "{} = ".format(self.label_map["labels"][ret_subprocess[0].callback_retval])
+            code += "{}();".format(fname)
+            case["body"].append(code)
+        elif subprocess.type == "dispatch":
+            # Generate dispatch function
+            if subprocess.peers:
+                pass
+            # Generate comment
+
+            # Generate case body
+        elif subprocess.type == "receive" and subprocess.callback:
+            pass
+        elif subprocess.type == "receive":
+            # Generate comment
+            case["body"].append("/* Receive signal {} */".format(subprocess.name))
+        elif subprocess.type == "condition":
+            # Add additional condition
+            if subprocess.condition:
+                pass
+            if subprocess.statements:
+                pass
+        elif subprocess.type == "subprocess":
+            # Generate comment
+            case["body"].append("/* Start subprocess {} */".format(subprocess.name))
+        else:
+            raise ValueError("Unexpected state machie edge type: {}".format(subprocess.type))
+
+        case["body"].append("{} = {};".format(self.state_variable, edge["out"]))
+        return case
+
+    def intf_from_list_access(self, access):
+        label = self.process.labels[access[0]]
+
+        if len(access) == 1:
+            return label.interface
+        else:
+            pass
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

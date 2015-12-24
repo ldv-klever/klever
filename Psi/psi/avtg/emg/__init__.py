@@ -27,6 +27,8 @@ class EMG(psi.components.Component):
                                               self.conf["specifications directory"])
         self.__get_specs(self.logger, spec_dir)
 
+        # todo: import additional aspects and headers
+
         # Import interface categories configuration
         intf_spec = CategorySpecification(self.logger)
         intf_spec.import_specification(self.interface_spec)

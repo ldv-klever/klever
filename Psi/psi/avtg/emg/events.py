@@ -598,7 +598,6 @@ class Process:
         self.process = None
         self.identifier = None
         self._import_dictionary(dic)
-        self.process_ast
 
     def _import_dictionary(self, dic):
         # Import labels
@@ -630,6 +629,10 @@ class Process:
         # Import condition
         if "condition" in dic:
             self.condition = dic["condition"]
+
+        # Import statements
+        if "statements" in dic:
+            self.statements = dic["statements"]
 
         # Check subprocess type
         if self.type and self.type == "process" and len(self.subprocesses.keys()) > 0:
@@ -813,6 +816,7 @@ class Subprocess(Process):
         self._import_dictionary(dic)
         self.peers = []
         self.condition = None
+        self.statements = None
 
         if "callback" in dic:
             self.callback = dic["callback"]
