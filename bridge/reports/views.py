@@ -105,7 +105,7 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
                     title = string_concat(_("Safes"), ': ', s[1])
                     break
         elif mark is not None:
-            title = _('Safe reports marked by')
+            title = _('Safes marked by')
     elif ltype == 'unsafes':
         title = _("All unsafes")
         page_title = _('Unsafes')
@@ -117,7 +117,7 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
                     title = string_concat(_("Unsafes"), ': ', s[1])
                     break
         elif mark is not None:
-            title = _('Unsafe reports marked by')
+            title = _('Unsafes marked by')
     else:
         title = _("All unknowns")
         page_title = _('Unknowns')
@@ -126,7 +126,7 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
         elif problem == 0:
             title = string_concat(_("Unknowns without marks"))
         elif mark is not None:
-            title = _('Unknown reports marked by')
+            title = _('Unknowns marked by')
     if mark is not None:
         mark_href = ' <a href="%s">%s</a>' % (
             reverse('marks:edit_mark', args=[ltype[:-1], mark.pk]), mark.identifier[:10]
