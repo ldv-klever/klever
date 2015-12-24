@@ -27,6 +27,7 @@ $(document).ready(function () {
         }
         if (filename == $('#ETVSourceTitleFull').text()) {
             select_src_string();
+            ready_for_next_string = true;
         }
         else {
             $.ajax({
