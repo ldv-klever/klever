@@ -10,7 +10,9 @@ $(document).ready(function () {
         }
     });
     $('.normal-popup').popup({position: 'bottom left'});
+    var ready_for_next_string = false;
     function get_source_code(line, filename) {
+        ready_for_next_string = false;
         $.ajax({
             url: '/reports/ajax/get_source/',
             type: 'POST',
@@ -39,6 +41,7 @@ $(document).ready(function () {
                     else {
                         err_notify($('#error___line_not_found').text());
                     }
+                    ready_for_next_string = true;
                 }
             },
             error: function (x) {
@@ -216,7 +219,7 @@ $(document).ready(function () {
             clearInterval(interval);
             return false;
         }
-        if ($.active > 0) {
+        if ($.active > 0 || !ready_for_next_string) {
             return false;
         }
         var etv_window = selected_line.closest('.ETV_error_trace');
@@ -235,7 +238,7 @@ $(document).ready(function () {
             clearInterval(interval);
             return false;
         }
-        if ($.active > 0) {
+        if ($.active > 0 || !ready_for_next_string) {
             return false;
         }
         var etv_window = selected_line.closest('.ETV_error_trace');
