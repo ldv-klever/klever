@@ -38,7 +38,7 @@ def klever_bridge_error(request, err_code=0, user_message=None):
 @unparallel
 @login_required
 def population(request):
-    activate(request.user.extended.language)
+    # activate(request.user.extended.language)
     if not request.user.is_staff:
         return HttpResponseRedirect(reverse('error', args=[900]))
     if request.method == 'POST':
