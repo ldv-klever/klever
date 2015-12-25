@@ -1,7 +1,7 @@
 {% extends 'marks/base.html' %}
 
 {% load i18n %}
-{% block title %}{% if type == 'safe' %}{% trans 'Safes marks' %}{% elif type == 'unsafe' %}{% trans 'Unsafes marks' %}{% else %}{% trans 'Unknowns marks' %}{% endif %}{% endblock %}
+{% block title %}{% if type == 'safe' %}{% trans 'Safe marks' %}{% elif type == 'unsafe' %}{% trans 'Unsafe marks' %}{% else %}{% trans 'Unknown marks' %}{% endif %}{% endblock %}
 {% block body_block %}
     <input id="view_type" type="hidden" value="{{ view_type }}">
     <input id="marks_type" type="hidden" value="{{ type }}">
