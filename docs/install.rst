@@ -76,6 +76,10 @@ Adapt them for your Linux distribution by yourself.
 
 #. Copy Apache2 configuration file :file:`bridge/conf/debian-apache2.conf` to file
    :file:`/etc/apache2/sites-enabled/bridge.conf`.
+#. Start listen to port *8998*::
+
+   $ echo "Listen 8998" > /etc/apache2/conf-enabled/bridge.conf
+
 #. Copy directory :file:`bridge` to directory :file:`/var/www/bridge`.
 #. Replace content of file :file:`/var/www/bridge/bridge/settings.py` with *from bridge.production import **::
 
