@@ -15,6 +15,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.model = model
         self.files = {}
         self.aspects = {}
+        self.model_map = ModelMap()
         self.entry_file = None
 
         # Determine entry point name and file
@@ -43,7 +44,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             self.entry_point_name = "main"
         self.logger.info("Genrate entry point function {}".format(self.entry_point_name))
-
 
     def _import_mapping(self):
         for grp in self.abstract_task_desc['grps']:
@@ -129,15 +129,17 @@ class Function:
         self.__body = None
 
     @property
-    def body(self):
+    def body(self, body=[]):
         if not self.__body:
-            self.__body = FunctionBody()
+            self.__body = FunctionBody(body)
+        else:
+            self.__body.concatenate(body)
         return self.__body
 
     def get_definition(self):
-        if self.type_class == "function" and not self.pointer:
+        if self.signature.type_class == "function" and not self.signature.pointer:
             lines = []
-            lines.append(self.expression + "{\n")
+            lines.append(self.signature.expression.replace("%s", self.name) + "{\n")
             lines.extend(self.body.get_lines(1))
             lines.append("}\n")
             return lines
@@ -167,12 +169,12 @@ class FunctionBody:
             for line in statements:
                 splitted = self._split_indent(line)
                 self.__body.append(splitted)
-        if type(statements) is str:
+        elif type(statements) is str:
             splitted = self._split_indent(statements)
             self.__body.append(splitted)
         else:
             raise TypeError("Can add only string or list of strings to function body but given: {}".
-                            format(type(statements)))
+                            format(str(type(statements))))
 
     def get_lines(self, start_indent=1):
         lines = []
@@ -218,7 +220,7 @@ class Entry:
 class ModelMap:
 
     # todo: implement all models
-    function_map = {
+    mem_function_map = {
         "ALLOC": "ldv_successful_malloc",
         "ALLOC_RECURSIVELY": "ldv_successful_malloc",
         "FREE": "free",
@@ -228,38 +230,55 @@ class ModelMap:
         "INIT_STRUCT": None,
         "INIT_RECURSIVELY": None,
         "ZINIT_RECURSIVELY": None,
+    }
+    irq_function_map = {
         "GET_CONTEXT": None,
         "IRQ_CONTEXT": None,
         "PROCESS_CONTEXT": None
     }
-    function_re = re.compile("\$(\w+)\(%(\w+)%(?:,\s?(\w+))?\);")
+
+    mem_function_re = re.compile("\$(\w+)\(%(\w+)%(?:,\s?(\w+))?\)")
+    irq_function_re = re.compile("\$(\w+)")
 
     @staticmethod
     def init_pointer(signature):
         if signature.type_class in ["struct", "primitive"] and signature.pointer:
-            return "{}(sizeof(struct {}));".format(ModelMap.function_map["ZINIT"], signature.structure_name)
+            return "{}(sizeof(struct {}));".format(ModelMap.mem_function_map["ZINIT"], signature.structure_name)
         else:
             raise NotImplementedError("Cannot initialize label {} which is not pointer to structure or primitive".
                                       format(signature.name, signature.type_class))
 
     def __replace_mem_call(self, match):
         function, label_name, flag = match.groups()
-        if function not in self.function_map:
+        if function not in self.mem_function_map:
             raise NotImplementedError("Model of {} is not supported".format(function))
+        elif not self.mem_function_map[function]:
+            raise NotImplementedError("Set implementation for the function {}".format(function))
 
+        # Create function call
         if label_name not in self.process.labels:
             raise ValueError("Process {} has no label {}".format(self.process.name, label_name))
-        signature = self.process.signatures[label_name].signature
+        signature = self.process.labels[label_name].signature
         if signature.type_class in ["struct", "primitive"] and signature.pointer:
-            return "{}(sizeof(struct {}));".format(self.function_map[function], signature.structure_name)
+            return "{}(sizeof(struct {}))".format(self.mem_function_map[function], signature.structure_name)
         else:
             raise NotImplementedError("Cannot initialize signature {} which is not pointer to structure or primitive".
-                                      format(signature.name, signature.type_class))
+                                      format(signature.expression, signature.type_class))
+
+    def __replace_irq_call(self, match):
+        function = match.groups()
+        if function not in self.mem_function_map:
+            raise NotImplementedError("Model of {} is not supported".format(function))
+        elif not self.mem_function_map[function]:
+            raise NotImplementedError("Set implementation for the function {}".format(function))
+
+        # Replace
+        return self.mem_function_map[function]
 
     def replace_models(self, process, string):
         self.process = process
-        self.function_re.sub(self.__replace_mem_call, string)
-
+        ret = self.mem_function_re.sub(self.__replace_mem_call, string)
+        return self.irq_function_re.sub(self.__replace_irq_call, ret)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 

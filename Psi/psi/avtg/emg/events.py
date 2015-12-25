@@ -447,6 +447,34 @@ class EventModel:
                             if label and peer_label:
                                 peer_label.signature = label.signature
 
+            # todo: check also return values
+            for subprocess in [process.subprocesses[name] for name in process.subprocesses
+                               if process.subprocesses[name].type in ["dispatch"] and
+                               process.subprocesses[name].callback and process.subprocesses[name].parameters]:
+                label, tail = process.extract_label_with_tail(subprocess.callback)
+                callbacks = []
+                if type(label.interface) is list:
+                    callbacks = [self.analysis.interfaces[name] for name in label.interface]
+                else:
+                    if tail and len(tail) > 0:
+                        interfaces = self.__resolve_interface(self.analysis.interfaces[label.interface], tail)
+                        callbacks = [interfaces[-1]]
+                    else:
+                        callbacks = [self.analysis.interfaces[label.interface]]
+
+                for cb in callbacks:
+                    for parameter in subprocess.parameters:
+                        # Parameter extraction
+                        plabel, tail = process.extract_label_with_tail(parameter)
+                        if len(tail) > 0:
+                            # todo: hack here
+                            plabel.signature.pointer = True
+
+                        # Match with arguments
+                        for arg in cb.signature.parameters:
+                            if arg.interface and arg.interface.full_identifier == plabel.interface:
+                                plabel.signature = arg
+
             for label in [process.labels[name] for name in process.labels if not process.labels[name].signature]:
                 if label.interface and type(label.interface) is str:
                     label.signature = self.analysis.interfaces[label.interface].signature
@@ -503,11 +531,21 @@ class EventModel:
                 if subprocess.callback_retval:
                     subprocess.callback_retval = self.__resolve_access(process, subprocess.callback_retval)
                 if subprocess.condition:
-                    # todo: implement replacing labels in arbitrary string and then implement this section
-                    pass
+                    subprocess.condition = self.__convert_plain_access(process, subprocess.condition)
+                if subprocess.statements:
+                    for index in range(len(subprocess.statements)):
+                        subprocess.statements[index] = self.__convert_plain_access(process,
+                                                                                   subprocess.statements[index])
+
+    def __convert_plain_access(self, process, statement):
+        for match in process.label_re.finditer(statement):
+            access = self.__resolve_access(process, match.group(0))
+            statement = statement.replace(match.group(0), '%' + ".".join(access) + '%')
+        return statement
 
 
 class Label:
+
     def __init__(self, name):
         self.container = False
         self.resource = False
@@ -617,22 +655,6 @@ class Process:
         if "process" in dic:
             # Parse process and save AST instead of string
             self.process = dic["process"]
-
-        # Add parameters
-        if "parameters" in dic:
-            self.parameters = dic["parameters"]
-
-        # Add callback return value
-        if "callback return value" in dic:
-            self.callback_retval = dic["callback return value"]
-
-        # Import condition
-        if "condition" in dic:
-            self.condition = dic["condition"]
-
-        # Import statements
-        if "statements" in dic:
-            self.statements = dic["statements"]
 
         # Check subprocess type
         if self.type and self.type == "process" and len(self.subprocesses.keys()) > 0:
@@ -796,12 +818,6 @@ class Process:
 
         return relevant_interfaces
 
-    def labels_in_string(self, string):
-        raise NotImplementedError
-
-    def replace_label_access(self, label, string):
-        raise NotImplementedError
-
 
 class Subprocess(Process):
 
@@ -820,6 +836,22 @@ class Subprocess(Process):
 
         if "callback" in dic:
             self.callback = dic["callback"]
+
+        # Add parameters
+        if "parameters" in dic:
+            self.parameters = dic["parameters"]
+
+        # Add callback return value
+        if "callback return value" in dic:
+            self.callback_retval = dic["callback return value"]
+
+        # Import condition
+        if "condition" in dic:
+            self.condition = dic["condition"]
+
+        # Import statements
+        if "statements" in dic:
+            self.statements = dic["statements"]
 
     def _import_dictionary(self, dic):
         super()._import_dictionary(dic)

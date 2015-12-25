@@ -1,8 +1,9 @@
 import copy
 import os
+import re
 import graphviz
 
-from psi.avtg.emg.translator import AbstractTranslator, Variable, Function
+from psi.avtg.emg.translator import AbstractTranslator, Variable, Function, ModelMap
 from psi.avtg.emg.interfaces import Signature
 
 
@@ -21,7 +22,7 @@ class Translator(AbstractTranslator):
             if len(ri[process.identifier]["callbacks"]) > 0:
                 self.automata.extend(self.__generate_automata(ri[process.identifier], process))
             else:
-                self.automata.append(Automata(self.logger, len(self.automata), self.entry_file, process))
+                self.automata.append(Automata(self.logger, len(self.automata), self.entry_file, process, self))
 
         # Create directory for automata
         self.logger.info("Create working directory for automata '{}'".format("automata"))
@@ -48,6 +49,8 @@ class Translator(AbstractTranslator):
         for automaton in self.automata:
             cf = automaton.control_function
             self.files[automaton.file]["functions"][cf.name] = cf
+
+        return
 
     def __generate_automata(self, ri, process):
         ri["implementations"] = {}
@@ -83,12 +86,12 @@ class Translator(AbstractTranslator):
                   and ri["implementations"][process.labels[name].interface]]
         if len(labels) == 0:
             for index in range(self.unmatched_constant):
-                au = Automata(self.logger, len(self.automata) + len(process_automata), self.entry_file, process)
+                au = Automata(self.logger, len(self.automata) + len(process_automata), self.entry_file, process, self)
                 au.label_map = ri
                 process_automata.append(au)
         else:
             summ = []
-            au = Automata(self.logger, len(self.automata), self.entry_file, process)
+            au = Automata(self.logger, len(self.automata), self.entry_file, process, self)
             au.label_map = ri
             summ.append(au)
 
@@ -143,19 +146,20 @@ class Translator(AbstractTranslator):
 
 class Automata:
 
-    def __init__(self, logger, identifier, file, process):
+    def __init__(self, logger, identifier, file, process, translator):
         self.logger = logger
         self.identifier = identifier
         self.file = file
         self.process = process
+        self.translator = translator
         self.label_map = {}
         self.state_variable = {}
-        self.__state_transitions = []
+        self.state_transitions = []
+        self.__control_function = None
         self.__state_counter = 0
         self.__checked_ast = {}
         self.__ast_counter = 0
         self.__checked_subprocesses = {}
-        self.__control_function = None
         self.__variables = []
         self.__functions = []
 
@@ -212,7 +216,7 @@ class Automata:
             graph.node(str(index), "State {}".format(index))
 
         # Add edges
-        for transition in self.__state_transitions:
+        for transition in self.state_transitions:
             graph.edge(
                 str(transition["in"]),
                 str(transition["out"]),
@@ -254,10 +258,47 @@ class Automata:
 
             # Generate case for each transition
             cases = []
-            for edge in self.__state_transitions:
+            for edge in self.state_transitions:
                 case = self.__generate_case(edge)
                 cases.append(case)
+            if len(cases) == 0:
+                raise RuntimeError("Cannot generate control function for automata {} with process {}".
+                                   format(self.identifier, self.process.name))
 
+            # Create Function
+            self.__control_function = Function(
+                "emg_{}_{}_control_function".format(self.process.name, self.identifier),
+                self.file,
+                Signature("void %s(void)"),
+                export=False
+            )
+
+            # Create body
+            body = ["switch(__VERIFIER_nondet_int()) {"]
+            for index in range(len(cases)):
+                body.extend(
+                    [
+                        "    case {}: ".format(index) + '{',
+                        "       if ({}) ".format(case["guard"]) + '{'
+                    ]
+                )
+                body.extend([3 * "\t" + statement for statement in case["body"]])
+                body.extend(
+                    [
+                        "      }",
+                        "   }",
+                        "break;"
+                    ]
+                )
+            body.extend(
+                [
+                    "   default: break;"
+                    "}"
+                ]
+            )
+            self.__control_function.body.concatenate(body)
+
+        # Return control function
         return self.__control_function
 
     @property
@@ -315,7 +356,7 @@ class Automata:
                         "in": origin,
                         "out": state
                     }
-                    self.__state_transitions.append(transition)
+                    self.state_transitions.append(transition)
             else:
                 self.__state_counter += 1
                 for origin in self.__resolve_state(predecessor):
@@ -325,7 +366,7 @@ class Automata:
                         "in": origin,
                         "out": self.__state_counter
                     }
-                    self.__state_transitions.append(transition)
+                    self.state_transitions.append(transition)
                 self.__checked_subprocesses[ast[key]["name"]] = self.__state_counter
                 self.__checked_ast[ast["identifier"]] = self.__state_counter
 
@@ -342,7 +383,7 @@ class Automata:
                     "in": origin,
                     "out": self.__state_counter
                 }
-                self.__state_transitions.append(transition)
+                self.state_transitions.append(transition)
 
             if number:
                 if type(number) is str:
@@ -363,7 +404,7 @@ class Automata:
                         "out": self.__state_counter + 1
                     }
                     self.__state_counter += 1
-                    self.__state_transitions.append(transition)
+                    self.state_transitions.append(transition)
                     
             self.__checked_ast[ast["identifier"]] = {"terminal": True, "state": self.__state_counter}
         elif key != "null":
@@ -395,7 +436,7 @@ class Automata:
     def __generate_case(self, edge):
         subprocess = edge["subprocess"]
         case = {
-            "guard": "{} == {}".format(self.state_variable, edge["in"]),
+            "guard": "{} == {}".format(self.state_variable.name, edge["in"]),
             "body": [],
         }
 
@@ -419,6 +460,11 @@ class Automata:
                         invoke = "({})".format(self.label_map["implementations"][str(subprocess.callback)][0][1])
                     else:
                         raise NotImplementedError("Do not expect several implementations for callback")
+
+                    additional_check = self.__registration_guard_check(
+                        self.label_map["implementations"][str(subprocess.callback)][0][1])
+                    if additional_check:
+                        case["guard"] += " && {}".format(additional_check)
                 else:
                     invoke = self.label_map["labels"][subprocess.callback[0]].name + ".".join(subprocess.callback[1:])
 
@@ -460,11 +506,13 @@ class Automata:
                 for var in vars:
                     function.body.concatenate(var.declare_with_init())
                 function.body.concatenate("")
-                function.body.concatenate('return ' + invoke + '(' + ",".join(params) + ");")
+                function.body.concatenate('\t return ' + invoke + '(' + ",".join(params) + ");")
                 self.__functions.append(function)
 
             # Generate comment
             case["body"].append("/* Call callback {} */".format(subprocess.name))
+
+            # Add return value
             ret_subprocess = [self.process.subprocesses[name] for name in self.process.subprocesses
                               if self.process.subprocesses[name].callback and
                               self.process.subprocesses[name].callback == subprocess.callback and
@@ -472,43 +520,141 @@ class Automata:
                               self.process.subprocesses[name].callback_retval]
             code = ""
             if ret_subprocess:
-                code += "{} = ".format(self.label_map["labels"][ret_subprocess[0].callback_retval])
+                retval = ret_subprocess[0].callback_retval
+                if len(retval) == 1:
+                    retval = self.label_map["labels"][retval[0]].name
+                else:
+                    retval = self.label_map["labels"][retval[0]].name + ".".join(retval[1:])
+
+                code += "{} = ".format(retval)
             code += "{}();".format(fname)
             case["body"].append(code)
         elif subprocess.type == "dispatch":
             # Generate dispatch function
-            if subprocess.peers:
-                pass
-            # Generate comment
+            if subprocess.peers and len(subprocess.peers) > 0:
+                automata_peers = {}
+                self.__extract_relevant_automata(automata_peers, subprocess.peers, ["receive"])
+                checks = self.__generate_state_check(automata_peers)
 
-            # Generate case body
+                if len(checks) > 0:
+                    case["guard"] += '(' + " || ".join(checks) + ')'
+            else:
+                # Generate comment
+                case["body"].append("/* Dispatch {} is not expected by any process, skip it".format(subprocess.name))
         elif subprocess.type == "receive" and subprocess.callback:
-            pass
+            case["body"].append("/* Should wait for return value of {} here, "
+                                "but in sequential model it is not necessary*/".format(subprocess.name))
         elif subprocess.type == "receive":
             # Generate comment
             case["body"].append("/* Receive signal {} */".format(subprocess.name))
         elif subprocess.type == "condition":
+            # Generate comment
+            case["body"].append("/* Code or condition insertion {} */".format(subprocess.name))
+
             # Add additional condition
             if subprocess.condition:
-                pass
+                subprocess.condition = self.__text_processor(subprocess.condition)
+                case["guard"] += " && {}".format(subprocess.condition)
             if subprocess.statements:
-                pass
+                for statement in subprocess.statements:
+                    case["body"].append(self.__text_processor(statement))
+                case["body"].append("")
         elif subprocess.type == "subprocess":
             # Generate comment
             case["body"].append("/* Start subprocess {} */".format(subprocess.name))
         else:
-            raise ValueError("Unexpected state machie edge type: {}".format(subprocess.type))
+            raise ValueError("Unexpected state machine edge type: {}".format(subprocess.type))
 
-        case["body"].append("{} = {};".format(self.state_variable, edge["out"]))
+        case["body"].append("{} = {};".format(self.state_variable.name, edge["out"]))
         return case
 
-    def intf_from_list_access(self, access):
-        label = self.process.labels[access[0]]
+    def __text_processor(self, statement):
+        # Replace model functions
+        statement = self.translator.model_map.replace_models(self.process, statement)
 
-        if len(access) == 1:
-            return label.interface
+        # Replace labels
+        for match in self.process.label_re.finditer(statement):
+            access = match.group(0).replace('%', '')
+            access = access.split(".")
+            replacement = self.label_map["labels"][access[0]].name
+            if len(access) > 0:
+                replacement += ".".join(access[1:])
+            statement = statement.replace(match.group(0), replacement)
+
+    def __registration_guard_check(self, function_call):
+        name_re = re.compile("\s*\&?\s*(\w+)\s*$")
+        check = []
+        if name_re.match(function_call):
+            name = name_re.match(function_call).group(1)
+
+            # Caclulate relevant models
+            if name in self.translator.analysis.modules_functions:
+                relevant_models = self.__collect_relevant_models(name)
+
+                # Get list of models
+                process_models = [model for model in self.translator.model["models"] if model.name in relevant_models]
+
+                # Check relevant state machines for each model
+                automata_peers = {}
+                for model in process_models:
+                    signals = [model.subprocesses[name] for name in model.subprocesses
+                               if len(model.subprocesses[name].peers) > 0 and model.subprocesses[name].type
+                               in ["dispatch", "receive"]]
+
+                    # Get all peers in total
+                    peers = []
+                    for signal in signals:
+                        peers.extend(signal.peers)
+
+                    # Add relevant state machines
+                    self.__extract_relevant_automata(automata_peers, peers, None)
+
+                check.extend(self.__generate_state_check(automata_peers))
         else:
-            pass
+            self.logger.warning("Cannot find module function for callback '{}'".format(function_call))
 
+        if len(check) > 0:
+            check = '(' + ' || '.join(check) + ')'
+        else:
+            check = None
+        return check
+
+    def __collect_relevant_models(self, name):
+        relevant = []
+        if name in self.translator.analysis.modules_functions:
+            for file in self.translator.analysis.modules_functions[name]["files"]:
+                for called in self.translator.analysis.modules_functions[name]["files"][file]["calls"]:
+                    if called in self.translator.analysis.modules_functions:
+                        relevant.extend(self.__collect_relevant_models(called))
+                    elif called in self.translator.analysis.kernel_functions:
+                        relevant.append((called))
+        return relevant
+
+    def __extract_relevant_automata(self, automata_peers, peers, types):
+        for peer in peers:
+            relevant_automata = [automaton for automaton in self.translator.automata
+                                 if automaton.process.name == peer["process"].name
+                                 and automaton.identifier != self.identifier]
+            for automaton in relevant_automata:
+                if automaton.identifier not in automata_peers:
+                    automata_peers[automaton.identifier] = {
+                        "automaton": automaton,
+                        "subprocesses": []
+                    }
+                if peer["subprocess"] not in automata_peers[automaton.identifier]["subprocesses"]:
+                    subprocess = \
+                        automata_peers[automaton.identifier]["automaton"].process.subprocesses[peer["subprocess"]]
+                    if not types or (types and subprocess.type in types):
+                        automata_peers[automaton.identifier]["subprocesses"].append(peer["subprocess"])
+
+    def __generate_state_check(self, automata_peers):
+        check = []
+        # Add state checks
+        for ap in automata_peers.values():
+            for transition in ap["automaton"].state_transitions:
+                if transition["subprocess"].name in ap["subprocesses"]:
+                    check.append("{} == {}".format(ap["automaton"].state_variable.name, str(transition["in"])))
+
+        return check
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
