@@ -92,7 +92,7 @@ Adapt them for your Linux distribution by yourself.
 #. Create directory :file:`/var/www/bridge/media` and make www-data:www-data its owner::
 
     $ mkdir -p /var/www/bridge/media
-    $ chown www-data:www-data /var/www/bridge/media
+    $ chown -R www-data:www-data /var/www/bridge/media
 
 #. Restart service apache2::
 
