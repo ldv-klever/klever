@@ -11,27 +11,27 @@ typedef void *Element;
 
 static inline void ldv_set_init(Set set)
 {
-  *set = 0;
+	*set = 0;
 }
 
 static inline void ldv_set_add(Set set, Element element)
 {
-  (*set)++;
+	(*set)++;
 }
 
 static inline void ldv_set_remove(Set set, Element element)
 {
-  (*set)--;
+	(*set)--;
 }
 
 static inline int ldv_set_contains(Set set, Element element)
 {
-  return *set != 0;
+	return *set != 0;
 }
 
 static inline int ldv_set_is_empty(Set set)
 {
-  return *set == 0;
+	return *set == 0;
 }
 */
 

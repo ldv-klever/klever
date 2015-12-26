@@ -19,27 +19,23 @@ unsigned long ldv_undef_ulong(void);
 /* Return nondeterministic negative integer number. */
 static inline int ldv_undef_int_negative(void)
 {
-  int ret = ldv_undef_int();
-
-  ldv_assume(ret < 0);
-
-  return ret;
+	int ret = ldv_undef_int();
+	ldv_assume(ret < 0);
+	return ret;
 }
 /* Return nondeterministic nonpositive integer number. */
 static inline int ldv_undef_int_nonpositive(void)
 {
-  int ret = ldv_undef_int();
-
-  ldv_assume(ret <= 0);
-
-  return ret;
+	int ret = ldv_undef_int();
+	ldv_assume(ret <= 0);
+	return ret;
 }
 
 /* Add explicit model for __builin_expect GCC function. Without the model a
    return value will be treated as nondetermined by verifiers. */
 long __builtin_expect(long exp, long c)
 {
-  return exp;
+	return exp;
 }
 
 /* This function causes the program to exit abnormally. GCC implements this
@@ -49,7 +45,7 @@ release to release so you should not rely on any particular implementation.
 http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html */
 void __builtin_trap(void)
 {
-  ldv_assert(0);
+	ldv_assert(0);
 }
 
 /* The constant is for simulating an error of ldv_undef_ptr() function. */
