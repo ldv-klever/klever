@@ -25,5 +25,5 @@ long ldv_ptr_err(const void *ptr)
 long ldv_is_err_or_null(const void *ptr)
 {
 	/* RETURN Zero if a given pointer doesn't represents an error or it isn't NULL and non zero otherwise */
-	return 0;/*!ptr || ldv_is_err((unsigned long)ptr);*/
+	return !ptr || ldv_is_err((unsigned long)ptr);
 }
