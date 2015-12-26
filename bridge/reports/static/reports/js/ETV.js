@@ -172,6 +172,10 @@ $(document).ready(function () {
                 if (next_code.find('.ETV_HideLink').find('i').hasClass('right')) {
                     next_code.find('.ETV_HideLink').click();
                 }
+                var next_src_link = next_code.find('.ETV_La').first();
+                if (next_src_link.length) {
+                    next_src_link.click();
+                }
             }
             else {
                 if (next_code.find('.ETV_HideLink').find('i').hasClass('down')) {
