@@ -114,7 +114,7 @@ void ldv_initialize(void)
 void ldv_check_final_state(void)
 {
 	// for arg_sign in arg_signs
-	/* ASSERT All acquired mutexes should be released before module unloading */
+	/* ASSERT All acquired mutexes should be released before finishing operation */
 	ldv_assert(ldv_set_is_empty(LDV_MUTEXES{{ arg_sign.id }}));
 	// endfor
 }

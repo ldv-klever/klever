@@ -109,6 +109,6 @@ void ldv_initialize(void)
 /* MODEL_FUNC_DEF Check that all mutexes are unacquired at the end */
 void ldv_check_final_state(void)
 {
-  /* ASSERT All acquired mutexes should be released before module unloading */
+  /* ASSERT All acquired mutexes should be released before finishing operation */
   ldv_assert(ldv_set_is_empty(LDV_MUTEXES));
 }
