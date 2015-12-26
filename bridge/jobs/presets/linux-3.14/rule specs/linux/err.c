@@ -1,29 +1,29 @@
 #include <verifier/rcv.h>
 
-/* MODEL_FUNC_DEF This function return result of checking if pointer is impossible */
+/* MODEL_FUNC_DEF Check whether a given pointer represents an error */
 long ldv_is_err(const void *ptr)
 {
-	/* RETURN Return value of function ldv_is_err_val() */
+	/* RETURN Zero if a given pointer doesn't represent an error and non zero otherwise */
 	return ((unsigned long)ptr > LDV_PTR_MAX);
 }
 
-/* MODEL_FUNC_DEF This function return pointer */
+/* MODEL_FUNC_DEF Convert a given error error to a pointer */
 void *ldv_err_ptr(long error)
 {
-	/* RETURN Return error pointer */
+	/* RETURN Pointer representation of a given error */
 	return (void *)(LDV_PTR_MAX - error);
 }
 
-/* MODEL_FUNC_DEF This function return error if pointer is impossible */
+/* MODEL_FUNC_DEF Convert a given pointer to an error */
 long ldv_ptr_err(const void *ptr)
 {
-	/* RETURN Return error code.*/
+	/* RETURN Error */
 	return (long)(LDV_PTR_MAX - (unsigned long)ptr);
 }
 
-/* MODEL_FUNC_DEF This function check if pointer is impossible or null */
+/* MODEL_FUNC_DEF Check whether a given pointer represents an error or it is NULL */
 long ldv_is_err_or_null(const void *ptr)
 {
-	/* RETURN Return 0 if pointer is possible and not zero, and 1 in other cases */
+	/* RETURN Zero if a given pointer doesn't represents an error or it isn't NULL and non zero otherwise */
 	return 0;/*!ptr || ldv_is_err((unsigned long)ptr);*/
 }

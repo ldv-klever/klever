@@ -2,7 +2,8 @@
 #define _LDV_RCV_H_
 
 /* If expr evaluates to zero, ldv_assert() causes a program to reach the error
-   function call like the standard assert(). */
+ * function call like the standard assert().
+ */
 #define ldv_assert(expr) ((expr) ? 0 : __VERIFIER_error())
 
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
@@ -31,24 +32,27 @@ static inline int ldv_undef_int_nonpositive(void)
 	return ret;
 }
 
-/* Add explicit model for __builin_expect GCC function. Without the model a
-   return value will be treated as nondetermined by verifiers. */
+/* Explicit model for GCC function __builin_expect(). Without this model
+ * return value of __builtin_expect() will be treated as nondetermined by
+ * verifiers.
+ */
 long __builtin_expect(long exp, long c)
 {
 	return exp;
 }
 
 /* This function causes the program to exit abnormally. GCC implements this
-function by using a target-dependent mechanism (such as intentionally executing
-an illegal instruction) or by calling abort. The mechanism used may vary from
-release to release so you should not rely on any particular implementation.
-http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html */
+ * function by using a target-dependent mechanism (such as intentionally
+ * executing an illegal instruction) or by calling abort. The mechanism used
+ * may vary from release to release so you should not rely on any particular
+ * implementation (http://gcc.gnu.org/onlinedocs/gcc/Other-Builtins.html).
+ */
 void __builtin_trap(void)
 {
 	ldv_assert(0);
 }
 
-/* The constant is for simulating an error of ldv_undef_ptr() function. */
+/* Pointers greater then this number correspond to errors. */
 #define LDV_PTR_MAX 2012
 
 #endif /* _LDV_RCV_H_ */

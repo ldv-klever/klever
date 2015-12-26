@@ -11,7 +11,7 @@ around: execution(static inline long IS_ERR(..))
 	return ldv_is_err($arg1);
 }
 
-around: execution(static inline void* ERR_PTR(..))
+around: execution(static inline void *ERR_PTR(..))
 {
 	return ldv_err_ptr($arg1);
 }
