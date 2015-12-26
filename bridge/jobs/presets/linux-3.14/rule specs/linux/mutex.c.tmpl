@@ -84,8 +84,6 @@ int ldv_mutex_decrement_and_acquire{{ arg_sign.id }}(atomic_t *cnt, struct mutex
 	}
 	else
 	{
-		/* ASSERT Acquired mutex{{ arg_sign.text }} should be unacquired */
-		ldv_assert(!ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock));
 		/* MODEL_FUNC_CALL Acquire mutex{{ arg_sign.text }} */
 		ldv_mutex_acquire{{ arg_sign.id }}(lock);
 		/* RETURN Successfully acquired mutex{{ arg_sign.text }} */
