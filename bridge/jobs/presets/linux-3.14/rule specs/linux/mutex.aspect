@@ -25,11 +25,6 @@ around: define(mutex_lock_nested(lock, subclass))
 mutex_lock_nested(lock, subclass)
 }
 
-around: call(void mutex_lock(struct mutex *)) || call(void mutex_lock_nested(struct mutex *, unsigned int))
-{
-  ldv_mutex_acquire($arg1);
-}
-
 around: define(mutex_lock_interruptible(lock))
 {
 mutex_lock_interruptible(lock)
@@ -40,27 +35,32 @@ around: define(mutex_lock_killable(lock))
 mutex_lock_killable(lock)
 }
 
+around: call(void mutex_lock(struct mutex *)) || call(void mutex_lock_nested(struct mutex *, unsigned int))
+{
+	ldv_mutex_acquire_$arg_sign1($arg1);
+}
+
 around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_lock_killable(struct mutex *))
 {
-  return ldv_mutex_acquire_interruptible_or_killable($arg1);
+	return ldv_mutex_acquire_interruptible_or_killable($arg1);
 }
 
 around: call(static inline int mutex_is_locked(struct mutex *))
 {
-  return ldv_mutex_is_acquired($arg1);
+	return ldv_mutex_is_acquired($arg1);
 }
 
 around: call(int mutex_trylock(struct mutex *))
 {
-  return ldv_mutex_try_acquire($arg1);
+	return ldv_mutex_try_acquire($arg1);
 }
 
 around: call(int atomic_dec_and_mutex_lock(atomic_t *, struct mutex *))
 {
-  return ldv_mutex_decrement_and_acquire($arg1, $arg2);
+	return ldv_mutex_decrement_and_acquire($arg1, $arg2);
 }
 
 around: call(void mutex_unlock(struct mutex *))
 {
-  ldv_mutex_release($arg1);
+	ldv_mutex_release($arg1);
 }
