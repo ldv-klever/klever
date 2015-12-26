@@ -70,16 +70,16 @@ int ldv_mutex_try_acquire{{ arg_sign.id }}(struct mutex *lock)
 	}
 }
 
-/* MODEL_FUNC_DEF Decrease a given counter by one and if it becomes 0 check that mutex{{ arg_sign.text }} was not acquired and acquire it */
+/* MODEL_FUNC_DEF Decrease a given counter by one and if it becomes zero check that mutex{{ arg_sign.text }} was not acquired and acquire it */
 int ldv_mutex_decrement_and_acquire{{ arg_sign.id }}(atomic_t *cnt, struct mutex *lock)
 {
 	/* OTHER Decrease counter by one */
 	cnt->counter--;
 
-	/* OTHER Mutex{{ arg_sign.text }} can be acquired if counter becomes 0 */
+	/* OTHER Mutex{{ arg_sign.text }} can be acquired if counter becomes zero */
 	if (cnt->counter)
 	{
-		/* RETURN Counter is greater then 0, so mutex{{ arg_sign.text }} was not acquired */
+		/* RETURN Counter is greater then zero, so mutex{{ arg_sign.text }} was not acquired */
 		return 0;
 	}
 	else

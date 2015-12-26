@@ -69,16 +69,16 @@ int ldv_mutex_try_acquire(struct mutex *lock)
   }
 }
 
-/* MODEL_FUNC_DEF Decrease a given counter by one and if it becomes 0 check that a given mutex was not acquired and acquire it */
+/* MODEL_FUNC_DEF Decrease a given counter by one and if it becomes zero check that a given mutex was not acquired and acquire it */
 int ldv_mutex_decrement_and_acquire(atomic_t *cnt, struct mutex *lock)
 {
   /* OTHER Decrease counter by one */
   cnt->counter--;
 
-  /* OTHER Mutex can be acquired if counter becomes 0 */
+  /* OTHER Mutex can be acquired if counter becomes zero */
   if (cnt->counter)
   {
-    /* RETURN Counter is greater then 0, so mutex was not acquired */
+    /* RETURN Counter is greater then zero, so mutex was not acquired */
     return 0;
   }
   else
