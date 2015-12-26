@@ -1,7 +1,8 @@
 from urllib.parse import unquote
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
-from django.http import JsonResponse, HttpResponseRedirect
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from bridge.populate import Population
@@ -38,7 +39,10 @@ def klever_bridge_error(request, err_code=0, user_message=None):
 @unparallel
 @login_required
 def population(request):
-    # activate(request.user.extended.language)
+    try:
+        activate(request.user.extended.language)
+    except ObjectDoesNotExist:
+        activate(request.LANGUAGE_CODE)
     if not request.user.is_staff:
         return HttpResponseRedirect(reverse('error', args=[900]))
     if request.method == 'POST':
