@@ -9,8 +9,9 @@
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_error();
 
-/* http://sv-comp.sosy-lab.org/2015/rules.php */
 #define ldv_assume(expr) __VERIFIER_assume(expr)
+
+/* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_assume(int expr);
 
 /* Special nondeterministic functions. */
