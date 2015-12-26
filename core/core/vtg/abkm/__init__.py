@@ -221,7 +221,7 @@ class ABKM(core.components.Component):
                     notes = {}
                     warns = {}
                     for src_file in src_files:
-                        with open(os.path.join(self.conf['source tree root'], src_file)) as fp:
+                        with open(os.path.join(self.conf['source tree root'], src_file), encoding='utf8') as fp:
                             i = 0
                             for line in fp:
                                 i += 1
@@ -345,7 +345,7 @@ class ABKM(core.components.Component):
                                 warn_edge.appendChild(warn)
 
                     self.logger.info('Create processed error trace file "witness.processed.graphml"')
-                    with open('witness.processed.graphml', 'w') as fp:
+                    with open('witness.processed.graphml', 'w', encoding='utf8') as fp:
                         graphml.writexml(fp)
 
                     # TODO: copy is done just to create unsafe report later, so get rid of it sometime.
