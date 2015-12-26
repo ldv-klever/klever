@@ -37,7 +37,7 @@ mutex_lock_killable(lock)
 
 around: call(void mutex_lock(struct mutex *)) || call(void mutex_lock_nested(struct mutex *, unsigned int))
 {
-	ldv_mutex_acquire_$arg_sign1($arg1);
+	ldv_mutex_acquire($arg1);
 }
 
 around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_lock_killable(struct mutex *))
