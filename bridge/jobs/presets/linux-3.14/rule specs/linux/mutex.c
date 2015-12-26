@@ -23,7 +23,7 @@ int ldv_mutex_acquire_interruptible_or_killable(struct mutex *lock)
   /* OTHER Nondeterministically acquire mutex */
   if (ldv_undef_int())
   {
-    /* MODEL_FUNC_CALL Acquire mutex  */
+    /* MODEL_FUNC_CALL Acquire mutex */
     ldv_mutex_acquire(lock);
     /* RETURN Successfully acquired mutex */
     return 0;
@@ -85,7 +85,7 @@ int ldv_mutex_decrement_and_acquire(atomic_t *cnt, struct mutex *lock)
   {
     /* ASSERT Acquired mutex should be unacquired */
     ldv_assert(!ldv_set_contains(LDV_MUTEXES, lock));
-    /* MODEL_FUNC_CALL Acquire mutex  */
+    /* MODEL_FUNC_CALL Acquire mutex */
     ldv_mutex_acquire(lock);
     /* RETURN Successfully acquired mutex */
     return 1;
