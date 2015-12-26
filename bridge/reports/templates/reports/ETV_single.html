@@ -20,12 +20,12 @@
                 {% else %}
                     {% if l.note %}
                         <span class="{{ l.class }}"{% if l.note_hidden %} style="display: none"{% endif %}>
-                            <a class="ui mini blue label ETV_ShowCommentCode">{% trans 'Note' %}</a><span class="ETV_NoteText">{{ l.offset }}{{ l.note }}</span><br>
+                            <a class="ui mini blue label ETV_ShowCommentCode"><i style="font-size:13px;" class="ui forward mail icon"></i></a><span class="ETV_NoteText">  {{ l.offset }}{{ l.note }}</span><br>
                         </span>
                     {% endif %}
                     {% if l.warning %}
                         <span class="{{ l.class }}">
-                            <a class="ui mini red label ETV_ShowCommentCode">{% trans 'Warning' %}</a><span class="ETV_WarnText">{{ l.offset }}{{ l.warning }}</span><br>
+                            <a class="ui mini red label ETV_ShowCommentCode"><i style="font-size:14px;" class="ui crosshairs icon"></i></a><span class="ETV_WarnText">   {{ l.offset }}{{ l.warning }}</span><br>
                         </span>
                     {% endif %}
                     <span class="{{ l.class }}{% if l.commented %} commented{% endif %}{% if l.collapsed %} func_collapsed{% endif %}"{% if l.hidden %} style="display:none"{% endif %}>
