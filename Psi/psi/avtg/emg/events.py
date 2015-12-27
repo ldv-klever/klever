@@ -466,14 +466,15 @@ class EventModel:
                     for parameter in subprocess.parameters:
                         # Parameter extraction
                         plabel, tail = process.extract_label_with_tail(parameter)
-                        if len(tail) > 0:
-                            # todo: hack here
-                            plabel.signature.pointer = True
 
                         # Match with arguments
                         for arg in cb.signature.parameters:
                             if arg.interface and arg.interface.full_identifier == plabel.interface:
                                 plabel.signature = arg
+
+                        if len(tail) > 0:
+                            # todo: hack here
+                            plabel.signature.pointer = True
 
             for label in [process.labels[name] for name in process.labels if not process.labels[name].signature]:
                 if label.interface and type(label.interface) is str:
@@ -481,6 +482,8 @@ class EventModel:
                 elif not label.interface:
                     raise RuntimeError("Label {} of process {} with identifier {} has no interface nor it has "
                                        "signature".format(label.name, process.name, process.identifier))
+            self.logger.debug("Analyzed signatures of process {} with an identifier {}".
+                              format(process.name, process.identifier))
 
     def __resolve_access(self, process, string):
         self.logger.debug("Try to convert access '{}' from process {} with an identifier {}".
