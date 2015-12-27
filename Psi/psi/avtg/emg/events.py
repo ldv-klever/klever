@@ -25,6 +25,9 @@ class EventModel:
             self.logger.info("Import processes from '{}'".format(collection))
             self.__import_processes(raw, collection)
 
+        self.logger.info("Generate model processes for Init and Exit module functions")
+        self.__generate_entry()
+
         # Generate intermediate model
         self.logger.info("Generate an intermediate model")
         self.__select_processes_and_models()
@@ -44,6 +47,82 @@ class EventModel:
                 for name in names:
                     process = Process(name, raw[category][name_list])
                     self.events[category][name] = process
+
+    def __generate_entry(self):
+        # todo: Implement multimodule processes creation
+        ep = Process("EMGentry")
+        self.model["entry"] = ep
+
+        # Generate init subprocess
+        init = Subprocess('init', {})
+        init.type = "dispatch"
+        init.callback = ["init"]
+        init.parameters = []
+
+        if len(self.analysis.inits) == 0:
+            raise RuntimeError('Module does not have Init function')
+        init_name = list(self.analysis.inits.values())[0]
+        init_label = Label('init')
+        init_label.value = init_name
+        init_label.signature = Signature("int %s {}(void)".format(init_name))
+
+        ret_label = Label('ret')
+        ret_label.signature = Signature("int %s")
+        ret_init = Subprocess('ret_init')
+        ret_init.type = "receive"
+        ret_init.callback_retval = ["ret"]
+        ret_init.callback = init.callback
+
+        # Generate exit subprocess
+        exit = Subprocess('exit', {})
+        exit.type = "dispatch"
+        exit.callback = ["exit"]
+        exit.parameters = []
+
+        exit_label = Label('exit')
+        exit_label.signature = Signature("void %s(void)".format())
+        if len(self.analysis.exits) != 0:
+            exit_name = list(self.analysis.exits.values())[0]
+            exit_label.value = exit_name
+        else:
+            exit_label.value = None
+
+        ep.labels['init'] = init_label
+        ep.labels['exit'] = exit_label
+        ep.labels['ret'] = ret_label
+        ep.subprocesses['init'] = init
+        ep.subprocesses['exit'] = exit
+        ep.subprocesses['ret_init'] = ret_init
+        return
+
+    def __finish_entry(self):
+        # Retval check
+        dispatches = ['[init_success]']
+        # All default registrations
+        dispatches.extend(["[{}]".format(name) for name in self.model["entry"].subprocesses
+                           if name not in ["init", "exit"]
+                           and self.model["entry"].subprocesses[name].type == "dispatch"])
+
+        # Generate conditions
+        success = Subprocess('init_success')
+        success.type = "condition"
+        success.condition = "%ret% == 0"
+        self.model["entry"].subprocesses['init_success'] = success
+
+        failed = Subprocess('init_failed')
+        failed.type = "condition"
+        failed.condition = "%ret% != 0"
+        self.model["entry"].subprocesses['init_failed'] = failed
+
+        stop = Subprocess('stop')
+        stop.type = "condition"
+        stop.statements = ["__VERIFIER_stop();"]
+        self.model["entry"].subprocesses['stop'] = stop
+
+        # Add subprocesses finally
+        self.model["entry"].process = "[init].(ret_init).({} | <init_failed>).[exit].<stop>".format('.'.join(dispatches))
+        self.model["entry"].process_ast = self.model["entry"].process_model.parse(self.model["entry"].process,
+                                                                                  ignorecase=True)
 
     def __select_processes_and_models(self):
         # Import necessary kernel models
@@ -70,6 +149,9 @@ class EventModel:
             else:
                 self.logger.info("Ignore interface category {}, since it does not have callbacks to call".
                                  format(category))
+
+        # Finish entry point process generation
+        self.__finish_entry()
 
     def __import_kernel_models(self):
         for function in self.events["kernel model"]:

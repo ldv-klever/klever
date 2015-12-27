@@ -29,7 +29,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _generate_entry_point(self):
-        pass
+        raise NotImplementedError("Use corresponding translator instead of this abstract one")
 
     def __determine_entry(self):
         if len(self.analysis.inits) == 1:
@@ -53,25 +53,45 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     pass
 
     def _generate_aspects(self):
-        for file in self.files:
-            aspect_file = []
-            aspect_file.append('after: file ("$this")\n')
-            aspect_file.append('{\n')
-            if "functions" in self.files[file]:
-                for function in self.files[file]["functions"]:
-                    lines = self.files[file]["functions"][function].get_definition()
-                    aspect_file.append("\n")
-                    aspect_file.extend(lines)
-            aspect_file.append('}\n')
+        for grp in self.task['grps']:
+            # Generate function declarations
+            self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
+            for cc_extra_full_desc_file in grp['cc extra full desc files']:
+                lines = []
+                lines.append('after: file ("$this")\n')
+                lines.append('{\n')
+                for file in self.files:
+                    if "functions" in self.files[file]:
+                        for function in [self.files[file]["functions"][name] for name in self.files[file]["functions"]]:
+                            if function.export and cc_extra_full_desc_file != file:
+                                lines.extend(function.get_declaration(extern=True))
+                            elif function.export and cc_extra_full_desc_file == file:
+                                lines.extend(function.get_declaration(extern=False))
 
-            # TODO: rewrite code below
-            name = "single_hardcoded_aspect_file.aspect"
-            with open("single_hardcoded_aspect_file.aspect", "w") as fh:
-                fh.writelines(aspect_file)
+                for file in self.files:
+                    if "variables" in self.files[file]:
+                        for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]]:
+                            if variable.export and cc_extra_full_desc_file != file:
+                                lines.extend(variable.get_declaration(extern=True))
+                            elif variable.export and cc_extra_full_desc_file == file:
+                                lines.extend(variable.get_declaration(extern=False))
 
-            path = os.path.relpath(os.path.abspath(name), os.path.realpath(self.conf['source tree root']))
-            self.logger.info("Add aspect file {}".format(path))
-            self.aspects[file] = path
+                for file in self.files:
+                    if "functions" in self.files[file]:
+                        for function in [self.files[file]["functions"][name] for name in self.files[file]["functions"]]:
+                            if function.export and cc_extra_full_desc_file != file:
+                                lines.extend(function.get_declaration(extern=True))
+                            elif function.export and cc_extra_full_desc_file == file:
+                                lines.extend(function.get_declaration(extern=False))
+                lines.append("}\n")
+
+                name = "emg_{}.aspect".format(cc_extra_full_desc_file)
+                with open(name, "w") as fh:
+                    fh.writelines(lines)
+
+                path = os.path.relpath(os.path.abspath(name), os.path.realpath(self.conf['source tree root']))
+                self.logger.info("Add aspect file {}".format(path))
+                self.aspects[cc_extra_full_desc_file] = path
 
     def _add_aspects(self):
         for grp in self.task['grps']:
@@ -97,6 +117,8 @@ class Variable:
     def __init__(self, name, file, signature=Signature("void *%s"), export=False):
         self.name = name
         self.file = file
+        if not signature:
+            raise ValueError("Attempt to create variable {} without signature".format(name))
         self.signature = signature
         self.value = None
         self.export = export
@@ -110,13 +132,21 @@ class Variable:
         declaration += ";"
         return declaration
 
-    def declare(self):
+    def declare(self, set_value=True):
         declaration = self.signature.expression
         declaration = self.name_re.sub(self.name, declaration)
-        if self.value:
+        if self.value and set_value:
             declaration += " = {}".format(self.value)
         declaration += ";"
         return declaration
+
+    def get_declaration(self, extern=False):
+        if extern:
+            declaration = self.declare(set_value=False)
+            declaration = "extern " + declaration
+        else:
+            declaration = self.declare()
+        return [declaration]
 
 
 class Function:
@@ -135,6 +165,13 @@ class Function:
         else:
             self.__body.concatenate(body)
         return self.__body
+
+    def get_declaration(self, extern=False):
+        declaration = self.signature.expression.replace("%s", self.name) + ';'
+
+        if extern:
+            declaration = "extern " + declaration
+        return [declaration]
 
     def get_definition(self):
         if self.signature.type_class == "function" and not self.signature.pointer:

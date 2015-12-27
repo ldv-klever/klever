@@ -34,6 +34,28 @@ class Translator(AbstractTranslator):
                              "with process {}".format(automaton.identifier, automaton.process.name))
             automaton.generate_automata()
 
+        # Generate state machine for init/exit
+        self.logger.info("Generate automata for module initialization and exit functions")
+        ri = {
+            "callbacks": [
+                ['init'],
+                ['exit']
+            ],
+            "implementations": {
+                str(['init']): [[self.entry_file, self.model["entry"].labels["init"].value]],
+                str(['exit']): [[self.entry_file, self.model["entry"].labels["exit"].value]]
+            },
+            "signatures": {
+                str(['init']): self.model["entry"].labels["init"].signature,
+                str(['exit']): self.model["entry"].labels["exit"].signature
+            },
+            "parameters": []
+        }
+        main = Automata(self.logger, len(self.automata), self.entry_file, self.model["entry"], self)
+        main.label_map = ri
+        main.generate_automata()
+        self.automata.append(main)
+
         # Generate variables
         for automaton in self.automata:
             variables = automaton.variables
@@ -50,12 +72,13 @@ class Translator(AbstractTranslator):
             cf = automaton.control_function
             self.files[automaton.file]["functions"][cf.name] = cf
 
-        return
+        # Generate entry point function
+        ep = self.__generate_entry_point()
+        self.files[self.entry_file][ep.name] = ep
 
-    def __generate_automata(self, ri, process):
+    def __collect_ri(self, ri, process):
         ri["implementations"] = {}
         ri["signatures"] = {}
-        process_automata = []
 
         # Set containers
         for callback in ri["callbacks"]:
@@ -79,7 +102,13 @@ class Translator(AbstractTranslator):
             ri["implementations"][str(parameter)] = self.__get_implementations(intf[-1].full_identifier)
             ri["signatures"][str(parameter)] = intf[-1].signature
 
+        return ri
+
+    def __generate_automata(self, ri, process):
+        ri = self.__collect_ri(ri, process)
+
         # Copy processes
+        process_automata = []
         labels = [process.labels[name] for name in process.labels if process.labels[name].container
                   and process.labels[name].interface
                   and process.labels[name].interface in ri["implementations"]
@@ -142,6 +171,39 @@ class Translator(AbstractTranslator):
             identifier = "{}.{}".format(category, identifier)
             ret.append(self.analysis.interfaces[identifier])
         return ret
+
+    def __generate_entry_point(self):
+        self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
+        # Function prototype
+        ep = Function(
+            self.entry_point_name,
+            self.entry_file,
+            Signature("void {}(void)".format(self.entry_point_name)),
+            False
+        )
+
+        body = [
+            "while(1) {",
+            "\tswitch(__VERIFIER_nondet_int()) {"
+        ]
+
+        for index in range(len(self.automata)):
+            body.extend(
+                [
+                    "\t\tcase {}: ".format(index),
+                    "\t\t\t{}();".format(self.automata[index].control_function.name),
+                    "\t\tbreak;"
+                ]
+            )
+        body.extend(
+            [
+                "\t\tdefault: break;",
+                "}"
+            ]
+        )
+        ep.body.concatenate(body)
+
+        return ep
 
 
 class Automata:
@@ -242,6 +304,9 @@ class Automata:
             # Generate variable for each label
             self.label_map["labels"] = {}
             for label in [self.process.labels[name] for name in self.process.labels]:
+                if not label.signature:
+                    raise ValueError("Attempt to create variable without signature for automata {} for process {}".
+                                     format(self.identifier, self.process.name))
                 var = Variable("emg_sm_{}_{}".format(self.identifier, label.name), self.file,
                                label.signature, export=True)
                 if label.value:
@@ -552,9 +617,9 @@ class Automata:
             case["body"].append("/* Code or condition insertion {} */".format(subprocess.name))
 
             # Add additional condition
-            if subprocess.condition:
-                subprocess.condition = self.__text_processor(subprocess.condition)
-                case["guard"] += " && {}".format(subprocess.condition)
+            if subprocess.condition and subprocess.condition != "":
+                cn = self.__text_processor(subprocess.condition)
+                case["guard"] += " && {}".format(cn)
             if subprocess.statements:
                 for statement in subprocess.statements:
                     case["body"].append(self.__text_processor(statement))
@@ -580,6 +645,7 @@ class Automata:
             if len(access) > 0:
                 replacement += ".".join(access[1:])
             statement = statement.replace(match.group(0), replacement)
+        return statement
 
     def __registration_guard_check(self, function_call):
         name_re = re.compile("\s*\&?\s*(\w+)\s*$")

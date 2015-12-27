@@ -96,7 +96,7 @@ class EMG(psi.components.Component):
                 self.event_spec = spec
             else:
                 raise FileNotFoundError("File {} does not match interface categories specification nor it matches event"
-                                        " categories specification, please check its content")
+                                        " categories specification, please check its content".format(file))
 
         if not self.interface_spec:
             raise FileNotFoundError("EMG requires interface categories specification but it is missed")
