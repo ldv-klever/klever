@@ -28,6 +28,28 @@ def prepare_node_info(node_info):
     if "available for tasks" not in result:
         raise KeyError("Provide configuration property 'node configuration''available for tasks'")
 
+    # TODO: extract this to the common library. Add debug printing in particular warn if specified values are out of bouds. Try to use some mathematical functions like min and max.
+    # Do magic transformations like in get_parallel_threads_num() from core/utils.py to dynamically adjust available
+    # resources if they are specified as decimals.
+    if isinstance(result["available CPU number"], float):
+        result["available CPU number"] = int(result["CPU number"] * result["available CPU number"])
+    if result["available CPU number"] < 1:
+        result["available CPU number"] = 1
+    elif result["available CPU number"] > result["CPU number"]:
+        result["available CPU number"] = result["CPU number"]
+    if isinstance(result["available RAM memory"], float):
+        result["available RAM memory"] = int(result["RAM memory"] * result["available RAM memory"])
+    if result["available RAM memory"] < 1000 ** 3:
+        result["available RAM memory"] = 1000 ** 3
+    elif result["available RAM memory"] > result["RAM memory"] - 1000 ** 3:
+        result["available RAM memory"] = result["RAM memory"] - 1000 ** 3
+    if isinstance(result["available disk memory"], float):
+        result["available disk memory"] = int(result["disk memory"] * result["available disk memory"])
+    if result["available disk memory"] < 1000 ** 3:
+        result["available disk memory"] = 1000 ** 3
+    elif result["available disk memory"] > result["disk memory"] - 1000 ** 3:
+        result["available disk memory"] = result["disk memory"] - 1000 ** 3
+
     # Check feasibility of limits
     if result["available RAM memory"] > result["RAM memory"]:
         raise ValueError("Node has {} bytes of RAM memory but {} is attempted to reserve".
