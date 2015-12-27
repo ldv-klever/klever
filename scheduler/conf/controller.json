@@ -53,9 +53,9 @@
     "bind address": "0.0.0.0",
     "available for jobs": true,
     "available for tasks": true,
-    "available CPU number": 4,
-    "available RAM memory": 8000000000,
-    "available disk memory": 8000000000
+    "available CPU number": 1.0,
+    "available RAM memory": 1.0,
+    "available disk memory": 1.0
   },
   "common": {
     "working directory": "scheduler-controller-dir",
