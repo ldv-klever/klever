@@ -121,15 +121,15 @@ def solve_task(conf):
 
     # Check resource limitations
     if "CPU time" not in conf["resource limits"]:
-        conf["resource limits"]["CPU time"] = "-1"
+        conf["resource limits"]["CPU time"] = -1000
         logging.info("CPU time limit will not be set")
     logging.info("CPU time limit: {}s".format(conf["resource limits"]["CPU time"]))
     if "wall time" not in conf["resource limits"]:
-        conf["resource limits"]["wall time"] = "-1"
+        conf["resource limits"]["wall time"] = -1000
         logging.info("Wall time limit will not be set")
     logging.info("Wall time limit: {}s".format(conf["resource limits"]["wall time"]))
     if "memory size" not in conf["resource limits"]:
-        conf["resource limits"]["memory size"] = "-1"
+        conf["resource limits"]["memory size"] = -(1000 ** 2)
         logging.info("Memory limit will not be set")
     logging.info("Memory limit: {} bytes".format(conf["resource limits"]["memory size"]))
 
@@ -144,8 +144,8 @@ def solve_task(conf):
     logging.info("Prepare benchmark")
     benchmark = ElementTree.Element("benchmark", {
         "tool": conf["verifier"]["name"].lower(),
-        "timelimit": str(conf["resource limits"]["CPU time"]),
-        "memlimit": str(round(conf["resource limits"]["memory size"] / (1024 ** 2))),
+        "timelimit": str(round(conf["resource limits"]["CPU time"] / 1000)),
+        "memlimit": str(round(conf["resource limits"]["memory size"] / (1000 ** 2))),
     })
     rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
     for opt in conf["verifier"]["options"] + [
