@@ -140,12 +140,13 @@ class Scheduler(schedulers.SchedulerExchange):
                 "Host CPU model is not {} (has only {})".
                 format(desc["resource limits"]["CPU model"]), self.__cpu_model)
 
-        if desc["resource limits"]["memory size"] >= self.__ram_memory:
+        if desc["resource limits"]["memory size"] > self.__ram_memory:
             raise schedulers.SchedulerException(
                 "Host does not have {} bytes of RAM memory (has only {} bytes)".
                 format(desc["resource limits"]["memory size"], self.__ram_memory))
 
         # TODO: Disk space check
+        # TODO: number of CPU cores check
 
     def __create_work_dir(self, entities, identifier):
         work_dir = os.path.join(self.work_dir, entities, identifier)
