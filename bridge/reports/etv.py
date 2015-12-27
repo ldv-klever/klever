@@ -199,9 +199,6 @@ class GetETV(object):
                     cnt += 1
                     scope_stack.append('scope__klever_main__%s' % str(cnt))
                     scopes_to_show.append(scope_stack[-1])
-                    add_fake_line('klever_main() {')
-                    curr_offset += TAB_LENGTH
-                    line_data['offset'] = ' ' * curr_offset
                     line_data['class'] = scope_stack[-1]
                     has_main = True
                 if 'assumption.scope' in n.attr:
@@ -223,9 +220,6 @@ class GetETV(object):
                     cnt += 1
                     scope_stack.append('scope__klever_main__%s' % str(cnt))
                     scopes_to_show.append(scope_stack[-1])
-                    add_fake_line('klever_main() {')
-                    curr_offset += TAB_LENGTH
-                    line_data['offset'] = ' ' * curr_offset
                     line_data['class'] = scope_stack[-1]
                     has_main = True
                 cnt += 1

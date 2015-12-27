@@ -192,10 +192,17 @@ $(document).ready(function () {
             var next_line = selected_line.next(),
                 next_line_link;
             while (next_line.length) {
-                if (next_line.find('a.ETV_La').length && next_line.is(':visible')) {
-                    next_line_link = next_line.find('a.ETV_La');
-                    if (next_line_link.length) {
-                        next_line_link.click();
+                if (next_line.is(':visible')) {
+                    if (next_line.find('a.ETV_La').length) {
+                        next_line_link = next_line.find('a.ETV_La');
+                        if (next_line_link.length) {
+                            next_line_link.click();
+                            return true;
+                        }
+                    }
+                    else if (next_line.find('a.ETV_ShowCommentCode').length && !next_line.next('span').is(':visible')) {
+                        next_line.next('span').find('.ETV_La').click();
+                        next_line.addClass('ETVSelectedLine');
                         return true;
                     }
                 }
@@ -210,10 +217,17 @@ $(document).ready(function () {
             var prev_line = selected_line.prev(),
                 prev_line_link;
             while (prev_line.length) {
-                if (prev_line.find('a.ETV_La').length && prev_line.is(':visible')) {
-                    prev_line_link = prev_line.find('a.ETV_La');
-                    if (prev_line_link.length) {
-                        prev_line_link.click();
+                if (prev_line.is(':visible')) {
+                    if (prev_line.find('a.ETV_La').length) {
+                        prev_line_link = prev_line.find('a.ETV_La');
+                        if (prev_line_link.length) {
+                            prev_line_link.click();
+                            return true;
+                        }
+                    }
+                    else if (prev_line.find('a.ETV_ShowCommentCode').length && !prev_line.next('span').is(':visible')) {
+                        prev_line.next('span').find('.ETV_La').click();
+                        prev_line.addClass('ETVSelectedLine');
                         return true;
                     }
                 }
