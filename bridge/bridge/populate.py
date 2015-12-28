@@ -155,13 +155,13 @@ class Population(object):
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
                 print_err('There is default job without settings file')
                 continue
-            conf = open(os.path.join(jobdir, JOB_SETTINGS_FILE), 'rb')
-            try:
-                job_settings = json.loads(''.join(conf.read().decode('utf8').split('\n')))
-            except Exception as e:
-                print_err(e)
-                print_err('The default job was not created')
-                continue
+            with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
+                try:
+                    job_settings = json.load(fp)
+                except Exception as e:
+                    print_err(e)
+                    print_err('The default job was not created')
+                    continue
             if any(x not in job_settings for x in ['name', 'class', 'description']):
                 print_err('Default job settings must contain name, class and description')
                 continue
@@ -243,12 +243,12 @@ class Population(object):
                 print_err('Wrong component length: %s' % component)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
                 fname = os.path.basename(mark_settings)
-                f = open(mark_settings, 'r', encoding='utf8')
-                try:
-                    data = json.loads(''.join(f.read().split('\n')))
-                except Exception as e:
-                    print_err(e)
-                    continue
+                with open(mark_settings, encoding='utf8') as fp:
+                    try:
+                        data = json.load(fp)
+                    except Exception as e:
+                        print_err(e)
+                        continue
                 if not isinstance(data, dict) or any(x not in data for x in ['class', 'function', 'pattern']):
                     print_err('Wrong unknown mark data: %s' % fname)
                     continue
