@@ -50,6 +50,7 @@ class EMG(psi.components.Component):
         # TODO: Import existing environment model
         self.model = EventModel(self.logger, self.module_interface_spec, self.event_spec).model
 
+        # Choose translator
         translator_name = None
         if "translator" in self.conf:
             translator_name = self.conf["translator"]

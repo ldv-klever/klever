@@ -53,6 +53,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     pass
 
     def _generate_aspects(self):
+        self.logger.info("Create aspects diretory in EMG working directory")
+        os.makedirs("aspects", exist_ok=True)
+
         for grp in self.task['grps']:
             # Generate function declarations
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
@@ -60,38 +63,43 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines = []
                 lines.append('after: file ("$this")\n')
                 lines.append('{\n')
+                lines.append("/* EMG Function declarations */\n")
                 for file in self.files:
                     if "functions" in self.files[file]:
                         for function in [self.files[file]["functions"][name] for name in self.files[file]["functions"]]:
-                            if function.export and cc_extra_full_desc_file != file:
+                            if function.export and cc_extra_full_desc_file["in file"] != file:
                                 lines.extend(function.get_declaration(extern=True))
-                            elif function.export and cc_extra_full_desc_file == file:
+                            else:
                                 lines.extend(function.get_declaration(extern=False))
+                lines.append("\n")
 
+                lines.append("/* EMG variable declarations */\n")
                 for file in self.files:
                     if "variables" in self.files[file]:
                         for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]]:
-                            if variable.export and cc_extra_full_desc_file != file:
+                            if variable.export and cc_extra_full_desc_file["in file"] != file:
                                 lines.extend(variable.get_declaration(extern=True))
-                            elif variable.export and cc_extra_full_desc_file == file:
+                            else:
                                 lines.extend(variable.get_declaration(extern=False))
+                lines.append("\n")
 
+                lines.append("/* EMG function definitions */\n")
                 for file in self.files:
                     if "functions" in self.files[file]:
                         for function in [self.files[file]["functions"][name] for name in self.files[file]["functions"]]:
-                            if function.export and cc_extra_full_desc_file != file:
-                                lines.extend(function.get_declaration(extern=True))
-                            elif function.export and cc_extra_full_desc_file == file:
-                                lines.extend(function.get_declaration(extern=False))
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.extend(function.get_definition())
+                                lines.append("\n")
                 lines.append("}\n")
 
-                name = "emg_{}.aspect".format(cc_extra_full_desc_file)
+                name = "aspects/emg_{}.aspect".format(os.path.splitext(
+                    os.path.basename(cc_extra_full_desc_file["in file"]))[0])
                 with open(name, "w") as fh:
                     fh.writelines(lines)
 
                 path = os.path.relpath(os.path.abspath(name), os.path.realpath(self.conf['source tree root']))
                 self.logger.info("Add aspect file {}".format(path))
-                self.aspects[cc_extra_full_desc_file] = path
+                self.aspects[cc_extra_full_desc_file["in file"]] = path
 
     def _add_aspects(self):
         for grp in self.task['grps']:
@@ -112,7 +120,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
 
 class Variable:
-    name_re = re.compile("%s")
+    name_re = re.compile("\(?\*?%s\)?")
 
     def __init__(self, name, file, signature=Signature("void *%s"), export=False):
         self.name = name
@@ -134,7 +142,10 @@ class Variable:
 
     def declare(self, set_value=True):
         declaration = self.signature.expression
-        declaration = self.name_re.sub(self.name, declaration)
+        if self.signature.type_class == "function":
+            declaration = self.name_re.sub("(* {})".format(self.name), declaration)
+        else:
+            declaration = self.name_re.sub(self.name, declaration)
         if self.value and set_value:
             declaration += " = {}".format(self.value)
         declaration += ";"
@@ -146,7 +157,7 @@ class Variable:
             declaration = "extern " + declaration
         else:
             declaration = self.declare()
-        return [declaration]
+        return [declaration + "\n"]
 
 
 class Function:
@@ -171,7 +182,7 @@ class Function:
 
         if extern:
             declaration = "extern " + declaration
-        return [declaration]
+        return [declaration + "\n"]
 
     def get_definition(self):
         if self.signature.type_class == "function" and not self.signature.pointer:
@@ -280,7 +291,7 @@ class ModelMap:
     @staticmethod
     def init_pointer(signature):
         if signature.type_class in ["struct", "primitive"] and signature.pointer:
-            return "{}(sizeof(struct {}));".format(ModelMap.mem_function_map["ZINIT"], signature.structure_name)
+            return "{}(sizeof(struct {}))".format(ModelMap.mem_function_map["ZINIT"], signature.structure_name)
         else:
             raise NotImplementedError("Cannot initialize label {} which is not pointer to structure or primitive".
                                       format(signature.name, signature.type_class))

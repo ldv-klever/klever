@@ -10,13 +10,23 @@ from psi.avtg.emg.interfaces import Signature
 class Translator(AbstractTranslator):
     unmatched_constant = 2
     automata = []
+    models = []
+
+    def get_interfaces(self, interface, access):
+        ret = [self.analysis.interfaces[interface]]
+        for index in range(1, len(access)):
+            category = ret[-1].category
+            identifier = ret[-1].fields[access[index]]
+            identifier = "{}.{}".format(category, identifier)
+            ret.append(self.analysis.interfaces[identifier])
+        return ret
 
     def _generate_entry_point(self):
         ri = {}
         for process in self.model["models"] + self.model["processes"]:
             ri[process.identifier] = process.collect_relevant_interfaces()
 
-        # Generate automatas
+        # Generate automata
         self.automata = []
         for process in self.model["processes"]:
             if len(ri[process.identifier]["callbacks"]) > 0:
@@ -24,12 +34,16 @@ class Translator(AbstractTranslator):
             else:
                 self.automata.append(Automata(self.logger, len(self.automata), self.entry_file, process, self))
 
+        # Generate automata for models
+        for process in self.model["models"]:
+            self.models.append(Automata(self.logger, len(self.automata), self.entry_file, process, self))
+
         # Create directory for automata
         self.logger.info("Create working directory for automata '{}'".format("automata"))
         os.makedirs("automata", exist_ok=True)
 
         # Generate states
-        for automaton in self.automata:
+        for automaton in self.automata + self.models:
             self.logger.info("Calculate states of automata and generate image with state transitions of automata {} "
                              "with process {}".format(automaton.identifier, automaton.process.name))
             automaton.generate_automata()
@@ -72,9 +86,14 @@ class Translator(AbstractTranslator):
             cf = automaton.control_function
             self.files[automaton.file]["functions"][cf.name] = cf
 
+            for function in automaton.functions:
+                if function.file not in self.files:
+                    self.files[function.file] = {"functions": {}, "variables": {}}
+                self.files[function.file]["functions"][function.name] = function
+
         # Generate entry point function
         ep = self.__generate_entry_point()
-        self.files[self.entry_file][ep.name] = ep
+        self.files[self.entry_file]["functions"][ep.name] = ep
 
     def __collect_ri(self, ri, process):
         ri["implementations"] = {}
@@ -87,21 +106,36 @@ class Translator(AbstractTranslator):
             else:
                 interfaces = [process.labels[callback[0]].interface]
             for interface in interfaces:
-                intfs = self.__get_interfaces(interface, callback)
-                ri["implementations"][str(callback)] = self.__get_implementations(intfs[-1].full_identifier)
-                ri["signatures"][str(callback)] = intfs[-1].signature
+                intfs = self.get_interfaces(interface, callback)
+                for index in range(len(intfs)):
+                    if str(callback[0:index + 1]) not in ri["implementations"]:
+                        ri["implementations"][str(callback[0:index + 1])] = {}
+                    ri["implementations"][str(callback[0:index + 1])][intfs[index].full_identifier] = \
+                        self.__get_implementations(intfs[index].full_identifier)
+                    if str(callback[0:index + 1]) not in ri["signatures"]:
+                        ri["signatures"][str(callback[0:index + 1])] = {}
+                    ri["signatures"][str(callback[0:index + 1])][intfs[index].full_identifier] = intfs[-1].signature
 
         # Get parameters and resources implementations
         for label in ri["resources"]:
-            ri["implementations"][str([label.name])] = self.__get_implementations(label.interface)
-            ri["signatures"][str([label.name])] = label.signature
+            if str([label.name]) not in ri["implementations"]:
+                ri["implementations"][str([label.name])] = {}
+            ri["implementations"][str([label.name])][label.interface] = self.__get_implementations(label.interface)
+            if str([label.name]) not in ri["signatures"]:
+                ri["signatures"][str([label.name])] = {}
+            ri["signatures"][str([label.name])][label.interface] = label.signature
 
         # Get parameters and resources implementations
         for parameter in ri["parameters"]:
-            intf = self.__get_interfaces(process.labels[parameter[0]].interface, parameter)
-            ri["implementations"][str(parameter)] = self.__get_implementations(intf[-1].full_identifier)
-            ri["signatures"][str(parameter)] = intf[-1].signature
-
+            intf = self.get_interfaces(process.labels[parameter[0]].interface, parameter)
+            for index in range(len(intf)):
+                if str(parameter[0:index + 1]) not in ri["implementations"]:
+                    ri["implementations"][str(parameter[0:index + 1])] = {}
+                ri["implementations"][str(parameter[0:index + 1])][intf[index].full_identifier] = \
+                    self.__get_implementations(intf[index].full_identifier)
+                if str(parameter[0:index + 1]) not in ri["signatures"]:
+                    ri["signatures"][str(parameter[0:index + 1])] = {}
+                ri["signatures"][str(parameter[0:index + 1])][intf[index].full_identifier] = intf[index].signature
         return ri
 
     def __generate_automata(self, ri, process):
@@ -111,8 +145,9 @@ class Translator(AbstractTranslator):
         process_automata = []
         labels = [process.labels[name] for name in process.labels if process.labels[name].container
                   and process.labels[name].interface
-                  and process.labels[name].interface in ri["implementations"]
-                  and ri["implementations"][process.labels[name].interface]]
+                  and str([name]) in ri["implementations"]
+                  and process.labels[name].interface in ri["implementations"][str([name])]
+                  and ri["implementations"][str([name])][process.labels[name].interface]]
         if len(labels) == 0:
             for index in range(self.unmatched_constant):
                 au = Automata(self.logger, len(self.automata) + len(process_automata), self.entry_file, process, self)
@@ -163,15 +198,6 @@ class Translator(AbstractTranslator):
         else:
             return retval
 
-    def __get_interfaces(self, interface, access):
-        ret = [self.analysis.interfaces[interface]]
-        for index in range(1, len(access)):
-            category = ret[-1].category
-            identifier = ret[-1].fields[access[index]]
-            identifier = "{}.{}".format(category, identifier)
-            ret.append(self.analysis.interfaces[identifier])
-        return ret
-
     def __generate_entry_point(self):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
         # Function prototype
@@ -198,6 +224,7 @@ class Translator(AbstractTranslator):
         body.extend(
             [
                 "\t\tdefault: break;",
+                "\t}",
                 "}"
             ]
         )
@@ -304,15 +331,34 @@ class Automata:
             # Generate variable for each label
             self.label_map["labels"] = {}
             for label in [self.process.labels[name] for name in self.process.labels]:
-                if not label.signature:
-                    raise ValueError("Attempt to create variable without signature for automata {} for process {}".
-                                     format(self.identifier, self.process.name))
-                var = Variable("emg_sm_{}_{}".format(self.identifier, label.name), self.file,
-                               label.signature, export=True)
-                if label.value:
-                    var.value = label.value
-                self.label_map["labels"][label.name] = var
-                self.__variables.append(var)
+                if label.signature:
+                    var = Variable("emg_sm_{}_{}".format(self.identifier, label.name), self.file,
+                                   label.signature, export=True)
+                    if label.value:
+                        var.value = label.value
+                    else:
+                        # Find implementations
+                        if "implementations" in self.label_map\
+                                and label.interface and str([label.name]) in self.label_map["implementations"] \
+                                and label.interface in self.label_map["implementations"][str([label.name])]\
+                                and self.label_map["implementations"][str([label.name])][label.interface]:
+                            impl = self.label_map["implementations"][str([label.name])][label.interface][0][1]
+
+                            # todo: do this carefully
+                            if self.translator.analysis.interfaces[label.interface].signature.pointer \
+                                    == var.signature.pointer:
+                                var.value = impl
+                            elif self.translator.analysis.interfaces[label.interface].signature.pointer:
+                                var.value = "* " + impl
+                            else:
+                                var.value = "& " + impl
+
+                    self.label_map["labels"][label.name] = var
+                    self.__variables.append(var)
+                else:
+                    self.logger.warning("Cannot create variable without signature for automata {} for process {}".
+                                        format(self.identifier, self.process.name))
+
         return self.__variables
 
     @property
@@ -324,8 +370,8 @@ class Automata:
             # Generate case for each transition
             cases = []
             for edge in self.state_transitions:
-                case = self.__generate_case(edge)
-                cases.append(case)
+                new = self.__generate_case(edge)
+                cases.extend(new)
             if len(cases) == 0:
                 raise RuntimeError("Cannot generate control function for automata {} with process {}".
                                    format(self.identifier, self.process.name))
@@ -343,25 +389,26 @@ class Automata:
             for index in range(len(cases)):
                 body.extend(
                     [
-                        "    case {}: ".format(index) + '{',
-                        "       if ({}) ".format(case["guard"]) + '{'
+                        "\tcase {}: ".format(index) + '{',
+                        "\t\tif ({}) ".format(cases[index]["guard"]) + '{'
                     ]
                 )
-                body.extend([3 * "\t" + statement for statement in case["body"]])
+                body.extend([(3 * "\t" + statement) for statement in cases[index]["body"]])
                 body.extend(
                     [
-                        "      }",
-                        "   }",
-                        "break;"
+                        "\t\t}",
+                        "\t}",
+                        "\tbreak;"
                     ]
                 )
             body.extend(
                 [
-                    "   default: break;"
+                    "\tdefault: break;",
                     "}"
                 ]
             )
             self.__control_function.body.concatenate(body)
+            self.__functions.append(self.__control_function)
 
         # Return control function
         return self.__control_function
@@ -419,7 +466,8 @@ class Automata:
                         "ast": ast[key],
                         "subprocess": self.process.subprocesses[ast[key]["name"]],
                         "in": origin,
-                        "out": state
+                        "out": state,
+                        "automata": self
                     }
                     self.state_transitions.append(transition)
             else:
@@ -429,7 +477,8 @@ class Automata:
                         "ast": ast[key],
                         "subprocess": self.process.subprocesses[ast[key]["name"]],
                         "in": origin,
-                        "out": self.__state_counter
+                        "out": self.__state_counter,
+                        "automata": self
                     }
                     self.state_transitions.append(transition)
                 self.__checked_subprocesses[ast[key]["name"]] = self.__state_counter
@@ -446,7 +495,8 @@ class Automata:
                     "ast": ast[key],
                     "subprocess": self.process.subprocesses[ast[key]["name"]],
                     "in": origin,
-                    "out": self.__state_counter
+                    "out": self.__state_counter,
+                    "automata": self
                 }
                 self.state_transitions.append(transition)
 
@@ -466,7 +516,8 @@ class Automata:
                         "ast": ast[key],
                         "subprocess": self.process.subprocesses[ast[key]["name"]],
                         "in": self.__state_counter,
-                        "out": self.__state_counter + 1
+                        "out": self.__state_counter + 1,
+                        "automata": self
                     }
                     self.__state_counter += 1
                     self.state_transitions.append(transition)
@@ -498,56 +549,118 @@ class Automata:
                 raise ValueError("Unknown AST type {}".format(str(self.__checked_ast[identifier])))
         return ret
 
+    def __determine_callback_implementation(self, case, subprocess, interface):
+        signature = self.label_map["signatures"][str(subprocess.callback)][interface]
+        file = None
+        check = False
+
+        # Extract label name
+        label = subprocess.callback[0]
+        if str(subprocess.callback) in self.label_map["implementations"]\
+                and interface in self.label_map["implementations"][str(subprocess.callback)]\
+                and self.label_map["implementations"][str(subprocess.callback)][interface]:
+            file = self.label_map["implementations"][str(subprocess.callback)][interface][0][0]
+            invoke = "({})".format(self.label_map["implementations"][str(subprocess.callback)][interface][0][1])
+            additional_check = self.__registration_guard_check(
+                self.label_map["implementations"][str(subprocess.callback)][interface][0][1])
+            if additional_check:
+                case["guard"] += " && ({})".format(additional_check)
+        else:
+            if label in self.label_map["labels"]:
+                invoke = self.label_map["labels"][label].name
+                if len(subprocess.callback) > 1:
+                    # todo: do it analyzing each dereference
+                    if self.process.labels[label].signature.pointer:
+                        invoke += '->' + '->'.join(subprocess.callback[1:])
+                    else:
+                        invoke += '.' + '->'.join(subprocess.callback[1:])
+                    check = True
+            else:
+                self.logger.warning("Seems that label {} does not have signature but it must, ignore this callback".
+                                    format(label))
+                return None
+        if not file:
+            file = self.file
+        return [case, signature, invoke, file, check]
+
+    def __generate_callback_call(self, case):
+        pass
+
     def __generate_case(self, edge):
         subprocess = edge["subprocess"]
-        case = {
+        cases = []
+        base_case = {
             "guard": "{} == {}".format(self.state_variable.name, edge["in"]),
             "body": [],
         }
 
         if subprocess.type == "dispatch" and subprocess.callback:
-            fname = "emg_sm{}_callback_{}".format(self.identifier, subprocess.name)
+            callbacks = []
 
-            # Check function with callback call
-            if fname not in [function.name for function in self.__functions]:
-                signature = None
-                invoke = None
-                file = None
+            # Extract label name
+            label = self.process.labels[subprocess.callback[0]]
+            if len(subprocess.callback) > 1:
+                if label.interface and type(label.interface) is list:
+                    raise RuntimeError("Cannot match several callbacks for {} of process {}".
+                                              format(str(subprocess.name, self.process.name)))
+                elif not label.interface:
+                    raise RuntimeError("Need to know container interface to resolve callback {} of process {}".
+                                              format(str(subprocess.name, self.process.name)))
+                else:
+                    intfs = self.translator.get_interfaces(label.interface, subprocess.callback)
+                    pack = self.__determine_callback_implementation(copy.deepcopy(base_case), subprocess,
+                                                                    intfs[-1].full_identifier)
+                    if pack:
+                        callbacks.append(pack)
+            else:
+                if label.interface:
+                    if type(label.interface) is list:
+                        if label.signature or label.value:
+                            raise NotImplementedError("Cannot determine callback {} which has exact signature but "
+                                                      "several interfaces in process {}".
+                                                      format(str(subprocess.name, self.process.name)))
+                        else:
+                            for intf in label.interface:
+                                pack = self.__determine_callback_implementation(copy.deepcopy(base_case), subprocess, intf)
+                                if pack:
+                                    callbacks.append(pack)
+                    else:
+                        pack = self.__determine_callback_implementation(copy.deepcopy(base_case), subprocess, label.interface)
+                        if pack:
+                            callbacks.append(pack)
+                else:
+                    if label.signature:
+                        casecopy = copy.deepcopy(base_case)
+                        invoke = self.label_map["labels"][label.name].name
+                        file = self.file
+                        callbacks.append([casecopy, label.signature, invoke, file, True])
+                    else:
+                        raise RuntimeError("Need to know signature or interface to resolve callback {} of "
+                                           "process {}".format(str(subprocess.name, self.process.name)))
+
+            for case, signature, invoke, file, check in callbacks:
+                # Generate function call and corresponding function
+                fname = "emg_sm{}_{}_{}".format(self.identifier, subprocess.name, len(self.__functions))
+
                 params = []
                 vars = []
 
-                # Determine function
-                signature = self.label_map["signatures"][str(subprocess.callback)]
-                if str(subprocess.callback) in self.label_map["implementations"] \
-                        and self.label_map["implementations"][str(subprocess.callback)]:
-                    if len(self.label_map["implementations"][str(subprocess.callback)]) == 1:
-                        file = self.label_map["implementations"][str(subprocess.callback)][0][0]
-                        invoke = "({})".format(self.label_map["implementations"][str(subprocess.callback)][0][1])
-                    else:
-                        raise NotImplementedError("Do not expect several implementations for callback")
-
-                    additional_check = self.__registration_guard_check(
-                        self.label_map["implementations"][str(subprocess.callback)][0][1])
-                    if additional_check:
-                        case["guard"] += " && {}".format(additional_check)
-                else:
-                    invoke = self.label_map["labels"][subprocess.callback[0]].name + ".".join(subprocess.callback[1:])
-
                 # Determine parameters
-                params = []
                 for index in range(len(signature.parameters)):
                     param = None
                     for key in self.label_map["signatures"]:
-                        if signature.parameters[index].compare_signature(self.label_map["signatures"][key]):
-                            access = [access for access in self.label_map["parameters"] if str(access) == key][0]
-                            if str(access) in self.label_map["implementations"] and \
-                                    self.label_map["implementations"][str(access)]:
-                                if not file:
-                                    file = self.label_map["implementations"][str(access)][0]
-                                param = self.label_map["implementations"][str(access)][1]
-                            else:
-                                param = self.label_map["labels"][access[0]].name + ".".join(access[1:])
-                            break
+                        for interface in self.label_map["signatures"][key]:
+                            if signature.parameters[index].\
+                                    compare_signature(self.label_map["signatures"][key][interface]):
+                                access = [access for access in self.label_map["parameters"] if str(access) == key][0]
+                                param = self.label_map["labels"][access[0]].name
+                                if len(access) > 1:
+                                    # todo: analyze each element
+                                    if self.process.labels[access[0]].signature.pointer:
+                                        param += '->' + "->".join(access[1:])
+                                    else:
+                                        param += '.' + ".".join(access[1:])
+                                break
                     if param:
                         params.append(param)
                     else:
@@ -555,83 +668,162 @@ class Automata:
                         vars.append(tmp)
                         params.append(tmp.name)
 
-                # Be sure file is set
-                if not file:
-                    file = self.file
-
-                # Check return type to provide back returned value
-                if signature.return_value:
-                    ret_type = signature.return_value.expression
-                    ret_type = ret_type.replace("%s", "")
-                else:
-                    ret_type = "void"
-
                 # Generate special function with call
-                function = Function(fname, file, "{} {}(void)".format(ret_type, fname), True)
+                function = Function(fname, file, Signature("void {}(void)".format(fname)), True)
                 for var in vars:
                     function.body.concatenate(var.declare_with_init())
-                function.body.concatenate("")
-                function.body.concatenate('\t return ' + invoke + '(' + ",".join(params) + ");")
+
+                # Generate return value assignment
+                retval = ""
+                ret_subprocess = [self.process.subprocesses[name] for name in self.process.subprocesses
+                                  if self.process.subprocesses[name].callback and
+                                  self.process.subprocesses[name].callback == subprocess.callback and
+                                  self.process.subprocesses[name].type == "receive" and
+                                  self.process.subprocesses[name].callback_retval]
+                if ret_subprocess:
+                    retval = ret_subprocess[0].callback_retval
+                    if len(retval) == 1:
+                        retval = self.label_map["labels"][retval[0]].name + " = "
+                    else:
+                        # todo: check that it is not a pointer
+                        retval = self.label_map["labels"][retval[0]].name + ".".join(retval[1:]) + " = "
+
+                # Generate callback call
+                if check:
+                    function.body.concatenate(
+                        [
+                            "if ({})".format(invoke),
+                            "\t" + retval + invoke + '(' + ", ".join(params) + ");"
+                        ]
+                    )
+                else:
+                    function.body.concatenate(
+                        retval + invoke + '(' + ", ".join(params) + ");"
+                    )
                 self.__functions.append(function)
 
-            # Generate comment
-            case["body"].append("/* Call callback {} */".format(subprocess.name))
-
-            # Add return value
-            ret_subprocess = [self.process.subprocesses[name] for name in self.process.subprocesses
-                              if self.process.subprocesses[name].callback and
-                              self.process.subprocesses[name].callback == subprocess.callback and
-                              self.process.subprocesses[name].type == "receive" and
-                              self.process.subprocesses[name].callback_retval]
-            code = ""
-            if ret_subprocess:
-                retval = ret_subprocess[0].callback_retval
-                if len(retval) == 1:
-                    retval = self.label_map["labels"][retval[0]].name
-                else:
-                    retval = self.label_map["labels"][retval[0]].name + ".".join(retval[1:])
-
-                code += "{} = ".format(retval)
-            code += "{}();".format(fname)
-            case["body"].append(code)
+                # Generate comment
+                case["body"].append("/* Call callback {} */".format(subprocess.name))
+                case["body"].append("{}();".format(fname))
+                cases.append(case)
         elif subprocess.type == "dispatch":
             # Generate dispatch function
             if subprocess.peers and len(subprocess.peers) > 0:
+
+                # Do call only if model which can be called will not hang
                 automata_peers = {}
                 self.__extract_relevant_automata(automata_peers, subprocess.peers, ["receive"])
-                checks = self.__generate_state_check(automata_peers)
-
+                checks = self.__generate_state_pair(automata_peers)
                 if len(checks) > 0:
-                    case["guard"] += '(' + " || ".join(checks) + ')'
+                    # Generate dispatch function
+                    df = Function(
+                        "emg_{}_{}_dispatch_{}".format(self.identifier, self.process.name, subprocess.name),
+                        self.file,
+                        Signature("void %s(void)"),
+                        False
+                    )
+
+                    body = []
+                    for check in checks:
+                        # todo: Implement broadcast dispatch without return statement
+                        tmp_body = []
+
+                        # Guard
+                        guard = ""
+                        if check[1]["subprocess"].condition:
+                            guard = check[1]["subprocess"].condition
+
+                        # Add parameters
+                        for index in range(len(subprocess.parameters)):
+
+                            my_label = self.process.labels[subprocess.parameters[index][0]]
+                            label = check[1]["automata"].process.labels[check[1]["subprocess"].parameters[index][0]]
+
+                            my_access = self.label_map["labels"][my_label.name].name
+                            access = check[1]["automata"].label_map["labels"][label.name].name
+
+                            if len(subprocess.parameters[index]) > 1:
+                                # todo: add tail analyzing each entry
+                                if my_label.signature.pointer:
+                                    my_access += '->' + '->'.join(subprocess.parameters[index][1:])
+                                else:
+                                    my_access += '.' + '.'.join(subprocess.parameters[index][1:])
+                            if len(check[1]["subprocess"].parameters[index]) > 1:
+                                # todo: add tail analyzing each entry
+                                if label.signature.pointer:
+                                    access += '->' + '->'.join(check[1]["subprocess"].parameters[index][1:])
+                                else:
+                                    access += '.' + '.'.join(check[1]["subprocess"].parameters[index][1:])
+
+                            # Replace guard
+                            guard = guard.replace("$ARG{}".format(index + 1), access)
+
+                            tmp_body.append("\t{} = {};".format(access, my_access))
+
+                        tmp_body.extend(
+                            [
+                                "\treturn;",
+                                "}"
+                            ]
+                        )
+
+                        guard = self.__text_processor(guard)
+                        if guard != "":
+                            guard = "{} == {}".format(check[0], check[1]["in"]) + ' && (' + guard + ')'
+                        else:
+                            guard = "{} == {}".format(check[0], check[1]["in"])
+
+                        tmp_body =\
+                            [
+                                "/* Try receive according to {} */".format(check[1]["subprocess"].name),
+                                "if({}) ".format(guard) + '{',
+                                "\t{} = {};".format(check[0], check[1]["out"]),
+                            ] + tmp_body
+                        body.extend(tmp_body)
+                    df.body.concatenate(body)
+                    self.__functions.append(df)
+
+                    # Add dispatch expression
+                    base_case["body"].append("/* Dispatch {}".format(subprocess.name))
+                    base_case["body"].append("{}();".format(df.name))
+
+                    # Generate guard
+                    base_case["guard"] += ' && (' + " || ".join(["{} == {}".format(var, tr["in"])
+                                                                 for var, tr in checks]) + ')'
             else:
                 # Generate comment
-                case["body"].append("/* Dispatch {} is not expected by any process, skip it".format(subprocess.name))
+                base_case["body"].append("/* Dispatch {} is not expected by any process, skip it".format(subprocess.name))
+            cases.append(base_case)
         elif subprocess.type == "receive" and subprocess.callback:
-            case["body"].append("/* Should wait for return value of {} here, "
-                                "but in sequential model it is not necessary*/".format(subprocess.name))
+            base_case["body"].append("/* Should wait for return value of {} here, "
+                                "but in sequential model it is not necessary */".format(subprocess.name))
+            cases.append(base_case)
         elif subprocess.type == "receive":
             # Generate comment
-            case["body"].append("/* Receive signal {} */".format(subprocess.name))
+            base_case["body"].append("/* Receive signal {} */".format(subprocess.name))
+            cases.append(base_case)
         elif subprocess.type == "condition":
             # Generate comment
-            case["body"].append("/* Code or condition insertion {} */".format(subprocess.name))
+            base_case["body"].append("/* Code or condition insertion {} */".format(subprocess.name))
 
             # Add additional condition
             if subprocess.condition and subprocess.condition != "":
                 cn = self.__text_processor(subprocess.condition)
-                case["guard"] += " && {}".format(cn)
+                base_case["guard"] += " && {}".format(cn)
             if subprocess.statements:
                 for statement in subprocess.statements:
-                    case["body"].append(self.__text_processor(statement))
-                case["body"].append("")
+                    base_case["body"].append(self.__text_processor(statement))
+            cases.append(base_case)
         elif subprocess.type == "subprocess":
             # Generate comment
-            case["body"].append("/* Start subprocess {} */".format(subprocess.name))
+            base_case["body"].append("/* Start subprocess {} */".format(subprocess.name))
+            cases.append(base_case)
         else:
             raise ValueError("Unexpected state machine edge type: {}".format(subprocess.type))
 
-        case["body"].append("{} = {};".format(self.state_variable.name, edge["out"]))
-        return case
+        for case in cases:
+            case["body"].append("{} = {};".format(self.state_variable.name, edge["out"]))
+        return cases
 
     def __text_processor(self, statement):
         # Replace model functions
@@ -675,7 +867,8 @@ class Automata:
                     # Add relevant state machines
                     self.__extract_relevant_automata(automata_peers, peers, None)
 
-                check.extend(self.__generate_state_check(automata_peers))
+                check.extend(["{} == {}".format(var, tr["in"]) for var, tr
+                              in self.__generate_state_pair(automata_peers)])
         else:
             self.logger.warning("Cannot find module function for callback '{}'".format(function_call))
 
@@ -713,13 +906,13 @@ class Automata:
                     if not types or (types and subprocess.type in types):
                         automata_peers[automaton.identifier]["subprocesses"].append(peer["subprocess"])
 
-    def __generate_state_check(self, automata_peers):
+    def __generate_state_pair(self, automata_peers):
         check = []
         # Add state checks
         for ap in automata_peers.values():
             for transition in ap["automaton"].state_transitions:
                 if transition["subprocess"].name in ap["subprocesses"]:
-                    check.append("{} == {}".format(ap["automaton"].state_variable.name, str(transition["in"])))
+                    check.append([ap["automaton"].state_variable.name, transition])
 
         return check
 

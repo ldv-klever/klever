@@ -63,8 +63,8 @@ class EventModel:
             raise RuntimeError('Module does not have Init function')
         init_name = list(self.analysis.inits.values())[0]
         init_label = Label('init')
-        init_label.value = init_name
-        init_label.signature = Signature("int %s {}(void)".format(init_name))
+        init_label.value = "& {}".format(init_name)
+        init_label.signature = Signature("int (*%s)(void)")
 
         ret_label = Label('ret')
         ret_label.signature = Signature("int %s")
@@ -80,10 +80,10 @@ class EventModel:
         exit.parameters = []
 
         exit_label = Label('exit')
-        exit_label.signature = Signature("void %s(void)".format())
+        exit_label.signature = Signature("void (*%s)(void)".format())
         if len(self.analysis.exits) != 0:
             exit_name = list(self.analysis.exits.values())[0]
-            exit_label.value = exit_name
+            exit_label.value = "& {}".format(exit_name)
         else:
             exit_label.value = None
 
@@ -548,15 +548,28 @@ class EventModel:
                     for parameter in subprocess.parameters:
                         # Parameter extraction
                         plabel, tail = process.extract_label_with_tail(parameter)
+                        if plabel.interface:
+                            if len(tail) > 0:
+                                plabel.signature.pointer = True
+                            else:
+                                # Match with arguments
+                                match = False
+                                for arg in cb.signature.parameters:
+                                    if arg.interface and arg.interface.full_identifier == plabel.interface:
+                                        plabel.signature = arg
+                                        match = True
+                                if not match:
+                                    raise RuntimeError("Cannot match label {} with arguments of function {}".
+                                                       format(plabel.name, cb.full_identifier))
+                        else:
+                            if tail and len(tail) > 0:
+                                raise ValueError("Cannot determine interface for label {} from parameter {}".
+                                                 format(plabel.name, parameter))
+                            else:
+                                self.logger.warning("Cannot determine interface of label {} for parameter {}".
+                                                    format(plabel.name, parameter))
 
-                        # Match with arguments
-                        for arg in cb.signature.parameters:
-                            if arg.interface and arg.interface.full_identifier == plabel.interface:
-                                plabel.signature = arg
 
-                        if len(tail) > 0:
-                            # todo: hack here
-                            plabel.signature.pointer = True
 
             for label in [process.labels[name] for name in process.labels if not process.labels[name].signature]:
                 if label.interface and type(label.interface) is str:
