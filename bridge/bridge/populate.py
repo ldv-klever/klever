@@ -243,7 +243,7 @@ class Population(object):
                 print_err('Wrong component length: %s' % component)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
                 fname = os.path.basename(mark_settings)
-                f = open(mark_settings, 'r')
+                f = open(mark_settings, 'r', encoding='utf8')
                 try:
                     data = json.loads(''.join(f.read().split('\n')))
                 except Exception as e:

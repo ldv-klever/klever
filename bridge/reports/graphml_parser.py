@@ -281,7 +281,7 @@ class GraphMLParser:
     def parse(self, graph):
         self.i = 0
         if isinstance(graph, str):
-            dom = minidom.parse(open(graph, 'r'))
+            dom = minidom.parse(open(graph, 'r', encoding='utf8'))
         elif isinstance(graph, bytes):
             dom = minidom.parseString(graph.decode('utf8'))
         else:
