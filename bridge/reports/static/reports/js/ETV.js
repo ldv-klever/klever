@@ -165,7 +165,7 @@ $(document).ready(function () {
         });
     });
     $('.ETV_ShowCommentCode').click(function () {
-        var next_code = $(this).parent().next('span');
+        var next_code = $(this).parent().parent().next('span');
         if (next_code.length > 0) {
             if (next_code.is(':hidden')) {
                 next_code.show();

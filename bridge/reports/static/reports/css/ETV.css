@@ -148,17 +148,38 @@
     cursor: pointer;
 }
 
-.ETV_NoteText, .ETV_WarnText {
+.ETV_LN_Note {
+    background-color: #4aafdd;
+    border-radius: 2px;
+}
+.ETV_LN_Note:hover {
+    background-color: #4aafdd;
+
+}
+.ETV_LN_Warning {
+    background-color: #dd2222;
+    border-radius: 2px;
+}
+.ETV_LN_Warning:hover {
+    background-color: #dd2222;
+
+}
+.ETV_ShowCommentCode {
     font-style: italic;
-    white-space: pre;
+    font-weight: bold;
+    cursor: pointer;
 }
 .ETV_WarnText {
     color: #f0828f;
-    font-weight: bold;
+}
+.ETV_WarnText:hover {
+    color: #c8646b;
 }
 .ETV_NoteText {
     color: #6fb5bd;
-    font-weight: bold;
+}
+.ETV_NoteText:hover {
+    color: #458599;
 }
 .ETV_Fname {
     color: #67238f;

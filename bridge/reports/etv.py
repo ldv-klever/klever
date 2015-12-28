@@ -287,6 +287,7 @@ class GetETV(object):
                 lines_data[i]['collapsed'] = True
             if a or b:
                 lines_data[i]['commented'] = True
+                lines_data[i]['note_line_offset'] = ' ' * max_line_length
             if b and c:
                 lines_data[i]['note_hidden'] = True
         lines_data.append({'class': 'ETV_End_of_trace'})
