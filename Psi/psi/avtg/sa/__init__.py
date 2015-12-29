@@ -155,7 +155,7 @@ class SA(psi.components.Component):
                         self.model["functions"][name]["files"][path]["return value type"] = ret_type
                         self.model["functions"][name]["files"][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
                         self.model["functions"][name]["files"][path]["signature"] = "{} {}({})".\
-                            format("$", name, "...")
+                            format("$", name, "..")
                     if not self.model["functions"][name]["files"][path]["static"]:
                         self.model["functions"][name]["files"][path]["static"] = execution_source["static"]
                 else:
@@ -469,7 +469,7 @@ class GlobalInitParser:
             args = args_re.match(block[1]).group(1)
             parameters = all_args_re.findall(args)
             value = value_re.match(block[2]).group(1)
-            signature = "{} (*%name%)({})".format("$", "...")
+            signature = "{} (*%name%)({})".format("$", "..")
             element["signature"] = signature
             element["return value type"] = return_type
             element["parameters"] = parameters
