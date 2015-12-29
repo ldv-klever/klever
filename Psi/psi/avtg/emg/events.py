@@ -516,19 +516,6 @@ class EventModel:
             self.logger.debug("Analyze signatures of process {} with an identifier {}".
                               format(process.name, process.identifier))
 
-            # Assign interface signatures
-            for label in [process.labels[name] for name in process.labels if not process.labels[name].signature]:
-                    if label.interface and type(label.interface) is str:
-                        label.signature = self.analysis.interfaces[label.interface].signature
-                    elif not label.interface:
-                        raise RuntimeError("Label {} of process {} with identifier {} has no interface nor it has "
-                                           "signature".format(label.name, process.name, process.identifier))
-
-            # Set predefined pointer signatures
-            for label in [process.labels[name] for name in process.labels]:
-                if label.pointer and label.signature:
-                    label.signature.pointer = True
-
             # Analyze peers
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
                                if process.subprocesses[name].type in ["dispatch", "receive"]]:
@@ -561,51 +548,17 @@ class EventModel:
                             if label and peer_label:
                                 peer_label.signature = label.signature
 
-            # todo: check also return values
-            # Check parameters signatures
-            for subprocess in [process.subprocesses[name] for name in process.subprocesses
-                               if process.subprocesses[name].type in ["dispatch"] and
-                               process.subprocesses[name].callback and process.subprocesses[name].parameters]:
-                label, tail = process.extract_label_with_tail(subprocess.callback)
-                callbacks = []
-                if type(label.interface) is list:
-                    callbacks = [self.analysis.interfaces[name] for name in label.interface]
-                else:
-                    if tail and len(tail) > 0:
-                        interfaces = self.__resolve_interface(self.analysis.interfaces[label.interface], tail)
-                        callbacks = [interfaces[-1]]
-                    else:
-                        callbacks = [self.analysis.interfaces[label.interface]]
+            # Assign interface signatures
+            for label in [process.labels[name] for name in process.labels]:
+                if not label.signature and label.interface and type(label.interface) is str:
+                    label.signature = self.analysis.interfaces[label.interface].signature
+                elif not label.signature and not label.interface:
+                    raise RuntimeError("Label {} of process {} with identifier {} has no interface nor it has "
+                                       "signature".format(label.name, process.name, process.identifier))
 
-                for cb in callbacks:
-                    for parameter in subprocess.parameters:
-                        # Parameter extraction
-                        plabel, tail = process.extract_label_with_tail(parameter)
-                        if plabel.interface:
-                            if len(tail) > 0:
-                                plabel.signature.pointer = True
-                            else:
-                                # Match with arguments
-                                match = False
-                                for arg in cb.signature.parameters:
-                                    if arg.interface and arg.interface.full_identifier == plabel.interface:
-                                        if not plabel.signature:
-                                            plabel.signature = arg
-                                        else:
-                                            if plabel.signature.pointer != arg.pointer:
-                                                plabel.signature.pointer = arg.pointer
-                                            match = True
-                                if not match:
-                                    raise RuntimeError("Cannot match label {} with arguments of function {}".
-                                                       format(plabel.name, cb.full_identifier))
-                        else:
-                            if tail and len(tail) > 0:
-                                raise ValueError("Cannot determine interface for label {} from parameter {}".
-                                                 format(plabel.name, parameter))
-                            else:
-                                self.logger.warning("Cannot determine interface of label {} for parameter {}".
-                                                    format(plabel.name, parameter))
-
+                if label.signature and label.signature.type_class in ["struct", "function"]:
+                    # Prefer pointers
+                    label.signature.pointer = True
             self.logger.debug("Analyzed signatures of process {} with an identifier {}".
                               format(process.name, process.identifier))
 

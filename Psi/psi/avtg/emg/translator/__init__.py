@@ -62,8 +62,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
                 lines = []
-                lines.append('after: file ("$this")\n')
+                lines.append('before: file ("$this")\n')
                 lines.append('{\n')
+                lines.append("#include <verifier/rcv.h>\n\n")
                 lines.append("/* EMG Function declarations */\n")
                 for file in self.files:
                     if "functions" in self.files[file]:
@@ -82,8 +83,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                 lines.extend(variable.get_declaration(extern=True))
                             else:
                                 lines.extend(variable.get_declaration(extern=False))
-                lines.append("\n")
+                lines.append("}\n")
 
+                lines.append('after: file ("$this")\n')
+                lines.append('{\n')
                 lines.append("/* EMG function definitions */\n")
                 for file in self.files:
                     if "functions" in self.files[file]:
@@ -138,19 +141,22 @@ class Variable:
 
     def declare_with_init(self):
         declaration = self.signature.expression
-        declaration = self.name_re.sub(self.name, declaration)
         if self.signature.pointer and self.signature.type_class == "struct":
             alloc = ModelMap.init_pointer(self.signature)
-            declaration += " = {}".format(alloc)
-        declaration += ";"
-        return declaration
+            self.value = alloc
+        return self.declare()
 
     def declare(self, set_value=True):
         declaration = self.signature.expression
         if self.signature.type_class == "function":
             declaration = self.name_re.sub("(* {})".format(self.name), declaration)
         else:
-            declaration = self.name_re.sub(self.name, declaration)
+            if self.signature.pointer:
+                declaration = declaration.replace("*%s", "*{}".format(self.name))
+                declaration = declaration.replace("%s", "*{}".format(self.name))
+            else:
+                declaration = declaration.replace("%s", self.name)
+
         if self.value and set_value:
             declaration += " = {}".format(self.value)
         declaration += ";"
@@ -183,7 +189,9 @@ class Function:
         return self.__body
 
     def get_declaration(self, extern=False):
-        declaration = self.signature.expression.replace("%s", self.name) + ';'
+        declaration = self.signature.expression
+        declaration = self.signature.expression.replace("%s", self.name)
+        declaration += ';'
 
         if extern:
             declaration = "extern " + declaration

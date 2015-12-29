@@ -714,6 +714,10 @@ class Automata:
                             if signature.parameters[index].\
                                     compare_signature(self.label_map["signatures"][key][interface]):
                                 access = [access for access in self.label_map["parameters"] if str(access) == key][0]
+                                #if signature.parameters[index].pointer != \
+                                #        self.label_map["signatures"][key][interface].pointer:
+                                #    param = "(*{})".format(self.label_map["labels"][access[0]].name)
+                                #else:
                                 param = self.label_map["labels"][access[0]].name
                                 if len(access) > 1:
                                     # todo: analyze each element

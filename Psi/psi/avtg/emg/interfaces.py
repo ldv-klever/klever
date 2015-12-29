@@ -764,12 +764,12 @@ class Signature:
         if not self.type_class and regex.fullmatch(self.expression):
             self.type_class = type_name
             groups = regex.fullmatch(self.expression).groups()
-            if groups[0] and groups[0] != "":
+            if groups[len(groups) - 2] and groups[len(groups) - 2] != "":
                 self.pointer = True
             else:
                 self.pointer = False
 
-            if groups[1] and groups[1] != "":
+            if groups[len(groups) - 1] and groups[len(groups) - 1] != "":
                 self.array = True
             else:
                 self.array = False
