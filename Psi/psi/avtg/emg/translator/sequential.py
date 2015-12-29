@@ -3,7 +3,7 @@ import os
 import re
 import graphviz
 
-from psi.avtg.emg.translator import AbstractTranslator, Variable, Function, ModelMap
+from psi.avtg.emg.translator import AbstractTranslator, Variable, Function, Aspect
 from psi.avtg.emg.interfaces import Signature
 
 
@@ -25,6 +25,7 @@ class Translator(AbstractTranslator):
         ri = {}
         for process in self.model["models"] + self.model["processes"]:
             ri[process.identifier] = process.collect_relevant_interfaces()
+            ri[process.identifier] = self.__collect_ri(ri[process.identifier], process)
 
         # Generate automata
         self.automata = []
@@ -36,7 +37,9 @@ class Translator(AbstractTranslator):
 
         # Generate automata for models
         for process in self.model["models"]:
-            self.models.append(Automata(self.logger, len(self.automata), self.entry_file, process, self))
+            au = Automata(self.logger, len(self.automata), self.entry_file, process, self)
+            au.label_map = ri[process.identifier]
+            self.models.append(au)
 
         # Create directory for automata
         self.logger.info("Create working directory for automata '{}'".format("automata"))
@@ -71,7 +74,7 @@ class Translator(AbstractTranslator):
         self.automata.append(main)
 
         # Generate variables
-        for automaton in self.automata:
+        for automaton in self.automata + self.models:
             variables = automaton.variables
             for variable in variables:
                 if variable.file not in self.files:
@@ -84,8 +87,14 @@ class Translator(AbstractTranslator):
         # Generate automata control function
         for automaton in self.automata:
             cf = automaton.control_function
-            self.files[automaton.file]["functions"][cf.name] = cf
+            automaton.functions.append(cf)
 
+        # Generate model control function
+        for automaton in self.models:
+            cf = automaton.model_aspect()
+            self.model_aspects.append(cf)
+
+        for automaton in self.models + self.automata:
             for function in automaton.functions:
                 if function.file not in self.files:
                     self.files[function.file] = {"functions": {}, "variables": {}}
@@ -100,6 +109,7 @@ class Translator(AbstractTranslator):
         ri["signatures"] = {}
 
         # Set containers
+        self.logger.info("Collect information about callbacks in process {}".format(process.name))
         for callback in ri["callbacks"]:
             if type(process.labels[callback[0]].interface) is list:
                 interfaces = process.labels[callback[0]].interface
@@ -117,6 +127,7 @@ class Translator(AbstractTranslator):
                     ri["signatures"][str(callback[0:index + 1])][intfs[index].full_identifier] = intfs[-1].signature
 
         # Get parameters and resources implementations
+        self.logger.info("Collect information about resources in process {}".format(process.name))
         for label in ri["resources"]:
             if str([label.name]) not in ri["implementations"]:
                 ri["implementations"][str([label.name])] = {}
@@ -126,6 +137,7 @@ class Translator(AbstractTranslator):
             ri["signatures"][str([label.name])][label.interface] = label.signature
 
         # Get parameters and resources implementations
+        self.logger.info("Collect information about parameters in process {}".format(process.name))
         for parameter in ri["parameters"]:
             intf = self.get_interfaces(process.labels[parameter[0]].interface, parameter)
             for index in range(len(intf)):
@@ -139,8 +151,6 @@ class Translator(AbstractTranslator):
         return ri
 
     def __generate_automata(self, ri, process):
-        ri = self.__collect_ri(ri, process)
-
         # Copy processes
         process_automata = []
         labels = [process.labels[name] for name in process.labels if process.labels[name].container
@@ -250,7 +260,7 @@ class Automata:
         self.__ast_counter = 0
         self.__checked_subprocesses = {}
         self.__variables = []
-        self.__functions = []
+        self.functions = []
 
     def generate_automata(self):
         if "identifier" not in self.process.process_ast:
@@ -355,9 +365,12 @@ class Automata:
 
                     self.label_map["labels"][label.name] = var
                     self.__variables.append(var)
-                else:
+                elif not label.signature and label.interface:
                     self.logger.warning("Cannot create variable without signature for automata {} for process {}".
                                         format(self.identifier, self.process.name))
+                else:
+                    raise ValueError("Need signature to be determined for label {} in process {}".
+                                     format(label.name, self.process.name))
 
         return self.__variables
 
@@ -408,17 +421,65 @@ class Automata:
                 ]
             )
             self.__control_function.body.concatenate(body)
-            self.__functions.append(self.__control_function)
+            self.functions.append(self.__control_function)
 
         # Return control function
         return self.__control_function
 
-    @property
-    def functions(self):
+    def model_aspect(self):
         if not self.__control_function:
-            self.control_function
+            self.logger.info("Generate model control function for automata {} with process {}".
+                             format(self.identifier, self.process.name))
 
-        return self.__functions
+            # Generate case for each transition
+            cases = []
+            for edge in self.state_transitions:
+                new = self.__generate_case(edge)
+                cases.extend(new)
+            if len(cases) == 0:
+                raise RuntimeError("Cannot generate model control function for automata {} with process {}".
+                                   format(self.identifier, self.process.name))
+
+            # Create Function
+            model_signature = self.translator.analysis.kernel_functions[self.process.name]["signature"]
+            self.__control_function = Aspect(self.process.name, model_signature)
+
+            # Calculate terminals
+            in_states = [transition["in"] for transition in self.state_transitions]
+            terminals = [tr["out"] for tr in self.state_transitions if tr["out"] not in in_states]
+            condition = ' || '.join(["{} == {}".format(self.state_variable.name, st) for st in terminals])
+
+            # Create body
+            body = [
+                "while (!({}))".format(condition) + "{",
+                "\tswitch(__VERIFIER_nondet_int()) {"
+            ]
+            for index in range(len(cases)):
+                body.extend(
+                    [
+                        "\t\tcase {}: ".format(index) + '{',
+                        "\t\t\tif ({}) ".format(cases[index]["guard"]) + '{'
+                    ]
+                )
+                body.extend([(3 * "\t" + statement) for statement in cases[index]["body"]])
+                body.extend(
+                    [
+                        "\t\t\t}",
+                        "\t\t}",
+                        "\t\tbreak;"
+                    ]
+                )
+            body.extend(
+                [
+                    "\t\tdefault: break;",
+                    "\t}",
+                    "}"
+                ]
+            )
+            self.__control_function.body.concatenate(body)
+
+        # Return control function
+        return self.__control_function
 
     def __enumerate_ast(self, ast):
         key = list(ast.keys())[0]
@@ -640,7 +701,7 @@ class Automata:
 
             for case, signature, invoke, file, check in callbacks:
                 # Generate function call and corresponding function
-                fname = "emg_sm{}_{}_{}".format(self.identifier, subprocess.name, len(self.__functions))
+                fname = "emg_sm{}_{}_{}".format(self.identifier, subprocess.name, len(self.functions))
 
                 params = []
                 vars = []
@@ -700,7 +761,7 @@ class Automata:
                     function.body.concatenate(
                         retval + invoke + '(' + ", ".join(params) + ");"
                     )
-                self.__functions.append(function)
+                self.functions.append(function)
 
                 # Generate comment
                 case["body"].append("/* Call callback {} */".format(subprocess.name))
@@ -767,7 +828,7 @@ class Automata:
                             ]
                         )
 
-                        guard = self.__text_processor(guard)
+                        guard = check[1]["automata"].__text_processor(guard)
                         if guard != "":
                             guard = "{} == {}".format(check[0], check[1]["in"]) + ' && (' + guard + ')'
                         else:
@@ -781,10 +842,10 @@ class Automata:
                             ] + tmp_body
                         body.extend(tmp_body)
                     df.body.concatenate(body)
-                    self.__functions.append(df)
+                    self.functions.append(df)
 
                     # Add dispatch expression
-                    base_case["body"].append("/* Dispatch {}".format(subprocess.name))
+                    base_case["body"].append("/* Dispatch {} */".format(subprocess.name))
                     base_case["body"].append("{}();".format(df.name))
 
                     # Generate guard
@@ -833,6 +894,9 @@ class Automata:
         for match in self.process.label_re.finditer(statement):
             access = match.group(0).replace('%', '')
             access = access.split(".")
+            if access[0] not in self.label_map["labels"]:
+                raise KeyError("Variable for label {} has not been defined from statement {}".format(access[0],
+                                                                                                     statement))
             replacement = self.label_map["labels"][access[0]].name
             if len(access) > 0:
                 replacement += ".".join(access[1:])

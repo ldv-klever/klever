@@ -17,6 +17,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.aspects = {}
         self.model_map = ModelMap()
         self.entry_file = None
+        self.model_aspects = []
 
         # Determine entry point name and file
         self.__determine_entry()
@@ -91,6 +92,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                 lines.extend(function.get_definition())
                                 lines.append("\n")
                 lines.append("}\n")
+
+                lines.append("/* EMG kernel function models */\n")
+                for aspect in self.model_aspects:
+                    lines.extend(aspect.get_aspect())
 
                 name = "aspects/emg_{}.aspect".format(os.path.splitext(
                     os.path.basename(cc_extra_full_desc_file["in file"]))[0])
@@ -196,6 +201,30 @@ class Function:
                             format(self.expression, self.type_class))
 
 
+class Aspect(Function):
+
+    def __init__(self, name, signature, aspect_type="after"):
+        self.name = name
+        self.signature = signature
+        self.aspect_type = aspect_type
+        self.__body = None
+
+    @property
+    def body(self, body=[]):
+        if not self.__body:
+            self.__body = FunctionBody(body)
+        else:
+            self.__body.concatenate(body)
+        return self.__body
+
+    def get_aspect(self):
+        lines = []
+        lines.append("{}: call({}) ".format(self.aspect_type, self.signature.expression.replace("%s", self.name))
+                     + " {\n")
+        lines.extend(self.body.get_lines(1))
+        lines.append("}\n")
+        return lines
+
 class FunctionBody:
     indent_re = re.compile("^(\t*)([^\s]*.*)")
 
@@ -285,8 +314,8 @@ class ModelMap:
         "PROCESS_CONTEXT": None
     }
 
-    mem_function_re = re.compile("\$(\w+)\(%(\w+)%(?:,\s?(\w+))?\)")
-    irq_function_re = re.compile("\$(\w+)")
+    mem_function_re = "\$({})\(%(\w+)%(?:,\s?(\w+))?\)"
+    irq_function_re = "\$({})"
 
     @staticmethod
     def init_pointer(signature):
@@ -325,8 +354,17 @@ class ModelMap:
 
     def replace_models(self, process, string):
         self.process = process
-        ret = self.mem_function_re.sub(self.__replace_mem_call, string)
-        return self.irq_function_re.sub(self.__replace_irq_call, ret)
+        ret = string
+        # Memory functions
+        for function in self.mem_function_map:
+            regex = re.compile(self.mem_function_re.format(function))
+            ret = regex.sub(self.__replace_mem_call, ret)
+
+        # IRQ functions
+        for function in self.irq_function_map:
+            regex = re.compile(self.irq_function_re.format(function))
+            ret = regex.sub(self.__replace_irq_call, ret)
+        return ret
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 

@@ -144,7 +144,7 @@ class EventModel:
 
                 if new.unmatched_dispatches or new.unmatched_receives:
                     self.logger.info("Added process {} have unmatched signals, need to find factory or registration "
-                                     "and deregistration functions")
+                                     "and deregistration functions".format(new.name))
                     self.__establish_signal_peers(new)
             else:
                 self.logger.info("Ignore interface category {}, since it does not have callbacks to call".
@@ -323,6 +323,8 @@ class EventModel:
         new_size = 0
         start = True
         while (new_size - old_size) > 0 or start:
+            tmp_match = {}
+
             # Match interfaces and containers
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
                                if process.subprocesses[name].callback
@@ -366,6 +368,7 @@ class EventModel:
                         else:
                             functions = [self.analysis.interfaces[label_map["matched labels"][label.name]]]
 
+                    tmp_match = {}
                     for function in functions:
                         if len(subprocess.parameters) <= len(function.signature.parameters):
                             self.logger.debug("Try to match parameters of function '{}'".
@@ -376,12 +379,14 @@ class EventModel:
                                 for pr in function.signature.parameters:
                                     if pr.interface and pr.interface.resource and pl.resource \
                                             and pl.name not in label_map["matched labels"]:
-                                        label_map["matched labels"][pl.name] = pr.interface.full_identifier
-                                        break
+                                        if pl.name not in tmp_match:
+                                            tmp_match[pl.name] = {}
+                                        if pr.interface.full_identifier not in tmp_match[pl.name]:
+                                            tmp_match[pl.name][pr.interface.full_identifier] = 0
+                                        tmp_match[pl.name][pr.interface.full_identifier] += 1
                         else:
                             raise RuntimeError("Function {} has been incorrectly matched".
                                                format(function.full_identifier))
-
             # After containers are matched try to match callbacks
             matched_containers = [process.labels[name] for name in process.labels if process.labels[name].container and
                                   name in label_map["matched labels"]]
@@ -443,6 +448,15 @@ class EventModel:
                     elif intfs and subprocess.callback not in label_map["matched callbacks"]:
                         label_map["matched callbacks"].append(subprocess.callback)
 
+            # Choose maximum correspondence
+            for name in tmp_match:
+                for identifier in tmp_match[name]:
+                    if name not in label_map["matched labels"]:
+                        label_map["matched labels"][name] = identifier
+                    elif label_map["matched labels"][name] in tmp_match[name]\
+                         and tmp_match[name][identifier] > tmp_match[name][label_map["matched labels"][name]]:
+                        label_map["matched labels"][name] = identifier
+
             if start:
                 start = False
             old_size = new_size
@@ -501,6 +515,21 @@ class EventModel:
         for process in self.model["models"] + self.model["processes"]:
             self.logger.debug("Analyze signatures of process {} with an identifier {}".
                               format(process.name, process.identifier))
+
+            # Assign interface signatures
+            for label in [process.labels[name] for name in process.labels if not process.labels[name].signature]:
+                    if label.interface and type(label.interface) is str:
+                        label.signature = self.analysis.interfaces[label.interface].signature
+                    elif not label.interface:
+                        raise RuntimeError("Label {} of process {} with identifier {} has no interface nor it has "
+                                           "signature".format(label.name, process.name, process.identifier))
+
+            # Set predefined pointer signatures
+            for label in [process.labels[name] for name in process.labels]:
+                if label.pointer and label.signature:
+                    label.signature.pointer = True
+
+            # Analyze peers
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
                                if process.subprocesses[name].type in ["dispatch", "receive"]]:
                 for peer in subprocess.peers:
@@ -520,6 +549,9 @@ class EventModel:
                                                             peer["process"].name, peer["process"].identifier))
                             elif label and peer_label and not label.signature and peer_label.signature:
                                 label.signature = peer_label.signature
+                            elif label.signature and peer_label.signature \
+                                    and label.signature.pointer != peer_label.signature.pointer:
+                                label.signature.pinter = peer_label.signature.pointer
                     else:
                         for index in range(len(peer_subprocess.parameters)):
                             peer_parameter = peer_subprocess.parameters[index]
@@ -530,6 +562,7 @@ class EventModel:
                                 peer_label.signature = label.signature
 
             # todo: check also return values
+            # Check parameters signatures
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
                                if process.subprocesses[name].type in ["dispatch"] and
                                process.subprocesses[name].callback and process.subprocesses[name].parameters]:
@@ -556,8 +589,12 @@ class EventModel:
                                 match = False
                                 for arg in cb.signature.parameters:
                                     if arg.interface and arg.interface.full_identifier == plabel.interface:
-                                        plabel.signature = arg
-                                        match = True
+                                        if not plabel.signature:
+                                            plabel.signature = arg
+                                        else:
+                                            if plabel.signature.pointer != arg.pointer:
+                                                plabel.signature.pointer = arg.pointer
+                                            match = True
                                 if not match:
                                     raise RuntimeError("Cannot match label {} with arguments of function {}".
                                                        format(plabel.name, cb.full_identifier))
@@ -569,14 +606,6 @@ class EventModel:
                                 self.logger.warning("Cannot determine interface of label {} for parameter {}".
                                                     format(plabel.name, parameter))
 
-
-
-            for label in [process.labels[name] for name in process.labels if not process.labels[name].signature]:
-                if label.interface and type(label.interface) is str:
-                    label.signature = self.analysis.interfaces[label.interface].signature
-                elif not label.interface:
-                    raise RuntimeError("Label {} of process {} with identifier {} has no interface nor it has "
-                                       "signature".format(label.name, process.name, process.identifier))
             self.logger.debug("Analyzed signatures of process {} with an identifier {}".
                               format(process.name, process.identifier))
 
@@ -649,6 +678,7 @@ class Label:
         self.resource = False
         self.callback = False
         self.parameter = False
+        self.pointer = False
         self.parameters = []
 
         self.value = None
@@ -657,7 +687,7 @@ class Label:
         self.name = name
 
     def _import_json(self, dic):
-        for att in ["container", "resource", "callback", "parameter", "interface", "value"]:
+        for att in ["container", "resource", "callback", "parameter", "interface", "value", "pointer"]:
             if att in dic:
                 setattr(self, att, dic[att])
 
