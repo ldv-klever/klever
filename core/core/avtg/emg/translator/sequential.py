@@ -3,8 +3,8 @@ import os
 import re
 import graphviz
 
-from psi.avtg.emg.translator import AbstractTranslator, Variable, Function, Aspect
-from psi.avtg.emg.interfaces import Signature
+from core.avtg.emg.translator import AbstractTranslator, Variable, Function, Aspect
+from core.avtg.emg.interfaces import Signature
 
 
 class Translator(AbstractTranslator):

@@ -6,7 +6,7 @@ import core.utils
 
 from core.avtg.emg.interfaces import CategorySpecification, ModuleSpecification
 from core.avtg.emg.events import EventModel
-from core.avtg.emg.translator import stub
+from core.avtg.emg.translator import stub, sequential
 
 
 class EMG(core.components.Component):
@@ -34,7 +34,7 @@ class EMG(core.components.Component):
             if len(headers) > 0:
                 for file in headers:
                     self.logger.info("Try to import header {}".format(file))
-                    header_file = psi.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
+                    header_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
                     with open(header_file, "r") as fh:
                         headers_lines.extend(fh.readlines())
                     headers_lines.append("\n")
@@ -45,7 +45,7 @@ class EMG(core.components.Component):
             if len(aspects) > 0:
                 for file in aspects:
                     self.logger.info("Try to import aspect {}".format(file))
-                    aspect_file = psi.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
+                    aspect_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
                     with open(aspect_file, "r") as fh:
                         aspect_lines.extend(fh.readlines())
                     aspect_lines.append("\n")
