@@ -1,0 +1,133 @@
+{% extends 'jobs/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Start decision of job' %}{% endblock %}
+
+{% block jobs_head_block %}
+    <script src="/static/jobs/js/startjob.js"></script>
+{% endblock %}
+
+{% block body_block %}
+    <h2>{% trans 'Start decision of job' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
+    <div class="ui violet segment">
+    {% if data.error %}
+        <h3 class="ui red header">{{ data.error }}</h3>
+    {% else %}
+        {% if data.job_sch_err %}
+            <h3 class="ui red header">{{ data.job_sch_err }}</h3>
+        {% endif %}
+        <input type="hidden" id="job_pk" value="{{ job.pk }}">
+        <div class="ui grid">
+            <div class="five wide column">
+                <label for="scheduler">{% trans 'Tasks scheduler' %}</label>
+                <select id="scheduler" class="ui dropdown fluid">
+                    {% for sch in data.schedulers %}
+                        <option value="{{ sch.0 }}">{{ sch.1 }}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <div class="need-auth">
+                    <label for="priority">{% trans 'Job priority' %}</label>
+                    <select id="priority" class="ui dropdown fluid normal-dropdown">
+                        {% for p in data.priorities %}
+                            <option value="{{ p.0 }}"{% if data.def_config.priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% if data.need_auth %}
+                <div id="new_sch_u" class="five wide column" style="display: none">
+                    <div class="ui green segment">
+                        {% include 'users/schedulerUser.html' %}
+                        <br>
+                        <button id="add_new_sch_u" class="ui green button disabled">{% trans 'Save' %}</button>
+                    </div>
+                </div>
+            {% endif %}
+            <div class="five wide column need-auth">
+                <h4 class="ui header">{% trans 'Resource limits for Klever Core' %}</h4>
+                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GiB' %}), {% trans 'e.g.' %} 2.0</label>
+                <div class="ui input fluid">
+                    <input id="max_ram" type="number" value="{{ data.restrictions.max_ram }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                </div>
+                <br>
+                <label for="max_cpus">{% trans 'Number of CPU cores' %}, {% trans 'e.g.' %} 2</label>
+                <div class="ui input fluid">
+                    <input id="max_cpus" type="number" value="{{ data.restrictions.max_cpus }}" pattern="[0-9]+">
+                </div>
+                <br>
+                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GiB' %}), {% trans 'e.g.' %} 100.0</label>
+                <div class="ui input fluid">
+                    <input id="max_disk" type="number" value="{{ data.restrictions.max_disk }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                </div>
+            </div>
+            <div class="six wide column need-auth">
+                <br><br>
+                <label for="max_wall_time">{% trans 'Wall time' %} ({% trans 's' %}), {% trans 'e.g.' %} 900 ({% trans 'empty value means unlimited time' %})</label>
+                <div class="ui input fluid">
+                    <input id="max_wall_time" type="number" value="{{ data.restrictions.max_wall_time }}" pattern="[0-9]+">
+                </div>
+                <br>
+                <label for="max_cpu_time">{% trans 'CPU time' %} ({% trans 's' %}), {% trans 'e.g.' %} 1000 ({% trans 'empty value means unlimited time' %})</label>
+                <div class="ui input fluid">
+                    <input id="max_cpu_time" type="number" value="{{ data.restrictions.max_cpu_time }}" pattern="[0-9]+">
+                </div>
+                <br>
+                <label for="cpu_model">{% trans 'CPU model' %} ({% trans 'empty value means any model' %})</label>
+                <div class="ui input fluid">
+                    <input id="cpu_model" type="text" value="{{ data.restrictions.cpu_model }}">
+                </div>
+            </div>
+        </div>
+        <div class="ui divider need-auth"></div>
+        <div class="ui grid need-auth">
+            <div class="five wide column">
+                <h4 class="ui header">{% trans 'Klever Core configuration' %}</h4>
+                <label for="avtg_priority">{% trans 'Abstract tasks generation priority' %}</label>
+                <select id="avtg_priority" class="ui dropdown fluid normal-dropdown">
+                    {% for p in data.gen_priorities %}
+                        <option value="{{ p.0 }}"{% if data.def_config.avtg_priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
+                    {% endfor %}
+                </select>
+                <h5 class="ui header">{% trans 'Parallelism' %}</h5>
+                <label for="parallelism">{% trans 'Linux kernel build' %}</label>
+                <div class="ui input fluid">
+                    <input id="parallelism" type="text" value="{{ data.parallelism }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                </div>
+            </div>
+            <div class="eleven wide column">
+                <h5 class="ui header">{% trans 'Log Formatters' %}</h5>
+                <label for="console_log_formatter">{% trans 'Console' %}</label>
+                <div class="ui input fluid">
+                    <input id="console_log_formatter" type="text" value="{{ data.logging.console }}">
+                </div>
+                <br>
+                <label for="file_log_formatter">{% trans 'File' %}</label>
+                <div class="ui input fluid">
+                    <input id="file_log_formatter" type="text" value="{{ data.logging.file }}">
+                </div>
+            </div>
+        </div>
+        <div class="ui grid need-auth">
+            <div class="five wide column">
+                <div class="ui toggle checkbox">
+                    <input id="debug_checkbox" type="checkbox" {% if data.def_config.debug %} checked{% endif %}>
+                    <label for="debug_checkbox">{% trans 'Debug' %}</label>
+                </div>
+            </div>
+            <div class="eight wide column">
+                <div class="ui toggle checkbox">
+                    <input id="allow_localdir_checkbox" type="checkbox"{% if data.def_config.allow_local_dir %} checked{% endif %}>
+                    <label for="allow_localdir_checkbox">{% trans 'Allow use of local source directories' %}</label>
+                </div>
+            </div>
+            <div class="three wide column right aligned">
+                <input id="job_pk" type="hidden" value="{{ job.pk }}">
+                <button id="start_job_decision" class="ui violet button">{% trans 'Start' %}</button>
+            </div>
+        </div>
+    {% endif %}
+    </div>
+    <span id="sch_u_saved" hidden>{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}</span>
+    <span id="fields_required" hidden>{% trans 'Field(s) with red background are required' %}</span>
+{% endblock %}

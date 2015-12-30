@@ -1,0 +1,85 @@
+{% extends 'reports/base.html' %}
+
+{% load i18n %}
+
+{% load tz %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="seven wide column">
+            <div class="ui grid">
+                <div class="nine wide column">
+                    <span class="purple-title">{% trans 'Job' %}: </span>
+                    <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+                </div>
+                <div class="seven wide column">
+                    <span class="purple-title">{% trans 'Author' %}: </span>
+                    <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
+                </div>
+            </div>
+        </div>
+        <div class="nine wide column">
+            <div class="ui breadcrumb">
+                <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
+                <div class="ui special popup">
+                    <div class="header">{{ parents.0.title }}</div>
+                    <div class="content">
+                        {% for attr in parents.0.attrs %}
+                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% for parent in parents|slice:"1:" %}
+                    <i class="right arrow icon divider"></i>
+                    <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
+                    <div class="ui special popup">
+                        <div class="header">{{ parent.title }}</div>
+                        <div class="content">
+                            {% for attr in parent.attrs %}
+                                <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <br><br>
+            {% if view_type == '6' %}
+                {% include 'reports/UnknownsFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=view_type %}
+            {% else %}
+                {% include 'reports/ListFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=view_type %}
+            {% endif %}
+        </div>
+    </div>
+    <br>
+    {% if TableData.table_data.values|length %}
+        <div id="report_list_table" style="overflow-x:auto;max-height:80vh;overflow-y:auto;">
+            <table class="ui compact celled table {% if view_type == '6' %}red{% elif view_type == '5' %}green{% elif view_type == '4' %}orange{% endif %} ">
+                <thead>
+                    {% for column_row in TableData.table_data.header %}
+                        <tr class="info">
+                        {% for coldata in column_row %}
+                            <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
+                        {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </thead>
+                <tbody>
+                    {% for row_data in TableData.table_data.values %}
+                        <tr>
+                            {% for v in row_data %}
+                                <td class="collapsing">
+                                    {% if v.href %}
+                                        <a href="{{ v.href }}">{{ v.value }}</a>
+                                    {% else %}
+                                        <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                    {%  endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

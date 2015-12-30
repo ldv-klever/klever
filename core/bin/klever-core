@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+
+import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
+
+from core import Core
+
+# Update PYTHONPATH so that all launched Python scripts belonging to Klever Core will know where to find Klever Core
+# specific libraries.
+os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.pardir),
+                                           ':{0}'.format(os.environ['PYTHONPATH'])
+                                           if os.environ.get('PYTHONPATH') else '')
+
+Core().main()

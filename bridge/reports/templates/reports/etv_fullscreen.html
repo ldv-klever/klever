@@ -1,0 +1,11 @@
+{% extends 'reports/base.html' %}
+
+{% load i18n %}
+{% load tz %}
+
+{% block title %}{% trans 'Error Trace Fullscreen' %}{% endblock %}
+
+{% block body_block %}
+    {% include 'reports/ETV.html' with fullscreen=True %}
+    <input type="hidden" id="report_pk" value="{{ report.pk }}">
+{% endblock %}
