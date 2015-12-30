@@ -7,12 +7,14 @@ from psi.avtg.emg.interfaces import Signature
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
 
-    def __init__(self, logger, conf, avt, analysis, model):
+    def __init__(self, logger, conf, avt, analysis, model, header_lines=[], aspect_lines=[]):
         self.logger = logger
         self.conf = conf
         self.task = avt
         self.analysis = analysis
         self.model = model
+        self.additional_headers = header_lines
+        self.additional_aspects = aspect_lines
         self.files = {}
         self.aspects = {}
         self.model_map = ModelMap()
@@ -21,7 +23,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         # Determine entry point name and file
         self.__determine_entry()
-
         self._generate_entry_point()
         self._generate_aspects()
         self._add_aspects()
@@ -61,10 +62,18 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             # Generate function declarations
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
+                # Aspect text
                 lines = []
+
+                # Before file
                 lines.append('before: file ("$this")\n')
                 lines.append('{\n')
-                lines.append("#include <verifier/rcv.h>\n\n")
+
+                if len(self.additional_headers) > 0:
+                    lines.append("/* EMG additional headers */\n")
+                    lines.extend(self.additional_headers)
+                    lines.append("\n")
+
                 lines.append("/* EMG Function declarations */\n")
                 for file in self.files:
                     if "functions" in self.files[file]:
@@ -80,13 +89,23 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     if "variables" in self.files[file]:
                         for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]]:
                             if variable.export and cc_extra_full_desc_file["in file"] != file:
-                                lines.extend(variable.get_declaration(extern=True))
+                                lines.extend([variable.declare(extern=True) + ";\n"])
                             else:
-                                lines.extend(variable.get_declaration(extern=False))
-                lines.append("}\n")
+                                lines.extend([variable.declare(extern=False) + ";\n"])
+                lines.append("}\n\n")
 
+                # After file
                 lines.append('after: file ("$this")\n')
                 lines.append('{\n')
+
+                lines.append("/* EMG variable initialization */\n")
+                for file in self.files:
+                    if "variables" in self.files[file]:
+                        for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]]:
+                            if cc_extra_full_desc_file["in file"] == file and variable.value:
+                                lines.extend([variable.declare_with_init(init=False) + ";\n"])
+                lines.append("\n")
+
                 lines.append("/* EMG function definitions */\n")
                 for file in self.files:
                     if "functions" in self.files[file]:
@@ -99,6 +118,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines.append("/* EMG kernel function models */\n")
                 for aspect in self.model_aspects:
                     lines.extend(aspect.get_aspect())
+                    lines.append("\n")
+
+                if len(self.additional_aspects) > 0:
+                    lines.append("/* EMG additional non-generated aspects */\n")
+                    lines.extend(self.additional_aspects)
+                    lines.append("\n")
 
                 name = "aspects/emg_{}.aspect".format(os.path.splitext(
                     os.path.basename(cc_extra_full_desc_file["in file"]))[0])
@@ -139,14 +164,26 @@ class Variable:
         self.value = None
         self.export = export
 
-    def declare_with_init(self):
-        declaration = self.signature.expression
-        if self.signature.pointer and self.signature.type_class == "struct":
-            alloc = ModelMap.init_pointer(self.signature)
-            self.value = alloc
-        return self.declare()
+    def declare_with_init(self, init=True):
+        # Ger declaration
+        declaration = self.declare(extern=False)
 
-    def declare(self, set_value=True):
+        # Add memory allocation
+        if not self.value and init:
+            if self.signature.pointer and self.signature.type_class == "struct":
+                alloc = ModelMap.init_pointer(self.signature)
+                self.value = alloc
+
+        # Set value
+        if self.value:
+            declaration += " = {}".format(self.value)
+        return declaration
+
+    def free_pointer(self):
+        return "{}({})".format(ModelMap.free_function_map["FREE"], self.name)
+
+    def declare(self, extern=False):
+        # Generate declaration
         declaration = self.signature.expression
         if self.signature.type_class == "function":
             declaration = self.name_re.sub("(* {})".format(self.name), declaration)
@@ -157,18 +194,11 @@ class Variable:
             else:
                 declaration = declaration.replace("%s", self.name)
 
-        if self.value and set_value:
-            declaration += " = {}".format(self.value)
-        declaration += ";"
-        return declaration
-
-    def get_declaration(self, extern=False):
+        # Add extern prefix
         if extern:
-            declaration = self.declare(set_value=False)
             declaration = "extern " + declaration
-        else:
-            declaration = self.declare()
-        return [declaration + "\n"]
+
+        return declaration
 
 
 class Function:
@@ -308,13 +338,15 @@ class ModelMap:
     mem_function_map = {
         "ALLOC": "ldv_successful_malloc",
         "ALLOC_RECURSIVELY": "ldv_successful_malloc",
-        "FREE": "free",
-        "FREE_RECURSIVELY": None,
         "ZINIT": "ldv_init_zalloc",
         "ZINIT_STRUCT": None,
         "INIT_STRUCT": None,
         "INIT_RECURSIVELY": None,
         "ZINIT_RECURSIVELY": None,
+    }
+    free_function_map = {
+        "FREE": "ldv_free",
+        "FREE_RECURSIVELY": None
     }
     irq_function_map = {
         "GET_CONTEXT": None,
@@ -350,6 +382,16 @@ class ModelMap:
             raise NotImplementedError("Cannot initialize signature {} which is not pointer to structure or primitive".
                                       format(signature.expression, signature.type_class))
 
+    def __replace_free_call(self, match):
+        function, label_name, flag = match.groups()
+        if function not in self.free_function_map:
+            raise NotImplementedError("Model of {} is not supported".format(function))
+        elif not self.free_function_map[function]:
+            raise NotImplementedError("Set implementation for the function {}".format(function))
+
+        # Create function call
+        return "{}(%{}%)".format(self.free_function_map[function], label_name)
+
     def __replace_irq_call(self, match):
         function = match.groups()
         if function not in self.mem_function_map:
@@ -367,6 +409,11 @@ class ModelMap:
         for function in self.mem_function_map:
             regex = re.compile(self.mem_function_re.format(function))
             ret = regex.sub(self.__replace_mem_call, ret)
+
+        # Free functions
+        for function in self.free_function_map:
+            regex = re.compile(self.mem_function_re.format(function))
+            ret = regex.sub(self.__replace_free_call, ret)
 
         # IRQ functions
         for function in self.irq_function_map:

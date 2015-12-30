@@ -116,7 +116,7 @@ class EventModel:
 
         stop = Subprocess('stop')
         stop.type = "condition"
-        stop.statements = ["__VERIFIER_stop();"]
+        stop.statements = ["ldv_stop();"]
         self.model["entry"].subprocesses['stop'] = stop
 
         # Add subprocesses finally
@@ -559,6 +559,10 @@ class EventModel:
                 if label.signature and label.signature.type_class in ["struct", "function"]:
                     # Prefer pointers
                     label.signature.pointer = True
+
+                if (label.container or label.resource) and not label.signature:
+                    raise ValueError("Container or resource label {} must have sigature in process {}".
+                                     format(label.name, process.name))
             self.logger.debug("Analyzed signatures of process {} with an identifier {}".
                               format(process.name, process.identifier))
 

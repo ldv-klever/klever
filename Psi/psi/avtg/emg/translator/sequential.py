@@ -188,7 +188,8 @@ class Translator(AbstractTranslator):
                 and self.analysis.interfaces[identifier].implementations:
             for file in self.analysis.interfaces[identifier].implementations:
                 for variable in self.analysis.interfaces[identifier].implementations[file]:
-                    retval.append([file, variable])
+                    # Expect that variable is not a pointer
+                    retval.append([file, "& {}".format(variable)])
         elif self.analysis.interfaces[identifier].signature.type_class == "function":
             category = self.analysis.interfaces[identifier].category
             interface = self.analysis.interfaces[identifier]
@@ -201,7 +202,8 @@ class Translator(AbstractTranslator):
                 for path in container.implementations:
                     for variable in container.implementations[path]:
                         if field in self.analysis.implementations[path][variable]:
-                            retval.append([path, self.analysis.implementations[path][variable][field]])
+                            # Expect function pointer
+                            retval.append([path,  self.analysis.implementations[path][variable][field]])
 
         if len(retval) == 0:
             return None
@@ -220,7 +222,7 @@ class Translator(AbstractTranslator):
 
         body = [
             "while(1) {",
-            "\tswitch(__VERIFIER_nondet_int()) {"
+            "\tswitch(ldv_undef_int()) {"
         ]
 
         for index in range(len(self.automata)):
@@ -333,6 +335,7 @@ class Automata:
         if len(self.__variables) == 0:
             # Generate state variable
             statev = Variable("emg_sm_state_{}".format(self.identifier), self.file, Signature("int %s"), export=True)
+            statev.value = "0"
             self.state_variable = statev
             self.logger.debug("Add state variable for automata {} with process {}: {}".
                               format(self.identifier, self.process.name, statev.name))
@@ -398,7 +401,7 @@ class Automata:
             )
 
             # Create body
-            body = ["switch(__VERIFIER_nondet_int()) {"]
+            body = ["switch(ldv_undef_int()) {"]
             for index in range(len(cases)):
                 body.extend(
                     [
@@ -452,7 +455,7 @@ class Automata:
             # Create body
             body = [
                 "while (!({}))".format(condition) + "{",
-                "\tswitch(__VERIFIER_nondet_int()) {"
+                "\tswitch(ldv_undef_int()) {"
             ]
             for index in range(len(cases)):
                 body.extend(
@@ -736,7 +739,7 @@ class Automata:
                 # Generate special function with call
                 function = Function(fname, file, Signature("void {}(void)".format(fname)), True)
                 for var in vars:
-                    function.body.concatenate(var.declare_with_init())
+                    function.body.concatenate(var.declare_with_init(init=True) + ";")
 
                 # Generate return value assignment
                 retval = ""
@@ -765,6 +768,11 @@ class Automata:
                     function.body.concatenate(
                         retval + invoke + '(' + ", ".join(params) + ");"
                     )
+
+                # Free allocated memory
+                for var in [var for var in vars if var.signature.type_class in ["struct", "primitive"]
+                            and var.signature.pointer]:
+                    function.body.concatenate(var.free_pointer() + ";")
                 self.functions.append(function)
 
                 # Generate comment
@@ -805,6 +813,10 @@ class Automata:
                             label = check[1]["automata"].process.labels[check[1]["subprocess"].parameters[index][0]]
 
                             my_access = self.label_map["labels"][my_label.name].name
+                            if label.name not in check[1]["automata"].label_map["labels"]:
+                                raise RuntimeError("There is no variable for label {} in automata {} with process {}".
+                                                   format(label.name, check[1]["automata"].identifier,
+                                                          check[1]["automata"].process.name))
                             access = check[1]["automata"].label_map["labels"][label.name].name
 
                             if len(subprocess.parameters[index]) > 1:

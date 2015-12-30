@@ -27,7 +27,28 @@ class EMG(psi.components.Component):
                                               self.conf["specifications directory"])
         self.__get_specs(self.logger, spec_dir)
 
-        # todo: import additional aspects and headers
+        # Import auxilary files for environment model
+        headers_lines = []
+        if "additional headers" in self.conf:
+            headers = self.conf["additional headers"]
+            if len(headers) > 0:
+                for file in headers:
+                    self.logger.info("Try to import header {}".format(file))
+                    header_file = psi.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
+                    with open(header_file, "r") as fh:
+                        headers_lines.extend(fh.readlines())
+                    headers_lines.append("\n")
+
+        aspect_lines = []
+        if "additional aspects" in self.conf:
+            aspects = self.conf["additional aspects"]
+            if len(aspects) > 0:
+                for file in aspects:
+                    self.logger.info("Try to import aspect {}".format(file))
+                    aspect_file = psi.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
+                    with open(aspect_file, "r") as fh:
+                        aspect_lines.extend(fh.readlines())
+                    aspect_lines.append("\n")
 
         # Import interface categories configuration
         intf_spec = CategorySpecification(self.logger)
@@ -47,7 +68,7 @@ class EMG(psi.components.Component):
 
         # Import event categories specification
         self.logger.info("Prepare intermediate model")
-        # TODO: Import existing environment model
+        # todo: Import existing environment model
         self.model = EventModel(self.logger, self.module_interface_spec, self.event_spec).model
 
         # Choose translator
@@ -58,10 +79,28 @@ class EMG(psi.components.Component):
             translator_name = "stub"
             self.logger.info("Try to import translator {}".format(translator_name))
 
+        # Start translation
+        self.logger.info("Begin translation of the model to C code in form of aspect files for instrumentation")
         if translator_name == "stub":
-            tr = stub.Translator(self.logger, self.conf, avt, self.module_interface_spec, self.model)
+            stub.Translator(
+                self.logger,
+                self.conf,
+                avt,
+                self.module_interface_spec,
+                self.model,
+                headers_lines,
+                aspect_lines
+            )
         elif translator_name == "sequential":
-            tr = sequential.Translator(self.logger, self.conf, avt, self.module_interface_spec, self.model)
+            sequential.Translator(
+                self.logger,
+                self.conf,
+                avt,
+                self.module_interface_spec,
+                self.model,
+                headers_lines,
+                aspect_lines
+            )
         else:
             raise NotImplementedError("Cannot use EMG translator '{}'".format(translator_name))
 
