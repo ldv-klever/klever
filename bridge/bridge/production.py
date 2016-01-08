@@ -91,7 +91,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEF_KLEVER_CORE_RESTRICTIONS = {
-    'max_ram': '2.0',
+    'max_ram': '1.0',
     'max_cpus': '2',
     'max_disk': '100.0',
     'max_wall_time': '',
