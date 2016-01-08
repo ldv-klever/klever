@@ -142,6 +142,10 @@ Configuring the Python interpreter
 Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Common run/debug configurations are included into the Klever project.
+You need to follow instructions below just if you need some specific settings.
+For instance you need to change paths for Klever Core if you are going to debug it.
+
 #. :menuselection:`Run --> Edit Configurations... --> Add New Configuration`.
 
 Klever Bridge run/debug configuration
