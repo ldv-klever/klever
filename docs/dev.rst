@@ -151,6 +151,7 @@ Klever Bridge run/debug configuration
 #. Input *Bridge* in field :guilabel:`Name`.
 #. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge to the local network.
 #. Specify *8998* in field :guilabel:`Port`.
+#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
 #. :menuselection:`OK`.
 
 .. note:: To make your Klever Bridge accessible from the local network you might need to set up your firewall
@@ -171,6 +172,7 @@ Klever Core run/debug configuration
 
    .. note:: Place Klever Core working directory somewhere outside the main development repository.
 
+#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
 #. :menuselection:`OK`.
 
 .. note:: Klever Core will search for its configuration file :file:`core.json` in the specified working directory.
@@ -186,6 +188,7 @@ Documentation run/debug configuration
 #. Select project *docs* in field :guilabel:`Project`.
 #. Specify the absolute path to the root directory of the main development repository in field
    :guilabel:`Working directory`.
+#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
 #. :menuselection:`OK`.
 
 Additional documentation
