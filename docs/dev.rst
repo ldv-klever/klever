@@ -118,8 +118,8 @@ Installation
    novikov@ispras.ru).
 #. Specify your preferences at the "Welcome to PyCharm" window.
 
-.. note:: At least on openSUSE 13.2 to run PyCharm one needs to specify environment variable :envvar:`JDK_HOME`, e.g.
-          *JDK_HOME=/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/*.
+.. note:: At least on openSUSE 13.2 to run PyCharm one may need to specify environment variable :envvar:`JDK_HOME`,
+          e.g. *JDK_HOME=/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/*.
 
 Setting project
 ^^^^^^^^^^^^^^^
