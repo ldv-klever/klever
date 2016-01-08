@@ -191,6 +191,10 @@ Documentation run/debug configuration
 #. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
 #. :menuselection:`OK`.
 
+.. note:: To build documentation by means of PyCharm 5.0.3 one has to remove :file:`pycharm-5.0.3/helpers/roman.py`::
+
+    $ mv pycharm-5.0.3/helpers/roman.py pycharm-5.0.3/helpers/roman.py.old
+
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
