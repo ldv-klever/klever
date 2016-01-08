@@ -1,5 +1,5 @@
 {
   "class": "0",
-  "function": "core.utils.CommandError: \"cilly.asm.exe\" failed",
+  "function": "core.utils.CommandError: \"cilly\\.asm\\.exe\" failed",
   "pattern": "CIL failure"
 }
