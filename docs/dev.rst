@@ -111,8 +111,8 @@ To use PyCharm IDE to develop Klever follow the following steps.
 Installation
 ^^^^^^^^^^^^
 
-#. Download PyCharm Professional Edition 4.5.x from `<https://www.jetbrains.com/pycharm/download/>`_ (other versions
-   weren't tested, below all settings are given for version 4.5.3).
+#. Download PyCharm Professional from `<https://www.jetbrains.com/pycharm/download/>`_ (below all settings are given
+   for version 4.5.3, you have to adapt them for your version by yourself).
 #. Follow installation instructions provided at that site.
 #. Activate the PyCharm license.
 #. Specify your preferences at the "Welcome to PyCharm" window.
