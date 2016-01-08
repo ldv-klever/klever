@@ -114,7 +114,8 @@ Installation
 #. Download PyCharm Professional from `<https://www.jetbrains.com/pycharm/download/>`_ (below all settings are given
    for version 4.5.3, you have to adapt them for your version by yourself).
 #. Follow installation instructions provided at that site.
-#. Activate the PyCharm license.
+#. Activate the PyCharm license using your JetBrains account (request for the license from Evgeny Novikov
+   novikov@ispras.ru).
 #. Specify your preferences at the "Welcome to PyCharm" window.
 
 .. note:: At least on openSUSE 13.2 to run PyCharm one needs to specify environment variable :envvar:`JDK_HOME`, e.g.
