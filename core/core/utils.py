@@ -181,7 +181,7 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
             logger.debug('Find directory "{0}" in directory "{1}"'.format(file_or_dir, search_dir))
             return found_file_or_dir
 
-    raise FileExistsError(
+    raise FileNotFoundError(
         'Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
 
 
