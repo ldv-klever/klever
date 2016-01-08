@@ -13,53 +13,68 @@ def nested_dict():
 
 class SA(core.components.Component):
     # TODO: Use template processor instead of predefined aspect file and target output files
-    model = None
+    collection = None
     files = []
     modules_functions = []
     kernel_functions = []
 
     def analyze_sources(self):
-        self.logger.info("Start source analyzer instance {}".format(self.id))
+        self.logger.info("Start source analyzer {}".format(self.id))
 
-        self.logger.debug("Receive abstract verification task")
+        self.logger.info("Going to extract abstract verification task from queue")
         avt = self.mqs['abstract task description'].get()
-        self.logger.info("Analyze source code of an abstract verification task {}".format(avt["id"]))
+        self.logger.info("Abstract verification task {} has been successfully received".format(avt["id"]))
 
-        # Init empty model
-        self.model = collections.defaultdict(nested_dict)
+        # Init an empty collection
+        self.logger.info("Initialize an empty collection before analyzing source code")
+        self.collection = collections.defaultdict(nested_dict)
+        self.logger.info("An empty collection before analyzing source code has been successfully generated")
 
         # Generate aspect file
+        self.logger.info("Prepare aspect files for CIF to use them during source code analysis")
         self._generate_aspect_file()
+        self.logger.info("Aspect file has been successfully generated")
 
         # Perform requests
+        self.logger.info("Run source code analysis")
         self._perform_info_requests(avt)
+        self.logger.info("Source analysis has been finished successfully")
 
         # Extract data
-        self._fill_model()
+        self.logger.info("Process and save collected data to the collection")
+        self._fulfill_collection()
+        self.logger.info("Collection fulfillment has been successfully finished")
 
         # Model postprocessing
-        self._process_model()
+        self.logger.info("Delete useless data from the collection and organize it better way if necessary")
+        self._process_collection()
+        self.logger.info("Collection processing has been successfully finished")
 
         # Save data to file
-        self._save_model("model.json")
+        collection_file = "model.json"
+        self.logger.info("Save collection to {}".format(collection_file))
+        self._save_collection(collection_file)
+        self.logger.info("Collection has been saved succussfully")
 
         # Save data to abstract task
-        self.logger.info("Add extracted data to abstract verification task {}".format(avt["id"]))
-        # TODO: pass model itself rather than file with it. It is possible now because of framework was fixed. Nevertheless saving model to file can be still used for debug.
+        self.logger.info("Add the collection to an abstract verification task {}".format(avt["id"]))
+        # todo: better do this way: avt["source analysis"] = self.collection
         avt["source analysis"] = os.path.relpath("model.json", os.path.realpath(self.conf["main working directory"]))
 
         # Put edited task and terminate
         self.mqs['abstract task description'].put(avt)
-        self.logger.info("SA successfully finished")
+        self.logger.info("Source analyzer {} successfully finished".format(self.id))
 
     def _generate_aspect_file(self):
         # Prepare aspect file
         if "template aspect" not in self.conf:
-            raise TypeError("Provide SA cinfiguration property 'template aspect'")
+            raise TypeError("Source analyzer plugin need a configuration property 'template aspect' to be set")
         template_aspect_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
-                                                          self.conf["template aspect"])
+                                                           self.conf["template aspect"])
+        self.logger.info("Found file with aspect file template {}".format(template_aspect_file))
 
-        self.logger.debug("Add workdir path to each fprintf command in the aspect file")
+        self.logger.info("Add path to an each fprintf command in the aspect file based on {}".
+                         format(template_aspect_file))
         new_file = []
         fprintf_re = re.compile("[\s\t]*\$fprintf<\"")
         fprintf_list_re = re.compile("[\s\t]*\$fprintf_var_init_list<\"")
@@ -77,13 +92,12 @@ class SA(core.components.Component):
                 new_file.append(new_line)
 
         new_aspect_file = "requests.aspect"
-        self.logger.info("Save aspect file to {}".format(new_aspect_file))
+        self.logger.info("Save new aspect file to {}".format(new_aspect_file))
         with open(new_aspect_file, "w") as fh:
             fh.writelines(new_file)
         self.aspect = os.path.realpath(os.path.join(os.getcwd(), new_aspect_file))
 
     def _perform_info_requests(self, abstract_task):
-        # TODO: after this information message there is quite long period of time when something other is done but without any corresponding information message.
         self.logger.info("Import source build commands")
         for group in abstract_task["grps"]:
             # TODO: do not extend abstract verification task description in such the way! This information isn't required for other AVTG plugins.
@@ -91,18 +105,19 @@ class SA(core.components.Component):
             for section in group["cc extra full desc files"]:
                 file = os.path.join(self.conf["source tree root"],
                                     section["cc full desc file"])
-                self.logger.debug("Import build commands from {}".format(file))
+                self.logger.info("Import build commands from {}".format(file))
                 with open(file, "r") as fh:
                     command = json.loads(fh.read())
                     group["build commands"].append(command)
                     self.files.append(command['in files'][0])
 
         for group in abstract_task["grps"]:
-            self.logger.debug("Analyze source files from group {}".format(group["id"]))
+            self.logger.info("Analyze source files from group {}".format(group["id"]))
             for command in group["build commands"]:
                 os.environ["CC_IN_FILE"] = command['in files'][0]
                 stdout = core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'),
-                                           collect_all_stdout=True)
+                                            collect_all_stdout=True)
+                self.logger.info("Analyze source file {}".format(command['in files'][0]))
                 core.utils.execute(self.logger, tuple(['cif',
                                                       '--in', command['in files'][0],
                                                       '--aspect', self.aspect,
@@ -118,7 +133,7 @@ class SA(core.components.Component):
                                   cwd=self.conf['source tree root'])
 
     def _import_content(self, file):
-        self.logger.debug("Import file {} content".format(file))
+        self.logger.info("Import file {} generated by CIF replacing pathes".format(file))
         content = []
         if os.path.isfile(file):
             kernel = os.path.realpath(self.conf["source tree root"]) + "/"
@@ -132,10 +147,10 @@ class SA(core.components.Component):
                     content.append(new_line)
         else:
             self.logger.warning("File {} does not exist".format(file))
+        self.logger.info("File {} has been successfully imported".format(file))
         return content
 
-    def _fill_model(self):
-        self.logger.info("Extract of request results")
+    def _fulfill_collection(self):
         all_args_re = "(?:\sarg\d='[^']*')*"
         exec_re = re.compile("^([^\s]*)\s(\w*)\sret='([^']*)'({})\n".format(all_args_re))
         call_re = re.compile("^([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
@@ -149,43 +164,46 @@ class SA(core.components.Component):
             {"file": "static-declare-function.txt", "static": True}
         ]
         for execution_source in func_definition_files:
-            self.logger.debug("Extract function definitions or declarations from {}".format(execution_source["file"]))
+            self.logger.info("Extract function definitions or declarations from {}".format(execution_source["file"]))
             content = self._import_content(execution_source["file"])
             for line in content:
                 if exec_re.fullmatch(line):
                     path, name, ret_type, args = exec_re.fullmatch(line).groups()
-                    if not self.model["functions"][name]["files"][path]:
-                        self.model["functions"][name]["files"][path]["return value type"] = ret_type
-                        self.model["functions"][name]["files"][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
-                        self.model["functions"][name]["files"][path]["signature"] = "{} {}({})".\
+                    if not self.collection["functions"][name]["files"][path]:
+                        self.collection["functions"][name]["files"][path]["return value type"] = ret_type
+                        self.collection["functions"][name]["files"][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
+                        self.collection["functions"][name]["files"][path]["signature"] = "{} {}({})".\
                             format("$", name, "..")
-                    if not self.model["functions"][name]["files"][path]["static"]:
-                        self.model["functions"][name]["files"][path]["static"] = execution_source["static"]
+                    if not self.collection["functions"][name]["files"][path]["static"]:
+                        self.collection["functions"][name]["files"][path]["static"] = execution_source["static"]
+                    self.logger.debug("Extracted function description {} from {}".format(name, path))
                 else:
                     raise ValueError("Cannot parse line '{}' in file {}".format(line, execution_source["file"]))
 
         expand_file = "expand.txt"
-        self.logger.debug("Extract macro expansions from {}".format(expand_file))
+        self.logger.info("Extract macro expansions from {}".format(expand_file))
         content = self._import_content(expand_file)
         for line in content:
             if short_pair_re.fullmatch(line):
                 path, name = short_pair_re.fullmatch(line).groups()
-                if not self.model["macro expansions"][name][path]:
-                    self.model["macro expansions"][name][path] = True
+                if not self.collection["macro expansions"][name][path]:
+                    self.collection["macro expansions"][name][path] = True
+                self.logger.debug("Extracted macro-expansion description {} from {}".format(name, path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, expand_file))
 
         func_calls_file = "call-function.txt"
-        self.logger.debug("Extract function calls from {}".format(func_calls_file))
+        self.logger.info("Extract function calls from {}".format(func_calls_file))
         content = self._import_content(func_calls_file)
         for line in content:
             if call_re.fullmatch(line):
                 path, caller_name, name, args = call_re.fullmatch(line).groups()
-                if self.model["functions"][caller_name]["files"][path]:
-                    if not self.model["functions"][caller_name]["files"][path]["calls"][name]:
-                        self.model["functions"][caller_name]["files"][path]["calls"][name] = list()
-                    self.model["functions"][caller_name]["files"][path]["calls"][name].\
+                if self.collection["functions"][caller_name]["files"][path]:
+                    if not self.collection["functions"][caller_name]["files"][path]["calls"][name]:
+                        self.collection["functions"][caller_name]["files"][path]["calls"][name] = list()
+                    self.collection["functions"][caller_name]["files"][path]["calls"][name].\
                         append([arg[1] for arg in arg_re.findall(args)])
+                    self.logger.debug("Extracted function call {} at {} in {}".format(name, caller_name, path))
                 else:
                     raise ValueError("Expect function definition {} in file {} but it has not been extracted".
                                      format(name, path))
@@ -193,26 +211,28 @@ class SA(core.components.Component):
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, func_calls_file))
 
         export_file = "exported-symbols.txt"
-        self.logger.debug("Extract export symbols from {}".format(export_file))
+        self.logger.info("Extract export symbols from {}".format(export_file))
         content = self._import_content(export_file)
         for line in content:
             if short_pair_re.fullmatch(line):
                 path, name = short_pair_re.fullmatch(line).groups()
-                if self.model["functions"][name]["files"][path]:
-                    self.model["functions"][name]["files"][path]["exported"] = True
+                if self.collection["functions"][name]["files"][path]:
+                    self.collection["functions"][name]["files"][path]["exported"] = True
+                    self.logger.debug("Extracted exported function {} from {}".format(name, path))
                 else:
                     raise ValueError("Exported function {} in {} should be defined first".format(name, path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, export_file))
 
         init_file = "init.txt"
-        self.logger.debug("Extract initialization functions from {}".format(init_file))
+        self.logger.info("Extract initialization functions from {}".format(init_file))
         content = self._import_content(init_file)
         for line in content:
             if short_pair_re.fullmatch(line):
                 path, func = short_pair_re.fullmatch(line).groups()
-                if not self.model["init"][path]:
-                    self.model["init"][path] = func
+                if not self.collection["init"][path]:
+                    self.collection["init"][path] = func
+                    self.logger.debug("Extracted Init function {} in {}".format(func, path))
                 else:
                     raise ValueError("Module cannot contain two initialization functions but file {} contains".
                                      format(path))
@@ -225,8 +245,9 @@ class SA(core.components.Component):
         for line in content:
             if short_pair_re.fullmatch(line):
                 path, func = short_pair_re.fullmatch(line).groups()
-                if not self.model["exit"][path]:
-                    self.model["exit"][path] = func
+                if not self.collection["exit"][path]:
+                    self.collection["exit"][path] = func
+                    self.logger.debug("Extracted Exit function {} in {}".format(func, path))
                 else:
                     raise ValueError("Module cannot contain two exit functions but file {} contains".
                                      format(path))
@@ -237,85 +258,100 @@ class SA(core.components.Component):
         self.logger.debug("Extract global variables from {}".format(global_file))
         content = self._import_content(global_file)
         gi_parser = GlobalInitParser(content)
-        self.model["global variable initializations"] = gi_parser.analysis
+        # todo: add some logging here
+        self.collection["global variable initializations"] = gi_parser.analysis
 
-    def _save_model(self, km_file):
-        self.logger.info("Save source analysis results to the file {}".format(km_file))
+    def _save_collection(self, km_file):
         with open(km_file, "w") as km_fh:
-            json.dump(self.model, km_fh, sort_keys=True, indent=4)
+            json.dump(self.collection, km_fh, sort_keys=True, indent=4)
 
-    def _process_model(self):
-        self.logger.info("Process model according to provided options")
+    def _process_collection(self):
+        self.logger.info("Process collection according to provided options")
 
-        self.modules_functions = [name for name in self.model["functions"] if
-                                  len(set(self.files).intersection(self.model["functions"][name]["files"]))]
+        # Get modules functions
+        self.logger.info("Determine functions which are implemented in modules under consideration")
+        self.modules_functions = [name for name in self.collection["functions"] if
+                                  len(set(self.files).intersection(self.collection["functions"][name]["files"]))]
+        self.logger.info("Found {} functions in modules under consideration".format(len(self.modules_functions)))
 
         # Collect all functions called in module
+        self.logger.info("Determine functions which are called in considered modules")
         called_functions = []
         for name in self.modules_functions:
-            for path in self.model["functions"][name]["files"]:
-                for called in self.model["functions"][name]["files"][path]["calls"]:
+            for path in self.collection["functions"][name]["files"]:
+                for called in self.collection["functions"][name]["files"][path]["calls"]:
                     called_functions.append(called)
+        self.logger.info("Determine {} functions which are called in considered modules".format(len(called_functions)))
 
         # Collect all kernel functions called in the module
+        self.logger.info("Extract kernel functions")
         self.kernel_functions = set(called_functions) - set(self.modules_functions)
+        self.logger.info("Found {} kernel functions which are called in considered modules".
+                         format(len(self.kernel_functions)))
 
         # Remove useless functions
+        self.logger.info("Remove useless functions from the collection")
         self._shrink_kernel_functions()
 
         # Remove useless macro expansions
+        self.logger.info("Remove useless macro-expansions from the collection")
         self._shrink_macro_expansions()
 
         # Split functions into two parts strictly according to source
+        self.logger.info("Divide functions in the collection to kernel and modules ones")
         self._split_functions()
 
         # Remove pathes from kernel functions and keep only single header reference
+        self.logger.info("Remove repetitions of function descriptions in the collection")
         self._remove_multi_declarations()
 
     def _remove_multi_declarations(self):
-        functions = list(self.model["kernel functions"].keys())
+        functions = list(self.collection["kernel functions"].keys())
         for function in functions:
-            files = list(self.model["kernel functions"][function]["files"].keys())
+            files = list(self.collection["kernel functions"][function]["files"].keys())
             if len(files) > 0:
+                self.logger.debug("Remove repetitions of function description {}".format(function))
                 first_file = files[0]
-                for key in self.model["kernel functions"][function]["files"][first_file]:
-                    self.model["kernel functions"][function][key] = \
-                        self.model["kernel functions"][function]["files"][first_file][key]
+                for key in self.collection["kernel functions"][function]["files"][first_file]:
+                    self.collection["kernel functions"][function][key] = \
+                        self.collection["kernel functions"][function]["files"][first_file][key]
 
                 for file in files:
-                    self.model["kernel functions"][function]["files"][file] = True
+                    self.collection["kernel functions"][function]["files"][file] = True
             else:
-                del self.model["kernel functions"][function]
+                self.logger.debug("Remove useless function description {}".format(function))
+                del self.collection["kernel functions"][function]
 
     def _shrink_kernel_functions(self):
-        names = self.model["functions"].keys()
+        names = self.collection["functions"].keys()
         for name in list(names):
             if name not in self.kernel_functions and name not in self.modules_functions:
-                del self.model["functions"][name]
+                self.logger.debug("Remove useless function description {}".format(name))
+                del self.collection["functions"][name]
 
-        for name in self.model["functions"]:
-            for path in self.model["functions"][name]:
+        for name in self.collection["functions"]:
+            self.logger.debug("Reorder data in function description {}".format(name))
+            for path in self.collection["functions"][name]:
                 if path in self.files:
-                    called = list(self.model["functions"][name]["files"][path]["call"].keys())
+                    called = list(self.collection["functions"][name]["files"][path]["call"].keys())
                     for f in called:
-                        if f not in self.model["functions"]:
-                            del self.model["functions"][name]["files"][path]["call"][f]
-
-        return
+                        if f not in self.collection["functions"]:
+                            del self.collection["functions"][name]["files"][path]["call"][f]
 
     def _shrink_macro_expansions(self):
-        expansions = list(self.model["macro expansions"].keys())
+        expansions = list(self.collection["macro expansions"].keys())
         for exp in expansions:
-            files = list(self.model["macro expansions"][exp].keys())
+            files = list(self.collection["macro expansions"][exp].keys())
             if len(set(self.files).intersection(files)) == 0:
-                del self.model["macro expansions"][exp]
+                self.logger.debug("Remove useless macro-expansion description {}".format(exp))
+                del self.collection["macro expansions"][exp]
 
     def _split_functions(self):
         for function in self.kernel_functions:
-            self.model["kernel functions"][function] = self.model["functions"][function]
+            self.collection["kernel functions"][function] = self.collection["functions"][function]
         for function in self.modules_functions:
-            self.model["modules functions"][function] = self.model["functions"][function]
-        del self.model["functions"]
+            self.collection["modules functions"][function] = self.collection["functions"][function]
+        del self.collection["functions"]
 
     main = analyze_sources
 
@@ -325,6 +361,7 @@ class GlobalInitParser:
     indent_re = re.compile("^(\s*)\w")
 
     def __init__(self, content):
+        # todo: add logger here if necessary
         self.content = content
         self.analysis = collections.defaultdict(nested_dict)
         if len(content) > 0:
