@@ -1,0 +1,5 @@
+{
+  "class": "0",
+  "function": "Stop since some other component\\(s\\) likely failed",
+  "pattern": "Stopped"
+}
