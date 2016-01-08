@@ -160,6 +160,8 @@ Klever Bridge run/debug configuration
 Klever Core run/debug configuration
 """""""""""""""""""""""""""""""""""
 
+This run/debug configuration is only useful if you are going to debug Klever Core.
+
 #. Select :menuselection:`Python`.
 #. Input *Core* in field :guilabel:`Name`.
 #. Specify the absolute path to script :file:`core/bin/klever-core` from the root directory of the main development
