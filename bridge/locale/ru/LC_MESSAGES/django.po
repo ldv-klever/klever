@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-12-25 07:36+0000\n"
+"POT-Creation-Date: 2016-01-08 19:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -266,9 +266,9 @@ msgstr "Решается"
 msgid "Error"
 msgstr "Ошибка"
 
-#: bridge/views.py:33 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:748
+#: bridge/views.py:34 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:748
 #: marks/utils.py:806 marks/utils.py:941 marks/views.py:209 marks/views.py:405
-#: marks/views.py:435 marks/views.py:446 reports/etv.py:385
+#: marks/views.py:435 marks/views.py:446 reports/etv.py:380
 #: service/utils.py:823 service/utils.py:831 service/utils.py:916
 #: service/utils.py:938 service/utils.py:981 service/utils.py:985
 #: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
@@ -706,8 +706,8 @@ msgstr "Объем оперативной памяти"
 #: service/templates/service/scheduler.html:129
 #: service/templates/service/scheduler.html:130
 #: service/templates/service/scheduler.html:193
-msgid "GiB"
-msgstr "Гбайт"
+msgid "GB"
+msgstr "ГБ"
 
 #: jobs/templates/jobs/startDecision.html:49
 #: jobs/templates/jobs/startDecision.html:54
@@ -1254,12 +1254,12 @@ msgid "B"
 msgstr "Б"
 
 #: jobs/utils.py:341
-msgid "KiB"
-msgstr "Кбайт"
+msgid "KB"
+msgstr "КБ"
 
 #: jobs/utils.py:345
-msgid "MiB"
-msgstr "Мбайт"
+msgid "MB"
+msgstr "МБ"
 
 #: jobs/utils.py:412
 msgid "Job title is required"
@@ -1727,11 +1727,11 @@ msgstr "У Вас нет прав создавать новые оценки"
 msgid "You can't delete one of the selected mark"
 msgstr "Вы не можете удалить одну из отмеченных оценок"
 
-#: reports/etv.py:382
+#: reports/etv.py:377
 msgid "Could not find the corresponding unsafe"
 msgstr "Не удалось найти соответствующие предупреждение об ошибке"
 
-#: reports/etv.py:393
+#: reports/etv.py:388
 msgid "Could not find the source file"
 msgstr "Не удалось найти файл с исходным кодом"
 
@@ -1789,18 +1789,6 @@ msgstr "Проигрывание трассы ошибки завершено"
 #: reports/templates/reports/ETV_single.html:8
 msgid "Error trace"
 msgstr "Трасса ошибки"
-
-#: reports/templates/reports/ETV_double.html:23
-#: reports/templates/reports/ETV_double.html:61
-#: reports/templates/reports/ETV_single.html:23
-msgid "Note"
-msgstr "Примечание"
-
-#: reports/templates/reports/ETV_double.html:28
-#: reports/templates/reports/ETV_double.html:66
-#: reports/templates/reports/ETV_single.html:28
-msgid "Warning"
-msgstr "Предупреждение"
 
 #: reports/templates/reports/ReportMain.html:35
 msgid "In progress"

@@ -46,7 +46,7 @@
             {% endif %}
             <div class="five wide column need-auth">
                 <h4 class="ui header">{% trans 'Resource limits for Klever Core' %}</h4>
-                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GiB' %}), {% trans 'e.g.' %} 2.0</label>
+                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0</label>
                 <div class="ui input fluid">
                     <input id="max_ram" type="number" value="{{ data.restrictions.max_ram }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
@@ -56,7 +56,7 @@
                     <input id="max_cpus" type="number" value="{{ data.restrictions.max_cpus }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GiB' %}), {% trans 'e.g.' %} 100.0</label>
+                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0</label>
                 <div class="ui input fluid">
                     <input id="max_disk" type="number" value="{{ data.restrictions.max_disk }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>

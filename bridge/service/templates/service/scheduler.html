@@ -126,8 +126,8 @@
                         <div class="ui pointing list">
                             <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'CPU model' %}:</span> {{ conf.cpu }}</div>
                             <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Number of CPU cores' %}:</span> {{ conf.conf.cores }}</div>
-                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Memory size' %} ({% trans 'GiB' %}):</span> {{ conf.conf.ram }}</div>
-                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Disk memory size' %} ({% trans 'GiB' %}):</span> {{ conf.conf.memory }}</div>
+                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Memory size' %} ({% trans 'GB' %}):</span> {{ conf.conf.ram }}</div>
+                            <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Disk memory size' %} ({% trans 'GB' %}):</span> {{ conf.conf.memory }}</div>
                             <div class="item"><span class="italic" style="color: #15b9c3">{% trans 'Number of nodes' %}:</span> {{ conf.conf.num_of_nodes }}</div>
                         </div>
                     </div>
@@ -190,5 +190,5 @@
     {% endif %}
     <span class="italic" style="color: silver">*{% trans 'Reserved' %}/{% trans 'Available' %}</span>
     <br>
-    <span class="italic" style="color: silver">**{% trans 'Reserved' %}/{% trans 'Available' %}, {% trans 'GiB' %}</span>
+    <span class="italic" style="color: silver">**{% trans 'Reserved' %}/{% trans 'Available' %}, {% trans 'GB' %}</span>
 {% endblock %}

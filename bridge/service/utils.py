@@ -884,12 +884,12 @@ class StartJobDecision(object):
                 ]
             },
             'resource limits': {
-                'wall time': int(self.data['max_wall_time']) * 1000 if len(self.data['max_wall_time']) > 0 else None,
-                'CPU time': int(self.data['max_cpu_time']) * 1000 if len(self.data['max_cpu_time']) > 0 else None,
-                'memory size': int(float(self.data['max_ram']) * 2**30),
+                'wall time': int(self.data['max_wall_time']) * 10**3 if len(self.data['max_wall_time']) > 0 else None,
+                'CPU time': int(self.data['max_cpu_time']) * 10**3 if len(self.data['max_cpu_time']) > 0 else None,
+                'memory size': int(float(self.data['max_ram']) * 10**9),
                 'number of CPU cores': int(self.data['max_cpus']),
                 'CPU model': self.data['cpu_model'] if len(self.data['cpu_model']) > 0 else None,
-                'disk memory size': int(float(self.data['max_disk']) * 2**30)
+                'disk memory size': int(float(self.data['max_disk']) * 10**9)
             }
         }
         try:

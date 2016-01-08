@@ -332,18 +332,18 @@ def convert_time(val, acc):
 def convert_memory(val, acc):
     new_mem = int(val)
     mem_format = "%%1.%df %%s" % int(acc)
-    try_div = new_mem / 1024
+    try_div = new_mem / 10**3
     if try_div < 1:
         return mem_format % (new_mem, _('B'))
     new_mem = try_div
-    try_div = new_mem / 1024
+    try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('KiB'))
+        return mem_format % (new_mem, _('KB'))
     new_mem = try_div
-    try_div = new_mem / 1024
+    try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('MiB'))
-    return mem_format % (try_div, _('GiB'))
+        return mem_format % (new_mem, _('MB'))
+    return mem_format % (try_div, _('GB'))
 
 
 def role_info(job, user):
