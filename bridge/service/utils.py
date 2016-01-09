@@ -4,7 +4,7 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
 from bridge.utils import print_err
-from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_FORMATTERS, DEF_KLEVER_CORE_CONFIGURATION,\
+from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_CONFIGURATION,\
     DEF_LINUX_KERNEL_BUILD_PARALLELISM
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown
@@ -971,7 +971,7 @@ class StartDecisionData(object):
         self.restrictions = DEF_KLEVER_CORE_RESTRICTIONS
         self.gen_priorities = AVTG_PRIORITY
         self.parallelism = str(DEF_LINUX_KERNEL_BUILD_PARALLELISM)
-        self.logging = DEF_KLEVER_CORE_FORMATTERS
+        self.logging = DEF_KLEVER_CORE_CONFIGURATION['formatters']
         self.def_config = DEF_KLEVER_CORE_CONFIGURATION
 
     def __get_schedulers(self):
@@ -1000,8 +1000,8 @@ class StartDecisionData(object):
 
 def get_default_data():
     data = {
-        'console_log_formatter': DEF_KLEVER_CORE_FORMATTERS['console'],
-        'file_log_formatter': DEF_KLEVER_CORE_FORMATTERS['file'],
+        'console_log_formatter': DEF_KLEVER_CORE_CONFIGURATION['formatters']['console'],
+        'file_log_formatter': DEF_KLEVER_CORE_CONFIGURATION['formatters']['file'],
         'parallelism': str(DEF_LINUX_KERNEL_BUILD_PARALLELISM),
         'scheduler': SCHEDULER_TYPE[0][0]
     }

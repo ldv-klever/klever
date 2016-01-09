@@ -101,16 +101,15 @@ DEF_KLEVER_CORE_RESTRICTIONS = {
 
 DEF_LINUX_KERNEL_BUILD_PARALLELISM = 1.0
 
-DEF_KLEVER_CORE_FORMATTERS = {
-    'console': "%(name)s %(levelname)5s> %(message)s",
-    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
-}
-
 DEF_KLEVER_CORE_CONFIGURATION = {
     'debug': True,
     'allow_local_dir': True,  # Allow use of local source directories
     'priority': 'IDLE',  # See bridge.vars.PRIORITY for more options
-    'avtg_priority': 'balance'  # See service.utils.AVTG_PRIORITY for more options
+    'avtg_priority': 'balance',  # See service.utils.AVTG_PRIORITY for more options
+    'formatters': {
+        'console': "%(name)s %(levelname)5s> %(message)s",
+        'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+    }
 }
 
 DEF_USER_DATAFORMAT = 'hum'  # See bridge.vars.DATAFORMAT for options
