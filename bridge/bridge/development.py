@@ -98,8 +98,6 @@ DEF_KLEVER_CORE_RESTRICTIONS = {
     'cpu_model': '',
 }
 
-DEF_LINUX_KERNEL_BUILD_PARALLELISM = 1.0
-
 DEF_KLEVER_CORE_CONFIGURATION = {
     'debug': True,
     'allow_local_dir': True,  # Allow use of local source directories
@@ -108,6 +106,10 @@ DEF_KLEVER_CORE_CONFIGURATION = {
     'formatters': {
         'console': "%(name)s %(levelname)5s> %(message)s",
         'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+    },
+    'parallelism': {
+        'linux_kernel_build': '1.0',
+        'tasks_generation': '1.0'
     }
 }
 
