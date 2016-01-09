@@ -35,7 +35,8 @@ def after_generate_abstact_verification_task_desc(context):
 
 def after_generate_all_abstract_verification_task_descs(context):
     context.logger.info('Terminate abstract verification task descriptions message queue')
-    context.mqs['abstract task descs'].put(None)
+    for i in range(core.utils.get_parallel_threads_num(context.logger, context.conf, 'Tasks generation')):
+        context.mqs['abstract task descs'].put(None)
 
 
 class VTG(core.components.Component):
@@ -89,48 +90,43 @@ class VTG(core.components.Component):
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')
 
-        results = []
+        self.launch_subcomponents(tuple([self._generate_verification_tasks for i in range(
+            core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation'))]))
 
-        with multiprocessing.Pool(
-                core.utils.get_parallel_threads_num(self.logger, self.conf, 'Verification tasks generation')) as pool:
-            while True:
-                abstact_task_desc = self.mqs['abstract task descs'].get()
+        self.mqs['abstract task descs'].close()
 
-                if abstact_task_desc is None:
-                    self.logger.debug('Abstract verification task descriptions message queue was terminated')
-                    self.mqs['abstract task descs'].close()
-                    break
+    def _generate_verification_tasks(self):
+        while True:
+            abstract_task_desc = self.mqs['abstract task descs'].get()
 
-                results.append(pool.apply_async(self._generate_verification_tasks, (None,)))
+            if abstract_task_desc is None:
+                self.logger.debug('Abstract verification task descriptions message queue was terminated')
+                break
 
-        for result in results:
-            result.get()
+            # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
+            self.logger.info('Generate verification tasks for abstract verification task "{0}"'.format(
+                    abstract_task_desc['id']))
 
-    def _generate_verification_tasks(self, abstract_task_desc):
-        # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
-        self.logger.info('!!!!!{1}!!!!! Generate verification tasks for abstract verification task "{0}"'.format(
-                abstract_task_desc['id'], os.getpid()))
+            attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
 
-        attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
+            work_dir = os.path.join(
+                    os.path.relpath(
+                            os.path.join(self.conf['main working directory'],
+                                         '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
+                                         abstract_task_desc['attrs'][1]['rule specification'])),
+                    self.strategy.__name__.lower())
+            os.makedirs(work_dir)
+            self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
-        work_dir = os.path.join(
-                os.path.relpath(
-                        os.path.join(self.conf['main working directory'],
-                                     '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
-                                     abstract_task_desc['attrs'][1]['rule specification'])),
-                self.strategy.__name__.lower())
-        os.makedirs(work_dir)
-        self.logger.debug('Working directory is "{0}"'.format(work_dir))
+            self.conf['abstract task desc'] = abstract_task_desc
 
-        self.conf['abstract task desc'] = abstract_task_desc
-        return
-        p = self.strategy(self.conf, self.logger, self.name, self.callbacks, self.mqs,
-                          '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
-                          work_dir, abstract_task_desc['attrs'], True, True)
-        try:
-            p.start()
-            p.join()
-        # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification tasks.
-        # Do not print information on failure since it will be printed automatically by core.components.
-        except core.components.ComponentError:
-            pass
+            p = self.strategy(self.conf, self.logger, self.name, self.callbacks, self.mqs,
+                              '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
+                              work_dir, abstract_task_desc['attrs'], True, True)
+            try:
+                p.start()
+                p.join()
+            # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification tasks.
+            # Do not print information on failure since it will be printed automatically by core.components.
+            except core.components.ComponentError:
+                pass
