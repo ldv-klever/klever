@@ -89,35 +89,41 @@ class VTG(core.components.Component):
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')
 
-        while True:
-            abstact_task_desc = self.mqs['abstract task descs'].get()
+        results = []
 
-            if abstact_task_desc is None:
-                self.logger.debug('Abstract verification task descriptions message queue was terminated')
-                self.mqs['abstract task descs'].close()
-                break
+        with multiprocessing.Pool(
+                core.utils.get_parallel_threads_num(self.logger, self.conf, 'Verification tasks generation')) as pool:
+            while True:
+                abstact_task_desc = self.mqs['abstract task descs'].get()
 
-            # TODO: specification requires to do this in parallel...
-            self._generate_verification_tasks(abstact_task_desc)
+                if abstact_task_desc is None:
+                    self.logger.debug('Abstract verification task descriptions message queue was terminated')
+                    self.mqs['abstract task descs'].close()
+                    break
+
+                results.append(pool.apply_async(self._generate_verification_tasks, (None,)))
+
+        for result in results:
+            result.get()
 
     def _generate_verification_tasks(self, abstract_task_desc):
         # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
-        self.logger.info('Generate verification tasks for abstract verification task "{0}"'.format(
-            abstract_task_desc['id']))
+        self.logger.info('!!!!!{1}!!!!! Generate verification tasks for abstract verification task "{0}"'.format(
+                abstract_task_desc['id'], os.getpid()))
 
         attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
 
         work_dir = os.path.join(
-            os.path.relpath(
-                os.path.join(self.conf['main working directory'],
-                             '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
-                             abstract_task_desc['attrs'][1]['rule specification'])),
-            self.strategy.__name__.lower())
+                os.path.relpath(
+                        os.path.join(self.conf['main working directory'],
+                                     '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
+                                     abstract_task_desc['attrs'][1]['rule specification'])),
+                self.strategy.__name__.lower())
         os.makedirs(work_dir)
         self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
         self.conf['abstract task desc'] = abstract_task_desc
-
+        return
         p = self.strategy(self.conf, self.logger, self.name, self.callbacks, self.mqs,
                           '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
                           work_dir, abstract_task_desc['attrs'], True, True)
