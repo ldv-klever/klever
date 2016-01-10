@@ -15,7 +15,7 @@ _strategies = (ABKM,)
 
 def before_launch_all_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
-    context.mqs['abstract task descs'] = multiprocessing.Queue()
+    context.mqs['abstract task descs and num'] = multiprocessing.Queue()
     context.mqs['VTG src tree root'] = multiprocessing.Queue()
 
 
@@ -30,13 +30,16 @@ def after_extract_src_tree_root(context):
 def after_generate_abstact_verification_task_desc(context):
     # We need to copy abstrtact verification task description since it may be accidently overwritten by AVTG.
     if context.abstract_task_desc:
-        context.mqs['abstract task descs'].put(copy.deepcopy(context.abstract_task_desc))
+        context.mqs['abstract task descs and num'].put({
+            'desc': copy.deepcopy(context.abstract_task_desc),
+            'num': context.abstract_task_desc_num
+        })
 
 
 def after_generate_all_abstract_verification_task_descs(context):
     context.logger.info('Terminate abstract verification task descriptions message queue')
     for i in range(core.utils.get_parallel_threads_num(context.logger, context.conf, 'Tasks generation')):
-        context.mqs['abstract task descs'].put(None)
+        context.mqs['abstract task descs and num'].put(None)
 
 
 class VTG(core.components.Component):
@@ -93,19 +96,21 @@ class VTG(core.components.Component):
         self.launch_subcomponents(tuple([self._generate_verification_tasks for i in range(
             core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation'))]))
 
-        self.mqs['abstract task descs'].close()
+        self.mqs['abstract task descs and num'].close()
 
     def _generate_verification_tasks(self):
         while True:
-            abstract_task_desc = self.mqs['abstract task descs'].get()
+            abstract_task_desc_and_num = self.mqs['abstract task descs and num'].get()
 
-            if abstract_task_desc is None:
+            if abstract_task_desc_and_num is None:
                 self.logger.debug('Abstract verification task descriptions message queue was terminated')
                 break
 
+            abstract_task_desc = abstract_task_desc_and_num['desc']
+
             # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
-            self.logger.info('Generate verification tasks for abstract verification task "{0}"'.format(
-                    abstract_task_desc['id']))
+            self.logger.info('Generate verification tasks for abstract verification task "{0}" ({1})'.format(
+                    abstract_task_desc['id'], abstract_task_desc_and_num['num']))
 
             attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
 

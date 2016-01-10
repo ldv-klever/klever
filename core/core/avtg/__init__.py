@@ -192,6 +192,7 @@ class AVTG(core.components.Component):
         self.common_prj_attrs = {}
         self.plugins_work_dir = None
         self.abstract_task_desc = None
+        self.abstract_task_desc_num = 0
 
         self.extract_common_prj_attrs()
         core.utils.report(self.logger,
@@ -371,3 +372,6 @@ class AVTG(core.components.Component):
 
             # VTG will consume this abstract verification task description.
             self.abstract_task_desc = cur_abstract_task_desc
+
+            # Count the number of successfully generated abstract verification task descriptions.
+            self.abstract_task_desc_num += 1
