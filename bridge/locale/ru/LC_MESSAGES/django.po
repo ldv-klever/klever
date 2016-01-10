@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-01-08 19:53+0000\n"
+"POT-Creation-Date: 2016-01-10 09:37+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -38,7 +38,7 @@ msgid "Human-readable"
 msgstr "Удобочитаемый"
 
 #: bridge/vars.py:11 jobs/views.py:337 jobs/views.py:359 jobs/views.py:434
-#: jobs/views.py:494 jobs/views.py:754 service/utils.py:913
+#: jobs/views.py:494 jobs/views.py:754 service/utils.py:918
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
@@ -269,8 +269,8 @@ msgstr "Ошибка"
 #: bridge/views.py:34 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:748
 #: marks/utils.py:806 marks/utils.py:941 marks/views.py:209 marks/views.py:405
 #: marks/views.py:435 marks/views.py:446 reports/etv.py:380
-#: service/utils.py:823 service/utils.py:831 service/utils.py:916
-#: service/utils.py:938 service/utils.py:981 service/utils.py:985
+#: service/utils.py:822 service/utils.py:830 service/utils.py:921
+#: service/utils.py:943 service/utils.py:986 service/utils.py:990
 #: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
 #: tools/views.py:120 tools/views.py:140 users/views.py:316
 msgid "Unknown error"
@@ -784,31 +784,35 @@ msgstr "Параллелизм"
 msgid "Linux kernel build"
 msgstr "Сборка ядра Linux"
 
-#: jobs/templates/jobs/startDecision.html:99
+#: jobs/templates/jobs/startDecision.html:97
+msgid "Tasks generation"
+msgstr "Генерация задач"
+
+#: jobs/templates/jobs/startDecision.html:103
 msgid "Log Formatters"
 msgstr "Форматтеры логов"
 
-#: jobs/templates/jobs/startDecision.html:100
+#: jobs/templates/jobs/startDecision.html:104
 msgid "Console"
 msgstr "Консоль"
 
-#: jobs/templates/jobs/startDecision.html:105
+#: jobs/templates/jobs/startDecision.html:109
 msgid "File"
 msgstr "Файл"
 
-#: jobs/templates/jobs/startDecision.html:115
+#: jobs/templates/jobs/startDecision.html:119
 msgid "Debug"
 msgstr "Отладка"
 
-#: jobs/templates/jobs/startDecision.html:121
+#: jobs/templates/jobs/startDecision.html:125
 msgid "Allow use of local source directories"
 msgstr "Разрешить использовать локальные директории с исходным кодом"
 
-#: jobs/templates/jobs/startDecision.html:126
+#: jobs/templates/jobs/startDecision.html:130
 msgid "Start"
 msgstr "Начать"
 
-#: jobs/templates/jobs/startDecision.html:131
+#: jobs/templates/jobs/startDecision.html:135
 msgid ""
 "VerifierCloud credentials were successfully saved (you can change them in "
 "your settings)"
@@ -816,7 +820,7 @@ msgstr ""
 "Идентификационная информация для VerifierCloud была успешно сохранена (Вы "
 "можете изменить ее в Ваших настройках)"
 
-#: jobs/templates/jobs/startDecision.html:132
+#: jobs/templates/jobs/startDecision.html:136
 msgid "Field(s) with red background are required"
 msgstr "Требуется заполнить поле(я) с красным фоном"
 
@@ -1941,47 +1945,47 @@ msgstr "Зарезервировано"
 msgid "Available"
 msgstr "Доступно"
 
-#: service/utils.py:16
+#: service/utils.py:15
 msgid "Balance"
 msgstr "Баланс"
 
-#: service/utils.py:17
+#: service/utils.py:16
 msgid "Rule specifications"
 msgstr "Спецификации правил"
 
-#: service/utils.py:18
+#: service/utils.py:17
 msgid "Verification objects"
 msgstr "Верификационные объекты"
 
-#: service/utils.py:256
+#: service/utils.py:255
 msgid "The job solving progress does not exist"
 msgstr "Прогресс решения задания не существует"
 
-#: service/utils.py:259
+#: service/utils.py:258
 msgid "Only pending and processing jobs can be stopped"
 msgstr "Только ожидающие и решающиеся задания могут быть остановлены"
 
-#: service/utils.py:906
+#: service/utils.py:911
 msgid "The scheduler was not found"
 msgstr "Планировщик не был найден"
 
-#: service/utils.py:919
+#: service/utils.py:924
 msgid "You don't have an access to start decision of this job"
 msgstr "У Вас нет прав начать решение данного задания"
 
-#: service/utils.py:941 service/utils.py:989
+#: service/utils.py:946 service/utils.py:994
 msgid "The Klever scheduler is disconnected"
 msgstr "Планировщик Klever отключен"
 
-#: service/utils.py:945
+#: service/utils.py:950
 msgid "The VerifierCloud scheduler is disconnected"
 msgstr "Планировщик VerifierCloud отключен"
 
-#: service/utils.py:950
+#: service/utils.py:955
 msgid "You didn't specify credentials for VerifierCloud"
 msgstr "Вы не указали идентификационную информацию для VerifierCloud"
 
-#: service/utils.py:987
+#: service/utils.py:992
 msgid "The Klever scheduler is ailing"
 msgstr "Планировщик Klever нездоров"
 
