@@ -18,8 +18,6 @@ class Run:
         :param user: VerifierCloud username.
         :param password: VerifierCloud password.
         """
-        self.description = description
-
         # Save user credentials
         self.user_pwd = "{}:{}".format(user, password)
 
@@ -33,9 +31,9 @@ class Run:
         self.version = description["verifier"]["version"]
 
         # Check priority
-        if self.description["priority"] not in ["LOW", "IDLE"]:
-            logging.warning("Task {} has priority higher than LOW".format(self.description["id"]))
-        self.priority = self.description["priority"]
+        if description["priority"] not in ["LOW", "IDLE"]:
+            logging.warning("Task {} has priority higher than LOW".format(description["id"]))
+        self.priority = description["priority"]
 
         # Set limits
         self.limits = {
