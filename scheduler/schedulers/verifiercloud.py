@@ -180,7 +180,7 @@ class Scheduler(schedulers.SchedulerExchange):
         return self.wi.submit(run=run,
                               limits=run.limits,
                               cpu_model=run.cpu_model,
-                              result_files_pattern=None,
+                              result_files_pattern='output/**',
                               priority=run.priority,
                               user_pwd=run.user_pwd,
                               svn_branch=branch,
