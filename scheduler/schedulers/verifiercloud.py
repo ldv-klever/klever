@@ -65,8 +65,8 @@ class Run:
                 self.options.append(option[name])
 
         # Set source files and property
-        self.propertyfile = os.path.join(work_dir, self.description["property"])
-        self.sourcefiles = [os.path.join(work_dir, file) for file in self.description["files"]]
+        self.propertyfile = os.path.join(work_dir, description["property file"])
+        self.sourcefiles = [os.path.join(work_dir, file) for file in description["files"]]
 
 
 class Scheduler(schedulers.SchedulerExchange):
