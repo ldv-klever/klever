@@ -20,7 +20,7 @@
     "iteration timeout": 3
   },
   "common": {
-    "working directory": "scheduler-work-dir",
+    "working directory": "native-scheduler-work-dir",
     "keep working directory": false,
     "logging": {
       "version": 1,
