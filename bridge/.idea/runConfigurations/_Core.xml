@@ -1,13 +1,13 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Core" type="PythonConfigurationType" factoryName="Python" singleton="true">
+  <configuration default="false" name="$Core" type="PythonConfigurationType" factoryName="Python" singleton="true">
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
-      <env name="PATH" value="/home/novikov/bin:/usr/local/bin:/usr/bin:/bin:/usr/bin/X11:/usr/games:/usr/lib/mit/bin:/home/novikov/work/cif-inst/bin/:/home/novikov/work/klever/addons/cil-1.5.1/obj/x86_LINUX" />
+      <env name="PATH" value="$CONTENT_OF_LOCAL_PATH:/abs/path/to/cif/bin/:/abs/path/to/cil/obj/x86_LINUX" />
       <env name="PYTHONUNBUFFERED" value="1" />
     </envs>
     <option name="SDK_HOME" value="/usr/bin/python3.4" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../temp/klever" />
+    <option name="WORKING_DIRECTORY" value="/abs/path/to/work/dir" />
     <option name="IS_MODULE_SDK" value="false" />
     <option name="ADD_CONTENT_ROOTS" value="false" />
     <option name="ADD_SOURCE_ROOTS" value="false" />
