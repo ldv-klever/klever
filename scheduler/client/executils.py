@@ -19,7 +19,6 @@ def extract_description(solution_dir, description_file):
         "resources": {},
         "comp": {}
     }
-    limits = {}
 
     # Import description
     desc_file = os.path.join(solution_dir, "runDescription.txt")
@@ -39,17 +38,20 @@ def extract_description(solution_dir, description_file):
     # Import general information
     general_file = os.path.join(solution_dir, "runInformation.txt")
     logging.debug("Import general information from the file {}".format(general_file))
+    termination_reason = None
     number = re.compile("(\d.*\d)")
     if os.path.isfile(general_file):
         with open(general_file, "r") as gi:
             for line in gi:
                 key, value = line.strip().split("=", maxsplit=1)
-                if key == "command":
+                if key == "terminationreason":
+                    termination_reason = value
+                elif key == "command":
                     description["comp"]["command"] = value
                 elif key == "exitsignal":
                     description["signal num"] = int(value)
-                elif key == "exitcode":
-                    description["exit code"] = int(value)
+                elif key == "returnvalue":
+                    description["return value"] = int(value)
                 elif key == "walltime":
                     sec = number.match(value).group(1)
                     if sec:
@@ -68,40 +70,31 @@ def extract_description(solution_dir, description_file):
                         description["resources"]["memory size"] = int(mem_bytes)
                     else:
                         logging.warning("Cannot properly extract exhausted memory from {}".format(general_file))
-                elif key == "timeLimit":
-                    # TODO: What kind of limit is it ?
-                    sec = number.match(value).group(1)
-                    if sec:
-                        limits["max time"] = int(float(sec) * 1000)
-                    else:
-                        logging.warning("Cannot properly extract time limit from {}".format(general_file))
-                elif key == "memoryLimit":
-                    mem_bytes = number.match(value).group(1)
-                    if mem_bytes:
-                        limits["maximum memory size"] = int(mem_bytes)
-                    else:
-                        logging.warning("Cannot properly extract memory limit from {}".format(general_file))
     else:
         raise FileNotFoundError("There is no solution file {}".format(general_file))
 
-    # Set final status
-    # TODO: Test it more carefully
+    # According to documentation remove exit code in case of killing
     if "signal num" in description:
-        # According to documentation remove it from there in case of killing
-        del description["exit code"]
+        del description["return value"]
 
-        # Set status as killed by signal
-        description["status"] = "killed by signal"
-
-        # TODO: Determine reasons more carefully
-        if limits["max time"] > 0.99 * description["resources"]["wall time"]:
-            description["status"] = "wall time exhausted"
-        elif limits["max time"] > 0.99 * description["resources"]["cpu time"]:
+    # Set final status
+    if termination_reason:
+        if termination_reason == "time":
             description["status"] = "CPU time exhausted"
-        elif limits["maximum memory size"] > 0.99 * description["resources"]["maximum memory size"]:
+        elif termination_reason == "memory":
             description["status"] = "memory exhausted"
-    elif "exit code" in description and description["exit code"] == 0:
-        description["status"] = "normal exit"
+        else:
+            raise ValueError("Unsupported termination reason {}".format(termination_reason))
+    elif "signal num" in description:
+        description["status"] = "killed by signal"
+    elif "return value" in description:
+        if description["return value"] == 0:
+            if os.path.isfile(os.path.join(solution_dir, 'witness.graphml')):
+                description["status"] = "unsafe"
+            else:
+                description["status"] = "safe"
+        else:
+            description["status"] = "error"
     else:
         raise ValueError("Cannot determine termination reason according to the file {}".format(general_file))
 
