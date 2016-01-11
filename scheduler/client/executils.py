@@ -50,7 +50,7 @@ def extract_description(solution_dir, description_file):
                 elif key == "memory":
                     mem_bytes = number.match(value).group(1)
                     if mem_bytes:
-                        description["resources"]["maximum memory size"] = int(mem_bytes)
+                        description["resources"]["memory size"] = int(mem_bytes)
                     else:
                         logging.warning("Cannot properly extract exhausted memory from {}".format(general_file))
                 elif key == "timeLimit":

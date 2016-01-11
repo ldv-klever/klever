@@ -204,7 +204,7 @@ def solve_task(conf):
                     if match:
                         decision_results["resources"]["wall time"] = int(float(match.groups()[0]) * 1000)
                 elif name == "memUsage":
-                    decision_results["resources"]["max mem size"] = int(value)
+                    decision_results["resources"]["memory size"] = int(value)
                 elif name == "exitcode":
                     decision_results["exit code"] = int(value)
                 elif name == "status":
