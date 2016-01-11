@@ -245,7 +245,7 @@
       },
       "callbacks": {
         "handler": {
-          "signature": "void (*%interrupt.handler%)(%interrupt.data%)",
+          "signature": "void (*%timer.handler%)(%timer.data%)",
           "interrupt context": true
         }
       }

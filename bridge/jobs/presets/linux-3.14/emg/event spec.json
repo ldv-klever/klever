@@ -2,14 +2,14 @@
   "kernel model": {
     "usb_reset_device": {
       "labels": {},
-      "process": "[[reset]]",
+      "process": "[@usb_reset]",
       "subprocesses": {
-        "reset": {
+        "usb_reset": {
           "parameters": []
         }
       }
     },
-    "usb_register": {
+    "usb_register_driver": {
       "labels": {
         "usb_driver": {
           "container": true,
@@ -17,13 +17,21 @@
           "interface": "usb.usb_driver"
         }
       },
-      "process": "[register]",
+      "process": "<assign>.[register] | <none>",
       "subprocesses": {
         "register": {
-          "guard": "$RET == 0",
           "parameters": [
             "%usb_driver%"
           ]
+        },
+        "assign": {
+          "condition": "$res == 0",
+          "statements": [
+            "%usb_driver% = $arg1;"
+          ]
+        },
+        "none": {
+          "condition": "$res != 0"
         }
       }
     },
@@ -35,42 +43,48 @@
           "interface": "usb.usb_driver"
         }
       },
-      "process": "[deregister]",
+      "process": "<assign>.[deregister]",
       "subprocesses": {
         "deregister": {
           "parameters": [
             "%usb_driver%"
           ]
+        },
+        "assign": {
+          "statements": [
+            "%usb_driver% = $arg1;"
+          ]
         }
       }
     },
-    "alloc_etherdev": {
+    "alloc_etherdev_mqs": {
       "labels": {
         "netdev": {
           "container": true,
+          "pointer": true,
           "interface": "net.net_device"
         }
       },
-      "process": "({alloc}.{init}.{success} | {fail})",
+      "process": "<alloc>.<init>.<success> | <fail>",
       "subprocesses": {
         "alloc": {
-          "operations": [
-            "$ALLOC_RECURSIVELY(%netdev%)"
+          "statements": [
+            "%netdev% = $ZINIT(%netdev%);"
           ]
         },
         "init": {
-          "operations": [
-            "$INIT_STRUCT(%netdev%)"
+          "statements": [
+            "%netdev% = $ZINIT(%netdev%);"
           ]
         },
         "success": {
-          "operations": [
-            "return %netdev%"
+          "statements": [
+            "return %netdev%;"
           ]
         },
         "fail":{
-           "operations": [
-            "return NULL"
+           "statements": [
+            "return 0;"
           ]
         }
       }
@@ -83,11 +97,11 @@
           "interface": "net.net_device"
         }
       },
-      "process": "{free}",
+      "process": "<free>",
       "subprocesses": {
         "free": {
-          "operations": [
-            "$FREE_RECURSIVELY(%netdev%)"
+          "statements": [
+            "$FREE(%netdev%);"
           ]
         }
       }
@@ -100,21 +114,29 @@
           "interface": "net.net_device"
         }
       },
-      "process": "[start].(ret_start).[register]",
+      "process": "<assign>.[open].(ret_open).[register] | <none>",
       "subprocesses": {
-        "start": {
-          "guard": "$RET == 0",
-          "callback": "%netdev.net_device_ops.start%",
+        "open": {
+          "callback": "%netdev.net_device_ops.open%",
           "parameters": [
             "%netdev%"
           ]
         },
-        "ret_start": {
-          "callback": "%netdev.net_device_ops.start%"
+        "ret_open": {
+          "callback": "%netdev.net_device_ops.open%"
         },
         "register": {
           "parameters": [
             "%netdev%"
+          ]
+        },
+        "none": {
+          "condition": "$res != 0"
+        },
+        "assign": {
+          "condition": "$res == 0",
+          "statements": [
+            "%netdev% = $arg1;"
           ]
         }
       }
@@ -127,7 +149,7 @@
           "interface": "net.net_device"
         }
       },
-      "process": "[stop].(ret_stop).[deregister]",
+      "process": "<assign>.[stop].(ret_stop).[deregister]",
       "subprocesses": {
         "stop": {
           "callback": "%netdev.net_device_ops.stop%",
@@ -142,6 +164,11 @@
           "parameters": [
             "%netdev%"
           ]
+        },
+        "assign": {
+          "statements": [
+            "%netdev% = $arg1;"
+          ]
         }
       }
     },
@@ -153,12 +180,20 @@
           "interface": "platform.platform_driver"
         }
       },
-      "process": "[register]",
+      "process": "<assign>.[register] | <none>",
       "subprocesses": {
         "register": {
-          "guard": "$RET == 0",
           "parameters": [
             "%platform_driver%"
+          ]
+        },
+        "none": {
+          "condition": "$res != 0"
+        },
+        "assign": {
+          "condition": "$res == 0",
+          "statements": [
+            "%platform_driver% = $arg1;"
           ]
         }
       }
@@ -176,17 +211,22 @@
           "interface": "platform.probe"
         }
       },
-      "process": "{assign_probe}.[register]",
+      "process": "<assign>.[register] | <none>",
       "subprocesses": {
-        "assign_probe": {
-          "guard": "$RET == 0",
-          "operations": [
-            "%platform_driver.probe=%probe%%"
-          ]
-        },
         "register": {
           "parameters": [
             "%platform_driver%"
+          ]
+        },
+        "none": {
+          "condition": "$res != 0"
+        },
+        "assign": {
+          "condition": "$res == 0",
+          "statements": [
+            "%platform_driver% = $arg1;",
+            "%probe% = $arg2;",
+            "%platform_driver.probe%=%probe%;"
           ]
         }
       }
@@ -199,11 +239,16 @@
           "interface": "platform.platform_driver"
         }
       },
-      "process": "[deregister]",
+      "process": "<assign>.[deregister]",
       "subprocesses": {
         "deregister": {
           "parameters": [
             "%platform_driver%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%platform_driver% = $arg1;"
           ]
         }
       }
@@ -216,12 +261,42 @@
           "interface": "timer.platform_driver"
         }
       },
-      "process": "[instance_register]",
+      "process": "<assign>.[instance_register] | <none>",
       "subprocesses": {
         "instance_register": {
-          "guard": "$RET == 0",
           "parameters": [
             "%timer_list%"
+          ]
+        },
+        "none": {
+          "condition": "$res != 0"
+        },
+        "assign": {
+          "condition": "$res == 0",
+          "statements": [
+            "%timer_list% = $arg1;"
+          ]
+        }
+      }
+    },
+    "init_timer_key": {
+      "labels": {
+        "timer_list": {
+          "container": true,
+          "parameter": true,
+          "interface": "timer.timer_list"
+        }
+      },
+      "process": "<assign>.[instance_register]",
+      "subprocesses": {
+        "instance_register": {
+          "parameters": [
+            "%timer_list%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%timer_list% = $arg1;"
           ]
         }
       }
@@ -244,18 +319,24 @@
           "interface": "timer.callback"
         }
       },
-      "process": "{assign_data}.[instance_register]",
+      "process": "<assign>.[instance_register] | <none>",
       "subprocesses": {
-        "assign_data": {
-          "guard": "$RET == 0",
-          "operations": [
-            "%timer_list.data=%data%%",
-            "%timer_list.function=%function%%"
-          ]
-        },
         "instance_register": {
           "parameters": [
             "%timer_list%"
+          ]
+        },
+        "none": {
+          "condition": "$res != 0"
+        },
+        "assign": {
+          "condition": "$res == 0",
+          "statements": [
+            "%timer_list% = $arg1;",
+            "%function% = $arg2",
+            "%data% = $arg3",
+            "%timer_list.data%=%data%;",
+            "%timer_list.function%=%function%;"
           ]
         }
       }
@@ -268,16 +349,21 @@
           "interface": "timer.timer_list"
         }
       },
-      "process": "[deregister]",
+      "process": "<assign>.[instance_deregister]",
       "subprocesses": {
-        "deregister": {
+        "instance_deregister": {
           "parameters": [
             "%timer_list%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%timer_list% = $arg1;"
           ]
         }
       }
     },
-    "request_threaded_irq, devm_request_threaded_irq": {
+    "request_threaded_irq": {
       "labels": {
         "thread": {
           "callback": true,
@@ -300,15 +386,26 @@
           "parameter": true
         }
       },
-      "process": "[irq_register]",
+      "process": "<assign>.[irq_register] | <none>",
       "subprocesses": {
         "irq_register": {
-          "guard": "$RET == 0",
           "parameters": [
             "%line%",
-            "%handler%",
+            "%callback%",
             "%thread%",
             "%data%"
+          ]
+        },
+        "none": {
+          "condition": "$res != 0"
+        },
+        "assign": {
+          "condition": "$res == 0",
+          "statements": [
+            "%line% = $arg1;",
+            "%callback% = $arg2;",
+            "%thread% = $arg3;",
+            "%data% = $arg6;"
           ]
         }
       }
@@ -321,11 +418,16 @@
           "parameter": true
         }
       },
-      "process": "[irq_deregister]",
+      "process": "<assign>.[irq_deregister]",
       "subprocesses": {
         "irq_deregister": {
           "parameters": [
             "%line%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%line% = $arg1;"
           ]
         }
       }
@@ -339,10 +441,10 @@
         },
         "k": {
           "signature": "int %s",
-          "value": "$NONDET(int)"
+          "value": "2"
         }
       },
-      "process": "(!register).[instance_register(%k%)].[instance_deregister(%k%)].(deregister)",
+      "process": "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)",
       "subprocesses": {
         "register": {
           "parameters": [
@@ -350,7 +452,7 @@
           ]
         },
         "deregister": {
-          "condition": ["%container% == $ARG"],
+          "condition": "%container% == $ARG1",
           "parameters": [
             "%container%"
           ]
@@ -375,16 +477,6 @@
         "resource": {
           "resource": true
         },
-        "pre": {
-          "callback": true
-        },
-        "post": {
-          "callback": true
-        },
-        "k": {
-          "signature": "int %s",
-          "value": "$NONDET(int)"
-        },
         "reset_flag": {
           "signature": "bool %s",
           "value": "false"
@@ -393,41 +485,32 @@
           "signature": "int %s"
         }
       },
-      "process": "(!instance_register).{alloc}.{init}.{inst}.{free}.(instance_deregister)",
+      "process": "(!instance_register).<alloc>.<init>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post].(ret_post) | <null>).[disconnect].(ret_disconnect) | <failed_probe>).<free>.(instance_deregister)",
       "subprocesses": {
-        "inst": {
-          "process": "([probe].(ret_probe).([suspend].{reset_scenario}.(ret_suspend).{resume_inst} | 0).([disconnect].(ret_disconnect) | 0)).({inst} | 0)"
-        },
-        "reset_scenario": {
-          "process": "((reset).<[pre].(ret_pre).[post].(ret_post).{set_reset_flag}> | 0)"
-        },
-        "resume_inst": {
-          "process": "([reset_resume].(ret_reset_resume) | [resume].(ret_resume))"
-        },
         "instance_register": {
           "parameters": [
             "%container%"
           ]
         },
         "instance_deregister": {
-          "condition": ["%container% == $ARG"],
+          "condition": "%container% == $ARG1",
           "parameters": [
             "%container%"
           ]
         },
         "alloc": {
-          "operations": [
-            "$ALLOC_RECURSIVELY(%resource%)"
+          "statements": [
+            "%resource% = $ZINIT(%resource%);"
           ]
         },
         "init": {
-          "operations": [
-            "$INIT_STRUCT(%resource%)"
+          "statements": [
+            "%resource% = $ZINIT(%resource%);"
           ]
         },
         "free": {
-          "operations": [
-            "$FREE_RECURSIVELY(%resource%)"
+          "statements": [
+            "$FREE(%resource%);"
           ]
         },
         "probe": {
@@ -449,74 +532,44 @@
         "ret_disconnect": {
           "callback": "%container.disconnect%"
         },
-        "reset": {
-          "operations": [
-            "%reset_flag=true%"
-          ]
-        },
-        "suspend": {
-          "callback": "%container.suspend%",
-          "parameters": [
-            "%resource%"
-          ]
-        },
-        "ret_suspend": {
-          "callback": "%container.suspend%"
-        },
-        "resume": {
-          "callback": "%container.resume%",
-          "parameters": [
-            "%resource%"
-          ]
-        },
-        "ret_resume": {
-          "callback": "%container.resume%"
-        },
-        "reset_resume": {
-          "guard": [
-            "%reset_flag%"
-          ],
-          "callback": "%container.reset_resume%",
-          "parameters": [
-            "%resource%"
-          ]
-        },
-        "ret_reset_resume": {
-          "callback": "%container.reset_resume%"
-        },
         "pre": {
           "callback": "%container.pre%",
-          "parameters": [
-            "%resource%"
-          ]
+          "parameters": ["%resource%"]
         },
         "ret_pre": {
           "callback": "%container.pre%"
         },
         "post": {
           "callback": "%container.post%",
-          "parameters": [
-            "%resource%"
-          ]
+          "parameters": ["%resource%"]
         },
         "ret_post": {
           "callback": "%container.post%"
-        }
+        },
+        "usb_reset": {},
+        "probe_success": {
+          "condition": "%probe_retval% == 0"
+        },
+        "failed_probe": {
+          "condition": "%probe_retval% == 0"
+        },
+        "null": {}
       }
     },
     "dummy_resourceless_instance": {
       "labels": {
         "container": {
-          "container": true
+          "container": true,
+          "resource": true
         },
         "callback": {
           "callback": true
         }
       },
-      "process": "(!register).{call}.(deregister)",
+      "process": "(!register).{call}",
       "subprocesses": {
         "call": {
-          "process": "([callback].(ret_callback) | 0).({call} | 0)"
+          "process": "[callback].(ret_callback).{call} | (deregister)"
         },
         "register": {
           "parameters": [
@@ -524,7 +577,7 @@
           ]
         },
         "deregister": {
-          "condition": ["%container% == $ARG"],
+          "condition": "%container% == $ARG1",
           "parameters": [
             "%container%"
           ]
@@ -543,13 +596,11 @@
     "timer_instance": {
       "labels": {
         "container": {
-          "container": true
-        },
-        "callback": {
-          "callback": true
+          "container": true,
+          "interface": "timer.timer_list"
         }
       },
-      "process": "(!instance_register).([callback].(ret_callback) | 0).(instance_deregister)",
+      "process": "(!instance_register).[callback].(ret_callback).(instance_deregister)",
       "subprocesses": {
         "instance_register": {
           "parameters": [
@@ -557,19 +608,19 @@
           ]
         },
         "instance_deregister": {
-          "condition": ["%container% == $ARG"],
+          "condition": "%container% == $ARG1",
           "parameters": [
             "%container%"
           ]
         },
         "callback": {
-          "callback": "%callback%",
+          "callback": "%container.handler%",
           "parameters": [
-            "%resource%"
+            "%container.data%"
           ]
         },
         "ret_callback": {
-          "callback": "%callback%"
+          "callback": "%container.handler%"
         }
       }
     },
@@ -595,42 +646,47 @@
           "signature": "int %s"
         }
       },
-      "process": "(!irq_register).([handler].(ret_handler).([thread].(ret_thread)) | 0).(irq_deregister)",
+      "process": "(!irq_register).[handler].(ret_handler).(<need_thread>.[thread].(ret_thread) | <handled>).(irq_deregister)",
       "subprocesses": {
         "irq_register": {
-           "guard": "$RET == 0",
+           "condition": "$res == 0",
            "parameters": [
              "%line%",
-             "%handler%",
+             "%callback%",
              "%thread%",
              "%data%"
            ]
         },
         "irq_deregister": {
-          "condition": ["%line% == $ARG]"],
+          "condition": "%line% == $ARG1",
           "parameters": [
             "%line%"
           ]
         },
         "handler": {
-          "callback": "%handler%",
+          "callback": "%callback%",
           "parameters": [
-            "%resource%"
+            "%data%"
           ]
         },
         "ret_handler": {
-          "callback": "%handler%",
+          "callback": "%callback%",
           "callback return value": "%ret_val%"
         },
         "thread": {
-          "guard": "%ret_val% == IRQ_WAKE_THREAD",
           "callback": "%thread%",
           "parameters": [
-            "%resource%"
+            "%data%"
           ]
         },
         "ret_thread": {
           "callback": "%thread%"
+        },
+        "need_thread": {
+          "condition": "%ret_val% == IRQ_WAKE_THREAD"
+        },
+        "handled": {
+          "condition": "%ret_val% != IRQ_WAKE_THREAD"
         }
       }
     }
