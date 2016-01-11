@@ -30,11 +30,7 @@ class Run:
         else:
             self.tool = "CPAchecker"
 
-        # Expect branch:revision
-        if ":" not in self.description["verifier"]["version"]:
-            raise ValueError("Expect version as branch:revision pair in task description, but got {}".
-                             format(self.description["verifier"]["version"]))
-        self.version = self.description["verifier"]["version"].split(":")
+        self.version = description["verifier"]["version"]
 
         # Check priority
         if self.description["priority"] not in ["LOW", "IDLE"]:
@@ -172,11 +168,16 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug("Prepare arguments of the task {}".format(identifier))
         task_data_dir = os.path.join(self.work_dir, "tasks", identifier, "data")
         run = Run(task_data_dir, description, user, password)
-        branch, revision = run.version
-        if branch == "":
+        # Expect branch:revision or revision
+        branch, revision = None, None
+        if ":" in run.version:
+            branch, revision = run.version.split(':')
+        else:
+            revision = run.version
+        if not branch:
             logging.warning("Branch has not given for the task {}".format(identifier))
             branch = None
-        if revision == "":
+        if not revision:
             logging.warning("Revision has not given for the task {}".format(identifier))
             revision = None
 
