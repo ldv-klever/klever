@@ -96,28 +96,28 @@ class Scheduler(schedulers.SchedulerExchange):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "VerifierCloud"
 
-    def schedule(self, pending, processing, sorter):
+    def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
         """
         Get list of new tasks which can be launched during current scheduler iteration.
-        :param pending: List with all pending tasks.
-        :param processing: List with currently ongoing tasks.
+        :param pending_tasks: List with all pending tasks.
+        :param processing_tasks: List with currently ongoing tasks.
         :param sorter: Function which can by used for sorting tasks according to their priorities.
         :return: List with identifiers of pending tasks to launch.
         """
-        pending = sorted(pending, key=sorter)
+        pending_tasks = sorted(pending_tasks, key=sorter)
         if "max concurrent tasks" in self.conf["scheduler"] and self.conf["scheduler"]["max concurrent tasks"]:
-            if len(processing) < self.conf["scheduler"]["max concurrent tasks"]:
-                diff = self.conf["scheduler"]["max concurrent tasks"] - len(processing)
-                if diff <= len(pending):
-                    new = pending[0:diff]
+            if len(processing_tasks) < self.conf["scheduler"]["max concurrent tasks"]:
+                diff = self.conf["scheduler"]["max concurrent tasks"] - len(processing_tasks)
+                if diff <= len(pending_tasks):
+                    new_tasks = pending_tasks[0:diff]
                 else:
-                    new = pending
+                    new_tasks = pending_tasks
             else:
-                new = []
+                new_tasks = []
         else:
-            new = pending
+            new_tasks = pending_tasks
 
-        return new
+        return [new_task["id"] for new_task in new_tasks], []
 
     def prepare_task(self, identifier, description=None):
         """
