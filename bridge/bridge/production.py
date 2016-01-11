@@ -91,7 +91,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEF_KLEVER_CORE_RESTRICTIONS = {
-    'max_ram': '2.0',
+    'max_ram': '1.0',
     'max_cpus': '2',
     'max_disk': '100.0',
     'max_wall_time': '',
@@ -99,18 +99,19 @@ DEF_KLEVER_CORE_RESTRICTIONS = {
     'cpu_model': '',
 }
 
-DEF_LINUX_KERNEL_BUILD_PARALLELISM = 1.0
-
-DEF_KLEVER_CORE_FORMATTERS = {
-    'console': "%(name)s %(levelname)5s> %(message)s",
-    'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
-}
-
 DEF_KLEVER_CORE_CONFIGURATION = {
     'debug': True,
     'allow_local_dir': True,  # Allow use of local source directories
     'priority': 'IDLE',  # See bridge.vars.PRIORITY for more options
-    'avtg_priority': 'balance'  # See service.utils.AVTG_PRIORITY for more options
+    'avtg_priority': 'balance',  # See service.utils.AVTG_PRIORITY for more options
+    'formatters': {
+        'console': "%(name)s %(levelname)5s> %(message)s",
+        'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s"
+    },
+    'parallelism': {
+        'linux_kernel_build': 1.0,
+        'tasks_generation': 1.0
+    }
 }
 
 DEF_USER_DATAFORMAT = 'hum'  # See bridge.vars.DATAFORMAT for options

@@ -111,14 +111,15 @@ To use PyCharm IDE to develop Klever follow the following steps.
 Installation
 ^^^^^^^^^^^^
 
-#. Download PyCharm Professional Edition 4.5.x from `<https://www.jetbrains.com/pycharm/download/>`_ (other versions
-   weren't tested, below all settings are given for version 4.5.3).
+#. Download PyCharm Professional from `<https://www.jetbrains.com/pycharm/download/>`_ (below all settings are given
+   for version 4.5.3, you have to adapt them for your version by yourself).
 #. Follow installation instructions provided at that site.
-#. Activate the PyCharm license.
+#. Activate the PyCharm license using your JetBrains account (request for the license from Evgeny Novikov
+   novikov@ispras.ru).
 #. Specify your preferences at the "Welcome to PyCharm" window.
 
-.. note:: At least on openSUSE 13.2 to run PyCharm one needs to specify environment variable :envvar:`JDK_HOME`, e.g.
-          *JDK_HOME=/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/*.
+.. note:: At least on openSUSE 13.2 to run PyCharm one may need to specify environment variable :envvar:`JDK_HOME`,
+          e.g. *JDK_HOME=/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/*.
 
 Setting project
 ^^^^^^^^^^^^^^^
@@ -141,6 +142,10 @@ Configuring the Python interpreter
 Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Common run/debug configurations are included into the Klever project.
+You need to follow instructions below just if you need some specific settings.
+For instance you need to change paths for Klever Core if you are going to debug it.
+
 #. :menuselection:`Run --> Edit Configurations... --> Add New Configuration`.
 
 Klever Bridge run/debug configuration
@@ -150,6 +155,7 @@ Klever Bridge run/debug configuration
 #. Input *Bridge* in field :guilabel:`Name`.
 #. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge to the local network.
 #. Specify *8998* in field :guilabel:`Port`.
+#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
 #. :menuselection:`OK`.
 
 .. note:: To make your Klever Bridge accessible from the local network you might need to set up your firewall
@@ -157,6 +163,8 @@ Klever Bridge run/debug configuration
 
 Klever Core run/debug configuration
 """""""""""""""""""""""""""""""""""
+
+This run/debug configuration is only useful if you are going to debug Klever Core.
 
 #. Select :menuselection:`Python`.
 #. Input *Core* in field :guilabel:`Name`.
@@ -170,6 +178,7 @@ Klever Core run/debug configuration
 
    .. note:: Place Klever Core working directory somewhere outside the main development repository.
 
+#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
 #. :menuselection:`OK`.
 
 .. note:: Klever Core will search for its configuration file :file:`core.json` in the specified working directory.
@@ -185,7 +194,12 @@ Documentation run/debug configuration
 #. Select project *docs* in field :guilabel:`Project`.
 #. Specify the absolute path to the root directory of the main development repository in field
    :guilabel:`Working directory`.
+#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
 #. :menuselection:`OK`.
+
+.. note:: To build documentation by means of PyCharm 5.0.3 one has to remove :file:`pycharm-5.0.3/helpers/roman.py`::
+
+    $ mv pycharm-5.0.3/helpers/roman.py pycharm-5.0.3/helpers/roman.py.old
 
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -193,83 +207,84 @@ Additional documentation
 A lot of usefull documentation for developing Django projects as well as for general using of the PyCharm IDE is
 available at the official `PyCharm documentation site <https://www.jetbrains.com/pycharm/documentation/>`_.
 
-TODO
-----
+..
+    TODO
+    ----
 
-The rest should be totally revised!
+    The rest should be totally revised!
 
-Creating Klever Core working directory
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Creating Klever Core working directory
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Create **work_dir**.
+    Create **work_dir**.
 
-Specifying Klever Core configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Specifying Klever Core configuration
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Copy Klever Core configuration file :file:`core/core.json` to **work_dir**.
-#. Edit the copied file:
-    * Specify the identifier of the job you are going to solve (the value of property *identifier*).
-    * Specify the name of Klever Bridge and your credentials (values of properties *Klever Bridge.name*,
-      *Klever Bridge.user* and *Klever Bridge.password* correspondingly).
-      The specified Klever Bridge user should have service rights.
-    * Switch values of properties *debug* and *allow local source directories use* to *true*.
+    #. Copy Klever Core configuration file :file:`core/core.json` to **work_dir**.
+    #. Edit the copied file:
+        * Specify the identifier of the job you are going to solve (the value of property *identifier*).
+        * Specify the name of Klever Bridge and your credentials (values of properties *Klever Bridge.name*,
+          *Klever Bridge.user* and *Klever Bridge.password* correspondingly).
+          The specified Klever Bridge user should have service rights.
+        * Switch values of properties *debug* and *allow local source directories use* to *true*.
 
-Fetching Linux kernel source code
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Fetching Linux kernel source code
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Get somehow source code of some version of the Linux kernel and place it to **work_dir**.
+    Get somehow source code of some version of the Linux kernel and place it to **work_dir**.
 
-.. note:: The value of property *Linux kernel.src* of the specified job configuration should be the name of the
-          directory where you will place Linux kernel source code.
+    .. note:: The value of property *Linux kernel.src* of the specified job configuration should be the name of the
+              directory where you will place Linux kernel source code.
 
-Run
-^^^
+    Run
+    ^^^
 
-To run press :kbd:`Shift+F10`.
+    To run press :kbd:`Shift+F10`.
 
-.. note:: If Klever Core will fatally fail or you will hardly kill Klever Core, you might need to manually remove file
-          :file:`is solving` inside **work_dir** to run Klever Core fot the next time.
+    .. note:: If Klever Core will fatally fail or you will hardly kill Klever Core, you might need to manually remove file
+              :file:`is solving` inside **work_dir** to run Klever Core fot the next time.
 
-Debug
-^^^^^
+    Debug
+    ^^^^^
 
-To debug press :kbd:`Shift+F9`.
+    To debug press :kbd:`Shift+F9`.
 
-Run Klever Bridge manage.py tasks
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Run Klever Bridge manage.py tasks
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To run manage.py tasks:
+    To run manage.py tasks:
 
-#. :menuselection:`Tools --> Run manage.py Task...`.
-#. Some manage.py tasks are described in the :ref:`klever-bridge-install` section.
+    #. :menuselection:`Tools --> Run manage.py Task...`.
+    #. Some manage.py tasks are described in the :ref:`klever-bridge-install` section.
 
-Run cloud tools in PyCharm
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Run cloud tools in PyCharm
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To be able to solve tasks on your machine you need to run Klever client-controller and native scheduler tools. Follow
-the steps:
+    To be able to solve tasks on your machine you need to run Klever client-controller and native scheduler tools. Follow
+    the steps:
 
-#. First install all requirements and prepare configuration properties according to the installation documentation.
-   Do it after you have working Klever Bridge server.
-   All additional tools and configuration files should be outside from the Klever sources and corresponding working
-   directories.
+    #. First install all requirements and prepare configuration properties according to the installation documentation.
+       Do it after you have working Klever Bridge server.
+       All additional tools and configuration files should be outside from the Klever sources and corresponding working
+       directories.
 
-#. Run client-controller. Use script :file:`Scheduler/bin/client-controller.py` and path to a prepared client-controller
-   configuration file as the first argument. Be sure that you have chosen clean working directory outside of sources
-   for an execution. If you would turn on web-UI in configuration and place necessary files in the consul
-   directory you will get a visualization of all checks at *http://localhost:8500/ui*.
+    #. Run client-controller. Use script :file:`Scheduler/bin/client-controller.py` and path to a prepared client-controller
+       configuration file as the first argument. Be sure that you have chosen clean working directory outside of sources
+       for an execution. If you would turn on web-UI in configuration and place necessary files in the consul
+       directory you will get a visualization of all checks at *http://localhost:8500/ui*.
 
-#. Run native scheduler after you have running controller and Klever Bridge server. Run script
-   :file:`Scheduler/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
-   that you have chosen clean working directory outside of sources for an execution.
+    #. Run native scheduler after you have running controller and Klever Bridge server. Run script
+       :file:`Scheduler/bin/native-scheduler.py` with the path to a scheduler configuration file as a single argument. Be sure
+       that you have chosen clean working directory outside of sources for an execution.
 
-   .. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JAVA` to run CPAchecker, e.g.
-          :file:`/usr/lib64/jvm/java-1.7.0-openjdk/jre/bin/java`.
+       .. note:: At least on openSUSE 13.2 it's required to specify :envvar:`JAVA` to run CPAchecker, e.g.
+              :file:`/usr/lib64/jvm/java-1.7.0-openjdk/jre/bin/java`.
 
-#. TODO: not only this command but 3 more! Moreover this should be placed somewhere else as well as all run instructions.
-   Before running any tasks be sure that you have properly configured machine with swap accounting (or better disable
-   swap runnning *sudo swapoff -a*) and available cgroup subsystems (it is often necessary to run
-   *sudo chmod o+wt '/sys/fs/cgroup/cpuset/'*).
+    #. TODO: not only this command but 3 more! Moreover this should be placed somewhere else as well as all run instructions.
+       Before running any tasks be sure that you have properly configured machine with swap accounting (or better disable
+       swap runnning *sudo swapoff -a*) and available cgroup subsystems (it is often necessary to run
+       *sudo chmod o+wt '/sys/fs/cgroup/cpuset/'*).
 
-#. Check out at client-controller consul web-UI that all checks are passing now. The address by defauilt is
-   `localhost:8500 <http://localhost:8500/ui>`_.
+    #. Check out at client-controller consul web-UI that all checks are passing now. The address by defauilt is
+       `localhost:8500 <http://localhost:8500/ui>`_.

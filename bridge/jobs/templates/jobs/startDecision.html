@@ -46,7 +46,7 @@
             {% endif %}
             <div class="five wide column need-auth">
                 <h4 class="ui header">{% trans 'Resource limits for Klever Core' %}</h4>
-                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GiB' %}), {% trans 'e.g.' %} 2.0</label>
+                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0</label>
                 <div class="ui input fluid">
                     <input id="max_ram" type="number" value="{{ data.restrictions.max_ram }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
@@ -56,7 +56,7 @@
                     <input id="max_cpus" type="number" value="{{ data.restrictions.max_cpus }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GiB' %}), {% trans 'e.g.' %} 100.0</label>
+                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0</label>
                 <div class="ui input fluid">
                     <input id="max_disk" type="number" value="{{ data.restrictions.max_disk }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
@@ -90,9 +90,13 @@
                     {% endfor %}
                 </select>
                 <h5 class="ui header">{% trans 'Parallelism' %}</h5>
-                <label for="parallelism">{% trans 'Linux kernel build' %}</label>
+                <label for="parallelism_linux_kernel_build">{% trans 'Linux kernel build' %}</label>
                 <div class="ui input fluid">
-                    <input id="parallelism" type="text" value="{{ data.parallelism }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                    <input id="parallelism_linux_kernel_build" type="text" value="{{ data.parallelism.linux_kernel_build }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                </div>
+                <label for="parallelism_tasks_generation">{% trans 'Tasks generation' %}</label>
+                <div class="ui input fluid">
+                    <input id="parallelism_tasks_generation" type="text" value="{{ data.parallelism.tasks_generation }}" pattern="[0-9]+([\.|,][0-9]+)?">
                 </div>
             </div>
             <div class="eleven wide column">

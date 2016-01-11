@@ -1,0 +1,5 @@
+{
+  "class": "0",
+  "function": "core\\.components\\.ComponentError: Component \"(.+)\" failed",
+  "pattern": "{0} failure"
+}

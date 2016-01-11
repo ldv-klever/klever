@@ -101,7 +101,8 @@ $(document).ready(function () {
     set_actions_for_scheduler_user();
     $('#start_job_decision').click(function () {
         var required_fields = [
-            'max_ram', 'max_cpus', 'max_disk', 'parallelism',
+            'max_ram', 'max_cpus', 'max_disk',
+            'parallelism_linux_kernel_build', 'parallelism_tasks_generation',
             'console_log_formatter', 'file_log_formatter'
         ], err_found = false;
         $.each(required_fields, function (i, v) {

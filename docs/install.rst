@@ -128,68 +128,69 @@ Klever Core installation
 
 Enjoy!
 
-TODO: Install Cloud tools
--------------------------
+..
+   TODO: Install Cloud tools
+   -------------------------
 
-Cloud tools after all requirements installation do not need specific installation, but each tool requires configuration
-file to prepare. All tools have section *common* in corresponfing configuration files. The following configuration
-properties can be set there:
+   Cloud tools after all requirements installation do not need specific installation, but each tool requires configuration
+   file to prepare. All tools have section *common* in corresponfing configuration files. The following configuration
+   properties can be set there:
 
-* *working directory* it is a relative path in the current working directory to create directory for all
-  generated files.
-* *keep working directory* implies not to delete existing working directory when running a tool again.
-* *logging* contains configuration properties for `logging <http://docs.python.org/3.4/library/logging.html>`_
-  python package.
+   * *working directory* it is a relative path in the current working directory to create directory for all
+     generated files.
+   * *keep working directory* implies not to delete existing working directory when running a tool again.
+   * *logging* contains configuration properties for `logging <http://docs.python.org/3.4/library/logging.html>`_
+     python package.
 
-Controller configuration
-^^^^^^^^^^^^^^^^^^^^^^^^
+   Controller configuration
+   ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Prototype for client controller configuration can be found in :file:`Cloud/conf/controller.json`. It is recommended to
-set up manually the following configuration properties:
+   Prototype for client controller configuration can be found in :file:`Cloud/conf/controller.json`. It is recommended to
+   set up manually the following configuration properties:
 
-* *Klever Bridge* section contains *name*, *user*, *password* attributes which should be set according to Klever Bridge
-  service user.
-* *client-controller* section contains consul configuration properties and an absoulute path to a directory with consul
-  binary and directory with web-UI files in it.
-  It is better to provide your own *Klever Bridge* service check and turn-on or off consul web-UI.
-* *node configuration* section contains configuration options which tell a controller which resources of your computer
-  are available for a scheduler. It is recommended to leave enough RAM memory for the other programms running on the
-  computer and to choose partition with enough disk space before running controller.
+   * *Klever Bridge* section contains *name*, *user*, *password* attributes which should be set according to Klever Bridge
+     service user.
+   * *client-controller* section contains consul configuration properties and an absoulute path to a directory with consul
+     binary and directory with web-UI files in it.
+     It is better to provide your own *Klever Bridge* service check and turn-on or off consul web-UI.
+   * *node configuration* section contains configuration options which tell a controller which resources of your computer
+     are available for a scheduler. It is recommended to leave enough RAM memory for the other programms running on the
+     computer and to choose partition with enough disk space before running controller.
 
-Scheduler configuration
-^^^^^^^^^^^^^^^^^^^^^^^
+   Scheduler configuration
+   ^^^^^^^^^^^^^^^^^^^^^^^
 
-Prototype for scheduler configuration can be found in :file:`Cloud/conf/scheduler.json`. It is recommended to set up
-manually the following configuration properties:
+   Prototype for scheduler configuration can be found in :file:`Cloud/conf/scheduler.json`. It is recommended to set up
+   manually the following configuration properties:
 
-* *Klever Bridge* section contains *name*, *user*, *password* attributes which should be set according to Klever Bridge
-  service user.
-* *Scheduler* section describes scheduling configuration with the following major attributes:
-    * *controller address* - address which is used to access consul (do not change it if you use default consul
-      configuration).
-    * *keep working directory* attribute implies not to delete generated working directories.
-      If you are going to debug Klever Core or a verification tool it is recommended to set it as *true*, but it will
-      cause problems in case of solving the same job or task twice.
-    * *job client configuration*/*task client configuration* attribute corresponds to an absolute path to a file with
-      job/task client configuration (see below).
-    * *"verification tools"* contains names of verification tools, corresponding versions and absolute pathes to
-      binaries of corresponding verification tools.
+   * *Klever Bridge* section contains *name*, *user*, *password* attributes which should be set according to Klever Bridge
+     service user.
+   * *Scheduler* section describes scheduling configuration with the following major attributes:
+       * *controller address* - address which is used to access consul (do not change it if you use default consul
+         configuration).
+       * *keep working directory* attribute implies not to delete generated working directories.
+         If you are going to debug Klever Core or a verification tool it is recommended to set it as *true*, but it will
+         cause problems in case of solving the same job or task twice.
+       * *job client configuration*/*task client configuration* attribute corresponds to an absolute path to a file with
+         job/task client configuration (see below).
+       * *"verification tools"* contains names of verification tools, corresponding versions and absolute pathes to
+         binaries of corresponding verification tools.
 
-Scheduler job/task client configuration
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   Scheduler job/task client configuration
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Prototype for scheduler job/task client configuration can be found in :file:`Cloud/conf/job-client.json`/
-:file:`Cloud/conf/task-client.json`.
-It is recommended to set up manually the following configuration properties:
+   Prototype for scheduler job/task client configuration can be found in :file:`Cloud/conf/job-client.json`/
+   :file:`Cloud/conf/task-client.json`.
+   It is recommended to set up manually the following configuration properties:
 
-* *client:benchexec location* configuration property corresponds to an absolute path to a root directory with
-  downloaded BenchExec sources.
-* for jobs:
+   * *client:benchexec location* configuration property corresponds to an absolute path to a root directory with
+     downloaded BenchExec sources.
+   * for jobs:
 
-  * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
-  * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
+     * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
+     * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
 
-* for tasks:
+   * for tasks:
 
-  * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
-  * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.
+     * *client:cif location* configuration property corresponds to an absolute path to a binaries directory with CIF tools.
+     * *client:cil location* configuration property corresponds to an absolute path to a binaries directory with CIL tools.

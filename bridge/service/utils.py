@@ -4,8 +4,7 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
 from bridge.utils import print_err
-from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_FORMATTERS, DEF_KLEVER_CORE_CONFIGURATION,\
-    DEF_LINUX_KERNEL_BUILD_PARALLELISM
+from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_CONFIGURATION
 from jobs.utils import JobAccess
 from reports.models import ReportRoot, Report, ReportUnknown
 from service.models import *
@@ -883,20 +882,26 @@ class StartJobDecision(object):
                     }
                 ]
             },
+            'parallelism': {},
             'resource limits': {
-                'wall time': int(self.data['max_wall_time']) * 1000 if len(self.data['max_wall_time']) > 0 else None,
-                'CPU time': int(self.data['max_cpu_time']) * 1000 if len(self.data['max_cpu_time']) > 0 else None,
-                'memory size': int(float(self.data['max_ram']) * 2**30),
+                'wall time': int(self.data['max_wall_time']) * 10**3 if len(self.data['max_wall_time']) > 0 else None,
+                'CPU time': int(self.data['max_cpu_time']) * 10**3 if len(self.data['max_cpu_time']) > 0 else None,
+                'memory size': int(float(self.data['max_ram']) * 10**9),
                 'number of CPU cores': int(self.data['max_cpus']),
                 'CPU model': self.data['cpu_model'] if len(self.data['cpu_model']) > 0 else None,
-                'disk memory size': int(float(self.data['max_disk']) * 2**30)
+                'disk memory size': int(float(self.data['max_disk']) * 10**9)
             }
         }
-        try:
-            parallelism = int(self.data['parallelism'])
-        except ValueError:
-            parallelism = float(self.data['parallelism'])
-        conf['parallelism'] = {'Linux kernel build': parallelism}
+        parallelism_kinds = {
+            'parallelism_linux_kernel_build': 'Linux kernel build',
+            'parallelism_tasks_generation': 'Tasks generation'
+        }
+        for parallelism_kind in parallelism_kinds:
+            try:
+                parallelism = int(self.data[parallelism_kind])
+            except ValueError:
+                parallelism = float(self.data[parallelism_kind])
+            conf['parallelism'][parallelism_kinds[parallelism_kind]] = parallelism
         return json.dumps(conf)
 
     def __get_scheduler(self):
@@ -970,8 +975,8 @@ class StartDecisionData(object):
 
         self.restrictions = DEF_KLEVER_CORE_RESTRICTIONS
         self.gen_priorities = AVTG_PRIORITY
-        self.parallelism = str(DEF_LINUX_KERNEL_BUILD_PARALLELISM)
-        self.logging = DEF_KLEVER_CORE_FORMATTERS
+        self.parallelism = DEF_KLEVER_CORE_CONFIGURATION['parallelism']
+        self.logging = DEF_KLEVER_CORE_CONFIGURATION['formatters']
         self.def_config = DEF_KLEVER_CORE_CONFIGURATION
 
     def __get_schedulers(self):
@@ -1000,9 +1005,10 @@ class StartDecisionData(object):
 
 def get_default_data():
     data = {
-        'console_log_formatter': DEF_KLEVER_CORE_FORMATTERS['console'],
-        'file_log_formatter': DEF_KLEVER_CORE_FORMATTERS['file'],
-        'parallelism': str(DEF_LINUX_KERNEL_BUILD_PARALLELISM),
+        'console_log_formatter': DEF_KLEVER_CORE_CONFIGURATION['formatters']['console'],
+        'file_log_formatter': DEF_KLEVER_CORE_CONFIGURATION['formatters']['file'],
+        'parallelism_linux_kernel_build': DEF_KLEVER_CORE_CONFIGURATION['parallelism']['linux_kernel_build'],
+        'parallelism_tasks_generation': DEF_KLEVER_CORE_CONFIGURATION['parallelism']['tasks_generation'],
         'scheduler': SCHEDULER_TYPE[0][0]
     }
     data.update(DEF_KLEVER_CORE_CONFIGURATION)
