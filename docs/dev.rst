@@ -143,20 +143,17 @@ Setting run/debug configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Common run/debug configurations are included into the Klever project.
-You need to follow instructions below just if you need some specific settings.
-For instance you need to change paths for Klever Core if you are going to debug it.
+Common configurations with names starting with **$** should be copied to configurations with names without **$** and
+adjusted in accordance with instructions below.
+If you want to adjust configurations with names that not starting with **$** you also have to copy them before.
 
-#. :menuselection:`Run --> Edit Configurations... --> Add New Configuration`.
+#. :menuselection:`Run --> Edit Configurations...`.
 
 Klever Bridge run/debug configuration
 """""""""""""""""""""""""""""""""""""
 
-#. Select :menuselection:`Django server`.
-#. Input *Bridge* in field :guilabel:`Name`.
-#. Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge to the local network.
-#. Specify *8998* in field :guilabel:`Port`.
-#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
-#. :menuselection:`OK`.
+* Specify *0.0.0.0* in field :guilabel:`Host` if you want to share your Klever Bridge to the local network.
+* Specify your preferred port in field :guilabel:`Port`.
 
 .. note:: To make your Klever Bridge accessible from the local network you might need to set up your firewall
           accordingly.
@@ -166,36 +163,18 @@ Klever Core run/debug configuration
 
 This run/debug configuration is only useful if you are going to debug Klever Core.
 
-#. Select :menuselection:`Python`.
-#. Input *Core* in field :guilabel:`Name`.
-#. Specify the absolute path to script :file:`core/bin/klever-core` from the root directory of the main development
-   repository in field :guilabel:`Script`.
-#. Select project *core* in field :guilabel:`Project`.
-#. Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`),
-   Aspectator (:file:`aspectator`) and CIL (:file:`cilly.asm.exe`) binaries could be found (edit value of field
-   :guilabel:`Environment variables`).
-#. Specify the absolute path to the working directory in field :guilabel:`Working directory`.
+* Extend existing value of environment variable :envvar:`PATH` so that CIF (:file:`cif` or :file:`compiler`),
+  Aspectator (:file:`aspectator`) and CIL (:file:`cilly.asm.exe`) binaries could be found (edit value of field
+  :guilabel:`Environment variables`).
+* Specify the absolute path to the working directory in field :guilabel:`Working directory`.
 
    .. note:: Place Klever Core working directory somewhere outside the main development repository.
 
-#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
-#. :menuselection:`OK`.
-
-.. note:: Klever Core will search for its configuration file :file:`core.json` in the specified working directory.
-          Besides you can provide this file by passing its name as a first parameter to the script.
+   .. note:: Klever Core will search for its configuration file :file:`core.json` in the specified working directory.
+             Besides you can provide this file by passing its name as a first parameter to the script.
 
 Documentation run/debug configuration
 """""""""""""""""""""""""""""""""""""
-
-#. Select :menuselection:`Python docs --> Sphinx task`.
-#. Input *docs* in field :guilabel:`Name`.
-#. Specify *docs* in field :guilabel:`Input`.
-#. Specify *docs/_build/html* in field :guilabel:`Output`.
-#. Select project *docs* in field :guilabel:`Project`.
-#. Specify the absolute path to the root directory of the main development repository in field
-   :guilabel:`Working directory`.
-#. Deselect :guilabel:`Add content roots to PYTHONPATH` and :guilabel:`Add source roots to PYTHONPATH`.
-#. :menuselection:`OK`.
 
 .. note:: To build documentation by means of PyCharm 5.0.3 one has to remove :file:`pycharm-5.0.3/helpers/roman.py`::
 
