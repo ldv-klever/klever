@@ -39,17 +39,15 @@ class Run:
 
         # Set limits
         self.limits = {
-            "memoryLimitation": int(float(self.description["resource limits"]["maximum memory size"]) / 1000),  # MB
-            "timeLimitation": int(self.description["resource limits"]["wall time"]),
-            "softTimeLimitation": int(self.description["resource limits"]["CPU time"])
+            "memlimit": int(description["resource limits"]["memory size"] / 1000 ** 2),  # MB
+            "timelimit": int(description["resource limits"]["CPU time"] / 1000)
         }
 
         # Check optional limits
-        if "CPUs" in self.description["resource limits"]:
-            self.limits["coreLimitation"] = int(self.description["resource limits"]["number of CPU cores"])
-        if "CPU model" in self.description["resource limits"]:
-            self.limits["cpuModel"] = self.description["resource limits"]["CPU model"]
-            self.cpu_model = self.description["resource limits"]["CPU model"]
+        if "CPUs" in description["resource limits"]:
+            self.limits["corelimit"] = int(description["resource limits"]["number of CPU cores"])
+        if "CPU model" in description["resource limits"]:
+            self.cpu_model = description["resource limits"]["CPU model"]
         else:
             self.cpu_model = None
 
