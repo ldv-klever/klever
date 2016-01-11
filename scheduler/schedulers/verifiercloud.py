@@ -24,11 +24,11 @@ class Run:
         self.user_pwd = "{}:{}".format(user, password)
 
         # Check verifier
-        if self.description["verifier"]["name"] != "cpachecker":
-            raise ValueError("VerifierCloud can use only 'cpachecker' tool, but {} is given instead".format(
-                self.description["verifier"]["name"]))
+        if description["verifier"]["name"] != "CPAchecker":
+            raise ValueError("VerifierCloud can use only 'CPAchecker' tool, but {} is given instead".format(
+                description["verifier"]["name"]))
         else:
-            self.tool = "cpachecker"
+            self.tool = "CPAchecker"
 
         # Expect branch:revision
         if ":" not in self.description["verifier"]["version"]:
