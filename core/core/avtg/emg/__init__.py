@@ -89,7 +89,7 @@ class EMG(core.components.Component):
                 analysis = json.loads(fh.read())
         else:
             self.logger.warning("Cannot find any results of source analysis provided from SA plugin")
-        module_spec.import_specification(self.module_interface_spec, intf_spec, analysis)
+        module_spec.import_specification(self.module_interface_spec, analysis, intf_spec)
         self.module_interface_spec = module_spec
 
         # Generate module interface specification

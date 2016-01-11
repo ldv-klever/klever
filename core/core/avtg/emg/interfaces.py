@@ -6,15 +6,13 @@ fi_extract = re.compile("\*?%((?:\w*\.)?\w*)%")
 
 
 def is_full_identifier(string):
-    """Check that string is a correct full interface identifier."""
     if fi_regex.fullmatch(string) and len(fi_regex.fullmatch(string).groups()) == 2:
         return True
     else:
-        False
+        return False
 
 
 def extract_full_identifier(string):
-    """Extract full identifier from a given string."""
     if is_full_identifier(string):
         category, identifier = fi_regex.fullmatch(string).groups()
         return category, identifier
@@ -222,7 +220,14 @@ class CategorySpecification:
 
 class ModuleSpecification(CategorySpecification):
 
-    def import_specification(self, specification={}, categories=None, analysis={}):
+    def import_specification(self, specification, analysis=None, categories=None):
+
+        # Check specification and analysis
+        if not specification:
+            specification = {}
+        if not analysis:
+            analysis = {}
+
         # Import categories
         self.categories = categories.categories
         self.interfaces = categories.interfaces
@@ -346,7 +351,7 @@ class ModuleSpecification(CategorySpecification):
         # todo: use also other data to extract more interfaces
 
     def __process_matched_structure(self, structure):
-        self.logger.debug("Analyze fields of matched global variable")
+        self.logger.debug("Analyze fields of matched structure {}".format(structure.expression))
         for field in structure.fields:
             if not structure.fields[field].interface:
                 self.logger.debug("Field {} is not recognized as an interface")
@@ -356,7 +361,8 @@ class ModuleSpecification(CategorySpecification):
                         self.categories[structure.interface.category]["callbacks"][structure.interface.fields[field]]
                 else:
                     if structure.fields[field].type_class == "function":
-                        intf = self.__make_intf_from_signature(structure.fields[field], structure.interface.category, field)
+                        intf = self.__make_intf_from_signature(structure.fields[field],
+                                                               structure.interface.category, field)
                         intf.callback = True
                         self.categories[intf.category]["callbacks"][intf.identifier] = intf
                     elif structure.fields[field].type_class == "struct":
@@ -382,13 +388,13 @@ class ModuleSpecification(CategorySpecification):
                             and parameter.structure_name in self.categories[callback.category]["resources"]:
                         intf_name = parameter.structure_name
                         parameter.interface = self.categories[callback.category]["resources"][intf_name]
-                        self.logger.debug("Match structure parameter {} as an interface {}".
+                        self.logger.debug("Match structure parameter {} with an interface {}".
                                           format(parameter.structure_name, parameter.interface.full_identifier))
                     elif parameter.type_class == "function" and parameter.function_name and parameter.function_name \
                             in self.categories[callback.category]["resources"]:
                         intf_name = parameter.function_name
                         parameter.interface = self.categories[callback.category]["resources"][intf_name]
-                        self.logger.debug("Match function parameter {} as an interface {}".
+                        self.logger.debug("Match function parameter {} with an interface {}".
                                           format(parameter.function_name, parameter.interface.full_identifier))
                     elif parameter.type_class == "function" and parameter.function_name and parameter.function_name \
                             not in self.categories[callback.category]["resources"] and \
@@ -398,7 +404,7 @@ class ModuleSpecification(CategorySpecification):
                         self.categories[intf_name.category]["resources"][intf_name] = \
                             self.categories[callback.category]["callbacks"][intf_name]
                         parameter.interface = self.categories[callback.category]["callbacks"][intf_name]
-                        self.logger.debug("Match callback parameter {} as an interface {}".
+                        self.logger.debug("Match callback parameter {} with an interface {}".
                                           format(parameter.function_name, parameter.interface.full_identifier))
                     else:
                         self.logger.debug("Introduce new resource on base of a parameter {} of callback {}".
@@ -425,7 +431,7 @@ class ModuleSpecification(CategorySpecification):
         fp = []
         intfs = []
         matched = False
-        self.logger.debug("Process structure fields of variable {} which is not matched with any interface".
+        self.logger.debug("Process structure fields of structure {} which is not matched with any interface".
                           format(structure.expression))
         for field in structure.fields:
             if not structure.fields[field].interface:
@@ -446,7 +452,7 @@ class ModuleSpecification(CategorySpecification):
                 raise RuntimeError("Expect single suitable category for structure variable {}".
                                    format(structure.expression))
 
-            category = same.category
+            category = same[0].category
             identifier = structure.structure_name
             interface = self.__make_intf_from_signature(structure.expression, category, identifier)
             interface.container = True
@@ -499,6 +505,8 @@ class ModuleSpecification(CategorySpecification):
             "callbacks": {},
             "resources": {},
         }
+
+        self.logger.debug("Introduce new interface category {}".format(name))
         return name
 
     def __parse_elements_signatures(self, elements):
@@ -512,28 +520,35 @@ class ModuleSpecification(CategorySpecification):
                     elements[element]["signature"].fields[field] = elements[element]["fields"][field]["signature"]
                 del elements[element]["fields"]
             elif elements[element]["type"] == "function pointer":
-                self.__process_function_signature(elements[element])
+                self.__convert_collateral_signatures(elements[element])
                 elements[element]["signature"].function_name = None
 
-    @staticmethod
-    def __process_function_signature(function):
+    def __convert_collateral_signatures(self, function):
+        self.logger.debug("Convert collateral signatures of function description {}".
+                          format(function["signature"].expression))
+
+        self.logger.debug("Convert return value {} to signature".format(function["return value type"]))
         function["signature"].return_value = Signature(function["return value type"])
         del function["return value type"]
 
         function["signature"].parameters = []
         for parameter in function["parameters"]:
+            self.logger.debug("Convert parameter {} to signature".format(parameter))
             function["signature"].parameters.append(Signature(parameter))
+
+        self.logger.debug("Delete all collateral data in function description except function signature {}".
+                          format(function["signature"].expression))
         del function["parameters"]
 
     def __parse_signatures_as_is(self):
-        self.logger.debug("Pase signatures in source analysis")
+        self.logger.debug("Parse signatures in source analysis")
 
-        self.logger.debug("Parse kernel functions signatures")
+        self.logger.debug("Parse signatures of kernel functions")
         for function in self.analysis["kernel functions"]:
             self.logger.debug("Parse signature of function {}".format(function))
             self.analysis["kernel functions"][function]["signature"] = \
                 Signature(self.analysis["kernel functions"][function]["signature"])
-            self.__process_function_signature(self.analysis["kernel functions"][function])
+            self.__convert_collateral_signatures(self.analysis["kernel functions"][function])
             self.analysis["kernel functions"][function]["signature"].function_name = function
 
         self.logger.debug("Parse modules functions signatures")
@@ -542,7 +557,7 @@ class ModuleSpecification(CategorySpecification):
                 self.logger.debug("Parse signature of function {} from file {}".format(function, path))
                 self.analysis["modules functions"][function]["files"][path]["signature"] = \
                     Signature(self.analysis["modules functions"][function]["files"][path]["signature"])
-                self.__process_function_signature(self.analysis["modules functions"][function]["files"][path])
+                self.__convert_collateral_signatures(self.analysis["modules functions"][function]["files"][path])
                 self.analysis["modules functions"][function]["files"][path]["signature"].function_name = function
 
         self.logger.debug("Parse global variables signatures")
@@ -561,6 +576,7 @@ class ModuleSpecification(CategorySpecification):
                     self.implementations[path] = {}
                 self.implementations[path][variable] = {}
 
+                self.logger.debug("Parse fields of global variable {} from file {}".format(function, path))
                 self.__parse_elements_signatures(
                     self.analysis["global variable initializations"][path][variable]["fields"])
                 for field in self.analysis["global variable initializations"][path][variable]["fields"]:
@@ -568,6 +584,9 @@ class ModuleSpecification(CategorySpecification):
                         self.analysis["global variable initializations"][path][variable]["fields"][field]["value"]
                     self.analysis["global variable initializations"][path][variable]["signature"].fields[field] = \
                         self.analysis["global variable initializations"][path][variable]["fields"][field]["signature"]
+
+                self.logger.debug("Remove legacy data about initialization of variable {} from file {}".
+                                  format(function, path))
                 del self.analysis["global variable initializations"][path][variable]["fields"]
 
                 # Keep only signature
@@ -594,8 +613,10 @@ class ModuleSpecification(CategorySpecification):
 
         self.logger.debug("Mark function arguments of already described kernel functions as existing interfaces")
         for function in self.analysis["kernel functions"]:
+            self.logger.debug("Analyze collateral signatures of kernel function {}".format(function))
             function_signature = self.analysis["kernel functions"][function]["signature"]
             if function in self.kernel_functions:
+                self.logger.debug("Found description of function {} in existing specification".format(function))
                 existing_signature = self.kernel_functions[function].signature
                 function_signature.interface = self.kernel_functions[function]
                 if function_signature.return_value and not function_signature.return_value.interface and \
@@ -607,15 +628,21 @@ class ModuleSpecification(CategorySpecification):
                        existing_signature.parameters[index].interface:
                         function_signature.parameters[index].interface = existing_signature.parameters[index].interface
             else:
+                self.logger.debug("There is no description of function {} in existing specification".format(function))
                 if not function_signature.return_value.interface:
                     for intf in structs_and_funcs:
                         if intf.signature.compare_signature(function_signature.return_value):
+                            self.logger.debug("Match return value type {} with an interface {}".
+                                              format(function_signature.return_value.expression, intf.full_identifier))
                             function_signature.return_value.interface = intf
                             break
+
                 for parameter in function_signature.parameters:
                     if not parameter.interface:
                         for intf in structs_and_funcs:
                             if intf.signature.compare_signature(parameter):
+                                self.logger.debug("Match parameter type {} with an interface {}".
+                                                  format(parameter.expression, intf.full_identifier))
                                 parameter.interface = intf
                                 break
 
@@ -633,7 +660,13 @@ class ModuleSpecification(CategorySpecification):
                             break
                     if self.analysis["global variable initializations"][path][variable].interface:
                         break
+
                 if self.analysis["global variable initializations"][path][variable].interface:
+                    identifier = self.analysis["global variable initializations"][path][variable].interface.\
+                        full_identifier
+                    expression = self.analysis["global variable initializations"][path][variable].expression
+                    self.logger.debug("Match variable {} from {} with type {} with container {}".
+                                      format(variable, path, expression, identifier))
                     self.__match_rest_elements(
                         self.analysis["global variable initializations"][path][variable])
                 else:
@@ -646,7 +679,13 @@ class ModuleSpecification(CategorySpecification):
                                 self.analysis["global variable initializations"][path][variable].interface = \
                                     self.categories[category]["resources"][resource]
                                 break
+
                         if self.analysis["global variable initializations"][path][variable].interface:
+                            identifier = self.analysis["global variable initializations"][path][variable].interface.\
+                                full_identifier
+                            expression = self.analysis["global variable initializations"][path][variable].expression
+                            self.logger.debug("Match variable {} from {} with type {} with resource {}".
+                                              format(variable, path, expression, identifier))
                             break
 
 
@@ -668,7 +707,6 @@ class Interface:
 
     @property
     def role(self, role=None):
-        """Callback interfaces have roles which are identifiers actually."""
         if not self.callback:
             raise TypeError("Non-callback interface {} does not have 'role' attribute".format(self.identifier))
 
@@ -679,7 +717,6 @@ class Interface:
 
     @property
     def full_identifier(self, full_identifier=None):
-        """Full identifier looks like 'category.identifier'."""
         if not self.category and not full_identifier:
             raise ValueError("Cannot determine full identifier {} without interface category")
         elif full_identifier:
@@ -694,12 +731,6 @@ class Signature:
 
     @staticmethod
     def copy_signature(old, new):
-        """
-        This method copy signature and removes extra information if flag is not given.
-
-        :param old: Signature obkect to replace.
-        :param new: Signature to assign.
-        """
         cp = copy.deepcopy(new)
         cp.array = old.array
         cp.pointer = old.pointer
