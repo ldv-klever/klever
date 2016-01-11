@@ -1,3 +1,4 @@
+import glob
 import os
 import sys
 import shutil
@@ -224,8 +225,16 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
         shutil.unpack_archive(solution_file, task_solution_dir)
 
+        # Move content of output directory to root directory (this is done to correspond to
+        # scheduler/client/__init__.py, but this may be wrong and we need to keep output directory as is).
+        for file in glob.glob(os.path.join(task_solution_dir, "output/*")):
+            shutil.move(file, task_solution_dir)
+
         # Process results and convert RunExec output to result description
-        solution_description = os.path.join(task_solution_dir, "verification task decision result.json")
+        # TODO: what will happen if there will be several input files?
+        # Simulate BenchExec behaviour when one input file is provided (see scheduler/client/__init__.py)
+        shutil.move(os.path.join(task_solution_dir, "output.log"), os.path.join(task_solution_dir, "cil.i.log"))
+        solution_description = os.path.join(task_solution_dir, "decision results.json")
         logging.debug("Get solution description from {}".format(solution_description))
         try:
             solution_identifier, solution_description = \
