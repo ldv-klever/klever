@@ -53,7 +53,16 @@ class Run:
 
         # Set opts
         # TODO: Implement options support not just forwarding
-        self.options = self.description["verifier"]["opts"]
+        self.options = []
+        # Convert list of dictionaries to list
+        options = description["verifier"]["options"]
+        # TODO: like in scheduler/client/__init__.py
+        options.append({"-setprop": "parser.readLineDirectives=true"})
+        options.append({"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"})
+        for option in options:
+            for name in option:
+                self.options.append(name)
+                self.options.append(option[name])
 
         # Set source files and property
         self.propertyfile = os.path.join(work_dir, self.description["property"])
