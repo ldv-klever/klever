@@ -253,7 +253,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
                                                                                                      identifier))
-        self.server.submit_solution(identifier, solution_archive, solution_description)
+        self.server.submit_solution(identifier, solution_description, solution_archive)
 
         # Remove task directory
         shutil.rmtree(task_work_dir)
