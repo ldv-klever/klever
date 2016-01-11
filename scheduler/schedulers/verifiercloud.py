@@ -3,7 +3,7 @@ import sys
 import shutil
 import logging
 
-import scheduler as scheduler
+import schedulers as schedulers
 import client.executils as executils
 
 
@@ -66,7 +66,7 @@ class Run:
         self.sourcefiles = [os.path.join(work_dir, file) for file in self.description["files"]]
 
 
-class Scheduler(scheduler.SchedulerExchange):
+class Scheduler(schedulers.SchedulerExchange):
     """
     Implement scheduler which is based on VerifierCloud web-interface cloud. Scheduler forwards task to the remote
     VerifierCloud and fetch results from there.
