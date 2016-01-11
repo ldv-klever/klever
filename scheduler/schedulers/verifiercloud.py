@@ -200,7 +200,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """Start solution explicitly of all recently submitted tasks."""
         self.wi.flush_runs()
 
-    def process_task_result(self, identifier, result):
+    def process_task_result(self, identifier, future):
         """
         Process result and send results to the verification gateway.
         :param identifier:
@@ -209,9 +209,9 @@ class Scheduler(schedulers.SchedulerExchange):
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         solution_file = os.path.join(task_work_dir, "solution.zip")
         logging.debug("Save solution to the disk as {}".format(solution_file))
-        if result:
+        if future.result():
             with open(solution_file, 'wb') as sa:
-                sa.write(result)
+                sa.write(future.result())
         else:
             logging.warning("Task has been finished but no data has been received for the task {}".
                             format(identifier))
