@@ -42,6 +42,8 @@ To run Klever Core you need:
 
   * `Jinja2 <http://jinja.pocoo.org/>`_ (just if you are going to verify source code against rule specifications using
     argument signatures).
+  * `grako <https://pypi.python.org/pypi/grako>`_.
+  * `graphviz <https://pypi.python.org/pypi/graphviz>`_.
   * `requests <https://pypi.python.org/pypi/requests/>`_.
 
 * `GNU make <https://www.gnu.org/software/make/>`_.
