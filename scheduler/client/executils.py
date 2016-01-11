@@ -21,6 +21,21 @@ def extract_description(solution_dir, description_file):
     }
     limits = {}
 
+    # Import description
+    desc_file = os.path.join(solution_dir, "runDescription.txt")
+    logging.debug("Import description from the file {}".format(desc_file))
+    description["desc"] = ""
+    if os.path.isfile(desc_file):
+        with open(desc_file, "r") as di:
+            for line in di:
+                key, value = line.strip().split("=")
+                if key == "tool":
+                    description["desc"] += value
+                elif key == "revision":
+                    description["desc"] += " {}".format(value)
+    else:
+        raise FileNotFoundError("There is no solution file {}".format(desc_file))
+
     # Import general information
     general_file = os.path.join(solution_dir, "runInformation.txt")
     logging.debug("Import general information from the file {}".format(general_file))
