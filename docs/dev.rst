@@ -176,6 +176,8 @@ This run/debug configuration is only useful if you are going to debug Klever Cor
 Documentation run/debug configuration
 """""""""""""""""""""""""""""""""""""
 
+* Specify another representation of documenation in field :guilabel:`Command` if you need it.
+
 .. note:: To build documentation by means of PyCharm 5.0.3 one has to remove :file:`pycharm-5.0.3/helpers/roman.py`::
 
     $ mv pycharm-5.0.3/helpers/roman.py pycharm-5.0.3/helpers/roman.py.old
