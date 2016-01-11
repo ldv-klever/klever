@@ -1,5 +1,3 @@
-import re
-import copy
 import grako
 
 from core.avtg.emg.interfaces import *
@@ -59,10 +57,10 @@ class EventModel:
         self.model["entry"] = ep
 
         # Generate init subprocess
-        init = Subprocess('init', {})
-        init.type = "dispatch"
-        init.callback = ["init"]
-        init.parameters = []
+        init_subprocess = Subprocess('init', {})
+        init_subprocess.type = "dispatch"
+        init_subprocess.callback = ["init"]
+        init_subprocess.parameters = []
 
         if len(self.analysis.inits) == 0:
             raise RuntimeError('Module does not have Init function')
@@ -77,13 +75,13 @@ class EventModel:
         ret_init = Subprocess('ret_init')
         ret_init.type = "receive"
         ret_init.callback_retval = ["ret"]
-        ret_init.callback = init.callback
+        ret_init.callback = init_subprocess.callback
 
         # Generate exit subprocess
-        exit = Subprocess('exit', {})
-        exit.type = "dispatch"
-        exit.callback = ["exit"]
-        exit.parameters = []
+        exit_subprocess = Subprocess('exit', {})
+        exit_subprocess.type = "dispatch"
+        exit_subprocess.callback = ["exit"]
+        exit_subprocess.parameters = []
 
         exit_label = Label('exit')
         exit_label.signature = Signature("void (*%s)(void)".format())
@@ -98,20 +96,20 @@ class EventModel:
         ep.labels['init'] = init_label
         ep.labels['exit'] = exit_label
         ep.labels['ret'] = ret_label
-        ep.subprocesses['init'] = init
-        ep.subprocesses['exit'] = exit
+        ep.subprocesses['init'] = init_subprocess
+        ep.subprocesses['exit'] = exit_subprocess
         ep.subprocesses['ret_init'] = ret_init
         self.logger.debug("Artificial process for invocation of Init and Exit module functions is generated")
 
     def __finish_entry(self):
         self.logger.info("Add signal dispatched for that processes which have no known registration and deregistration"
-                          " kernel functions")
+                         " kernel functions")
         # Retval check
         dispatches = ['[init_success]']
         # All default registrations
         dispatches.extend(["[{}]".format(name) for name in self.model["entry"].subprocesses
-                           if name not in ["init", "exit"]
-                           and self.model["entry"].subprocesses[name].type == "dispatch"])
+                           if name not in ["init", "exit"] and
+                           self.model["entry"].subprocesses[name].type == "dispatch"])
 
         # Generate conditions
         success = Subprocess('init_success')
@@ -130,7 +128,8 @@ class EventModel:
         self.model["entry"].subprocesses['stop'] = stop
 
         # Add subprocesses finally
-        self.model["entry"].process = "[init].(ret_init).({} | <init_failed>).[exit].<stop>".format('.'.join(dispatches))
+        self.model["entry"].process = "[init].(ret_init).({} | <init_failed>).[exit].<stop>".\
+                                      format('.'.join(dispatches))
         self.model["entry"].process_ast = self.model["entry"].process_model.parse(self.model["entry"].process,
                                                                                   ignorecase=True)
 
@@ -215,10 +214,10 @@ class EventModel:
                 self.logger.debug("Matching process {} for category {}, it has:".format(process.name, category))
                 self.logger.debug("Unmatched labels: {}".format(len(label_map["unmatched labels"])))
                 self.logger.debug("Native interfaces: {}".format(label_map["native interfaces"]))
-                if (len(label_map["unmatched labels"]) == 0\
-                        and (not best_process or len(process.subprocesses) > len(best_process.subprocesses))
-                        and label_map["native interfaces"] >= best_map["native interfaces"])\
-                        or label_map["native interfaces"] > best_map["native interfaces"]:
+                if (len(label_map["unmatched labels"]) == 0 and
+                        (not best_process or len(process.subprocesses) > len(best_process.subprocesses)) and
+                        label_map["native interfaces"] >= best_map["native interfaces"]) or\
+                        label_map["native interfaces"] > best_map["native interfaces"]:
                     best_map = label_map
                     best_process = process
                     self.logger.debug("Set process {} for category {} as the best one at the moment".
@@ -230,7 +229,7 @@ class EventModel:
         else:
             new = self.__add_process(best_process, False, best_map)
             self.logger.debug("Finally choose process {} for category {} as the best one".
-                              format(process.name, category))
+                              format(best_process.name, category))
             return new
 
     def __estimate_processes(self, category):
@@ -306,12 +305,11 @@ class EventModel:
 
             called = []
             for callback_name in set([process.subprocesses[name].callback for name in process.subprocesses
-                                      if process.subprocesses[name].callback
-                                      and process.subprocesses[name].type == "dispatch"]):
+                                      if process.subprocesses[name].callback and
+                                      process.subprocesses[name].type == "dispatch"]):
                 label, tail = process.extract_label_with_tail(callback_name)
 
                 if label.interface:
-                    intfs = []
                     if type(label.interface) is str:
                         intfs = [label.interface]
                     else:
@@ -342,8 +340,8 @@ class EventModel:
             "unmatched labels": [],
             "matched callbacks": [],
             "unmatched callbacks": [],
-            "native interfaces": len([label for label in process.labels if process.labels[label].interface
-                                      and process.labels[label].interface in self.analysis.interfaces and
+            "native interfaces": len([label for label in process.labels if process.labels[label].interface and
+                                     process.labels[label].interface in self.analysis.interfaces and
                                       self.analysis.interfaces[process.labels[label].interface].category == category])
         }
         old_size = 0
@@ -355,8 +353,8 @@ class EventModel:
 
             # Match interfaces and containers
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
-                               if process.subprocesses[name].callback
-                               and process.subprocesses[name].type == "dispatch"]:
+                               if process.subprocesses[name].callback and
+                               process.subprocesses[name].type == "dispatch"]:
                 self.logger.debug("Match callback call {} with interfaces".format(subprocess.callback))
                 label, tail = process.extract_label_with_tail(subprocess.callback)
 
@@ -451,22 +449,21 @@ class EventModel:
 
             # Discard unmatched labels
             label_map["unmatched labels"] = [label for label in process.labels
-                                             if label not in label_map["matched labels"]
-                                             and not process.labels[label].interface
-                                             and not process.labels[label].signature]
+                                             if label not in label_map["matched labels"] and not
+                                             process.labels[label].interface and not
+                                             process.labels[label].signature]
 
             # Discard unmatched callbacks
             label_map["unmatched callbacks"] = []
             label_map["matched callbacks"] = []
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
-                               if process.subprocesses[name].callback
-                               and process.subprocesses[name].type == "dispatch"]:
+                               if process.subprocesses[name].callback and
+                               process.subprocesses[name].type == "dispatch"]:
                 label, tail = process.extract_label_with_tail(subprocess.callback)
                 if label.callback and label.name not in label_map["matched labels"] \
                         and subprocess.callback not in label_map["unmatched callbacks"]:
                     label_map["unmatched callbacks"].append(subprocess.callback)
                 elif label.callback and label.name in label_map["matched labels"]:
-                    callbacks = []
                     if type(label_map["matched labels"][label.name]) is list:
                         callbacks = label_map["matched labels"][label.name]
                     else:
@@ -505,7 +502,7 @@ class EventModel:
         self.logger.info("Matched labels:")
         for label in label_map["matched labels"]:
             self.logger.info("{} --- {}".
-                              format(label, str(label_map["matched labels"][label])))
+                             format(label, str(label_map["matched labels"][label])))
         self.logger.info("Unmatched labels:")
         for label in label_map["unmatched labels"]:
             self.logger.info(label)
@@ -621,7 +618,6 @@ class EventModel:
     def __resolve_access(self, process, string):
         self.logger.debug("Try to convert access '{}' from process {} with an identifier {}".
                           format(string, process.name, process.identifier))
-        ret = None
         label, tail = process.extract_label_with_tail(string)
         if not label:
             ret = string
@@ -697,7 +693,7 @@ class Label:
         self.interface = None
         self.name = name
 
-    def _import_json(self, dic):
+    def import_json(self, dic):
         for att in ["container", "resource", "callback", "parameter", "interface", "value", "pointer"]:
             if att in dic:
                 setattr(self, att, dic[att])
@@ -765,7 +761,10 @@ class Process:
     """
     process_model = grako.genmodel('process', process_grammar)
 
-    def __init__(self, name, dic={}):
+    def __init__(self, name, dic=None):
+        if not dic:
+            dic = {}
+
         # Default values
         self.labels = {}
         self.subprocesses = {}
@@ -781,7 +780,7 @@ class Process:
         if "labels" in dic:
             for name in dic["labels"]:
                 label = Label(name)
-                label._import_json(dic["labels"][name])
+                label.import_json(dic["labels"][name])
                 self.labels[name] = label
 
         # Import subprocesses
@@ -838,24 +837,25 @@ class Process:
                 raise KeyError("Subprocess '{}' from process '{}' is not used actually".
                                format(subprocess_name, self.name))
             elif match > 1:
-                raise KeyError("Subprocess '{}' from process '{}' was used differently at once".format(subprocess_name, self.name))
+                raise KeyError("Subprocess '{}' from process '{}' was used differently at once".
+                               format(subprocess_name, self.name))
             else:
                 self.subprocesses[subprocess_name].type = process_type
 
     @property
     def unmatched_receives(self):
         unmatched = [self.subprocesses[subprocess] for subprocess in self.subprocesses
-                     if self.subprocesses[subprocess].type == "receive"
-                     and len(self.subprocesses[subprocess].peers) == 0
-                     and not self.subprocesses[subprocess].callback]
+                     if self.subprocesses[subprocess].type == "receive" and
+                     len(self.subprocesses[subprocess].peers) == 0 and not
+                     self.subprocesses[subprocess].callback]
         return unmatched
 
     @property
     def unmatched_dispatches(self):
         unmatched = [self.subprocesses[subprocess] for subprocess in self.subprocesses
-                     if self.subprocesses[subprocess].type == "dispatch"
-                     and len(self.subprocesses[subprocess].peers) == 0
-                     and not self.subprocesses[subprocess].callback]
+                     if self.subprocesses[subprocess].type == "dispatch" and
+                     len(self.subprocesses[subprocess].peers) == 0 and not
+                     self.subprocesses[subprocess].callback]
         return unmatched
 
     @property
@@ -960,7 +960,7 @@ class Process:
 
 class Subprocess(Process):
 
-    def __init__(self, name, dic={}):
+    def __init__(self, name, dic=None):
         self.type = None
         self.name = name
         self.process = None
@@ -968,10 +968,14 @@ class Subprocess(Process):
         self.parameters = []
         self.callback = None
         self.callback_retval = None
-        self._import_dictionary(dic)
         self.peers = []
         self.condition = None
         self.statements = None
+
+        # Import dictionary
+        if not dic:
+            dic = {}
+        self._import_dictionary(dic)
 
         if "callback" in dic:
             self.callback = dic["callback"]
