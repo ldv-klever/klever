@@ -1,9 +1,10 @@
+import glob
 import os
 import sys
 import shutil
 import logging
 
-import scheduler as scheduler
+import schedulers as schedulers
 import client.executils as executils
 
 
@@ -18,55 +19,56 @@ class Run:
         :param user: VerifierCloud username.
         :param password: VerifierCloud password.
         """
-        self.description = description
-
         # Save user credentials
         self.user_pwd = "{}:{}".format(user, password)
 
         # Check verifier
-        if self.description["verifier"]["name"] != "cpachecker":
-            raise ValueError("VerifierCloud can use only 'cpachecker' tool, but {} is given instead".format(
-                self.description["verifier"]["name"]))
+        if description["verifier"]["name"] != "CPAchecker":
+            raise ValueError("VerifierCloud can use only 'CPAchecker' tool, but {} is given instead".format(
+                description["verifier"]["name"]))
         else:
-            self.tool = "cpachecker"
+            self.tool = "CPAchecker"
 
-        # Expect branch:revision
-        if ":" not in self.description["verifier"]["version"]:
-            raise ValueError("Expect version as branch:revision pair in task description, but got {}".
-                             format(self.description["verifier"]["version"]))
-        self.version = self.description["verifier"]["version"].split(":")
+        self.version = description["verifier"]["version"]
 
         # Check priority
-        if self.description["priority"] not in ["LOW", "IDLE"]:
-            logging.warning("Task {} has priority higher than LOW".format(self.description["id"]))
-        self.priority = self.description["priority"]
+        if description["priority"] not in ["LOW", "IDLE"]:
+            logging.warning("Task {} has priority higher than LOW".format(description["id"]))
+        self.priority = description["priority"]
 
         # Set limits
         self.limits = {
-            "memoryLimitation": int(float(self.description["resource limits"]["maximum memory size"]) / 1000),  # MB
-            "timeLimitation": int(self.description["resource limits"]["wall time"]),
-            "softTimeLimitation": int(self.description["resource limits"]["CPU time"])
+            "memlimit": int(description["resource limits"]["memory size"] / 1000 ** 2),  # MB
+            "timelimit": int(description["resource limits"]["CPU time"] / 1000)
         }
 
         # Check optional limits
-        if "CPUs" in self.description["resource limits"]:
-            self.limits["coreLimitation"] = int(self.description["resource limits"]["number of CPU cores"])
-        if "CPU model" in self.description["resource limits"]:
-            self.limits["cpuModel"] = self.description["resource limits"]["CPU model"]
-            self.cpu_model = self.description["resource limits"]["CPU model"]
+        if "CPUs" in description["resource limits"]:
+            self.limits["corelimit"] = int(description["resource limits"]["number of CPU cores"])
+        if "CPU model" in description["resource limits"]:
+            self.cpu_model = description["resource limits"]["CPU model"]
         else:
             self.cpu_model = None
 
         # Set opts
         # TODO: Implement options support not just forwarding
-        self.options = self.description["verifier"]["opts"]
+        self.options = []
+        # Convert list of dictionaries to list
+        options = description["verifier"]["options"]
+        # TODO: like in scheduler/client/__init__.py
+        options.append({"-setprop": "parser.readLineDirectives=true"})
+        options.append({"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"})
+        for option in options:
+            for name in option:
+                self.options.append(name)
+                self.options.append(option[name])
 
         # Set source files and property
-        self.propertyfile = os.path.join(work_dir, self.description["property"])
-        self.sourcefiles = [os.path.join(work_dir, file) for file in self.description["files"]]
+        self.propertyfile = os.path.join(work_dir, description["property file"])
+        self.sourcefiles = [os.path.join(work_dir, file) for file in description["files"]]
 
 
-class Scheduler(scheduler.SchedulerExchange):
+class Scheduler(schedulers.SchedulerExchange):
     """
     Implement scheduler which is based on VerifierCloud web-interface cloud. Scheduler forwards task to the remote
     VerifierCloud and fetch results from there.
@@ -81,23 +83,12 @@ class Scheduler(scheduler.SchedulerExchange):
         if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
             raise KeyError("Provide VerifierCloud address within configuration property "
                            "'scheduler''Web-interface address'")
-        if "scheduler user name" not in self.conf["scheduler"]:
-            raise KeyError("Provide configuration property 'scheduler''scheduler user name'")
-        if "scheduler password" not in self.conf["scheduler"]:
-            raise KeyError("Provide configuration property 'scheduler''scheduler password'")
 
-        # Add path to benchexec directory
-        bexec_loc = self.conf["scheduler"]["BenchExec location"]
-        logging.debug("Add to PATH location {0}".format(bexec_loc))
-        sys.path.append(bexec_loc)
-
-        # Add path to CPAchecker scripts directory
-        cpa_loc = os.path.join(self.conf["scheduler"]["CPAchecker location"], "scripts", "benchmark")
-        logging.debug("Add to PATH location {0}".format(cpa_loc))
-        sys.path.append(cpa_loc)
+        web_client_location = os.path.join(self.conf["scheduler"]["web client location"])
+        logging.debug("Add to PATH web client location {0}".format(web_client_location))
+        sys.path.append(web_client_location)
         from webclient import WebInterface
-        self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], "{}:{}".format(self.conf["scheduler"]["scheduler user name"],
-                                                                                  self.conf["scheduler"]["scheduler password"]))
+        self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], None)
 
         return super(Scheduler, self).launch()
 
@@ -106,28 +97,28 @@ class Scheduler(scheduler.SchedulerExchange):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "VerifierCloud"
 
-    def schedule(self, pending, processing, sorter):
+    def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
         """
         Get list of new tasks which can be launched during current scheduler iteration.
-        :param pending: List with all pending tasks.
-        :param processing: List with currently ongoing tasks.
+        :param pending_tasks: List with all pending tasks.
+        :param processing_tasks: List with currently ongoing tasks.
         :param sorter: Function which can by used for sorting tasks according to their priorities.
         :return: List with identifiers of pending tasks to launch.
         """
-        pending = sorted(pending, key=sorter)
+        pending_tasks = sorted(pending_tasks, key=sorter)
         if "max concurrent tasks" in self.conf["scheduler"] and self.conf["scheduler"]["max concurrent tasks"]:
-            if len(processing) < self.conf["scheduler"]["max concurrent tasks"]:
-                diff = self.conf["scheduler"]["max concurrent tasks"] - len(processing)
-                if diff <= len(pending):
-                    new = pending[0:diff]
+            if len(processing_tasks) < self.conf["scheduler"]["max concurrent tasks"]:
+                diff = self.conf["scheduler"]["max concurrent tasks"] - len(processing_tasks)
+                if diff <= len(pending_tasks):
+                    new_tasks = pending_tasks[0:diff]
                 else:
-                    new = pending
+                    new_tasks = pending_tasks
             else:
-                new = []
+                new_tasks = []
         else:
-            new = pending
+            new_tasks = pending_tasks
 
-        return new
+        return [new_task["id"] for new_task in new_tasks], []
 
     def prepare_task(self, identifier, description=None):
         """
@@ -172,11 +163,16 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Prepare arguments of the task {}".format(identifier))
         task_data_dir = os.path.join(self.work_dir, "tasks", identifier, "data")
         run = Run(task_data_dir, description, user, password)
-        branch, revision = run.version
-        if branch == "":
+        # Expect branch:revision or revision
+        branch, revision = None, None
+        if ":" in run.version:
+            branch, revision = run.version.split(':')
+        else:
+            revision = run.version
+        if not branch:
             logging.warning("Branch has not given for the task {}".format(identifier))
             branch = None
-        if revision == "":
+        if not revision:
             logging.warning("Revision has not given for the task {}".format(identifier))
             revision = None
 
@@ -185,7 +181,7 @@ class Scheduler(scheduler.SchedulerExchange):
         return self.wi.submit(run=run,
                               limits=run.limits,
                               cpu_model=run.cpu_model,
-                              result_files_pattern=None,
+                              result_files_pattern='output/**',
                               priority=run.priority,
                               user_pwd=run.user_pwd,
                               svn_branch=branch,
@@ -205,7 +201,7 @@ class Scheduler(scheduler.SchedulerExchange):
         """Start solution explicitly of all recently submitted tasks."""
         self.wi.flush_runs()
 
-    def process_task_result(self, identifier, result):
+    def process_task_result(self, identifier, future):
         """
         Process result and send results to the verification gateway.
         :param identifier:
@@ -214,9 +210,9 @@ class Scheduler(scheduler.SchedulerExchange):
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         solution_file = os.path.join(task_work_dir, "solution.zip")
         logging.debug("Save solution to the disk as {}".format(solution_file))
-        if result:
+        if future.result():
             with open(solution_file, 'wb') as sa:
-                sa.write(result)
+                sa.write(future.result())
         else:
             logging.warning("Task has been finished but no data has been received for the task {}".
                             format(identifier))
@@ -229,8 +225,16 @@ class Scheduler(scheduler.SchedulerExchange):
         logging.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
         shutil.unpack_archive(solution_file, task_solution_dir)
 
+        # Move content of output directory to root directory (this is done to correspond to
+        # scheduler/client/__init__.py, but this may be wrong and we need to keep output directory as is).
+        for file in glob.glob(os.path.join(task_solution_dir, "output/*")):
+            shutil.move(file, task_solution_dir)
+
         # Process results and convert RunExec output to result description
-        solution_description = os.path.join(task_solution_dir, "verification task decision result.json")
+        # TODO: what will happen if there will be several input files?
+        # Simulate BenchExec behaviour when one input file is provided (see scheduler/client/__init__.py)
+        shutil.move(os.path.join(task_solution_dir, "output.log"), os.path.join(task_solution_dir, "cil.i.log"))
+        solution_description = os.path.join(task_solution_dir, "decision results.json")
         logging.debug("Get solution description from {}".format(solution_description))
         try:
             solution_identifier, solution_description = \
@@ -249,7 +253,7 @@ class Scheduler(scheduler.SchedulerExchange):
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
                                                                                                      identifier))
-        self.server.submit_solution(identifier, solution_archive, solution_description)
+        self.server.submit_solution(identifier, solution_description, solution_archive)
 
         # Remove task directory
         shutil.rmtree(task_work_dir)

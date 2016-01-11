@@ -531,8 +531,8 @@ class GetTasks(object):
                 operator = task.progress.job.reportroot.user
             except ObjectDoesNotExist:
                 return data
-            data['task descriptions'][str(task.pk)]['scheduler user name'] = operator.scheduleruser.login
-            data['task descriptions'][str(task.pk)]['scheduler user password'] = operator.scheduleruser.password
+            data['task descriptions'][str(task.pk)]['VerifierCloud user name'] = operator.scheduleruser.login
+            data['task descriptions'][str(task.pk)]['VerifierCloud user password'] = operator.scheduleruser.password
         return data
 
     def __add_solution(self, task, data):

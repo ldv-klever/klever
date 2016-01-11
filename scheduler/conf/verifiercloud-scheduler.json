@@ -1,27 +1,27 @@
 {
   "Klever Bridge": {
     "name": "localhost:8998",
-    "user": "user",
-    "password": "password"
+    "user": "service",
+    "password": "service"
   },
   "scheduler": {
     "type": "native",
     "processes": 4,
     "process pool": false,
     "controller address": "http://localhost:8500",
-    "keep working directory": false,
-    "job client configuration": "/abs/path/to/job-client.json",
-    "task client configuration": "/abs/path/to/task-client.json",
+    "keep working directory": true,
     "verification tools": {
       "CPAchecker": {
-        "trunk@17959": "cpachecker/scripts/cpa.sh"
+        "trunk@17959": "/bin/ls"
       }
     },
-    "iteration timeout": 3
+    "iteration timeout": 3,
+    "web-interface address": "http://vcloud.sosy-lab.org/cpachecker/webclient",
+    "web client location": "/abs/path/to/scripts/benchmark"
   },
   "common": {
-    "working directory": "scheduler-work-dir",
-    "keep working directory": false,
+    "working directory": "verifiercloud-scheduler-work-dir",
+    "keep working directory": true,
     "logging": {
       "version": 1,
       "disable_existing_loggers": false,

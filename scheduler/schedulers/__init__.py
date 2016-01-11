@@ -188,11 +188,12 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         "description": server_state["task descriptions"][task_id]["description"],
                         "priority": server_state["task descriptions"][task_id]["description"]["priority"]
                     }
+                    # TODO: VerifierCloud user name and password are specified in task description and shouldn't be extracted from it here.
                     if self.scheduler_type() == "VerifierCloud":
                         self.__tasks[task_id]["user"] = \
-                            server_state["task descriptions"][task_id]["scheduler user name"]
+                            server_state["task descriptions"][task_id]["VerifierCloud user name"]
                         self.__tasks[task_id]["password"] = \
-                            server_state["task descriptions"][task_id]["scheduler password"]
+                            server_state["task descriptions"][task_id]["VerifierCloud user password"]
                     else:
                         self.__tasks[task_id]["user"] = None
                         self.__tasks[task_id]["password"] = None

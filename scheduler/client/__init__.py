@@ -65,12 +65,12 @@ def solve_job(conf):
         conf["resource limits"]["CPU time"] = None
         logging.info("CPU time limit will not be set")
     else:
-        logging.info("CPU time limit: {}s".format(conf["resource limits"]["CPU time"]))
+        logging.info("CPU time limit: {} ms".format(conf["resource limits"]["CPU time"]))
     if not conf["resource limits"]["wall time"]:
         conf["resource limits"]["wall time"] = None
         logging.info("Wall time limit will not be set")
     else:
-        logging.info("Wall time limit: {}s".format(conf["resource limits"]["wall time"]))
+        logging.info("Wall time limit: {} ms".format(conf["resource limits"]["wall time"]))
     if not conf["resource limits"]["memory size"]:
         conf["resource limits"]["memory size"] = None
         logging.info("Memory limit will not be set")
@@ -123,11 +123,11 @@ def solve_task(conf):
     if "CPU time" not in conf["resource limits"]:
         conf["resource limits"]["CPU time"] = -1000
         logging.info("CPU time limit will not be set")
-    logging.info("CPU time limit: {}s".format(conf["resource limits"]["CPU time"]))
+    logging.info("CPU time limit: {} ms".format(conf["resource limits"]["CPU time"]))
     if "wall time" not in conf["resource limits"]:
         conf["resource limits"]["wall time"] = -1000
         logging.info("Wall time limit will not be set")
-    logging.info("Wall time limit: {}s".format(conf["resource limits"]["wall time"]))
+    logging.info("Wall time limit: {} ms".format(conf["resource limits"]["wall time"]))
     if "memory size" not in conf["resource limits"]:
         conf["resource limits"]["memory size"] = -(1000 ** 2)
         logging.info("Memory limit will not be set")
@@ -204,7 +204,7 @@ def solve_task(conf):
                     if match:
                         decision_results["resources"]["wall time"] = int(float(match.groups()[0]) * 1000)
                 elif name == "memUsage":
-                    decision_results["resources"]["max mem size"] = int(value)
+                    decision_results["resources"]["memory size"] = int(value)
                 elif name == "exitcode":
                     decision_results["exit code"] = int(value)
                 elif name == "status":

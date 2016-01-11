@@ -165,7 +165,7 @@ class ABKM(core.components.Component):
                 with open('decision results.json') as fp:
                     decision_results = json.load(fp)
 
-                # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec.
+                # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
                 core.utils.report(self.logger,
                                   'verification',
                                   {

@@ -50,7 +50,7 @@ class UploadReport(object):
 
         if 'resources' in data:
             if not isinstance(data['resources'], dict) \
-                    or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'max mem size']):
+                    or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'memory size']):
                 return 'Resources has wrong format: %s' % json.dumps(data['resources'])
 
         self.data = {'type': data['type'], 'id': data['id']}
@@ -243,7 +243,7 @@ class UploadReport(object):
 
         if 'resources' in self.data:
             report.cpu_time = int(self.data['resources']['CPU time'])
-            report.memory = int(self.data['resources']['max mem size'])
+            report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
         if 'log' in self.data:
             uf = UploadReportFiles(self.archive, log=self.data['log'])
@@ -275,7 +275,7 @@ class UploadReport(object):
             return
 
         report.cpu_time = int(self.data['resources']['CPU time'])
-        report.memory = int(self.data['resources']['max mem size'])
+        report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
         if 'log' in self.data:
             uf = UploadReportFiles(self.archive, log=self.data['log'])

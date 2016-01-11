@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
-import Cloud.schedulers.verifiercloud as verifiercloud
-import Cloud.utils as utils
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
+os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.pardir),
+                                           ':{0}'.format(os.environ['PYTHONPATH'])
+                                           if os.environ.get('PYTHONPATH') else '')
+
+
+import schedulers.verifiercloud as verifiercloud
+import utils as utils
 
 if __name__ == "__main__":
     conf = utils.common_initialization("VerifierCloud scheduler")
