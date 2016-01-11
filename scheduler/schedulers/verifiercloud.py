@@ -82,23 +82,12 @@ class Scheduler(schedulers.SchedulerExchange):
         if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
             raise KeyError("Provide VerifierCloud address within configuration property "
                            "'scheduler''Web-interface address'")
-        if "scheduler user name" not in self.conf["scheduler"]:
-            raise KeyError("Provide configuration property 'scheduler''scheduler user name'")
-        if "scheduler password" not in self.conf["scheduler"]:
-            raise KeyError("Provide configuration property 'scheduler''scheduler password'")
 
-        # Add path to benchexec directory
-        bexec_loc = self.conf["scheduler"]["BenchExec location"]
-        logging.debug("Add to PATH location {0}".format(bexec_loc))
-        sys.path.append(bexec_loc)
-
-        # Add path to CPAchecker scripts directory
-        cpa_loc = os.path.join(self.conf["scheduler"]["CPAchecker location"], "scripts", "benchmark")
-        logging.debug("Add to PATH location {0}".format(cpa_loc))
-        sys.path.append(cpa_loc)
+        web_client_location = os.path.join(self.conf["scheduler"]["web client location"])
+        logging.debug("Add to PATH web client location {0}".format(web_client_location))
+        sys.path.append(web_client_location)
         from webclient import WebInterface
-        self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], "{}:{}".format(self.conf["scheduler"]["scheduler user name"],
-                                                                                  self.conf["scheduler"]["scheduler password"]))
+        self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], None)
 
         return super(Scheduler, self).launch()
 
