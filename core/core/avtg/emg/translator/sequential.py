@@ -22,6 +22,7 @@ class Translator(AbstractTranslator):
         return ret
 
     def _generate_entry_point(self):
+        self.logger.info("Collect information about relevant interfaces for each process of the intermediate model")
         ri = {}
         for process in self.model["models"] + self.model["processes"]:
             ri[process.identifier] = process.collect_relevant_interfaces()

@@ -92,6 +92,10 @@ class EMG(core.components.Component):
         module_spec.import_specification(self.module_interface_spec, analysis, intf_spec)
         self.module_interface_spec = module_spec
 
+        new_module_spec_file = "module_specification.json"
+        self.logger.info("Save modules interface specification to '{}'".format(new_module_spec_file))
+        self.module_interface_spec.save_to_file(new_module_spec_file)
+
         # Generate module interface specification
         self.logger.info("============== An intermediate model preparation stage ==============")
         # todo: Import existing environment model

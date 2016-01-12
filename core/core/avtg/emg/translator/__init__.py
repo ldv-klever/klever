@@ -7,27 +7,50 @@ from core.avtg.emg.interfaces import Signature
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
 
-    def __init__(self, logger, conf, avt, analysis, model, header_lines=[], aspect_lines=[]):
+    def __init__(self, logger, conf, avt, analysis, model, header_lines=None, aspect_lines=None):
         self.logger = logger
         self.conf = conf
         self.task = avt
         self.analysis = analysis
         self.model = model
-        self.additional_headers = header_lines
-        self.additional_aspects = aspect_lines
         self.files = {}
         self.aspects = {}
         self.model_map = ModelMap()
         self.entry_file = None
         self.model_aspects = []
 
+        if not header_lines:
+            self.additional_headers = []
+        else:
+            self.additional_headers = header_lines
+        if not aspect_lines:
+            self.additional_aspects = []
+        else:
+            self.additional_aspects = aspect_lines
+
         # Determine entry point name and file
+        self.logger.info("Determine entry point name and file")
         self.__determine_entry()
+        self.logger.info("Going to generate entry point function {} in file {}".
+                         format(self.entry_point_name, self.entry_file))
+
+        # Prepare entry point function
+        self.logger.info("Generate C code from an intermediate model")
         self._generate_entry_point()
+
+        # Print aspect text
+        self.logger.info("Add individual aspect files to the abstract verification task")
         self._generate_aspects()
+
+        # Add aspects to abstract task
+        self.logger.info("Add individual aspect files to the abstract verification task")
         self._add_aspects()
+
+        # Set entry point function in abstract task
+        self.logger.info("Add entry point function to abstract verification task")
         self._add_entry_points()
-        return
+
+        self.logger.info("Model translation is finished")
 
     @abc.abstractmethod
     def _generate_entry_point(self):
@@ -36,7 +59,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def __determine_entry(self):
         if len(self.analysis.inits) == 1:
             file = list(self.analysis.inits.keys())[0]
-            self.logger.info("Choose file {} for entry point function".format(file))
+            self.logger.info("Choose file {} to add an entry point function".format(file))
             self.entry_file = file
         elif len(self.analysis.inits) < 1:
             raise RuntimeError("Cannot generate entry point without module initialization function")
@@ -45,25 +68,25 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.entry_point_name = self.conf["entry point"]
         else:
             self.entry_point_name = "main"
-        self.logger.info("Genrate entry point function {}".format(self.entry_point_name))
 
     def _import_mapping(self):
         for grp in self.abstract_task_desc['grps']:
-            self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
+            self.logger.debug('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
                 if 'plugin aspects' not in cc_extra_full_desc_file:
                     pass
 
     def _generate_aspects(self):
-        self.logger.info("Create aspects diretory in EMG working directory")
-        os.makedirs("aspects", exist_ok=True)
+        aspect_dir = "aspects"
+        self.logger.info("Create directory for aspect files {}".format("aspects"))
+        os.makedirs(aspect_dir, exist_ok=True)
 
         for grp in self.task['grps']:
             # Generate function declarations
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
                 # Aspect text
-                lines = []
+                lines = list()
 
                 # Before file
                 lines.append('before: file ("$this")\n')
@@ -211,7 +234,10 @@ class Function:
         self.__body = None
 
     @property
-    def body(self, body=[]):
+    def body(self, body=None):
+        if not body:
+            body = []
+
         if not self.__body:
             self.__body = FunctionBody(body)
         else:
@@ -219,7 +245,6 @@ class Function:
         return self.__body
 
     def get_declaration(self, extern=False):
-        declaration = self.signature.expression
         declaration = self.signature.expression.replace("%s", self.name)
         declaration += ';'
 
@@ -229,14 +254,14 @@ class Function:
 
     def get_definition(self):
         if self.signature.type_class == "function" and not self.signature.pointer:
-            lines = []
+            lines = list()
             lines.append(self.signature.expression.replace("%s", self.name) + "{\n")
             lines.extend(self.body.get_lines(1))
             lines.append("}\n")
             return lines
         else:
             raise TypeError("Signature '{}' with class '{}' is not a function or it is a function pointer".
-                            format(self.expression, self.type_class))
+                            format(self.signature.expression, self.signature.type_class))
 
 
 class Aspect(Function):
@@ -248,7 +273,10 @@ class Aspect(Function):
         self.__body = None
 
     @property
-    def body(self, body=[]):
+    def body(self, body=None):
+        if not body:
+            body = None
+
         if not self.__body:
             self.__body = FunctionBody(body)
         else:
@@ -256,17 +284,21 @@ class Aspect(Function):
         return self.__body
 
     def get_aspect(self):
-        lines = []
-        lines.append("{}: call({}) ".format(self.aspect_type, self.signature.expression.replace("%s", self.name))
-                     + " {\n")
+        lines = list()
+        lines.append("{}: call({}) ".format(self.aspect_type, self.signature.expression.replace("%s", self.name)) +
+                     " {\n")
         lines.extend(self.body.get_lines(1))
         lines.append("}\n")
         return lines
 
+
 class FunctionBody:
     indent_re = re.compile("^(\t*)([^\s]*.*)")
 
-    def __init__(self, body=[]):
+    def __init__(self, body=None):
+        if not body:
+            body = []
+
         self.__body = []
 
         if len(body) > 0:
@@ -313,7 +345,7 @@ class Entry:
         while len(unmarked) > 0:
             selected = unmarked.pop(0)
             if selected not in self.marked:
-                self.__visit(selected, sorted_list, modules)
+                self.__visit(selected, sorted_list)
 
         return sorted_list
 

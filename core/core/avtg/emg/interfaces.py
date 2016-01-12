@@ -1,5 +1,6 @@
 import re
 import copy
+import json
 
 fi_regex = re.compile("(\w*)\.(\w*)")
 fi_extract = re.compile("\*?%((?:\w*\.)?\w*)%")
@@ -223,8 +224,6 @@ class ModuleSpecification(CategorySpecification):
     def import_specification(self, specification, analysis=None, categories=None):
 
         # Check specification and analysis
-        if not specification:
-            specification = {}
         if not analysis:
             analysis = {}
 
@@ -241,7 +240,8 @@ class ModuleSpecification(CategorySpecification):
         self.implementations = {}
 
         # Import categories from modules specification
-        super().import_specification(specification)
+        if specification:
+            super().import_specification(specification)
 
         # todo: import existing module specification
 
@@ -272,7 +272,7 @@ class ModuleSpecification(CategorySpecification):
                                            list(self.categories[category]["resources"].keys()) +
                                            list(self.categories[category]["callbacks"].keys()))]
                 for intf in intfs:
-                    if self.interfaces["{}.{}".format(category, intf)]:
+                    if "{}.{}".format(category, intf) in self.interfaces:
                         del self.interfaces["{}.{}".format(category, intf)]
                 del self.categories[category]
             else:
@@ -580,10 +580,19 @@ class ModuleSpecification(CategorySpecification):
                 self.__parse_elements_signatures(
                     self.analysis["global variable initializations"][path][variable]["fields"])
                 for field in self.analysis["global variable initializations"][path][variable]["fields"]:
-                    self.implementations[path][variable][field] = \
-                        self.analysis["global variable initializations"][path][variable]["fields"][field]["value"]
-                    self.analysis["global variable initializations"][path][variable]["signature"].fields[field] = \
-                        self.analysis["global variable initializations"][path][variable]["fields"][field]["signature"]
+                    if "value" in self.analysis["global variable initializations"][path][variable]["fields"][field]:
+                        self.implementations[path][variable][field] = \
+                            self.analysis["global variable initializations"][path][variable]["fields"][field]["value"]
+                    else:
+                        self.logger.warning("Field {} from description of variable {} from {} has no value".
+                                            format(field, variable, path))
+
+                    if "signature" in self.analysis["global variable initializations"][path][variable]["fields"][field]:
+                        self.analysis["global variable initializations"][path][variable]["signature"].fields[field] = \
+                          self.analysis["global variable initializations"][path][variable]["fields"][field]["signature"]
+                    else:
+                        raise KeyError("Signature of field {} in description of variable {} from {} os not given".
+                                       format(field, variable, path))
 
                 self.logger.debug("Remove legacy data about initialization of variable {} from file {}".
                                   format(function, path))
@@ -687,6 +696,13 @@ class ModuleSpecification(CategorySpecification):
                             self.logger.debug("Match variable {} from {} with type {} with resource {}".
                                               format(variable, path, expression, identifier))
                             break
+
+    def save_to_file(self, file):
+        self.logger.info("First convert specification to json and then save")
+        content = json.dumps(self, indent=4, sort_keys=True, cls=SpecEncoder)
+
+        with open(file, "w") as fh:
+            fh.write(content)
 
 
 class Interface:
@@ -802,7 +818,6 @@ class Signature:
         self.return_value = None
         self.interface = None
         self.function_name = None
-        self.return_value = None
         self.parameters = None
         self.fields = None
 
@@ -906,5 +921,101 @@ class Signature:
                     self.parameters.append(None)
                 else:
                     self.parameters.append(Signature(arg))
+
+    def get_string(self):
+        # Dump signature as a string
+        if self.type_class == "function":
+            # Add return value
+            if self.return_value and self.return_value.type_class != "primitive":
+                string = "$ "
+            else:
+                string = "{} ".format(self.return_value.expression)
+
+            # Add name
+            if self.function_name:
+                string += self.function_name
+            else:
+                string += "%s"
+
+            # Add parameters
+            if self.parameters and len(self.parameters) > 0:
+                params = []
+                for p in self.parameters:
+                    if p.interface:
+                        params.append("%{}%".format(p.interface.full_identifier))
+                    else:
+                        params.append("$")
+
+                string += "({})".format(", ".join(params))
+            else:
+                string += "(void)"
+
+            return string
+        else:
+            return self.expression
+
+
+class SpecEncoder(json.JSONEncoder):
+
+    def default(self, object):
+        fd = {}
+
+        if type(object) is ModuleSpecification:
+            # Dump kernel functions
+            fd["kernel functions"] = {}
+            for function in object.kernel_functions:
+                fd["kernel functions"][function] = {
+                    "signature": object.kernel_functions[function]["signature"].get_string(),
+                    "header": list(object.kernel_functions[function]["files"].keys())[0]
+                }
+
+            # todo: Dump macro-functions
+            # todo: Dump macros
+
+            # Dump categories
+            fd["categories"] = {}
+            for category in object.categories:
+                fd["categories"][category] = {
+                    "containers": {},
+                    "callbacks": {},
+                    "resources": {}
+                }
+
+                # Add containers
+                for container in object.categories[category]["containers"]:
+                    fd["categories"][category]["containers"][container] = {
+                        "signature": None
+                    }
+
+                    if object.categories[category]["containers"][container].header:
+                        fd["categories"][category]["containers"][container]["header"] = \
+                            object.categories[category]["containers"][container].header
+
+                    fd["categories"][category]["containers"][container]["signature"] = \
+                        object.categories[category]["containers"][container].signature.get_string()
+
+                    fd["categories"][category]["containers"][container]["fields"] = \
+                        object.categories[category]["containers"][container].fields
+
+                # Add function pointers
+                for callback in object.categories[category]["callbacks"]:
+                    fd["categories"][category]["callbacks"][callback] = {
+                        "signature": object.categories[category]["callbacks"][callback].signature.get_string()
+                    }
+                    
+                # Add resources
+                for resource in object.categories[category]["resources"]:
+                    fd["categories"][category]["resources"][resource] = {}
+
+                    if resource not in object.categories[category]["containers"]:
+                        fd["categories"][category]["resources"][resource]["signature"] = \
+                            object.categories[category]["resources"][resource].signature.get_string()
+
+                # todo: Add implementations
+                # todo: Add init, exit functions
+        else:
+            raise NotImplementedError("Cannot encode unknown object with type {}".format(str(type(object))))
+
+        return fd
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
