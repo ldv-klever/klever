@@ -376,49 +376,58 @@ class GlobalInitParser:
     def _parse(self, lines):
         indent_str = self._get_indent(lines[0])
 
-        begin_re = \
-            re.compile("^{}Structure\sdescription\sbegin\spath='([^']*)'\sname='([^']*)'\stype='([^']*)'".
+        struct_init_begin_re = \
+            re.compile("^{}Structure initializer description begin path='([^']*)' name='([^']*)' type='([^']*)'".
                        format(indent_str))
         # TODO: structure type is unknown in case of (arrays of) structure pointers. Implement them later.
-        begin_without_type_re = \
-            re.compile("^{}Structure\sdescription\sbegin\spath='([^']*)'\sname='([^']*)'".
+        struct_ptr_init_begin_re = \
+            re.compile("^{}Structure pointer initializer description begin path='([^']*)' name='([^']*)'".
+                       format(indent_str))
+        struct_ptr_array_init_begin_re = \
+            re.compile("^{}Structure pointers array initializer description begin path='([^']*)' name='([^']*)'".
                        format(indent_str))
         init_re = re.compile("^{}Initializer list".format(indent_str))
-        end_re = re.compile("^{}Structure description end".format(indent_str))
+        struct_init_end_re = re.compile("^{}Structure initializer description end".format(indent_str))
+        struct_ptr_init_end_re = re.compile("^{}Structure pointer initializer description end".format(indent_str))
+        struct_ptr_array_init_end_re = re.compile("^{}Structure pointers array initializer description end".format(indent_str))
 
         # TODO: add syntax checks and corresponding exceptions!
-        # 0 - begin, 1 - in structure, 2 - out of structure
+        # 0 - begin, 1 - in initializer, 2 - out of initializer
         state = 0
-        current_block = []
-        current_struct = None
         for line in lines:
             if state in [0, 2]:
-                match = begin_re.match(line)
+                current_entity = None
+                current_block = None
+                match = struct_init_begin_re.match(line)
                 if match:
                     path, name, struct_type = match.groups()
                     self.analysis[path][name]["signature"] = "struct {} %s".format(struct_type)
                     self.analysis[path][name]["struct type"] = struct_type
-                    current_struct = self.analysis[path][name]
+                    current_entity = self.analysis[path][name]
                 else:
-                    match = begin_without_type_re.match(line)
+                    match = struct_ptr_init_begin_re.match(line)
                     if match:
                         path, name = match.groups()
-                        struct_type = "UNKNOWN"
-                        self.analysis[path][name]["signature"] = "struct {} %s".format(struct_type)
-                        self.analysis[path][name]["struct type"] = struct_type
-                        current_struct = self.analysis[path][name]
+                        self.analysis[path][name]["type"] = "STRUCTURE POINTER"
+                        current_entity = self.analysis[path][name]
+                    else:
+                        match = struct_ptr_array_init_begin_re.match(line)
+                        if match:
+                            path, name = match.groups()
+                            self.analysis[path][name]["type"] = "STRUCTURE POINTERS ARRAY"
+                            current_entity = self.analysis[path][name]
                 state = 1
             elif state == 1:
                 if init_re.match(line):
                     current_block = []
-                elif end_re.match(line):
-                    # TODO: UNKNOWN also corresponds to structure pointers which initializers shouldn't likely parsed with _parse_array().
-                    if current_struct["struct type"] == "UNKNOWN":
-                        self._parse_array(current_struct["fields"], current_block)
-                    else:
-                        self._parse_structure(current_struct["fields"], current_block)
-                    current_struct = None
-                    current_block = None
+                elif struct_init_end_re.match(line):
+                    self._parse_structure(current_entity["fields"], current_block)
+                    state = 2
+                elif struct_ptr_init_end_re.match(line):
+                    current_entity["initializer"] = re.match("^\s*Value\sis\s'([^']*)'", current_block[1]).group(1)
+                    state = 2
+                elif struct_ptr_array_init_end_re.match(line):
+                    self._parse_array(current_entity["elements"], current_block)
                     state = 2
                 else:
                     current_block.append(line)

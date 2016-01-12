@@ -283,19 +283,19 @@ info: call( $ $($,$,$,$,$,$,$,$,$,$)) {
 }
 
 info: init_global($ struct $ $){
-    $fprintf<"global.txt","Structure description begin path='%s' name='%s' type='%s'\n",$env<CC_IN_FILE>,$var_name,$var_type_name>
+    $fprintf<"global.txt","Structure initializer description begin path='%s' name='%s' type='%s'\n",$env<CC_IN_FILE>,$var_name,$var_type_name>
     $fprintf_var_init_list<"global.txt">
-    $fprintf<"global.txt","Structure description end\n">
+    $fprintf<"global.txt","Structure initializer description end\n">
 }
 
 info: init_global($ struct $ *$){
-    $fprintf<"global.txt","Structure description begin path='%s' name='%s'\n",$env<CC_IN_FILE>,$var_name>
+    $fprintf<"global.txt","Structure pointer initializer description begin path='%s' name='%s'\n",$env<CC_IN_FILE>,$var_name>
     $fprintf_var_init_list<"global.txt">
-    $fprintf<"global.txt","Structure description end\n">
+    $fprintf<"global.txt","Structure pointer initializer description end\n">
 }
 
 info: init_global($ struct $ *$[$]){
-    $fprintf<"global.txt","Structure description begin path='%s' name='%s'\n",$env<CC_IN_FILE>,$var_name>
+    $fprintf<"global.txt","Structure pointers array initializer description begin path='%s' name='%s'\n",$env<CC_IN_FILE>,$var_name>
     $fprintf_var_init_list<"global.txt">
-    $fprintf<"global.txt","Structure description end\n">
+    $fprintf<"global.txt","Structure pointers array initializer description end\n">
 }
