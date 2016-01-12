@@ -210,6 +210,13 @@ class SA(core.components.Component):
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, func_calls_file))
 
+        global_file = "global.txt"
+        self.logger.debug("Extract global variables from {}".format(global_file))
+        content = self._import_content(global_file)
+        gi_parser = GlobalInitParser(content)
+        # todo: add some logging here
+        self.collection["global variable initializations"] = gi_parser.analysis
+
         export_file = "exported-symbols.txt"
         self.logger.info("Extract export symbols from {}".format(export_file))
         content = self._import_content(export_file)
@@ -253,13 +260,6 @@ class SA(core.components.Component):
                                      format(path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, exit_file))
-
-        global_file = "global.txt"
-        self.logger.debug("Extract global variables from {}".format(global_file))
-        content = self._import_content(global_file)
-        gi_parser = GlobalInitParser(content)
-        # todo: add some logging here
-        self.collection["global variable initializations"] = gi_parser.analysis
 
     def _save_collection(self, km_file):
         with open(km_file, "w") as km_fh:
