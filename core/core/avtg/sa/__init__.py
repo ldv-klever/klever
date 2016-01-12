@@ -145,9 +145,9 @@ class SA(core.components.Component):
                     else:
                         new_line = line
                     content.append(new_line)
+            self.logger.debug("File {} has been successfully imported".format(file))
         else:
-            self.logger.warning("File {} does not exist".format(file))
-        self.logger.info("File {} has been successfully imported".format(file))
+            self.logger.debug("File {} does not exist".format(file))
         return content
 
     def _fulfill_collection(self):
