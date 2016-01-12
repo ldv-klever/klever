@@ -152,7 +152,7 @@ class SA(core.components.Component):
 
     def _fulfill_collection(self):
         all_args_re = "(?:\sarg\d+='[^']*')*"
-        exec_re = re.compile("^([^\s]*)\s(\w*)\sret='([^']*)'({})\n".format(all_args_re))
+        exec_re = re.compile("^([^\s]*)\s(\w*)\sret='([^']*)'({})(\s\.\.\.)?\n".format(all_args_re))
         call_re = re.compile("^([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
         arg_re = re.compile("\sarg(\d+)='([^']*)'")
         short_pair_re = re.compile("^([^\s]*)\s(\w*)\n")
@@ -168,12 +168,13 @@ class SA(core.components.Component):
             content = self._import_content(execution_source["file"])
             for line in content:
                 if exec_re.fullmatch(line):
-                    path, name, ret_type, args = exec_re.fullmatch(line).groups()
+                    path, name, ret_type, args, is_var_args = exec_re.fullmatch(line).groups()
                     if not self.collection["functions"][name]["files"][path]:
                         self.collection["functions"][name]["files"][path]["return value type"] = ret_type
                         self.collection["functions"][name]["files"][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
                         self.collection["functions"][name]["files"][path]["signature"] = "{} {}({})".\
                             format("$", name, "..")
+                        self.collection["functions"][name]["files"][path]["variable arguments"] = is_var_args
                     if not self.collection["functions"][name]["files"][path]["static"]:
                         self.collection["functions"][name]["files"][path]["static"] = execution_source["static"]
                     self.logger.debug("Extracted function description {} from {}".format(name, path))
