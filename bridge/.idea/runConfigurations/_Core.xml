@@ -3,8 +3,8 @@
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
-      <env name="PATH" value="$CONTENT_OF_LOCAL_PATH:/abs/path/to/cif/bin/:/abs/path/to/cil/obj/x86_LINUX" />
       <env name="PYTHONUNBUFFERED" value="1" />
+      <env name="PATH" value="$CONTENT_OF_LOCAL_PATH:/abs/path/to/cif/bin/:/abs/path/to/cil/obj/x86_LINUX" />
     </envs>
     <option name="SDK_HOME" value="/usr/bin/python3.4" />
     <option name="WORKING_DIRECTORY" value="/abs/path/to/work/dir" />
