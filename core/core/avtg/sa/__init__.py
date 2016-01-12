@@ -206,7 +206,7 @@ class SA(core.components.Component):
                     self.logger.debug("Extracted function call {} at {} in {}".format(name, caller_name, path))
                 else:
                     raise ValueError("Expect function definition {} in file {} but it has not been extracted".
-                                     format(name, path))
+                                     format(caller_name, path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, func_calls_file))
 
