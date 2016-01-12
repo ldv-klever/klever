@@ -226,8 +226,11 @@ class SA(core.components.Component):
                 if self.collection["functions"][name]["files"][path]:
                     self.collection["functions"][name]["files"][path]["exported"] = True
                     self.logger.debug("Extracted exported function {} from {}".format(name, path))
+                elif self.collection["global variable initializations"][path][name]:
+                    self.collection["global variable initializations"][path][name]["exported"] = True
+                    self.logger.debug("Extracted exported global variable {} from {}".format(name, path))
                 else:
-                    raise ValueError("Exported function {} in {} should be defined first".format(name, path))
+                    raise ValueError("Exported symbol {} in {} should be defined first".format(name, path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, export_file))
 
