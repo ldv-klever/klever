@@ -217,22 +217,22 @@ class SA(core.components.Component):
         # todo: add some logging here
         self.collection["global variable initializations"] = gi_parser.analysis
 
-        export_file = "exported-symbols.txt"
-        self.logger.info("Extract export symbols from {}".format(export_file))
-        content = self._import_content(export_file)
-        for line in content:
-            if short_pair_re.fullmatch(line):
-                path, name = short_pair_re.fullmatch(line).groups()
-                if self.collection["functions"][name]["files"][path]:
-                    self.collection["functions"][name]["files"][path]["exported"] = True
-                    self.logger.debug("Extracted exported function {} from {}".format(name, path))
-                elif self.collection["global variable initializations"][path][name]:
-                    self.collection["global variable initializations"][path][name]["exported"] = True
-                    self.logger.debug("Extracted exported global variable {} from {}".format(name, path))
-                else:
-                    raise ValueError("Exported symbol {} in {} should be defined first".format(name, path))
-            else:
-                raise ValueError("Cannot parse line '{}' in file {}".format(line, export_file))
+        # export_file = "exported-symbols.txt"
+        # self.logger.info("Extract export symbols from {}".format(export_file))
+        # content = self._import_content(export_file)
+        # for line in content:
+        #     if short_pair_re.fullmatch(line):
+        #         path, name = short_pair_re.fullmatch(line).groups()
+        #         if self.collection["functions"][name]["files"][path]:
+        #             self.collection["functions"][name]["files"][path]["exported"] = True
+        #             self.logger.debug("Extracted exported function {} from {}".format(name, path))
+        #         elif self.collection["global variable initializations"][path][name]:
+        #             self.collection["global variable initializations"][path][name]["exported"] = True
+        #             self.logger.debug("Extracted exported global variable {} from {}".format(name, path))
+        #         else:
+        #             raise ValueError("Exported symbol {} in {} should be defined first".format(name, path))
+        #     else:
+        #         raise ValueError("Cannot parse line '{}' in file {}".format(line, export_file))
 
         init_file = "init.txt"
         self.logger.info("Extract initialization functions from {}".format(init_file))
