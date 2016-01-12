@@ -278,6 +278,10 @@ info: call( $ $($,$,$,$,$,$,$,$,$)) {
   $fprintf<"call-function.txt","%s %s %s arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s'\n",$func_context_path,$func_context_name,$func_name,$arg_value1,$arg_value2,$arg_value3,$arg_value4,$arg_value5,$arg_value6,$arg_value7,$arg_value8,$arg_value9>
 }
 
+info: call( $ $($,$,$,$,$,$,$,$,$,$)) {
+  $fprintf<"call-function.txt","%s %s %s arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s' arg10='%s'\n",$func_context_path,$func_context_name,$func_name,$arg_value1,$arg_value2,$arg_value3,$arg_value4,$arg_value5,$arg_value6,$arg_value7,$arg_value8,$arg_value9,$arg_value10>
+}
+
 info: init_global($ struct $ $){
     $fprintf<"global.txt","Structure description begin path='%s' name='%s' type='%s'\n",$env<CC_IN_FILE>,$var_name,$var_type_name>
     $fprintf_var_init_list<"global.txt">
