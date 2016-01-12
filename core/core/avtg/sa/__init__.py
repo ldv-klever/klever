@@ -151,10 +151,10 @@ class SA(core.components.Component):
         return content
 
     def _fulfill_collection(self):
-        all_args_re = "(?:\sarg\d='[^']*')*"
+        all_args_re = "(?:\sarg\d+='[^']*')*"
         exec_re = re.compile("^([^\s]*)\s(\w*)\sret='([^']*)'({})\n".format(all_args_re))
         call_re = re.compile("^([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
-        arg_re = re.compile("\sarg(\d)='([^']*)'")
+        arg_re = re.compile("\sarg(\d+)='([^']*)'")
         short_pair_re = re.compile("^([^\s]*)\s(\w*)\n")
 
         func_definition_files = [

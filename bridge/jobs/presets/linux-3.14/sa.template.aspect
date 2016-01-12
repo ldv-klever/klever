@@ -42,6 +42,10 @@ info: execution(static $ $($,$,$,$,$,$,$,$,$)) {
   $fprintf<"static-execution.txt","%s %s ret='%s' arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s'\n",$path,$func_name,$ret_type_str,$arg_type_str1,$arg_type_str2,$arg_type_str3,$arg_type_str4,$arg_type_str5,$arg_type_str6,$arg_type_str7,$arg_type_str8,$arg_type_str9>
 }
 
+info: execution(static $ $($,$,$,$,$,$,$,$,$,$)) {
+  $fprintf<"static-execution.txt","%s %s ret='%s' arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s' arg10='%s'\n",$path,$func_name,$ret_type_str,$arg_type_str1,$arg_type_str2,$arg_type_str3,$arg_type_str4,$arg_type_str5,$arg_type_str6,$arg_type_str7,$arg_type_str8,$arg_type_str9,$arg_type_str10>
+}
+
 info: execution($ $(void)) {
   $fprintf<"execution.txt","%s %s ret='%s'\n",$path,$func_name,$ret_type_str>
 }
@@ -80,6 +84,10 @@ info: execution($ $($,$,$,$,$,$,$,$)) {
 
 info: execution($ $($,$,$,$,$,$,$,$,$)) {
   $fprintf<"execution.txt","%s %s ret='%s' arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s'\n",$path,$func_name,$ret_type_str,$arg_type_str1,$arg_type_str2,$arg_type_str3,$arg_type_str4,$arg_type_str5,$arg_type_str6,$arg_type_str7,$arg_type_str8,$arg_type_str9>
+}
+
+info: execution($ $($,$,$,$,$,$,$,$,$,$)) {
+  $fprintf<"execution.txt","%s %s ret='%s' arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s' arg10='%s'\n",$path,$func_name,$ret_type_str,$arg_type_str1,$arg_type_str2,$arg_type_str3,$arg_type_str4,$arg_type_str5,$arg_type_str6,$arg_type_str7,$arg_type_str8,$arg_type_str9,$arg_type_str10>
 }
 
 info: declare_func(static $ $(void)) {
@@ -122,6 +130,10 @@ info: declare_func(static $ $($,$,$,$,$,$,$,$,$)) {
   $fprintf<"static-declare_func.txt","%s %s ret='%s' arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s'\n",$path,$func_name,$ret_type_str,$arg_type_str1,$arg_type_str2,$arg_type_str3,$arg_type_str4,$arg_type_str5,$arg_type_str6,$arg_type_str7,$arg_type_str8,$arg_type_str9>
 }
 
+info: declare_func(static $ $($,$,$,$,$,$,$,$,$,$)) {
+  $fprintf<"static-declare_func.txt","%s %s ret='%s' arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s' arg10='%s'\n",$path,$func_name,$ret_type_str,$arg_type_str1,$arg_type_str2,$arg_type_str3,$arg_type_str4,$arg_type_str5,$arg_type_str6,$arg_type_str7,$arg_type_str8,$arg_type_str9,$arg_type_str10>
+}
+
 info: declare_func($ $(void)) {
   $fprintf<"declare_func.txt","%s %s ret='%s'\n",$path,$func_name,$ret_type_str>
 }
@@ -160,6 +172,10 @@ info: declare_func($ $($,$,$,$,$,$,$,$)) {
 
 info: declare_func($ $($,$,$,$,$,$,$,$,$)) {
   $fprintf<"declare_func.txt","%s %s ret='%s' arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s'\n",$path,$func_name,$ret_type_str,$arg_type_str1,$arg_type_str2,$arg_type_str3,$arg_type_str4,$arg_type_str5,$arg_type_str6,$arg_type_str7,$arg_type_str8,$arg_type_str9>
+}
+
+info: declare_func($ $($,$,$,$,$,$,$,$,$,$)) {
+  $fprintf<"declare_func.txt","%s %s ret='%s' arg1='%s' arg2='%s' arg3='%s' arg4='%s' arg5='%s' arg6='%s' arg7='%s' arg8='%s' arg9='%s' arg10='%s'\n",$path,$func_name,$ret_type_str,$arg_type_str1,$arg_type_str2,$arg_type_str3,$arg_type_str4,$arg_type_str5,$arg_type_str6,$arg_type_str7,$arg_type_str8,$arg_type_str9,$arg_type_str10>
 }
 
 /* info: expand(__EXPORT_SYMBOL(sym, sec)) {
@@ -215,6 +231,10 @@ info: expand($($,$,$,$,$,$,$,$)){
 }
 
 info: expand($($,$,$,$,$,$,$,$,$)){
+    $fprintf<"expand.txt","%s %s\n",$path,$macro_name>
+}
+
+info: expand($($,$,$,$,$,$,$,$,$,$)){
     $fprintf<"expand.txt","%s %s\n",$path,$macro_name>
 }
 
