@@ -263,3 +263,15 @@ info: init_global($ struct $ $){
     $fprintf_var_init_list<"global.txt">
     $fprintf<"global.txt","Structure description end\n">
 }
+
+info: init_global($ struct $ *$){
+    $fprintf<"global.txt","Structure description begin path='%s' name='%s'\n",$env<CC_IN_FILE>,$var_name>
+    $fprintf_var_init_list<"global.txt">
+    $fprintf<"global.txt","Structure description end\n">
+}
+
+info: init_global($ struct $ *$[$]){
+    $fprintf<"global.txt","Structure description begin path='%s' name='%s'\n",$env<CC_IN_FILE>,$var_name>
+    $fprintf_var_init_list<"global.txt">
+    $fprintf<"global.txt","Structure description end\n">
+}

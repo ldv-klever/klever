@@ -379,25 +379,44 @@ class GlobalInitParser:
         begin_re = \
             re.compile("^{}Structure\sdescription\sbegin\spath='([^']*)'\sname='([^']*)'\stype='([^']*)'".
                        format(indent_str))
+        # TODO: structure type is unknown in case of (arrays of) structure pointers. Implement them later.
+        begin_without_type_re = \
+            re.compile("^{}Structure\sdescription\sbegin\spath='([^']*)'\sname='([^']*)'".
+                       format(indent_str))
         init_re = re.compile("^{}Initializer list".format(indent_str))
         end_re = re.compile("^{}Structure description end".format(indent_str))
 
+        # TODO: add syntax checks and corresponding exceptions!
         # 0 - begin, 1 - in structure, 2 - out of structure
         state = 0
         current_block = []
         current_struct = None
         for line in lines:
             if state in [0, 2]:
-                path, name, struct_type = begin_re.match(line).groups()
-                self.analysis[path][name]["signature"] = "struct {} %s".format(struct_type)
-                self.analysis[path][name]["struct type"] = struct_type
-                current_struct = self.analysis[path][name]
+                match = begin_re.match(line)
+                if match:
+                    path, name, struct_type = match.groups()
+                    self.analysis[path][name]["signature"] = "struct {} %s".format(struct_type)
+                    self.analysis[path][name]["struct type"] = struct_type
+                    current_struct = self.analysis[path][name]
+                else:
+                    match = begin_without_type_re.match(line)
+                    if match:
+                        path, name = match.groups()
+                        struct_type = "UNKNOWN"
+                        self.analysis[path][name]["signature"] = "struct {} %s".format(struct_type)
+                        self.analysis[path][name]["struct type"] = struct_type
+                        current_struct = self.analysis[path][name]
                 state = 1
             elif state == 1:
                 if init_re.match(line):
                     current_block = []
                 elif end_re.match(line):
-                    self._parse_structure(current_struct["fields"], current_block)
+                    # TODO: UNKNOWN also corresponds to structure pointers which initializers shouldn't likely parsed with _parse_array().
+                    if current_struct["struct type"] == "UNKNOWN":
+                        self._parse_array(current_struct["fields"], current_block)
+                    else:
+                        self._parse_structure(current_struct["fields"], current_block)
                     current_struct = None
                     current_block = None
                     state = 2
