@@ -516,6 +516,7 @@ class GlobalInitParser:
 
     def _parse_element(self, element, block):
         value_re = re.compile("^\s*Value\sis\s'([^']*)'")
+        string_value_re = re.compile("^\s*Value\sis\s'(\"[^']*\")'")
         array_re = re.compile("^\s*Array\selement\sinitialization")
         struct_re = re.compile("^\s*Structure field initialization")
 
@@ -545,8 +546,15 @@ class GlobalInitParser:
                 value = value_re.match(block[0]).group(1)
                 element["value"] = value
         elif element["type"] == "array":
-            # Ignore Initializer list first string
-            self._parse_array(element["elements"], block[1:])
+            # Parse strings (arrays of chars)
+            if len(block) == 1:
+                match = string_value_re.match(block[0])
+                if match:
+                    element["value"] = match.group(1)
+            # Parse non strings
+            if "value" not in element:
+                # Ignore Initializer list first string
+                self._parse_array(element["elements"], block[1:])
         elif element["type"] == "typedef":
             # Check typedef element
             if value_re.match(block[0]):
