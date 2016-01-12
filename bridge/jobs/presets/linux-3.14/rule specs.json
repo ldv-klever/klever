@@ -15,6 +15,7 @@
           "name": "SA",
           "options": {
             "template aspect": "sa.template.aspect",
+            "max arguments number": 10,
             "filter kernel functions": true
           }
         },

@@ -1,3 +1,4 @@
+import jinja2
 import re
 import os
 import json
@@ -73,29 +74,27 @@ class SA(core.components.Component):
                                                            self.conf["template aspect"])
         self.logger.info("Found file with aspect file template {}".format(template_aspect_file))
 
-        self.logger.info("Add path to an each fprintf command in the aspect file based on {}".
-                         format(template_aspect_file))
-        new_file = []
-        fprintf_re = re.compile("[\s\t]*\$fprintf<\"")
-        fprintf_list_re = re.compile("[\s\t]*\$fprintf_var_init_list<\"")
-        replacement = "  $fprintf<\"{}/".format(os.path.realpath(os.getcwd()))
-        list_replacement = "  $fprintf_var_init_list<\"{}/".format(os.path.realpath(os.getcwd()))
-        self.logger.info("Import template aspect from {}".format(template_aspect_file))
-        with open(template_aspect_file, "r") as fh:
-            for line in fh.readlines():
-                if fprintf_re.match(line):
-                    new_line = fprintf_re.sub(replacement, line, count=1)
-                elif fprintf_list_re.match(line):
-                    new_line = fprintf_list_re.sub(list_replacement, line, count=1)
-                else:
-                    new_line = line
-                new_file.append(new_line)
+        # TODO: extract to common library (the same code as in core/avtg/tr/__init__.py).
+        env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(os.path.dirname(template_aspect_file)),
+            line_statement_prefix='//',
+            trim_blocks=True,
+            lstrip_blocks=True,
+            undefined=jinja2.StrictUndefined
+        )
 
-        new_aspect_file = "requests.aspect"
-        self.logger.info("Save new aspect file to {}".format(new_aspect_file))
-        with open(new_aspect_file, "w") as fh:
-            fh.writelines(new_file)
-        self.aspect = os.path.realpath(os.path.join(os.getcwd(), new_aspect_file))
+        self.logger.info('Render template {}'.format(template_aspect_file))
+        with open("requests.aspect", "w") as fh:
+            fh.write(env.get_template(os.path.basename(template_aspect_file)).render({
+                "max_args_num": self.conf["max arguments number"],
+                "arg_patterns": {i: ", ".join(["$"] * (i + 1)) for i in range(self.conf["max arguments number"])},
+                "arg_printf_patterns": {i: ' '.join(["arg{}='%s'".format(j + 1) for j in range(i + 1)]) for i in range(self.conf["max arguments number"])},
+                "arg_types": {i: ",".join(["$arg_type_str{}".format(j + 1) for j in range(i + 1)]) for i in range(self.conf["max arguments number"])},
+                "arg_vals": {i: ",".join(["$arg_value{}".format(j + 1) for j in range(i + 1)]) for i in range(self.conf["max arguments number"])}
+            }))
+        self.logger.debug('Rendered template was stored into file {}'.format("requests.aspect"))
+
+        self.aspect = os.path.realpath(os.path.join(os.getcwd(), "requests.aspect"))
 
     def _perform_info_requests(self, abstract_task):
         self.logger.info("Import source build commands")
@@ -114,6 +113,7 @@ class SA(core.components.Component):
         for group in abstract_task["grps"]:
             self.logger.info("Analyze source files from group {}".format(group["id"]))
             for command in group["build commands"]:
+                os.environ["CWD"] = os.path.realpath(os.getcwd())
                 os.environ["CC_IN_FILE"] = command['in files'][0]
                 stdout = core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'),
                                             collect_all_stdout=True)
