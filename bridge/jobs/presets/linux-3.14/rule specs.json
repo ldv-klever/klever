@@ -125,6 +125,19 @@
       "description": "...",
       "template": "Empty"
     },
+    "linux:module": {
+      "description": "...",
+      "bug kinds": [],
+      "template": "Common for Linux kernel modules",
+      "RSG": {
+        "models": [
+          "module.c"
+        ],
+        "aspects": [
+          "module.aspect"
+        ]
+      }
+    },
     "linux:mutex": {
       "aliases": [
         "32"
