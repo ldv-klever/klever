@@ -1,68 +1,6 @@
-import grako
-import re
 import copy
 
-from core.avtg.emg.representations import Signature
-
-process_grammar = \
-"""
-(* Main expression *)
-FinalProcess = (Operators | Bracket)$;
-Operators = Switch | Sequence;
-
-(* Signle process *)
-Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
-Null = null:"0";
-ReceiveProcess = receive:Receive;
-SendProcess = dispatch:Send;
-SubprocessProcess = subprocess:Subprocess;
-ConditionProcess = condition:Condition;
-Receive = "("[replicative:"!"]name:identifier[number:Repetition]")";
-Send = "["[broadcast:"@"]name:identifier[number:Repetition]"]";
-Condition = "<"name:identifier[number:Repetition]">";
-Subprocess = "{"name:identifier"}";
-
-(* Operators *)
-Sequence = sequence:SequenceExpr;
-Switch = options:SwitchExpr;
-SequenceExpr = @+:Process{"."@+:Process}*;
-SwitchExpr = @+:Sequence{"|"@+:Sequence}+;
-
-(* Brackets *)
-Bracket = process:BracketExpr;
-BracketExpr = "("@:Operators")";
-
-(* Basic expressions and terminals *)
-Repetition = "["@:(number | label)"]";
-identifier = /\w+/;
-number = /\d+/;
-label = /%\w+%/;
-"""
-process_model = grako.genmodel('process', process_grammar)
-
-
-def generate_regex_set(subprocess_name):
-    dispatch_template = "\[@?{}(?:\[[^)]+\])?\]"
-    receive_template = "\(!?{}(?:\[[^)]+\])?\)"
-    condition_template = "<{}(?:\[[^)]+\])?>"
-    subprocess_template = "{}"
-
-    subprocess_re = re.compile("\{" + subprocess_template.format(subprocess_name) + "\}")
-    receive_re = re.compile(receive_template.format(subprocess_name))
-    dispatch_re = re.compile(dispatch_template.format(subprocess_name))
-    condition_template_re = re.compile(condition_template.format(subprocess_name))
-    regexes = [
-        {"regex": subprocess_re, "type": "subprocess"},
-        {"regex": dispatch_re, "type": "dispatch"},
-        {"regex": receive_re, "type": "receive"},
-        {"regex": condition_template_re, "type": "condition"}
-    ]
-
-    return regexes
-
-
-def process_parse(string):
-    return process_model.parse(string, ignorecase=True)
+from core.avtg.emg.representations import Signature, Process, Subprocess, Label, Access, process_parse
 
 
 class EventModel:
@@ -238,7 +176,7 @@ class EventModel:
                     if new_process.labels[label].parameter and not new_process.labels[label].signature():
                         for parameter in self.analysis.kernel_functions[function]["signature"].parameters:
                             if parameter.interface and parameter.interface.full_identifier in \
-                                    new_process.labels[label].interface:
+                                    new_process.labels[label].interfaces:
                                 self.logger.debug("Set label {} signature according to interface {}".
                                                   format(label, parameter.interface.full_identifier))
                                 new_process.labels[label].signature(parameter)
@@ -318,7 +256,7 @@ class EventModel:
         if label_map:
             self.logger.debug("Set interfaces for given labels")
             for label in label_map["matched labels"]:
-                new.labels[label].interface = label_map["matched labels"][label]
+                new.labels[label].interfaces = label_map["matched labels"][label]
 
         if peer:
             self.logger.debug("Match signals with signals of process {} with identifier {}".
@@ -365,13 +303,8 @@ class EventModel:
                                       process.subprocesses[name].type == "dispatch"]):
                 label, tail = process.extract_label_with_tail(callback_name)
 
-                if label.interface:
-                    if type(label.interface) is str:
-                        intfs = [label.interface]
-                    else:
-                        intfs = label.interface
-
-                    for interface in [self.analysis.interfaces[name] for name in intfs]:
+                if label.interfaces:
+                    for interface in [self.analysis.interfaces[name] for name in label.interfaces]:
                         if interface.container and len(tail) > 0:
                             intfs = self.__resolve_interface(interface, tail)
                             if intfs and intfs[-1] not in called:
@@ -410,9 +343,9 @@ class EventModel:
 
         # Collect native categories first
         nc = []
-        for label in [process.labels[name] for name in process.labels]:
-            if label.interface:
-                for intf in label.interface:
+        for label in process.labels.values():
+            if label.interfaces:
+                for intf in label.interfaces:
                     if intf in self.analysis.interfaces:
                         intf_category, short_identifier = intf.split(".")
                         nc.append(intf_category)
@@ -420,6 +353,16 @@ class EventModel:
             self.logger.debug("Process {} is intended to be matched with a category from the list: {}".
                               format(process.name, str(nc)))
             return None
+
+        # Calculate native interfaces
+        ni = []
+        for label in process.labels.values():
+            if label.interfaces:
+                for intf in label.interfaces:
+                    if intf in self.analysis.interfaces and self.analysis.interfaces[intf].category == category:
+                        ni.append(intf)
+                        self.add_label_match(label_map, label, intf)
+            label_map["native interfaces"] = len(ni)
 
         old_size = 0
         new_size = 0
@@ -435,12 +378,12 @@ class EventModel:
                 self.logger.debug("Match callback call {} with interfaces".format(subprocess.callback))
                 label, tail = process.extract_label_with_tail(subprocess.callback)
 
-                if label.name not in label_map["matched labels"] and label.interface:
-                    for interface in label.interface:
+                if label.name not in label_map["matched labels"] and label.interfaces:
+                    for interface in label.interfaces:
                         if interface in self.analysis.interfaces \
                                 and self.analysis.interfaces[interface].category == category:
                             self.add_label_match(label_map, label, interface)
-                elif not label.interface and not label.signature() and tail and label.container and label.name \
+                elif not label.interfaces and not label.signature() and tail and label.container and label.name \
                         not in label_map["matched labels"]:
                     for container in [self.analysis.categories[category]["containers"][name] for name
                                       in self.analysis.categories[category]["containers"]]:
@@ -463,6 +406,8 @@ class EventModel:
                     if type(label_map["matched labels"][label.name]) is list:
                         functions.extend([self.analysis.interfaces[name] for name in
                                          label_map["matched labels"][label.name]])
+                    else:
+                        functions.append(self.analysis.interfaces[label_map["matched labels"][label.name]])
 
                 for function in functions:
                     if len(subprocess.parameters) <= len(function.signature.parameters):
@@ -473,17 +418,16 @@ class EventModel:
 
                             for pr in function.signature.parameters:
                                 if pr.interface and pr.interface.resource and pl.resource \
-                                        and pl.name not in label_map["matched labels"]\
                                         and (not pl.callback or pr.interface.callback == pl.callback)\
                                         and (not pl.container or pr.interface.container == pl.container):
+                                    unmatched_resources = [re for re in process.resources
+                                                           if re.name not in label_map["matched labels"]]
+                                    if len(unmatched_resources) == 0 or \
+                                            (len(unmatched_resources) > 0 and pl in unmatched_resources):
+                                        self.add_label_match(label_map, pl, pr.interface.full_identifier)
 
-                                    self.add_label_match(label_map, pl, pr.interface.full_identifier)
-                    else:
-                        raise RuntimeError("Function {} has been incorrectly matched".
-                                           format(function.full_identifier))
-
-                    containers = [process.labels[name] for name in process.labels if process.labels[name].container and
-                                  name not in label_map["matched labels"]]
+                    containers = [cn for cn in process.containers
+                                  if cn.name not in label_map["matched labels"]]
                     self.logger.debug("Try to match containers for callback {}".format(function))
                     containers_intfs = [self.analysis.categories[category]["containers"][name] for name in
                                         self.analysis.categories[category]["containers"] if
@@ -494,10 +438,8 @@ class EventModel:
                             self.add_label_match(label_map, container, intf.full_identifier)
 
             # After containers are matched try to match callbacks
-            matched_containers = [process.labels[name] for name in process.labels if process.labels[name].container and
-                                  name in label_map["matched labels"]]
-            unmatched_callbacks = [process.labels[name] for name in process.labels if process.labels[name].callback and
-                                   name not in label_map["matched labels"]]
+            matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
+            unmatched_callbacks = [cl for cl in process.callbacks if cl.name not in label_map["matched labels"]]
             if len(matched_containers) > 0 and len(unmatched_callbacks) > 0:
                 for container in matched_containers:
                     container_intf = self.analysis.interfaces[container.interface]
@@ -514,7 +456,7 @@ class EventModel:
             # Discard unmatched labels
             label_map["unmatched labels"] = [label for label in process.labels
                                              if label not in label_map["matched labels"] and not
-                                             process.labels[label].interface and not
+                                             process.labels[label].interfaces and not
                                              process.labels[label].signature()]
 
             # Discard unmatched callbacks
@@ -550,15 +492,6 @@ class EventModel:
                                                for name in self.analysis.categories[category]["callbacks"] if
                                                self.analysis.categories[category]["callbacks"][name].full_identifier
                                                not in label_map["matched callbacks"]]
-
-            # Collect native interfaces
-            ni = []
-            for label in [process.labels[name] for name in process.labels]:
-                if label.interface:
-                    for intf in label.interface:
-                        if intf in self.analysis.interfaces and self.analysis.interfaces[intf].category == category:
-                            ni.append(intf)
-            label_map["native interfaces"] = len(ni)
 
             if start:
                 start = False
@@ -668,8 +601,8 @@ class EventModel:
             self.logger.info("Assign signatures of process {} with an identifier {} to labels with given interfaces".
                              format(process.name, process.identifier))
             for label in [process.labels[name] for name in process.labels]:
-                if label.interface:
-                    for interface in label.interface:
+                if label.interfaces:
+                    for interface in label.interfaces:
                         # Assign matched signature
                         # TODO: KeyError('interrupt.line',) - drivers/usb/gadget/g_printer.ko, drivers/usb/gadget/gr_udc.ko.
                         self.logger.debug("Add signature {} to a label {}".
@@ -694,8 +627,8 @@ class EventModel:
                             label = process.extract_label(parameter)
 
                             # Set new interfaces from peer signals
-                            if peer_label.interface:
-                                for interface in peer_label.interface:
+                            if peer_label.interfaces:
+                                for interface in peer_label.interfaces:
                                     self.logger.debug("Add signature {} to a label {}".
                                                       format(peer_label.signature(None, interface).expression,
                                                              label.name))
@@ -714,8 +647,8 @@ class EventModel:
                             label = process.extract_label(parameter)
 
                             # Set new interfaces from peer signals
-                            if peer_label.interface:
-                                for interface in peer_label.interface:
+                            if peer_label.interfaces:
+                                for interface in peer_label.interfaces:
                                     self.logger.debug("Add signature {} to a label {}".
                                                       format(peer_label.signature(None, interface).expression,
                                                              label.name))
@@ -727,8 +660,8 @@ class EventModel:
                                 label.signature(peer_signature)
 
                             # Set new interfaces for peer signals
-                            if label.interface:
-                                for interface in label.interface:
+                            if label.interfaces:
+                                for interface in label.interfaces:
                                     self.logger.debug("Add signature {} to a label {} of process {}".
                                                       format(label.signature(None, interface).expression,
                                                              peer_label.name, peer["process"].name))
@@ -744,9 +677,9 @@ class EventModel:
             # Assign interface signatures
             self.logger.debug("Assign pointer flag of process {} with an identifier {} to labels signatures".
                               format(process.name, process.identifier))
-            for label in [process.labels[name] for name in process.labels]:
-                if label.interface:
-                    for interface in label.interface:
+            for label in process.labels.values():
+                if label.interfaces:
+                    for interface in label.interfaces:
                         if label.signature(None, interface).type_class in ["struct", "function"]:
                             label.signature(None, interface).pointer = True
 
@@ -771,8 +704,8 @@ class EventModel:
                 if not label:
                     raise ValueError("Expect label in {} in access in process description".format(access, process.name))
                 else:
-                    if label.interface:
-                        for interface in label.interface:
+                    if label.interfaces:
+                        for interface in label.interfaces:
                             new = Access(access)
                             new.label = label
 
@@ -809,366 +742,5 @@ class EventModel:
 
             # Save back updates collection of accesses
             process.accesses(accesses)
-
-    def collect_relevant_interfaces(self):
-        # todo: remove this function
-        relevant_interfaces = {
-            "callbacks": [],
-            "parameters": [],
-            "containers": [self.labels[name] for name in self.labels if self.labels[name].container],
-            "resources": [self.labels[name] for name in self.labels if self.labels[name].resource]
-        }
-
-        # Extract callbacks
-        for subprocess in [self.subprocesses[name] for name in self.subprocesses
-                           if self.subprocesses[name].type == "dispatch" and self.subprocesses[name].callback]:
-            if subprocess.callback not in relevant_interfaces["callbacks"]:
-                relevant_interfaces["callbacks"].append(subprocess.callback)
-
-        # Extract total parameters
-        for subprocess in [self.subprocesses[name] for name in self.subprocesses
-                           if self.subprocesses[name].parameters]:
-            for parameter in [parameter for parameter in subprocess.parameters if type(parameter) is list]:
-                if parameter not in relevant_interfaces["parameters"]:
-                    relevant_interfaces["parameters"].append(parameter)
-
-        return relevant_interfaces
-
-
-class Access:
-    def __init__(self, expression):
-        self.expression = expression
-        self.label = None
-        self.interface = None
-        self.implementations = None
-        self.list_access = None
-        self.list_interface = None
-
-
-class Label:
-
-    def __init__(self, name):
-        self.container = False
-        self.resource = False
-        self.callback = False
-        self.parameter = False
-        self.pointer = False
-        self.parameters = []
-
-        self.value = None
-        self.interface = None
-        self.name = name
-        self.__signature = None
-        self.__signature_map = {}
-
-    def import_json(self, dic):
-        for att in ["container", "resource", "callback", "parameter", "interface", "value", "pointer"]:
-            if att in dic:
-                setattr(self, att, dic[att])
-
-        if "signature" in dic:
-            self.__signature = Signature(dic["signature"])
-
-    def signature(self, signature=None, interface=None):
-        if not signature and not interface:
-            return self.__signature
-        elif signature and not interface:
-            self.__signature = signature
-            return self.__signature
-        elif not signature and interface and interface in self.__signature_map:
-            return self.__signature_map[interface]
-        elif not signature and interface and interface not in self.__signature_map:
-            return None
-        elif signature and interface and interface in self.__signature_map:
-            if self.signature(None, interface).compare_signature(signature):
-                return self.__signature_map[interface]
-            else:
-                raise ValueError("Incompatible signature {} with interface {}".
-                                 format(signature.expression, interface))
-        elif signature and interface and interface not in self.__signature_map:
-            self.__signature_map[interface] = signature
-
-    def compare_with(self, label):
-        if self.interface and label.interface:
-            if len(list(set(self.interface) & set(label.interface))) > 0:
-                return "equal"
-            else:
-                return "different"
-        elif label.interface or self.interface:
-            if (self.container and label.container) or (self.resource and label.resource) or \
-               (self.callback and label.callback):
-                return "сompatible"
-            else:
-                return "different"
-        elif self.signature and label.signature():
-            ret = self.signature.compare_signature(label.signature())
-            if not ret:
-                return "different"
-            else:
-                return "equal"
-        else:
-            raise NotImplementedError("Cannot compare label '{}' with label '{}'".format(label.name, label.name))
-
-
-class Process:
-
-    label_re = re.compile("%(\w+)((?:\.\w*)*)%")
-
-    def __init__(self, name, dic=None):
-        # Default values
-        self.labels = {}
-        self.subprocesses = {}
-        self.category = None
-        self.process = None
-        self.identifier = None
-        self.__accesses = None
-        if not dic:
-            dic = {}
-
-        # Provided values
-        self.name = name
-
-        # Import labels
-        if "labels" in dic:
-            for name in dic["labels"]:
-                label = Label(name)
-                label.import_json(dic["labels"][name])
-                self.labels[name] = label
-
-        # Import process
-        if "process" in dic:
-            self.process = dic["process"]
-
-        # Import subprocesses
-        if "subprocesses" in dic:
-            for name in dic["subprocesses"]:
-                subprocess = Subprocess(name, dic["subprocesses"][name])
-                self.subprocesses[name] = subprocess
-
-        # Check subprocess type
-        self.__determine_subprocess_types()
-
-        # Parse process
-        if self.process:
-            self.process_ast = process_parse(self.process)
-
-    def __determine_subprocess_types(self):
-        processes = [self.subprocesses[process_name].process for process_name in self.subprocesses
-                     if self.subprocesses[process_name].process]
-        processes.append(self.process)
-
-        for subprocess_name in self.subprocesses:
-            regexes = generate_regex_set(subprocess_name)
-
-            match = 0
-            process_type = None
-            for regex in regexes:
-                for process in processes:
-                    if regex["regex"].search(process):
-                        match += 1
-                        process_type = regex["type"]
-                        break
-
-            if match == 0:
-                raise KeyError("Subprocess '{}' from process '{}' is not used actually".
-                               format(subprocess_name, self.name))
-            elif match > 1:
-                raise KeyError("Subprocess '{}' from process '{}' was used differently at once".
-                               format(subprocess_name, self.name))
-            else:
-                self.subprocesses[subprocess_name].type = process_type
-
-    def __compare_signals(self, process, first, second):
-        if first.name == second.name and len(first.parameters) == len(second.parameters):
-            match = True
-            for index in range(len(first.parameters)):
-                label = self.extract_label(first.parameters[index])
-                if not label:
-                    raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
-                                     format(first.name, index, self.name))
-                pair = process.extract_label(second.parameters[index])
-                if not pair:
-                    raise ValueError("Provide label in subprocess '{}' at position '{}'".
-                                     format(second.name, index, process.name))
-
-                ret = label.compare_with(pair)
-                if ret != "сompatible" and ret != "equal":
-                    match = False
-                    break
-            return match
-        else:
-            return False
-
-    @property
-    def unmatched_receives(self):
-        unmatched = [self.subprocesses[subprocess] for subprocess in self.subprocesses
-                     if self.subprocesses[subprocess].type == "receive" and
-                     len(self.subprocesses[subprocess].peers) == 0 and not
-                     self.subprocesses[subprocess].callback]
-        return unmatched
-
-    @property
-    def unmatched_dispatches(self):
-        unmatched = [self.subprocesses[subprocess] for subprocess in self.subprocesses
-                     if self.subprocesses[subprocess].type == "dispatch" and
-                     len(self.subprocesses[subprocess].peers) == 0 and not
-                     self.subprocesses[subprocess].callback]
-        return unmatched
-
-    @property
-    def unmatched_labels(self):
-        unmatched = [self.labels[label] for label in self.labels
-                     if not self.labels[label].interface and not self.labels[label].signature]
-        return unmatched
-
-    def extract_label(self, string):
-        name, tail = self.extract_label_with_tail(string)
-        return name
-
-    def extract_label_with_tail(self, string):
-        if self.label_re.fullmatch(string):
-            name = self.label_re.fullmatch(string).group(1)
-            tail = self.label_re.fullmatch(string).group(2)
-            if name not in self.labels:
-                raise ValueError("Cannot extract label name from string '{}': no such label".format(string))
-            else:
-                return self.labels[name], tail
-        else:
-            raise ValueError("Cannot extract label from access {} in process {}".format(string, format(string)))
-
-    def establish_peers(self, process):
-        peers = self.get_available_peers(process)
-        for signals in peers:
-            for index in range(len(self.subprocesses[signals[0]].parameters)):
-                label1 = self.extract_label(self.subprocesses[signals[0]].parameters[index])
-                label2 = process.extract_label(process.subprocesses[signals[1]].parameters[index])
-
-                if (label1.interface or label2.interface) and not (label1.interface and label2.interface):
-                    if label1.interface:
-                        label2.interface = label1.interface
-                    else:
-                        label1.interface = label2.interface
-
-            self.subprocesses[signals[0]].peers.append({"process": process, "subprocess": signals[1]})
-            process.subprocesses[signals[1]].peers.append({"process": self, "subprocess": signals[0]})
-
-    def get_available_peers(self, process):
-        ret = []
-
-        # Match dispatches
-        for dispatch in self.unmatched_dispatches:
-            for receive in process.unmatched_receives:
-                match = self.__compare_signals(process, dispatch, receive)
-                if match:
-                    ret.append([dispatch.name, receive.name])
-
-        # Match receives
-        for receive in self.unmatched_receives:
-            for dispatch in process.unmatched_dispatches:
-                match = self.__compare_signals(process, receive, dispatch)
-                if match:
-                    ret.append([receive.name, dispatch.name])
-
-        return ret
-
-    def rename_subprocess(self, old_name, new_name):
-        if old_name not in self.subprocesses:
-            raise KeyError("Cannot rename subprocess {} in process {} because it does not exist".
-                           format(old_name, self.name))
-
-        subprocess = self.subprocesses[old_name]
-        subprocess.name == new_name
-
-        # Delete old subprocess
-        del self.subprocesses[old_name]
-
-        # Set new subprocess
-        self.subprocesses[subprocess.name] = subprocess
-
-        # Replace subprocess entries
-        processes = [self]
-        processes.extend([self.subprocesses[name] for name in self.subprocesses if self.subprocesses[name].process])
-        regexes = generate_regex_set(old_name)
-        for process in processes:
-            for regex in regexes:
-                if regex["regex"].match(process.process):
-                    # Replace signal entries
-                    old_match = regex["regex"].match(process.process).group()
-                    new_match = old_match.replace(old_name, new_name)
-                    process.process = process.process.replace(old_match, new_match)
-
-                    # Recalculate AST
-                    process.process_ast = process_parse(process.process)
-
-    def accesses(self, accesses=None):
-        if not accesses:
-            if not self.__accesses:
-                self.__accesses = {}
-
-                # Collect all accesses across process subprocesses
-                for subprocess in [self.subprocesses[name] for name in self.subprocesses]:
-                    if subprocess.callback:
-                        self.__accesses[subprocess.callback] = []
-                    if subprocess.parameters:
-                        for index in range(len(subprocess.parameters)):
-                            self.__accesses[subprocess.parameters[index]] = []
-                    if subprocess.callback_retval:
-                        self.__accesses[subprocess.callback_retval] = []
-                    if subprocess.condition:
-                        for match in self.label_re.finditer(subprocess.condition):
-                                self.__accesses[match.group()] = []
-                    if subprocess.statements:
-                        for statement in subprocess.statements:
-                            for match in self.label_re.finditer(statement):
-                                self.__accesses[match.group()] = []
-
-            return self.__accesses
-        else:
-            self.__accesses = accesses
-
-
-class Subprocess:
-
-    def __init__(self, name, dic):
-        # Default values
-        self.type = None
-        self.process = None
-        self.process_ast = None
-        self.parameters = []
-        self.callback = None
-        self.callback_retval = None
-        self.peers = []
-        self.condition = None
-        self.statements = None
-
-        # Provided values
-        self.name = name
-
-        # Values from dictionary
-        if "callback" in dic:
-            self.callback = dic["callback"]
-
-        # Add parameters
-        if "parameters" in dic:
-            self.parameters = dic["parameters"]
-
-        # Add callback return value
-        if "callback return value" in dic:
-            self.callback_retval = dic["callback return value"]
-
-        # Import condition
-        if "condition" in dic:
-            self.condition = dic["condition"]
-
-        # Import statements
-        if "statements" in dic:
-            self.statements = dic["statements"]
-
-         # Import process
-        if "process" in dic:
-            self.process = dic["process"]
-
-            # Parse process
-            self.process_ast = process_parse(self.process)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

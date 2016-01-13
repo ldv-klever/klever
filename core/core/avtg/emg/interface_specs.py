@@ -304,9 +304,6 @@ class ModuleSpecification(CategorySpecification):
             for call in [self.analysis["kernel functions"][function]["calls"][name] for name in
                          self.analysis["kernel functions"][function]["calls"]
                          if name in self.analysis["modules functions"]]:
-                if len(call) != len(self.kernel_functions[function].signature.parameters):
-                    raise ValueError("Incorrect argument number in function {}".format(function))
-
                 for index in range(len(call)):
                     if call[index] and call[index] != "0" and \
                             self.kernel_functions[function].signature.parameters[index] and \
