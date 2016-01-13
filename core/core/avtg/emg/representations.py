@@ -246,7 +246,7 @@ class Signature:
             if self.return_value and self.return_value.type_class != "primitive":
                 string = "$ "
             else:
-                # TODO: timer doesn't have return type by some reason, e.g. for drivers/block/floppy.ko.
+                # TODO: timer doesn't have return type by some reason, e.g. for drivers/block/floppy.ko and several other modules.
                 string = "{} ".format(self.return_value.expression)
 
             # Add name

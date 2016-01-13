@@ -25,6 +25,7 @@ class Translator(AbstractTranslator):
         self.logger.info("Collect information about relevant interfaces for each process of the intermediate model")
         ri = {}
         for process in self.model["models"] + self.model["processes"]:
+            # TODO: 'Process' object has no attribute 'collect_relevant_interfaces' - drivers/usb/gadget/fotg210-udc.ko.
             ri[process.identifier] = process.collect_relevant_interfaces()
             ri[process.identifier] = self.__collect_ri(ri[process.identifier], process)
 
@@ -719,6 +720,7 @@ class Automata:
                 vars = []
 
                 # Determine parameters
+                # TODO: 'function' object has no attribute 'parameters' - drivers/usb/gadget/g_acm_ms.ko, drivers/usb/gadget/g_cdc.ko, drivers/usb/gadget/g_dbgp.ko...
                 for index in range(len(signature.parameters)):
                     param = None
                     for key in self.label_map["signatures"]:

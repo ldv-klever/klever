@@ -525,7 +525,7 @@ class ModuleSpecification(CategorySpecification):
             elements[element]["signature"] = \
                 Signature(elements[element]["signature"])
 
-            # TODO: array elements doesn't have attribute fields, they have attribute elements.
+            # TODO: array elements doesn't have attribute fields, they have attribute elements, e.g. for drivers/usb/gadget/g_audio.ko, drivers/usb/gadget/g_webcam.ko.
             if elements[element]["type"] in ["array", "struct"]:
                 self.__parse_elements_signatures(elements[element]["fields"])
                 for field in elements[element]["fields"]:
