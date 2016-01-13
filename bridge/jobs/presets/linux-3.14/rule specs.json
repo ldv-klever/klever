@@ -15,7 +15,7 @@
           "name": "SA",
           "options": {
             "template aspect": "sa.aspect.tmpl",
-            "max arguments number": 10,
+            "max arguments number": 15,
             "filter kernel functions": true
           }
         },
@@ -65,7 +65,7 @@
           "name": "SA",
           "options": {
             "template aspect": "sa.aspect.tmpl",
-            "max arguments number": 10,
+            "max arguments number": 15,
             "filter kernel functions": true
           }
         },
