@@ -125,8 +125,7 @@ class SA(core.components.Component):
                                                       '--out', command['out file'],
                                                       '--stage', 'instrumentation',
                                                       '--back-end', 'src',
-                                                      '--debug', 'DEBUG',
-                                                      '--keep-prepared-file'] +
+                                                      '--debug', 'DEBUG'] +
                                                      (['--keep'] if self.conf['debug'] else []) +
                                                      ['--'] +
                                                      command["opts"] +
