@@ -1,3 +1,4 @@
+import glob
 import jinja2
 import re
 import os
@@ -264,6 +265,12 @@ class SA(core.components.Component):
                                      format(path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, exit_file))
+
+        if not self.conf['debug']:
+            self.logger.info("Remove files with raw extracted data")
+            for file in glob.glob("*.txt"):
+                self.logger.debug("Remove file {}".format(file))
+                os.remove(file)
 
     def _save_collection(self, km_file):
         with open(km_file, "w") as km_fh:
