@@ -177,7 +177,6 @@ class SA(core.components.Component):
                         self.collection["functions"][name]["files"][path]["variable arguments"] = is_var_args
                     if not self.collection["functions"][name]["files"][path]["static"]:
                         self.collection["functions"][name]["files"][path]["static"] = execution_source["static"]
-                    self.logger.debug("Extracted function description {} from {}".format(name, path))
                 else:
                     raise ValueError("Cannot parse line '{}' in file {}".format(line, execution_source["file"]))
 
@@ -189,7 +188,6 @@ class SA(core.components.Component):
                 path, name = short_pair_re.fullmatch(line).groups()
                 if not self.collection["macro expansions"][name][path]:
                     self.collection["macro expansions"][name][path] = True
-                self.logger.debug("Extracted macro-expansion description {} from {}".format(name, path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, expand_file))
 
@@ -204,7 +202,6 @@ class SA(core.components.Component):
                         self.collection["functions"][caller_name]["files"][path]["calls"][name] = list()
                     self.collection["functions"][caller_name]["files"][path]["calls"][name].\
                         append([arg[1] for arg in arg_re.findall(args)])
-                    self.logger.debug("Extracted function call {} at {} in {}".format(name, caller_name, path))
                 else:
                     raise ValueError("Expect function definition {} in file {} but it has not been extracted".
                                      format(caller_name, path))
@@ -320,7 +317,6 @@ class SA(core.components.Component):
         for function in functions:
             files = list(self.collection["kernel functions"][function]["files"].keys())
             if len(files) > 0:
-                self.logger.debug("Remove repetitions of function description {}".format(function))
                 first_file = files[0]
                 for key in self.collection["kernel functions"][function]["files"][first_file]:
                     self.collection["kernel functions"][function][key] = \
@@ -329,18 +325,15 @@ class SA(core.components.Component):
                 for file in files:
                     self.collection["kernel functions"][function]["files"][file] = True
             else:
-                self.logger.debug("Remove useless function description {}".format(function))
                 del self.collection["kernel functions"][function]
 
     def _shrink_kernel_functions(self):
         names = self.collection["functions"].keys()
         for name in list(names):
             if name not in self.kernel_functions and name not in self.modules_functions:
-                self.logger.debug("Remove useless function description {}".format(name))
                 del self.collection["functions"][name]
 
         for name in self.collection["functions"]:
-            self.logger.debug("Reorder data in function description {}".format(name))
             for path in self.collection["functions"][name]:
                 if path in self.files:
                     called = list(self.collection["functions"][name]["files"][path]["call"].keys())
@@ -353,7 +346,6 @@ class SA(core.components.Component):
         for exp in expansions:
             files = list(self.collection["macro expansions"][exp].keys())
             if len(set(self.files).intersection(files)) == 0:
-                self.logger.debug("Remove useless macro-expansion description {}".format(exp))
                 del self.collection["macro expansions"][exp]
 
     def _split_functions(self):
