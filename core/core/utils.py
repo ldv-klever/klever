@@ -240,11 +240,8 @@ def get_entity_val(logger, name, cmd):
         raise ValueError('Could not get {0}'.format(name))
 
     # Convert obtained value to integer if it is represented so.
-    try:
-        int(val)
+    if val.isdigit():
         val = int(val)
-    except ValueError:
-        pass
 
     # TODO: str.capitalize() capilalizes a first symbol and makes all other symbols lower.
     logger.debug('{0} is "{1}"'.format(name.capitalize(), val))
