@@ -71,9 +71,6 @@ Fixing bugs and implementing new features
                 Eventually this can lead to very unpleasant consequences, e.g. the master branch can be broken because
                 of one will suddenly add bad code their by merging his/her branch based on another non working branch.
 
-   .. note:: Trivial bugs/features can be fixed/implemented directly in the master branch.
-             Most likely you will not have any conflict but you will save some time.
-
 #. Push all new branches to the main development repository.
    As well re-push them at least one time a day if you make some commits::
 
@@ -87,16 +84,8 @@ Fixing bugs and implementing new features
 
    .. note:: Do not merge remote-tracking branches.
 
-#. Merge branches to the master branch when corresponding bugs/features are fixed/implemented::
-
-    fix-conf $ git checkout master
-    master $ git merge fix-conf
-
-   .. note:: Do not forget to update the master branch from the main development repository before merging.
-
-#. Push the master branch to the main development repository::
-
-    master $ git push origin master
+#. Ask Evgeny Novikov (novikov@ispras.ru) to review and to merge branches to the master branch when corresponding
+   bugs/features are fixed/implemented.
 
 #. Delete merged branches locally and remotely::
 
