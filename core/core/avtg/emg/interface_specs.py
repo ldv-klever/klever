@@ -332,6 +332,7 @@ class ModuleSpecification(CategorySpecification):
         self.inits = self.analysis["init"]
         del self.analysis["init"]
 
+        # TODO: modules can omit exit functions, e.g. drivers/block/xen-blkback/xen-blkback.ko.
         self.logger.debug("Move module exit functions to the modules interface specification")
         self.exits = self.analysis["exit"]
         del self.analysis["exit"]

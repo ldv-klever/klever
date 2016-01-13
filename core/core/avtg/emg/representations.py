@@ -136,6 +136,7 @@ class Signature:
         self.parameters = None
         self.fields = None
 
+        # TODO: doesn't match "void (**%s)(struct nvme_dev *, void *, struct nvme_completion *)", e.g. for drivers/block/nvme.ko.
         ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
         identifier_re = "(?:(?:(\*?)%s)|(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
         args_re = "(?:[^()]*)"
@@ -162,6 +163,7 @@ class Signature:
         struct_name_re = re.compile("^struct\s+(\w+)")
         self.__check_type(struct_re, "struct")
 
+        # TODO: doesn't match "char const * const %s", e.g. for drivers/block/rsxx/rsxx.ko.
         value_re = re.compile("^(\w*\s+)+(\**)%s((?:\[\w*\]))?\Z")
         self.__check_type(value_re, "primitive")
 
@@ -244,6 +246,7 @@ class Signature:
             if self.return_value and self.return_value.type_class != "primitive":
                 string = "$ "
             else:
+                # TODO: timer doesn't have return type by some reason, e.g. for drivers/block/floppy.ko.
                 string = "{} ".format(self.return_value.expression)
 
             # Add name
