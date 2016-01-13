@@ -59,7 +59,7 @@ class EventModel:
         # Generate init subprocess
         init_subprocess = Subprocess('init', {})
         init_subprocess.type = "dispatch"
-        init_subprocess.callback = ["init"]
+        init_subprocess.callback = "%init%"
         init_subprocess.parameters = []
 
         if len(self.analysis.inits) == 0:
@@ -74,13 +74,13 @@ class EventModel:
         ret_label.signature(Signature("int %s"))
         ret_init = Subprocess('ret_init', {})
         ret_init.type = "receive"
-        ret_init.callback_retval = ["ret"]
+        ret_init.callback_retval = "%ret%"
         ret_init.callback = init_subprocess.callback
 
         # Generate exit subprocess
         exit_subprocess = Subprocess('exit', {})
         exit_subprocess.type = "dispatch"
-        exit_subprocess.callback = ["exit"]
+        exit_subprocess.callback = "%exit%"
         exit_subprocess.parameters = []
 
         exit_label = Label('exit')
@@ -105,11 +105,14 @@ class EventModel:
         self.logger.info("Add signal dispatched for that processes which have no known registration and deregistration"
                          " kernel functions")
         # Retval check
+        # todo: it can be done much, much better ...
         dispatches = ['[init_success]']
-        # All default registrations
-        dispatches.extend(["[{}]".format(name) for name in self.model["entry"].subprocesses
-                           if name not in ["init", "exit"] and
-                           self.model["entry"].subprocesses[name].type == "dispatch"])
+        # All default registrations and then deregistrations
+        names = [name for name in self.model["entry"].subprocesses if name not in ["init", "exit"] and
+                 self.model["entry"].subprocesses[name].type == "dispatch"]
+        names.sort()
+        names.reverse()
+        dispatches.extend(["[{}]".format(name) for name in names])
 
         # Generate conditions
         success = Subprocess('init_success', {})
@@ -582,7 +585,9 @@ class EventModel:
         self.model["entry"].subprocesses[new_dispatch.name] = new_dispatch
 
         # Add labels if necessary
-        for parameter in new_dispatch.parameters:
+        for index in range(len(new_dispatch.parameters)):
+            parameter = new_dispatch.parameters[index]
+
             # Get label
             label, tail = process.extract_label_with_tail(parameter)
 
@@ -596,8 +601,15 @@ class EventModel:
             else:
                 self.logger.debug("Process {} already has label {}".format(self.model["entry"].name, new_label_name))
 
+            # Replace parameter
+            new_dispatch.parameters[index] = parameter.replace(label.name, new_label_name)
+
+        # Replace condition
+        if new_dispatch.condition:
+            new_dispatch.condition = None
+
     def __assign_signatures(self):
-        for process in self.model["models"] + self.model["processes"]:
+        for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
             self.logger.info("Assign signatures of process {} with an identifier {} to labels with given interfaces".
                              format(process.name, process.identifier))
             for label in [process.labels[name] for name in process.labels]:
@@ -609,7 +621,7 @@ class EventModel:
                                           format(self.analysis.interfaces[interface].signature.expression, label.name))
                         label.signature(self.analysis.interfaces[interface].signature, interface)
 
-        for process in self.model["models"] + self.model["processes"]:
+        for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
             self.logger.info("Assign signatures of process {} with an identifier {} to labels according to signal "
                              "parameters".format(process.name, process.identifier))
 
@@ -673,7 +685,7 @@ class EventModel:
                                                          peer["process"].name))
                                 peer_label.signature(label_signature)
 
-        for process in self.model["models"] + self.model["processes"]:
+        for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
             # Assign interface signatures
             self.logger.debug("Assign pointer flag of process {} with an identifier {} to labels signatures".
                               format(process.name, process.identifier))
@@ -690,7 +702,7 @@ class EventModel:
 
     def resolve_accesses(self):
         self.logger.info("Convert interfaces access by expressions on base of containers and their fields")
-        for process in self.model["models"] + self.model["processes"]:
+        for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
             self.logger.debug("Analyze subprocesses of process {} with an identifier {}".
                               format(process.name, process.identifier))
 

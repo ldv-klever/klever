@@ -9,9 +9,11 @@ from core.avtg.emg.representations import Signature, Function, Variable, ModelMa
 
 class Translator(AbstractTranslator):
     unmatched_constant = 2
-    automata = []
-    models = []
+    callback_fsa = []
+    model_fsa = []
+    identifier_cnt = 0
 
+    # todo: remove this
     def get_interfaces(self, interface, access):
         ret = [self.analysis.interfaces[interface]]
         for index in range(1, len(access)):
@@ -22,33 +24,52 @@ class Translator(AbstractTranslator):
         return ret
 
     def _generate_entry_point(self):
-        self.logger.info("Collect information about relevant interfaces for each process of the intermediate model")
-        ri = {}
-        for process in self.model["models"] + self.model["processes"]:
-            # TODO: 'Process' object has no attribute 'collect_relevant_interfaces' - drivers/usb/gadget/fotg210-udc.ko.
-            ri[process.identifier] = process.collect_relevant_interfaces()
-            ri[process.identifier] = self.__collect_ri(ri[process.identifier], process)
-
-        # Generate automata
-        self.automata = []
         for process in self.model["processes"]:
-            if len(ri[process.identifier]["callbacks"]) > 0:
-                self.automata.extend(self.__generate_automata(ri[process.identifier], process))
+            undefined_labels = []
+            # Determine nonimplemented containers
+            for label in [label for label in process.labels.values() if label.interfaces]:
+                nonimplemented_intrerfaces = [interface for interface in label.interfaces
+                                              if len(self.analysis.interfaces[interface].implementations) == 0]
+                if len(nonimplemented_intrerfaces) > 0:
+                    undefined_labels.append(label)
+
+            # Determine is it necessary to make several instances
+            if len(undefined_labels) > 0:
+                base_list = [copy.deepcopy(process) for i in range(self.unmatched_constant)]
             else:
-                self.automata.append(Automata(self.logger, len(self.automata), self.entry_file, process, self))
+                base_list = [process]
+
+            # Copy base instances for each known implementation
+            relevant_multi_containers = []
+            accesses = process.accesses()
+            for access in accesses.values():
+                for inst_access in [inst for inst in access if inst.interface]:
+                    if inst_access.interface.container and len(inst_access.interface.implementations) > 1:
+                        relevant_multi_containers.append(inst_access.interface)
+                    elif not inst_access.interface.container and len(inst_access.list_interface) > 1 and \
+                            inst_access.list_interface[0].container and len(inst_access.list_interface[0].implementations) > 1:
+                        relevant_multi_containers.append(inst_access.list_interface[0])
+
+            if len(relevant_multi_containers) > 0:
+                raise NotImplementedError("Need to implement separation of interfaces into groups")
+
+            for instance in base_list:
+                fsa = Automaton(self.logger, instance, self.identifier_cnt)
+                self.callback_fsa.append(fsa)
+                self.identifier_cnt += 1
 
         # Generate automata for models
         for process in self.model["models"]:
-            au = Automata(self.logger, len(self.automata), self.entry_file, process, self)
-            au.label_map = ri[process.identifier]
-            self.models.append(au)
+            fsa = Automata(self.logger, process, self.identifier_cnt)
+            self.model_fsa.append(fsa)
+            self.identifier_cnt += 1
 
         # Create directory for automata
         self.logger.info("Create working directory for automata '{}'".format("automata"))
         os.makedirs("automata", exist_ok=True)
 
         # Generate states
-        for automaton in self.automata + self.models:
+        for automaton in self.callback_fsa + self.model_fsa:
             self.logger.info("Calculate states of automata and generate image with state transitions of automata {} "
                              "with process {}".format(automaton.identifier, automaton.process.name))
             automaton.generate_automata()
@@ -106,6 +127,7 @@ class Translator(AbstractTranslator):
         ep = self.__generate_entry_point()
         self.files[self.entry_file]["functions"][ep.name] = ep
 
+    # todo: remove
     def __collect_ri(self, ri, process):
         ri["implementations"] = {}
         ri["signatures"] = {}
@@ -152,45 +174,6 @@ class Translator(AbstractTranslator):
                     ri["signatures"][str(parameter[0:index + 1])][intf[index].full_identifier] = intf[index].signature
         return ri
 
-    def __generate_automata(self, ri, process):
-        nonimplemented_containers = []
-        for container in ri["containers"]:
-            if container.interface:
-                for intf in container.interface:
-                    pass
-            elif not container.value:
-                nonimplemented_containers.append(container)
-
-        # Copy processes
-        process_automata = []
-        labels = [process.labels[name] for name in process.labels if process.labels[name].container
-                  and process.labels[name].interface
-                  and str([name]) in ri["implementations"]
-                  and len(set(process.labels[name].interface) & set(ri["implementations"][str([name])].keys())) > 0
-                  and ri["implementations"][str([name])][process.labels[name].interface]]
-        if len(labels) == 0:
-            for index in range(self.unmatched_constant):
-                au = Automata(self.logger, len(self.automata) + len(process_automata), self.entry_file, process, self)
-                au.label_map = ri
-                process_automata.append(au)
-        else:
-            summ = []
-            au = Automata(self.logger, len(self.automata), self.entry_file, process, self)
-            au.label_map = ri
-            summ.append(au)
-
-            for label in [process.labels[name] for name in process.labels if process.labels[name].container
-                          and process.labels[name] not in labels]:
-                new = []
-                new.extend(summ)
-                for au in summ:
-                    cp = copy.copy(au)
-                    cp.identifier = len(self.automata) + len(new)
-                    new.extend(cp)
-                summ.extend(new)
-            process_automata.extend(summ)
-
-        return process_automata
 
     def __get_implementations(self, identifier):
         retval = []
@@ -720,7 +703,6 @@ class Automata:
                 vars = []
 
                 # Determine parameters
-                # TODO: 'function' object has no attribute 'parameters' - drivers/usb/gadget/g_acm_ms.ko, drivers/usb/gadget/g_cdc.ko, drivers/usb/gadget/g_dbgp.ko...
                 for index in range(len(signature.parameters)):
                     param = None
                     for key in self.label_map["signatures"]:

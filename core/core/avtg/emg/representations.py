@@ -811,7 +811,7 @@ class Process:
                            format(old_name, self.name))
 
         subprocess = self.subprocesses[old_name]
-        subprocess.name == new_name
+        subprocess.name = new_name
 
         # Delete old subprocess
         del self.subprocesses[old_name]
