@@ -420,9 +420,7 @@ class GlobalInitParser:
                 if init_re.match(line):
                     current_block = []
                 elif struct_init_end_re.match(line):
-                    # Do not parse empty initializers like for anx9805_i2c_func (drivers/gpu/drm/nouveau/nouveau.ko)
-                    if len(current_block) > 1:
-                        self._parse_structure(current_entity["fields"], current_block)
+                    self._parse_structure(current_entity["fields"], current_block)
                     state = 2
                 elif struct_ptr_init_end_re.match(line):
                     current_entity["initializer"] = re.match("^\s*Value\sis\s'([^']*)'", current_block[1]).group(1)
@@ -435,6 +433,11 @@ class GlobalInitParser:
         return
 
     def _parse_structure(self, structure, block):
+        # Do not parse empty initializers like for anx9805_i2c_func (drivers/gpu/drm/nouveau/nouveau.ko) and
+        # lme2510_props (drivers/media/usb/dvb-usb-v2/dvb-usb-lmedm04.ko)
+        if not len(block):
+            return
+
         indent_str = self._get_indent(block[0])
         begin_re = re.compile("^{}Structure field initialization".format(indent_str))
         name_re = re.compile("^{}Field\sname\sis\s'([^']*)'".format(indent_str))
@@ -531,7 +534,7 @@ class GlobalInitParser:
         struct_re = re.compile("^\s*Structure field initialization")
 
         if element["type"] == "structure":
-            # Ignore Initializer list first string
+            # Ignore "Initializer list" first string
             self._parse_structure(element["fields"], block[1:])
         elif element["type"] == "function pointer":
             ret_re = re.compile("^\s*Pointed\sfunction\sreturn\stype\sdeclaration\sis\s'([^']*)'")
@@ -563,7 +566,7 @@ class GlobalInitParser:
                     element["value"] = match.group(1)
             # Parse non strings
             if "value" not in element:
-                # Ignore Initializer list first string
+                # Ignore "Initializer list" first string
                 self._parse_array(element["elements"], block[1:])
         elif element["type"] == "typedef":
             # Check typedef element
@@ -573,6 +576,7 @@ class GlobalInitParser:
             elif array_re.match(block[1]):
                 self._parse_array(element["elements"], block[1:])
             elif struct_re.match(block[1]):
+                # Ignore "Initializer list" first string
                 self._parse_structure(element["fields"], block[1:])
         else:
             raise NotImplementedError("Field type '{}' is not supported by global variables initialization parser".
