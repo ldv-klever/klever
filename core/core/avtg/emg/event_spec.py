@@ -1,6 +1,68 @@
 import grako
+import re
+import copy
 
-from core.avtg.emg.interfaces import *
+from core.avtg.emg.representations import Signature
+
+process_grammar = \
+"""
+(* Main expression *)
+FinalProcess = (Operators | Bracket)$;
+Operators = Switch | Sequence;
+
+(* Signle process *)
+Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
+Null = null:"0";
+ReceiveProcess = receive:Receive;
+SendProcess = dispatch:Send;
+SubprocessProcess = subprocess:Subprocess;
+ConditionProcess = condition:Condition;
+Receive = "("[replicative:"!"]name:identifier[number:Repetition]")";
+Send = "["[broadcast:"@"]name:identifier[number:Repetition]"]";
+Condition = "<"name:identifier[number:Repetition]">";
+Subprocess = "{"name:identifier"}";
+
+(* Operators *)
+Sequence = sequence:SequenceExpr;
+Switch = options:SwitchExpr;
+SequenceExpr = @+:Process{"."@+:Process}*;
+SwitchExpr = @+:Sequence{"|"@+:Sequence}+;
+
+(* Brackets *)
+Bracket = process:BracketExpr;
+BracketExpr = "("@:Operators")";
+
+(* Basic expressions and terminals *)
+Repetition = "["@:(number | label)"]";
+identifier = /\w+/;
+number = /\d+/;
+label = /%\w+%/;
+"""
+process_model = grako.genmodel('process', process_grammar)
+
+
+def generate_regex_set(subprocess_name):
+    dispatch_template = "\[@?{}(?:\[[^)]+\])?\]"
+    receive_template = "\(!?{}(?:\[[^)]+\])?\)"
+    condition_template = "<{}(?:\[[^)]+\])?>"
+    subprocess_template = "{}"
+
+    subprocess_re = re.compile("\{" + subprocess_template.format(subprocess_name) + "\}")
+    receive_re = re.compile(receive_template.format(subprocess_name))
+    dispatch_re = re.compile(dispatch_template.format(subprocess_name))
+    condition_template_re = re.compile(condition_template.format(subprocess_name))
+    regexes = [
+        {"regex": subprocess_re, "type": "subprocess"},
+        {"regex": dispatch_re, "type": "dispatch"},
+        {"regex": receive_re, "type": "receive"},
+        {"regex": condition_template_re, "type": "condition"}
+    ]
+
+    return regexes
+
+
+def process_parse(string):
+    return process_model.parse(string, ignorecase=True)
 
 
 class EventModel:
@@ -36,8 +98,8 @@ class EventModel:
         self.__assign_signatures()
 
         # Convert callback access according to container fields
-        self.logger.info("Convert callback accesses")
-        self.__convert_accesses()
+        self.logger.info("Determine particular interfaces and their implementations for each label or its field")
+        self.resolve_accesses()
 
     def __import_processes(self, raw, category):
         if "kernel model" in raw:
@@ -72,7 +134,7 @@ class EventModel:
 
         ret_label = Label('ret')
         ret_label.signature(Signature("int %s"))
-        ret_init = Subprocess('ret_init')
+        ret_init = Subprocess('ret_init', {})
         ret_init.type = "receive"
         ret_init.callback_retval = ["ret"]
         ret_init.callback = init_subprocess.callback
@@ -112,17 +174,17 @@ class EventModel:
                            self.model["entry"].subprocesses[name].type == "dispatch"])
 
         # Generate conditions
-        success = Subprocess('init_success')
+        success = Subprocess('init_success', {})
         success.type = "condition"
         success.condition = "%ret% == 0"
         self.model["entry"].subprocesses['init_success'] = success
 
-        failed = Subprocess('init_failed')
+        failed = Subprocess('init_failed', {})
         failed.type = "condition"
         failed.condition = "%ret% != 0"
         self.model["entry"].subprocesses['init_failed'] = failed
 
-        stop = Subprocess('stop')
+        stop = Subprocess('stop', {})
         stop.type = "condition"
         stop.statements = ["ldv_stop();"]
         self.model["entry"].subprocesses['stop'] = stop
@@ -130,8 +192,7 @@ class EventModel:
         # Add subprocesses finally
         self.model["entry"].process = "[init].(ret_init).({} | <init_failed>).[exit].<stop>".\
                                       format('.'.join(dispatches))
-        self.model["entry"].process_ast = self.model["entry"].process_model.parse(self.model["entry"].process,
-                                                                                  ignorecase=True)
+        self.model["entry"].process_ast = process_parse(self.model["entry"].process)
 
     def __select_processes_and_models(self):
         # Import necessary kernel models
@@ -693,67 +754,94 @@ class EventModel:
                     if sign.type_class in ["struct", "function"]:
                         sign.pointer = True
 
-    def __resolve_access(self, process, string):
-        self.logger.debug("Try to convert access '{}' from process {} with an identifier {}".
-                          format(string, process.name, process.identifier))
-        label, tail = process.extract_label_with_tail(string)
-        if not label:
-            ret = string
-        elif type(label) is Label and (not tail or len(tail) == 0):
-            ret = [label.name]
-        elif type(label) is Label and tail and len(tail) > 0:
-            if label.interface and type(label.interface) is str:
-                intfs = self.__resolve_interface(self.analysis.interfaces[label.interface], tail)
-                if not intfs:
-                    ret = None
-                else:
-                    ret = []
-                    for index in range(len(intfs)):
-                        if index == 0:
-                            ret.append(label.name)
-                        else:
-                            field = list(intfs[index - 1].fields.keys())[list(intfs[index - 1].fields.values()).
-                                                                              index(intfs[index].identifier)]
-                            ret.append(field)
-            elif label.interface and type(label.interface) is list:
-                raise NotImplementedError("Do not expect list of containers for label")
-            else:
-                raise ValueError("Cannot identify interface of label {} at process description {}".
-                                 format(label.name, process.name))
-        else:
-            raise TypeError("Cannot identify expression '{}'".format(string))
-
-        self.logger.debug("Convert access '{}' from process {} with an identifier {} to '{}'".
-                          format(string, process.name, process.identifier, ret))
-        return ret
-
-    def __convert_accesses(self):
+    def resolve_accesses(self):
         self.logger.info("Convert interfaces access by expressions on base of containers and their fields")
         for process in self.model["models"] + self.model["processes"]:
             self.logger.debug("Analyze subprocesses of process {} with an identifier {}".
                               format(process.name, process.identifier))
-            for subprocess in [process.subprocesses[name] for name in process.subprocesses]:
-                if subprocess.callback:
-                    subprocess.callback = self.__resolve_access(process, subprocess.callback)
-                if subprocess.parameters:
-                    for index in range(len(subprocess.parameters)):
-                        subprocess.parameters[index] = self.__resolve_access(process, subprocess.parameters[index])
-                if subprocess.callback_retval:
-                    subprocess.callback_retval = self.__resolve_access(process, subprocess.callback_retval)
-                if subprocess.condition:
-                    subprocess.condition = self.__convert_plain_access(process, subprocess.condition)
-                if subprocess.statements:
-                    for index in range(len(subprocess.statements)):
-                        subprocess.statements[index] = self.__convert_plain_access(process,
-                                                                                   subprocess.statements[index])
 
-    def __convert_plain_access(self, process, statement):
-        old = statement
-        for match in process.label_re.finditer(statement):
-            access = self.__resolve_access(process, match.group(0))
-            statement = statement.replace(match.group(0), '%' + ".".join(access) + '%')
-        self.logger.debug("Convert access '{}' to '{}'".format(old, statement))
-        return statement
+            # Get empty keys
+            accesses = process.accesses()
+
+            # Fill it out
+            for access in accesses:
+                label, tail = process.extract_label_with_tail(access)
+
+                if not label:
+                    raise ValueError("Expect label in {} in access in process description".format(access, process.name))
+                else:
+                    if label.interface:
+                        for interface in label.interface:
+                            new = Access(access)
+                            new.label = label
+
+                            if len(tail) > 0:
+                                intfs = self.__resolve_interface(interface, tail)
+                                if intfs:
+                                    new.interface = intfs[-1]
+                                else:
+                                    raise ValueError("Cannot resolve access {} with a base interface {} in process {}".
+                                                     format(access, interface, process.name))
+
+                                list_access = ""
+                                for index in range(len(intfs)):
+                                    if index == 0:
+                                        list_access.append(label.name)
+                                    else:
+                                        field = list(intfs[index - 1].fields.keys())\
+                                                [list(intfs[index - 1].fields.values()).index(intfs[index].identifier)]
+                                        list_access.append(field)
+
+                                new.list_access = list_access
+                                new.list_interface = intfs
+                            else:
+                                new.interface = self.analysis.interfaces[interface]
+                                new.list_access = [label.name]
+                                new.list_interface = [self.analysis.interfaces[interface]]
+
+                            accesses[access].append(new)
+                    else:
+                        new = Access(access)
+                        new.label = label
+                        new.list_access = [label.name]
+                        accesses[access].append(new)
+
+            # Save back updates collection of accesses
+            process.accesses(accesses)
+
+    def collect_relevant_interfaces(self):
+        # todo: remove this function
+        relevant_interfaces = {
+            "callbacks": [],
+            "parameters": [],
+            "containers": [self.labels[name] for name in self.labels if self.labels[name].container],
+            "resources": [self.labels[name] for name in self.labels if self.labels[name].resource]
+        }
+
+        # Extract callbacks
+        for subprocess in [self.subprocesses[name] for name in self.subprocesses
+                           if self.subprocesses[name].type == "dispatch" and self.subprocesses[name].callback]:
+            if subprocess.callback not in relevant_interfaces["callbacks"]:
+                relevant_interfaces["callbacks"].append(subprocess.callback)
+
+        # Extract total parameters
+        for subprocess in [self.subprocesses[name] for name in self.subprocesses
+                           if self.subprocesses[name].parameters]:
+            for parameter in [parameter for parameter in subprocess.parameters if type(parameter) is list]:
+                if parameter not in relevant_interfaces["parameters"]:
+                    relevant_interfaces["parameters"].append(parameter)
+
+        return relevant_interfaces
+
+
+class Access:
+    def __init__(self, expression):
+        self.expression = expression
+        self.label = None
+        self.interface = None
+        self.implementations = None
+        self.list_access = None
+        self.list_interface = None
 
 
 class Label:
@@ -824,76 +912,21 @@ class Label:
 class Process:
 
     label_re = re.compile("%(\w+)((?:\.\w*)*)%")
-    process_grammar = """
-    (* Main expression *)
-    FinalProcess = (Operators | Bracket)$;
-    Operators = Switch | Sequence;
-
-    (* Signle process *)
-    Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
-    Null = null:"0";
-    ReceiveProcess = receive:Receive;
-    SendProcess = dispatch:Send;
-    SubprocessProcess = subprocess:Subprocess;
-    ConditionProcess = condition:Condition;
-    Receive = "("[replicative:"!"]name:identifier[number:Repetition]")";
-    Send = "["[broadcast:"@"]name:identifier[number:Repetition]"]";
-    Condition = "<"name:identifier[number:Repetition]">";
-    Subprocess = "{"name:identifier"}";
-
-    (* Operators *)
-    Sequence = sequence:SequenceExpr;
-    Switch = options:SwitchExpr;
-    SequenceExpr = @+:Process{"."@+:Process}*;
-    SwitchExpr = @+:Sequence{"|"@+:Sequence}+;
-
-    (* Brackets *)
-    Bracket = process:BracketExpr;
-    BracketExpr = "("@:Operators")";
-
-    (* Basic expressions and terminals *)
-    Repetition = "["@:(number | label)"]";
-    identifier = /\w+/;
-    number = /\d+/;
-    label = /%\w+%/;
-    """
-    process_model = grako.genmodel('process', process_grammar)
-
-    @staticmethod
-    def generate_regex_set(subprocess_name):
-        dispatch_template = "\[@?{}(?:\[[^)]+\])?\]"
-        receive_template = "\(!?{}(?:\[[^)]+\])?\)"
-        condition_template = "<{}(?:\[[^)]+\])?>"
-        subprocess_template = "{}"
-
-        subprocess_re = re.compile("\{" + subprocess_template.format(subprocess_name) + "\}")
-        receive_re = re.compile(receive_template.format(subprocess_name))
-        dispatch_re = re.compile(dispatch_template.format(subprocess_name))
-        condition_template_re = re.compile(condition_template.format(subprocess_name))
-        regexes = [
-            {"regex": subprocess_re, "type": "subprocess"},
-            {"regex": dispatch_re, "type": "dispatch"},
-            {"regex": receive_re, "type": "receive"},
-            {"regex": condition_template_re, "type": "condition"}
-        ]
-
-        return regexes
 
     def __init__(self, name, dic=None):
-        if not dic:
-            dic = {}
-
         # Default values
         self.labels = {}
         self.subprocesses = {}
-        self.type = "process"
-        self.name = name
         self.category = None
         self.process = None
         self.identifier = None
-        self._import_dictionary(dic)
+        self.__accesses = None
+        if not dic:
+            dic = {}
 
-    def _import_dictionary(self, dic):
+        # Provided values
+        self.name = name
+
         # Import labels
         if "labels" in dic:
             for name in dic["labels"]:
@@ -901,24 +934,22 @@ class Process:
                 label.import_json(dic["labels"][name])
                 self.labels[name] = label
 
+        # Import process
+        if "process" in dic:
+            self.process = dic["process"]
+
         # Import subprocesses
         if "subprocesses" in dic:
             for name in dic["subprocesses"]:
                 subprocess = Subprocess(name, dic["subprocesses"][name])
                 self.subprocesses[name] = subprocess
 
-        # Import process
-        if "process" in dic:
-            # Parse process and save AST instead of string
-            self.process = dic["process"]
-
         # Check subprocess type
-        if self.type and self.type == "process" and len(self.subprocesses.keys()) > 0:
-            self.__determine_subprocess_types()
+        self.__determine_subprocess_types()
 
         # Parse process
         if self.process:
-            self.process_ast = self.process_model.parse(self.process, ignorecase=True)
+            self.process_ast = process_parse(self.process)
 
     def __determine_subprocess_types(self):
         processes = [self.subprocesses[process_name].process for process_name in self.subprocesses
@@ -926,7 +957,7 @@ class Process:
         processes.append(self.process)
 
         for subprocess_name in self.subprocesses:
-            regexes = self.generate_regex_set(subprocess_name)
+            regexes = generate_regex_set(subprocess_name)
 
             match = 0
             process_type = None
@@ -945,6 +976,27 @@ class Process:
                                format(subprocess_name, self.name))
             else:
                 self.subprocesses[subprocess_name].type = process_type
+
+    def __compare_signals(self, process, first, second):
+        if first.name == second.name and len(first.parameters) == len(second.parameters):
+            match = True
+            for index in range(len(first.parameters)):
+                label = self.extract_label(first.parameters[index])
+                if not label:
+                    raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
+                                     format(first.name, index, self.name))
+                pair = process.extract_label(second.parameters[index])
+                if not pair:
+                    raise ValueError("Provide label in subprocess '{}' at position '{}'".
+                                     format(second.name, index, process.name))
+
+                ret = label.compare_with(pair)
+                if ret != "сompatible" and ret != "equal":
+                    match = False
+                    break
+            return match
+        else:
+            return False
 
     @property
     def unmatched_receives(self):
@@ -981,7 +1033,7 @@ class Process:
             else:
                 return self.labels[name], tail
         else:
-            return None
+            raise ValueError("Cannot extract label from access {} in process {}".format(string, format(string)))
 
     def establish_peers(self, process):
         peers = self.get_available_peers(process)
@@ -1018,27 +1070,6 @@ class Process:
 
         return ret
 
-    def __compare_signals(self, process, first, second):
-        if first.name == second.name and len(first.parameters) == len(second.parameters):
-            match = True
-            for index in range(len(first.parameters)):
-                label = self.extract_label(first.parameters[index])
-                if not label:
-                    raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
-                                     format(first.name, index, self.name))
-                pair = process.extract_label(second.parameters[index])
-                if not pair:
-                    raise ValueError("Provide label in subprocess '{}' at position '{}'".
-                                     format(second.name, index, process.name))
-
-                ret = label.compare_with(pair)
-                if ret != "сompatible" and ret != "equal":
-                    match = False
-                    break
-            return match
-        else:
-            return False
-
     def rename_subprocess(self, old_name, new_name):
         if old_name not in self.subprocesses:
             raise KeyError("Cannot rename subprocess {} in process {} because it does not exist".
@@ -1056,7 +1087,7 @@ class Process:
         # Replace subprocess entries
         processes = [self]
         processes.extend([self.subprocesses[name] for name in self.subprocesses if self.subprocesses[name].process])
-        regexes = self.generate_regex_set(old_name)
+        regexes = generate_regex_set(old_name)
         for process in processes:
             for regex in regexes:
                 if regex["regex"].match(process.process):
@@ -1066,35 +1097,40 @@ class Process:
                     process.process = process.process.replace(old_match, new_match)
 
                     # Recalculate AST
-                    process.process_ast = process.process_model.parse(process.process, ignorecase=True)
+                    process.process_ast = process_parse(process.process)
 
-    def collect_relevant_interfaces(self):
-        relevant_interfaces = {
-            "callbacks": [],
-            "parameters": [],
-            "containers": [self.labels[name] for name in self.labels if self.labels[name].container],
-            "resources": [self.labels[name] for name in self.labels if self.labels[name].resource]
-        }
-        # Extract callbacks
-        for subprocess in [self.subprocesses[name] for name in self.subprocesses
-                           if self.subprocesses[name].type == "dispatch" and self.subprocesses[name].callback]:
-            if type(subprocess.callback) is list and subprocess.callback not in relevant_interfaces["callbacks"]:
-                relevant_interfaces["callbacks"].append(subprocess.callback)
-        # Extract total parameters
-        for subprocess in [self.subprocesses[name] for name in self.subprocesses
-                           if self.subprocesses[name].parameters]:
-            for parameter in [parameter for parameter in subprocess.parameters if type(parameter) is list]:
-                if parameter not in relevant_interfaces["parameters"]:
-                    relevant_interfaces["parameters"].append(parameter)
+    def accesses(self, accesses=None):
+        if not accesses:
+            if not self.__accesses:
+                self.__accesses = {}
 
-        return relevant_interfaces
+                # Collect all accesses across process subprocesses
+                for subprocess in [self.subprocesses[name] for name in self.subprocesses]:
+                    if subprocess.callback:
+                        self.__accesses[subprocess.callback] = []
+                    if subprocess.parameters:
+                        for index in range(len(subprocess.parameters)):
+                            self.__accesses[subprocess.parameters[index]] = []
+                    if subprocess.callback_retval:
+                        self.__accesses[subprocess.callback_retval] = []
+                    if subprocess.condition:
+                        for match in self.label_re.finditer(subprocess.condition):
+                                self.__accesses[match.group()] = []
+                    if subprocess.statements:
+                        for statement in subprocess.statements:
+                            for match in self.label_re.finditer(statement):
+                                self.__accesses[match.group()] = []
+
+            return self.__accesses
+        else:
+            self.__accesses = accesses
 
 
-class Subprocess(Process):
+class Subprocess:
 
-    def __init__(self, name, dic=None):
+    def __init__(self, name, dic):
+        # Default values
         self.type = None
-        self.name = name
         self.process = None
         self.process_ast = None
         self.parameters = []
@@ -1104,11 +1140,10 @@ class Subprocess(Process):
         self.condition = None
         self.statements = None
 
-        # Import dictionary
-        if not dic:
-            dic = {}
-        self._import_dictionary(dic)
+        # Provided values
+        self.name = name
 
+        # Values from dictionary
         if "callback" in dic:
             self.callback = dic["callback"]
 
@@ -1128,9 +1163,11 @@ class Subprocess(Process):
         if "statements" in dic:
             self.statements = dic["statements"]
 
-    def _import_dictionary(self, dic):
-        super()._import_dictionary(dic)
-        self.labels = {}
-        self.subprocesses = {}
+         # Import process
+        if "process" in dic:
+            self.process = dic["process"]
+
+            # Parse process
+            self.process_ast = process_parse(self.process)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -1,5 +1,5 @@
 from core.avtg.emg.translator import AbstractTranslator
-from core.avtg.emg.interfaces import Signature
+from core.avtg.emg.interface_specs import Signature
 
 
 class Translator(AbstractTranslator):

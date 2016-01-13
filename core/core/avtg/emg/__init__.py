@@ -4,8 +4,8 @@ import os
 import core.components
 import core.utils
 
-from core.avtg.emg.interfaces import CategorySpecification, ModuleSpecification
-from core.avtg.emg.events import EventModel
+from core.avtg.emg.interface_specs import CategorySpecification, ModuleSpecification
+from core.avtg.emg.event_spec import EventModel
 from core.avtg.emg.translator import stub, sequential
 
 

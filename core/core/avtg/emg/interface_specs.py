@@ -1,25 +1,8 @@
-import re
 import copy
 import json
 
-fi_regex = re.compile("(\w*)\.(\w*)")
-fi_extract = re.compile("\*?%((?:\w*\.)?\w*)%")
 
-
-def is_full_identifier(string):
-    if fi_regex.fullmatch(string) and len(fi_regex.fullmatch(string).groups()) == 2:
-        return True
-    else:
-        return False
-
-
-def extract_full_identifier(string):
-    if is_full_identifier(string):
-        category, identifier = fi_regex.fullmatch(string).groups()
-        return category, identifier
-    else:
-        raise ValueError("Given string {} is not a full identifier".format(string))
-
+from core.avtg.emg.representations import Signature, Interface, Variable, Function
 
 class CategorySpecification:
 
@@ -296,16 +279,43 @@ class ModuleSpecification(CategorySpecification):
 
     def __add_implementations_from_analysis(self):
         self.logger.info("Add global variables as interface implementations")
+        # Import variable implementations
         for path in self.analysis["global variable initializations"]:
             for variable in self.analysis["global variable initializations"][path]:
                 signature = self.analysis["global variable initializations"][path][variable]
                 if signature.interface:
                     self.logger.debug("Add global variable {} from {} as implementation of {}".
                                       format(variable, path, signature.interface.full_identifier))
-                    var = copy.copy(self.analysis["global variable initializations"][path][variable])
-                    if path not in self.interfaces[signature.interface.full_identifier].implementations:
-                        self.interfaces[signature.interface.full_identifier].implementations[path] = {}
-                    self.interfaces[signature.interface.full_identifier].implementations[path][variable] = var
+                    self.interfaces[signature.interface.full_identifier].implementations.append(
+                            Variable(variable, path, signature))
+
+                    # Import fields implementations
+                    for field in [name for name in signature.fields if name in self.implementations[path][variable] and
+                                  name in signature.interface.fields]:
+                        identifier = "{}.{}".\
+                            format(signature.interface.category, signature.interface.fields[field])
+                        interface = self.interfaces[identifier]
+                        var = Variable(None, None, interface.signature)
+                        var.value = self.implementations[path][variable][field]
+                        interface.implementations.append(var)
+
+        # Import implementations from function parameters
+        for function in [name for name in self.analysis["kernel functions"] if name in self.kernel_functions]:
+            for call in [self.analysis["kernel functions"][function]["calls"][name] for name in
+                         self.analysis["kernel functions"][function]["calls"]
+                         if name in self.analysis["modules functions"]]:
+                if len(call) != len(self.kernel_functions[function].signature.parameters):
+                    raise ValueError("Incorrect argument number in function {}".format(function))
+
+                for index in range(len(call)):
+                    if call[index] and call[index] != "0" and \
+                            self.kernel_functions[function].signature.parameters[index] and \
+                            self.kernel_functions[function].signature.parameters[index].interface:
+                        identifier = \
+                            self.kernel_functions[function].signature.parameters[index].interface.full_identifier
+                        var = Variable(None, None, self.kernel_functions[function].signature.parameters[index])
+                        var.value = call[index]
+                        self.interfaces[identifier].implementations.append(var)
 
         self.logger.debug("Remove global variables initialization description")
         del self.analysis["global variable initializations"]
@@ -710,256 +720,6 @@ class ModuleSpecification(CategorySpecification):
 
         with open(file, "w") as fh:
             fh.write(content)
-
-
-class Interface:
-
-    def __init__(self, signature, category, identifier, header, implemented_in_kernel=False):
-        self.signature = Signature(signature)
-        self.header = header
-        self.category = category
-        self.identifier = identifier
-        self.implemented_in_kernel = implemented_in_kernel
-        self.resource = False
-        self.callback = False
-        self.container = False
-        self.kernel_interface = False
-        self.called_in_model = False
-        self.fields = {}
-        self.implementations = {}
-
-    @property
-    def role(self, role=None):
-        if not self.callback:
-            raise TypeError("Non-callback interface {} does not have 'role' attribute".format(self.identifier))
-
-        if not role:
-            return self.identifier
-        else:
-            self.identifier = role
-
-    @property
-    def full_identifier(self, full_identifier=None):
-        if not self.category and not full_identifier:
-            raise ValueError("Cannot determine full identifier {} without interface category")
-        elif full_identifier:
-            category, identifier = extract_full_identifier(full_identifier)
-            self.category = category
-            self.identifier = identifier
-        else:
-            return "{}.{}".format(self.category, self.identifier)
-
-
-class Signature:
-
-    @staticmethod
-    def copy_signature(old, new):
-        cp = copy.deepcopy(new)
-        cp.array = old.array
-        cp.pointer = old.pointer
-        cp.interface = old.interface
-        return cp
-
-    def compare_signature(self, signature):
-        # Need this to compare with undefined arguments
-        if not signature:
-            return False
-
-        # Be sure that the signature is not an interface
-        if signature.type_class == "interface" or self.type_class == "interface":
-            raise TypeError("Interface signatures cannot be compared")
-
-        if self.type_class != signature.type_class:
-            return False
-        if self.interface and signature.interface and self.interface.full_identifier != \
-                signature.interface.full_identifier:
-            return False
-        elif self.interface and signature.interface \
-                and self.interface.full_identifier == signature.interface.full_identifier:
-            return True
-
-        if self.expression != signature.expression:
-            if self.type_class == "function":
-                if self.return_value and signature.return_value \
-                        and not self.return_value.compare_signature(signature.return_value):
-                    return False
-                elif (self.return_value and not signature.return_value) or \
-                        (not self.return_value and signature.return_value):
-                    return False
-
-                if len(self.parameters) == len(signature.parameters):
-                    for param in range(len(self.parameters)):
-                        if not self.parameters[param].compare_signature(signature.parameters[param]):
-                            return False
-                    return True
-                else:
-                    return False
-            elif self.type_class == "struct":
-                if self.structure_name == signature.structure_name:
-                    return True
-                elif len(self.fields.keys()) > 0 and len(signature.fields.keys()) > 0 \
-                        and len(set(signature.fields.keys()).intersection(self.fields.keys())) > 0:
-                    for param in self.fields:
-                        if param in signature.fields:
-                            if not self.fields[param].compare_signature(signature.fields[param]):
-                                return False
-                    for param in signature.fields:
-                        if param in self.fields:
-                            if not signature.fields[param].compare_signature(self.fields[param]):
-                                return False
-                    return True
-                return False
-        else:
-            return True
-
-    def __init__(self, expression):
-        """
-        Expect signature expression.
-        :param expression:
-        :return:
-        """
-        self.expression = expression
-        self.type_class = None
-        self.pointer = False
-        self.array = False
-        self.return_value = None
-        self.interface = None
-        self.function_name = None
-        self.parameters = None
-        self.fields = None
-
-        ret_val_re = "(?:\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
-        identifier_re = "(?:(?:(\*?)%s)|(?:(\*?)%[\w.]*%)|(?:(\*?)\w*))(\s?\[\w*\])?"
-        args_re = "(?:[^()]*)"
-        function_re = re.compile("^{}\s\(?{}\)?\s?\({}\)\Z".format(ret_val_re, identifier_re, args_re))
-        if function_re.fullmatch(self.expression):
-            self.type_class = "function"
-            groups = function_re.fullmatch(self.expression).groups()
-            if (groups[0] and groups[0] != "") or (groups[1] and groups[1] != ""):
-                self.pointer = True
-            else:
-                self.pointer = False
-            if groups[2] and groups[2] != "":
-                self.array = True
-            else:
-                self.array = False
-
-        macro_re = re.compile("^\w*\s?\({}\)\Z".format(args_re))
-        if macro_re.fullmatch(self.expression):
-            self.type_class = "macro"
-            self.pointer = False
-            self.array = False
-
-        struct_re = re.compile("^struct\s+(?:[\w|*]*\s)+(\**)%s\s?((?:\[\w*\]))?\Z")
-        struct_name_re = re.compile("^struct\s+(\w+)")
-        self.__check_type(struct_re, "struct")
-
-        value_re = re.compile("^(\w*\s+)+(\**)%s((?:\[\w*\]))?\Z")
-        self.__check_type(value_re, "primitive")
-
-        interface_re = re.compile("^(\*?)%.*%\Z")
-        if not self.type_class and interface_re.fullmatch(self.expression):
-            self.type_class = "interface"
-
-        if self.type_class in ["function", "macro"]:
-            self.__extract_function_interfaces()
-        if self.type_class == "interface":
-            ptr = interface_re.fullmatch(self.expression).group(1)
-            if ptr and ptr != "":
-                self.pointer = True
-            self.interface = fi_extract.fullmatch(self.expression).group(1)
-        if self.type_class == "struct":
-            self.fields = {}
-            self.structure_name = struct_name_re.match(self.expression).group(1)
-
-        if not self.type_class:
-            raise ValueError("Cannot determine signature type (function, structure, primitive or interface) {}".
-                             format(self.expression))
-
-    def __check_type(self, regex, type_name):
-        if not self.type_class and regex.fullmatch(self.expression):
-            self.type_class = type_name
-            groups = regex.fullmatch(self.expression).groups()
-            if groups[len(groups) - 2] and groups[len(groups) - 2] != "":
-                self.pointer = True
-            else:
-                self.pointer = False
-
-            if groups[len(groups) - 1] and groups[len(groups) - 1] != "":
-                self.array = True
-            else:
-                self.array = False
-
-            return True
-        else:
-            return False
-
-    def __extract_function_interfaces(self):
-        identifier_re = "((?:\*?%s)|(?:\*?%[\w.]*%)|(?:\*?\w*))(?:\s?\[\w*\])?"
-        args_re = "([^()]*)"
-
-        if self.type_class == "function":
-            ret_val_re = "(\$|(?:void)|(?:[\w\s]*\*?%s)|(?:\*?%[\w.]*%)|(?:[^%]*))"
-            function_re = re.compile("^{}\s\(?{}\)?\s?\({}\)\Z".format(ret_val_re, identifier_re, args_re))
-
-            if function_re.fullmatch(self.expression):
-                ret_val, name, args = function_re.fullmatch(self.expression).groups()
-            else:
-                raise ValueError("Cannot parse function signature {}".format(self.expression))
-
-            if ret_val in ["$", "void"] or "%" not in ret_val:
-                self.return_value = None
-            else:
-                self.return_value = Signature(ret_val)
-        else:
-            identifier_re = "(\w*)"
-            macro_re = re.compile("^{}\s?\({}\)\Z".format(identifier_re, args_re))
-
-            if macro_re.fullmatch(self.expression):
-                name, args = macro_re.fullmatch(self.expression).groups()
-            else:
-                raise ValueError("Cannot parse macro signature {}".format(self.expression))
-        self.function_name = name
-
-        self.parameters = []
-        if args != "void":
-            for arg in args.split(", "):
-                if arg in ["$", "..."] or "%" not in arg:
-                    self.parameters.append(None)
-                else:
-                    self.parameters.append(Signature(arg))
-
-    def get_string(self):
-        # Dump signature as a string
-        if self.type_class == "function":
-            # Add return value
-            if self.return_value and self.return_value.type_class != "primitive":
-                string = "$ "
-            else:
-                string = "{} ".format(self.return_value.expression)
-
-            # Add name
-            if self.function_name:
-                string += self.function_name
-            else:
-                string += "%s"
-
-            # Add parameters
-            if self.parameters and len(self.parameters) > 0:
-                params = []
-                for p in self.parameters:
-                    if p.interface:
-                        params.append("%{}%".format(p.interface.full_identifier))
-                    else:
-                        params.append("$")
-
-                string += "({})".format(", ".join(params))
-            else:
-                string += "(void)"
-
-            return string
-        else:
-            return self.expression
 
 
 class SpecEncoder(json.JSONEncoder):

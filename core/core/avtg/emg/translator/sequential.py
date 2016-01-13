@@ -3,8 +3,8 @@ import os
 import re
 import graphviz
 
-from core.avtg.emg.translator import AbstractTranslator, Variable, Function, Aspect
-from core.avtg.emg.interfaces import Signature
+from core.avtg.emg.translator import AbstractTranslator, Aspect
+from core.avtg.emg.representations import Signature, Function, Variable, ModelMap
 
 
 class Translator(AbstractTranslator):
@@ -112,8 +112,8 @@ class Translator(AbstractTranslator):
         # Set containers
         self.logger.info("Collect information about callbacks in process {}".format(process.name))
         for callback in ri["callbacks"]:
-            if type(process.labels[callback[0]].interface) is list:
-                interfaces = process.labels[callback[0]].interface
+            interfaces = process.labels[callback[0]].interface
+
             for interface in interfaces:
                 intfs = self.get_interfaces(interface, callback)
                 for index in range(len(intfs)):
@@ -134,7 +134,7 @@ class Translator(AbstractTranslator):
                 ri["implementations"][str([label.name])][interface] = self.__get_implementations(interface)
                 if str([label.name]) not in ri["signatures"]:
                     ri["signatures"][str([label.name])] = {}
-                ri["signatures"][str([label.name])][interface] = label.signature
+                ri["signatures"][str([label.name])][interface] = label.signature(None, interface)
 
         # Get parameters and resources implementations
         self.logger.info("Collect information about parameters in process {}".format(process.name))
@@ -152,6 +152,14 @@ class Translator(AbstractTranslator):
         return ri
 
     def __generate_automata(self, ri, process):
+        nonimplemented_containers = []
+        for container in ri["containers"]:
+            if container.interface:
+                for intf in container.interface:
+                    pass
+            elif not container.value:
+                nonimplemented_containers.append(container)
+
         # Copy processes
         process_automata = []
         labels = [process.labels[name] for name in process.labels if process.labels[name].container
@@ -905,7 +913,8 @@ class Automata:
 
     def __text_processor(self, statement):
         # Replace model functions
-        statement = self.translator.model_map.replace_models(self.process, statement)
+        mm = ModelMap()
+        statement = mm.replace_models(self.process, statement)
 
         # Replace labels
         for match in self.process.label_re.finditer(statement):
