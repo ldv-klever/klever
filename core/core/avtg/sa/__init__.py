@@ -420,7 +420,9 @@ class GlobalInitParser:
                 if init_re.match(line):
                     current_block = []
                 elif struct_init_end_re.match(line):
-                    self._parse_structure(current_entity["fields"], current_block)
+                    # Do not parse empty initializers like for anx9805_i2c_func (drivers/gpu/drm/nouveau/nouveau.ko)
+                    if len(current_block) > 1:
+                        self._parse_structure(current_entity["fields"], current_block)
                     state = 2
                 elif struct_ptr_init_end_re.match(line):
                     current_entity["initializer"] = re.match("^\s*Value\sis\s'([^']*)'", current_block[1]).group(1)
