@@ -23,7 +23,16 @@
           "name": "EMG",
           "options": {
             "specifications directory": "emg",
-            "entry point": "entry_point"
+            "entry point": "entry_point",
+            "translator": "sequential",
+            "translation options": {},
+            "additional headers": [
+              "rcv.h",
+              "sv-comp.h"
+            ],
+            "additional aspects": [
+              "sv-comp.aspect"
+            ]
           }
         },
         {
@@ -73,7 +82,16 @@
           "name": "EMG",
           "options": {
             "specifications directory": "emg",
-            "entry point": "entry_point"
+            "entry point": "entry_point",
+            "translator": "sequential",
+            "translation options": {},
+            "additional headers": [
+              "rcv.h",
+              "sv-comp.h"
+            ],
+            "additional aspects": [
+              "sv-comp.aspect"
+            ]
           }
         },
         {

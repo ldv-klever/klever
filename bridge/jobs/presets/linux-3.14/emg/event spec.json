@@ -14,7 +14,7 @@
         "usb_driver": {
           "container": true,
           "parameter": true,
-          "interface": "usb.usb_driver"
+          "interface": ["usb.usb_driver"]
         }
       },
       "process": "<assign>.[register] | <none>",
@@ -40,7 +40,7 @@
         "usb_driver": {
           "container": true,
           "parameter": true,
-          "interface": "usb.usb_driver"
+          "interface": ["usb.usb_driver"]
         }
       },
       "process": "<assign>.[deregister]",
@@ -62,7 +62,7 @@
         "netdev": {
           "container": true,
           "pointer": true,
-          "interface": "net.net_device"
+          "interface": ["net.net_device"]
         }
       },
       "process": "<alloc>.<init>.<success> | <fail>",
@@ -94,7 +94,7 @@
         "netdev": {
           "container": true,
           "parameter": true,
-          "interface": "net.net_device"
+          "interface": ["net.net_device"]
         }
       },
       "process": "<free>",
@@ -111,7 +111,7 @@
         "netdev": {
           "container": true,
           "parameter": true,
-          "interface": "net.net_device"
+          "interface": ["net.net_device"]
         }
       },
       "process": "<assign>.[open].(ret_open).[register] | <none>",
@@ -146,7 +146,7 @@
         "netdev": {
           "container": true,
           "parameter": true,
-          "interface": "net.net_device"
+          "interface": ["net.net_device"]
         }
       },
       "process": "<assign>.[stop].(ret_stop).[deregister]",
@@ -177,7 +177,7 @@
         "platform_driver": {
           "container": true,
           "parameter": true,
-          "interface": "platform.platform_driver"
+          "interface": ["platform.platform_driver"]
         }
       },
       "process": "<assign>.[register] | <none>",
@@ -203,12 +203,12 @@
         "platform_driver": {
           "container": true,
           "parameter": true,
-          "interface": "platform.platform_driver"
+          "interface": ["platform.platform_driver"]
         },
         "probe": {
           "callback": true,
           "parameter": true,
-          "interface": "platform.probe"
+          "interface": ["platform.probe"]
         }
       },
       "process": "<assign>.[register] | <none>",
@@ -236,7 +236,7 @@
         "platform_driver": {
           "container": true,
           "parameter": true,
-          "interface": "platform.platform_driver"
+          "interface": ["platform.platform_driver"]
         }
       },
       "process": "<assign>.[deregister]",
@@ -258,7 +258,7 @@
         "timer_list": {
           "container": true,
           "parameter": true,
-          "interface": "timer.platform_driver"
+          "interface": ["timer.platform_driver"]
         }
       },
       "process": "<assign>.[instance_register] | <none>",
@@ -284,7 +284,7 @@
         "timer_list": {
           "container": true,
           "parameter": true,
-          "interface": "timer.timer_list"
+          "interface": ["timer.timer_list"]
         }
       },
       "process": "<assign>.[instance_register]",
@@ -306,17 +306,17 @@
         "timer_list": {
           "container": true,
           "parameter": true,
-          "interface": "timer.timer_list"
+          "interface": ["timer.timer_list"]
         },
         "data": {
           "resource": true,
           "parameter": true,
-          "interface": "timer.data"
+          "interface": ["timer.data"]
         },
         "function": {
           "callback": true,
           "parameter": true,
-          "interface": "timer.callback"
+          "interface": ["timer.callback"]
         }
       },
       "process": "<assign>.[instance_register] | <none>",
@@ -346,7 +346,7 @@
         "timer_list": {
           "container": true,
           "parameter": true,
-          "interface": "timer.timer_list"
+          "interface": ["timer.timer_list"]
         }
       },
       "process": "<assign>.[instance_deregister]",
@@ -367,22 +367,22 @@
       "labels": {
         "thread": {
           "callback": true,
-          "interface": "interrupt.thread",
+          "interface": ["interrupt.thread"],
           "parameter": true
         },
         "callback": {
           "callback": true,
-          "interface": "interrupt.handler",
+          "interface": ["interrupt.handler"],
           "parameter": true
         },
         "line": {
           "resource": true,
-          "interface": "interrupt.line",
+          "interface": ["interrupt.line"],
           "parameter": true
         },
         "data": {
           "resource": true,
-          "interface": "interrupt.data",
+          "interface": ["interrupt.data"],
           "parameter": true
         }
       },
@@ -414,7 +414,7 @@
       "labels": {
         "line": {
           "resource": true,
-          "interface": "interrupt.line",
+          "interface": ["interrupt.line"],
           "parameter": true
         }
       },
@@ -593,11 +593,60 @@
         }
       }
     },
+    "dummy_instance": {
+      "labels": {
+        "container": {
+          "container": true
+        },
+        "resource": {
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        }
+      },
+      "process": "(!register).<init>.{call}",
+      "subprocesses": {
+        "call": {
+          "process": "[callback].(ret_callback).{call} | <free>.(deregister)"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "condition": "%container% == $ARG1",
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_callback": {
+          "callback": "%callback%"
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ZINIT(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        }
+      }
+    },
     "timer_instance": {
       "labels": {
         "container": {
           "container": true,
-          "interface": "timer.timer_list"
+          "interface": ["timer.timer_list"]
         }
       },
       "process": "(!instance_register).[callback].(ret_callback).(instance_deregister)",
@@ -628,19 +677,19 @@
       "labels": {
         "thread": {
           "callback": true,
-          "interface": "interrupt.thread"
+          "interface": ["interrupt.thread"]
         },
         "callback": {
           "callback": true,
-          "interface": "interrupt.handler"
+          "interface": ["interrupt.handler"]
         },
         "line": {
           "resource": true,
-          "interface": "interrupt.line"
+          "interface": ["interrupt.line"]
         },
         "data": {
           "resource": true,
-          "interface": "interrupt.data"
+          "interface": ["interrupt.data"]
         },
         "ret_val": {
           "signature": "int %s"

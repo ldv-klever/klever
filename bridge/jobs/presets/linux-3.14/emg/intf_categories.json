@@ -66,15 +66,19 @@
     },
     "request_threaded_irq": {
       "signature": "int %s request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
-      "header": "include/linux/timer.h"
+      "header": "include/linux/interrupt.h"
+    },
+    "request_irq": {
+      "signature": "int %s request_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
+      "header": "include/linux/interrupt.h"
     },
     "devm_request_threaded_irq": {
       "signature": "int %s devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
-      "header": "include/linux/timer.h"
+      "header": "include/linux/interrupt.h"
     },
     "free_irq": {
       "signature": "$ free_irq(%interrupt.line%, %interrupt.data%)",
-      "header": "include/linux/timer.h"
+      "header": "include/linux/interrupt.h"
     }
   },
   "kernel macro-functions": {

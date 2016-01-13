@@ -562,46 +562,52 @@ class ModuleSpecification(CategorySpecification):
 
         self.logger.debug("Parse global variables signatures")
         for path in self.analysis["global variable initializations"]:
-            for variable in self.analysis["global variable initializations"][path]:
+            for variable in list(self.analysis["global variable initializations"][path].keys()):
                 self.logger.debug("Parse signature of global variable {} from file {}".format(function, path))
-                # Create new signature
-                self.analysis["global variable initializations"][path][variable]["signature"] = \
-                    Signature(self.analysis["global variable initializations"][path][variable]["signature"])
 
-                # Parse arrays and structures
-                # todo: implement array parsing
+                if "type" not in self.analysis["global variable initializations"][path][variable]:
+                    var_description = self.analysis["global variable initializations"][path][variable]
 
-                # Add implementations
-                if path not in self.implementations:
-                    self.implementations[path] = {}
-                self.implementations[path][variable] = {}
+                    # Create new signature
+                    var_description["signature"] = \
+                        Signature(var_description["signature"])
 
-                self.logger.debug("Parse fields of global variable {} from file {}".format(function, path))
-                self.__parse_elements_signatures(
-                    self.analysis["global variable initializations"][path][variable]["fields"])
-                for field in self.analysis["global variable initializations"][path][variable]["fields"]:
-                    if "value" in self.analysis["global variable initializations"][path][variable]["fields"][field]:
-                        self.implementations[path][variable][field] = \
-                            self.analysis["global variable initializations"][path][variable]["fields"][field]["value"]
-                    else:
-                        self.logger.warning("Field {} from description of variable {} from {} has no value".
-                                            format(field, variable, path))
+                    # Parse arrays and structures
+                    # todo: implement array parsing
 
-                    if "signature" in self.analysis["global variable initializations"][path][variable]["fields"][field]:
-                        self.analysis["global variable initializations"][path][variable]["signature"].fields[field] = \
-                          self.analysis["global variable initializations"][path][variable]["fields"][field]["signature"]
-                    else:
-                        raise KeyError("Signature of field {} in description of variable {} from {} os not given".
-                                       format(field, variable, path))
+                    # Add implementations
+                    if path not in self.implementations:
+                        self.implementations[path] = {}
+                    self.implementations[path][variable] = {}
 
-                self.logger.debug("Remove legacy data about initialization of variable {} from file {}".
-                                  format(function, path))
-                del self.analysis["global variable initializations"][path][variable]["fields"]
+                    self.logger.debug("Parse fields of global variable {} from file {}".format(function, path))
+                    self.__parse_elements_signatures(
+                        var_description["fields"])
+                    for field in var_description["fields"]:
+                        if "value" in var_description["fields"][field]:
+                            self.implementations[path][variable][field] = var_description["fields"][field]["value"]
+                        else:
+                            self.logger.warning("Field {} from description of variable {} from {} has no value".
+                                                format(field, variable, path))
 
-                # Keep only signature
-                # todo: Save values
-                self.analysis["global variable initializations"][path][variable] = \
-                    self.analysis["global variable initializations"][path][variable]["signature"]
+                        if "signature" in var_description["fields"][field]:
+                            var_description["signature"].fields[field] = var_description["fields"][field]["signature"]
+                        else:
+                            raise KeyError("Signature of field {} in description of variable {} from {} os not given".
+                                           format(field, variable, path))
+
+                    self.logger.debug("Remove legacy data about initialization of variable {} from file {}".
+                                      format(function, path))
+                    del var_description["fields"]
+
+                    # Keep only signature
+                    # todo: Save values
+                    self.analysis["global variable initializations"][path][variable] = var_description["signature"]
+                else:
+                    self.logger.warning(
+                            "Cannot process global variable with type {}".
+                            format(self.analysis["global variable initializations"][path][variable]["type"]))
+                    del self.analysis["global variable initializations"][path][variable]
 
     def __match_rest_elements(self, root_element):
         for element in root_element.fields:
@@ -633,7 +639,7 @@ class ModuleSpecification(CategorySpecification):
                     function_signature.return_value.interface = existing_signature.return_value.interface
 
                 for index in range(len(function_signature.parameters)):
-                    if not function_signature.parameters[index].interface and \
+                    if not function_signature.parameters[index].interface and existing_signature.parameters[index] and\
                        existing_signature.parameters[index].interface:
                         function_signature.parameters[index].interface = existing_signature.parameters[index].interface
             else:

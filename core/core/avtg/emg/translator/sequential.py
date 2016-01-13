@@ -114,8 +114,6 @@ class Translator(AbstractTranslator):
         for callback in ri["callbacks"]:
             if type(process.labels[callback[0]].interface) is list:
                 interfaces = process.labels[callback[0]].interface
-            else:
-                interfaces = [process.labels[callback[0]].interface]
             for interface in interfaces:
                 intfs = self.get_interfaces(interface, callback)
                 for index in range(len(intfs)):
@@ -130,25 +128,27 @@ class Translator(AbstractTranslator):
         # Get parameters and resources implementations
         self.logger.info("Collect information about resources in process {}".format(process.name))
         for label in ri["resources"]:
-            if str([label.name]) not in ri["implementations"]:
-                ri["implementations"][str([label.name])] = {}
-            ri["implementations"][str([label.name])][label.interface] = self.__get_implementations(label.interface)
-            if str([label.name]) not in ri["signatures"]:
-                ri["signatures"][str([label.name])] = {}
-            ri["signatures"][str([label.name])][label.interface] = label.signature
+            for interface in label.interface:
+                if str([label.name]) not in ri["implementations"]:
+                    ri["implementations"][str([label.name])] = {}
+                ri["implementations"][str([label.name])][interface] = self.__get_implementations(interface)
+                if str([label.name]) not in ri["signatures"]:
+                    ri["signatures"][str([label.name])] = {}
+                ri["signatures"][str([label.name])][interface] = label.signature
 
         # Get parameters and resources implementations
         self.logger.info("Collect information about parameters in process {}".format(process.name))
         for parameter in ri["parameters"]:
-            intf = self.get_interfaces(process.labels[parameter[0]].interface, parameter)
-            for index in range(len(intf)):
-                if str(parameter[0:index + 1]) not in ri["implementations"]:
-                    ri["implementations"][str(parameter[0:index + 1])] = {}
-                ri["implementations"][str(parameter[0:index + 1])][intf[index].full_identifier] = \
-                    self.__get_implementations(intf[index].full_identifier)
-                if str(parameter[0:index + 1]) not in ri["signatures"]:
-                    ri["signatures"][str(parameter[0:index + 1])] = {}
-                ri["signatures"][str(parameter[0:index + 1])][intf[index].full_identifier] = intf[index].signature
+            for interface in process.labels[parameter[0]].interface:
+                intf = self.get_interfaces(interface, parameter)
+                for index in range(len(intf)):
+                    if str(parameter[0:index + 1]) not in ri["implementations"]:
+                        ri["implementations"][str(parameter[0:index + 1])] = {}
+                    ri["implementations"][str(parameter[0:index + 1])][intf[index].full_identifier] = \
+                        self.__get_implementations(intf[index].full_identifier)
+                    if str(parameter[0:index + 1]) not in ri["signatures"]:
+                        ri["signatures"][str(parameter[0:index + 1])] = {}
+                    ri["signatures"][str(parameter[0:index + 1])][intf[index].full_identifier] = intf[index].signature
         return ri
 
     def __generate_automata(self, ri, process):
@@ -157,7 +157,7 @@ class Translator(AbstractTranslator):
         labels = [process.labels[name] for name in process.labels if process.labels[name].container
                   and process.labels[name].interface
                   and str([name]) in ri["implementations"]
-                  and process.labels[name].interface in ri["implementations"][str([name])]
+                  and len(set(process.labels[name].interface) & set(ri["implementations"][str([name])].keys())) > 0
                   and ri["implementations"][str([name])][process.labels[name].interface]]
         if len(labels) == 0:
             for index in range(self.unmatched_constant):
