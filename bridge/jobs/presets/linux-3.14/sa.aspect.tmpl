@@ -39,6 +39,15 @@ info: declare_func(static $ $({{ arg_patterns[i] }})) {
 }
 // endfor
 
+info: declare_func($ $(void)) {
+  $fprintf<"$env<CWD>/declare_func.txt","%s %s ret='%s'\n",$path,$func_name,$ret_type_str>
+}
+// for i in range(max_args_num)
+info: declare_func($ $({{ arg_patterns[i] }})) {
+  $fprintf<"$env<CWD>/declare_func.txt","%s %s ret='%s' {{ arg_printf_patterns[i] }}\n",$path,$func_name,$ret_type_str,{{ arg_types[i] }}>
+}
+// endfor
+
 /* info: expand(__EXPORT_SYMBOL(sym, sec)) {
   $fprintf<"$env<CWD>/exported-symbols.txt","%s %s\n",$path,$arg_val1>
 }*/
