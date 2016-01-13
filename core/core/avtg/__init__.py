@@ -323,7 +323,8 @@ class AVTG(core.components.Component):
                         cur_abstract_task_desc = self.mqs['abstract task description'].get_nowait()
                         break
                     except queue.Empty:
-                        if not p.is_alive():
+                        # Complain just if plugin returns well.
+                        if p.exitcode == 0:
                             raise RuntimeError(
                                 '{0} did not put abstract verification task description back to queue on termination'.format(
                                     plugin_desc['name']))
