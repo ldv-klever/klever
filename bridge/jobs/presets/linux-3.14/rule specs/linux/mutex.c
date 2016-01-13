@@ -6,7 +6,7 @@
 
 Set LDV_MUTEXES;
 
-/* MODEL_FUNC_DEF Check that a given mutex was not acquired and acquire it */
+/* MODEL_FUNC_DEF Check that mutex was not acquired and acquire it */
 void ldv_mutex_acquire(struct mutex *lock)
 {
 	/* ASSERT Acquired mutex should be unacquired */
@@ -15,7 +15,7 @@ void ldv_mutex_acquire(struct mutex *lock)
 	ldv_set_add(LDV_MUTEXES, lock);
 }
 
-/* MODEL_FUNC_DEF Check that a given mutex was not acquired and nondeterministically acquire it */
+/* MODEL_FUNC_DEF Check that mutex was not acquired and nondeterministically acquire it */
 int ldv_mutex_acquire_interruptible_or_killable(struct mutex *lock)
 {
 	/* ASSERT Acquired mutex should be unacquired */
@@ -35,7 +35,7 @@ int ldv_mutex_acquire_interruptible_or_killable(struct mutex *lock)
 	}
 }
 
-/* MODEL_FUNC_DEF Say whether a given mutex was acquired */
+/* MODEL_FUNC_DEF Say whether mutex was acquired */
 int ldv_mutex_is_acquired(struct mutex *lock)
 {
 	/* OTHER Either mutex was acquired in this thread or nondeterministically decide whether it was done in another thread */
@@ -69,7 +69,7 @@ int ldv_mutex_try_acquire(struct mutex *lock)
 	}
 }
 
-/* MODEL_FUNC_DEF Decrease a given counter by one and if it becomes zero check that a given mutex was not acquired and acquire it */
+/* MODEL_FUNC_DEF Decrease counter by one and if it becomes zero check that mutex was not acquired and acquire it */
 int ldv_mutex_decrement_and_acquire(atomic_t *cnt, struct mutex *lock)
 {
 	/* OTHER Decrease counter by one */
@@ -90,7 +90,7 @@ int ldv_mutex_decrement_and_acquire(atomic_t *cnt, struct mutex *lock)
 	}
 }
 
-/* MODEL_FUNC_DEF Check that a given mutex was acquired and release it */
+/* MODEL_FUNC_DEF Check that mutex was acquired and release it */
 void ldv_mutex_release(struct mutex *lock)
 {
 	/* ASSERT Released mutex should be acquired */
