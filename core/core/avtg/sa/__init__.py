@@ -432,7 +432,7 @@ class GlobalInitParser:
                     current_block.append(line)
         return
 
-    def _parse_structure(self, structure, block):
+    def _parse_structure(self, fields, block):
         # Do not parse empty initializers like for anx9805_i2c_func (drivers/gpu/drm/nouveau/nouveau.ko) and
         # lme2510_props (drivers/media/usb/dvb-usb-v2/dvb-usb-lmedm04.ko)
         if not len(block):
@@ -461,7 +461,7 @@ class GlobalInitParser:
                 # Parse name
                 current_block = None
                 current_name = name_re.match(line).group(1)
-                current_field = structure[current_name]
+                current_field = fields[current_name]
                 state = 2
             elif state == 2:
                 field_type = type_re.match(line).group(1)
@@ -482,7 +482,7 @@ class GlobalInitParser:
         # Parse last element
         self._parse_element(current_field, current_block)
 
-    def _parse_array(self, array, block):
+    def _parse_array(self, elements, block):
         indent_str = self._get_indent(block[0])
         begin_re = re.compile("^{}Array\selement\sinitialization".format(indent_str))
         index_re = re.compile("^{}Array\sindex\sis\s'([^']*)'".format(indent_str))
@@ -506,7 +506,7 @@ class GlobalInitParser:
                 # Parse name
                 current_block = None
                 current_index = index_re.match(line).group(1)
-                current_element = array[current_index]
+                current_element = elements[current_index]
                 state = 2
             elif state == 2:
                 field_type = type_re.match(line).group(1)
