@@ -63,8 +63,7 @@ class ASE(core.components.Component):
                                           '--stage', 'instrumentation',
                                           '--out', os.path.relpath('arg signs.c',
                                                                    os.path.realpath(self.conf['source tree root'])),
-                                          '--debug', 'DEBUG',
-                                          '--keep-prepared-file'] +
+                                          '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['debug'] else []) +
                                          ['--'] +
                                          cc_full_desc['opts'] +

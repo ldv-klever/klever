@@ -60,8 +60,7 @@ class Weaver(core.components.Component):
                                           os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])),
                                           '--out', cc_full_desc['out file'],
                                           '--back-end', 'src',
-                                          '--debug', 'DEBUG',
-                                          '--keep-prepared-file'] +
+                                          '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['debug'] else []) +
                                          ['--'] +
                                          cc_full_desc['opts'] +
