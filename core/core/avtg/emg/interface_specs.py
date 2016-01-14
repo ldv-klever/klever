@@ -325,6 +325,7 @@ class ModuleSpecification(CategorySpecification):
         self.modules_functions = self.analysis["modules functions"]
         del self.analysis["modules functions"]
 
+        # TODO: modules can omit init functions, e.g. drivers/media/common/saa7146/saa7146.ko, drivers/media/common/tveeprom.ko and many others.
         self.logger.debug("Move module initilizations functions to the modules interface specification")
         self.inits = self.analysis["init"]
         del self.analysis["init"]

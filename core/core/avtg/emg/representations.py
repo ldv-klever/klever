@@ -226,6 +226,7 @@ class Signature:
         self.__check_type(struct_re, "struct")
 
         # TODO: doesn't match "char const * const %s", e.g. for drivers/block/rsxx/rsxx.ko.
+        # TODO: doesn't match "char const * const *%s", e.g. for drivers/staging/comedi/drivers/poc.ko.
         value_re = re.compile("^(\w*\s+)+(\**)%s((?:\[\w*\]))?\Z")
         self.__check_type(value_re, "primitive")
 
