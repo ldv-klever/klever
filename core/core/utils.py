@@ -126,7 +126,7 @@ class StreamQueue:
 
 def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=False):
     cmd = args[0]
-    logger.debug('Execute "{0}{1}{2}"'.format(cmd,
+    logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
                                               '' if len(args) == 1 else ' ',
                                               ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
