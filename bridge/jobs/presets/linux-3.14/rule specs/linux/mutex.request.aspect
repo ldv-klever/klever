@@ -37,10 +37,10 @@ info: call(void mutex_lock(struct mutex *)) ||
       call(int mutex_trylock(struct mutex *)) ||
       call(void mutex_unlock(struct mutex *))
 {
-  $fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
 }
 
 info: call(int atomic_dec_and_mutex_lock(atomic_t *, struct mutex *))
 {
-  $fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign2>
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign2>
 }
