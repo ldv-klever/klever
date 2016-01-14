@@ -35,6 +35,9 @@ class RSG(core.components.Component):
         if 'files' in self.abstract_task_desc:
             self.abstract_task_desc.pop('files')
 
+        # TODO: this is done to allow to add search path later in Weaver. This should be likely refactored.
+        self.abstract_task_desc['rule specifications directory'] = self.conf['rule specifications directory']
+
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = generate_rule_specification
@@ -97,12 +100,7 @@ class RSG(core.components.Component):
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
                         "opts":
                             [string.Template(opt).substitute(hdr_arch=self.conf['sys']['hdr arch']) for opt in
-                             self.conf['model CC options']] +
-                            # Besides header files specific for rule specifications will be searched for.
-                            ["-I{0}".format(os.path.relpath(
-                                core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                            self.conf['rule specifications directory']),
-                                os.path.realpath(self.conf['source tree root'])))]
+                             self.conf['model CC options']]
                     }, fp, sort_keys=True, indent=4)
                 self.logger.debug('CC extra full description file is "{0}"'.format(full_desc_file))
 

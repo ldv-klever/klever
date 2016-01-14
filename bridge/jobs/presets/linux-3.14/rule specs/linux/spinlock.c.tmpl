@@ -1,0 +1,141 @@
+#include <linux/kernel.h>
+#include <linux/spinlock.h>
+#include <verifier/rcv.h>
+
+// for arg_sign in arg_signs
+static int ldv_spin{{ arg_sign.id }} = 1;
+
+/* MODEL_FUNC_DEF Check that spin{{ arg_sign.text }} was not locked and lock it */
+void ldv_spin_lock{{ arg_sign.id }}(void)
+{
+	/* ASSERT Spin{{ arg_sign.text }} must be unlocked */
+	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+	/* CHANGE_STATE Lock spin{{ arg_sign.text }} */
+	ldv_spin{{ arg_sign.id }} = 2;
+}
+
+/* MODEL_FUNC_DEF Check that spin{{ arg_sign.text }} was locked and unlock it */
+void ldv_spin_unlock{{ arg_sign.id }}(void)
+{
+	/* ASSERT Spin{{ arg_sign.text }} must be locked */
+	ldv_assert(ldv_spin{{ arg_sign.id }} == 2);
+	/* CHANGE_STATE Unlock spin{{ arg_sign.text }} */
+	ldv_spin{{ arg_sign.id }} = 1;
+}
+
+/* MODEL_FUNC_DEF Check that spin{{ arg_sign.text }} was not locked and nondeterministically lock it. Return 0 on fails */
+int ldv_spin_trylock{{ arg_sign.id }}(void)
+{
+	int is_spin_held_by_another_thread;
+
+	/* ASSERT It may be an error if spin{{ arg_sign.text }} is locked at this point */
+	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+
+	/* OTHER Construct nondetermined result */
+	is_spin_held_by_another_thread = ldv_undef_int();
+
+	/* ASSERT Nondeterministically lock spin{{ arg_sign.text }} */
+	if (is_spin_held_by_another_thread)
+	{
+		/* RETURN Spin{{ arg_sign.text }} was not locked. Finish with fail */
+		return 0;
+	}
+	else
+	{
+		/* CHANGE_STATE Lock spin{{ arg_sign.text }} */
+		ldv_spin{{ arg_sign.id }} = 2;
+		/* RETURN Finish with success */
+		return 1;
+	}
+}
+
+/* MODEL_FUNC_DEF The same process can not both lock spin{{ arg_sign.text }} and wait until it will be unlocked	*/
+void ldv_spin_unlock_wait{{ arg_sign.id }}(void)
+{
+	/* ASSERT Spin{{ arg_sign.text }} must not be locked by a current process */
+	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+}
+
+/* MODEL_FUNC_DEF Check whether spin{{ arg_sign.text }} was locked */
+int ldv_spin_is_locked{{ arg_sign.id }}(void)
+{
+	int is_spin_held_by_another_thread;
+
+	/* OTHER Construct nondetermined result */
+	is_spin_held_by_another_thread = ldv_undef_int();
+
+	/* ASSERT Nondeterministically understand whether spin{{ arg_sign.text }} was locked */
+	if(ldv_spin{{ arg_sign.id }} == 1 && !is_spin_held_by_another_thread)
+	{
+		/* RETURN Spin{{ arg_sign.text }} was unlocked */
+		return 0;
+	}
+	else
+	{
+		/* RETURN Spin{{ arg_sign.text }} was locked */
+		return 1;
+	}
+}
+
+/* MODEL_FUNC_DEF Check whether spin{{ arg_sign.text }} was locked */
+int ldv_spin_can_lock{{ arg_sign.id }}(void)
+{
+	/* RETURN Inverse function for spin_is_locked() */
+	return !ldv_spin_is_locked{{ arg_sign.id }}();
+}
+
+/* MODEL_FUNC_DEF Check whether spin{{ arg_sign.text }} is contended */
+int ldv_spin_is_contended{{ arg_sign.id }}(void)
+{
+	int is_spin_contended;
+
+	/* OTHER Construct nondetermined result */
+	is_spin_contended = ldv_undef_int();
+
+	/* ASSERT Nondeterministically understand whether spin{{ arg_sign.text }} is contended */
+	if(is_spin_contended)
+	{
+		/* RETURN Spin{{ arg_sign.text }} is contended */
+		return 0;
+	}
+	else
+	{
+		/* RETURN Spin{{ arg_sign.text }} isn't contended */
+		return 1;
+	}
+}
+
+/* MODEL_FUNC_DEF Lock spin{{ arg_sign.text }} if atomic decrement result is zero */
+int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void)
+{
+	int atomic_value_after_dec;
+
+	/* ASSERT Spin{{ arg_sign.text }} must be unlocked (since we may lock it in this function) */
+	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+
+	/* OTHER Assign the result of atomic decrement */
+	atomic_value_after_dec = ldv_undef_int();
+
+	/* ASSERT Check if atomic decrement returns zero */
+	if (atomic_value_after_dec == 0)
+	{
+		/* CHANGE_STATE Lock spin{{ arg_sign.text }}, as atomic has decremented to zero */
+		ldv_spin{{ arg_sign.id }} = 2;
+		/* RETURN Return 1 with locked spin{{ arg_sign.text }} */
+		return 1;
+	}
+
+	/* RETURN Atomic decrement is still not zero, return 0 without locking spin{{ arg_sign.text }} */
+	return 0;
+}
+
+// endfor
+
+/* MODEL_FUNC_DEF Check that all spins are unlocked at the end */
+void ldv_check_final_state(void)
+{
+	// for arg_sign in arg_signs
+	/* ASSERT Spin{{ arg_sign.text }} must be unlocked at the end */
+	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
+	// endfor
+}
