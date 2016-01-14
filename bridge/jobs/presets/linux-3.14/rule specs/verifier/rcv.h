@@ -7,7 +7,7 @@
 #define ldv_assert(expr) ((expr) ? 0 : __VERIFIER_error())
 
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
-void __VERIFIER_error();
+void __VERIFIER_error(void);
 
 #define ldv_assume(expr) __VERIFIER_assume(expr)
 
