@@ -573,11 +573,15 @@ class GlobalInitParser:
             if value_re.match(block[0]):
                 value = value_re.match(block[0]).group(1)
                 element["value"] = value
-            elif array_re.match(block[1]):
-                self._parse_array(element["elements"], block[1:])
-            elif struct_re.match(block[1]):
-                # Ignore "Initializer list" first string
-                self._parse_structure(element["fields"], block[1:])
+            # Do not parse empty initializers like for parport_sysctl_template (drivers/parport/parport.ko)
+            # Ignore "Initializer list" first string
+            elif len(block[1:]):
+                if array_re.match(block[1]):
+                    self._parse_array(element["elements"], block[1:])
+                elif struct_re.match(block[1]):
+                    self._parse_structure(element["fields"], block[1:])
+                else:
+                    raise NotImplementedError("Could not parse element initializer")
         else:
             raise NotImplementedError("Field type '{}' is not supported by global variables initialization parser".
                                       format(element["type"]))
