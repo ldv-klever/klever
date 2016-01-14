@@ -1,0 +1,22 @@
+before: file ("$this")
+{
+#include <linux/module.h>
+#include <linux/usb.h>
+
+void ldv_usb_get_dev(void);
+void ldv_usb_put_dev(void);
+
+void ldv_atomic_sub(i,v);
+}
+
+/* Change state after increasing the reference counter with usb_get_dev. */
+after: call(struct usb_device *usb_get_dev(..))
+{
+	ldv_usb_get_dev();
+}
+
+/* Change state after decreasing the reference counter with usb_put_dev.*/
+after: call(void usb_put_dev(..))
+{
+	ldv_usb_put_dev();
+}
