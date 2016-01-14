@@ -86,7 +86,7 @@ class LKBCE(core.components.Component):
                     for j, modules2 in enumerate(self.conf['Linux kernel']['modules']):
                         if i != j and modules1.startswith(modules2):
                             raise ValueError(
-                                'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
+                                    'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
                 # Examine module sets.
                 for modules in self.conf['Linux kernel']['modules']:
@@ -108,7 +108,7 @@ class LKBCE(core.components.Component):
 
         if build_targets:
             self.logger.debug('Build following targets:\n{0}'.format(
-                '\n'.join([' '.join(build_target) for build_target in build_targets])))
+                    '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
         for build_target in build_targets:
             self.__make(build_target,
@@ -116,7 +116,7 @@ class LKBCE(core.components.Component):
                         specify_arch=True, invoke_build_cmd_wrappers=True, collect_build_cmds=True)
 
         self.linux_kernel['module deps'] = {}
-        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
+        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel']:
             # Install modules
             self.linux_kernel['modules install'] = os.path.join(self.conf['main working directory'], 'linux-modules')
@@ -132,10 +132,10 @@ class LKBCE(core.components.Component):
             fp.write(core.lkbce.cmds.cmds.Command.cmds_separator)
 
     def extract_all_linux_kernel_mod_deps(self):
-        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules']\
+        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
             path = os.path.join(self.linux_kernel['modules install'], "lib/modules",
-                                    self.linux_kernel['version'], "modules.dep")
+                                self.linux_kernel['version'], "modules.dep")
 
             with open(path, 'r') as fp:
                 for line in fp:
@@ -213,10 +213,10 @@ class LKBCE(core.components.Component):
         o = urllib.parse.urlparse(self.linux_kernel['src'])
         if o[0] in ('http', 'https', 'ftp'):
             raise NotImplementedError(
-                'Linux kernel source code is likely provided in unsopported form of remote archive')
+                    'Linux kernel source code is likely provided in unsopported form of remote archive')
         elif o[0] == 'git':
             raise NotImplementedError(
-                'Linux kernel source code is likely provided in unsopported form of Git repository')
+                    'Linux kernel source code is likely provided in unsopported form of Git repository')
         elif o[0]:
             raise ValueError('Linux kernel source code is provided in unsupported form "{0}"'.format(o[0]))
 
@@ -224,11 +224,34 @@ class LKBCE(core.components.Component):
                                                                self.linux_kernel['src'])
 
         if os.path.isdir(self.linux_kernel['src']):
-            self.logger.debug('Linux kernel source code is provided in form of source tree')
+            if os.path.isdir(os.path.join(self.linux_kernel['src'], '.git')):
+                self.logger.debug('Linux kernel source code is provided in form of Git repository')
+            else:
+                self.logger.debug('Linux kernel source code is provided in form of source tree')
+
             if self.conf['allow local source directories use']:
                 os.symlink(os.path.abspath(self.linux_kernel['src']), self.linux_kernel['work src tree'])
             else:
                 shutil.copytree(self.linux_kernel['src'], self.linux_kernel['work src tree'])
+
+            # TODO: do not allow to checkout both branch and commit and to checkout branch or commit for source tree.
+            if 'Git repository' in self.conf['Linux kernel']:
+                for commit_or_branch in ('commit', 'branch'):
+                    if commit_or_branch in self.conf['Linux kernel']['Git repository']:
+                        self.logger.info('Checkout Linux kernel Git repository {0} "{1}"'.format(commit_or_branch,
+                                                                                                 self.conf[
+                                                                                                     'Linux kernel'][
+                                                                                                     'Git repository'][
+                                                                                                     commit_or_branch]))
+                        # In case of dirty Git working directory checkout may fail so clean up it first.
+                        core.utils.execute(self.logger, ('git', 'clean', '-f', '-d'),
+                                           cwd=self.linux_kernel['work src tree'])
+                        core.utils.execute(self.logger, ('git', 'reset', '--hard'),
+                                           cwd=self.linux_kernel['work src tree'])
+                        core.utils.execute(self.logger,
+                                           ('git', 'checkout', '-f',
+                                            self.conf['Linux kernel']['Git repository'][commit_or_branch]),
+                                           cwd=self.linux_kernel['work src tree'])
         elif os.path.isfile(self.linux_kernel['src']):
             self.logger.debug('Linux kernel source code is provided in form of archive')
             with tarfile.open(self.linux_kernel['src']) as TarFile:
@@ -249,8 +272,8 @@ class LKBCE(core.components.Component):
 
         if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']):
             self.logger.debug(
-                'Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
-                                                         self.linux_kernel['work src tree']))
+                    'Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
+                                                             self.linux_kernel['work src tree']))
             for path in os.listdir(linux_kernel_work_src_tree_root):
                 shutil.move(os.path.join(linux_kernel_work_src_tree_root, path), self.linux_kernel['work src tree'])
             trash_dir = linux_kernel_work_src_tree_root
@@ -383,19 +406,19 @@ class LKBCE(core.components.Component):
                     self.linux_kernel['build cmd']['out file'] = opt
         else:
             raise NotImplementedError(
-                'Linux kernel raw build command "{0}" is not supported yet'.format(
-                    self.linux_kernel['build cmd']['type']))
+                    'Linux kernel raw build command "{0}" is not supported yet'.format(
+                            self.linux_kernel['build cmd']['type']))
 
         if cmd_requires_in_files and not self.linux_kernel['build cmd']['in files']:
             raise ValueError(
-                'Could not get Linux kernel raw build command input files'
-                + ' from options "{0}"'.format(
-                    opts))
+                    'Could not get Linux kernel raw build command input files'
+                    + ' from options "{0}"'.format(
+                            opts))
         if cmd_requires_out_file and not self.linux_kernel['build cmd']['out file']:
             raise ValueError(
-                'Could not get Linux kernel raw build command output file'
-                + ' from options "{0}"'.format(
-                    opts))
+                    'Could not get Linux kernel raw build command output file'
+                    + ' from options "{0}"'.format(
+                            opts))
 
         # Check thar all original options becomes either input files or output file or options.
         # Option -o isn't included in the resulting set.
@@ -407,17 +430,18 @@ class LKBCE(core.components.Component):
             resulting_opts.append(self.linux_kernel['build cmd']['out file'])
         if set(original_opts) != set(resulting_opts):
             raise RuntimeError(
-                'Some options were not parsed: "{0} != {1} + {2} + {3}"'.format(original_opts,
-                                                                                self.linux_kernel['build cmd'][
-                                                                                    'in files'],
-                                                                                self.linux_kernel['build cmd'][
-                                                                                    'out file'],
-                                                                                self.linux_kernel['build cmd']['opts']))
+                    'Some options were not parsed: "{0} != {1} + {2} + {3}"'.format(original_opts,
+                                                                                    self.linux_kernel['build cmd'][
+                                                                                        'in files'],
+                                                                                    self.linux_kernel['build cmd'][
+                                                                                        'out file'],
+                                                                                    self.linux_kernel['build cmd'][
+                                                                                        'opts']))
 
         self.logger.debug(
-            'Input files are "{0}"'.format(self.linux_kernel['build cmd']['in files']))
+                'Input files are "{0}"'.format(self.linux_kernel['build cmd']['in files']))
         self.logger.debug(
-            'Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
+                'Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
         self.logger.debug('Options are "{0}"'.format(self.linux_kernel['build cmd']['opts']))
 
     def __make(self, build_target, jobs_num=1, specify_arch=False, invoke_build_cmd_wrappers=False,
@@ -435,7 +459,7 @@ class LKBCE(core.components.Component):
                                                      os.environ['PATH'])})
             if collect_build_cmds:
                 env.update(
-                    {'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
+                        {'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
 
         return core.utils.execute(self.logger,
                                   tuple(['make', '-j', str(jobs_num), '-C', self.linux_kernel['work src tree']] +
