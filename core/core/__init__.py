@@ -39,9 +39,6 @@ class Core:
             'Verification of Linux kernel modules': [
                 LKBCE,
                 LKVOG,
-            ],
-            # These components are likely appropriate for all job classes.
-            'Common': [
                 AVTG,
                 VTG,
             ]
@@ -277,10 +274,6 @@ class Core:
             raise KeyError('Job class "{0}" is not supported'.format(self.job.type))
 
         self.components = self.job_class_components[self.job.type]
-
-        # Get modules of common components.
-        if 'Common' in self.job_class_components:
-            self.components.extend(self.job_class_components['Common'])
 
         self.logger.debug(
             'Components to be launched: "{0}"'.format(', '.join([component.__name__ for component in self.components])))
