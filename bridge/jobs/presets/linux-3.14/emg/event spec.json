@@ -25,13 +25,13 @@
           ]
         },
         "assign": {
-          "condition": "$res == 0",
+          "condition": ["$res == 0"],
           "statements": [
             "%usb_driver% = $arg1;"
           ]
         },
         "none": {
-          "condition": "$res != 0"
+          "condition": ["$res != 0"]
         }
       }
     },
@@ -131,10 +131,10 @@
           ]
         },
         "none": {
-          "condition": "$res != 0"
+          "condition": ["$res != 0"]
         },
         "assign": {
-          "condition": "$res == 0",
+          "condition": ["$res == 0"],
           "statements": [
             "%netdev% = $arg1;"
           ]
@@ -188,10 +188,10 @@
           ]
         },
         "none": {
-          "condition": "$res != 0"
+          "condition": ["$res != 0"]
         },
         "assign": {
-          "condition": "$res == 0",
+          "condition": ["$res == 0"],
           "statements": [
             "%platform_driver% = $arg1;"
           ]
@@ -219,10 +219,10 @@
           ]
         },
         "none": {
-          "condition": "$res != 0"
+          "condition": ["$res != 0"]
         },
         "assign": {
-          "condition": "$res == 0",
+          "condition": ["$res == 0"],
           "statements": [
             "%platform_driver% = $arg1;",
             "%probe% = $arg2;",
@@ -269,10 +269,10 @@
           ]
         },
         "none": {
-          "condition": "$res != 0"
+          "condition": ["$res != 0"]
         },
         "assign": {
-          "condition": "$res == 0",
+          "condition": ["$res == 0"],
           "statements": [
             "%timer_list% = $arg1;"
           ]
@@ -327,10 +327,10 @@
           ]
         },
         "none": {
-          "condition": "$res != 0"
+          "condition": ["$res != 0"]
         },
         "assign": {
-          "condition": "$res == 0",
+          "condition": ["$res == 0"],
           "statements": [
             "%timer_list% = $arg1;",
             "%function% = $arg2",
@@ -397,10 +397,10 @@
           ]
         },
         "none": {
-          "condition": "$res != 0"
+          "condition": ["$res != 0"]
         },
         "assign": {
-          "condition": "$res == 0",
+          "condition": ["$res == 0"],
           "statements": [
             "%line% = $arg1;",
             "%callback% = $arg2;",
@@ -452,7 +452,7 @@
           ]
         },
         "deregister": {
-          "condition": "%container% == $ARG1",
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -493,7 +493,7 @@
           ]
         },
         "instance_deregister": {
-          "condition": "%container% == $ARG1",
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -548,10 +548,10 @@
         },
         "usb_reset": {},
         "probe_success": {
-          "condition": "%probe_retval% == 0"
+          "condition": ["%probe_retval% == 0"]
         },
         "failed_probe": {
-          "condition": "%probe_retval% == 0"
+          "condition": ["%probe_retval% == 0"]
         },
         "null": {}
       }
@@ -577,7 +577,7 @@
           ]
         },
         "deregister": {
-          "condition": "%container% == $ARG1",
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -616,7 +616,7 @@
           ]
         },
         "deregister": {
-          "condition": "%container% == $ARG1",
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -657,7 +657,7 @@
           ]
         },
         "instance_deregister": {
-          "condition": "%container% == $ARG1",
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -698,7 +698,6 @@
       "process": "(!irq_register).[handler].(ret_handler).(<need_thread>.[thread].(ret_thread) | <handled>).(irq_deregister)",
       "subprocesses": {
         "irq_register": {
-           "condition": "$res == 0",
            "parameters": [
              "%line%",
              "%callback%",
@@ -707,7 +706,7 @@
            ]
         },
         "irq_deregister": {
-          "condition": "%line% == $ARG1",
+          "condition": ["%line% == $ARG1"],
           "parameters": [
             "%line%"
           ]
@@ -715,6 +714,7 @@
         "handler": {
           "callback": "%callback%",
           "parameters": [
+            "%line%",
             "%data%"
           ]
         },
@@ -725,6 +725,7 @@
         "thread": {
           "callback": "%thread%",
           "parameters": [
+            "%line%",
             "%data%"
           ]
         },
@@ -732,10 +733,10 @@
           "callback": "%thread%"
         },
         "need_thread": {
-          "condition": "%ret_val% == IRQ_WAKE_THREAD"
+          "condition": ["%ret_val% == IRQ_WAKE_THREAD"]
         },
         "handled": {
-          "condition": "%ret_val% != IRQ_WAKE_THREAD"
+          "condition": ["%ret_val% != IRQ_WAKE_THREAD"]
         }
       }
     }
