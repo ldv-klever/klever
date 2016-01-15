@@ -54,6 +54,7 @@ class EventModel:
         # todo: Implement multimodule processes creation
         self.logger.info("Generate artificial process description to call Init and Exit module functions 'EMGentry'")
         ep = Process("EMGentry")
+        ep.category = "entry"
         self.model["entry"] = ep
 
         # Generate init subprocess
@@ -117,12 +118,12 @@ class EventModel:
         # Generate conditions
         success = Subprocess('init_success', {})
         success.type = "condition"
-        success.condition = "%ret% == 0"
+        success.condition = ["%ret% == 0"]
         self.model["entry"].subprocesses['init_success'] = success
 
         failed = Subprocess('init_failed', {})
         failed.type = "condition"
-        failed.condition = "%ret% != 0"
+        failed.condition = ["%ret% != 0"]
         self.model["entry"].subprocesses['init_failed'] = failed
 
         stop = Subprocess('stop', {})
@@ -172,9 +173,10 @@ class EventModel:
             if function in self.analysis.kernel_functions:
                 self.logger.debug("Add model of function '{}' to an environment model".format(function))
                 new_process = self.__add_process(self.events["kernel model"][function], model=True)
+                new_process.category = "kernel models"
 
                 self.logger.debug("Assign label interfaces according to function parameters for added process {} "
-                                  "with identifier {}".format(new_process.name, new_process.identifier))
+                                  "with an identifier {}".format(new_process.name, new_process.identifier))
                 for label in new_process.labels:
                     if new_process.labels[label].parameter and not new_process.labels[label].signature():
                         for parameter in self.analysis.kernel_functions[function]["signature"].parameters:
@@ -231,6 +233,7 @@ class EventModel:
                                .format(category))
         else:
             new = self.__add_process(best_process, False, best_map)
+            new.category = category
             self.logger.debug("Finally choose process {} for category {} as the best one".
                               format(best_process.name, category))
             return new
@@ -297,8 +300,8 @@ class EventModel:
         self.logger.info("Check which callbacks can be called in the intermediate environment model")
         for process in [process for process in self.model["models"]] +\
                        [process for process in self.model["processes"]]:
-            self.logger.debug("Check process callback calls at process {} with identifier {}".
-                              format(process.name, process.identifier))
+            self.logger.debug("Check process callback calls at process {} with category {}".
+                              format(process.name, process.category))
 
             called = []
             for callback_name in set([process.subprocesses[name].callback for name in process.subprocesses
@@ -547,8 +550,9 @@ class EventModel:
         for candidate in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
             peers = process.get_available_peers(candidate)
             if peers:
-                self.logger.debug("Establish signal references between process {} with identifier {} and process {}".
-                                  format(process.name, process.identifier, candidate.name))
+                self.logger.debug("Establish signal references between process {} with category {} and process {} with "
+                                  "category {}".
+                                  format(process.name, process.category, candidate.name, candidate.category))
                 new = self.__add_process(candidate, model=False, label_map=None, peer=process)
                 if new.unmatched_receives or new.unmatched_dispatches:
                     self.__establish_signal_peers(new)
@@ -556,20 +560,20 @@ class EventModel:
         if process.unmatched_receives:
             for receive in process.unmatched_receives:
                 if receive.name == "register":
-                    self.logger.info("Generate default registration for process {} with an identifier {}".
-                                     format(process.name, process.identifier))
+                    self.logger.info("Generate default registration for process {} with category {}".
+                                     format(process.name, process.category))
                     self.add_default_dispatch(process, receive)
                 elif receive.name == "deregister":
-                    self.logger.info("Generate default deregistration for process {} with an identifier {}".
-                                     format(process.name, process.identifier))
+                    self.logger.info("Generate default deregistration for process {} with category {}".
+                                     format(process.name, process.category))
                     self.add_default_dispatch(process, receive)
                 else:
-                    self.logger.warning("Signal {} cannot be received by process {} with identifier {}, "
+                    self.logger.warning("Signal {} cannot be received by process {} with category {}, "
                                         "since nobody can send it".
-                                        format(receive.name, process.name, process.identifier))
+                                        format(receive.name, process.name, process.category))
         for dispatch in process.unmatched_dispatches:
-            self.logger.warning("Signal {} cannot be send by process {} with identifier {}, "
-                                "since nobody can receive it".format(dispatch.name, process.name, process.identifier))
+            self.logger.warning("Signal {} cannot be send by process {} with category {}, "
+                                "since nobody can receive it".format(dispatch.name, process.name, process.category))
 
     def add_default_dispatch(self, process, receive):
         # Change name
@@ -610,8 +614,8 @@ class EventModel:
 
     def __assign_signatures(self):
         for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
-            self.logger.info("Assign signatures of process {} with an identifier {} to labels with given interfaces".
-                             format(process.name, process.identifier))
+            self.logger.info("Assign signatures of process {} with category {} to labels with given interfaces".
+                             format(process.name, process.category))
             for label in [process.labels[name] for name in process.labels]:
                 if label.interfaces:
                     for interface in label.interfaces:
@@ -622,8 +626,8 @@ class EventModel:
                         label.signature(self.analysis.interfaces[interface].signature, interface)
 
         for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
-            self.logger.info("Assign signatures of process {} with an identifier {} to labels according to signal "
-                             "parameters".format(process.name, process.identifier))
+            self.logger.info("Assign signatures of process {} with category {} to labels according to signal "
+                             "parameters".format(process.name, process.category))
 
             # Analyze peers
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
@@ -687,8 +691,8 @@ class EventModel:
 
         for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
             # Assign interface signatures
-            self.logger.debug("Assign pointer flag of process {} with an identifier {} to labels signatures".
-                              format(process.name, process.identifier))
+            self.logger.debug("Assign pointer flag of process {} with category {} to labels signatures".
+                              format(process.name, process.category))
             for label in process.labels.values():
                 if label.interfaces:
                     for interface in label.interfaces:
@@ -703,8 +707,8 @@ class EventModel:
     def resolve_accesses(self):
         self.logger.info("Convert interfaces access by expressions on base of containers and their fields")
         for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
-            self.logger.debug("Analyze subprocesses of process {} with an identifier {}".
-                              format(process.name, process.identifier))
+            self.logger.debug("Analyze subprocesses of process {} with category {}".
+                              format(process.name, process.category))
 
             # Get empty keys
             accesses = process.accesses()

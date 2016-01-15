@@ -89,7 +89,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines = list()
 
                 # Before file
-                lines.append('before: file ("$this")\n')
+                lines.append('after: file ("$this")\n')
                 lines.append('{\n')
 
                 if len(self.additional_headers) > 0:
@@ -110,21 +110,23 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines.append("/* EMG variable declarations */\n")
                 for file in self.files:
                     if "variables" in self.files[file]:
-                        for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]]:
+                        for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]
+                                         if self.files[file]["variables"][name].use > 0]:
                             if variable.export and cc_extra_full_desc_file["in file"] != file:
                                 lines.extend([variable.declare(extern=True) + ";\n"])
                             else:
                                 lines.extend([variable.declare(extern=False) + ";\n"])
-                lines.append("}\n\n")
+                #lines.append("}\n\n")
 
                 # After file
-                lines.append('after: file ("$this")\n')
-                lines.append('{\n')
+                #lines.append('after: file ("$this")\n')
+                #lines.append('{\n')
 
                 lines.append("/* EMG variable initialization */\n")
                 for file in self.files:
                     if "variables" in self.files[file]:
-                        for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]]:
+                        for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]
+                                         if self.files[file]["variables"][name].use > 0]:
                             if cc_extra_full_desc_file["in file"] == file and variable.value:
                                 lines.extend([variable.declare_with_init(init=False) + ";\n"])
                 lines.append("\n")

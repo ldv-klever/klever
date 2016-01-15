@@ -4,6 +4,7 @@ import json
 
 from core.avtg.emg.representations import Signature, Interface, Variable, Function
 
+
 class CategorySpecification:
 
     def __init__(self, logger):
@@ -286,8 +287,9 @@ class ModuleSpecification(CategorySpecification):
                 if signature.interface:
                     self.logger.debug("Add global variable {} from {} as implementation of {}".
                                       format(variable, path, signature.interface.full_identifier))
-                    self.interfaces[signature.interface.full_identifier].implementations.append(
-                            Variable(variable, path, signature))
+                    var = Variable(variable, path, signature)
+                    var.value = var.name
+                    self.interfaces[signature.interface.full_identifier].implementations.append(var)
 
                     # Import fields implementations
                     for field in [name for name in signature.fields if name in self.implementations[path][variable] and

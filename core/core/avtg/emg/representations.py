@@ -164,20 +164,9 @@ class Signature:
                     return True
                 else:
                     return False
-            elif self.type_class == "struct":
-                if self.structure_name == signature.structure_name:
-                    return True
-                elif len(self.fields.keys()) > 0 and len(signature.fields.keys()) > 0 \
-                        and len(set(signature.fields.keys()).intersection(self.fields.keys())) > 0:
-                    for param in self.fields:
-                        if param in signature.fields:
-                            if not self.fields[param].compare_signature(signature.fields[param]):
-                                return False
-                    for param in signature.fields:
-                        if param in self.fields:
-                            if not signature.fields[param].compare_signature(self.fields[param]):
-                                return False
-                    return True
+            elif self.type_class == "struct" and self.structure_name == signature.structure_name:
+                return True
+            else:
                 return False
         else:
             return True
@@ -347,6 +336,7 @@ class Variable:
         self.signature = signature
         self.value = None
         self.export = export
+        self.use = 0
 
     def declare_with_init(self, init=True):
         # Ger declaration
@@ -370,7 +360,14 @@ class Variable:
         # Generate declaration
         declaration = self.signature.expression
         if self.signature.type_class == "function":
-            declaration = self.name_re.sub("(* {})".format(self.name), declaration)
+            if self.signature.return_value:
+                declaration = self.signature.return_value.expression.replace("%s", "") + " "
+            else:
+                declaration = "void "
+            declaration += '(*' + self.name + ')'
+            declaration += '(' + \
+                           ", ".join([param.expression.replace("%s", "") for param in self.signature.parameters]) + \
+                           ')'
         else:
             if self.signature.pointer:
                 declaration = declaration.replace("*%s", "*{}".format(self.name))
@@ -486,7 +483,7 @@ class ModelMap:
         "PROCESS_CONTEXT": None
     }
 
-    mem_function_re = "\$({})\(%(\w+)%(?:,\s?(\w+))?\)"
+    mem_function_re = "\$({})\(%({})%(?:,\s?(\w+))?\)"
     irq_function_re = "\$({})"
 
     @staticmethod
@@ -504,15 +501,11 @@ class ModelMap:
         elif not self.mem_function_map[function]:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
-        # Create function call
-        if label_name not in self.process.labels:
-            raise ValueError("Process {} has no label {}".format(self.process.name, label_name))
-        signature = self.process.labels[label_name].signature
-        if signature.type_class in ["struct", "primitive"] and signature.pointer:
-            return "{}(sizeof(struct {}))".format(self.mem_function_map[function], signature.structure_name)
+        if self.signature.type_class in ["struct", "primitive"] and self.signature.pointer:
+            return "{}(sizeof(struct {}))".format(self.mem_function_map[function], self.signature.structure_name)
         else:
             raise NotImplementedError("Cannot initialize signature {} which is not pointer to structure or primitive".
-                                      format(signature.expression, signature.type_class))
+                                      format(self.signature.expression, self.signature.type_class))
 
     def __replace_free_call(self, match):
         function, label_name, flag = match.groups()
@@ -534,17 +527,18 @@ class ModelMap:
         # Replace
         return self.mem_function_map[function]
 
-    def replace_models(self, process, string):
-        self.process = process
+    def replace_models(self, label, signature, string):
+        self.signature = signature
+
         ret = string
         # Memory functions
         for function in self.mem_function_map:
-            regex = re.compile(self.mem_function_re.format(function))
+            regex = re.compile(self.mem_function_re.format(function, label))
             ret = regex.sub(self.__replace_mem_call, ret)
 
         # Free functions
         for function in self.free_function_map:
-            regex = re.compile(self.mem_function_re.format(function))
+            regex = re.compile(self.mem_function_re.format(function, label))
             ret = regex.sub(self.__replace_free_call, ret)
 
         # IRQ functions
@@ -561,6 +555,28 @@ class Access:
         self.interface = None
         self.list_access = None
         self.list_interface = None
+        self.re = re.compile(self.expression)
+
+    def replace_with_variable(self, statement, variable):
+        if self.re.search(statement):
+            expr = self.access_with_variable(variable)
+            return statement.replace(self.expression, expr)
+        else:
+            return statement
+
+    def access_with_variable(self, variable):
+        access = copy.deepcopy(self.list_access)
+        access[0] = variable.name
+
+        # Increase use counter
+        variable.use += 1
+
+        # todo: this is ugly and incorrect
+        if variable.signature.pointer:
+            expr = "->".join(access)
+        else:
+            expr = ".".join(access)
+        return expr
 
 
 class Label:
@@ -826,9 +842,9 @@ class Process:
         regexes = generate_regex_set(old_name)
         for process in processes:
             for regex in regexes:
-                if regex["regex"].match(process.process):
+                if regex["regex"].search(process.process):
                     # Replace signal entries
-                    old_match = regex["regex"].match(process.process).group()
+                    old_match = regex["regex"].search(process.process).group()
                     new_match = old_match.replace(old_name, new_name)
                     process.process = process.process.replace(old_match, new_match)
 
@@ -850,7 +866,8 @@ class Process:
                     if subprocess.callback_retval:
                         self.__accesses[subprocess.callback_retval] = []
                     if subprocess.condition:
-                        for match in self.label_re.finditer(subprocess.condition):
+                        for statement in subprocess.condition:
+                            for match in self.label_re.finditer(statement):
                                 self.__accesses[match.group()] = []
                     if subprocess.statements:
                         for statement in subprocess.statements:
@@ -860,6 +877,20 @@ class Process:
             return self.__accesses
         else:
             self.__accesses = accesses
+
+    def resolve_access(self, access, interface=None):
+        if type(access) is Label:
+            string = "%{}%".format(access.name)
+        elif type(access) is str:
+            string = access
+        else:
+            raise TypeError("Unsupported access token")
+
+        if not interface:
+            return self.__accesses[string]
+        else:
+            return [acc for acc in self.__accesses[string]
+                    if acc.interface and acc.interface.full_identifier == interface][0]
 
 
 class Subprocess:
@@ -905,5 +936,19 @@ class Subprocess:
 
             # Parse process
             self.process_ast = process_parse(self.process)
+
+    def get_common_interface(self, position):
+        interfaces = []
+        for peer in self.peers:
+            arg = peer["subprocess"].parameters[position]
+            label = peer["process"].extract_label(arg)
+            interfaces = set(interfaces) & label.interfaces
+
+        if len(interfaces) == 0:
+            raise RuntimeError("Need at least one common interface to send signal")
+        elif len(interfaces) > 1:
+            raise NotImplementedError
+        else:
+            return interfaces[0]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
