@@ -269,7 +269,7 @@ class AVTG(core.components.Component):
                 'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals)))
 
         self.plugins_work_dir = os.path.relpath(
-            os.path.join(self.conf['main working directory'], '{0}.task'.format(verification_obj_desc['id']),
+            os.path.join(self.conf['source tree root'], '{0}.task'.format(verification_obj_desc['id']),
                          rule_spec_desc['id']))
         os.makedirs(self.plugins_work_dir)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
