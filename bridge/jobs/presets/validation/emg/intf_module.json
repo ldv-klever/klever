@@ -1,0 +1,497 @@
+{
+  "kernel functions": {
+    "usb_reset_device": {
+      "signature": "int %s usb_reset_device(struct usb_device *%s)",
+      "header": "include/linux/usb.h"
+    },
+    "usb_register": {
+      "signature": "$ usb_register(*%usb.usb_driver%)",
+      "header": "include/linux/usb.h"
+    },
+    "usb_deregister": {
+      "signature": "$ usb_deregister(*%usb.usb_driver%)",
+      "header": "include/linux/usb.h"
+    },
+    "platform_driver_unregister": {
+      "signature": "$ platform_driver_unregister(*%platform.platform_driver%)",
+      "header": "include/linux/platform_device.h"
+    },
+    "platform_driver_probe": {
+      "signature": "$ platform_driver_probe(*%platform.platform_driver%, *%platform.probe%, ...)",
+      "header": "include/linux/platform_device.h"
+    },
+    "platform_driver_register": {
+      "signature": "$ platform_driver_register(*%platform.platform_driver%, ...)",
+      "header": "include/linux/platform_device.h"
+    },
+    "alloc_netdev": {
+      "signature": "*%net.net_device% alloc_netdev($, $, $, *%net.setup%)",
+      "header": "include/linux/netdevice.h"
+    },
+    "register_netdev": {
+      "signature": "$ register_netdev(*%net.net_device%)",
+      "header": "include/linux/netdevice.h"
+    },
+    "unregister_netdev": {
+      "signature": "$ unregister_netdev(*%net.net_device%)",
+      "header": "include/linux/netdevice.h"
+    },
+    "free_netdev": {
+      "signature": "$ free_netdev(*%net.net_device%)",
+      "header": "include/linux/netdevice.h"
+    },
+    "mod_timer": {
+      "signature": "$ mod_timer(*%timer.timer_list%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "mod_timer_pinned": {
+      "signature": "int %s mod_timer_pinned(*%timer.timer_list%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "mod_timer_pending": {
+      "signature": "int %s mod_timer_pending(*%timer.timer_list%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "del_timer": {
+      "signature": "int %s del_timer(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "del_timer_sync": {
+      "signature": "int %s del_timer_sync(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "try_to_del_timer_sync": {
+      "signature": "int %s try_to_del_timer_sync(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "request_threaded_irq": {
+      "signature": "int %s request_threaded_irq(%interrupt.irq_line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "devm_request_threaded_irq": {
+      "signature": "int %s devm_request_threaded_irq($, %interrupt.irq_line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "free_irq": {
+      "signature": "$ free_irq(%interrupt.irq_line%, %interrupt.data%)",
+      "header": "include/linux/timer.h"
+    }
+  },
+  "kernel macro-functions": {
+    "usb_register": {
+      "signature": "int %s usb_register(*%usb.usb_driver%)",
+      "header": "include/linux/usb.h"
+    },
+    "init_timer": {
+      "signature": "init_timer(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "init_timer_deferrable": {
+      "signature": "init_timer_deferrable(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "init_timer_on_stack": {
+      "signature": "init_timer_on_stack(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "setup_timer": {
+      "signature": "setup_timer(*%timer.timer_list%, *%timer.handler%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "setup_timer_on_stack": {
+      "signature": "setup_timer_on_stack(*%timer.timer_list%, *%timer.handler%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    }
+  },
+  "kernel macros": {
+    "module_init": {
+      "signature": "module_init(%module.module.init%)",
+      "header": "include/linux/module.h"
+    },
+    "module_exit": {
+      "signature": "module_init(%module.module.exit%)",
+      "header": "include/linux/module.h"
+    }
+  },
+  "categories": {
+    "usb": {
+      "containers": {
+        "usb_driver": {
+          "header": "include/linux/usb.h",
+          "signature": "struct usb_driver %s",
+          "fields": {
+            "pre_reset": "pre",
+            "post_reset": "post"
+          }
+        }
+      },
+      "callbacks": {
+        "pre": {
+          "signature": "int %s (*%usb.pre%)(%usb.usb_interface%)"
+        },
+        "post": {
+          "signature": "int %s (*%usb.post%)(*%usb.usb_interface%)"
+        }
+      },
+      "resources": {
+        "usb_interface": {
+          "signature": "struct usb_interface %s",
+          "header": "include/linux/usb.h",
+          "implemented in kernel": true
+        }
+      }
+    },
+    "net": {
+      "containers": {
+        "net_device": {
+          "signature": "struct net_device %s",
+          "header": "include/linux/netdevice.h",
+          "fields": {
+            "net_device_ops": "net_device_ops",
+            "ethtool_ops": "ethtool_ops"
+          }
+        },
+        "net_device_ops": {
+          "signature": "struct net_device_ops %s",
+          "header": "include/linux/netdevice.h",
+          "fields": {
+            "ndo_open": "open",
+            "ndo_stop": "stop"
+          }
+        },
+        "ethtool_ops": {
+          "signature": "struct ethtool_ops %s",
+          "header": "include/linux/netdevice.h"
+        }
+      },
+      "callbacks": {
+        "open": {
+          "signature": "int %s (*%open%)(*%net_device%)"
+        },
+        "stop": {
+          "signature": "int %s (*%stop%)(*%net_device%)"
+        },
+        "setup": {
+          "signature": "$ (*%setup%)(*%net_device%)"
+        }
+      },
+      "resources": {
+        "net_device": {}
+      }
+    },
+    "device_driver": {
+      "containers": {
+        "device_driver": {
+          "signature": "struct device_driver %s",
+          "header": "include/linux/device.h",
+          "fields": {
+            "pm": "dev_pm_ops"
+          }
+        },
+        "dev_pm_ops": {
+          "signature": "struct dev_pm_ops *%s",
+          "header": "include/linux/pm.h"
+        }
+      }
+    },
+    "platform": {
+      "containers": {
+        "platform_driver": {
+          "signature": "struct platform_driver %s",
+          "header": "include/linux/platform_device.h",
+          "fields": {
+            "driver": "device_driver",
+            "probe": "probe"
+          }
+        }
+      },
+      "resources": {
+        "platform_device": {
+          "signature": "struct platform_device %s",
+          "header": "include/linux/platform_device.h",
+          "implemented in kernel": true
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int %s (*%probe%)(*%platform_device%)"
+        }
+      }
+    },
+    "module": {
+      "callbacks": {
+        "init": {
+          "signature": "int %s (*%init%)(void)"
+        },
+        "exit": {
+          "signature": "void (*%exit%)(void)"
+        }
+      }
+    },
+    "timer": {
+      "containers": {
+        "timer_list": {
+          "signature": "struct timer_list %s",
+          "header": "include/linux/timer.h",
+          "fields": {
+            "data": "data",
+            "function": "handler"
+          }
+        }
+      },
+      "resources": {
+        "data": {
+          "signature": "unsigned long %s"
+        }
+      },
+      "callbacks": {
+        "handler": {
+          "signature": "void (*%handler%)(%data%)",
+          "interrupt context": true
+        }
+      }
+    },
+    "interrupt": {
+      "containers": {},
+      "resources": {
+        "irq_line": {
+          "signature": "unsigned int %s"
+        },
+        "data": {
+          "signature": "void *%s"
+        }
+      },
+      "callbacks": {
+        "handler": {
+          "signature": "irqreturn_t %s (*%handler%)(%irq_line%, %data%)",
+          "interrupt context": true
+        },
+        "thread": {
+          "signature": "irqreturn_t %s (*%handler%)(%irq_line%, %data%)"
+        }
+      }
+    }
+  },
+  "interface implementations": {
+    "drivers/net/usb/catc.c": {
+      "global variables": [
+        {
+          "name": "catc_driver",
+          "interface": "usb.usb_driver",
+          "value": {
+            "probe": {
+              "type": "function",
+              "identifier": "catc_probe",
+              "expression": "& catc_probe"
+            },
+            "disconnect": {
+              "type": "function",
+              "identifier": "catc_disconnect",
+              "expression": "& catc_disconnect"
+            },
+            "id_table": {
+              "type": "magnitude",
+              "expression": "1U"
+            }
+          }
+        },
+        {
+          "name": "ops",
+          "interface": "net.ethtool_ops",
+          "value": {
+            "get_settings": {
+              "type": "function",
+              "identifier": "catc_get_settings",
+              "expression": "& catc_get_settings"
+            },
+            "get_link": {
+              "type": "function",
+              "identifier": "ethtool_op_get_link",
+              "expression": "& ethtool_op_get_link"
+            },
+            "get_drvinfo": {
+              "type": "function",
+              "identifier": "catc_get_drvinfo",
+              "expression": "& catc_get_drvinfo"
+            }
+          }
+        },
+        {
+          "name": "catc_netdev_ops",
+          "interface": "net.net_device_ops",
+          "value": {
+            "ndo_open": {
+              "type": "function",
+              "identifier": "catc_open",
+              "expression": "& catc_open"
+            },
+            "ndo_stop": {
+              "type": "function",
+              "identifier": "catc_stop",
+              "expression": "& catc_stop"
+            },
+            "ndo_start_xmit": {
+              "type": "function",
+              "identifier": "catc_start_xmit",
+              "expression": "& catc_start_xmit"
+            },
+            "ndo_set_mac_address": {
+              "type": "function",
+              "identifier": "eth_mac_addr",
+              "expression": "& eth_mac_addr"
+            },
+            "ndo_validate_addr": {
+              "type": "function",
+              "identifier": "eth_validate_addr",
+              "expression": "& eth_validate_addr"
+            },
+            "ndo_tx_timeout": {
+              "type": "function",
+              "identifier": "catc_tx_timeout",
+              "expression": "& catc_tx_timeout"
+            }
+          }
+        }
+      ],
+      "call graph": {
+        "catc_init": {
+          "calls": [
+            {
+              "name": "usb_register",
+              "parameters": {
+                "0": {
+                  "type": "global variable",
+                  "identifier": "catc_driver",
+                  "expression": "& catc_driver"
+                }
+              }
+            }
+          ]
+        },
+        "catc_exit": {
+          "calls": [
+            {
+              "name": "usb_deregister",
+              "parameters": {
+                "0": {
+                  "type": "global variable",
+                  "identifier": "catc_driver",
+                  "expression": "& catc_driver"
+                }
+              }
+            }
+          ]
+        },
+        "catc_probe": {
+          "calls": [
+            {
+              "name": "alloc_netdev",
+              "parameters": {
+                "0": {
+                  "type": "magnitude",
+                  "expression": "sizeof(struct catc)"
+                }
+              }
+            },
+            {
+              "name": "register_netdev",
+              "parameters": {
+                "0": {
+                  "type": "local variable",
+                  "identifier": "netdev",
+                  "expression": "netdev"
+                }
+              }
+            },
+            {
+              "name": "free_netdev",
+              "parameters": {
+                "0": {
+                  "type": "local variable",
+                  "identifier": "netdev",
+                  "expression": "netdev"
+                }
+              }
+            },
+            {
+              "name": "init_timer",
+              "parameters": {
+                "0": {
+                  "type": "statement",
+                  "expression": "timer->function"
+                }
+              }
+            }
+          ],
+          "variables": [
+            {
+              "name": "netdev",
+              "interface": "net.net_device"
+            }
+          ]
+        },
+        "catc_disconnect": {
+          "calls": [
+            {
+              "name": "unregister_netdev",
+              "parameters": {
+                "0": {
+                  "type": "statement",
+                  "expression": "catc->netdev"
+                }
+              }
+            },
+            {
+              "name": "free_netdev",
+              "parameters": {
+                "0": {
+                  "type": "statement",
+                  "expression": "catc->netdev"
+                }
+              }
+            }
+          ]
+        },
+        "catc_stats_timer": {
+          "calls": [
+            {
+              "name": "mod_timer",
+              "parameters": {
+                "0": {
+                  "type": "statement",
+                  "expression": "&catc->timer"
+                },
+                "1": {
+                  "type": "magnitude",
+                  "expression": "jiffies + STATS_UPDATE"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "macros": [
+        {
+          "name": "module_init",
+          "parameters": {
+            "0": {
+              "type": "function",
+              "identifier": "catc_init",
+              "expression": "& catc_init"
+            }
+          }
+        },
+        {
+          "name": "module_exit",
+          "parameters": {
+            "0": {
+              "type": "function",
+              "identifier": "catc_exit",
+              "expression": "& catc_exit"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

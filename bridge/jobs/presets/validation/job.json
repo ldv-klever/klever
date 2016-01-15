@@ -1,0 +1,54 @@
+{
+  "Common": {
+    "Linux kernel": {
+      "source": "linux-stable",
+      "configuration": "allmodconfig",
+      "build kernel": false
+    },
+    "LKVOG strategy": {
+      "name": "separate modules"
+    },
+    "rule specifications DB": "rule specs.json",
+    "VTG strategy": {
+      "name": "all bug kinds merge",
+      "verifier": {
+        "name": "CPAchecker",
+        "version": "18921",
+        "options": [
+          {"-ldv": ""}
+        ]
+      },
+      "resource limits": {
+        "wall time": 1000000,
+        "CPU time": 900000,
+        "memory size": 500000000,
+        "CPU model": null,
+        "number of CPU cores": 1,
+        "result size": 1000000
+      },
+      "merge source files": true
+    }
+  },
+  "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "7fc1924~"
+        },
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "ae3f348~"
+        },
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe"
+    }    
+  ]
+}
