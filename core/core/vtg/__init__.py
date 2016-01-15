@@ -56,8 +56,10 @@ class VTG(core.components.Component):
         self.extract_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
-                          {'id': self.name,
-                           'attrs': self.common_prj_attrs},
+                          {
+                              'id': self.id,
+                              'attrs': self.common_prj_attrs
+                          },
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
@@ -135,7 +137,7 @@ class VTG(core.components.Component):
 
             work_dir = os.path.join(
                     os.path.relpath(
-                            os.path.join(self.conf['main working directory'],
+                            os.path.join(self.conf['source tree root'],
                                          '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
                                          abstract_task_desc['attrs'][1]['rule specification'])),
                     self.strategy.__name__.lower())
@@ -144,7 +146,7 @@ class VTG(core.components.Component):
 
             self.conf['abstract task desc'] = abstract_task_desc
 
-            p = self.strategy(self.conf, self.logger, self.name, self.callbacks, self.mqs,
+            p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
                               work_dir, abstract_task_desc['attrs'], True, True)
             try:

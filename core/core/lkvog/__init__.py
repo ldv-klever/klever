@@ -42,16 +42,19 @@ def after_process_linux_kernel_raw_build_cmd(context):
             'Dump Linux kernel CC full description to file "{0}"'.format(
                 context.linux_kernel['build cmd']['full desc file']))
         with open(
-                os.path.join(context.conf['main working directory'], 'linux',
+                os.path.join(context.linux_kernel['work src tree'],
                              context.linux_kernel['build cmd']['full desc file']),
                 'w') as fp:
             json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
                       sort_keys=True, indent=4)
 
     # We need to copy build command description since it may be accidently overwritten by LKBCE.
-    context.mqs['Linux kernel build cmd descs'].put(
-        {attr: copy.deepcopy(context.linux_kernel['build cmd'][attr]) for attr in
-         ('type', 'in files', 'out file', 'full desc file') if attr in context.linux_kernel['build cmd']})
+    linux_kernel_build_cmd_desc = {
+        attr: copy.deepcopy(context.linux_kernel['build cmd'][attr]) for attr in
+        ('type', 'in files', 'out file', 'full desc file') if attr in context.linux_kernel['build cmd']
+        }
+    linux_kernel_build_cmd_desc.update({'linux kernel work src tree': context.linux_kernel['work src tree']})
+    context.mqs['Linux kernel build cmd descs'].put(linux_kernel_build_cmd_desc)
 
 
 def after_process_all_linux_kernel_raw_build_cmds(context):
@@ -74,8 +77,10 @@ class LKVOG(core.components.Component):
         core.utils.invoke_callbacks(self.extract_common_prj_attrs)
         core.utils.report(self.logger,
                           'attrs',
-                          {'id': self.name,
-                           'attrs': self.linux_kernel_verification_objs_gen['attrs']},
+                          {
+                              'id': self.id,
+                              'attrs': self.linux_kernel_verification_objs_gen['attrs']
+                          },
                           self.mqs['report files'],
                           self.conf['main working directory'])
         self.launch_subcomponents((self.process_all_linux_kernel_build_cmd_descs,
@@ -108,7 +113,6 @@ class LKVOG(core.components.Component):
             else:
                 cluster_size = 0
             strategy = closure.Closure(self.logger, self.module_deps, cluster_size)
-
         elif strategy_name == 'scotch':
             self.module_deps = self.mqs['Linux kernel module deps'].get()
 
@@ -162,7 +166,7 @@ class LKVOG(core.components.Component):
         strategy = self.conf['LKVOG strategy']['name']
 
         if strategy == 'separate modules':
-            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
+            self.verification_obj_desc['id'] = self.module['name']
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
             self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
@@ -176,13 +180,14 @@ class LKVOG(core.components.Component):
                 'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
             if self.conf['debug']:
-                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+                verification_obj_desc_file = os.path.join(
+                        self.linux_kernel_build_cmd_out_file_desc[self.module['name']]['linux kernel work src tree'],
+                        '{0}.json'.format(self.verification_obj_desc['id']))
                 self.logger.debug(
                     'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                         self.module['name'], verification_obj_desc_file))
-                with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file), 'w') as fp:
+                with open(verification_obj_desc_file, 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
-
         elif strategy in strategies_list:
 
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id + str(hash(self.cluster)))

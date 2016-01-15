@@ -40,7 +40,8 @@ class Component(multiprocessing.Process):
         self.include_child_resources = include_child_resources
 
         self.name = self.__class__.__name__
-        self.id = id if id else self.name
+        # Include parent identifier into the child one. This is required to distinguish reports for different sub-jobs.
+        self.id = '{0}/{1}'.format(parent_id, id if id else self.name)
         self.work_dir = work_dir if work_dir else self.name.lower()
         # Component start time.
         self.start_time = 0

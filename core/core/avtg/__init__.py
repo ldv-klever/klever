@@ -197,8 +197,10 @@ class AVTG(core.components.Component):
         self.extract_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
-                          {'id': self.name,
-                           'attrs': self.common_prj_attrs},
+                          {
+                              'id': self.id,
+                              'attrs': self.common_prj_attrs
+                          },
                           self.mqs['report files'],
                           self.conf['main working directory'])
         self.extract_src_tree_root()
@@ -267,7 +269,7 @@ class AVTG(core.components.Component):
                 'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals)))
 
         self.plugins_work_dir = os.path.relpath(
-            os.path.join(self.conf['main working directory'], '{0}.task'.format(verification_obj_desc['id']),
+            os.path.join(self.conf['source tree root'], '{0}.task'.format(verification_obj_desc['id']),
                          rule_spec_desc['id']))
         os.makedirs(self.plugins_work_dir)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
@@ -307,7 +309,7 @@ class AVTG(core.components.Component):
                 plugin_conf.update(plugin_desc['options'])
             plugin_conf.update({'rule spec id': rule_spec_desc['id'], 'bug kinds': rule_spec_desc['bug kinds']})
 
-            p = plugin_desc['plugin'](plugin_conf, self.logger, self.name, self.callbacks, self.mqs,
+            p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
                                       '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
                                       os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
                                       initial_attrs, True, True)

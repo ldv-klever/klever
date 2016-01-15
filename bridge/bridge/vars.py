@@ -39,8 +39,11 @@ USER_ROLES = (
 
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
-    ('1', _('Verification of commits in Linux kernel Git repositories')),
-    ('2', _('Verification of C programs')),
+    ('1', _('Validation on Linux kernel modules')),
+    ('2', _('Verification of commits in Linux kernel Git repositories')),
+    ('3', _('Validation on commits in Linux kernel Git repositories')),
+    ('4', _('Verification of C programs')),
+    ('5', _('Validation on C programs')),
 )
 
 JOB_ROLES = (

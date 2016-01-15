@@ -14,6 +14,17 @@ import queue
 _callback_kinds = ('before', 'instead', 'after')
 
 
+class Cd:
+    def __init__(self, path):
+        self.new_path = path
+
+    def __enter__(self):
+        self.prev_path = os.getcwd()
+        os.chdir(self.new_path)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.prev_path)
+
 # Based on https://pypi.python.org/pypi/filelock/.
 class LockedOpen(object):
     def __init__(self, file, *args, **kwargs):
@@ -126,7 +137,7 @@ class StreamQueue:
 
 def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=False):
     cmd = args[0]
-    logger.debug('Execute "{0}{1}{2}"'.format(cmd,
+    logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
                                               '' if len(args) == 1 else ' ',
                                               ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
@@ -168,6 +179,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=Fa
     return out_q.output
 
 
+# TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
 def find_file_or_dir(logger, main_work_dir, file_or_dir):
     search_dirs = tuple(
         os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in ('job/root', os.path.pardir))
@@ -370,6 +382,28 @@ def invoke_callbacks(event, args=None):
 
     # Return what event or instead/after callbacks returned.
     return ret
+
+
+def merge_confs(a, b):
+    for key in b:
+        if key in a:
+            # Perform sanity checks.
+            if not isinstance(key, str):
+                raise KeyError('Key is not string (its type is {"0"})'.format(type(key)))
+            elif not isinstance(a[key], type(b[key])):
+                raise ValueError(
+                    'Values of key "{0}" have different types ("{1}" and "{2}" respectively)'.format(key, type(a[key]),
+                                                                                                     type(b[key])))
+            # Recursively walk through sub-dictionaries.
+            elif isinstance(a[key], dict):
+                merge_confs(a[key], b[key])
+            # Update key value from b to a for all other types (numbers, strings, lists).
+            else:
+                a[key] = b[key]
+        # Just add new key-value from b to a.
+        else:
+            a[key] = b[key]
+    return a
 
 
 # TODO: replace report file with report everywhere.

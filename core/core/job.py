@@ -14,6 +14,8 @@ class Job:
         self.id = id
         self.logger.debug('Job identifier is "{0}"'.format(id))
         self.type = None
+        self.conf = None
+        self.sub_jobs = []
 
     def get_class(self):
         self.logger.info('Get job class')
