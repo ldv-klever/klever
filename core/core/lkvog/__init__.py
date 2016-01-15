@@ -163,7 +163,7 @@ class LKVOG(core.components.Component):
         strategy = self.conf['LKVOG strategy']['name']
 
         if strategy == 'separate modules':
-            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.module['name'])
+            self.verification_obj_desc['id'] = self.module['name']
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
             self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
