@@ -352,9 +352,8 @@ class EventModel:
         for label in process.labels.values():
             if label.interfaces:
                 for intf in label.interfaces:
-                    if intf in self.analysis.interfaces:
-                        intf_category, short_identifier = intf.split(".")
-                        nc.append(intf_category)
+                    intf_category, short_identifier = intf.split(".")
+                    nc.append(intf_category)
         if len(nc) > 0 and category not in nc:
             self.logger.debug("Process {} is intended to be matched with a category from the list: {}".
                               format(process.name, str(nc)))
