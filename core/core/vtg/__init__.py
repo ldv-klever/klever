@@ -137,7 +137,7 @@ class VTG(core.components.Component):
 
             work_dir = os.path.join(
                     os.path.relpath(
-                            os.path.join(self.conf['main working directory'],
+                            os.path.join(self.conf['source tree root'],
                                          '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
                                          abstract_task_desc['attrs'][1]['rule specification'])),
                     self.strategy.__name__.lower())
