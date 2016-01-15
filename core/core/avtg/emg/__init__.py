@@ -6,7 +6,7 @@ import core.utils
 
 from core.avtg.emg.interface_specs import CategorySpecification, ModuleSpecification
 from core.avtg.emg.event_spec import EventModel
-from core.avtg.emg.translator import stub, sequential
+from core.avtg.emg.translator import sequential
 
 
 class EMG(core.components.Component):
@@ -115,22 +115,12 @@ class EMG(core.components.Component):
         if "translator" in self.conf:
             translator_name = self.conf["translator"]
         else:
-            translator_name = "stub"
-            self.logger.info("Try to import translator {}".format(translator_name))
+            translator_name = "sequential"
+
         self.logger.info("Translation module {} has been chosen".format(translator_name))
 
         # Start translation
-        if translator_name == "stub":
-            stub.Translator(
-                self.logger,
-                self.conf,
-                avt,
-                self.module_interface_spec,
-                self.model,
-                headers_lines,
-                aspect_lines
-            )
-        elif translator_name == "sequential":
+        if translator_name == "sequential":
             sequential.Translator(
                 self.logger,
                 self.conf,

@@ -1,6 +1,5 @@
 import abc
 import os
-import re
 
 
 from core.avtg.emg.representations import Function, FunctionBody
@@ -69,13 +68,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             self.entry_point_name = "main"
 
-    def _import_mapping(self):
-        for grp in self.abstract_task_desc['grps']:
-            self.logger.debug('Add aspects to C files of group "{0}"'.format(grp['id']))
-            for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                if 'plugin aspects' not in cc_extra_full_desc_file:
-                    pass
-
     def _generate_aspects(self):
         aspect_dir = "aspects"
         self.logger.info("Create directory for aspect files {}".format("aspects"))
@@ -116,11 +108,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                 lines.extend([variable.declare(extern=True) + ";\n"])
                             else:
                                 lines.extend([variable.declare(extern=False) + ";\n"])
-                #lines.append("}\n\n")
-
-                # After file
-                #lines.append('after: file ("$this")\n')
-                #lines.append('{\n')
 
                 lines.append("/* EMG variable initialization */\n")
                 for file in self.files:

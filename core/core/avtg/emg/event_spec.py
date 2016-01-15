@@ -375,7 +375,6 @@ class EventModel:
         start = True
         while (new_size - old_size) > 0 or start:
             self.logger.debug("Begin comparison iteration")
-            tmp_match = {}
 
             # Match interfaces and containers
             for subprocess in [process.subprocesses[name] for name in process.subprocesses

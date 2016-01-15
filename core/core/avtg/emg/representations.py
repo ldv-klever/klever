@@ -639,8 +639,9 @@ class Label:
                 return "сompatible"
             else:
                 return "different"
-        elif self.signature and label.signature():
-            ret = self.signature.compare_signature(label.signature())
+        elif self.signature() and label.signature():
+            my_signature = self.signature()
+            ret = my_signature.compare_signature(label.signature())
             if not ret:
                 return "different"
             else:
@@ -930,7 +931,7 @@ class Subprocess:
         if "statements" in dic:
             self.statements = dic["statements"]
 
-         # Import process
+        # Import process
         if "process" in dic:
             self.process = dic["process"]
 

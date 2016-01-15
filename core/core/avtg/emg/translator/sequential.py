@@ -4,7 +4,31 @@ import re
 import graphviz
 
 from core.avtg.emg.translator import AbstractTranslator, Aspect
-from core.avtg.emg.representations import Signature, Function, Variable, ModelMap, Process
+from core.avtg.emg.representations import Signature, Function, Variable, ModelMap
+
+
+def text_processor(automaton, statement):
+        # Replace model functions
+        mm = ModelMap()
+        accesses = automaton.process.accesses()
+        statements = [statement]
+
+        for access in accesses:
+            options = accesses[access]
+            for option in options:
+                new_statements = []
+                for text in statements:
+                    if option.interface:
+                        signature = option.label.signature(None, option.interface.full_identifier)
+                        var = automaton.variable(option.label, option.interface.full_identifier)
+                    else:
+                        signature = option.label.signature()
+                        var = automaton.variable(option.label)
+                    tmp = mm.replace_models(option.label.name, signature, text)
+                    tmp = option.replace_with_variable(tmp, var)
+                    new_statements.append(tmp)
+                statements = new_statements
+        return statements
 
 
 class Translator(AbstractTranslator):
@@ -16,9 +40,6 @@ class Translator(AbstractTranslator):
         self.model_fsa = []
         self.entry_fsa = None
         self.__identifier_cnt = -1
-
-        # Set entry file
-        entry_file = self.entry_file
 
         # Determine how many instances is required for a model
         self.logger.info("Determine how many instances is required to add to an environment model for each process")
@@ -45,7 +66,8 @@ class Translator(AbstractTranslator):
                     if inst_access.interface.container and len(inst_access.interface.implementations) > 1:
                         relevant_multi_containers.append(inst_access.interface)
                     elif not inst_access.interface.container and len(inst_access.list_interface) > 1 and \
-                            inst_access.list_interface[0].container and len(inst_access.list_interface[0].implementations) > 1:
+                            inst_access.list_interface[0].container \
+                            and len(inst_access.list_interface[0].implementations) > 1:
                         relevant_multi_containers.append(inst_access.list_interface[0])
 
             if len(relevant_multi_containers) > 0:
@@ -94,7 +116,6 @@ class Translator(AbstractTranslator):
         # Generate model control function
         for automaton in self.model_fsa:
             self.generate_model_aspect(automaton)
-
 
         for automaton in self.model_fsa + self.callback_fsa + [self.entry_fsa]:
             for function in automaton.functions:
@@ -201,18 +222,18 @@ class Translator(AbstractTranslator):
         # Generate case for each transition
         cases = []
         for edge in automaton.cfa.state_transitions:
-            new = self.generate_case(edge)
+            new = self.generate_case(automaton, edge)
             cases.extend(new)
         if len(cases) == 0:
             raise RuntimeError("Cannot generate model control function for automata {} with process {}".
                                format(automaton.identifier, automaton.process.name))
 
         # Create function
-        model_signature = self.analysis.kernel_functions[self.process.name]["signature"]
+        model_signature = self.analysis.kernel_functions[automaton.process.name]["signature"]
         cf = Aspect(automaton.process.name, model_signature)
 
         # Calculate terminals
-        in_states = [transition["in"] for transition in self.state_transitions]
+        in_states = [transition["in"] for transition in automaton.fsa.state_transitions]
         terminals = [tr["out"] for tr in automaton.cfa.state_transitions if tr["out"] not in in_states]
         condition = ' || '.join(["{} == {}".format(automaton.state_variable.name, st) for st in terminals])
 
@@ -251,6 +272,8 @@ class Translator(AbstractTranslator):
         callbacks = []
 
         for access in accesses:
+            new_case = copy.deepcopy(case)
+
             if access.interface:
                 signature = access.interface.signature
 
@@ -263,7 +286,7 @@ class Translator(AbstractTranslator):
 
                     additional_check = self.convert_check_list(self.registration_intf_check(access.interface))
                     if additional_check:
-                        case["guard"] += " && ({})".format(additional_check)
+                        new_case["guard"] += " && ({})".format(additional_check)
                 else:
                     invoke = '(*' +\
                              access.access_with_variable(automaton.variable(access.label,
@@ -281,13 +304,13 @@ class Translator(AbstractTranslator):
 
                     additional_check = self.convert_check_list(self.registration_fnct_check(access.label.value))
                     if additional_check:
-                        case["guard"] += " && ({})".format(additional_check)
+                        new_case["guard"] += " && ({})".format(additional_check)
                 else:
                     invoke = access.access_with_variable(automaton.variable(access.label))
                     file = self.entry_file
                     check = True
 
-            callbacks.append([case, signature, invoke, file, check])
+            callbacks.append([new_case, signature, invoke, file, check])
 
         return callbacks
 
@@ -300,7 +323,7 @@ class Translator(AbstractTranslator):
         }
 
         if subprocess.type == "dispatch" and subprocess.callback:
-            callbacks = self.determine_callback_implementations(automaton, subprocess, copy.deepcopy(base_case))
+            callbacks = self.determine_callback_implementations(automaton, subprocess, base_case)
 
             for case, signature, invoke, file, check in callbacks:
                 # Generate function call and corresponding function
@@ -360,8 +383,8 @@ class Translator(AbstractTranslator):
                     )
 
                 # Free allocated memory
-                for var in [var for var in local_vars if var.signature.type_class in ["struct", "primitive"]
-                            and var.signature.pointer]:
+                for var in [var for var in local_vars if var.signature.type_class in ["struct", "primitive"] and
+                            var.signature.pointer]:
                     function.body.concatenate(var.free_pointer() + ";")
                 automaton.functions.append(function)
 
@@ -381,7 +404,7 @@ class Translator(AbstractTranslator):
                     # Generate dispatch function
                     df = Function(
                         "emg_{}_{}_dispatch_{}".format(automaton.identifier, automaton.process.name, subprocess.name),
-                        self.file,
+                        self.entry_file,
                         Signature("void %s(void)"),
                         False
                     )
@@ -438,7 +461,8 @@ class Translator(AbstractTranslator):
                                                                  for var, tr in checks]) + ')'
             else:
                 # Generate comment
-                base_case["body"].append("/* Dispatch {} is not expected by any process, skip it".format(subprocess.name))
+                base_case["body"].append("/* Dispatch {} is not expected by any process, skip it".
+                                         format(subprocess.name))
             cases.append(base_case)
         elif subprocess.type == "receive" and subprocess.callback:
             base_case["body"].append("/* Should wait for return value of {} here, "
@@ -455,12 +479,12 @@ class Translator(AbstractTranslator):
             # Add additional condition
             if subprocess.condition and len(subprocess.condition) > 0:
                 for statement in subprocess.condition:
-                    cn = self.text_processor(automaton, statement)
+                    cn = text_processor(automaton, statement)
                     base_case["guard"] = " && ".join([base_case["guard"]] + cn)
 
             if subprocess.statements:
                 for statement in subprocess.statements:
-                    base_case["body"].extend(self.text_processor(automaton, statement))
+                    base_case["body"].extend(text_processor(automaton, statement))
             cases.append(base_case)
         elif subprocess.type == "subprocess":
             # Generate comment
@@ -473,31 +497,8 @@ class Translator(AbstractTranslator):
             case["body"].append("{} = {};".format(automaton.state_variable.name, edge["out"]))
         return cases
 
-    def text_processor(self, automaton, statement):
-        # Replace model functions
-        mm = ModelMap()
-        accesses = automaton.process.accesses()
-        statements = [statement]
-
-        for access in accesses:
-            options = accesses[access]
-            for option in options:
-                new_statements = []
-                for text in statements:
-                    if option.interface:
-                        signature = option.label.signature(None, option.interface.full_identifier)
-                        var = automaton.variable(option.label, option.interface.full_identifier)
-                    else:
-                        signature = option.label.signature()
-                        var = automaton.variable(option.label)
-                    tmp = mm.replace_models(option.label.name, signature, text)
-                    tmp = option.replace_with_variable(tmp, var)
-                    new_statements.append(tmp)
-                statements = new_statements
-        return statements
-
     def registration_fnct_check(self, function_call):
-        name_re = re.compile("\s*\&?\s*(\w+)\s*$")
+        name_re = re.compile("\s*&?\s*(\w+)\s*$")
         check = []
 
         if name_re.match(function_call):
@@ -540,13 +541,6 @@ class Translator(AbstractTranslator):
             check.extend(self.registration_fnct_check(function_call))
         return check
 
-    def convert_check_list(self, check):
-        if len(check) > 0:
-            check = ' || '.join(check)
-        else:
-            check = None
-        return check
-
     def __collect_relevant_models(self, name):
         relevant = []
         if name in self.analysis.modules_functions:
@@ -555,7 +549,7 @@ class Translator(AbstractTranslator):
                     if called in self.analysis.modules_functions:
                         relevant.extend(self.__collect_relevant_models(called))
                     elif called in self.analysis.kernel_functions:
-                        relevant.append((called))
+                        relevant.append(called)
         return relevant
 
     def __extract_relevant_automata(self, automata_peers, peers, types):
@@ -575,7 +569,16 @@ class Translator(AbstractTranslator):
                     if not types or (types and subprocess.type in types):
                         automata_peers[automaton.identifier]["subprocesses"].append(peer["subprocess"])
 
-    def __generate_state_pair(self, automata_peers):
+    @staticmethod
+    def convert_check_list(check):
+        if len(check) > 0:
+            check = ' || '.join(check)
+        else:
+            check = None
+        return check
+
+    @staticmethod
+    def __generate_state_pair(automata_peers):
         check = []
         # Add state checks
         for ap in automata_peers.values():
@@ -853,8 +856,8 @@ class FSA:
     def save_fsa_digraph(self, file, identifier, process):
         graph = graphviz.Digraph(
             name=str(identifier),
-            comment= "Digraph for FSA {} based on process {} with category {}".
-                     format(identifier, process.name, process.category),
+            comment="Digraph for FSA {} based on process {} with category {}".
+                    format(identifier, process.name, process.category),
             format="png"
         )
 
@@ -883,7 +886,8 @@ class FSA:
             graph.node(str(index), "State {}".format(index))
 
         # Add edges
-        for transition in self.state_transitions:graph.edge(
+        for transition in self.state_transitions:
+            graph.edge(
                 str(transition["in"]),
                 str(transition["out"]),
                 "{}: {}".format(transition["subprocess"].type, transition["subprocess"].name)
