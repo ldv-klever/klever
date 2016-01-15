@@ -206,7 +206,10 @@ class LKBCE(core.components.Component):
         self.src_tree_root = os.path.abspath(self.linux_kernel['work src tree'])
 
     def fetch_linux_kernel_work_src_tree(self):
-        self.linux_kernel['work src tree'] = os.path.relpath(os.path.join(self.conf['main working directory'], 'linux'))
+        # Fetch Linux kernel working source tree to root directory of all Klever Core components for convenience and to
+        # keep it when several sub-jobs are decided (each such sub-job will have its own Linux kernel working source
+        # tree).
+        self.linux_kernel['work src tree'] = os.path.join(os.path.pardir, 'linux')
 
         self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel['work src tree']))
 
