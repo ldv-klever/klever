@@ -14,6 +14,17 @@ import queue
 _callback_kinds = ('before', 'instead', 'after')
 
 
+class Cd:
+    def __init__(self, path):
+        self.new_path = path
+
+    def __enter__(self):
+        self.prev_path = os.getcwd()
+        os.chdir(self.new_path)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.prev_path)
+
 # Based on https://pypi.python.org/pypi/filelock/.
 class LockedOpen(object):
     def __init__(self, file, *args, **kwargs):
@@ -168,6 +179,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=Fa
     return out_q.output
 
 
+# TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
 def find_file_or_dir(logger, main_work_dir, file_or_dir):
     search_dirs = tuple(
         os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in ('job/root', os.path.pardir))
