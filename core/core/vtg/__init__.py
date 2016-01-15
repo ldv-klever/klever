@@ -56,8 +56,10 @@ class VTG(core.components.Component):
         self.extract_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
-                          {'id': self.name,
-                           'attrs': self.common_prj_attrs},
+                          {
+                              'id': self.id,
+                              'attrs': self.common_prj_attrs
+                          },
                           self.mqs['report files'],
                           self.conf['main working directory'])
 

@@ -50,8 +50,10 @@ class LKBCE(core.components.Component):
         core.utils.invoke_callbacks(self.extract_hdr_arch)
         core.utils.report(self.logger,
                           'attrs',
-                          {'id': self.name,
-                           'attrs': self.linux_kernel['attrs']},
+                          {
+                              'id': self.id,
+                              'attrs': self.linux_kernel['attrs']
+                          },
                           self.mqs['report files'],
                           self.conf['main working directory'])
         # This file should be specified to collect build commands during configuring and building of the Linux kernel.

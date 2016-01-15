@@ -74,8 +74,10 @@ class LKVOG(core.components.Component):
         core.utils.invoke_callbacks(self.extract_common_prj_attrs)
         core.utils.report(self.logger,
                           'attrs',
-                          {'id': self.name,
-                           'attrs': self.linux_kernel_verification_objs_gen['attrs']},
+                          {
+                              'id': self.id,
+                              'attrs': self.linux_kernel_verification_objs_gen['attrs']
+                          },
                           self.mqs['report files'],
                           self.conf['main working directory'])
         self.launch_subcomponents((self.process_all_linux_kernel_build_cmd_descs,
@@ -108,7 +110,6 @@ class LKVOG(core.components.Component):
             else:
                 cluster_size = 0
             strategy = closure.Closure(self.logger, self.module_deps, cluster_size)
-
         elif strategy_name == 'scotch':
             self.module_deps = self.mqs['Linux kernel module deps'].get()
 
