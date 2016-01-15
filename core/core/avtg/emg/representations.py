@@ -557,6 +557,15 @@ class ModelMap:
         return ret
 
 
+class Implementation:
+
+    def __init__(self, value, file, base_container_id=None, base_container_value=None):
+        self.base_container = base_container_id
+        self.base_value = base_container_value
+        self.value = value
+        self.file = file
+
+
 class Access:
     def __init__(self, expression):
         self.expression = expression
@@ -564,10 +573,10 @@ class Access:
         self.interface = None
         self.list_access = None
         self.list_interface = None
-        self.re = re.compile(self.expression)
 
     def replace_with_variable(self, statement, variable):
-        if self.re.search(statement):
+        reg = re.compile(self.expression)
+        if reg.search(statement):
             expr = self.access_with_variable(variable)
             return statement.replace(self.expression, expr)
         else:
@@ -716,6 +725,9 @@ class Process:
                     if regex["regex"].search(process):
                         match += 1
                         process_type = regex["type"]
+                        if process_type == "dispatch":
+                            if "@{}".format(subprocess_name) in process:
+                                self.subprocesses[subprocess_name].broadcast = True
                         break
 
             if match == 0:
@@ -916,6 +928,7 @@ class Subprocess:
         self.peers = []
         self.condition = None
         self.statements = None
+        self.broadcast = False
 
         # Provided values
         self.name = name

@@ -54,7 +54,7 @@ class Translator(AbstractTranslator):
 
             # Determine is it necessary to make several instances
             if len(undefined_labels) > 0:
-                base_list = [copy.copy(process) for i in range(self.unmatched_constant)]
+                base_list = [copy.deepcopy(process) for i in range(self.unmatched_constant)]
             else:
                 base_list = [process]
 
@@ -70,8 +70,34 @@ class Translator(AbstractTranslator):
                             and len(inst_access.list_interface[0].implementations) > 1:
                         relevant_multi_containers.append(inst_access.list_interface[0])
 
+            # Copy instances for each implementation of a container
             if len(relevant_multi_containers) > 0:
-                raise NotImplementedError("Need to implement separation of interfaces into groups")
+                new_base_list = []
+                for interface in relevant_multi_containers:
+                    implementations = interface.implementations
+
+                    for instance in base_list:
+                        for implementation in implementations:
+                            newp = copy.deepcopy(instance)
+                            accs = newp.accesses()
+                            for access_list in accs.values():
+                                for access in access_list:
+                                    # Replace not even container itself but other collateral interface implementaations
+                                    if access.interface and len(access.interface.implementations) > 0 and \
+                                        len([impl for impl in access.interface.implementations
+                                             if impl.base_container == interface.full_identifier]) > 0:
+                                        new_values = [impl for impl in access.interface.implementations
+                                                      if impl.base_container == interface.full_identifier and
+                                                      impl.base_value == implementation.value]
+                                        if len(new_values) == 0:
+                                            access.interface.implementations = []
+                                        elif len(new_values) == 1:
+                                            access.interface.implementations = new_values
+                                        else:
+                                            raise RuntimeError("Seems two values spring from one variable")
+
+                            new_base_list.append(newp)
+                    base_list = new_base_list
 
             self.logger.info("Generate {} FSA instances for process {} with category {}".
                              format(len(base_list), process.name, process.category))
@@ -278,7 +304,7 @@ class Translator(AbstractTranslator):
                 signature = access.interface.signature
 
                 if len(access.interface.implementations) > 1:
-                    raise NotImplementedError("Cannot process fsm with implementations of a single interface")
+                    raise NotImplementedError("Cannot process fsm with several implementations of a single callback")
                 elif len(access.interface.implementations) == 1:
                     invoke = '(' + access.interface.implementations[0].value + ')'
                     file = access.interface.implementations[0].file
@@ -411,7 +437,6 @@ class Translator(AbstractTranslator):
 
                     body = []
                     for check in checks:
-                        # todo: Implement broadcast dispatch without return statement
                         tmp_body = []
 
                         # Guard
@@ -429,12 +454,19 @@ class Translator(AbstractTranslator):
                             guard = guard.replace("$ARG{}".format(index + 1), expr)
                             tmp_body.append("\t{} = {};".format(access, expr))
 
-                        tmp_body.extend(
-                            [
-                                "\treturn;",
-                                "}"
-                            ]
-                        )
+                        if subprocess.broadcast:
+                            tmp_body.extend(
+                                [
+                                    "}"
+                                ]
+                            )
+                        else:
+                            tmp_body.extend(
+                                [
+                                    "\treturn;",
+                                    "}"
+                                ]
+                            )
 
                         guard = check[1]["automata"].text_processor(guard)
                         if guard != "":

@@ -105,8 +105,6 @@ class EMG(core.components.Component):
         self.model = EventModel(self.logger, self.module_interface_spec, self.event_spec).model
         self.logger.info("An intermediate environment model has been prepared")
 
-        # todo: Dump an intermediate model to the file
-
         # Generate module interface specification
         self.logger.info("============== An intermediat model translation stage ==============")
 

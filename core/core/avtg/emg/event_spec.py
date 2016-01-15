@@ -111,9 +111,11 @@ class EventModel:
         # All default registrations and then deregistrations
         names = [name for name in self.model["entry"].subprocesses if name not in ["init", "exit"] and
                  self.model["entry"].subprocesses[name].type == "dispatch"]
+        for name in names:
+            self.model["entry"].subprocesses[name].broadcast = True
         names.sort()
         names.reverse()
-        dispatches.extend(["[{}]".format(name) for name in names])
+        dispatches.extend(["[@{}]".format(name) for name in names])
 
         # Generate conditions
         success = Subprocess('init_success', {})
@@ -586,25 +588,28 @@ class EventModel:
         self.logger.debug("Add dispatch {} to process {}".format(new_dispatch.name, self.model["entry"].name))
         self.model["entry"].subprocesses[new_dispatch.name] = new_dispatch
 
+        # todo: implement it taking into account that each parameter may have sevaral implementations
         # Add labels if necessary
-        for index in range(len(new_dispatch.parameters)):
-            parameter = new_dispatch.parameters[index]
-
-            # Get label
-            label, tail = process.extract_label_with_tail(parameter)
-
-            # Copy label to add to dispatcher process
-            new_label_name = "{}_{}_{}".format(process.name, label.name, process.identifier)
-            if new_label_name not in self.model["entry"].labels:
-                new_label = copy.deepcopy(label)
-                new_label.name = new_label_name
-                self.logger.debug("To process {} add new label {}".format(self.model["entry"].name, new_label_name))
-                self.model["entry"].labels[new_label.name] = new_label
-            else:
-                self.logger.debug("Process {} already has label {}".format(self.model["entry"].name, new_label_name))
-
-            # Replace parameter
-            new_dispatch.parameters[index] = parameter.replace(label.name, new_label_name)
+        #for index in range(len(new_dispatch.parameters)):
+        #    parameter = new_dispatch.parameters[index]
+        #
+        #    # Get label
+        #    label, tail = process.extract_label_with_tail(parameter)
+        #
+        #    # Copy label to add to dispatcher process
+        #    new_label_name = "{}_{}_{}".format(process.name, label.name, process.identifier)
+        #    if new_label_name not in self.model["entry"].labels:
+        #        new_label = copy.deepcopy(label)
+        #        new_label.name = new_label_name
+        #        self.logger.debug("To process {} add new label {}".format(self.model["entry"].name, new_label_name))
+        #        self.model["entry"].labels[new_label.name] = new_label
+        #    else:
+        #        self.logger.debug("Process {} already has label {}".format(self.model["entry"].name, new_label_name))
+        #
+        #    # Replace parameter
+        #    new_dispatch.parameters[index] = parameter.replace(label.name, new_label_name)
+        new_dispatch.parameters = []
+        receive.parameters = []
 
         # Replace condition
         if new_dispatch.condition:
