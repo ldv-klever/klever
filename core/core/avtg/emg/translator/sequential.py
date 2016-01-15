@@ -126,11 +126,12 @@ class Translator(AbstractTranslator):
             "\tswitch(ldv_undef_int()) {"
         ]
 
-        for index in range(len(self.callback_fsa)):
+        automata = self.callback_fsa + [self.entry_fsa]
+        for index in range(len(automata)):
             body.extend(
                 [
                     "\t\tcase {}: ".format(index),
-                    "\t\t\t{}();".format(self.callback_fsa[index].control_function.name),
+                    "\t\t\t{}();".format(automata[index].control_function.name),
                     "\t\tbreak;"
                 ]
             )
