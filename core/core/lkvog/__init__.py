@@ -42,7 +42,7 @@ def after_process_linux_kernel_raw_build_cmd(context):
             'Dump Linux kernel CC full description to file "{0}"'.format(
                 context.linux_kernel['build cmd']['full desc file']))
         with open(
-                os.path.join(context.conf['main working directory'], 'linux',
+                os.path.join(context.linux_kernel['work src tree'],
                              context.linux_kernel['build cmd']['full desc file']),
                 'w') as fp:
             json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
