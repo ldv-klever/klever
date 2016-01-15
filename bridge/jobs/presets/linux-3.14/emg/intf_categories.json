@@ -131,7 +131,7 @@
       },
       "callbacks": {
         "pre": {
-          "signature": "int %s (*%usb.pre%)(%usb.usb_interface%)"
+          "signature": "int %s (*%usb.pre%)(*%usb.usb_interface%)"
         },
         "post": {
           "signature": "int %s (*%usb.post%)(*%usb.usb_interface%)"
