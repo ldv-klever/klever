@@ -384,6 +384,28 @@ def invoke_callbacks(event, args=None):
     return ret
 
 
+def merge_confs(a, b):
+    for key in b:
+        if key in a:
+            # Perform sanity checks.
+            if not isinstance(key, str):
+                raise KeyError('Key is not string (its type is {"0"})'.format(type(key)))
+            elif not isinstance(a[key], type(b[key])):
+                raise ValueError(
+                    'Values of key "{0}" have different types ("{1}" and "{2}" respectively)'.format(key, type(a[key]),
+                                                                                                     type(b[key])))
+            # Recursively walk through sub-dictionaries.
+            elif isinstance(a[key], dict):
+                merge_confs(a[key], b[key])
+            # Update key value from b to a for all other types (numbers, strings, lists).
+            else:
+                a[key] = b[key]
+        # Just add new key-value from b to a.
+        else:
+            a[key] = b[key]
+    return a
+
+
 # TODO: replace report file with report everywhere.
 def report(logger, type, report, mq=None, dir=None, suffix=None):
     logger.debug('Create {0} report'.format(type))
