@@ -266,11 +266,11 @@
       },
       "callbacks": {
         "handler": {
-          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, %interrupt.data%)",
+          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, *%interrupt.data%)",
           "interrupt context": true
         },
         "thread": {
-          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, %interrupt.data%)"
+          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, *%interrupt.data%)"
         }
       }
     }
