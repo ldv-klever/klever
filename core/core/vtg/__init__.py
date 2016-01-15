@@ -146,7 +146,7 @@ class VTG(core.components.Component):
 
             self.conf['abstract task desc'] = abstract_task_desc
 
-            p = self.strategy(self.conf, self.logger, self.name, self.callbacks, self.mqs,
+            p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
                               work_dir, abstract_task_desc['attrs'], True, True)
             try:
