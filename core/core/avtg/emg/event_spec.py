@@ -222,10 +222,10 @@ class EventModel:
 
                 if label_map["native interfaces"] > best_map["native interfaces"]:
                     do = True
-                elif label_map["matched callbacks"] > best_map["matched callbacks"] and \
-                        label_map["unmatched callbacks"] <= best_map["unmatched callbacks"]:
+                elif len(label_map["matched callbacks"]) > len(best_map["matched callbacks"]) and \
+                        len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
                     do = True
-                elif label_map["unmatched callbacks"] < best_map["unmatched callbacks"]:
+                elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
                     do = True
                 else:
                     do = False
