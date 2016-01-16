@@ -13,10 +13,14 @@ class ASE(core.components.Component):
 
         self.request_arg_signs()
 
-        # We could obtain the same argument signatures, so remove duplicates.
-        with open('arg signs') as fp:
-            arg_signs = set(fp.read().splitlines())
-        self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
+        arg_signs = []
+
+        if os.path.isfile('arg signs'):
+            self.logger.info('Process obtained argument signatures from file "arg signs"')
+            # We could obtain the same argument signatures, so remove duplicates.
+            with open('arg signs') as fp:
+                arg_signs = set(fp.read().splitlines())
+            self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
 
         # Convert each argument signature (that is represented as C identifier) into:
         # * the same identifier but with leading "_" for concatenation with other identifiers ("_" allows to separate
