@@ -241,9 +241,10 @@ class SA(core.components.Component):
                 if not self.collection["init"][path]:
                     self.collection["init"][path] = func
                     self.logger.debug("Extracted Init function {} in {}".format(func, path))
-                else:
-                    raise ValueError("Module cannot contain two initialization functions but file {} contains".
-                                     format(path))
+                # todo: code below does not work properly
+                #else:
+                #    raise ValueError("Module cannot contain two initialization functions but file {} contains".
+                #                     format(path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, init_file))
 
@@ -256,9 +257,10 @@ class SA(core.components.Component):
                 if not self.collection["exit"][path]:
                     self.collection["exit"][path] = func
                     self.logger.debug("Extracted Exit function {} in {}".format(func, path))
-                else:
-                    raise ValueError("Module cannot contain two exit functions but file {} contains".
-                                     format(path))
+                # todo: code below does not work properly
+                #else:
+                #    raise ValueError("Module cannot contain two exit functions but file {} contains".
+                #                     format(path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, exit_file))
 
