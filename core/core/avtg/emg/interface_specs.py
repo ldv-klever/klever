@@ -233,33 +233,15 @@ class ModuleSpecification(CategorySpecification):
         self.__import_source_analysis()
         self.logger.info("Results of source code analysis are imported")
 
-        # Remove categories without implementations
-        self.logger.info("Remove interface categories which has no interface implementations")
-        categories = list(self.categories.keys())
-        for category in categories:
-            relevant_functions = []
-            for name in self.kernel_functions:
-                if self.kernel_functions[name]["signature"].return_value.interface and \
-                        self.kernel_functions[name]["signature"].return_value.interface.category == category:
-                    relevant_functions.append(name)
-                else:
-                    for parameter in self.kernel_functions[name]["signature"].parameters:
-                        if parameter.interface and \
-                                parameter.interface.category == category:
-                            relevant_functions.append(name)
-                            break
+        # Remove categories without callbacks or relevant interfaces
+        self.__remove_categories()
 
-            if len(relevant_functions) == 0:
-                self.logger.debug("Remove interface category {}".format(category))
-                intfs = [intf for intf in (list(self.categories[category]["containers"].keys()) +
-                                           list(self.categories[category]["resources"].keys()) +
-                                           list(self.categories[category]["callbacks"].keys()))]
-                for intf in intfs:
-                    if "{}.{}".format(category, intf) in self.interfaces:
-                        del self.interfaces["{}.{}".format(category, intf)]
-                del self.categories[category]
-            else:
-                self.logger.debug("Keep interface category {}".format(category))
+    def save_to_file(self, file):
+        self.logger.info("First convert specification to json and then save")
+        content = json.dumps(self, indent=4, sort_keys=True, cls=SpecEncoder)
+
+        with open(file, "w") as fh:
+            fh.write(content)
 
     def __import_source_analysis(self):
         self.logger.info("Start processing source code amnalysis raw data")
@@ -395,7 +377,8 @@ class ModuleSpecification(CategorySpecification):
                               format(callback_id, structure.interface.category))
             self.__match_function_parameters(callback.signature)
 
-            for parameter in [p for p in callback.signature.parameters if not p.interface and p.type_class == "struct"]:
+            for parameter in [p for p in callback.signature.parameters if p and not p.interface and
+                              p.type_class == "struct"]:
                 cnds = []
                 # Check relevance of creating new resource
                 for function in [self.kernel_functions[name].signature for name in self.kernel_functions] +\
@@ -710,12 +693,57 @@ class ModuleSpecification(CategorySpecification):
                                               format(variable, path, expression, identifier))
                             break
 
-    def save_to_file(self, file):
-        self.logger.info("First convert specification to json and then save")
-        content = json.dumps(self, indent=4, sort_keys=True, cls=SpecEncoder)
+    def __remove_categories(self):
+        # Remove categories without implementations
+        self.logger.info("Remove interface categories which has no interface implementations or relevant interfaces")
+        categories = list(self.categories.keys())
+        for category in categories:
+            relevant_functions = []
+            relevant_interfaces = []
+            ref_categories = []
 
-        with open(file, "w") as fh:
-            fh.write(content)
+            # If category interfaces are not used in kernel functions it means that this structure is not transferred to
+            # the kernel or just source analysis cannot find all containers
+            for name in self.kernel_functions:
+                if self.kernel_functions[name]["signature"].return_value.interface and \
+                        self.kernel_functions[name]["signature"].return_value.interface.category == category:
+                    relevant_functions.append(name)
+                    relevant_interfaces.append(self.kernel_functions[name]["signature"].return_value.interface)
+                else:
+                    for parameter in self.kernel_functions[name]["signature"].parameters:
+                        if parameter.interface and \
+                                parameter.interface.category == category:
+                            relevant_functions.append(name)
+                            relevant_interfaces.append(parameter.interface)
+                            break
+
+            # Check interfaces from the other categories
+            for cat in [self.categories[name] for name in self.categories if name != category]:
+                # Check that callbacks from other categories refer interfaces from the category
+                for callback in cat["callbacks"].values():
+                    if callback.signature.return_value and callback.signature.return_value.interface and \
+                            callback.signature.return_value.interface.category == category:
+                        relevant_interfaces.append(callback.signature.return_value.interface)
+                        ref_categories.append(callback.category)
+
+                    for parameter in [p for p in callback.signature.parameters if p and p.interface and
+                                      p.interface.category == category]:
+                        relevant_interfaces.append(parameter.interface)
+                        ref_categories.append(callback.category)
+
+                # todo: Check that containers from other categories refer interfaces from this category
+
+            if len(relevant_functions) == 0 and len(relevant_interfaces) == 0:
+                self.logger.debug("Remove interface category {}".format(category))
+                intfs = [intf for intf in (list(self.categories[category]["containers"].keys()) +
+                                           list(self.categories[category]["resources"].keys()) +
+                                           list(self.categories[category]["callbacks"].keys()))]
+                for intf in intfs:
+                    if "{}.{}".format(category, intf) in self.interfaces:
+                        del self.interfaces["{}.{}".format(category, intf)]
+                del self.categories[category]
+            else:
+                self.logger.debug("Keep interface category {}".format(category))
 
 
 class SpecEncoder(json.JSONEncoder):
