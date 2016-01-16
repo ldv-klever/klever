@@ -79,6 +79,7 @@ class ABKM(core.components.Component):
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
                 extra_c_file['C file'] = trimmed_c_file
 
+            # TODO: CIL can't proces files with spaces in their names. Try to screen spaces.
             with open('cil input files.txt', 'w') as fp:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
                     fp.write('{0}\n'.format(extra_c_file['C file']))
