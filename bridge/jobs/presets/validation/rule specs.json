@@ -205,6 +205,22 @@
         ]
       }
     },
+    "linux:module:next": {
+      "aliases": [
+        "8"
+      ],
+      "description": "...",
+      "bug kinds": [],
+      "template": "Common for Linux kernel modules",
+      "RSG": {
+        "models": [
+          "module.next.c"
+        ],
+        "aspects": [
+          "module.next.aspect"
+        ]
+      }
+    },
     "linux:mutex": {
       "aliases": [
         "32"
@@ -238,6 +254,23 @@
         "templates": [
           "mutex.c.tmpl",
           "mutex.aspect.tmpl"
+        ]
+      }
+    },
+    "linux:mutex:next": {
+      "description": "...",
+      "bug kinds": [
+        "one thread:double acquisition",
+        "one thread:unreleased at exit"
+      ],
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {
+        "request aspect": "mutex.next.request.aspect"
+      },
+      "TR": {
+        "templates": [
+          "mutex.next.c.tmpl",
+          "mutex.next.aspect.tmpl"
         ]
       }
     },
