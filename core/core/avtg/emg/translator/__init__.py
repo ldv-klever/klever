@@ -81,14 +81,18 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines = list()
 
                 # Before file
-                lines.append('after: file ("$this")\n')
+                lines.append('before: file ("$this")\n')
                 lines.append('{\n')
 
                 if len(self.additional_headers) > 0:
                     lines.append("/* EMG additional headers */\n")
                     lines.extend(self.additional_headers)
                     lines.append("\n")
+                lines.append('}\n')
 
+                # After file
+                lines.append('after: file ("$this")\n')
+                lines.append('{\n')
                 lines.append("/* EMG Function declarations */\n")
                 for file in self.files:
                     if "functions" in self.files[file]:
