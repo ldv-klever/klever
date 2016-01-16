@@ -1,6 +1,6 @@
 import copy
 
-from core.avtg.emg.representations import Signature, Process, Subprocess, Label, Access, process_parse
+from core.avtg.emg.representations import Signature, Interface, Process, Subprocess, Label, Access, process_parse
 
 
 class EventModel:
@@ -205,26 +205,32 @@ class EventModel:
         estimations = self.__estimate_processes(category)
 
         self.logger.info("Choose process to call callbacks from category {}".format(category))
-        best_process = None
-        best_map = {
-            "matched labels": {},
-            "unmatched labels": [],
-            "matched callbacks": [],
-            "unmatched callbacks": [],
-            "native interfaces": 0
-        }
+        # First random
+        best_process = self.events["environment processes"][[name for name in estimations if estimations[name]][0]]
+        best_map = estimations[best_process.name]
 
         for process in [self.events["environment processes"][name] for name in estimations]:
             label_map = estimations[process.name]
-            if label_map and len(label_map["matched callbacks"]) > 0 and len(label_map["uncalled callbacks"]) == 0:
+            if label_map and len(label_map["matched callbacks"]) > 0 and len(label_map["uncalled callbacks"]) == 0 and \
+                             len(label_map["unmatched labels"]) == 0:
                 self.logger.info("Matching process {} for category {}, it has:".format(process.name, category))
                 self.logger.info("Matching labels: {}".format(str(label_map["matched labels"])))
                 self.logger.info("Unmatched labels: {}".format(str(label_map["unmatched labels"])))
+                self.logger.info("Matched callbacks: {}".format(str(label_map["matched callbacks"])))
+                self.logger.info("Unmatched callbacks: {}".format(str(label_map["unmatched callbacks"])))
                 self.logger.info("Native interfaces: {}".format(str(label_map["native interfaces"])))
-                if (len(label_map["unmatched labels"]) == 0 and
-                        (not best_process or len(process.subprocesses) > len(best_process.subprocesses)) and
-                        label_map["native interfaces"] >= best_map["native interfaces"]) or\
-                        label_map["native interfaces"] > best_map["native interfaces"]:
+
+                if label_map["native interfaces"] > best_map["native interfaces"]:
+                    do = True
+                elif label_map["matched callbacks"] > best_map["matched callbacks"] and \
+                        label_map["unmatched callbacks"] <= best_map["unmatched callbacks"]:
+                    do = True
+                elif label_map["unmatched callbacks"] < best_map["unmatched callbacks"]:
+                    do = True
+                else:
+                    do = False
+
+                if do:
                     best_map = label_map
                     best_process = process
                     self.logger.debug("Set process {} for category {} as the best one at the moment".
@@ -447,17 +453,20 @@ class EventModel:
             matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
             unmatched_callbacks = [cl for cl in process.callbacks if cl.name not in label_map["matched labels"]]
             if len(matched_containers) > 0 and len(unmatched_callbacks) > 0:
-                for container in matched_containers:
-                    container_intf = self.analysis.interfaces[container.interface]
-                    for field in container_intf.fields.values:
-                        name = "{}.{}".format(category, field)
-                        if name in self.analysis.interfaces and self.analysis.interfaces[name].callback:
-                            self.add_label_match(label_map, unmatched_callbacks[0], name)
+                for callback in unmatched_callbacks:
+                    for container in matched_containers:
+                        for container_intf in [self.analysis.interfaces[intf] for intf in
+                                               label_map["matched labels"][container.name]]:
+                            for field in container_intf.fields.values():
+                                name = "{}.{}".format(category, field)
+                                if name in self.analysis.interfaces and self.analysis.interfaces[name].callback:
+                                    self.add_label_match(label_map, callback, name)
             elif len(unmatched_callbacks) > 0:
-                for callback in [self.analysis.categories[category]["callbacks"][name] for name in
-                                 self.analysis.categories[category]["callbacks"]
-                                 if self.analysis.categories[category]["callbacks"][name].callback]:
-                    self.add_label_match(label_map, unmatched_callbacks[0], callback.full_identifier)
+                for callback in unmatched_callbacks:
+                    for intf in [self.analysis.categories[category]["callbacks"][name] for name in
+                                     self.analysis.categories[category]["callbacks"]
+                                     if self.analysis.categories[category]["callbacks"][name].callback]:
+                        self.add_label_match(label_map, callback, intf.full_identifier)
 
             # Discard unmatched labels
             label_map["unmatched labels"] = [label for label in process.labels
@@ -481,8 +490,8 @@ class EventModel:
                     for callback in callbacks:
                         if callback not in label_map["matched callbacks"]:
                             label_map["matched callbacks"].append(callback)
-                elif label.container and tail and label.name not in label_map["matched labels"]:
-                    if subprocess.callback not in label_map["unmatched callbacks"]:
+                elif label.container and tail and label.name not in label_map["matched labels"] and \
+                            subprocess.callback not in label_map["unmatched callbacks"]:
                         label_map["unmatched callbacks"].append(subprocess.callback)
                 elif label.container and tail and label.name in label_map["matched labels"]:
                     for intf in label_map["matched labels"][label.name]:
@@ -530,7 +539,15 @@ class EventModel:
         else:
             tail = tail[1:]
 
-        matched = [interface]
+        if type(interface) is Interface:
+            matched = [interface]
+        elif type(interface) is str and interface in self.analysis.interfaces:
+            matched = [self.analysis.interfaces[interface]]
+        elif type(interface) is str and interface not in self.analysis.interfaces:
+            return None
+        else:
+            raise TypeError("Expect Interface object but not {}".format(str(type(interface))))
+
         for index in range(len(tail)):
             field = tail[index]
             if field not in matched[-1].fields.values():
@@ -731,22 +748,19 @@ class EventModel:
                             if len(tail) > 0:
                                 intfs = self.__resolve_interface(interface, tail)
                                 if intfs:
+                                    list_access = []
+                                    for index in range(len(intfs)):
+                                        if index == 0:
+                                            list_access.append(label.name)
+                                        else:
+                                            field = list(intfs[index - 1].fields.keys()) \
+                                                [list(intfs[index - 1].fields.values()).index(intfs[index].identifier)]
+                                            list_access.append(field)
                                     new.interface = intfs[-1]
+                                    new.list_interface = intfs
                                 else:
                                     raise ValueError("Cannot resolve access {} with a base interface {} in process {}".
                                                      format(access, interface, process.name))
-
-                                list_access = ""
-                                for index in range(len(intfs)):
-                                    if index == 0:
-                                        list_access.append(label.name)
-                                    else:
-                                        field = list(intfs[index - 1].fields.keys())\
-                                                [list(intfs[index - 1].fields.values()).index(intfs[index].identifier)]
-                                        list_access.append(field)
-
-                                new.list_access = list_access
-                                new.list_interface = intfs
                             else:
                                 new.interface = self.analysis.interfaces[interface]
                                 new.list_access = [label.name]
