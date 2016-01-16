@@ -472,7 +472,8 @@
     "usb_instance": {
       "labels": {
         "container": {
-          "container": true
+          "container": true,
+          "interface": ["usb.usb_driver"]
         },
         "resource": {
           "resource": true
@@ -554,6 +555,82 @@
           "condition": ["%probe_retval% == 0"]
         },
         "null": {}
+      }
+    },
+    "io_instance": {
+      "labels": {
+        "container": {
+          "container": true
+        },
+        "resource": {
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        },
+        "opened": {
+          "signature": "int %s",
+          "value": "1"
+        }
+      },
+      "process": "(!register).<init>.{call}",
+      "subprocesses": {
+        "call": {
+          "process": "[callback].{call} | <positive_open>.[close].<after_close>.{call} | <negative_open>.(<free>.(deregister) | [open].(ret_open).{call})"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "close": {
+          "callback": "%container.close%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "open": {
+          "callback": "%container.open%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_open": {
+          "callback": "%container.open%",
+          "callback return value": "%opened%"
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ZINIT(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        },
+        "after_close": {
+          "statements": [
+            "%opened% = 1;"
+          ]
+        },
+        "positive_open": {
+          "condition": ["%opened% == 0"]
+        },
+        "negative_open": {
+          "condition": ["%opened% != 0"]
+        }
       }
     },
     "dummy_resourceless_instance": {

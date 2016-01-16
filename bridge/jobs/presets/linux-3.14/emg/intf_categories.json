@@ -221,13 +221,27 @@
         }
       }
     },
-    "module": {
-      "callbacks": {
-        "init": {
-          "signature": "int %s (*%module.init%)(void)"
+    "file_operations": {
+      "containers": {
+        "file_operations": {
+          "signature": "struct file_operations %s",
+          "header": "include/linux/fs.h",
+          "fields": {
+            "release": "close"
+          }
+        }
+      },
+      "resources": {
+        "file": {
+          "signature": "struct file %s"
         },
-        "exit": {
-          "signature": "void (*%module.exit%)(void)"
+        "inode": {
+          "signature": "struct inode %s"
+        }
+      },
+      "callbacks": {
+        "close": {
+          "signature": "$ (*%file_operations.close%) (*%file_operations.inode%, *%file_operations.file%)"
         }
       }
     },
