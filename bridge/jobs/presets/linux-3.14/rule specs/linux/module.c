@@ -1,84 +1,76 @@
-/* NOTE: include headers by analogy with mutex.c. */
-#include <linux/kernel.h>
-#include <linux/module.h>
 #include <verifier/rcv.h>
 
-/* Module reference counter that shouldn't go lower its initial state. We do not distinguish different modules. */
-int ldv_module_refcounter;
+/* Module locks counter (1 is the initial state; it shouldn't go lower). We do not distinguish different modules */
+int ldv_module_refcounter = 1;
 
-/* MODEL_FUNC_DEF Increment module reference counter unless module pointer is NULL */
+/* MODEL_FUNC_DEF Increment module reference counter (unless the module pointer is NULL) */
 void ldv_module_get(struct module *module)
 {
-	/* OTHER Do nothing if module pointer is NULL */
+	/* OTHER Do nothing if the module pointer is NULL */
 	if (module)
 	{
-		/* CHANGE_STATE Increment module reference counter */
+		/* LDV_COMMENT_CHANGE_STATE Increment module reference counter */
 		ldv_module_refcounter++;
 	}
 }
 
-/* MODEL_FUNC_DEF Nondeterministically increment module reference counter unless module pointer is NULL */
+/* MODEL_FUNC_DEF Try to get module. The operation may succeed and return 1, or fail and return 0 */
 int ldv_try_module_get(struct module *module)
 {
-	/* OTHER Do nothing if module pointer is NULL */
+	int module_get_succeeded;
+
+	/* OTHER Do nothing if the module pointer is NULL */
 	if (module)
 	{
-		/* OTHER Nondeterministically increment module reference counter */
-		if (ldv_undef_int())
+		/* OTHER Model success or failure of getting the module */
+		module_get_succeeded = ldv_undef_int();
+
+		if (module_get_succeeded == 1)
 		{
-			/* CHANGE_STATE Increment module reference counter */
+			/* LDV_COMMENT_CHANGE_STATE Increment module reference counter */
 			ldv_module_refcounter++;
-			/* RETURN Successfully incremented module reference counter */
+			/* RETURN Return 1 telling about success */
 			return 1;
 		}
 		else
 		{
-			/* RETURN Could not increment module reference counter */
+			/* RETURN Return 0 telling that module get has failed */
 			return 0;
 		}
 	}
 }
 
-/* MODEL_FUNC_DEF Check that module reference counter is greater than its initial state and decrement it unless  module pointer is NULL */
+/* MODEL_FUNC_DEF Put module (unless module pointer is zero). Check if the module reference counter was greater than zero */
 void ldv_module_put(struct module *module)
 {
-	/* OTHER Do nothing if module pointer is NULL */
+	/* OTHER Do nothing if the module pointer is NULL */
 	if (module)
 	{
-		/* ASSERT Decremented module reference counter should be greater than its initial state */
-		ldv_assert(ldv_module_refcounter > 0);
-		/* CHANGE_STATE Decrement module reference counter */
+		/* ASSERT This assertion fails if the module was put more times than it was got */
+		ldv_assert(ldv_module_refcounter > 1);
+		/* LDV_COMMENT_CHANGE_STATE Decrease reference counter thus putting the module */
 		ldv_module_refcounter--;
 	}
 }
 
-/* MODEL_FUNC_DEF Check that module reference counter is greater than its initial state, decrement it and stop execution */
+/* MODEL_FUNC_DEF Put the module and stop execution */
 void ldv_module_put_and_exit(void)
 {
-	/* MODEL_FUNC_CALL Decrement module reference counter */ 
-	ldv_module_put((struct module *)1);
+	ldv_module_put((struct module*)1);
 	/* OTHER Stop execution */
-	ldv_assume(0);
+	LDV_STOP: goto LDV_STOP;
 }
 
-/* MODEL_FUNC_DEF Get module reference counter */
+/* MODEL_FUNC_DEF Get the reference counter of the module */
 unsigned int ldv_module_refcount(void)
 {
-	/* RETURN Return module reference counter */
-	return ldv_module_refcounter;
+	/* RETURN Return reference counter */
+	return ldv_module_refcounter - 1;
 }
 
-/* NOTE: use 0 as initial value instead of 1 and perform initialization in ldv_initialize() rather than globally (like in mutex.c). */
-/* MODEL_FUNC_DEF Set module reference counter initial value at the beginning */
-void ldv_initialize(void)
-{
-	/* CHANGE_STATE Set module reference counter initial value at the beginning */
-	ldv_module_refcounter = 0;
-}
-
-/* MODEL_FUNC_DEF Check that module reference counter has its initial value at the end */
+/* MODEL_FUNC_DEF At the end of execution, module reference counter must be the same as at the beginning */
 void ldv_check_final_state(void)
 {
-	/* ASSERT Module reference counter should be decremente to its initial value before finishing operation */
-	ldv_assert(ldv_module_refcounter == 0);
+	/* ASSERT If this assertion is violated, then the module was put somewhere duiring the execution, and wasn't got! */
+	ldv_assert(ldv_module_refcounter == 1);
 }
