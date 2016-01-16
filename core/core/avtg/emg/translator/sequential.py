@@ -362,6 +362,9 @@ class Translator(AbstractTranslator):
                 # Determine parameters
                 for index in range(len(signature.parameters)):
                     parameter = signature.parameters[index]
+                    expression = None
+
+                    # Try to find existing variable
                     if parameter.interface:
                         for candidate in subprocess.parameters:
                             accesses = automaton.process.resolve_access(candidate)
@@ -369,14 +372,19 @@ class Translator(AbstractTranslator):
                                      acc.interface.full_identifier == parameter.interface.full_identifier]
                             if len(suits) == 1:
                                 var = automaton.variable(suits[0].label, parameter.interface.full_identifier)
-                                params.append(suits[0].access_with_variable(var))
+                                expression = suits[0].access_with_variable(var)
                                 break
                             elif len(suits) > 1:
                                 raise NotImplementedError("Cannot set two different parameters")
-                    else:
+
+                    # Generate new variable
+                    if not expression:
                         tmp = Variable("emg_param_{}".format(index), None, signature.parameters[index], False)
                         local_vars.append(tmp)
-                        params.append(tmp.name)
+                        expression = tmp.name
+
+                    # Add string
+                    params.append(expression)
 
                 # Generate special function with call
                 function = Function(fname, file, Signature("void {}(void)".format(fname)), True)
