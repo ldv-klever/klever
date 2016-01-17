@@ -33,11 +33,111 @@
     {
       "Linux kernel": {
         "Git repository": {
+          "commit": "790cc82~"
+        },
+        "modules": ["drivers/input/misc/arizona-haptics.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "511f1df~"
+        },
+        "modules": ["drivers/net/ppp/ppp_generic.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "44f6943~"
+        },
+        "modules": ["net/sunrpc/sunrpc.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
           "commit": "7fc1924~"
         },
         "modules": ["drivers/hid/hid.ko"]
       },
       "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "60b3593~"
+        },
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "5c256d21~"
+        },
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "ac4de08~"
+        },
+        "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "0eff4d6~"
+        },
+        "modules": ["sound/soc/codecs/snd-soc-wm8994.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "214c97a12~"
+        },
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "063579d~"
+        },
+        "modules": ["drivers/w1/wire.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "21a018a~"
+        },
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe"
     },
     {
@@ -49,6 +149,56 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe"
-    }    
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "9aaf967~"
+        },
+        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "faa4cc1~"
+        },
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "208aeaa~"
+        },
+        "modules": ["drivers/net/usb/kaweth.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "7ce7751~"
+        },
+        "modules": ["drivers/usb/serial/opticon.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "ef70c60~"
+        },
+        "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko", "drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    }
   ]
 }
