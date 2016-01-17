@@ -66,15 +66,19 @@
     },
     "request_threaded_irq": {
       "signature": "int %s request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
-      "header": "include/linux/timer.h"
+      "header": "include/linux/interrupt.h"
+    },
+    "request_irq": {
+      "signature": "int %s request_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
+      "header": "include/linux/interrupt.h"
     },
     "devm_request_threaded_irq": {
       "signature": "int %s devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
-      "header": "include/linux/timer.h"
+      "header": "include/linux/interrupt.h"
     },
     "free_irq": {
       "signature": "$ free_irq(%interrupt.line%, %interrupt.data%)",
-      "header": "include/linux/timer.h"
+      "header": "include/linux/interrupt.h"
     }
   },
   "kernel macro-functions": {
@@ -127,7 +131,7 @@
       },
       "callbacks": {
         "pre": {
-          "signature": "int %s (*%usb.pre%)(%usb.usb_interface%)"
+          "signature": "int %s (*%usb.pre%)(*%usb.usb_interface%)"
         },
         "post": {
           "signature": "int %s (*%usb.post%)(*%usb.usb_interface%)"
@@ -217,13 +221,27 @@
         }
       }
     },
-    "module": {
-      "callbacks": {
-        "init": {
-          "signature": "int %s (*%module.init%)(void)"
+    "file_operations": {
+      "containers": {
+        "file_operations": {
+          "signature": "struct file_operations %s",
+          "header": "include/linux/fs.h",
+          "fields": {
+            "release": "close"
+          }
+        }
+      },
+      "resources": {
+        "file": {
+          "signature": "struct file %s"
         },
-        "exit": {
-          "signature": "void (*%module.exit%)(void)"
+        "inode": {
+          "signature": "struct inode %s"
+        }
+      },
+      "callbacks": {
+        "close": {
+          "signature": "$ (*%file_operations.close%) (*%file_operations.inode%, *%file_operations.file%)"
         }
       }
     },
@@ -245,7 +263,7 @@
       },
       "callbacks": {
         "handler": {
-          "signature": "void (*%interrupt.handler%)(%interrupt.data%)",
+          "signature": "void (*%timer.handler%)(%timer.data%)",
           "interrupt context": true
         }
       }
@@ -262,11 +280,11 @@
       },
       "callbacks": {
         "handler": {
-          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, %interrupt.data%)",
+          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, *%interrupt.data%)",
           "interrupt context": true
         },
         "thread": {
-          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, %interrupt.data%)"
+          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, *%interrupt.data%)"
         }
       }
     }
