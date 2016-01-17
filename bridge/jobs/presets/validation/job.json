@@ -33,7 +33,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "790cc82~"
+          "commit": "f3713fd"
         },
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
@@ -43,7 +43,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "511f1df~"
+          "commit": "b101a7a"
         },
         "modules": ["drivers/net/ppp/ppp_generic.ko"]
       },
@@ -53,7 +53,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "44f6943~"
+          "commit": "e8b367f"
         },
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
@@ -63,7 +63,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "7fc1924~"
+          "commit": "4c7b417"
         },
         "modules": ["drivers/hid/hid.ko"]
       },
@@ -73,7 +73,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "60b3593~"
+          "commit": "8729134"
         },
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
@@ -83,7 +83,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "5c256d21~"
+          "commit": "df074ad"
         },
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
@@ -93,7 +93,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "ac4de08~"
+          "commit": "97c3557"
         },
         "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
       },
@@ -103,7 +103,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "0eff4d6~"
+          "commit": "1040b23"
         },
         "modules": ["sound/soc/codecs/snd-soc-wm8994.ko"]
       },
@@ -113,7 +113,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "214c97a12~"
+          "commit": "fed533b"
         },
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
@@ -123,7 +123,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "063579d~"
+          "commit": "57a30a4"
         },
         "modules": ["drivers/w1/wire.ko"]
       },
@@ -133,7 +133,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "21a018a~"
+          "commit": "c27f087"
         },
         "modules": ["net/tipc/tipc.ko"]
       },
@@ -143,7 +143,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "ae3f348~"
+          "commit": "4a2025d"
         },
         "modules": ["fs/nfs/nfs.ko"]
       },
@@ -153,7 +153,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "9aaf967~"
+          "commit": "017ff97"
         },
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
@@ -163,7 +163,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "faa4cc1~"
+          "commit": "2143af3"
         },
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
@@ -173,7 +173,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "208aeaa~"
+          "commit": "df665bf"
         },
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
@@ -183,7 +183,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "7ce7751~"
+          "commit": "4483562"
         },
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
@@ -193,7 +193,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "ef70c60~"
+          "commit": "6f7fa58"
         },
         "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko", "drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
       },
