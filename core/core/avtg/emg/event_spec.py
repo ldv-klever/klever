@@ -134,7 +134,7 @@ class EventModel:
         self.model["entry"].subprocesses['stop'] = stop
 
         # Add subprocesses finally
-        self.model["entry"].process = "[init].(ret_init).({} | <init_failed>).[exit].<stop>".\
+        self.model["entry"].process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.[exit].<stop>)".\
                                       format('.'.join(dispatches))
         self.model["entry"].process_ast = process_parse(self.model["entry"].process)
 
@@ -733,8 +733,12 @@ class EventModel:
             # Get empty keys
             accesses = process.accesses()
 
+            # Additional accesses
+            additional_accesses = accesses
+
             # Fill it out
-            for access in accesses:
+            original_accesses = list(accesses.keys())
+            for access in original_accesses:
                 label, tail = process.extract_label_with_tail(access)
 
                 if not label:
@@ -745,6 +749,22 @@ class EventModel:
                             new = Access(access)
                             new.label = label
 
+                            # Add label access if necessary
+                            label_access = "%{}%".format(label.name)
+                            if label_access not in original_accesses:
+                                # Add also label itself
+                                laccess = Access(label_access)
+                                laccess.label = label
+                                laccess.interface = self.analysis.interfaces[interface]
+                                laccess.list_interface = [self.analysis.interfaces[interface]]
+                                laccess.list_access = [label.name]
+
+                                if laccess.expression not in accesses:
+                                    accesses[laccess.expression] = [laccess]
+                                elif laccess.interface not in [a.interface for a in accesses[laccess.expression]]:
+                                    accesses[laccess.expression].append(laccess)
+
+                            # Calculate interfaces for tail
                             if len(tail) > 0:
                                 intfs = self.__resolve_interface(interface, tail)
                                 if intfs:
@@ -772,6 +792,14 @@ class EventModel:
                         new.label = label
                         new.list_access = [label.name]
                         accesses[access].append(new)
+
+                        # Add also label itself
+                        label_access = "%{}%".format(label.name)
+                        if label_access not in original_accesses:
+                            laccess = Access(label_access)
+                            laccess.label = label
+                            laccess.list_access = [label.name]
+                            accesses[laccess.expression] = [laccess]
 
             # Save back updates collection of accesses
             process.accesses(accesses)
