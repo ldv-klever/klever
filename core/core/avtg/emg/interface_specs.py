@@ -278,7 +278,7 @@ class ModuleSpecification(CategorySpecification):
                 if signature.interface:
                     self.logger.debug("Add global variable {} from {} as implementation of {}".
                                       format(variable, path, signature.interface.full_identifier))
-                    implementation = Implementation(variable,
+                    implementation = Implementation("& " + variable,
                                                     path,
                                                     signature.interface.full_identifier,
                                                     variable)
@@ -297,19 +297,22 @@ class ModuleSpecification(CategorySpecification):
                         interface.implementations.append(implementation)
 
         # Import implementations from function parameters
-        for function in [name for name in self.analysis["kernel functions"] if name in self.kernel_functions]:
-            for call in [self.analysis["kernel functions"][function]["calls"][name] for name in
-                         self.analysis["kernel functions"][function]["calls"]
-                         if name in self.analysis["modules functions"]]:
-                for index in range(len(call)):
-                    if call[index] and call[index] != "0" and \
-                            self.kernel_functions[function].signature.parameters[index] and \
-                            self.kernel_functions[function].signature.parameters[index].interface:
-                        identifier = \
-                            self.kernel_functions[function].signature.parameters[index].interface.full_identifier
-                        file = [file for file in self.analysis["modules functions"][call[index]][0]]
-                        implementation = Implementation(call[index], file, None, None)
-                        self.interfaces[identifier].implementations.append(implementation)
+        for mf in [self.analysis["modules functions"][name] for name in self.analysis["modules functions"]
+                   if "files" in self.analysis["modules functions"][name]]:
+            for path in [name for name in mf["files"] if "calls" in mf["files"][name]]:
+                for kf in [name for name in mf["files"][path]["calls"] if name in self.kernel_functions]:
+                    for call in mf["files"][path]["calls"][kf]:
+                        for index in range(len(call)):
+                            if call[index] and call[index] != "0" and \
+                                    self.kernel_functions[kf].signature.parameters[index] and \
+                                    self.kernel_functions[kf].signature.parameters[index].interface:
+                                identifier = \
+                                    self.kernel_functions[kf].signature.parameters[index].interface.full_identifier
+
+                                if len((impl for impl in self.interfaces[identifier].implementations
+                                        if impl.value == call[index])) == 0:
+                                    implementation = Implementation(call[index], path, None, None)
+                                    self.interfaces[identifier].implementations.append(implementation)
 
         self.logger.debug("Remove global variables initialization description")
         del self.analysis["global variable initializations"]

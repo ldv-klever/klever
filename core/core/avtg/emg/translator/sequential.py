@@ -119,11 +119,12 @@ class Translator(AbstractTranslator):
             self.model_fsa.append(fsa)
 
         # Generate state machine for init an exit
+        # todo: check that all functions are there or signals ar skipped in init
         self.logger.info("Generate FSA for module initialization and exit functions")
         self.entry_fsa = Automaton(self.logger, self.model["entry"], self.identifier)
 
         # Save digraphs
-        automaton_dir = "automata"
+        automaton_dir = "automaton"
         self.logger.info("Save automata to directory {}".format(automaton_dir))
         os.mkdir(automaton_dir)
         for automaton in self.callback_fsa + self.model_fsa + [self.entry_fsa]:
@@ -254,7 +255,7 @@ class Translator(AbstractTranslator):
 
         # Generate case for each transition
         cases = []
-        for edge in automaton.cfa.state_transitions:
+        for edge in automaton.fsa.state_transitions:
             new = self.generate_case(automaton, edge)
             cases.extend(new)
         if len(cases) == 0:
@@ -267,7 +268,7 @@ class Translator(AbstractTranslator):
 
         # Calculate terminals
         in_states = [transition["in"] for transition in automaton.fsa.state_transitions]
-        terminals = [tr["out"] for tr in automaton.cfa.state_transitions if tr["out"] not in in_states]
+        terminals = [tr["out"] for tr in automaton.fsa.state_transitions if tr["out"] not in in_states]
         condition = ' || '.join(["{} == {}".format(automaton.state_variable.name, st) for st in terminals])
 
         # Create body
@@ -282,7 +283,7 @@ class Translator(AbstractTranslator):
                     "\t\t\tif ({}) ".format(cases[index]["guard"]) + '{'
                 ]
             )
-            body.extend([(3 * "\t" + statement) for statement in cases[index]["body"]])
+            body.extend([(4 * "\t" + statement) for statement in cases[index]["body"]])
             body.extend(
                 [
                     "\t\t\t}",
@@ -306,6 +307,7 @@ class Translator(AbstractTranslator):
 
         for access in accesses:
             new_case = copy.deepcopy(case)
+            invoke = None
 
             if access.interface:
                 signature = access.interface.signature
@@ -317,9 +319,6 @@ class Translator(AbstractTranslator):
                     file = access.interface.implementations[0].file
                     check = False
 
-                    additional_check = self.convert_check_list(self.registration_intf_check(access.interface))
-                    if additional_check:
-                        new_case["guard"] += " && ({})".format(additional_check)
                 else:
                     invoke = '(*' +\
                              access.access_with_variable(automaton.variable(access.label,
@@ -334,16 +333,17 @@ class Translator(AbstractTranslator):
                     invoke = '(' + access.label.value + ')'
                     file = self.entry_file
                     check = False
-
-                    additional_check = self.convert_check_list(self.registration_fnct_check(access.label.value))
-                    if additional_check:
-                        new_case["guard"] += " && ({})".format(additional_check)
-                else:
+                elif access.label.signature():
                     invoke = access.access_with_variable(automaton.variable(access.label))
                     file = self.entry_file
                     check = True
 
-            callbacks.append([new_case, signature, invoke, file, check])
+            if invoke:
+                additional_check = self.registration_intf_check(invoke)
+                if additional_check:
+                    new_case["guard"] += " && {}".format(additional_check)
+
+                callbacks.append([new_case, signature, invoke, file, check])
 
         return callbacks
 
@@ -453,21 +453,37 @@ class Translator(AbstractTranslator):
                     body = []
                     for check in checks:
                         tmp_body = []
+                        dispatch_condition = "{} == {}".format(check[0], str(check[1]["in"]))
 
-                        # Guard
-                        guard = ""
+                        # Receiver condition
+                        receiver_condition = []
                         if check[1]["subprocess"].condition:
-                            guard = check[1]["subprocess"].condition
+                            receiver_condition = check[1]["subprocess"].condition
 
                         # Add parameters
                         for index in range(len(subprocess.parameters)):
-                            interface = subprocess.get_common_interface(index)
-                            access = automaton.process.resolve_access(subprocess.parameters[index], interface)
-                            expr = access.access_with_variable(automaton.variable(access.label, interface))
+                            # Determine dispatcher parameter
+                            interface = subprocess.get_common_interface(automaton.process, index)
+
+                            # Determine receiver parameter
+                            receiver_access = check[1]["automaton"].process.\
+                                resolve_access(check[1]["subprocess"].parameters[index], interface)
+                            receiver_expr = receiver_access.\
+                                access_with_variable(check[1]["automaton"].variable(receiver_access.label, interface))
+
+
+                            # Determine dispatcher parameter
+                            dispatcher_access = automaton.process.\
+                                resolve_access(subprocess.parameters[index], interface)
+                            dispatcher_expr = dispatcher_access.\
+                                access_with_variable(automaton.variable(dispatcher_access.label, interface))
 
                             # Replace guard
-                            guard = guard.replace("$ARG{}".format(index + 1), expr)
-                            tmp_body.append("\t{} = {};".format(access, expr))
+                            receiver_condition = [stm.replace("$ARG{}".format(index + 1), dispatcher_expr) for stm
+                                                  in receiver_condition]
+
+                            # Generate assignment
+                            tmp_body.append("\t{} = {};".format(receiver_expr, dispatcher_expr))
 
                         if subprocess.broadcast:
                             tmp_body.extend(
@@ -483,16 +499,16 @@ class Translator(AbstractTranslator):
                                 ]
                             )
 
-                        guard = check[1]["automata"].text_processor(guard)
-                        if guard != "":
-                            guard = "{} == {}".format(check[0], check[1]["in"]) + ' && (' + guard + ')'
+                        if len(receiver_condition) > 0:
+                            receiver_condition = [text_processor(check[1]["automaton"], stm) for stm in receiver_condition]
+                            dispatcher_condition = ' && '.join([dispatch_condition] + receiver_condition)
                         else:
-                            guard = "{} == {}".format(check[0], check[1]["in"])
+                            dispatcher_condition = [dispatch_condition]
 
                         tmp_body =\
                             [
                                 "/* Try receive according to {} */".format(check[1]["subprocess"].name),
-                                "if({}) ".format(guard) + '{',
+                                "if({}) ".format(" && ".join(dispatcher_condition)) + '{',
                                 "\t{} = {};".format(check[0], check[1]["out"]),
                             ] + tmp_body
                         body.extend(tmp_body)
@@ -519,6 +535,8 @@ class Translator(AbstractTranslator):
             # Generate comment
             base_case["body"].append("/* Receive signal {} */".format(subprocess.name))
             cases.append(base_case)
+            # Do not chenge state there
+            return cases
         elif subprocess.type == "condition":
             # Generate comment
             base_case["body"].append("/* Code or condition insertion {} */".format(subprocess.name))
@@ -544,8 +562,8 @@ class Translator(AbstractTranslator):
             case["body"].append("{} = {};".format(automaton.state_variable.name, edge["out"]))
         return cases
 
-    def registration_fnct_check(self, function_call):
-        name_re = re.compile("\s*&?\s*(\w+)\s*$")
+    def registration_intf_check(self, function_call):
+        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
         check = []
 
         if name_re.match(function_call):
@@ -573,20 +591,12 @@ class Translator(AbstractTranslator):
                     # Add relevant state machines
                     self.__extract_relevant_automata(automata_peers, peers, None)
 
-                check.extend(["{} == {}".format(var, tr["in"]) for var, tr
+                check.extend(["({} == {} || {} == 0)".format(var, tr["in"], var) for var, tr
                               in self.__generate_state_pair(automata_peers)])
         else:
-            self.logger.warning("Cannot find module function for callback '{}'".format(function_call))
+            raise ValueError("Cannot find module function for callback '{}'".format(function_call))
 
-        return check
-
-    def registration_intf_check(self, interface):
-        check = []
-
-        for impl in interface.implementations:
-            function_call = impl.value
-            check.extend(self.registration_fnct_check(function_call))
-        return check
+        return " && ".join(check)
 
     def __collect_relevant_models(self, name):
         relevant = []
@@ -611,18 +621,8 @@ class Translator(AbstractTranslator):
                         "subprocesses": []
                     }
                 if peer["subprocess"] not in automata_peers[automaton.identifier]["subprocesses"]:
-                    subprocess = \
-                        automata_peers[automaton.identifier]["automaton"].process.subprocesses[peer["subprocess"]]
-                    if not types or (types and subprocess.type in types):
+                    if not types or (types and peer["subprocess"].type in types):
                         automata_peers[automaton.identifier]["subprocesses"].append(peer["subprocess"])
-
-    @staticmethod
-    def convert_check_list(check):
-        if len(check) > 0:
-            check = ' || '.join(check)
-        else:
-            check = None
-        return check
 
     @staticmethod
     def __generate_state_pair(automata_peers):
@@ -654,7 +654,7 @@ class Automaton:
         # Generate FSA itself
         self.logger.info("Generate states for automaton {} based on process {} with category {}".
                          format(self.identifier, self.process.name, self.process.category))
-        self.fsa = FSA(self.process)
+        self.fsa = FSA(self, self.process)
 
         # Generate variables
         self.variables
@@ -683,7 +683,9 @@ class Automaton:
                     for interface in label.interfaces:
                         self.__variables.append(self.variable(label, interface))
                 else:
-                    self.__variables.append(self.variable(label))
+                    var = self.variable(label)
+                    if var:
+                        self.__variables.append(self.variable(label))
 
         return self.__variables
 
@@ -703,8 +705,9 @@ class Automaton:
                     self.__label_variables[label.name]["default"] = var
                     return self.__label_variables[label.name]["default"]
                 else:
-                    raise RuntimeError("Cannot create variable for label which is not matched with interfaces and does "
-                                       "not have signature")
+                    self.logger.warning("Cannot create variable for label which is not matched with interfaces and does"
+                                        " not have signature")
+                    return None
         else:
             if label.name in self.__label_variables and interface in self.__label_variables[label.name]:
                 return self.__label_variables[label.name][interface]
@@ -744,7 +747,7 @@ class Automaton:
 
 class FSA:
 
-    def __init__(self, process):
+    def __init__(self, automaton, process):
         self.__state_counter = 0
         self.__checked_ast = {}
         self.__ast_counter = 0
@@ -752,9 +755,9 @@ class FSA:
         self.state_transitions = []
 
         # Generate AST states
-        self.__generate_states(process)
+        self.__generate_states(automaton, process)
 
-    def __generate_states(self, process):
+    def __generate_states(self, automaton, process):
         if "identifier" not in process.process_ast:
             # Enumerate AST
             nodes = [process.subprocesses[name].process_ast for name in process.subprocesses
@@ -768,7 +771,7 @@ class FSA:
         transitions = [[process.process_ast, None]]
         while len(transitions) > 0:
             ast, predecessor = transitions.pop()
-            new = self.__process_ast(process, ast, predecessor)
+            new = self.__process_ast(automaton, process, ast, predecessor)
             transitions.extend(new)
 
     def __enumerate_ast(self, ast):
@@ -787,7 +790,7 @@ class FSA:
         self.__ast_counter += 1
         return to_process
 
-    def __process_ast(self, process, ast, predecessor):
+    def __process_ast(self, automaton, process, ast, predecessor):
         key = list(ast.keys())[0]
         to_process = []
 
@@ -818,7 +821,7 @@ class FSA:
                         "subprocess": process.subprocesses[ast[key]["name"]],
                         "in": origin,
                         "out": state,
-                        "automata": self
+                        "automaton": automaton
                     }
                     self.state_transitions.append(transition)
             else:
@@ -829,7 +832,7 @@ class FSA:
                         "subprocess": process.subprocesses[ast[key]["name"]],
                         "in": origin,
                         "out": self.__state_counter,
-                        "automata": self
+                        "automaton": automaton
                     }
                     self.state_transitions.append(transition)
                 self.__checked_subprocesses[ast[key]["name"]] = self.__state_counter
@@ -847,7 +850,7 @@ class FSA:
                     "subprocess": process.subprocesses[ast[key]["name"]],
                     "in": origin,
                     "out": self.__state_counter,
-                    "automata": self
+                    "automaton": automaton
                 }
                 self.state_transitions.append(transition)
 
@@ -868,7 +871,7 @@ class FSA:
                         "subprocess": process.subprocesses[ast[key]["name"]],
                         "in": self.__state_counter,
                         "out": self.__state_counter + 1,
-                        "automata": self
+                        "automaton": automaton
                     }
                     self.__state_counter += 1
                     self.state_transitions.append(transition)

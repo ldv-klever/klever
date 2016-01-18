@@ -644,12 +644,12 @@ class Label:
             self.__signature_map[interface] = signature
 
     def compare_with(self, label):
-        if self.interfaces and label.interface:
-            if len(list(set(self.interfaces) & set(label.interface))) > 0:
+        if self.interfaces and label.interfaces:
+            if len(list(set(self.interfaces) & set(label.interfaces))) > 0:
                 return "equal"
             else:
                 return "different"
-        elif label.interface or self.interfaces:
+        elif label.interfaces or self.interfaces:
             if (self.container and label.container) or (self.resource and label.resource) or \
                (self.callback and label.callback):
                 return "сompatible"
@@ -814,14 +814,21 @@ class Process:
                 label1 = self.extract_label(self.subprocesses[signals[0]].parameters[index])
                 label2 = process.extract_label(process.subprocesses[signals[1]].parameters[index])
 
-                if (label1.interface or label2.interface) and not (label1.interface and label2.interface):
-                    if label1.interface:
-                        label2.interface = label1.interface
-                    else:
-                        label1.interface = label2.interface
+                if len(label2.interfaces) == 0 and len(label1.interfaces) > 0:
+                    label2.interfaces = label1.interfaces
+                elif len(label2.interfaces) > 0 and len(label1.interfaces) == 0:
+                    label1.interfaces = label2.interfaces
 
-            self.subprocesses[signals[0]].peers.append({"process": process, "subprocess": signals[1]})
-            process.subprocesses[signals[1]].peers.append({"process": self, "subprocess": signals[0]})
+            self.subprocesses[signals[0]].peers.append(
+                    {
+                        "process": process,
+                        "subprocess": process.subprocesses[signals[1]]
+                    })
+            process.subprocesses[signals[1]].peers.append(
+                    {
+                        "process": self,
+                        "subprocess": self.subprocesses[signals[0]]
+                    })
 
     def get_available_peers(self, process):
         ret = []
@@ -958,18 +965,22 @@ class Subprocess:
             # Parse process
             self.process_ast = process_parse(self.process)
 
-    def get_common_interface(self, position):
-        interfaces = []
-        for peer in self.peers:
-            arg = peer["subprocess"].parameters[position]
-            label = peer["process"].extract_label(arg)
-            interfaces = set(interfaces) & label.interfaces
-
-        if len(interfaces) == 0:
-            raise RuntimeError("Need at least one common interface to send signal")
-        elif len(interfaces) > 1:
-            raise NotImplementedError
+    def get_common_interface(self, process, position):
+        pl = process.extract_label(self.parameters[position])
+        if not pl.interfaces:
+            return []
         else:
-            return interfaces[0]
+            interfaces = pl.interfaces
+            for peer in self.peers:
+                arg = peer["subprocess"].parameters[position]
+                label = peer["process"].extract_label(arg)
+                interfaces = set(interfaces) & set(label.interfaces)
+
+            if len(interfaces) == 0:
+                raise RuntimeError("Need at least one common interface to send signal")
+            elif len(interfaces) > 1:
+                raise NotImplementedError
+            else:
+                return list(interfaces)[0]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -179,7 +179,7 @@ class Aspect(Function):
     @property
     def body(self, body=None):
         if not body:
-            body = None
+            body = []
 
         if not self.__body:
             self.__body = FunctionBody(body)
