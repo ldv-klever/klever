@@ -67,7 +67,7 @@
         },
         "modules": ["drivers/hid/hid.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:usb:gadget"],
       "ideal verdict": "unsafe"
     },
     {
@@ -96,16 +96,6 @@
           "commit": "97c3557"
         },
         "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "1040b23"
-        },
-        "modules": ["sound/soc/codecs/snd-soc-wm8994.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe"
@@ -195,7 +185,7 @@
         "Git repository": {
           "commit": "6f7fa58"
         },
-        "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko", "drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
+        "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe"

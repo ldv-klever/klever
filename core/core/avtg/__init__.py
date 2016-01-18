@@ -288,6 +288,9 @@ class AVTG(core.components.Component):
             del (grp['cc full desc files'])
         if self.conf['debug']:
             initial_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'initial abstract task.json')
+            if os.path.isfile(initial_abstract_task_desc_file):
+                raise FileExistsError('Initial abstract verification task description file "{0}" already exists'.format(
+                    initial_abstract_task_desc_file))
             self.logger.debug('Create initial abstract verification task description file "{0}"'.format(
                 initial_abstract_task_desc_file))
             with open(initial_abstract_task_desc_file, 'w') as fp:
@@ -348,12 +351,19 @@ class AVTG(core.components.Component):
             # anything before.
             if self.conf['debug']:
                 plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
-                self.logger.debug('Create configuration file "{0}"'.format(plugin_conf_file))
+                if os.path.isfile(plugin_conf_file):
+                    raise FileExistsError('Clugins configuration file "{0}" already exists'.format(
+                        plugin_conf_file))
+                self.logger.debug('Create plugins configuration file "{0}"'.format(plugin_conf_file))
                 with open(plugin_conf_file, 'w') as fp:
                     json.dump(plugin_conf, fp, sort_keys=True, indent=4)
 
                 cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(),
                                                            'abstract task.json')
+                if os.path.isfile(cur_abstract_task_desc_file):
+                    raise FileExistsError(
+                        'Current abstract verification task description file "{0}" already exists'.format(
+                            cur_abstract_task_desc_file))
                 self.logger.debug('Create current abstract verification task description file "{0}"'.format(
                     cur_abstract_task_desc_file))
                 with open(cur_abstract_task_desc_file, 'w') as fp:
@@ -368,6 +378,10 @@ class AVTG(core.components.Component):
             # be put near initial abstract verification task description.
             if self.conf['debug']:
                 final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
+                if os.path.isfile(final_abstract_task_desc_file):
+                    raise FileExistsError(
+                        'Final abstract verification task description file "{0}" already exists'.format(
+                            final_abstract_task_desc_file))
                 self.logger.debug('Create final abstract verification task description file "{0}"'.format(
                     final_abstract_task_desc_file))
                 with open(final_abstract_task_desc_file, 'w') as fp:

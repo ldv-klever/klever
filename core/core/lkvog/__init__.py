@@ -37,14 +37,16 @@ def after_process_linux_kernel_raw_build_cmd(context):
             and context.linux_kernel['build cmd']['out file']:
         context.linux_kernel['build cmd']['full desc file'] = '{0}.json'.format(
             context.linux_kernel['build cmd']['out file'])
-
+        linux_kernel_build_cmd_full_desc_file = os.path.relpath(os.path.join(context.linux_kernel['work src tree'],
+                                                                             '{0}.json'.format(
+                                                                                 context.linux_kernel['build cmd'][
+                                                                                     'out file'])))
+        if os.path.isfile(linux_kernel_build_cmd_full_desc_file):
+            raise FileExistsError('Linux kernel CC full description file "{0}" already exists'.format(
+                linux_kernel_build_cmd_full_desc_file))
         context.logger.debug(
-            'Dump Linux kernel CC full description to file "{0}"'.format(
-                context.linux_kernel['build cmd']['full desc file']))
-        with open(
-                os.path.join(context.linux_kernel['work src tree'],
-                             context.linux_kernel['build cmd']['full desc file']),
-                'w') as fp:
+            'Dump Linux kernel CC full description to file "{0}"'.format(linux_kernel_build_cmd_full_desc_file))
+        with open(linux_kernel_build_cmd_full_desc_file, 'w') as fp:
             json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
                       sort_keys=True, indent=4)
 
@@ -183,13 +185,16 @@ class LKVOG(core.components.Component):
                 verification_obj_desc_file = os.path.join(
                         self.linux_kernel_build_cmd_out_file_desc[self.module['name']]['linux kernel work src tree'],
                         '{0}.json'.format(self.verification_obj_desc['id']))
+                if os.path.isfile(verification_obj_desc_file):
+                    raise FileExistsError(
+                        'Linux kernel verification object description file "{0}" already exists'.format(
+                            verification_obj_desc_file))
                 self.logger.debug(
                     'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                         self.module['name'], verification_obj_desc_file))
                 with open(verification_obj_desc_file, 'w') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
         elif strategy in strategies_list:
-
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id + str(hash(self.cluster)))
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
@@ -210,6 +215,10 @@ class LKVOG(core.components.Component):
 
             if self.conf['debug']:
                 verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+                if os.path.isfile(verification_obj_desc_file):
+                    raise FileExistsError(
+                        'Linux kernel verification object description file "{0}" already exists'.format(
+                            verification_obj_desc_file))
                 self.logger.debug(
                     'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                         self.module['name'], verification_obj_desc_file))
@@ -243,7 +252,20 @@ class LKVOG(core.components.Component):
                                                                                      if desc['out file']
                                                                                      else 'not specified')))
 
-        self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = desc
+        # Build map from Linux kernel build command output files to correpsonding descriptions. This map will be used
+        # later when finding all CC full description files.
+        if desc['out file'] and desc['out file'] != '/dev/null':
+            # For instance, this is true for drivers/net/wireless/libertas/libertas.ko in Linux stable a533423.
+            if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
+                self.logger.warning(
+                    'During Linux kernel build output file "{0}" was overwritten'.format(desc['out file']))
+                # Propose new artificial name to avoid infinite recursion later.
+                out_file_root, out_file_ext = os.path.splitext(desc['out file'])
+                desc['out file'] = '{0}{1}{2}'.format(out_file_root,
+                                                      len(self.linux_kernel_build_cmd_out_file_desc[desc['out file']]),
+                                                      out_file_ext)
+
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = desc
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             match = False

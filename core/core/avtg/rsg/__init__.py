@@ -91,6 +91,9 @@ class RSG(core.components.Component):
             for model in models:
                 out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model))[0]))
                 full_desc_file = '{0}.json'.format(out_file)
+                if os.path.isfile(full_desc_file):
+                    raise FileExistsError('CC extra full description file "{0}" already exists'.format(full_desc_file))
+                self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
                 with open(full_desc_file, 'w') as fp:
                     json.dump({
                         # Input file path should be relative to source tree root since compilation options are relative
@@ -102,7 +105,6 @@ class RSG(core.components.Component):
                             [string.Template(opt).substitute(hdr_arch=self.conf['sys']['hdr arch']) for opt in
                              self.conf['model CC options']]
                     }, fp, sort_keys=True, indent=4)
-                self.logger.debug('CC extra full description file is "{0}"'.format(full_desc_file))
 
                 grp['cc extra full desc files'].append({
                     'cc full desc file': os.path.relpath(full_desc_file,

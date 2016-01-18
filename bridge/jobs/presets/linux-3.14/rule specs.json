@@ -51,7 +51,8 @@
               "-Iinclude/generated/uapi",
               "-include",
               "include/linux/kconfig.h",
-              "-D__KERNEL__"
+              "-D__KERNEL__",
+              "-Os"
             ],
             "common models": [
               "err.c"
@@ -123,7 +124,8 @@
               "-Iinclude/generated/uapi",
               "-include",
               "include/linux/kconfig.h",
-              "-D__KERNEL__"
+              "-D__KERNEL__",
+              "-Os"
             ],
             "common models": [
               "err.c"

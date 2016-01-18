@@ -366,6 +366,8 @@ class Core:
         self.components_conf.update({'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')}})
 
         if self.conf['debug']:
+            if os.path.isfile('components conf.json'):
+                raise FileExistsError('Components configuration file "components conf.json" already exists')
             self.logger.debug('Create components configuration file "components conf.json"')
             with open('components conf.json', 'w') as fp:
                 json.dump(self.components_conf, fp, sort_keys=True, indent=4)
