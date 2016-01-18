@@ -52,7 +52,7 @@
               "-include",
               "include/linux/kconfig.h",
               "-D__KERNEL__",
-              "-O2"
+              "-Os"
             ],
             "common models": [
               "err.c"
@@ -125,7 +125,7 @@
               "-include",
               "include/linux/kconfig.h",
               "-D__KERNEL__",
-              "-O2"
+              "-Os"
             ],
             "common models": [
               "err.c"
