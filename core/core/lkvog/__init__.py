@@ -252,7 +252,20 @@ class LKVOG(core.components.Component):
                                                                                      if desc['out file']
                                                                                      else 'not specified')))
 
-        self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = desc
+        # Build map from Linux kernel build command output files to correpsonding descriptions. This map will be used
+        # later when finding all CC full description files.
+        if desc['out file'] and desc['out file'] != '/dev/null':
+            # For instance, this is true for drivers/net/wireless/libertas/libertas.ko in Linux stable a533423.
+            if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
+                self.logger.warning(
+                    'During Linux kernel build output file "{0}" was overwritten'.format(desc['out file']))
+                # Propose new artificial name to avoid infinite recursion later.
+                out_file_root, out_file_ext = os.path.splitext(desc['out file'])
+                desc['out file'] = '{0}{1}{2}'.format(out_file_root,
+                                                      len(self.linux_kernel_build_cmd_out_file_desc[desc['out file']]),
+                                                      out_file_ext)
+
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = desc
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             match = False
