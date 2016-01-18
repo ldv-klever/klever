@@ -67,7 +67,7 @@
         },
         "modules": ["drivers/hid/hid.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:usb:gadget"],
       "ideal verdict": "unsafe"
     },
     {
@@ -195,7 +195,7 @@
         "Git repository": {
           "commit": "6f7fa58"
         },
-        "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko", "drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
+        "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe"
