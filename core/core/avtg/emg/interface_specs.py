@@ -40,9 +40,10 @@ class CategorySpecification:
                                 "expect 'kernel macro-functions' attribute")
 
         # Populate signatures instead of Interface signatures and assign interface links
-        self.logger.debug("Add references to an Interface objects of categories instead of just interface names")
+        self.logger.info("Add references to an Interface objects of categories instead of just interface names")
+        signatures_to_process = []
         for intf in self.interfaces:
-            self.interfaces[intf].signature = self._process_signature(self.interfaces, self.interfaces[intf].signature)
+            signatures_to_process.append([self.interfaces, self.interfaces[intf].signature])
 
             # Check fields in case of container
             if not self.interfaces[intf].container and self.interfaces[intf].signature.type_class == "struct":
@@ -50,42 +51,51 @@ class CategorySpecification:
                 self.logger.debug("Remove fields description for interface {} which is not a container".format(intf))
                 self.interfaces[intf].signature.fields = {}
 
-        self.logger.debug("Add references to an Interface objects of kernel interfaces instead of just interface names")
+        self.logger.info("Add references to an Interface objects of kernel interfaces instead of just interface names")
         for function in self.kernel_functions:
-            self.kernel_functions[function].signature = \
-                self._process_signature(self.kernel_functions, self.kernel_functions[function].signature)
+            signatures_to_process.append([self.kernel_functions, self.kernel_functions[function].signature])
 
-    def _process_signature(self, collection, signature):
-        self.logger.debug("Replace all entries of interface names with an object references in signature {}".
-                          format(signature.expression))
+        # Process signatures
+        self._process_signatures(signatures_to_process)
 
-        # Replace string interface definition by reference
-        if signature.interface and type(signature.interface) is str:
-            signature.interface = collection[signature.interface]
+    def _process_signatures(self, signatures):
+        processed_or_processing = [sign for coll, sign in signatures]
+        while signatures:
+            collection, signature = signatures.pop()
+            self.logger.debug("Replace all entries of interface names with an object references in signature {}".
+                              format(signature.expression))
 
-        # Replace Interface signature
-        if signature.type_class == "interface":
-            if signature.interface.signature.type_class == "interface":
-                raise RuntimeError("Attempt to replace interface signature with an interface signature")
-            signature = Signature.copy_signature(signature, signature.interface.signature)
+            # Replace string interface definition by reference
+            if signature.interface and type(signature.interface) is str:
+                signature.interface = collection[signature.interface]
 
-        # Process return value and parameters in case of function
-        if signature.type_class == "function":
-            if signature.return_value:
-                signature.return_value = self._process_signature(self.interfaces, signature.return_value)
-            for index in range(len(signature.parameters)):
-                if type(signature.parameters[index]) is Signature:
-                    signature.parameters[index] = self._process_signature(self.interfaces, signature.parameters[index])
+            # Replace Interface signature
+            if signature.type_class == "interface":
+                if signature.interface.signature.type_class == "interface":
+                    raise RuntimeError("Attempt to replace interface signature with an interface signature")
+                signature.replace(signature.interface.signature)
 
-        # Check fields in case of structure
-        elif signature.type_class == "struct":
-            if len(signature.fields) > 0:
-                for field in signature.fields:
-                    signature.fields[field] = self._process_signature(self.interfaces, signature.fields[field])
-        elif signature.type_class == "interface":
-            raise RuntimeError("Cannot replace signature {} with an interface object reference".
-                               format(signature.expression))
-        return signature
+            # Process return value and parameters in case of function
+            if signature.type_class == "function":
+                if signature.return_value and signature.return_value not in processed_or_processing:
+                    signatures.append([self.interfaces, signature.return_value])
+                for index in range(len(signature.parameters)):
+                    if type(signature.parameters[index]) is Signature and signature.parameters[index] \
+                            not in processed_or_processing:
+                        signatures.append([self.interfaces, signature.parameters[index]])
+
+            # Check fields in case of structure
+            elif signature.type_class == "struct":
+                if len(signature.fields) > 0:
+                    for field in [field for field in signature.fields if signature.fields[field] not in
+                                  processed_or_processing]:
+                        signatures.append([self.interfaces, signature.fields[field]])
+            elif signature.type_class == "interface":
+                raise RuntimeError("Cannot replace signature {} with an interface object reference".
+                                   format(signature.expression))
+
+            if signature not in processed_or_processing:
+                    processed_or_processing.append(signature)
 
     def __import_kernel_interfaces(self, category_name, collection):
         for identifier in collection[category_name]:

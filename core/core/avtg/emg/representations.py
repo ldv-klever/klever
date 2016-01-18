@@ -122,55 +122,6 @@ class Interface:
 
 class Signature:
 
-    @staticmethod
-    def copy_signature(old, new):
-        cp = copy.deepcopy(new)
-        cp.array = old.array
-        cp.pointer = old.pointer
-        cp.interface = old.interface
-        return cp
-
-    def compare_signature(self, signature):
-        # Need this to compare with undefined arguments
-        if not signature:
-            return False
-
-        # Be sure that the signature is not an interface
-        if signature.type_class == "interface" or self.type_class == "interface":
-            raise TypeError("Interface signatures cannot be compared")
-
-        if self.type_class != signature.type_class:
-            return False
-        if self.interface and signature.interface and self.interface.full_identifier != \
-                signature.interface.full_identifier:
-            return False
-        elif self.interface and signature.interface \
-                and self.interface.full_identifier == signature.interface.full_identifier:
-            return True
-
-        if self.expression != signature.expression:
-            if self.type_class == "function":
-                if self.return_value and signature.return_value \
-                        and not self.return_value.compare_signature(signature.return_value):
-                    return False
-                elif (self.return_value and not signature.return_value) or \
-                        (not self.return_value and signature.return_value):
-                    return False
-
-                if len(self.parameters) == len(signature.parameters):
-                    for param in range(len(self.parameters)):
-                        if not self.parameters[param].compare_signature(signature.parameters[param]):
-                            return False
-                    return True
-                else:
-                    return False
-            elif self.type_class == "struct" and self.structure_name == signature.structure_name:
-                return True
-            else:
-                return False
-        else:
-            return True
-
     def __init__(self, expression):
         """
         Expect signature expression.
@@ -185,6 +136,7 @@ class Signature:
         self.interface = None
         self.function_name = None
         self.parameters = None
+        self.structure_name = None
         self.fields = None
 
         # TODO: doesn't match "void (**%s)(struct nvme_dev *, void *, struct nvme_completion *)", e.g. for drivers/block/nvme.ko.
@@ -290,6 +242,52 @@ class Signature:
                     self.parameters.append(None)
                 else:
                     self.parameters.append(Signature(arg))
+
+    def replace(self, new):
+        for att_name in ["expression", "type_class", "return_value", "function_name", "parameters", "fields",
+                         "structure_name"]:
+            setattr(self, att_name, getattr(new, att_name))
+
+    def compare_signature(self, signature):
+        # Need this to compare with undefined arguments
+        if not signature:
+            return False
+
+        # Be sure that the signature is not an interface
+        if signature.type_class == "interface" or self.type_class == "interface":
+            raise TypeError("Interface signatures cannot be compared")
+
+        if self.type_class != signature.type_class:
+            return False
+        if self.interface and signature.interface and self.interface.full_identifier != \
+                signature.interface.full_identifier:
+            return False
+        elif self.interface and signature.interface \
+                and self.interface.full_identifier == signature.interface.full_identifier:
+            return True
+
+        if self.expression != signature.expression:
+            if self.type_class == "function":
+                if self.return_value and signature.return_value \
+                        and not self.return_value.compare_signature(signature.return_value):
+                    return False
+                elif (self.return_value and not signature.return_value) or \
+                        (not self.return_value and signature.return_value):
+                    return False
+
+                if len(self.parameters) == len(signature.parameters):
+                    for param in range(len(self.parameters)):
+                        if not self.parameters[param].compare_signature(signature.parameters[param]):
+                            return False
+                    return True
+                else:
+                    return False
+            elif self.type_class == "struct" and self.structure_name == signature.structure_name:
+                return True
+            else:
+                return False
+        else:
+            return True
 
     def get_string(self):
         # Dump signature as a string
