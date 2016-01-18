@@ -103,16 +103,6 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "1040b23"
-        },
-        "modules": ["sound/soc/codecs/snd-soc-wm8994.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
           "commit": "fed533b"
         },
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
