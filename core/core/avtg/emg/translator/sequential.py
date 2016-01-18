@@ -20,10 +20,11 @@ def text_processor(automaton, statement):
                 for text in statements:
                     if option.interface:
                         signature = option.label.signature(None, option.interface.full_identifier)
-                        var = automaton.variable(option.label, option.interface.full_identifier)
+                        var = automaton.variable(option.label, option.list_interface[0].full_identifier)
                     else:
                         signature = option.label.signature()
                         var = automaton.variable(option.label)
+
                     tmp = mm.replace_models(option.label.name, signature, text)
                     tmp = option.replace_with_variable(tmp, var)
                     new_statements.append(tmp)
@@ -46,6 +47,8 @@ class Translator(AbstractTranslator):
         for process in self.model["processes"]:
             undefined_labels = []
             # Determine nonimplemented containers
+            self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
+                              "category {}".format(process.name, process.category))
             for label in [label for label in process.labels.values() if label.interfaces]:
                 nonimplemented_intrerfaces = [interface for interface in label.interfaces
                                               if len(self.analysis.interfaces[interface].implementations) == 0]
@@ -57,17 +60,21 @@ class Translator(AbstractTranslator):
                 base_list = [copy.deepcopy(process) for i in range(self.unmatched_constant)]
             else:
                 base_list = [process]
+            self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
+                             format(len(base_list), len(undefined_labels), process.name, process.category))
 
             # Copy base instances for each known implementation
             relevant_multi_containers = []
             accesses = process.accesses()
             for access in accesses.values():
                 for inst_access in [inst for inst in access if inst.interface]:
-                    if inst_access.interface.container and len(inst_access.interface.implementations) > 1:
+                    if inst_access.interface.container and len(inst_access.interface.implementations) > 1 and \
+                                    inst_access.interface not in relevant_multi_containers:
                         relevant_multi_containers.append(inst_access.interface)
                     elif not inst_access.interface.container and len(inst_access.list_interface) > 1 and \
-                            inst_access.list_interface[0].container \
-                            and len(inst_access.list_interface[0].implementations) > 1:
+                            inst_access.list_interface[0].container and \
+                                len(inst_access.list_interface[0].implementations) > 1 and \
+                                inst_access.list_interface[0] not in relevant_multi_containers:
                         relevant_multi_containers.append(inst_access.list_interface[0])
 
             # Copy instances for each implementation of a container
@@ -76,8 +83,8 @@ class Translator(AbstractTranslator):
                 for interface in relevant_multi_containers:
                     implementations = interface.implementations
 
-                    for instance in base_list:
-                        for implementation in implementations:
+                    for implementation in implementations:
+                        for instance in base_list:
                             newp = copy.deepcopy(instance)
                             accs = newp.accesses()
                             for access_list in accs.values():
