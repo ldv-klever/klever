@@ -21,7 +21,7 @@
       "resource limits": {
         "wall time": 1000000,
         "CPU time": 900000,
-        "memory size": 500000000,
+        "memory size": 1000000000,
         "CPU model": null,
         "number of CPU cores": 1,
         "result size": 1000000
