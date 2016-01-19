@@ -160,8 +160,8 @@ class SA(core.components.Component):
         func_definition_files = [
             {"file": "execution.txt", "static": False},
             {"file": "static-execution.txt", "static": True},
-            {"file": "declare-function.txt", "static": False},
-            {"file": "static-declare-function.txt", "static": True}
+            {"file": "declare_func.txt", "static": False},
+            {"file": "static-declare_func.txt", "static": True}
         ]
         for execution_source in func_definition_files:
             self.logger.info("Extract function definitions or declarations from {}".format(execution_source["file"]))

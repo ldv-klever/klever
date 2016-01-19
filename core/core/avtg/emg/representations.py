@@ -122,55 +122,6 @@ class Interface:
 
 class Signature:
 
-    @staticmethod
-    def copy_signature(old, new):
-        cp = copy.deepcopy(new)
-        cp.array = old.array
-        cp.pointer = old.pointer
-        cp.interface = old.interface
-        return cp
-
-    def compare_signature(self, signature):
-        # Need this to compare with undefined arguments
-        if not signature:
-            return False
-
-        # Be sure that the signature is not an interface
-        if signature.type_class == "interface" or self.type_class == "interface":
-            raise TypeError("Interface signatures cannot be compared")
-
-        if self.type_class != signature.type_class:
-            return False
-        if self.interface and signature.interface and self.interface.full_identifier != \
-                signature.interface.full_identifier:
-            return False
-        elif self.interface and signature.interface \
-                and self.interface.full_identifier == signature.interface.full_identifier:
-            return True
-
-        if self.expression != signature.expression:
-            if self.type_class == "function":
-                if self.return_value and signature.return_value \
-                        and not self.return_value.compare_signature(signature.return_value):
-                    return False
-                elif (self.return_value and not signature.return_value) or \
-                        (not self.return_value and signature.return_value):
-                    return False
-
-                if len(self.parameters) == len(signature.parameters):
-                    for param in range(len(self.parameters)):
-                        if not self.parameters[param].compare_signature(signature.parameters[param]):
-                            return False
-                    return True
-                else:
-                    return False
-            elif self.type_class == "struct" and self.structure_name == signature.structure_name:
-                return True
-            else:
-                return False
-        else:
-            return True
-
     def __init__(self, expression):
         """
         Expect signature expression.
@@ -185,6 +136,7 @@ class Signature:
         self.interface = None
         self.function_name = None
         self.parameters = None
+        self.structure_name = None
         self.fields = None
 
         # TODO: doesn't match "void (**%s)(struct nvme_dev *, void *, struct nvme_completion *)", e.g. for drivers/block/nvme.ko.
@@ -290,6 +242,52 @@ class Signature:
                     self.parameters.append(None)
                 else:
                     self.parameters.append(Signature(arg))
+
+    def replace(self, new):
+        for att_name in ["expression", "type_class", "return_value", "function_name", "parameters", "fields",
+                         "structure_name"]:
+            setattr(self, att_name, getattr(new, att_name))
+
+    def compare_signature(self, signature):
+        # Need this to compare with undefined arguments
+        if not signature:
+            return False
+
+        # Be sure that the signature is not an interface
+        if signature.type_class == "interface" or self.type_class == "interface":
+            raise TypeError("Interface signatures cannot be compared")
+
+        if self.type_class != signature.type_class:
+            return False
+        if self.interface and signature.interface and self.interface.full_identifier != \
+                signature.interface.full_identifier:
+            return False
+        elif self.interface and signature.interface \
+                and self.interface.full_identifier == signature.interface.full_identifier:
+            return True
+
+        if self.expression != signature.expression:
+            if self.type_class == "function":
+                if self.return_value and signature.return_value \
+                        and not self.return_value.compare_signature(signature.return_value):
+                    return False
+                elif (self.return_value and not signature.return_value) or \
+                        (not self.return_value and signature.return_value):
+                    return False
+
+                if len(self.parameters) == len(signature.parameters):
+                    for param in range(len(self.parameters)):
+                        if not self.parameters[param].compare_signature(signature.parameters[param]):
+                            return False
+                    return True
+                else:
+                    return False
+            elif self.type_class == "struct" and self.structure_name == signature.structure_name:
+                return True
+            else:
+                return False
+        else:
+            return True
 
     def get_string(self):
         # Dump signature as a string
@@ -646,12 +644,12 @@ class Label:
             self.__signature_map[interface] = signature
 
     def compare_with(self, label):
-        if self.interfaces and label.interface:
-            if len(list(set(self.interfaces) & set(label.interface))) > 0:
+        if self.interfaces and label.interfaces:
+            if len(list(set(self.interfaces) & set(label.interfaces))) > 0:
                 return "equal"
             else:
                 return "different"
-        elif label.interface or self.interfaces:
+        elif label.interfaces or self.interfaces:
             if (self.container and label.container) or (self.resource and label.resource) or \
                (self.callback and label.callback):
                 return "сompatible"
@@ -816,14 +814,23 @@ class Process:
                 label1 = self.extract_label(self.subprocesses[signals[0]].parameters[index])
                 label2 = process.extract_label(process.subprocesses[signals[1]].parameters[index])
 
-                if (label1.interface or label2.interface) and not (label1.interface and label2.interface):
-                    if label1.interface:
-                        label2.interface = label1.interface
-                    else:
-                        label1.interface = label2.interface
+                if (not label2.interfaces or len(label2.interfaces) == 0) and \
+                        (label1.interfaces and len(label1.interfaces) > 0):
+                    label2.interfaces = label1.interfaces
+                elif (label2.interfaces and len(label2.interfaces) > 0) and \
+                        (not label1.interfaces or len(label1.interfaces) == 0):
+                    label1.interfaces = label2.interfaces
 
-            self.subprocesses[signals[0]].peers.append({"process": process, "subprocess": signals[1]})
-            process.subprocesses[signals[1]].peers.append({"process": self, "subprocess": signals[0]})
+            self.subprocesses[signals[0]].peers.append(
+                    {
+                        "process": process,
+                        "subprocess": process.subprocesses[signals[1]]
+                    })
+            process.subprocesses[signals[1]].peers.append(
+                    {
+                        "process": self,
+                        "subprocess": self.subprocesses[signals[0]]
+                    })
 
     def get_available_peers(self, process):
         ret = []
@@ -960,18 +967,22 @@ class Subprocess:
             # Parse process
             self.process_ast = process_parse(self.process)
 
-    def get_common_interface(self, position):
-        interfaces = []
-        for peer in self.peers:
-            arg = peer["subprocess"].parameters[position]
-            label = peer["process"].extract_label(arg)
-            interfaces = set(interfaces) & label.interfaces
-
-        if len(interfaces) == 0:
-            raise RuntimeError("Need at least one common interface to send signal")
-        elif len(interfaces) > 1:
-            raise NotImplementedError
+    def get_common_interface(self, process, position):
+        pl = process.extract_label(self.parameters[position])
+        if not pl.interfaces:
+            return []
         else:
-            return interfaces[0]
+            interfaces = pl.interfaces
+            for peer in self.peers:
+                arg = peer["subprocess"].parameters[position]
+                label = peer["process"].extract_label(arg)
+                interfaces = set(interfaces) & set(label.interfaces)
+
+            if len(interfaces) == 0:
+                raise RuntimeError("Need at least one common interface to send signal")
+            elif len(interfaces) > 1:
+                raise NotImplementedError
+            else:
+                return list(interfaces)[0]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -130,11 +130,11 @@ class EventModel:
 
         stop = Subprocess('stop', {})
         stop.type = "condition"
-        stop.statements = ["ldv_stop();"]
+        stop.statements = ["ldv_check_final_state();"]
         self.model["entry"].subprocesses['stop'] = stop
 
         # Add subprocesses finally
-        self.model["entry"].process = "[init].(ret_init).({} | <init_failed>).[exit].<stop>".\
+        self.model["entry"].process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.{}.[exit].<stop>)".\
                                       format('.'.join(dispatches))
         self.model["entry"].process_ast = process_parse(self.model["entry"].process)
 
@@ -211,24 +211,26 @@ class EventModel:
 
         for process in [self.events["environment processes"][name] for name in estimations]:
             label_map = estimations[process.name]
-            if label_map and len(label_map["matched callbacks"]) > 0 and len(label_map["uncalled callbacks"]) == 0 and \
-                             len(label_map["unmatched labels"]) == 0:
+            if label_map and len(label_map["matched calls"]) > 0 and len(label_map["unmatched labels"]) == 0:
                 self.logger.info("Matching process {} for category {}, it has:".format(process.name, category))
                 self.logger.info("Matching labels: {}".format(str(label_map["matched labels"])))
                 self.logger.info("Unmatched labels: {}".format(str(label_map["unmatched labels"])))
                 self.logger.info("Matched callbacks: {}".format(str(label_map["matched callbacks"])))
                 self.logger.info("Unmatched callbacks: {}".format(str(label_map["unmatched callbacks"])))
+                self.logger.info("Matched calls: {}".format(str(label_map["matched calls"])))
                 self.logger.info("Native interfaces: {}".format(str(label_map["native interfaces"])))
 
+                do = False
                 if label_map["native interfaces"] > best_map["native interfaces"]:
                     do = True
-                elif len(label_map["matched callbacks"]) > len(best_map["matched callbacks"]) and \
-                        len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
-                    do = True
-                elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
-                    do = True
-                else:
-                    do = False
+                elif best_map["native interfaces"] == 0:
+                    if len(label_map["matched calls"]) > len(best_map["matched calls"]) and \
+                            len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
+                        do = True
+                    elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
+                        do = True
+                    else:
+                        do = False
 
                 if do:
                     best_map = label_map
@@ -259,9 +261,10 @@ class EventModel:
         self.logger.debug("Make copy of process {} before adding it to the model".format(process.name))
         new = copy.deepcopy(process)
 
+        # todo: Assign category for each new process not even for that which have callbacks
         new.identifier = len(self.model["models"]) + len(self.model["processes"])
-        self.logger.info("Finally add process {} to the model with identifier {}".
-                         format(process.name, process.identifier))
+        self.logger.info("Finally add process {} to the model".
+                         format(process.name))
         if model:
             self.model["models"].append(new)
         else:
@@ -296,8 +299,7 @@ class EventModel:
             p1 = self.model["processes"][index1]
             for index2 in range(index1 + 1, len(self.model["processes"])):
                 p2 = self.model["processes"][index2]
-                self.logger.debug("Analyze signals of processes {} and {} in the model with identifiers {} and {}".
-                                  format(p1.name, p2.name, p1.identifier, p2.identifier))
+                self.logger.debug("Analyze signals of processes {} and {}".format(p1.name, p2.name))
                 p1.establish_peers(p2)
 
         # Calculate callbacks which can be called in the model at the moment
@@ -351,6 +353,7 @@ class EventModel:
             "unmatched labels": [],
             "uncalled callbacks": [],
             "matched callbacks": [],
+            "matched calls": [],
             "unmatched callbacks": [],
             "native interfaces": []
         }
@@ -477,6 +480,7 @@ class EventModel:
             # Discard unmatched callbacks
             label_map["unmatched callbacks"] = []
             label_map["matched callbacks"] = []
+
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
                                if process.subprocesses[name].callback and
                                process.subprocesses[name].type == "dispatch"]:
@@ -490,17 +494,21 @@ class EventModel:
                     for callback in callbacks:
                         if callback not in label_map["matched callbacks"]:
                             label_map["matched callbacks"].append(callback)
+                        if subprocess.callback not in ["matched calls"]:
+                            label_map["matched calls"].append(subprocess.callback)
                 elif label.container and tail and label.name not in label_map["matched labels"] and \
                             subprocess.callback not in label_map["unmatched callbacks"]:
                         label_map["unmatched callbacks"].append(subprocess.callback)
                 elif label.container and tail and label.name in label_map["matched labels"]:
                     for intf in label_map["matched labels"][label.name]:
-                        intfs = self.__resolve_interface(self.analysis.interfaces[intf],
-                                                         tail)
+                        intfs = self.__resolve_interface(self.analysis.interfaces[intf], tail)
+
                         if not intfs and subprocess.callback not in label_map["unmatched callbacks"]:
                             label_map["unmatched callbacks"].append(subprocess.callback)
                         elif intfs and subprocess.callback not in label_map["matched callbacks"]:
-                            label_map["matched callbacks"].append(subprocess.callback)
+                            label_map["matched callbacks"].append(intfs[-1].full_identifier)
+                            if subprocess.callback not in ["matched calls"]:
+                                label_map["matched calls"].append(subprocess.callback)
 
             # Discard uncalled callbacks and recalculate it
             label_map["uncalled callbacks"] = [self.analysis.categories[category]["callbacks"][name].full_identifier
@@ -512,6 +520,22 @@ class EventModel:
                 start = False
             old_size = new_size
             new_size = len(label_map["matched callbacks"]) + len(label_map["matched labels"])
+
+        # Discard unmatched callbacks
+        for subprocess in [process.subprocesses[name] for name in process.subprocesses
+                           if process.subprocesses[name].callback and
+                           process.subprocesses[name].type == "dispatch"]:
+            label, tail = process.extract_label_with_tail(subprocess.callback)
+            if label.container and tail and label.name in label_map["matched labels"]:
+                for intf in label_map["matched labels"][label.name]:
+                    intfs = self.__resolve_interface(self.analysis.interfaces[intf], tail)
+                    if intfs:
+                        # Discard general callbacks match
+                        for callback_label in [label.name for label in process.labels.values() if label.callback and
+                                               label.name in label_map["matched labels"]]:
+                            if intfs[-1].full_identifier in label_map["matched labels"][callback_label]:
+                                index = label_map["matched labels"][callback_label].index(intfs[-1].full_identifier)
+                                del label_map["matched labels"][callback_label][index]
 
         self.logger.info("Matched labels and interfaces:")
         self.logger.info("Number of native interfaces: {}".format(label_map["native interfaces"]))
@@ -566,7 +590,15 @@ class EventModel:
     def __establish_signal_peers(self, process):
         for candidate in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
             peers = process.get_available_peers(candidate)
-            if peers:
+
+            # Be sure that process have not been added yet
+            peered_processes = []
+            for subprocess in [subp for subp in process.subprocesses.values() if subp.peers and len(subp.peers) > 0]:
+                peered_processes.extend([peer["process"] for peer in subprocess.peers
+                                         if peer["process"].name == candidate.name])
+
+            # Try to add process
+            if peers and len(peered_processes) == 0:
                 self.logger.debug("Establish signal references between process {} with category {} and process {} with "
                                   "category {}".
                                   format(process.name, process.category, candidate.name, candidate.category))
@@ -653,10 +685,9 @@ class EventModel:
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
                                if process.subprocesses[name].type in ["dispatch", "receive"]]:
                 for peer in subprocess.peers:
-                    peer_subprocess = peer["process"].subprocesses[peer["subprocess"]]
                     if peer["process"].name in self.events["kernel model"]:
-                        for index in range(len(peer_subprocess.parameters)):
-                            peer_parameter = peer_subprocess.parameters[index]
+                        for index in range(len(peer["subprocess"].parameters)):
+                            peer_parameter = peer["subprocess"].parameters[index]
                             peer_label = peer["process"].extract_label(peer_parameter)
 
                             parameter = subprocess.parameters[index]
@@ -675,8 +706,8 @@ class EventModel:
                                                   format(peer_signature.expression, label.name))
                                 label.signature(peer_signature)
                     else:
-                        for index in range(len(peer_subprocess.parameters)):
-                            peer_parameter = peer_subprocess.parameters[index]
+                        for index in range(len(peer["subprocess"].parameters)):
+                            peer_parameter = peer["subprocess"].parameters[index]
                             peer_label = peer["process"].extract_label(peer_parameter)
 
                             parameter = subprocess.parameters[index]
@@ -733,8 +764,12 @@ class EventModel:
             # Get empty keys
             accesses = process.accesses()
 
+            # Additional accesses
+            additional_accesses = accesses
+
             # Fill it out
-            for access in accesses:
+            original_accesses = list(accesses.keys())
+            for access in original_accesses:
                 label, tail = process.extract_label_with_tail(access)
 
                 if not label:
@@ -745,6 +780,22 @@ class EventModel:
                             new = Access(access)
                             new.label = label
 
+                            # Add label access if necessary
+                            label_access = "%{}%".format(label.name)
+                            if label_access not in original_accesses:
+                                # Add also label itself
+                                laccess = Access(label_access)
+                                laccess.label = label
+                                laccess.interface = self.analysis.interfaces[interface]
+                                laccess.list_interface = [self.analysis.interfaces[interface]]
+                                laccess.list_access = [label.name]
+
+                                if laccess.expression not in accesses:
+                                    accesses[laccess.expression] = [laccess]
+                                elif laccess.interface not in [a.interface for a in accesses[laccess.expression]]:
+                                    accesses[laccess.expression].append(laccess)
+
+                            # Calculate interfaces for tail
                             if len(tail) > 0:
                                 intfs = self.__resolve_interface(interface, tail)
                                 if intfs:
@@ -757,6 +808,7 @@ class EventModel:
                                                 [list(intfs[index - 1].fields.values()).index(intfs[index].identifier)]
                                             list_access.append(field)
                                     new.interface = intfs[-1]
+                                    new.list_access = list_access
                                     new.list_interface = intfs
                                 else:
                                     raise ValueError("Cannot resolve access {} with a base interface {} in process {}".
@@ -772,6 +824,14 @@ class EventModel:
                         new.label = label
                         new.list_access = [label.name]
                         accesses[access].append(new)
+
+                        # Add also label itself
+                        label_access = "%{}%".format(label.name)
+                        if label_access not in original_accesses:
+                            laccess = Access(label_access)
+                            laccess.label = label
+                            laccess.list_access = [label.name]
+                            accesses[laccess.expression] = [laccess]
 
             # Save back updates collection of accesses
             process.accesses(accesses)
