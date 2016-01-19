@@ -903,6 +903,12 @@ class Process:
                             for match in self.label_re.finditer(statement):
                                 self.__accesses[match.group()] = []
 
+                # Add labels with interfaces
+                for label in self.labels.values():
+                    access = "%{}%".format(label.name)
+                    if access not in self.__accesses:
+                        self.__accesses[access] = []
+
             return self.__accesses
         else:
             self.__accesses = accesses
