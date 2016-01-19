@@ -2,7 +2,7 @@
 #define _LDV_SV_COMP_H_
 
 #include <linux/kernel.h>
-/*ISO/IEC 9899:1999 specification. p. 313, § 7.20.3 "Memory management functions"*/
+/*ISO/IEC 9899:1999 specification. p. 313, paragraph 7.20.3 "Memory management functions"*/
 void *malloc(size_t size);
 void *calloc(size_t nmemb, size_t size);
 void *memset(void *s, int c, size_t n);
