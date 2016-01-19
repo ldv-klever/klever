@@ -594,7 +594,7 @@ class Translator(AbstractTranslator):
                 check.extend(["({} == {} || {} == 0)".format(var, tr["in"], var) for var, tr
                               in self.__generate_state_pair(automata_peers)])
         else:
-            raise ValueError("Cannot find module function for callback '{}'".format(function_call))
+            self.logger.warning("Cannot find module function for callback '{}'".format(function_call))
 
         return " && ".join(check)
 
