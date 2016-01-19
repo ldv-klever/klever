@@ -294,7 +294,7 @@ class ModuleSpecification(CategorySpecification):
 
                         if self.implementations[path][variable][field] != "0" and \
                                 self.implementations[path][variable][field] != "( 0 )" and \
-                                re.compile("[A-Z]").search(self.implementations[path][variable][field]):
+                                re.compile("[A-Za-z]").search(self.implementations[path][variable][field]):
                             implementation = Implementation(self.implementations[path][variable][field],
                                                             path,
                                                             signature.interface.full_identifier,
