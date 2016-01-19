@@ -79,6 +79,14 @@
     "free_irq": {
       "signature": "$ free_irq(%interrupt.line%, %interrupt.data%)",
       "header": "include/linux/interrupt.h"
+    },
+    "i2c_register_driver": {
+      "signature": "int %s i2c_register_driver($, *%i2c.i2c_driver%)",
+      "header": "include/linux/i2c.h"
+    },
+    "i2c_del_driver": {
+      "signature": "void i2c_del_driver(*%i2c.i2c_driver%)",
+      "header": "include/linux/i2c.h"
     }
   },
   "kernel macro-functions": {
@@ -107,16 +115,6 @@
       "header": "include/linux/timer.h"
     }
   },
-  "kernel macros": {
-    "module_init": {
-      "signature": "module_init(%module.module.init%)",
-      "header": "include/linux/module.h"
-    },
-    "module_exit": {
-      "signature": "module_init(%module.module.exit%)",
-      "header": "include/linux/module.h"
-    }
-  },
   "categories": {
     "usb": {
       "containers": {
@@ -125,7 +123,8 @@
           "signature": "struct usb_driver %s",
           "fields": {
             "pre_reset": "pre",
-            "post_reset": "post"
+            "post_reset": "post",
+            "disconnect": "release"
           }
         }
       },
@@ -135,6 +134,9 @@
         },
         "post": {
           "signature": "int %s (*%usb.post%)(*%usb.usb_interface%)"
+        },
+        "release": {
+          "signature": "void (*%usb.release%) (*%usb.usb_interface%)"
         }
       },
       "resources": {
@@ -183,6 +185,37 @@
         "net_device": {}
       }
     },
+    "proto": {
+      "containers": {
+        "proto_ops": {
+          "signature": "struct proto_ops %s",
+          "header": "include/linux/net.h",
+          "fields": {
+            "bind": "probe",
+            "release": "release"
+          }
+        }
+      },
+      "resources": {
+        "socket": {
+          "signature": "struct socket %s"
+        },
+        "sockaddr": {
+          "signature": "struct socket %s"
+        },
+        "sockaddr_len": {
+          "signature": "int %s"
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int %s (*%proto.probe%)(*%proto.socket%, *%proto.sockaddr%, %proto.sockaddr_len%)"
+        },
+        "release": {
+          "signature": "int %s (*%proto.release%)(*%proto.socket%)"
+        }
+      }
+    },
     "device_driver": {
       "containers": {
         "device_driver": {
@@ -204,7 +237,8 @@
           "signature": "struct platform_driver %s",
           "header": "include/linux/platform_device.h",
           "fields": {
-            "probe": "probe"
+            "probe": "probe",
+            "remove": "release"
           }
         }
       },
@@ -218,6 +252,9 @@
       "callbacks": {
         "probe": {
           "signature": "int %s (*%platform.probe%)(*%platform.platform_device%)"
+        },
+        "release": {
+          "signature": "int %s (*%platform.release%)(*%platform.platform_device%)"
         }
       }
     },
@@ -227,7 +264,8 @@
           "signature": "struct file_operations %s",
           "header": "include/linux/fs.h",
           "fields": {
-            "release": "close"
+            "release": "release",
+            "open": "probe"
           }
         }
       },
@@ -240,8 +278,11 @@
         }
       },
       "callbacks": {
-        "close": {
-          "signature": "$ (*%file_operations.close%) (*%file_operations.inode%, *%file_operations.file%)"
+        "probe": {
+          "signature": "int %s (*%file_operations.probe%) (*%file_operations.inode%, *%file_operations.file%)"
+        },
+        "release": {
+          "signature": "$ (*%file_operations.release%) (*%file_operations.inode%, *%file_operations.file%)"
         }
       }
     },
@@ -265,6 +306,27 @@
         "handler": {
           "signature": "void (*%timer.handler%)(%timer.data%)",
           "interrupt context": true
+        }
+      }
+    },
+    "i2c": {
+      "containers": {
+        "i2c_driver": {
+          "signature": "struct i2c_driver %s",
+          "header": "include/linux/i2c.h",
+          "fields": {
+            "remove": "release"
+          }
+        }
+      },
+      "resources": {
+        "client": {
+          "signature": "struct i2c_client %s"
+        }
+      },
+      "callbacks": {
+        "release": {
+          "signature": "int %s (*%i2c.release%)(*%i2c.client%)"
         }
       }
     },
