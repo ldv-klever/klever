@@ -130,7 +130,7 @@ class EventModel:
 
         stop = Subprocess('stop', {})
         stop.type = "condition"
-        stop.statements = ["ldv_stop();"]
+        stop.statements = ["ldv_check_final_state();"]
         self.model["entry"].subprocesses['stop'] = stop
 
         # Add subprocesses finally
