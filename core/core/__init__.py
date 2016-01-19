@@ -78,7 +78,7 @@ class Core:
             self.get_components(self.job)
             # Do not read anything from job directory untill job class will be examined (it might be unsupported). This
             # differs from specification that doesn't treat unsupported job classes at all.
-            with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json')) as fp:
+            with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='ascii') as fp:
                 self.job.conf = json.load(fp)
             # TODO: think about implementation in form of classes derived from class Job.
             if self.job.type == 'Verification of Linux kernel modules':
@@ -103,7 +103,7 @@ class Core:
                 # TODO: looks very like the code above.
                 core_id = self.id
                 # TODO: create artificial log file for Validator.
-                with open('__log', 'w') as fp:
+                with open('__log', 'w', encoding='ascii') as fp:
                     pass
                 for i, sub_job in enumerate(self.job.sub_jobs):
                     # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
@@ -147,7 +147,7 @@ class Core:
                                       suffix='-validator{0}'.format(i))
         except Exception:
             if self.mqs:
-                with open('problem desc.txt', 'w') as fp:
+                with open('problem desc.txt', 'w', encoding='ascii') as fp:
                     traceback.print_exc(file=fp)
 
                 if os.path.isfile('problem desc.txt'):
@@ -220,7 +220,7 @@ class Core:
         self.conf_file = vars(parser.parse_args())['conf file']
 
         # Read configuration from file.
-        with open(self.conf_file) as fp:
+        with open(self.conf_file, encoding='ascii') as fp:
             self.conf = json.load(fp)
 
     def prepare_work_dir(self):
@@ -251,7 +251,7 @@ class Core:
 
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w')
+        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='ascii')
 
     def change_work_dir(self):
         # Remember path to configuration file relative to future working directory before changing to it.
@@ -369,7 +369,7 @@ class Core:
             if os.path.isfile('components conf.json'):
                 raise FileExistsError('Components configuration file "components conf.json" already exists')
             self.logger.debug('Create components configuration file "components conf.json"')
-            with open('components conf.json', 'w') as fp:
+            with open('components conf.json', 'w', encoding='ascii') as fp:
                 json.dump(self.components_conf, fp, sort_keys=True, indent=4)
 
     def launch_all_components(self):

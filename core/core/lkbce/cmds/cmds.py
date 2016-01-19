@@ -26,7 +26,7 @@ class Command:
         # compile and link them together. But there is the only example when this happens when complete build of the
         # Linux kernel, and corresponding object file isn't linked to any module. More proper implementation is to
         # replace GCC with CC and LD if it is necessary.
-        with core.utils.LockedOpen(os.environ['LINUX_KERNEL_RAW_BUILD_CMDS_FILE'], 'a') as fp:
+        with core.utils.LockedOpen(os.environ['LINUX_KERNEL_RAW_BUILD_CMDS_FILE'], 'a', encoding='ascii') as fp:
             fp.write('{0}\n{1}'.format('\n'.join([self.cmd.upper() if self.cmd != 'gcc' else 'CC'] + self.opts),
                                        self.cmds_separator))
 

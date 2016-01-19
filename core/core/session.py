@@ -42,7 +42,7 @@ class Session:
                     resp = self.session.get(url, **kwargs)
 
                 if resp.status_code != 200:
-                    with open('response error.html', 'w') as fp:
+                    with open('response error.html', 'w', encoding='ascii') as fp:
                         fp.write(resp.text)
                     raise IOError(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
@@ -58,7 +58,7 @@ class Session:
 
     def decide_job(self, job, start_report_file):
         # TODO: report is likely should be compressed.
-        with open(start_report_file) as fp:
+        with open(start_report_file, encoding='ascii') as fp:
             resp = self.__request('jobs/decide_job/', {
                 'job format': job.format,
                 'report': fp.read()
@@ -96,7 +96,7 @@ class Session:
 
     def upload_report(self, report, archive=None):
         # TODO: report is likely should be compressed.
-        with open(report) as fp:
+        with open(report, encoding='ascii') as fp:
             if archive:
                 self.__request('reports/upload/',
                                {'report': fp.read()},

@@ -18,8 +18,8 @@ class Weaver(core.components.Component):
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                with open(os.path.join(self.conf['source tree root'],
-                                       cc_extra_full_desc_file['cc full desc file'])) as fp:
+                with open(os.path.join(self.conf['source tree root'], cc_extra_full_desc_file['cc full desc file']),
+                          encoding='ascii') as fp:
                     cc_full_desc = json.load(fp)
 
                 self.logger.info('Weave in C file "{0}"'.format(cc_full_desc['in files'][0]))
@@ -29,10 +29,10 @@ class Weaver(core.components.Component):
                     # Concatenate all aspects of all plugins together.
                     aspect = os.path.join(self.conf['source tree root']
                                           , '{}.aspect'.format(os.path.splitext(cc_full_desc['out file'])[0]))
-                    with open(aspect, 'w') as fout, fileinput.input(
+                    with open(aspect, 'w', encoding='ascii') as fout, fileinput.input(
                             [os.path.join(self.conf['source tree root'], aspect) for plugin_aspects
                              in cc_extra_full_desc_file['plugin aspects'] for aspect in
-                             plugin_aspects['aspects']]) as fin:
+                             plugin_aspects['aspects']], openhook=fileinput.hook_encoded('ascii')) as fin:
                         for line in fin:
                             fout.write(line)
 
