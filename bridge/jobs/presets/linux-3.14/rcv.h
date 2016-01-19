@@ -16,6 +16,9 @@ static inline void ldv_error(void)
    avoided by verifiers. */
 #define ldv_assume(expr) ((expr) ? 0 : ldv_stop())
 
+/* Check that error has not been found until there */
+void ldv_check_final_state(void);
+
 /* Infinite loop, that causes verifiers to skip such paths. */
 static inline void ldv_stop(void) {
   LDV_STOP: goto LDV_STOP;
