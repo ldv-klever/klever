@@ -48,6 +48,7 @@ To run Klever Core you need:
 
 * `GNU make <https://www.gnu.org/software/make/>`_.
 * `GNU bc <https://www.gnu.org/software/bc/>`_.
+* `graphviz <http://graphviz.org/>`_.
 * `CIF <http://forge.ispras.ru/projects/cif>`_.
 
 TODO: Klever Scheduler
