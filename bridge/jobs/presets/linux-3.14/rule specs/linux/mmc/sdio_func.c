@@ -3,17 +3,17 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
 
-/* CHANGE_STATE sdio_func state is unclaimed */
+/* CHANGE_STATE SDIO bus is unclaimed */
 unsigned short ldv_sdio_element = 0;
 
-/* MODEL_FUNC_DEF Checks that the sdio function being used has been claimed */
+/* MODEL_FUNC_DEF Check that sdio function was claimed */
 void ldv_check_context(struct sdio_func *func)
 {
-	/* ASSERT Checks if the sdio_func in the argument has been claimed before using it */
+	/* ASSERT sdio function should be claimed before using it */
 	ldv_assert(ldv_sdio_element == func->card->host->index);
 }
 
-/* MODEL_FUNC_DEF Checks that the sdio bus hasn't already been claimed before */
+/* MODEL_FUNC_DEF Check that the sdio bus hasn't already been claimed before */
 void ldv_sdio_claim_host(struct sdio_func *func)
 {
 	/* ASSERT Check if the bus hasn't been claimed before */
@@ -32,9 +32,9 @@ void ldv_sdio_release_host(struct sdio_func *func)
 	/* CHANGE_STATE Removing this device from the state element */
 	ldv_sdio_element = 0;
 }
-/*MODEL_FUNC_DEF Checks that the sdio bus isn't claimed at the end of execution */
+/* MODEL_FUNC_DEF Check that SDIO bus isn't claimed at the end */
 void ldv_check_final_state(void)
 {
-	/* ASSERT Ensures that no sdio_func was claimed and not released upon exiting the driver */
+	/* ASSERT SDIO bus should be released before finishing operation */
 	ldv_assert(ldv_sdio_element == 0);
 }
