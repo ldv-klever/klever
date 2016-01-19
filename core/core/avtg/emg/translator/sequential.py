@@ -321,8 +321,8 @@ class Translator(AbstractTranslator):
 
                 else:
                     invoke = '(*' +\
-                             access.access_with_variable(automaton.variable(access.label,
-                                                                            access.interface.full_identifier)) +\
+                             access.access_with_variable(
+                                     automaton.variable(access.label, access.list_interface[0].full_identifier)) +\
                              ')'
                     file = self.entry_file
                     check = True
@@ -378,7 +378,7 @@ class Translator(AbstractTranslator):
                             suits = [acc for acc in accesses if acc.interface and
                                      acc.interface.full_identifier == parameter.interface.full_identifier]
                             if len(suits) == 1:
-                                var = automaton.variable(suits[0].label, parameter.interface.full_identifier)
+                                var = automaton.variable(suits[0].label, suits[0].list_interface[0].full_identifier)
                                 expression = suits[0].access_with_variable(var)
                                 break
                             elif len(suits) > 1:
@@ -524,7 +524,7 @@ class Translator(AbstractTranslator):
                                                                  for var, tr in checks]) + ')'
             else:
                 # Generate comment
-                base_case["body"].append("/* Dispatch {} is not expected by any process, skip it".
+                base_case["body"].append("/* Dispatch {} is not expected by any process, skip it */".
                                          format(subprocess.name))
             cases.append(base_case)
         elif subprocess.type == "receive" and subprocess.callback:

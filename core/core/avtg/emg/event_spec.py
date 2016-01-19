@@ -260,9 +260,9 @@ class EventModel:
         self.logger.debug("Make copy of process {} before adding it to the model".format(process.name))
         new = copy.deepcopy(process)
 
-        new.identifier = len(self.model["models"]) + len(self.model["processes"])
-        self.logger.info("Finally add process {} to the model with identifier {}".
-                         format(process.name, process.identifier))
+        # todo: Assign category for each new process not even for that which have callbacks
+        self.logger.info("Finally add process {} to the model".
+                         format(process.name))
         if model:
             self.model["models"].append(new)
         else:
@@ -297,8 +297,7 @@ class EventModel:
             p1 = self.model["processes"][index1]
             for index2 in range(index1 + 1, len(self.model["processes"])):
                 p2 = self.model["processes"][index2]
-                self.logger.debug("Analyze signals of processes {} and {} in the model with identifiers {} and {}".
-                                  format(p1.name, p2.name, p1.identifier, p2.identifier))
+                self.logger.debug("Analyze signals of processes {} and {}".format(p1.name, p2.name))
                 p1.establish_peers(p2)
 
         # Calculate callbacks which can be called in the model at the moment
@@ -589,7 +588,15 @@ class EventModel:
     def __establish_signal_peers(self, process):
         for candidate in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
             peers = process.get_available_peers(candidate)
-            if peers:
+
+            # Be sure that process have not been added yet
+            peered_processes = []
+            for subprocess in [subp for subp in process.subprocesses.values() if subp.peers and len(subp.peers) > 0]:
+                peered_processes.extend([peer["process"] for peer in subprocess.peers
+                                         if peer["process"].name == candidate.name])
+
+            # Try to add process
+            if peers and len(peered_processes) == 0:
                 self.logger.debug("Establish signal references between process {} with category {} and process {} with "
                                   "category {}".
                                   format(process.name, process.category, candidate.name, candidate.category))
@@ -799,6 +806,7 @@ class EventModel:
                                                 [list(intfs[index - 1].fields.values()).index(intfs[index].identifier)]
                                             list_access.append(field)
                                     new.interface = intfs[-1]
+                                    new.list_access = list_access
                                     new.list_interface = intfs
                                 else:
                                     raise ValueError("Cannot resolve access {} with a base interface {} in process {}".

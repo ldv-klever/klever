@@ -814,9 +814,11 @@ class Process:
                 label1 = self.extract_label(self.subprocesses[signals[0]].parameters[index])
                 label2 = process.extract_label(process.subprocesses[signals[1]].parameters[index])
 
-                if len(label2.interfaces) == 0 and len(label1.interfaces) > 0:
+                if (not label2.interfaces or len(label2.interfaces) == 0) and \
+                        (label1.interfaces and len(label1.interfaces) > 0):
                     label2.interfaces = label1.interfaces
-                elif len(label2.interfaces) > 0 and len(label1.interfaces) == 0:
+                elif (label2.interfaces and len(label2.interfaces) > 0) and \
+                        (not label1.interfaces or len(label1.interfaces) == 0):
                     label1.interfaces = label2.interfaces
 
             self.subprocesses[signals[0]].peers.append(
