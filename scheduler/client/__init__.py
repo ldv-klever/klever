@@ -54,7 +54,7 @@ def solve_job(conf):
         raise FileExistsError("There is no Klever Core executable script {}".format(bin))
 
     # Save Klever Core configuration to default configuration file
-    with open("core.json", "w") as fh:
+    with open("core.json", "w", encoding="ascii") as fh:
         json.dump(conf["Klever Core conf"], fh, sort_keys=True, indent=4)
 
     # Import RunExec
@@ -159,7 +159,7 @@ def solve_task(conf):
     # TODO: in this case verifier is invoked per each such file rather than per all of them.
     for file in conf["files"]:
         ElementTree.SubElement(tasks, "include").text = file
-    with open("benchmark.xml", "w") as fp:
+    with open("benchmark.xml", "w", encoding="ascii") as fp:
         fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
 
     os.makedirs("output")
@@ -188,7 +188,7 @@ def solve_task(conf):
         'OUT OF MEMORY': 'memory exhausted'
     }
     for benexec_output in glob.glob(os.path.join("output", "benchmark*results.xml")):
-        with open(benexec_output) as fp:
+        with open(benexec_output, encoding="ascii") as fp:
             result = ElementTree.parse(fp).getroot()
             decision_results["desc"] = '{0}\n{1} {2}'.format(result.attrib.get('generator'), result.attrib.get('tool'),
                                                              result.attrib.get('version'))
@@ -210,7 +210,7 @@ def solve_task(conf):
                 elif name == "status":
                     decision_results["status"] = statuses_map[value]
     # TODO: how to find exit code and signal number? decision_results["exit code"] = exit_code
-    with open("decision results.json", "w") as fp:
+    with open("decision results.json", "w", encoding="ascii") as fp:
         json.dump(decision_results, fp, sort_keys=True, indent=4)
 
     with tarfile.open("decision result files.tar.gz", "w:gz") as tar:

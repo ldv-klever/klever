@@ -130,7 +130,7 @@ class LKBCE(core.components.Component):
             self.extract_all_linux_kernel_mod_deps()
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
-        with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a') as fp:
+        with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a', encoding='ascii') as fp:
             fp.write(core.lkbce.cmds.cmds.Command.cmds_separator)
 
     def extract_all_linux_kernel_mod_deps(self):
@@ -139,7 +139,7 @@ class LKBCE(core.components.Component):
             path = os.path.join(self.linux_kernel['modules install'], "lib/modules",
                                 self.linux_kernel['version'], "modules.dep")
 
-            with open(path, 'r') as fp:
+            with open(path, encoding='ascii') as fp:
                 for line in fp:
                     splits = line.split(':')
                     if len(splits) == 1:
@@ -301,7 +301,7 @@ class LKBCE(core.components.Component):
         while True:
             time.sleep(1)
 
-            with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'r+') as fp:
+            with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'r+', encoding='ascii') as fp:
                 # Move to previous end of file.
                 fp.seek(offset)
 

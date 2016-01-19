@@ -94,7 +94,7 @@ class RSG(core.components.Component):
                 if os.path.isfile(full_desc_file):
                     raise FileExistsError('CC extra full description file "{0}" already exists'.format(full_desc_file))
                 self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
-                with open(full_desc_file, 'w') as fp:
+                with open(full_desc_file, 'w', encoding='ascii') as fp:
                     json.dump({
                         # Input file path should be relative to source tree root since compilation options are relative
                         # to this directory and we will change directory to that one before invoking preprocessor.

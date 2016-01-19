@@ -54,8 +54,8 @@ def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
 
     # Read rule specification descriprions DB.
-    with open(
-            core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB'])) as fp:
+    with open(core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB']),
+              encoding='ascii') as fp:
         descs = json.load(fp)
 
     rule_spec_descs = []
@@ -281,9 +281,9 @@ class AVTG(core.components.Component):
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = []
             for cc_full_desc_file in grp['cc full desc files']:
-                with open(os.path.join(self.conf["source tree root"], cc_full_desc_file), "r") as fh:
+                with open(os.path.join(self.conf['source tree root'], cc_full_desc_file), encoding='ascii') as fh:
                     command = json.load(fh)
-                in_file = command["in files"][0]
+                in_file = command['in files'][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})
             del (grp['cc full desc files'])
         if self.conf['debug']:
@@ -293,7 +293,7 @@ class AVTG(core.components.Component):
                     initial_abstract_task_desc_file))
             self.logger.debug('Create initial abstract verification task description file "{0}"'.format(
                 initial_abstract_task_desc_file))
-            with open(initial_abstract_task_desc_file, 'w') as fp:
+            with open(initial_abstract_task_desc_file, 'w', encoding='ascii') as fp:
                 json.dump(initial_abstract_task_desc, fp, sort_keys=True, indent=4)
 
         # Invoke all plugins one by one.
@@ -355,7 +355,7 @@ class AVTG(core.components.Component):
                     raise FileExistsError('Clugins configuration file "{0}" already exists'.format(
                         plugin_conf_file))
                 self.logger.debug('Create plugins configuration file "{0}"'.format(plugin_conf_file))
-                with open(plugin_conf_file, 'w') as fp:
+                with open(plugin_conf_file, 'w', encoding='ascii') as fp:
                     json.dump(plugin_conf, fp, sort_keys=True, indent=4)
 
                 cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(),
@@ -366,7 +366,7 @@ class AVTG(core.components.Component):
                             cur_abstract_task_desc_file))
                 self.logger.debug('Create current abstract verification task description file "{0}"'.format(
                     cur_abstract_task_desc_file))
-                with open(cur_abstract_task_desc_file, 'w') as fp:
+                with open(cur_abstract_task_desc_file, 'w', encoding='ascii') as fp:
                     json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
 
         # Finalize generation of abstract verification task description.
@@ -384,7 +384,7 @@ class AVTG(core.components.Component):
                             final_abstract_task_desc_file))
                 self.logger.debug('Create final abstract verification task description file "{0}"'.format(
                     final_abstract_task_desc_file))
-                with open(final_abstract_task_desc_file, 'w') as fp:
+                with open(final_abstract_task_desc_file, 'w', encoding='ascii') as fp:
                     json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
 
             # VTG will consume this abstract verification task description.

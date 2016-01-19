@@ -57,7 +57,7 @@ class Scotch:
         self.logger.debug("Import partitioning results from the file")
 
         partitioning = {}
-        with open(self.scotch_out) as fp:
+        with open(self.scotch_out, encoding='ascii') as fp:
             lines = fp.readlines()
             for line in lines[1:]:
                 line = line.rstrip("\n")
@@ -228,7 +228,7 @@ class Scotch:
             edges_num_check += len(dual_graph[i])
 
         # Write them
-        with open(self.graph_file, 'w') as fp:
+        with open(self.graph_file, 'w', encoding='ascii') as fp:
             fp.write(''.join(text_to_print))
 
             # Check that number of edges was determined correctly

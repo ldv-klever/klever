@@ -23,7 +23,7 @@ def common_initialization(tool, conf=None):
         args = parser.parse_args()
 
         # Read configuration from file.
-        with open(args.config) as fp:
+        with open(args.config, encoding="ascii") as fp:
             conf = json.load(fp)
 
     # TODO: Do we need use version of the scheduler further?

@@ -18,7 +18,7 @@ class ASE(core.components.Component):
         if os.path.isfile('arg signs'):
             self.logger.info('Process obtained argument signatures from file "arg signs"')
             # We could obtain the same argument signatures, so remove duplicates.
-            with open('arg signs') as fp:
+            with open('arg signs', encoding='ascii') as fp:
                 arg_signs = set(fp.read().splitlines())
             self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
 
@@ -53,8 +53,8 @@ class ASE(core.components.Component):
             self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
 
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                with open(os.path.join(self.conf['source tree root'],
-                                       cc_extra_full_desc_file['cc full desc file'])) as fp:
+                with open(os.path.join(self.conf['source tree root'], cc_extra_full_desc_file['cc full desc file']),
+                          encoding='ascii') as fp:
                     cc_full_desc = json.load(fp)
 
                 self.logger.info('Request argument signatures for C file "{0}"'.format(cc_full_desc['in files'][0]))

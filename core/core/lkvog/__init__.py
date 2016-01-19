@@ -46,7 +46,7 @@ def after_process_linux_kernel_raw_build_cmd(context):
                 linux_kernel_build_cmd_full_desc_file))
         context.logger.debug(
             'Dump Linux kernel CC full description to file "{0}"'.format(linux_kernel_build_cmd_full_desc_file))
-        with open(linux_kernel_build_cmd_full_desc_file, 'w') as fp:
+        with open(linux_kernel_build_cmd_full_desc_file, 'w', encoding='ascii') as fp:
             json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
                       sort_keys=True, indent=4)
 
@@ -192,7 +192,7 @@ class LKVOG(core.components.Component):
                 self.logger.debug(
                     'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                         self.module['name'], verification_obj_desc_file))
-                with open(verification_obj_desc_file, 'w') as fp:
+                with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
         elif strategy in strategies_list:
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id + str(hash(self.cluster)))
@@ -222,7 +222,8 @@ class LKVOG(core.components.Component):
                 self.logger.debug(
                     'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                         self.module['name'], verification_obj_desc_file))
-                with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file), 'w') as fp:
+                with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file), 'w',
+                          encoding='ascii') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
         else:
