@@ -227,6 +227,10 @@ class EventModel:
                     if len(label_map["matched calls"]) > len(best_map["matched calls"]) and \
                             len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
                         do = True
+                    elif len(label_map["matched calls"]) >= len(best_map["matched calls"]) and \
+                            len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]) and \
+                            len(label_map["unmatched labels"]) < len(best_map["unmatched labels"]):
+                        do = True
                     elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
                         do = True
                     else:

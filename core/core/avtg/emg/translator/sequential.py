@@ -134,7 +134,8 @@ class Translator(AbstractTranslator):
         for automaton in self.callback_fsa + self.model_fsa + [self.entry_fsa]:
             variables = automaton.variables
             for variable in variables:
-                variable.file = self.entry_file
+                if not variable.file:
+                    variable.file = self.entry_file
                 if variable.file not in self.files:
                     self.files[variable.file] = {
                         "variables": {},
@@ -725,6 +726,7 @@ class Automaton:
                     category, short_id = interface.split(".")
                     var = Variable("emgfsa_{}_{}_{}".format(self.identifier, label.name, short_id), None,
                                    label_signature, export=True)
+
                     if len(access.interface.implementations) == 1:
                         if access.interface.signature.pointer == label_signature.pointer:
                             var.value = access.interface.implementations[0].value
@@ -733,6 +735,9 @@ class Automaton:
                                 var.value = "& " + access.interface.implementations[0].value
                             else:
                                 var.value = "* " + access.interface.implementations[0].value
+
+                        # Change file according to the value
+                        var.file = access.interface.implementations[0].file
                     elif len(access.interface.implementations) > 1:
                         raise ValueError("Cannot initialize label {} with several values".format(label.name))
 

@@ -101,8 +101,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                 lines.extend(function.get_declaration(extern=True))
                             else:
                                 lines.extend(function.get_declaration(extern=False))
-                lines.append("\n")
 
+                lines.append("\n")
                 lines.append("/* EMG variable declarations */\n")
                 for file in self.files:
                     if "variables" in self.files[file]:
@@ -113,6 +113,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             else:
                                 lines.extend([variable.declare(extern=False) + ";\n"])
 
+                lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
                 for file in self.files:
                     if "variables" in self.files[file]:
@@ -120,8 +121,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                          if self.files[file]["variables"][name].use > 0]:
                             if cc_extra_full_desc_file["in file"] == file and variable.value:
                                 lines.extend([variable.declare_with_init(init=False) + ";\n"])
-                lines.append("\n")
 
+                lines.append("\n")
                 lines.append("/* EMG function definitions */\n")
                 for file in self.files:
                     if "functions" in self.files[file]:
@@ -129,14 +130,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             if cc_extra_full_desc_file["in file"] == file:
                                 lines.extend(function.get_definition())
                                 lines.append("\n")
-                lines.append("}\n")
 
+                lines.append("}\n")
                 lines.append("/* EMG kernel function models */\n")
                 for aspect in self.model_aspects:
                     lines.extend(aspect.get_aspect())
                     lines.append("\n")
 
                 if len(self.additional_aspects) > 0:
+                    lines.append("\n")
                     lines.append("/* EMG additional non-generated aspects */\n")
                     lines.extend(self.additional_aspects)
                     lines.append("\n")
