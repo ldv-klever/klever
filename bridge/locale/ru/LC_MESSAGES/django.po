@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-01-10 09:37+0000\n"
+"POT-Creation-Date: 2016-01-19 10:07+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -96,7 +96,7 @@ msgstr "У Вас нет прав на данную страницу"
 msgid "Couldn't visualize the error trace"
 msgstr "Не удалось визуализировать трассу ошибки"
 
-#: bridge/vars.py:33 bridge/vars.py:47
+#: bridge/vars.py:33 bridge/vars.py:50
 #: tools/templates/tools/ManagerPanel.html:12 tools/views.py:28
 #: tools/views.py:77 tools/views.py:96 tools/views.py:123 tools/views.py:142
 #: tools/views.py:156
@@ -111,7 +111,7 @@ msgstr "Постановщик"
 msgid "Manager"
 msgstr "Руководитель"
 
-#: bridge/vars.py:36 bridge/vars.py:49 users/notifications.py:222
+#: bridge/vars.py:36 bridge/vars.py:52 users/notifications.py:222
 msgid "Expert"
 msgstr "Эксперт"
 
@@ -124,145 +124,157 @@ msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
 #: bridge/vars.py:42
+msgid "Validation on Linux kernel modules"
+msgstr "Валидация на модулях ядра Linux"
+
+#: bridge/vars.py:43
 msgid "Verification of commits in Linux kernel Git repositories"
 msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
-#: bridge/vars.py:43
+#: bridge/vars.py:44
+msgid "Validation on commits in Linux kernel Git repositories"
+msgstr "Валидация на коммитах в Git-репозиториях ядра Linux"
+
+#: bridge/vars.py:45
 msgid "Verification of C programs"
 msgstr "Верификация Си-программ"
 
-#: bridge/vars.py:48 users/notifications.py:222
+#: bridge/vars.py:46
+msgid "Validation on C programs"
+msgstr "Валидация на Си-программах"
+
+#: bridge/vars.py:51 users/notifications.py:222
 msgid "Observer"
 msgstr "Обозреватель"
 
-#: bridge/vars.py:50
+#: bridge/vars.py:53
 msgid "Observer and Operator"
 msgstr "Обозреватель и оператор"
 
-#: bridge/vars.py:51
+#: bridge/vars.py:54
 msgid "Expert and Operator"
 msgstr "Эксперт и оператор"
 
-#: bridge/vars.py:55
+#: bridge/vars.py:58
 msgid "Not solved"
 msgstr "Не решено"
 
-#: bridge/vars.py:56 bridge/vars.py:351
+#: bridge/vars.py:59 bridge/vars.py:354
 msgid "Pending"
 msgstr "Ожидает"
 
-#: bridge/vars.py:57
+#: bridge/vars.py:60
 msgid "Is solving"
 msgstr "Решается"
 
-#: bridge/vars.py:58
+#: bridge/vars.py:61
 msgid "Solved"
 msgstr "Решено"
 
-#: bridge/vars.py:59 reports/templates/reports/ReportMain.html:33
+#: bridge/vars.py:62 reports/templates/reports/ReportMain.html:33
 msgid "Failed"
 msgstr "Провалено"
 
-#: bridge/vars.py:60
+#: bridge/vars.py:63
 msgid "Corrupted"
 msgstr "Повреждено"
 
-#: bridge/vars.py:61 bridge/vars.py:355
+#: bridge/vars.py:64 bridge/vars.py:358
 msgid "Cancelled"
 msgstr "Отменено"
 
-#: bridge/vars.py:120
+#: bridge/vars.py:123
 msgid "Unreported"
 msgstr "Не сообщена"
 
-#: bridge/vars.py:121
+#: bridge/vars.py:124
 msgid "Reported"
 msgstr "Сообщена"
 
-#: bridge/vars.py:122
+#: bridge/vars.py:125
 msgid "Fixed"
 msgstr "Исправлена"
 
-#: bridge/vars.py:123
+#: bridge/vars.py:126
 msgid "Rejected"
 msgstr "Отклонена"
 
-#: bridge/vars.py:127 bridge/vars.py:134 bridge/vars.py:140 bridge/vars.py:149
+#: bridge/vars.py:130 bridge/vars.py:137 bridge/vars.py:143 bridge/vars.py:152
 #: jobs/utils.py:44 jobs/utils.py:52
 #: reports/templates/reports/report_leaf.html:7 reports/utils.py:32
 msgid "Unknown"
 msgstr "Неизвестно"
 
-#: bridge/vars.py:128 bridge/vars.py:141
+#: bridge/vars.py:131 bridge/vars.py:144
 msgid "Bug"
 msgstr "Ошибка"
 
-#: bridge/vars.py:129 bridge/vars.py:142
+#: bridge/vars.py:132 bridge/vars.py:145
 msgid "Target bug"
 msgstr "Целевая ошибка"
 
-#: bridge/vars.py:130 bridge/vars.py:143
+#: bridge/vars.py:133 bridge/vars.py:146
 msgid "False positive"
 msgstr "Ложное сообщение об ошибке"
 
-#: bridge/vars.py:135 bridge/vars.py:150 jobs/utils.py:43
+#: bridge/vars.py:138 bridge/vars.py:153 jobs/utils.py:43
 msgid "Incorrect proof"
 msgstr "Некорректное доказательство"
 
-#: bridge/vars.py:136 bridge/vars.py:151
+#: bridge/vars.py:139 bridge/vars.py:154
 msgid "Missed target bug"
 msgstr "Пропуск целевой ошибки"
 
-#: bridge/vars.py:144 bridge/vars.py:152 jobs/utils.py:45 jobs/utils.py:53
+#: bridge/vars.py:147 bridge/vars.py:155 jobs/utils.py:45 jobs/utils.py:53
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: bridge/vars.py:145 bridge/vars.py:153 jobs/JobTableProperties.py:583
+#: bridge/vars.py:148 bridge/vars.py:156 jobs/JobTableProperties.py:583
 #: jobs/JobTableProperties.py:588 jobs/ViewJobData.py:175 jobs/utils.py:46
 #: jobs/utils.py:54
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: bridge/vars.py:326 bridge/vars.py:345
+#: bridge/vars.py:329 bridge/vars.py:348
 #: service/templates/service/scheduler.html:27
 msgid "Healthy"
 msgstr "Здоровый"
 
-#: bridge/vars.py:327 bridge/vars.py:346
+#: bridge/vars.py:330 bridge/vars.py:349
 #: service/templates/service/scheduler.html:29
 msgid "Ailing"
 msgstr "Нездоровый"
 
-#: bridge/vars.py:328 bridge/vars.py:347
+#: bridge/vars.py:331 bridge/vars.py:350
 #: service/templates/service/scheduler.html:31
 msgid "Disconnected"
 msgstr "Отключенный"
 
-#: bridge/vars.py:337
+#: bridge/vars.py:340
 msgid "Urgent"
 msgstr "Срочный"
 
-#: bridge/vars.py:338
+#: bridge/vars.py:341
 msgid "High"
 msgstr "Высокий"
 
-#: bridge/vars.py:339
+#: bridge/vars.py:342
 msgid "Low"
 msgstr "Низкий"
 
-#: bridge/vars.py:340
+#: bridge/vars.py:343
 msgid "Idle"
 msgstr "Незанятый"
 
-#: bridge/vars.py:344
+#: bridge/vars.py:347
 msgid "User occupied"
 msgstr "Занятый пользователем"
 
-#: bridge/vars.py:352
+#: bridge/vars.py:355
 msgid "Processing"
 msgstr "Решается"
 
-#: bridge/vars.py:354 templates/error.html:5
+#: bridge/vars.py:357 templates/error.html:5
 msgid "Error"
 msgstr "Ошибка"
 
