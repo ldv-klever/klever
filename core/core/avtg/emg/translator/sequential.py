@@ -471,7 +471,6 @@ class Translator(AbstractTranslator):
                             receiver_expr = receiver_access.\
                                 access_with_variable(check[1]["automaton"].variable(receiver_access.label, interface))
 
-
                             # Determine dispatcher parameter
                             dispatcher_access = automaton.process.\
                                 resolve_access(subprocess.parameters[index], interface)
@@ -500,8 +499,11 @@ class Translator(AbstractTranslator):
                             )
 
                         if len(receiver_condition) > 0:
-                            receiver_condition = [text_processor(check[1]["automaton"], stm) for stm in receiver_condition]
-                            dispatcher_condition = ' && '.join([dispatch_condition] + receiver_condition)
+                            new_receiver_condition = []
+                            for stm in receiver_condition:
+                                new_receiver_condition.extend(text_processor(check[1]["automaton"], stm))
+                            receiver_condition = new_receiver_condition
+                            dispatcher_condition = [dispatch_condition] + receiver_condition
                         else:
                             dispatcher_condition = [dispatch_condition]
 
@@ -522,6 +524,9 @@ class Translator(AbstractTranslator):
                     # Generate guard
                     base_case["guard"] += ' && (' + " || ".join(["{} == {}".format(var, tr["in"])
                                                                  for var, tr in checks]) + ')'
+                elif len(list(automata_peers.keys())) > 0:
+                    raise RuntimeError("No dispatches are generated for dispatch {} but it can be received".
+                                       format(subprocess.name))
             else:
                 # Generate comment
                 base_case["body"].append("/* Dispatch {} is not expected by any process, skip it */".
@@ -630,7 +635,7 @@ class Translator(AbstractTranslator):
         # Add state checks
         for ap in automata_peers.values():
             for transition in ap["automaton"].fsa.state_transitions:
-                if transition["subprocess"].name in ap["subprocesses"]:
+                if transition["subprocess"].name in [subp.name for subp in ap["subprocesses"]]:
                     check.append([ap["automaton"].state_variable.name, transition])
 
         return check

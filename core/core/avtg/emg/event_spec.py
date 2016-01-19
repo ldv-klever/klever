@@ -211,8 +211,7 @@ class EventModel:
 
         for process in [self.events["environment processes"][name] for name in estimations]:
             label_map = estimations[process.name]
-            if label_map and len(label_map["matched calls"]) > 0 and len(label_map["uncalled callbacks"]) == 0 and \
-                             len(label_map["unmatched labels"]) == 0:
+            if label_map and len(label_map["matched calls"]) > 0 and len(label_map["unmatched labels"]) == 0:
                 self.logger.info("Matching process {} for category {}, it has:".format(process.name, category))
                 self.logger.info("Matching labels: {}".format(str(label_map["matched labels"])))
                 self.logger.info("Unmatched labels: {}".format(str(label_map["unmatched labels"])))
@@ -221,15 +220,17 @@ class EventModel:
                 self.logger.info("Matched calls: {}".format(str(label_map["matched calls"])))
                 self.logger.info("Native interfaces: {}".format(str(label_map["native interfaces"])))
 
+                do = False
                 if label_map["native interfaces"] > best_map["native interfaces"]:
                     do = True
-                elif len(label_map["matched calls"]) > len(best_map["matched calls"]) and \
-                        len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
-                    do = True
-                elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
-                    do = True
-                else:
-                    do = False
+                elif best_map["native interfaces"] == 0:
+                    if len(label_map["matched calls"]) > len(best_map["matched calls"]) and \
+                            len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
+                        do = True
+                    elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
+                        do = True
+                    else:
+                        do = False
 
                 if do:
                     best_map = label_map
@@ -261,6 +262,7 @@ class EventModel:
         new = copy.deepcopy(process)
 
         # todo: Assign category for each new process not even for that which have callbacks
+        new.identifier = len(self.model["models"]) + len(self.model["processes"])
         self.logger.info("Finally add process {} to the model".
                          format(process.name))
         if model:
