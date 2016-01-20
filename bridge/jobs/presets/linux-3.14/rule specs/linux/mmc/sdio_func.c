@@ -6,33 +6,33 @@
 /* CHANGE_STATE SDIO bus is unclaimed */
 unsigned short ldv_sdio_element = 0;
 
-/* MODEL_FUNC_DEF Check that sdio function was claimed */
+/* MODEL_FUNC_DEF Check that SDIO bus was claimed */
 void ldv_check_context(struct sdio_func *func)
 {
-	/* ASSERT sdio function should be claimed before using it */
+	/* ASSERT SDIO bus should be claimed before usage */
 	ldv_assert(ldv_sdio_element == func->card->host->index);
 }
 
-/* MODEL_FUNC_DEF Check that the sdio bus hasn't already been claimed before */
+/* MODEL_FUNC_DEF Check that SDIO bus was not claimed */
 void ldv_sdio_claim_host(struct sdio_func *func)
 {
-	/* ASSERT Check if the bus hasn't been claimed before */
+	/* ASSERT SDIO bus should be unclaimed */
 	ldv_assert(ldv_sdio_element == 0);
 
-	/* CHANGE_STATE The device that claimed the bus is equated to the state element */
+	/* CHANGE_STATE Claim SDIO bus (remember device that does this) */
 	ldv_sdio_element = func->card->host->index;
 }
 
-/* MODEL_FUNC_DEF Checks the release of the bus and if it was claimed before by the same device releasing it */
+/* MODEL_FUNC_DEF Check that SDIO bus was claimed by the same device */
 void ldv_sdio_release_host(struct sdio_func *func)
 {
-	/* ASSERT Check if the device ordering the bus be released has already claimed it */
+	/* ASSERT SDIO bus was claimed by the same device */
 	ldv_assert(ldv_sdio_element == func->card->host->index);
 
-	/* CHANGE_STATE Removing this device from the state element */
+	/* CHANGE_STATE Release SDIO bus */
 	ldv_sdio_element = 0;
 }
-/* MODEL_FUNC_DEF Check that SDIO bus isn't claimed at the end */
+/* MODEL_FUNC_DEF Check that SDIO bus is not claimed at the end */
 void ldv_check_final_state(void)
 {
 	/* ASSERT SDIO bus should be released before finishing operation */
