@@ -71,11 +71,11 @@ class Translator(AbstractTranslator):
                     if inst_access.interface.container and len(inst_access.interface.implementations) > 1 and \
                                     inst_access.interface not in relevant_multi_containers:
                         relevant_multi_containers.append(inst_access.interface)
-                    elif not inst_access.interface.container and len(inst_access.list_interface) > 1 and \
-                            inst_access.list_interface[0].container and \
-                                len(inst_access.list_interface[0].implementations) > 1 and \
-                                inst_access.list_interface[0] not in relevant_multi_containers:
-                        relevant_multi_containers.append(inst_access.list_interface[0])
+                    elif len(inst_access.complete_list_interface) > 1:
+                        for intf in [intf for intf in inst_access.complete_list_interface if intf.container and
+                                     intf.implementations and len(intf.implementations) > 1 and
+                                     intf not in relevant_multi_containers]:
+                            relevant_multi_containers.append(intf)
 
             # Copy instances for each implementation of a container
             if len(relevant_multi_containers) > 0:
@@ -96,6 +96,7 @@ class Translator(AbstractTranslator):
                                         new_values = [impl for impl in access.interface.implementations
                                                       if impl.base_container == interface.full_identifier and
                                                       impl.base_value == implementation.value]
+
                                         if len(new_values) == 0:
                                             access.interface.implementations = []
                                         elif len(new_values) == 1:
@@ -313,9 +314,10 @@ class Translator(AbstractTranslator):
             if access.interface:
                 signature = access.interface.signature
 
-                if len(access.interface.implementations) > 1:
+                if len(access.interface.implementations) > 1 and len(set(im.value for im in access.interface.implementations)) > 1:
                     raise NotImplementedError("Cannot process fsm with several implementations of a single callback")
-                elif len(access.interface.implementations) == 1:
+                elif len(access.interface.implementations) == 1 or \
+                        len(set(im.value for im in access.interface.implementations)):
                     invoke = '(' + access.interface.implementations[0].value + ')'
                     file = access.interface.implementations[0].file
                     check = False
@@ -397,7 +399,12 @@ class Translator(AbstractTranslator):
                 # Generate special function with call
                 function = Function(fname, file, Signature("void {}(void)".format(fname)), True)
                 for var in local_vars:
-                    function.body.concatenate(var.declare_with_init(init=True) + ";")
+                    if var.signature.type_class == "struct" and var.signature.pointer:
+                        definition = var.declare_with_init(init=True) + ";"
+                    else:
+                        var.signature.type_class = "primitive"
+                        definition = var.declare(False) + ";"
+                    function.body.concatenate(definition)
 
                 # Generate return value assignment
                 retval = ""

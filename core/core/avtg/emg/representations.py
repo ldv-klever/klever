@@ -496,7 +496,7 @@ class ModelMap:
     @staticmethod
     def init_pointer(signature):
         if signature.type_class in ["struct", "primitive"] and signature.pointer:
-            return "{}(sizeof(struct {}))".format(ModelMap.mem_function_map["ZINIT"], signature.structure_name)
+            return "{}(sizeof(struct {}))".format(ModelMap.mem_function_map["ALLOC"], signature.structure_name)
         else:
             raise NotImplementedError("Cannot initialize label {} which is not pointer to structure or primitive".
                                       format(signature.name, signature.type_class))
@@ -571,6 +571,7 @@ class Access:
         self.interface = None
         self.list_access = None
         self.list_interface = None
+        self.complete_list_interface = None
 
     def replace_with_variable(self, statement, variable):
         reg = re.compile(self.expression)

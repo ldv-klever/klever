@@ -30,7 +30,9 @@
               "rcv.h",
               "sv-comp.h"
             ],
-            "additional aspects": []
+            "additional aspects": [
+              "headers.aspect"
+            ]
           }
         },
         {
@@ -88,7 +90,9 @@
               "rcv.h",
               "sv-comp.h"
             ],
-            "additional aspects": []
+            "additional aspects": [
+              "headers.aspect"
+            ]
           }
         },
         {

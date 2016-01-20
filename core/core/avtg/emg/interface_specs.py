@@ -282,7 +282,7 @@ class ModuleSpecification(CategorySpecification):
                     implementation = Implementation("& " + variable,
                                                     path,
                                                     signature.interface.full_identifier,
-                                                    variable)
+                                                    "& " + variable)
                     self.interfaces[signature.interface.full_identifier].implementations.append(implementation)
 
                     # Import fields implementations
@@ -298,7 +298,7 @@ class ModuleSpecification(CategorySpecification):
                             implementation = Implementation(self.implementations[path][variable][field],
                                                             path,
                                                             signature.interface.full_identifier,
-                                                            variable)
+                                                            "& " + variable)
                             interface.implementations.append(implementation)
 
         # Import implementations from function parameters

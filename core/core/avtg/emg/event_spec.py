@@ -498,7 +498,7 @@ class EventModel:
                     for callback in callbacks:
                         if callback not in label_map["matched callbacks"]:
                             label_map["matched callbacks"].append(callback)
-                        if subprocess.callback not in ["matched calls"]:
+                        if subprocess.callback not in label_map["matched calls"]:
                             label_map["matched calls"].append(subprocess.callback)
                 elif label.container and tail and label.name not in label_map["matched labels"] and \
                             subprocess.callback not in label_map["unmatched callbacks"]:
@@ -511,7 +511,7 @@ class EventModel:
                             label_map["unmatched callbacks"].append(subprocess.callback)
                         elif intfs and subprocess.callback not in label_map["matched callbacks"]:
                             label_map["matched callbacks"].append(intfs[-1].full_identifier)
-                            if subprocess.callback not in ["matched calls"]:
+                            if subprocess.callback not in label_map["matched calls"]:
                                 label_map["matched calls"].append(subprocess.callback)
 
             # Discard uncalled callbacks and recalculate it
@@ -835,6 +835,21 @@ class EventModel:
                                 new.interface = self.analysis.interfaces[interface]
                                 new.list_access = [label.name]
                                 new.list_interface = [self.analysis.interfaces[interface]]
+
+                            # Complete list accesses if possible
+                            if new.interface:
+                                new_tail = [new.interface]
+                                to_process = [new.interface]
+                                while len(to_process) > 0:
+                                    interface = to_process.pop()
+                                    category = new.interface.category
+
+                                    for container in self.analysis.categories[category]["containers"].values():
+                                        if interface.identifier in list(container.fields.values()):
+                                            new_tail.append(container)
+                                            to_process.append(container)
+                                new_tail.reverse()
+                                new.complete_list_interface = new_tail
 
                             accesses[access].append(new)
                     else:

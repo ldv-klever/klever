@@ -69,12 +69,12 @@
       "subprocesses": {
         "alloc": {
           "statements": [
-            "%netdev% = $ZINIT(%netdev%);"
+            "%netdev% = $ALLOC(%netdev%);"
           ]
         },
         "init": {
           "statements": [
-            "%netdev% = $ZINIT(%netdev%);"
+            "%netdev% = $ALLOC(%netdev%);"
           ]
         },
         "success": {
@@ -479,12 +479,12 @@
         },
         "alloc": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "init": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "free": {
@@ -630,7 +630,7 @@
         },
         "init": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "free": {
@@ -650,10 +650,10 @@
           "condition": ["%probed% != 0"]
         },
         "suspended": {
-          "condition": "%suspended% == 0"
+          "condition": ["%suspended% == 0"]
         },
         "not_suspended": {
-          "condition": "%suspended% != 0"
+          "condition": ["%suspended% != 0"]
         }
       }
     },
@@ -712,7 +712,7 @@
         },
         "init": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "free": {
@@ -809,7 +809,7 @@
         },
         "init": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "free": {
