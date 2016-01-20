@@ -2,7 +2,6 @@ before: file("$this")
 {
 #include <linux/types.h>
 
-// Atomic functions.
 void ldv_atomic_add(int i, atomic_t *v);
 void ldv_atomic_sub(int i, atomic_t *v);
 int ldv_atomic_sub_and_test(int i, atomic_t *v);
