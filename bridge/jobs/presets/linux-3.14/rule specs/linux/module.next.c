@@ -39,7 +39,7 @@ int ldv_try_module_get(struct module *module)
 	}
 }
 
-/* MODEL_FUNC_DEF Check that module reference counter is greater than its initial state and decrement it unless  module pointer is NULL */
+/* MODEL_FUNC_DEF Check that module reference counter is greater than its initial state and decrement it unless module pointer is NULL */
 void ldv_module_put(struct module *module)
 {
 	/* OTHER Do nothing if module pointer is NULL */
@@ -79,6 +79,6 @@ void ldv_initialize(void)
 /* MODEL_FUNC_DEF Check that module reference counter has its initial value at the end */
 void ldv_check_final_state(void)
 {
-	/* ASSERT Module reference counter should be decremente to its initial value before finishing operation */
+	/* ASSERT Module reference counter should be decremented to its initial value before finishing operation */
 	ldv_assert(ldv_module_refcounter == 0);
 }
