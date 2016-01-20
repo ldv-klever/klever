@@ -1278,15 +1278,15 @@ msgid "MB"
 msgstr "МБ"
 
 #: jobs/utils.py:412
-msgid "Job title is required"
+msgid "The job title is required"
 msgstr "Требуется название задания"
 
 #: jobs/utils.py:414
-msgid "Job author is required"
+msgid "The job author is required"
 msgstr "Требуется автор задания"
 
 #: jobs/utils.py:423
-msgid "The parent or the job class are required"
+msgid "The parent or the job class is required"
 msgstr "Требуется родитель или класс задания"
 
 #: jobs/utils.py:461
