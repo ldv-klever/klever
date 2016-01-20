@@ -128,7 +128,7 @@ __ldv_spin_unlock_wait(lock)
 }
 
 before: call(static inline void spin_unlock_wait(..)) ||
-      call(void __ldv_spin_unlock_wait(..))
+        call(void __ldv_spin_unlock_wait(..))
 {
 	ldv_spin_unlock_wait_$arg_sign1();
 }
