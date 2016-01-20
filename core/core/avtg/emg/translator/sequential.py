@@ -397,7 +397,12 @@ class Translator(AbstractTranslator):
                 # Generate special function with call
                 function = Function(fname, file, Signature("void {}(void)".format(fname)), True)
                 for var in local_vars:
-                    function.body.concatenate(var.declare_with_init(init=True) + ";")
+                    if var.signature.type_class == "struct" and var.signature.pointer:
+                        definition = var.declare_with_init(init=True) + ";"
+                    else:
+                        var.signature.type_class = "primitive"
+                        definition = var.declare(False) + ";"
+                    function.body.concatenate(definition)
 
                 # Generate return value assignment
                 retval = ""
