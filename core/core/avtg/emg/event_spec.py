@@ -37,7 +37,7 @@ class EventModel:
 
         # Convert callback access according to container fields
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
-        self.resolve_accesses()
+        self.__resolve_accesses()
 
     def __import_processes(self, raw, category):
         if "kernel model" in raw:
@@ -227,6 +227,10 @@ class EventModel:
                     if len(label_map["matched calls"]) > len(best_map["matched calls"]) and \
                             len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]):
                         do = True
+                    elif len(label_map["matched calls"]) >= len(best_map["matched calls"]) and \
+                            len(label_map["unmatched callbacks"]) <= len(best_map["unmatched callbacks"]) and \
+                            len(label_map["unmatched labels"]) < len(best_map["unmatched labels"]):
+                        do = True
                     elif len(label_map["unmatched callbacks"]) < len(best_map["unmatched callbacks"]):
                         do = True
                     else:
@@ -338,7 +342,7 @@ class EventModel:
                             raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
                                              format(callback_name, process.name))
 
-    def add_label_match(self, label_map, label, interface):
+    def __add_label_match(self, label_map, label, interface):
         if label.name not in label_map["matched labels"]:
             self.logger.debug("Match label '{}' with interface '{}'".format(label.name, interface))
             label_map["matched labels"][label.name] = [interface]
@@ -377,7 +381,7 @@ class EventModel:
                 for intf in label.interfaces:
                     if intf in self.analysis.interfaces and self.analysis.interfaces[intf].category == category:
                         ni.append(intf)
-                        self.add_label_match(label_map, label, intf)
+                        self.__add_label_match(label_map, label, intf)
             label_map["native interfaces"] = len(ni)
 
         old_size = 0
@@ -397,7 +401,7 @@ class EventModel:
                     for interface in label.interfaces:
                         if interface in self.analysis.interfaces \
                                 and self.analysis.interfaces[interface].category == category:
-                            self.add_label_match(label_map, label, interface)
+                            self.__add_label_match(label_map, label, interface)
                 elif not label.interfaces and not label.signature() and tail and label.container and label.name \
                         not in label_map["matched labels"]:
                     for container in [self.analysis.categories[category]["containers"][name] for name
@@ -406,7 +410,7 @@ class EventModel:
                         self.logger.debug("Trying to match label {} with a container {}".
                                           format(label.name, container.full_identifier))
                         if interfaces:
-                            self.add_label_match(label_map, label, container.full_identifier)
+                            self.__add_label_match(label_map, label, container.full_identifier)
 
                 self.logger.debug("Try to match parameters of callback {} in process {} with interfaces of category"
                                   " {}".format(subprocess.callback, process.name, category))
@@ -439,7 +443,7 @@ class EventModel:
                                                            if re.name not in label_map["matched labels"]]
                                     if len(unmatched_resources) == 0 or \
                                             (len(unmatched_resources) > 0 and pl in unmatched_resources):
-                                        self.add_label_match(label_map, pl, pr.interface.full_identifier)
+                                        self.__add_label_match(label_map, pl, pr.interface.full_identifier)
 
                     containers = [cn for cn in process.containers
                                   if cn.name not in label_map["matched labels"]]
@@ -450,7 +454,7 @@ class EventModel:
                                         self.analysis.categories[category]["containers"][name].fields]
                     for intf in containers_intfs:
                         for container in containers:
-                            self.add_label_match(label_map, container, intf.full_identifier)
+                            self.__add_label_match(label_map, container, intf.full_identifier)
 
             # After containers are matched try to match callbacks
             matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
@@ -463,13 +467,13 @@ class EventModel:
                             for field in container_intf.fields.values():
                                 name = "{}.{}".format(category, field)
                                 if name in self.analysis.interfaces and self.analysis.interfaces[name].callback:
-                                    self.add_label_match(label_map, callback, name)
+                                    self.__add_label_match(label_map, callback, name)
             elif len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
                     for intf in [self.analysis.categories[category]["callbacks"][name] for name in
                                      self.analysis.categories[category]["callbacks"]
                                      if self.analysis.categories[category]["callbacks"][name].callback]:
-                        self.add_label_match(label_map, callback, intf.full_identifier)
+                        self.__add_label_match(label_map, callback, intf.full_identifier)
 
             # Discard unmatched labels
             label_map["unmatched labels"] = [label for label in process.labels
@@ -611,11 +615,11 @@ class EventModel:
                 if receive.name == "register":
                     self.logger.info("Generate default registration for process {} with category {}".
                                      format(process.name, process.category))
-                    self.add_default_dispatch(process, receive)
+                    self.__add_default_dispatch(process, receive)
                 elif receive.name == "deregister":
                     self.logger.info("Generate default deregistration for process {} with category {}".
                                      format(process.name, process.category))
-                    self.add_default_dispatch(process, receive)
+                    self.__add_default_dispatch(process, receive)
                 else:
                     self.logger.warning("Signal {} cannot be received by process {} with category {}, "
                                         "since nobody can send it".
@@ -624,7 +628,7 @@ class EventModel:
             self.logger.warning("Signal {} cannot be send by process {} with category {}, "
                                 "since nobody can receive it".format(dispatch.name, process.name, process.category))
 
-    def add_default_dispatch(self, process, receive):
+    def __add_default_dispatch(self, process, receive):
         # Change name
         new_subprocess_name = "{}_{}_{}".format(receive.name, process.name, process.identifier)
         process.rename_subprocess(receive.name, new_subprocess_name)
@@ -633,6 +637,18 @@ class EventModel:
         self.logger.debug("Generate copy of receive {} and make dispatch from it".format(receive.name))
         new_dispatch = copy.deepcopy(receive)
         new_dispatch.type = "dispatch"
+
+        # Peer these subprocesses
+        new_dispatch.peers.append(
+            {
+                "process": process,
+                "subprocess": process.subprocesses[new_dispatch.name]
+            })
+        process.subprocesses[new_dispatch.name].peers.append(
+            {
+                "process": self.model["entry"],
+                "subprocess": new_dispatch
+            })
 
         self.logger.debug("Add dispatch {} to process {}".format(new_dispatch.name, self.model["entry"].name))
         self.model["entry"].subprocesses[new_dispatch.name] = new_dispatch
@@ -661,8 +677,10 @@ class EventModel:
         receive.parameters = []
 
         # Replace condition
+        # todo: do this according to parameters
         if new_dispatch.condition:
             new_dispatch.condition = None
+            process.subprocesses[new_dispatch.name].condition = None
 
     def __assign_signatures(self):
         for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
@@ -755,7 +773,7 @@ class EventModel:
                     if sign.type_class in ["struct", "function"]:
                         sign.pointer = True
 
-    def resolve_accesses(self):
+    def __resolve_accesses(self):
         self.logger.info("Convert interfaces access by expressions on base of containers and their fields")
         for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
             self.logger.debug("Analyze subprocesses of process {} with category {}".

@@ -134,7 +134,8 @@ class Translator(AbstractTranslator):
         for automaton in self.callback_fsa + self.model_fsa + [self.entry_fsa]:
             variables = automaton.variables
             for variable in variables:
-                variable.file = self.entry_file
+                if not variable.file:
+                    variable.file = self.entry_file
                 if variable.file not in self.files:
                     self.files[variable.file] = {
                         "variables": {},
@@ -603,15 +604,23 @@ class Translator(AbstractTranslator):
 
         return " && ".join(check)
 
-    def __collect_relevant_models(self, name):
+    def __collect_relevant_models(self, function):
+        process_names = [function]
+        processed_names = []
         relevant = []
-        if name in self.analysis.modules_functions:
-            for file in self.analysis.modules_functions[name]["files"]:
-                for called in self.analysis.modules_functions[name]["files"][file]["calls"]:
-                    if called in self.analysis.modules_functions:
-                        relevant.extend(self.__collect_relevant_models(called))
-                    elif called in self.analysis.kernel_functions:
-                        relevant.append(called)
+        while len(process_names) > 0:
+            name = process_names.pop()
+
+            if name in self.analysis.modules_functions:
+                for file in self.analysis.modules_functions[name]["files"]:
+                    for called in self.analysis.modules_functions[name]["files"][file]["calls"]:
+                        if called in self.analysis.modules_functions and called not in processed_names and \
+                                called not in process_names:
+                            process_names.append(called)
+                        elif called in self.analysis.kernel_functions:
+                            relevant.append(called)
+
+            processed_names.append(name)
         return relevant
 
     def __extract_relevant_automata(self, automata_peers, peers, types):
@@ -725,6 +734,7 @@ class Automaton:
                     category, short_id = interface.split(".")
                     var = Variable("emgfsa_{}_{}_{}".format(self.identifier, label.name, short_id), None,
                                    label_signature, export=True)
+
                     if len(access.interface.implementations) == 1:
                         if access.interface.signature.pointer == label_signature.pointer:
                             var.value = access.interface.implementations[0].value
@@ -733,6 +743,9 @@ class Automaton:
                                 var.value = "& " + access.interface.implementations[0].value
                             else:
                                 var.value = "* " + access.interface.implementations[0].value
+
+                        # Change file according to the value
+                        var.file = access.interface.implementations[0].file
                     elif len(access.interface.implementations) > 1:
                         raise ValueError("Cannot initialize label {} with several values".format(label.name))
 

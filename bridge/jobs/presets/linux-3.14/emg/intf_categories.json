@@ -124,19 +124,27 @@
           "fields": {
             "pre_reset": "pre",
             "post_reset": "post",
-            "disconnect": "release"
+            "disconnect": "release",
+            "suspend": "suspend",
+            "resume": "resume"
           }
         }
       },
       "callbacks": {
         "pre": {
-          "signature": "int %s (*%usb.pre%)(*%usb.usb_interface%)"
+          "signature": "int %s (*%usb.pre%) (*%usb.usb_interface%)"
         },
         "post": {
-          "signature": "int %s (*%usb.post%)(*%usb.usb_interface%)"
+          "signature": "int %s (*%usb.post%) (*%usb.usb_interface%)"
         },
         "release": {
           "signature": "void (*%usb.release%) (*%usb.usb_interface%)"
+        },
+        "suspend": {
+          "signature": "int %s (*%usb.suspend%) (*%usb.usb_interface%, %usb.pm_mesage%)"
+        },
+        "resume": {
+          "signature": "int %s (*%usb.resume%) (*%usb.usb_interface%)"
         }
       },
       "resources": {
@@ -144,6 +152,9 @@
           "signature": "struct usb_interface %s",
           "header": "include/linux/usb.h",
           "implemented in kernel": true
+        },
+        "pm_mesage": {
+          "signature": "pm_message_t %s"
         }
       }
     },
@@ -153,7 +164,7 @@
           "signature": "struct net_device %s",
           "header": "include/linux/netdevice.h",
           "fields": {
-            "net_device_ops": "net_device_ops",
+            "netdev_ops": "net_device_ops",
             "ethtool_ops": "ethtool_ops"
           }
         },

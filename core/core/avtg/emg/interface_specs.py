@@ -1,4 +1,5 @@
 import json
+import re
 
 
 from core.avtg.emg.representations import Signature, Interface, Implementation
@@ -290,11 +291,15 @@ class ModuleSpecification(CategorySpecification):
                         identifier = "{}.{}".\
                             format(signature.interface.category, signature.interface.fields[field])
                         interface = self.interfaces[identifier]
-                        implementation = Implementation(self.implementations[path][variable][field],
-                                                        path,
-                                                        signature.interface.full_identifier,
-                                                        variable)
-                        interface.implementations.append(implementation)
+
+                        if self.implementations[path][variable][field] != "0" and \
+                                self.implementations[path][variable][field] != "( 0 )" and \
+                                re.compile("[A-Za-z]").search(self.implementations[path][variable][field]):
+                            implementation = Implementation(self.implementations[path][variable][field],
+                                                            path,
+                                                            signature.interface.full_identifier,
+                                                            variable)
+                            interface.implementations.append(implementation)
 
         # Import implementations from function parameters
         for mf in [self.analysis["modules functions"][name] for name in self.analysis["modules functions"]
