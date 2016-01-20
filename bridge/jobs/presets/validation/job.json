@@ -33,16 +33,6 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "c420496~"
-        },
-        "modules": ["drivers/input/misc/arizona-haptics.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
           "commit": "511f1df~"
         },
         "modules": ["drivers/net/ppp/ppp_generic.ko"]
@@ -93,16 +83,6 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "e70988d~"
-        },
-        "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
           "commit": "214c97a12~"
         },
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
@@ -136,16 +116,6 @@
           "commit": "ae3f348~"
         },
         "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "725a145~"
-        },
-        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe"
@@ -188,6 +158,38 @@
         "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
       },
       "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    }
+  ],
+  "hard jobs": [
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "c420496~"
+        },
+        "modules": ["drivers/input/misc/arizona-haptics.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "e70988d~"
+        },
+        "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "725a145~"
+        },
+        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe"
     }
   ]
