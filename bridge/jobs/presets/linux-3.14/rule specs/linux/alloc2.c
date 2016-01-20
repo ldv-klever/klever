@@ -5,75 +5,72 @@
 
 #define LDV_ZERO_STATE 0
 
-
-/* There are 2 possible states of spin lock */
-enum {
-	LDV_SPIN_UNLOCKED = LDV_ZERO_STATE, /* Spin isn't locked */
-	LDV_SPIN_LOCKED                     /* Spin is locked */
-};
-
-
-/* Spin isn't locked at the beginning */
-int ldv_spin = LDV_SPIN_UNLOCKED;
-
-
-/* MODEL_FUNC_DEF Check that a memory allocating function was called with a correct value of flags in spin locking */
-void ldv_check_alloc_flags(gfp_t flags)
-{
-	/* ASSERT If spin is locked (ldv_spin != LDV_SPIN_UNLOCKED) then a memory allocating function should be called with __GFP_WAIT flag unset (GFP_ATOMIC or GFP_NOWAIT) */
-	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
-}
-
 extern struct page *ldv_some_page(void);
 
-/* MODEL_FUNC_DEF Check that a memory allocating function was called with a correct value of flags in spin locking */
-struct page *ldv_check_alloc_flags_and_return_some_page(gfp_t flags)
+/* There are 2 possible states. */
+enum {
+	LDV_SPIN_UNLOCKED = LDV_ZERO_STATE, /* Spinlock is not acquired. */
+	LDV_SPIN_LOCKED                     /* Spinlock is acquired. */
+};
+
+/* CHANGE_STATE Spinlock is not acquired at the beginning */
+int ldv_spin = LDV_SPIN_UNLOCKED;
+
+/* MODEL_FUNC_DEF Check that correct flag was used when spinlock is aquired */
+void ldv_check_alloc_flags(gfp_t flags)
 {
-	/* ASSERT If spin is locked (ldv_spin != LDV_SPIN_UNLOCKED) then a memory allocating function should be called with __GFP_WAIT flag unset (GFP_ATOMIC or GFP_NOWAIT) */
+	/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
 	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
-	/* RETURN Return a page pointer (maybe NULL) */
-	return ldv_some_page();
 }
 
-/* MODEL_FUNC_DEF Check that a memory allocating function was not calledin spin locking */
+/* MODEL_FUNC_DEF Check that spinlock is not acquired */
 void ldv_check_alloc_nonatomic(void)
 {
-	/* ASSERT If spin is locked (ldv_spin != LDV_SPIN_UNLOCKED) then the memory allocating function should be called, because it implicitly uses GFP_KERNEL flag */
+	/* ASSERT Spinlock should not be acquired */
 	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED);
 }
 
-/* MODEL_FUNC_DEF Lock spin */
+/* MODEL_FUNC_DEF Check that correct flag was used when spinlock is aquired and return some page */
+struct page *ldv_check_alloc_flags_and_return_some_page(gfp_t flags)
+{
+	/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
+	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
+	/* RETURN Some page (maybe NULL) */
+	return ldv_some_page();
+}
+
+/* MODEL_FUNC_DEF Acquire spinlock */
 void ldv_spin_lock(void)
 {
-	/* CHANGE_STATE Lock spin */
+	/* CHANGE_STATE Acquire spinlock */
 	ldv_spin = LDV_SPIN_LOCKED;
 }
 
-/* MODEL_FUNC_DEF Unlock spin */
+/* MODEL_FUNC_DEF Release spinlock */
 void ldv_spin_unlock(void)
 {
-	/* CHANGE_STATE Unlock spin */
+	/* CHANGE_STATE Release spinlock */
 	ldv_spin = LDV_SPIN_UNLOCKED;
 }
 
-/* MODEL_FUNC_DEF Try to lock spin. It should return 0 if spin wasn't locked */
+/* MODEL_FUNC_DEF Try to acquire spinlock */
 int ldv_spin_trylock(void)
 {
 	int is_lock;
 
-	/* LDV_COMMENT_OTHER Do this to make nondetermined choice */
+	/* OTHER Nondeterministically acquire spinlock */
 	is_lock = ldv_undef_int();
 
 	if (is_lock)
 	{
-		/* RETURN Don't lock spin and return 0 */
+		/* RETURN Could not acquire spinlock */
 		return 0;
 	}
 	else
 	{
-		/* CHANGE_STATE Lock spin */
+		/* CHANGE_STATE Acquire spinlock */
 		ldv_spin = LDV_SPIN_LOCKED;
-		/* RETURN Return 1 since spin was locked */
+		/* RETURN Spinlock was successfully acquired */
 		return 1;
 	}
 }
