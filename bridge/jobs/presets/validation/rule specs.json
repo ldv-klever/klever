@@ -88,9 +88,7 @@
               "rcv.h",
               "sv-comp.h"
             ],
-            "additional aspects": [
-              "sv-comp.aspect"
-            ]
+            "additional aspects": []
           }
         },
         {
