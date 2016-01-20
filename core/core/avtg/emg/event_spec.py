@@ -836,6 +836,21 @@ class EventModel:
                                 new.list_access = [label.name]
                                 new.list_interface = [self.analysis.interfaces[interface]]
 
+                            # Complete list accesses if possible
+                            if new.interface:
+                                new_tail = [new.interface]
+                                to_process = [new.interface]
+                                while len(to_process) > 0:
+                                    interface = to_process.pop()
+                                    category = new.interface.category
+
+                                    for container in self.analysis.categories[category]["containers"].values():
+                                        if interface.identifier in list(container.fields.values()):
+                                            new_tail.append(container)
+                                            to_process.append(container)
+                                new_tail.reverse()
+                                new.complete_list_interface = new_tail
+
                             accesses[access].append(new)
                     else:
                         new = Access(access)

@@ -571,6 +571,7 @@ class Access:
         self.interface = None
         self.list_access = None
         self.list_interface = None
+        self.complete_list_interface = None
 
     def replace_with_variable(self, statement, variable):
         reg = re.compile(self.expression)
