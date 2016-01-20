@@ -7,14 +7,14 @@ int ldv_usb_register(void);
 int ldv_register_netdev(void);
 }
 
-/* Non-deterministically change state after call to usb_register. */
-around:	define(usb_register(driver))
+/* Nondeterministically change state after call to usb_register(). */
+around: define(usb_register(driver))
 {
 	ldv_usb_register()
 }
 
-/* Non-deterministically change state after call to register_netdev. */
-after:	call(int register_netdev(..))
+/* Nondeterministically change state after call to register_netdev(). */
+after: call(int register_netdev(..))
 {
 	return ldv_register_netdev();
 }
