@@ -650,10 +650,10 @@
           "condition": ["%probed% != 0"]
         },
         "suspended": {
-          "condition": "%suspended% == 0"
+          "condition": ["%suspended% == 0"]
         },
         "not_suspended": {
-          "condition": "%suspended% != 0"
+          "condition": ["%suspended% != 0"]
         }
       }
     },

@@ -113,6 +113,14 @@
     "setup_timer_on_stack": {
       "signature": "setup_timer_on_stack(*%timer.timer_list%, *%timer.handler%, %timer.data%)",
       "header": "include/linux/timer.h"
+    },
+    "register_qdisc": {
+      "signature": "int %s register_qdisc(*%Qdisc.Qdisc_ops%)",
+      "header": "include/net/pkt_sched.h"
+    },
+    "unregister_qdisc": {
+      "signature": "int %s unregister_qdisc(*%Qdisc.Qdisc_ops%)",
+      "header": "include/net/pkt_sched.h"
     }
   },
   "categories": {
@@ -297,6 +305,55 @@
         }
       }
     },
+    "i2c": {
+      "containers": {
+        "i2c_driver": {
+          "signature": "struct i2c_driver %s",
+          "header": "include/linux/i2c.h",
+          "fields": {
+            "remove": "release"
+          }
+        }
+      },
+      "resources": {
+        "client": {
+          "signature": "struct i2c_client %s"
+        }
+      },
+      "callbacks": {
+        "release": {
+          "signature": "int %s (*%i2c.release%)(*%i2c.client%)"
+        }
+      }
+    },
+    "Qdisc": {
+      "containers": {
+        "Qdisc_ops": {
+          "signature": "struct Qdisc_ops %s",
+          "header": "include/net/sch_generic.h",
+          "fields": {
+            "init": "probe",
+            "destroy": "release"
+          }
+        }
+      },
+      "resources": {
+        "Qdisc": {
+          "signature": "struct Qdisc *%s"
+        },
+        "nlattr": {
+          "signature": "struct nlattr *%s"
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int %s (*%Qdisc.probe%)(*%Qdisc.Qdisc%, *%Qdisc.nlattr%)"
+        },
+        "release": {
+          "signature": "void (*%Qdisc.release%)(*%Qdisc.Qdisc%)"
+        }
+      }
+    },
     "timer": {
       "containers": {
         "timer_list": {
@@ -317,27 +374,6 @@
         "handler": {
           "signature": "void (*%timer.handler%)(%timer.data%)",
           "interrupt context": true
-        }
-      }
-    },
-    "i2c": {
-      "containers": {
-        "i2c_driver": {
-          "signature": "struct i2c_driver %s",
-          "header": "include/linux/i2c.h",
-          "fields": {
-            "remove": "release"
-          }
-        }
-      },
-      "resources": {
-        "client": {
-          "signature": "struct i2c_client %s"
-        }
-      },
-      "callbacks": {
-        "release": {
-          "signature": "int %s (*%i2c.release%)(*%i2c.client%)"
         }
       }
     },
