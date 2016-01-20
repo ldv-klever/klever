@@ -638,6 +638,18 @@ class EventModel:
         new_dispatch = copy.deepcopy(receive)
         new_dispatch.type = "dispatch"
 
+        # Peer these subprocesses
+        new_dispatch.peers.append(
+            {
+                "process": process,
+                "subprocess": process.subprocesses[new_dispatch.name]
+            })
+        process.subprocesses[new_dispatch.name].peers.append(
+            {
+                "process": self.model["entry"],
+                "subprocess": new_dispatch
+            })
+
         self.logger.debug("Add dispatch {} to process {}".format(new_dispatch.name, self.model["entry"].name))
         self.model["entry"].subprocesses[new_dispatch.name] = new_dispatch
 
@@ -665,8 +677,10 @@ class EventModel:
         receive.parameters = []
 
         # Replace condition
+        # todo: do this according to parameters
         if new_dispatch.condition:
             new_dispatch.condition = None
+            process.subprocesses[new_dispatch.name].condition = None
 
     def __assign_signatures(self):
         for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
