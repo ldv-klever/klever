@@ -85,10 +85,11 @@ function set_actions_for_scheduler_user() {
 
 $(document).ready(function () {
     $('.normal-dropdown').dropdown();
-    $('#scheduler').dropdown({onChange: function () {
+    $('.ui.scheduler-checkbox').addClass('checkbox');
+    $('.scheduler-checkbox').checkbox({onChecked: function () {
         var new_sch_u = $('#new_sch_u');
         if (new_sch_u.length) {
-            if ($('#scheduler').val() == '1') {
+            if ($(this).val() == '1') {
                 new_sch_u.show();
                 $('.need-auth').hide();
             }
@@ -118,7 +119,7 @@ $(document).ready(function () {
         }
         else {
             var data = {
-                scheduler: $('#scheduler').val(),
+                scheduler: $('input[name="scheduler"]:checked').val(),
                 priority: $('#priority').val(),
                 avtg_priority: $('#avtg_priority').val(),
                 job_id: $('#job_pk').val(),

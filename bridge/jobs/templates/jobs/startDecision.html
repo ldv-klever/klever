@@ -19,13 +19,15 @@
         <input type="hidden" id="job_pk" value="{{ job.pk }}">
         <div class="ui grid">
             <div class="five wide column">
-                <label for="scheduler">{% trans 'Tasks scheduler' %}</label>
-                <select id="scheduler" class="ui dropdown fluid">
-                    {% for sch in data.schedulers %}
-                        <option value="{{ sch.0 }}">{{ sch.1 }}</option>
-                    {% endfor %}
-                </select>
-                <br>
+                <h5>{% trans 'Tasks scheduler' %}</h5>
+                {% for sch in data.schedulers %}
+                    <div class="ui radio scheduler-checkbox">
+                        <input id="scheduler__{{ sch.0 }}" name="scheduler" type="radio" value="{{ sch.0 }}"{% if sch.0 == '0' %} checked{% endif %}>
+                        <label for="scheduler__{{ sch.0 }}">{{ sch.1 }}</label>
+                    </div>
+                    <br>
+                {% endfor %}
+                <br><br>
                 <div class="need-auth">
                     <label for="priority">{% trans 'Job priority' %}</label>
                     <select id="priority" class="ui dropdown fluid normal-dropdown">
