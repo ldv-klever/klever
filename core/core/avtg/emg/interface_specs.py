@@ -314,8 +314,8 @@ class ModuleSpecification(CategorySpecification):
                                 identifier = \
                                     self.kernel_functions[kf].signature.parameters[index].interface.full_identifier
 
-                                if len((impl for impl in self.interfaces[identifier].implementations
-                                        if impl.value == call[index])) == 0:
+                                if len([impl for impl in self.interfaces[identifier].implementations
+                                        if impl.value == call[index]]) == 0:
                                     implementation = Implementation(call[index], path, None, None)
                                     self.interfaces[identifier].implementations.append(implementation)
 
