@@ -63,49 +63,7 @@ class Translator(AbstractTranslator):
             self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
                              format(len(base_list), len(undefined_labels), process.name, process.category))
 
-            # Copy base instances for each known implementation
-            relevant_multi_containers = []
-            accesses = process.accesses()
-            for access in accesses.values():
-                for inst_access in [inst for inst in access if inst.interface]:
-                    if inst_access.interface.container and len(inst_access.interface.implementations) > 1 and \
-                                    inst_access.interface not in relevant_multi_containers:
-                        relevant_multi_containers.append(inst_access.interface)
-                    elif len(inst_access.complete_list_interface) > 1:
-                        for intf in [intf for intf in inst_access.complete_list_interface if intf.container and
-                                     intf.implementations and len(intf.implementations) > 1 and
-                                     intf not in relevant_multi_containers]:
-                            relevant_multi_containers.append(intf)
-
-            # Copy instances for each implementation of a container
-            if len(relevant_multi_containers) > 0:
-                new_base_list = []
-                for interface in relevant_multi_containers:
-                    implementations = interface.implementations
-
-                    for implementation in implementations:
-                        for instance in base_list:
-                            newp = copy.deepcopy(instance)
-                            accs = newp.accesses()
-                            for access_list in accs.values():
-                                for access in access_list:
-                                    # Replace not even container itself but other collateral interface implementaations
-                                    if access.interface and len(access.interface.implementations) > 0 and \
-                                        len([impl for impl in access.interface.implementations
-                                             if impl.base_container == interface.full_identifier]) > 0:
-                                        new_values = [impl for impl in access.interface.implementations
-                                                      if impl.base_container == interface.full_identifier and
-                                                      impl.base_value == implementation.value]
-
-                                        if len(new_values) == 0:
-                                            access.interface.implementations = []
-                                        elif len(new_values) == 1:
-                                            access.interface.implementations = new_values
-                                        else:
-                                            raise RuntimeError("Seems two values spring from one variable")
-
-                            new_base_list.append(newp)
-                    base_list = new_base_list
+            base_list = self.__instanciate_processes(base_list, process)
 
             self.logger.info("Generate {} FSA instances for process {} with category {}".
                              format(len(base_list), process.name, process.category))
@@ -116,8 +74,10 @@ class Translator(AbstractTranslator):
         # Generate automata for models
         for process in self.model["models"]:
             self.logger.info("Generate FSA for kernel model process {}".format(process.name))
-            fsa = Automaton(self.logger, process, self.identifier)
-            self.model_fsa.append(fsa)
+            processes = self.__instanciate_processes([process], process)
+            for instance in processes:
+                fsa = Automaton(self.logger, instance, self.identifier)
+                self.model_fsa.append(fsa)
 
         # Generate state machine for init an exit
         # todo: check that all functions are there or signals ar skipped in init
@@ -150,10 +110,12 @@ class Translator(AbstractTranslator):
             self.generate_control_function(automaton)
 
         # Generate model control function
-        for automaton in self.model_fsa:
-            self.generate_model_aspect(automaton)
+        models = []
+        for name in (pr.name for pr in self.model["models"]):
+            automata = (a for a in self.model_fsa if a.process.name == name)
+            self.generate_model_aspect(automata, name)
 
-        for automaton in self.model_fsa + self.callback_fsa + [self.entry_fsa]:
+        for automaton in self.callback_fsa + self.model_fsa + [self.entry_fsa]:
             for function in automaton.functions:
                 if function.file not in self.files:
                     self.files[function.file] = {"functions": {}, "variables": {}}
@@ -167,6 +129,54 @@ class Translator(AbstractTranslator):
     def identifier(self):
         self.__identifier_cnt += 1
         return self.__identifier_cnt
+
+    def __instanciate_processes(self, instances, process):
+        base_list = instances
+
+        # Copy base instances for each known implementation
+        relevant_multi_containers = []
+        accesses = process.accesses()
+        for access in accesses.values():
+            for inst_access in [inst for inst in access if inst.interface]:
+                if inst_access.interface.container and len(inst_access.interface.implementations) > 1 and \
+                                inst_access.interface not in relevant_multi_containers:
+                    relevant_multi_containers.append(inst_access.interface)
+                elif len(inst_access.complete_list_interface) > 1:
+                    for intf in [intf for intf in inst_access.complete_list_interface if intf.container and
+                                 intf.implementations and len(intf.implementations) > 1 and
+                                 intf not in relevant_multi_containers]:
+                        relevant_multi_containers.append(intf)
+
+        # Copy instances for each implementation of a container
+        if len(relevant_multi_containers) > 0:
+            new_base_list = []
+            for interface in relevant_multi_containers:
+                implementations = interface.implementations
+
+                for implementation in implementations:
+                    for instance in base_list:
+                        newp = copy.deepcopy(instance)
+                        accs = newp.accesses()
+                        for access_list in accs.values():
+                            for access in access_list:
+                                # Replace not even container itself but other collateral interface implementaations
+                                if access.interface and len(access.interface.implementations) > 0 and \
+                                    len([impl for impl in access.interface.implementations
+                                         if impl.base_container == interface.full_identifier]) > 0:
+                                    new_values = [impl for impl in access.interface.implementations
+                                                  if impl.base_container == interface.full_identifier and
+                                                  impl.base_value == implementation.value]
+
+                                    if len(new_values) == 0:
+                                        access.interface.implementations = []
+                                    elif len(new_values) == 1:
+                                        access.interface.implementations = new_values
+                                    else:
+                                        raise RuntimeError("Seems two values spring from one variable")
+
+                        new_base_list.append(newp)
+                base_list = new_base_list
+        return base_list
 
     def generate_entry_function(self):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
@@ -251,55 +261,81 @@ class Translator(AbstractTranslator):
         automaton.functions.append(cf)
         automaton.control_function = cf
 
-    def generate_model_aspect(self, automaton):
-        self.logger.info("Generate model control function for automata {} with process {}".
-                         format(automaton.identifier, automaton.process.name))
-
-        # Generate case for each transition
-        cases = []
-        for edge in automaton.fsa.state_transitions:
-            new = self.generate_case(automaton, edge)
-            cases.extend(new)
-        if len(cases) == 0:
-            raise RuntimeError("Cannot generate model control function for automata {} with process {}".
-                               format(automaton.identifier, automaton.process.name))
-
+    def generate_model_aspect(self, automata, name):
         # Create function
-        model_signature = self.analysis.kernel_functions[automaton.process.name]["signature"]
-        cf = Aspect(automaton.process.name, model_signature)
+        model_signature = self.analysis.kernel_functions[name]["signature"]
+        cf = Aspect(name, model_signature)
 
-        # Calculate terminals
-        in_states = [transition["in"] for transition in automaton.fsa.state_transitions]
-        terminals = [tr["out"] for tr in automaton.fsa.state_transitions if tr["out"] not in in_states]
-        condition = ' || '.join(["{} == {}".format(automaton.state_variable.name, st) for st in terminals])
+        bodies = []
+        for automaton in automata:
+            # Generate case for each transition
+            cases = []
+            for edge in automaton.fsa.state_transitions:
+                new = self.generate_case(automaton, edge)
+                cases.extend(new)
+            if len(cases) == 0:
+                raise RuntimeError("Cannot generate model control function for automata {} with process {}".
+                                   format(automaton.identifier, automaton.process.name))
+
+            # Calculate terminals
+            in_states = [transition["in"] for transition in automaton.fsa.state_transitions]
+            terminals = [tr["out"] for tr in automaton.fsa.state_transitions if tr["out"] not in in_states]
+            condition = ' || '.join(["{} == {}".format(automaton.state_variable.name, st) for st in terminals])
+
+            # Create body
+            body = [
+                "\twhile (!({}))".format(condition) + "{",
+                "\t\tswitch(ldv_undef_int()) {"
+            ]
+            for index in range(len(cases)):
+                body.extend(
+                    [
+                        "\t\t\tcase {}: ".format(index) + '{',
+                        "\t\t\t\tif ({}) ".format(cases[index]["guard"]) + '{'
+                    ]
+                )
+                body.extend([(5 * "\t" + statement) for statement in cases[index]["body"]])
+                body.extend(
+                    [
+                        "\t\t\t\t}",
+                        "\t\t\t}",
+                        "\t\t\tbreak;"
+                    ]
+                )
+            body.extend(
+                [
+                    "\t\t\tdefault: break;",
+                    "\t\t}",
+                    "\t}"
+                ]
+            )
+            bodies.append(body)
 
         # Create body
-        body = [
-            "while (!({}))".format(condition) + "{",
-            "\tswitch(ldv_undef_int()) {"
-        ]
-        for index in range(len(cases)):
-            body.extend(
-                [
-                    "\t\tcase {}: ".format(index) + '{',
-                    "\t\t\tif ({}) ".format(cases[index]["guard"]) + '{'
-                ]
-            )
-            body.extend([(4 * "\t" + statement) for statement in cases[index]["body"]])
-            body.extend(
-                [
-                    "\t\t\t}",
-                    "\t\t}",
-                    "\t\tbreak;"
-                ]
-            )
-        body.extend(
-            [
-                "\t\tdefault: break;",
-                "\t}",
-                "}"
+        if len(bodies) > 1:
+            body = [
+                "switch(ldv_undef_int()) {"
             ]
-        )
+            for index in range(len(bodies)):
+                body.extend(
+                    [
+                        "\tcase {}: ".format(index) + '{',
+                    ]
+                )
+                body.extend([(2 * "\t" + statement) for statement in bodies[index]])
+                body.extend(
+                    [
+                        "\t}",
+                        "\tbreak;"
+                    ]
+                )
+            body.extend(
+                [
+                    "}"
+                ]
+            )
+        else:
+            body = bodies[0]
         cf.body.concatenate(body)
         self.model_aspects.append(cf)
 
