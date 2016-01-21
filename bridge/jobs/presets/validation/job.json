@@ -123,29 +123,9 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "4483562~"
-        },
-        "modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
           "commit": "e4c7f25~"
         },
         "modules": ["drivers/net/usb/kaweth.ko"]
-      },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "f139c20~"
-        },
-        "modules": ["drivers/usb/serial/opticon.ko"]
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe"
@@ -191,6 +171,26 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe"
-    }
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "4483562~"
+        },
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "f139c20~"
+        },
+        "modules": ["drivers/usb/serial/opticon.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
   ]
 }
