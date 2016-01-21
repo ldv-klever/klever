@@ -26,16 +26,27 @@ class Weaver(core.components.Component):
 
                 # Produce aspect to be weaved in.
                 if 'plugin aspects' in cc_extra_full_desc_file:
-                    # Concatenate all aspects of all plugins together.
+                    self.logger.info('Concatenate all aspects of all plugins together')
+                    # Resulting aspect.
                     aspect = os.path.join(self.conf['source tree root']
                                           , '{}.aspect'.format(os.path.splitext(cc_full_desc['out file'])[0]))
+                    # Get all aspects. Place RSG aspects at beginning since they can instrument entities added by
+                    # aspects of other plugins while corresponding function declarations still need be at beginning of
+                    # file.
+                    aspects = []
+                    for plugin_aspects in cc_extra_full_desc_file['plugin aspects']:
+                        if plugin_aspects['plugin'] == 'RSG':
+                            aspects[0:0] = plugin_aspects['aspects']
+                        else:
+                            aspects.extend(plugin_aspects['aspects'])
+                    # Concatenate aspects.
                     with open(aspect, 'w', encoding='ascii') as fout, fileinput.input(
-                            [os.path.join(self.conf['source tree root'], aspect) for plugin_aspects
-                             in cc_extra_full_desc_file['plugin aspects'] for aspect in
-                             plugin_aspects['aspects']], openhook=fileinput.hook_encoded('ascii')) as fin:
+                            [os.path.join(self.conf['source tree root'], aspect) for aspect in aspects],
+                            openhook=fileinput.hook_encoded('ascii')) as fin:
                         for line in fin:
                             fout.write(line)
 
+                    # TODO: this likely should be placed outside this if block.
                     # TODO: if several files in verification object will have the same name everything will break.
                     # Here output file is corresponding, likely already generated and existing object file. But other
                     # instances of AVTG plugins can refer to the same file. So the only safe place to put intermediate
@@ -45,6 +56,7 @@ class Weaver(core.components.Component):
                             '{}.c'.format(os.path.splitext(os.path.basename(cc_full_desc['out file']))[0]),
                             os.path.realpath(self.conf['source tree root']))
                 else:
+                    # Simulate resulting aspect.
                     aspect = '/dev/null'
                 self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
 
