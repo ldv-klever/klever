@@ -4,13 +4,14 @@ import mimetypes
 from io import BytesIO
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.core.servers.basehttp import FileWrapper
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES, PRIORITY
-from bridge.utils import unparallel, unparallel_group, print_exec_time
+from bridge.utils import unparallel, unparallel_group, print_exec_time, file_checksum
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
@@ -528,7 +529,7 @@ def upload_file(request):
     form = FileForm(request.POST, request.FILES)
     if form.is_valid():
         new_file = form.save(commit=False)
-        hash_sum = hashlib.md5(new_file.file.read()).hexdigest()
+        hash_sum = file_checksum(new_file.file)
         if len(File.objects.filter(hash_sum=hash_sum)) > 0:
             return JsonResponse({
                 'hash_sum': hash_sum,
@@ -561,9 +562,11 @@ def download_file(request, file_id):
         return HttpResponseRedirect(reverse('error', args=[500]))
     if source.file is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    mimetype = mimetypes.guess_type(os.path.basename(source.file.file.name))[0]
-    response = HttpResponse(source.file.file.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename=%s' % quote(source.name)
+
+    mimetype = mimetypes.guess_type(os.path.basename(source.name))[0]
+    response = StreamingHttpResponse(FileWrapper(source.file.file, 8192), content_type=mimetype)
+    response['Content-Length'] = len(source.file.file)
+    response['Content-Disposition'] = "attachment; filename=%s" % quote(source.name)
     return response
 
 

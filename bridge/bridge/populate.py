@@ -11,7 +11,7 @@ from django.utils.translation import override
 from django.utils.timezone import now
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
-from bridge.utils import print_err
+from bridge.utils import print_err, file_checksum
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job, File
@@ -203,7 +203,7 @@ class Population(object):
                 self.cnt += 1
                 if os.path.isfile(f):
                     fobj = open(f, 'rb')
-                    check_sum = hashlib.md5(fobj.read()).hexdigest()
+                    check_sum = file_checksum(fobj)
                     try:
                         File.objects.get(hash_sum=check_sum)
                     except ObjectDoesNotExist:

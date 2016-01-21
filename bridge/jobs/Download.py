@@ -2,7 +2,6 @@ import os
 import re
 import json
 import tarfile
-import hashlib
 from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -11,7 +10,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
-from bridge.utils import print_err
+from bridge.utils import print_err, file_checksum
 from jobs.models import JOBFILE_DIR
 from jobs.utils import create_job, update_job
 from reports.UploadReport import UploadReportFiles
@@ -256,15 +255,12 @@ class UploadJob(object):
                     return _("The job archive is corrupted")
             elif file_name.startswith(JOBFILE_DIR):
                 if f.isreg():
-                    file_content = BytesIO(file_obj.read())
-                    check_sum = hashlib.md5(file_content.read()).hexdigest()
-                    file_in_db = File.objects.filter(hash_sum=check_sum)
-                    if len(file_in_db) == 0:
+                    check_sum = file_checksum(file_obj)
+                    try:
+                        File.objects.get(hash_sum=check_sum)
+                    except ObjectDoesNotExist:
                         db_file = File()
-                        db_file.file.save(
-                            os.path.basename(file_name),
-                            NewFile(file_content)
-                        )
+                        db_file.file.save(os.path.basename(file_name), NewFile(file_obj))
                         db_file.hash_sum = check_sum
                         db_file.save()
                     files_in_db[file_name] = check_sum
@@ -488,13 +484,12 @@ class UploadReports(object):
 
     def __get_log(self, rep_id, component):
         if ('log', rep_id) in self.files:
-            file_content = BytesIO(self.files[('log', rep_id)].read())
-            check_sum = hashlib.md5(file_content.read()).hexdigest()
+            check_sum = file_checksum(self.files[('log', rep_id)])
             try:
                 db_file = File.objects.get(hash_sum=check_sum)
             except ObjectDoesNotExist:
                 db_file = File()
-                db_file.file.save('%s.log' % component, NewFile(file_content))
+                db_file.file.save('%s.log' % component, NewFile(self.files[('log', rep_id)]))
                 db_file.hash_sum = check_sum
                 db_file.save()
             return db_file
