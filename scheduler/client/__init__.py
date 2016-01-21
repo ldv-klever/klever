@@ -178,7 +178,7 @@ def solve_task(conf):
     decision_results = {
         "resources": {}
     }
-    # Actually there is the only output file, but benchexec is quite clever to add current date to its name.
+    # Well known statuses of CPAchecker. First two statuses are likely appropriate for all verifiers.
     statuses_map = {
         'false(reach)': 'unsafe',
         'true': 'safe',
@@ -187,6 +187,7 @@ def solve_task(conf):
         'TIMEOUT': 'CPU time exhausted',
         'OUT OF MEMORY': 'memory exhausted'
     }
+    # Actually there is the only output file, but benchexec is quite clever to add current date to its name.
     for benexec_output in glob.glob(os.path.join("output", "benchmark*results.xml")):
         with open(benexec_output, encoding="utf8") as fp:
             result = ElementTree.parse(fp).getroot()
@@ -208,7 +209,11 @@ def solve_task(conf):
                 elif name == "exitcode":
                     decision_results["exit code"] = int(value)
                 elif name == "status":
-                    decision_results["status"] = statuses_map[value]
+                    # Either get our status if so or use status as is.
+                    if value in statuses_map:
+                        decision_results["status"] = statuses_map[value]
+                    else:
+                        decision_results["status"] = value
     # TODO: how to find exit code and signal number? decision_results["exit code"] = exit_code
     with open("decision results.json", "w", encoding="ascii") as fp:
         json.dump(decision_results, fp, sort_keys=True, indent=4)

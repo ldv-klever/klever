@@ -369,7 +369,7 @@ class ABKM(core.components.Component):
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
-                elif decision_results['status'] in ('error', 'CPU time exhausted', 'memory exhausted'):
+                else:
                     # Prepare file to send it with unknown report.
                     if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                         with open('error.txt', 'w', encoding='ascii') as fp:
@@ -380,18 +380,13 @@ class ABKM(core.components.Component):
                                           'id': 'unknown',
                                           'parent id': self.task_desc['id'],
                                           # TODO: just the same file as parent log, looks strange.
-                                          'problem desc':
-                                              'cil.i.log' if decision_results['status'] == 'error'
-                                              else 'error.txt',
-                                          'files': ['cil.i.log' if decision_results['status'] == 'error'
-                                                    else 'error.txt']
+                                          'problem desc': 'cil.i.log' if decision_results['status'] not in (
+                                              'CPU time exhausted', 'memory exhausted') else 'error.txt',
+                                          'files': ['cil.i.log' if decision_results['status'] not in (
+                                              'CPU time exhausted', 'memory exhausted') else 'error.txt']
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
-                else:
-                    raise NotImplementedError(
-                        'Status "{0}" of verification task decision results is not supported'.format(
-                            decision_results['status']))
 
                 break
 
