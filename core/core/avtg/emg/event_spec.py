@@ -133,9 +133,13 @@ class EventModel:
         stop.statements = ["ldv_check_final_state();"]
         self.model["entry"].subprocesses['stop'] = stop
 
+        none = Subprocess('none', {})
+        none.type = "condition"
+        self.model["entry"].subprocesses['none'] = none
+
         # Add subprocesses finally
-        self.model["entry"].process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.{}.[exit].<stop>)".\
-                                      format('.'.join(dispatches))
+        self.model["entry"].process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.({} | <none>).[exit]." \
+                                      "<stop>)".format('.'.join(dispatches))
         self.model["entry"].process_ast = process_parse(self.model["entry"].process)
 
     def __select_processes_and_models(self):
