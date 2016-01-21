@@ -161,3 +161,20 @@ class ComponentUnknown(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_unknown'
+
+
+class LeavesComparison(models.Model):
+    user = models.ForeignKey(User)
+    safe1 = models.ForeignKey(ReportSafe, null=True)
+    safe2 = models.ForeignKey(ReportSafe, null=True)
+    unsafe1 = models.ForeignKey(ReportUnsafe, null=True)
+    unsafe2 = models.ForeignKey(ReportUnsafe, null=True)
+    unknown1 = models.ForeignKey(ReportUnknown, null=True)
+    unknown2 = models.ForeignKey(ReportUnknown, null=True)
+
+
+class UnknownComparison(models.Model):
+    user = models.ForeignKey(User)
+    component = models.ForeignKey(Component)
+    report1 = models.ForeignKey(ReportUnknown, null=True)
+    report2 = models.ForeignKey(ReportUnknown, null=True)
