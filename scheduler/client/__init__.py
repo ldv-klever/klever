@@ -188,7 +188,7 @@ def solve_task(conf):
         'OUT OF MEMORY': 'memory exhausted'
     }
     for benexec_output in glob.glob(os.path.join("output", "benchmark*results.xml")):
-        with open(benexec_output, encoding="ascii") as fp:
+        with open(benexec_output, encoding="utf8") as fp:
             result = ElementTree.parse(fp).getroot()
             decision_results["desc"] = '{0}\n{1} {2}'.format(result.attrib.get('generator'), result.attrib.get('tool'),
                                                              result.attrib.get('version'))
