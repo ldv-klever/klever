@@ -25,7 +25,7 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
                 </div>
-                <button id="fast_job_start" class="ui pink button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
+                <button id="show_fast_job_start_popup" class="ui pink button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision with default values' %}</p>
                 </div>
@@ -114,7 +114,7 @@
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
                             {% timezone user.extended.timezone %}
-                                {{ last_version.change_date|date:'d.m.y H:i:s' }}
+                                {{ last_version.change_date|date:"d.m.y H:i:s" }}
                             {% endtimezone %}
                             {% if last_version.change_author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)
@@ -186,6 +186,25 @@
                     <div class="ui center aligned grid">
                         <button id="cancel_remove_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
                         <button id="remove_job_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        {% if can_decide %}
+            <div id="start_job_popup" class="ui basic modal">
+                <div class="ui icon header">
+                    <i class="warning sign icon"></i>
+                    {% trans 'Are you sure' %}?
+                </div>
+                <div class="content">
+                    <div class="ui center aligned grid">
+                        <p>{% trans 'All reports of this job will be deleted' %}!</p>
+                    </div>
+                </div>
+                <div class="actions">
+                    <div class="ui center aligned grid">
+                        <button id="cancel_fast_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                        <button id="fast_job_start" type="button" class="ui red basic inverted button">{% trans 'Start' %}</button>
                     </div>
                 </div>
             </div>
