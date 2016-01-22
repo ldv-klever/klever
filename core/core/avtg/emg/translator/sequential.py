@@ -36,11 +36,16 @@ class Translator(AbstractTranslator):
 
     def _generate_entry_point(self):
         # Initialize additional attributes
-        self.unmatched_constant = 2
+        self.instance_modifier = 2
         self.callback_fsa = []
         self.model_fsa = []
         self.entry_fsa = None
         self.__identifier_cnt = -1
+
+        # Read translation options
+        if "translation options" in self.conf:
+            if "instance modifier" in self.conf["translation options"]:
+                self.instance_modifier = self.conf["translation options"]["instance modifier"]
 
         # Determine how many instances is required for a model
         self.logger.info("Determine how many instances is required to add to an environment model for each process")
@@ -57,7 +62,7 @@ class Translator(AbstractTranslator):
 
             # Determine is it necessary to make several instances
             if len(undefined_labels) > 0:
-                base_list = [copy.deepcopy(process) for i in range(self.unmatched_constant)]
+                base_list = [copy.deepcopy(process) for i in range(self.instance_modifier)]
             else:
                 base_list = [process]
             self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
