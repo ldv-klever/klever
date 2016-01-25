@@ -102,7 +102,7 @@ DEF_KLEVER_CORE_RESTRICTIONS = {
 DEF_KLEVER_CORE_CONFIGURATION = {
     'debug': True,
     'allow_local_dir': True,  # Allow use of local source directories
-    'priority': 'IDLE',  # See bridge.vars.PRIORITY for more options
+    'priority': 'LOW',  # See bridge.vars.PRIORITY for more options
     'avtg_priority': 'balance',  # See service.utils.AVTG_PRIORITY for more options
     'formatters': {
         'console': "%(name)s %(levelname)5s> %(message)s",
