@@ -181,6 +181,27 @@ class Translator(AbstractTranslator):
 
                         new_base_list.append(newp)
                 base_list = new_base_list
+
+        # Copy callbacks or resources which are not tied to a container
+        accesses = base_list[0].accesses()
+        relevant_multi_leafs = []
+        for access in accesses.values():
+            relevant_multi_leafs.extend([inst for inst in access if inst.interface and
+                                         len(inst.interface.implementations) > 1])
+        if len(relevant_multi_leafs) > 0:
+            for access in relevant_multi_leafs:
+                new_base_list = []
+                for implementation in access.interface.implementations:
+                    for instance in base_list:
+                        newp = copy.deepcopy(instance)
+                        newp_accesses = newp.accesses()
+                        modify_acc = [acc for acc in newp_accesses[access.expression]
+                                      if acc.interface.full_identifier == access.interface.full_identifier][0]
+                        modify_acc.interface.implementations = [implementation]
+                        new_base_list.append(newp)
+
+                base_list = new_base_list
+
         return base_list
 
     def generate_entry_function(self):
