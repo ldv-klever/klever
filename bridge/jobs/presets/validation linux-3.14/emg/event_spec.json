@@ -1,0 +1,921 @@
+{
+  "kernel model": {
+    "usb_reset_device": {
+      "labels": {},
+      "process": "[@usb_reset]",
+      "subprocesses": {
+        "usb_reset": {
+          "parameters": []
+        }
+      }
+    },
+    "usb_register_driver": {
+      "labels": {
+        "usb_driver": {
+          "container": true,
+          "parameter": true,
+          "interface": ["usb.usb_driver"]
+        }
+      },
+      "process": "<assign>.[register] | <none>",
+      "subprocesses": {
+        "register": {
+          "parameters": [
+            "%usb_driver%"
+          ]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%usb_driver% = $arg1;"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        }
+      }
+    },
+    "usb_deregister": {
+      "labels": {
+        "usb_driver": {
+          "container": true,
+          "parameter": true,
+          "interface": ["usb.usb_driver"]
+        }
+      },
+      "process": "<assign>.[deregister]",
+      "subprocesses": {
+        "deregister": {
+          "parameters": [
+            "%usb_driver%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%usb_driver% = $arg1;"
+          ]
+        }
+      }
+    },
+    "alloc_etherdev_mqs": {
+      "labels": {
+        "netdev": {
+          "container": true,
+          "pointer": true,
+          "interface": ["net.net_device"]
+        }
+      },
+      "process": "<alloc>.<init>.<success> | <fail>",
+      "subprocesses": {
+        "alloc": {
+          "statements": [
+            "%netdev% = $ALLOC(%netdev%);"
+          ]
+        },
+        "init": {
+          "statements": [
+            "%netdev% = $ALLOC(%netdev%);"
+          ]
+        },
+        "success": {
+          "statements": [
+            "return %netdev%;"
+          ]
+        },
+        "fail":{
+           "statements": [
+            "return 0;"
+          ]
+        }
+      }
+    },
+    "free_netdev": {
+      "labels": {
+        "netdev": {
+          "container": true,
+          "parameter": true,
+          "interface": ["net.net_device"]
+        }
+      },
+      "process": "<free>",
+      "subprocesses": {
+        "free": {
+          "statements": [
+            "$FREE(%netdev%);"
+          ]
+        }
+      }
+    },
+    "register_netdev": {
+      "labels": {
+        "netdev": {
+          "container": true,
+          "parameter": true,
+          "interface": ["net.net_device"]
+        }
+      },
+      "process": "<assign>.[open].(ret_open).[register] | <none>",
+      "subprocesses": {
+        "open": {
+          "callback": "%netdev.net_device_ops.open%",
+          "parameters": [
+            "%netdev%"
+          ]
+        },
+        "ret_open": {
+          "callback": "%netdev.net_device_ops.open%"
+        },
+        "register": {
+          "parameters": [
+            "%netdev%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%netdev% = $arg1;"
+          ]
+        }
+      }
+    },
+    "unregister_netdev": {
+      "labels": {
+        "netdev": {
+          "container": true,
+          "parameter": true,
+          "interface": ["net.net_device"]
+        }
+      },
+      "process": "<assign>.[stop].(ret_stop).[deregister]",
+      "subprocesses": {
+        "stop": {
+          "callback": "%netdev.net_device_ops.stop%",
+          "parameters": [
+            "%netdev%"
+          ]
+        },
+        "ret_stop": {
+          "callback": "%netdev.net_device_ops.stop%"
+        },
+        "deregister": {
+          "parameters": [
+            "%netdev%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%netdev% = $arg1;"
+          ]
+        }
+      }
+    },
+    "__platform_driver_register": {
+      "labels": {
+        "platform_driver": {
+          "container": true,
+          "parameter": true,
+          "interface": ["platform.platform_driver"]
+        }
+      },
+      "process": "<assign>.[register] | <none>",
+      "subprocesses": {
+        "register": {
+          "parameters": [
+            "%platform_driver%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%platform_driver% = $arg1;"
+          ]
+        }
+      }
+    },
+    "platform_driver_probe": {
+      "labels": {
+        "platform_driver": {
+          "container": true,
+          "parameter": true,
+          "interface": ["platform.platform_driver"]
+        },
+        "probe": {
+          "callback": true,
+          "parameter": true,
+          "interface": ["platform.probe"]
+        }
+      },
+      "process": "<assign>.[register] | <none>",
+      "subprocesses": {
+        "register": {
+          "parameters": [
+            "%platform_driver%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%platform_driver% = $arg1;",
+            "%probe% = $arg2;",
+            "%platform_driver.probe%=%probe%;"
+          ]
+        }
+      }
+    },
+    "platform_driver_unregister": {
+      "labels": {
+        "platform_driver": {
+          "container": true,
+          "parameter": true,
+          "interface": ["platform.platform_driver"]
+        }
+      },
+      "process": "<assign>.[deregister]",
+      "subprocesses": {
+        "deregister": {
+          "parameters": [
+            "%platform_driver%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%platform_driver% = $arg1;"
+          ]
+        }
+      }
+    },
+    "mod_timer,mod_timer_pinned,mod_timer_pending": {
+      "labels": {
+        "timer_list": {
+          "container": true,
+          "parameter": true,
+          "interface": ["timer.platform_driver"]
+        }
+      },
+      "process": "<assign>.[instance_register] | <none>",
+      "subprocesses": {
+        "instance_register": {
+          "parameters": [
+            "%timer_list%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%timer_list% = $arg1;"
+          ]
+        }
+      }
+    },
+    "setup_timer, setup_timer_on_stack": {
+      "labels": {
+        "timer_list": {
+          "container": true,
+          "parameter": true,
+          "interface": ["timer.timer_list"]
+        },
+        "data": {
+          "resource": true,
+          "parameter": true,
+          "interface": ["timer.data"]
+        },
+        "function": {
+          "callback": true,
+          "parameter": true,
+          "interface": ["timer.callback"]
+        }
+      },
+      "process": "<assign>.[instance_register] | <none>",
+      "subprocesses": {
+        "instance_register": {
+          "parameters": [
+            "%timer_list%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%timer_list% = $arg1;",
+            "%function% = $arg2",
+            "%data% = $arg3",
+            "%timer_list.data%=%data%;",
+            "%timer_list.function%=%function%;"
+          ]
+        }
+      }
+    },
+    "del_timer, try_to_del_timer_sync, del_timer_sync": {
+      "labels": {
+        "timer_list": {
+          "container": true,
+          "parameter": true,
+          "interface": ["timer.timer_list"]
+        }
+      },
+      "process": "<assign>.[instance_deregister]",
+      "subprocesses": {
+        "instance_deregister": {
+          "parameters": [
+            "%timer_list%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%timer_list% = $arg1;"
+          ]
+        }
+      }
+    },
+    "request_threaded_irq": {
+      "labels": {
+        "thread": {
+          "callback": true,
+          "interface": ["interrupt.thread"],
+          "parameter": true
+        },
+        "callback": {
+          "callback": true,
+          "interface": ["interrupt.handler"],
+          "parameter": true
+        },
+        "line": {
+          "resource": true,
+          "interface": ["interrupt.line"],
+          "parameter": true
+        },
+        "data": {
+          "resource": true,
+          "interface": ["interrupt.data"],
+          "parameter": true
+        }
+      },
+      "process": "<assign>.[irq_register] | <none>",
+      "subprocesses": {
+        "irq_register": {
+          "parameters": [
+            "%line%",
+            "%callback%",
+            "%thread%",
+            "%data%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%line% = $arg1;",
+            "%callback% = $arg2;",
+            "%thread% = $arg3;",
+            "%data% = $arg6;"
+          ]
+        }
+      }
+    },
+    "free_irq": {
+      "labels": {
+        "line": {
+          "resource": true,
+          "interface": ["interrupt.line"],
+          "parameter": true
+        }
+      },
+      "process": "<assign>.[irq_deregister]",
+      "subprocesses": {
+        "irq_deregister": {
+          "parameters": [
+            "%line%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%line% = $arg1;"
+          ]
+        }
+      }
+    }
+  },
+  "environment processes": {
+    "dummy_factory": {
+      "labels": {
+        "container": {
+          "container": true
+        },
+        "k": {
+          "signature": "int %s",
+          "value": "2"
+        }
+      },
+      "process": "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)",
+      "subprocesses": {
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "condition": ["%container% == $ARG1"],
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "instance_register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "instance_deregister": {
+          "parameters": [
+            "%container%"
+          ]
+        }
+      }
+    },
+    "usb_instance": {
+      "labels": {
+        "container": {
+          "container": true,
+          "interface": ["usb.usb_driver"]
+        },
+        "resource": {
+          "resource": true
+        },
+        "reset_flag": {
+          "signature": "bool %s",
+          "value": "false"
+        },
+        "probe_retval": {
+          "signature": "int %s"
+        }
+      },
+      "process": "(!instance_register).<alloc>.<init>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post].(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | <null>).[release].(ret_release) | <failed_probe>).<free>.(instance_deregister)",
+      "subprocesses": {
+        "instance_register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "instance_deregister": {
+          "condition": ["%container% == $ARG1"],
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "alloc": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);"
+          ]
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        },
+        "probe": {
+          "callback": "%container.probe%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_probe": {
+          "callback": "%container.probe%",
+          "callback return value": "%probe_retval%"
+        },
+        "release": {
+          "callback": "%container.release%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "suspend": {
+          "callback": "%container.suspend%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_suspend": {
+          "callback": "%container.suspend%"
+        },
+        "resume": {
+          "callback": "%container.resume%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_resume": {
+          "callback": "%container.resume%"
+        },
+        "ret_release": {
+          "callback": "%container.release%"
+        },
+        "pre": {
+          "callback": "%container.pre%",
+          "parameters": ["%resource%"]
+        },
+        "ret_pre": {
+          "callback": "%container.pre%"
+        },
+        "post": {
+          "callback": "%container.post%",
+          "parameters": ["%resource%"]
+        },
+        "ret_post": {
+          "callback": "%container.post%"
+        },
+        "usb_reset": {},
+        "probe_success": {
+          "condition": ["%probe_retval% == 0"]
+        },
+        "failed_probe": {
+          "condition": ["%probe_retval% == 0"]
+        },
+        "null": {}
+      }
+    },
+    "platform_instance": {
+      "labels": {
+        "container": {
+          "container": true
+        },
+        "resource": {
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        },
+        "probed": {
+          "signature": "int %s",
+          "value": "1"
+        },
+        "suspended": {
+          "signature": "int %s"
+        }
+      },
+      "process": "(!register).<init>.{call}",
+      "subprocesses": {
+        "call": {
+          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} |  <positive_probe>.[suspend].(ret_suspend).(<suspended>.[resume].(ret_resume) | <not_suspended>).{call} | <negative_probe>.(<free>.(deregister) | [probe].(ret_probe).{call})"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "release": {
+          "callback": "%container.release%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "probe": {
+          "callback": "%container.probe%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_probe": {
+          "callback": "%container.probe%",
+          "callback return value": "%probed%"
+        },
+        "suspend": {
+          "callback": "%container.suspend%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_suspend": {
+          "callback": "%container.suspend%",
+          "callback return value": "%suspended%"
+        },
+        "resume": {
+          "callback": "%container.resume%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_resume": {
+          "callback": "%container.resume%"
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        },
+        "after_release": {
+          "statements": [
+            "%probed% = 1;"
+          ]
+        },
+        "positive_probe": {
+          "condition": ["%probed% == 0"]
+        },
+        "negative_probe": {
+          "condition": ["%probed% != 0"]
+        },
+        "suspended": {
+          "condition": ["%suspended% == 0"]
+        },
+        "not_suspended": {
+          "condition": ["%suspended% != 0"]
+        }
+      }
+    },
+    "io_instance": {
+      "labels": {
+        "container": {
+          "container": true
+        },
+        "resource": {
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        },
+        "probed": {
+          "signature": "int %s",
+          "value": "1"
+        }
+      },
+      "process": "(!register).<init>.{call}",
+      "subprocesses": {
+        "call": {
+          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | [probe].(ret_probe).{call})"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "release": {
+          "callback": "%container.release%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "probe": {
+          "callback": "%container.probe%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_probe": {
+          "callback": "%container.probe%",
+          "callback return value": "%probed%"
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        },
+        "after_release": {
+          "statements": [
+            "%probed% = 1;"
+          ]
+        },
+        "positive_probe": {
+          "condition": ["%probed% == 0"]
+        },
+        "negative_probe": {
+          "condition": ["%probed% != 0"]
+        }
+      }
+    },
+    "dummy_resourceless_instance": {
+      "labels": {
+        "container": {
+          "container": true,
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        }
+      },
+      "process": "(!register).{call}",
+      "subprocesses": {
+        "call": {
+          "process": "[callback].(ret_callback).{call} | (deregister)"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "condition": ["%container% == $ARG1"],
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "ret_callback": {
+          "callback": "%callback%"
+        }
+      }
+    },
+    "dummy_instance": {
+      "labels": {
+        "container": {
+          "container": true
+        },
+        "resource": {
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        }
+      },
+      "process": "(!register).<init>.{call}",
+      "subprocesses": {
+        "call": {
+          "process": "[callback].(ret_callback).{call} | <free>.(deregister)"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "condition": ["%container% == $ARG1"],
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_callback": {
+          "callback": "%callback%"
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        }
+      }
+    },
+    "timer_instance": {
+      "labels": {
+        "container": {
+          "container": true,
+          "interface": ["timer.timer_list"]
+        }
+      },
+      "process": "(!instance_register).[callback].(ret_callback).(instance_deregister)",
+      "subprocesses": {
+        "instance_register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "instance_deregister": {
+          "condition": ["%container% == $ARG1"],
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%container.handler%",
+          "parameters": [
+            "%container.data%"
+          ]
+        },
+        "ret_callback": {
+          "callback": "%container.handler%"
+        }
+      }
+    },
+    "interrupt_instance": {
+      "labels": {
+        "thread": {
+          "callback": true,
+          "interface": ["interrupt.thread"]
+        },
+        "callback": {
+          "callback": true,
+          "interface": ["interrupt.handler"]
+        },
+        "line": {
+          "resource": true,
+          "interface": ["interrupt.line"]
+        },
+        "data": {
+          "resource": true,
+          "interface": ["interrupt.data"]
+        },
+        "ret_val": {
+          "signature": "int %s"
+        }
+      },
+      "process": "(!irq_register).[handler].(ret_handler).(<need_thread>.[thread].(ret_thread) | <handled>).(irq_deregister)",
+      "subprocesses": {
+        "irq_register": {
+           "parameters": [
+             "%line%",
+             "%callback%",
+             "%thread%",
+             "%data%"
+           ]
+        },
+        "irq_deregister": {
+          "condition": ["%line% == $ARG1"],
+          "parameters": [
+            "%line%"
+          ]
+        },
+        "handler": {
+          "callback": "%callback%",
+          "parameters": [
+            "%line%",
+            "%data%"
+          ]
+        },
+        "ret_handler": {
+          "callback": "%callback%",
+          "callback return value": "%ret_val%"
+        },
+        "thread": {
+          "callback": "%thread%",
+          "parameters": [
+            "%line%",
+            "%data%"
+          ]
+        },
+        "ret_thread": {
+          "callback": "%thread%"
+        },
+        "need_thread": {
+          "condition": ["%ret_val% == IRQ_WAKE_THREAD"]
+        },
+        "handled": {
+          "condition": ["%ret_val% != IRQ_WAKE_THREAD"]
+        }
+      }
+    }
+  }
+}

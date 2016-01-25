@@ -1,0 +1,344 @@
+{
+  "Common": {
+    "Linux kernel": {
+      "source": "linux-3.14",
+      "configuration": "allmodconfig",
+      "build kernel": false
+    },
+    "LKVOG strategy": {
+      "name": "separate modules"
+    },
+    "rule specifications DB": "rule specs.json",
+    "VTG strategy": {
+      "name": "all bug kinds merge",
+      "verifier": {
+        "name": "CPAchecker",
+        "version": "18921",
+        "options": [
+          {"-ldv": ""}
+        ]
+      },
+      "resource limits": {
+        "wall time": 1000000,
+        "CPU time": 900000,
+        "memory size": 10000000000,
+        "CPU model": null,
+        "number of CPU cores": 1,
+        "result size": 1000000
+      },
+      "merge source files": true
+    }
+  },
+  "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "modules": [
+          "drivers/net/macvtap.ko",
+          "drivers/net/vxlan.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:net:rtnetlink1"
+      ],
+      "false alarms": [
+        "drivers/net/macvtap.ko: False alarm reason is \"kernel_model:absent\n\"",
+        "drivers/net/vxlan.ko: False alarm reason is \"envgen:init\n\""
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "net/ieee802154/6lowpan.ko",
+          "drivers/net/macvtap.ko",
+          "drivers/net/vxlan.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:net:rtnetlink2"
+      ],
+      "false alarms": [
+        "drivers/net/macvtap.ko: False alarm reason is \"kernel_model:absent\n\"",
+        "drivers/net/vxlan.ko: False alarm reason is \"envgen:init\n\""
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "drivers/ide/ide-tape.ko",
+          "drivers/net/wireless/libertas/libertas.ko",
+          "drivers/target/target_core_mod.ko",
+          "drivers/usb/gadget/tcm_usb_gadget.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:string"
+      ],
+      "false alarms": [
+        "drivers/ide/ide-tape.ko: False alarm reason is \"rule_spec\n\"",
+        "drivers/net/wireless/libertas/libertas.ko: False alarm reason is \"verifier:type_cast\n\"",
+        "drivers/target/target_core_mod.ko: False alarm reason is \"kernel_model:abscent\n\"",
+        "drivers/usb/gadget/tcm_usb_gadget.ko: False alarm reason is \"rule_spec\n\""
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "drivers/input/keyboard/gpio_keys.ko",
+          "drivers/input/touchscreen/ads7846.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:gpio"
+      ],
+      "false alarms": [
+        "drivers/input/keyboard/gpio_keys.ko: False alarm reason is \"kernel_model:absent\n\"",
+        "drivers/input/touchscreen/ads7846.ko: False alarm reason is \"kernel_model:absent\n\""
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "drivers/staging/iio/iio_dummy.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:iio:kfifo_buf1"
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "drivers/staging/iio/iio_dummy.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:iio:kfifo_buf2"
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "net/sched/sch_atm.ko",
+          "net/sched/sch_cbq.ko",
+          "net/sched/sch_drr.ko",
+          "net/sched/sch_hfsc.ko",
+          "net/sched/sch_htb.ko",
+          "net/sched/sch_qfq.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:net:pkt_sched1"
+      ],
+      "false alarms": [
+        "net/sched/sch_atm.ko: False alarm reason is \"rule_spec:absent\n\"",
+        "net/sched/sch_cbq.ko: False alarm reason is \"envgen:1struct\n\"",
+        "net/sched/sch_drr.ko: False alarm reason is \"envgen:1struct\n\"",
+        "net/sched/sch_hfsc.ko: False alarm reason is \"envgen:1struct\n\"",
+        "net/sched/sch_htb.ko: False alarm reason is \"rule_spec:absent\n\"",
+        "net/sched/sch_qfq.ko: False alarm reason is \"-\n\""
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "net/sched/sch_atm.ko",
+          "net/sched/sch_cbq.ko",
+          "net/sched/sch_drr.ko",
+          "net/sched/sch_hfsc.ko",
+          "net/sched/sch_htb.ko",
+          "net/sched/sch_qfq.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:net:pkt_sched2"
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "drivers/ata/pata_arasan_cf.ko",
+          "drivers/i2c/busses/i2c-designware-platform.ko",
+          "drivers/net/ethernet/stmicro/stmmac/stmmac.ko",
+          "drivers/spi/spi-orion.ko",
+          "drivers/spi/spi-pxa2xx-platform.ko",
+          "drivers/spi/spi-tegra114.ko",
+          "drivers/spi/spi-txx9.ko",
+          "drivers/staging/iio/adc/mxs-lradc.ko",
+          "drivers/tty/serial/8250/8250_dw.ko",
+          "drivers/usb/gadget/mv_u3d_core.ko",
+          "drivers/usb/gadget/mv_udc.ko",
+          "drivers/watchdog/dw_wdt.ko",
+          "sound/soc/codecs/snd-soc-sgtl5000.ko",
+          "sound/soc/dwc/designware_i2s.ko",
+          "sound/spi/snd-at73c213.ko",
+          "drivers/ata/ahci_imx.ko",
+          "drivers/ata/ahci_platform.ko",
+          "drivers/ata/sata_mv.ko",
+          "drivers/ata/sata_rcar.ko",
+          "drivers/char/hw_random/atmel-rng.ko",
+          "drivers/iio/frequency/adf4350.ko",
+          "drivers/media/platform/vsp1/vsp1.ko",
+          "drivers/mmc/host/omap_hsmmc.ko",
+          "drivers/mmc/host/sdhci-pxav2.ko",
+          "drivers/mmc/host/sdhci-pxav3.ko",
+          "drivers/mmc/host/sh_mmcif.ko",
+          "drivers/net/can/mcp251x.ko",
+          "drivers/net/ethernet/cadence/at91_ether.ko",
+          "drivers/net/ethernet/ethoc.ko",
+          "drivers/net/ethernet/marvell/mvmdio.ko",
+          "drivers/pwm/pwm-renesas-tpu.ko",
+          "drivers/spi/spi-atmel.ko",
+          "drivers/spi/spi-bcm63xx-hsspi.ko",
+          "drivers/tty/serial/st-asc.ko",
+          "drivers/usb/dwc3/dwc3-exynos.ko",
+          "drivers/usb/musb/ux500.ko",
+          "drivers/usb/phy/phy-tahvo.ko",
+          "net/rfkill/rfkill-gpio.ko",
+          "sound/soc/adi/snd-soc-adi-axi-i2s.ko",
+          "sound/soc/adi/snd-soc-adi-axi-spdif.ko",
+          "sound/soc/fsl/snd-soc-fsl-spdif.ko",
+          "sound/soc/kirkwood/snd-soc-kirkwood.ko",
+          "sound/soc/mxs/snd-soc-mxs.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:clk1"
+      ],
+      "false alarms": [
+        "drivers/ata/ahci_imx.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/ata/ahci_platform.ko: False alarm reason is \"envgen\n\"",
+        "drivers/ata/sata_mv.ko: False alarm reason is \"kernel_model:ret_val\n\"",
+        "drivers/ata/sata_rcar.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/char/hw_random/atmel-rng.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/iio/frequency/adf4350.ko: False alarm reason is \"kernel_model:ret_val\n\"",
+        "drivers/media/platform/vsp1/vsp1.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/mmc/host/omap_hsmmc.ko: False alarm reason is \"verifier:pointer\n\"",
+        "drivers/mmc/host/sdhci-pxav2.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "drivers/mmc/host/sdhci-pxav3.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "drivers/mmc/host/sh_mmcif.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/net/can/mcp251x.ko: False alarm reason is \"kernel_model:ret_val\n\"",
+        "drivers/net/ethernet/cadence/at91_ether.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/net/ethernet/ethoc.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/net/ethernet/marvell/mvmdio.ko: False alarm reason is \"kernel_model:ret_val\n\"",
+        "drivers/net/ethernet/stmicro/stmmac/stmmac.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/pwm/pwm-renesas-tpu.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/spi/spi-atmel.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "drivers/spi/spi-bcm63xx-hsspi.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "drivers/tty/serial/st-asc.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/usb/dwc3/dwc3-exynos.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "drivers/usb/musb/ux500.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "drivers/usb/phy/phy-tahvo.ko: False alarm reason is \"kernel_model:ret_val\n\"",
+        "net/rfkill/rfkill-gpio.ko: False alarm reason is \"envgen:1struct\n\"",
+        "sound/soc/adi/snd-soc-adi-axi-i2s.ko: False alarm reason is \"envgen:1struct\n\"",
+        "sound/soc/adi/snd-soc-adi-axi-spdif.ko: False alarm reason is \"envgen:1struct\n\"",
+        "sound/soc/fsl/snd-soc-fsl-spdif.ko: False alarm reason is \"envgen:1struct\n\"",
+        "sound/soc/kirkwood/snd-soc-kirkwood.ko: False alarm reason is \"kernel_model:ret_val\n\"",
+        "sound/soc/mxs/snd-soc-mxs.ko: False alarm reason is \"envgen:1struct\n\""
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "drivers/target/target_core_iblock.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:bio"
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "drivers/ata/sata_mv.ko",
+          "drivers/ata/sata_rcar.ko",
+          "drivers/i2c/busses/i2c-sh_mobile.ko",
+          "drivers/misc/atmel-ssc.ko",
+          "drivers/mmc/host/sdhci-pxav2.ko",
+          "drivers/mmc/host/sdhci-pxav3.ko",
+          "drivers/net/ethernet/ethoc.ko",
+          "drivers/net/ethernet/marvell/mvmdio.ko",
+          "drivers/net/ethernet/stmicro/stmmac/stmmac.ko",
+          "drivers/spi/spi-orion.ko",
+          "drivers/spi/spi-pxa2xx-platform.ko",
+          "drivers/tty/serial/8250/8250_dw.ko",
+          "drivers/tty/serial/st-asc.ko",
+          "drivers/usb/dwc3/dwc3-exynos.ko",
+          "drivers/usb/gadget/mv_u3d_core.ko",
+          "drivers/usb/gadget/mv_udc.ko",
+          "drivers/usb/phy/phy-tahvo.ko",
+          "sound/soc/kirkwood/snd-soc-kirkwood.ko",
+          "sound/soc/mxs/snd-soc-mxs.ko",
+          "sound/spi/snd-at73c213.ko",
+          "drivers/ata/ahci_imx.ko",
+          "drivers/ata/ahci_platform.ko",
+          "drivers/char/hw_random/atmel-rng.ko",
+          "drivers/iio/frequency/adf4350.ko",
+          "drivers/media/platform/vsp1/vsp1.ko",
+          "drivers/misc/atmel_pwm.ko",
+          "drivers/mmc/host/omap_hsmmc.ko",
+          "drivers/mmc/host/sh_mmcif.ko",
+          "drivers/net/can/mcp251x.ko",
+          "drivers/net/ethernet/cadence/at91_ether.ko",
+          "drivers/net/ethernet/cadence/macb.ko",
+          "drivers/pwm/pwm-renesas-tpu.ko",
+          "drivers/spi/spi-atmel.ko",
+          "drivers/spi/spi-bcm63xx-hsspi.ko",
+          "drivers/spi/spi-tegra114.ko",
+          "drivers/usb/dwc3/dwc3-keystone.ko",
+          "drivers/usb/gadget/m66592-udc.ko",
+          "drivers/usb/gadget/pxa27x_udc.ko",
+          "drivers/usb/gadget/r8a66597-udc.ko",
+          "drivers/usb/host/r8a66597-hcd.ko",
+          "drivers/usb/musb/ux500.ko",
+          "net/rfkill/rfkill-gpio.ko",
+          "sound/soc/adi/snd-soc-adi-axi-i2s.ko",
+          "sound/soc/adi/snd-soc-adi-axi-spdif.ko",
+          "sound/soc/dwc/designware_i2s.ko",
+          "sound/soc/fsl/snd-soc-fsl-spdif.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:clk2"
+      ],
+      "false alarms": [
+        "drivers/ata/ahci_imx.ko: False alarm reason is \"rule_spec;envgen:1struct\n\"",
+        "drivers/ata/ahci_platform.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/char/hw_random/atmel-rng.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/iio/frequency/adf4350.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/media/platform/vsp1/vsp1.ko: False alarm reason is \"rule_spec\n\"",
+        "drivers/misc/atmel_pwm.ko: False alarm reason is \"rule_spec\n\"",
+        "drivers/mmc/host/omap_hsmmc.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/mmc/host/sh_mmcif.ko: False alarm reason is \"rule_spec\n\"",
+        "drivers/net/can/mcp251x.ko: False alarm reason is \"verifier:pointer\n\"",
+        "drivers/net/ethernet/cadence/at91_ether.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/net/ethernet/cadence/macb.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/net/ethernet/stmicro/stmmac/stmmac.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/pwm/pwm-renesas-tpu.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/spi/spi-atmel.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "drivers/spi/spi-bcm63xx-hsspi.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "drivers/spi/spi-tegra114.ko: False alarm reason is \"rule_spec\n\"",
+        "drivers/usb/dwc3/dwc3-keystone.ko: False alarm reason is \"rule_spec\n\"",
+        "drivers/usb/gadget/m66592-udc.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/usb/gadget/pxa27x_udc.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/usb/gadget/r8a66597-udc.ko: False alarm reason is \"envgen:1struct\n\"",
+        "drivers/usb/host/r8a66597-hcd.ko: False alarm reason is \"rule_spec\n\"",
+        "drivers/usb/musb/ux500.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
+        "net/rfkill/rfkill-gpio.ko: False alarm reason is \"envgen:1struct\n\"",
+        "sound/soc/adi/snd-soc-adi-axi-i2s.ko: False alarm reason is \"envgen:1struct\n\"",
+        "sound/soc/adi/snd-soc-adi-axi-spdif.ko: False alarm reason is \"envgen:1struct\n\"",
+        "sound/soc/dwc/designware_i2s.ko: False alarm reason is \"rule_spec\n\"",
+        "sound/soc/fsl/snd-soc-fsl-spdif.ko: False alarm reason is \"envgen:1struct\n\""
+      ]
+    },
+    {
+      "Linux kernel": {
+        "modules": [
+          "net/ipx/ipx.ko"
+        ]
+      },
+      "rule specifications": [
+        "linux:net:sock"
+      ]
+    }
+  ]
+}
