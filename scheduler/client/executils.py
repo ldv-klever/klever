@@ -73,13 +73,9 @@ def extract_description(solution_dir, description_file):
     else:
         raise FileNotFoundError("There is no solution file {}".format(general_file))
 
-    # According to documentation remove exit code in case of killing
-    if "signal num" in description:
-        del description["return value"]
-
     # Set final status
     if termination_reason:
-        if termination_reason == "time":
+        if termination_reason == "cputime":
             description["status"] = "CPU time exhausted"
         elif termination_reason == "memory":
             description["status"] = "memory exhausted"
