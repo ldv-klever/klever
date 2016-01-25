@@ -5,6 +5,47 @@
         <i class="filter icon"></i>{% trans 'View' %} ({% if view_id == 'default' %}{% trans 'Default' %}{% elif view_id %}{% for v in views %}{% if v.id == view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
     </div>
     <div class="content ui small form">
+        <h4>{% trans 'Order by' %}</h4>
+        <div class="ui grid">
+            <div class="four wide column">
+                <div class="ui radio checkbox">
+                    <input id="order__type__component" name="order_type" type="radio" value="component"{% if view.order.0 == 'component' %} checked{% endif %}>
+                    <label for="order__type__component">{% trans 'Component' %}</label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order__type__attr" name="order_type" type="radio" value="attr" {% if view.order.0 != 'component' and view.order.0 != 'date' %} checked{% endif %}>
+                    <label for="order__type__attr">{% trans 'Attribute' %}</label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order__type__date" name="order_type" type="radio" value="date" {% if view.order.0 == 'date' %} checked{% endif %}>
+                    <label for="order__type__date">{% trans 'Finish date' %}*</label>
+                </div>
+            </div>
+            <div class="two wide column">
+                <div class="ui radio checkbox">
+                    <input id="order__value__up" name="order_value" type="radio" value="up" {% if view.order.1 == 'up' %} checked{% endif %}>
+                    <label for="order__value__up"><i class="ui arrow up icon"></i></label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order__value__down" name="order_value" type="radio" value="down" {% if view.order.1 == 'down' %} checked{% endif %}>
+                    <label for="order__value__down"><i class="ui arrow down icon"></i></label>
+                </div>
+            </div>
+            <div class="ten wide column">
+                <div id="order__attr__value_div" class="fluid"{% if view.order.0 == 'component' or view.order.0 == 'date' %} style="display: none"{% endif %}>
+                    <label for="order__attr__name"></label>
+                    <input id="order__attr__name" type="text"{% if view.order.0 != 'component' and view.order.0 != 'date' %} value="{{ view.order.0 }}"{% endif %}>
+                    <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i></small>
+                </div>
+
+            </div>
+        </div>
+        <br>
+        <small style="color: #656565">*{% trans 'Only finished reports will be shown' %}</small>
+        <div class="ui divider"></div>
         <h4 class="header">{% trans 'Component name' %}</h4>
         <div class="ui grid">
             <div class="six wide column">

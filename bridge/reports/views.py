@@ -7,7 +7,7 @@ from bridge.utils import unparallel_group, print_err
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
-from marks.models import UnsafeTag, SafeTag
+from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe
 from reports.UploadReport import UploadReport
 from marks.utils import MarkAccess
 from reports.models import *
