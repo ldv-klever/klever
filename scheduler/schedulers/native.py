@@ -138,7 +138,7 @@ class Scheduler(schedulers.SchedulerExchange):
         if desc["resource limits"]["CPU model"] and desc["resource limits"]["CPU model"] != self.__cpu_model:
             raise schedulers.SchedulerException(
                 "Host CPU model is not {} (has only {})".
-                format(desc["resource limits"]["CPU model"]), self.__cpu_model)
+                format(desc["resource limits"]["CPU model"], self.__cpu_model))
 
         if desc["resource limits"]["memory size"] > self.__ram_memory:
             raise schedulers.SchedulerException(
