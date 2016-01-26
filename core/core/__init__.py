@@ -135,6 +135,9 @@ class Core:
                                 if self.mqs['report files'].empty():
                                     time.sleep(3)
                                     break
+                        # Do not proceed to other sub-jobs if reports uploading failed.
+                        if self.uploading_reports_process.exitcode:
+                            break
                         # TODO: we need to put information on correspondence between obtained and ideal verdicts to Klever Core data.
                     finally:
                         core.utils.report(self.logger,
