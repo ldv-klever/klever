@@ -184,7 +184,7 @@ class LKBCE(core.components.Component):
         self.logger.info('Configure Linux kernel')
         if 'configuration' in self.conf['Linux kernel']:
             self.__make((self.conf['Linux kernel']['configuration'],), specify_arch=True,
-                        invoke_build_cmd_wrappers=True, collect_build_cmds=True, collect_all_stdout=True)
+                        invoke_build_cmd_wrappers=True, collect_build_cmds=False, collect_all_stdout=True)
         else:
             raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
