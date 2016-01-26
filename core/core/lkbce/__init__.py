@@ -126,7 +126,7 @@ class LKBCE(core.components.Component):
         for build_target in build_targets:
             self.__make(build_target,
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
-                        specify_arch=True, invoke_build_cmd_wrappers=True, collect_build_cmds=True)
+                        specify_arch=True, collect_build_cmds=True)
 
         self.linux_kernel['module deps'] = {}
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
@@ -136,7 +136,7 @@ class LKBCE(core.components.Component):
             os.mkdir(self.linux_kernel['modules install'])
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'],
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
-                        specify_arch=False, invoke_build_cmd_wrappers=False, collect_build_cmds=False)
+                        specify_arch=False, collect_build_cmds=False)
             # Extract mod deps
             self.extract_all_linux_kernel_mod_deps()
 
@@ -183,8 +183,8 @@ class LKBCE(core.components.Component):
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
         if 'configuration' in self.conf['Linux kernel']:
-            self.__make((self.conf['Linux kernel']['configuration'],), specify_arch=True,
-                        invoke_build_cmd_wrappers=True, collect_build_cmds=False, collect_all_stdout=True)
+            self.__make((self.conf['Linux kernel']['configuration'],), specify_arch=True, collect_build_cmds=False,
+                        collect_all_stdout=True)
         else:
             raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
@@ -454,22 +454,13 @@ class LKBCE(core.components.Component):
         self.logger.debug('Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
         self.logger.debug('Options are "{0}"'.format(self.linux_kernel['build cmd']['opts']))
 
-    def __make(self, build_target, jobs_num=1, specify_arch=False, invoke_build_cmd_wrappers=False,
-               collect_build_cmds=False,
-               collect_all_stdout=False):
-        env = None
-
+    def __make(self, build_target, jobs_num=1, specify_arch=False, collect_build_cmds=False, collect_all_stdout=False):
         # Update environment variables so that invoke build command wrappers and optionally collect build commands.
-        if invoke_build_cmd_wrappers or collect_build_cmds:
-            assert invoke_build_cmd_wrappers or not collect_build_cmds, \
-                'Build commands can not be collected without invoking build command wrappers'
-            env = dict(os.environ)
-            if invoke_build_cmd_wrappers:
-                env.update({'PATH': '{0}:{1}'.format(os.path.join(sys.path[0], os.path.pardir, 'core', 'lkbce', 'cmds'),
-                                                     os.environ['PATH'])})
-            if collect_build_cmds:
-                env.update(
-                        {'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
+        env = dict(os.environ)
+        env.update({'PATH': '{0}:{1}'.format(os.path.join(sys.path[0], os.path.pardir, 'core', 'lkbce', 'cmds'),
+                                             os.environ['PATH'])})
+        if collect_build_cmds:
+            env.update({'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
 
         return core.utils.execute(self.logger,
                                   tuple(['make', '-j', str(jobs_num), '-C', self.linux_kernel['work src tree']] +
