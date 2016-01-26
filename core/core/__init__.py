@@ -129,7 +129,10 @@ class Core:
                             # TODO: dirty hack to wait for all reports to be uploaded since they may be accidently removed when local source directories use is allowed and next sub-job is decided.
                             while True:
                                 time.sleep(1)
-                                if self.uploading_reports_process.exitcode or self.mqs['report files'].empty():
+                                # Do not wait if reports uploading failed.
+                                if self.uploading_reports_process.exitcode:
+                                    break
+                                if self.mqs['report files'].empty():
                                     time.sleep(3)
                                     break
                         # TODO: we need to put information on correspondence between obtained and ideal verdicts to Klever Core data.
