@@ -91,22 +91,22 @@ class LKBCE(core.components.Component):
                                     'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
                 # Examine module sets.
-                for modules in self.conf['Linux kernel']['modules']:
+                for modules_set in self.conf['Linux kernel']['modules']:
                     # Module sets ending with .ko imply individual modules.
-                    if re.search(r'\.ko$', modules):
-                        build_targets.append((modules,))
+                    if re.search(r'\.ko$', modules_set):
+                        build_targets.append((modules_set,))
                     # Otherwise it is directory that can contain modules.
                     else:
                         # Add "modules_prepare" target once.
                         if not build_targets or build_targets[0] != ('modules_prepare',):
                             build_targets.insert(0, ('modules_prepare',))
 
-                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules)):
-                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules,
+                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules_set)):
+                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules_set,
                                                                                                 self.linux_kernel[
                                                                                                     'work src tree']))
 
-                        build_targets.append(('M={0}'.format(modules), 'modules'))
+                        build_targets.append(('M={0}'.format(modules_set), 'modules'))
 
         if build_targets:
             self.logger.debug('Build following targets:\n{0}'.format(
