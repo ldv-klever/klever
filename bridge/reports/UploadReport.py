@@ -38,6 +38,8 @@ class UploadReport(object):
             self.__job_failed(self.error)
 
     def __job_failed(self, error=None):
+        if 'id' in self.data:
+            error = 'Report with id "%s" has led to fail. ' + error
         KleverCoreFinishDecision(self.job, error)
 
     def __check_data(self, data):
