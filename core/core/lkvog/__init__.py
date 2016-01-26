@@ -42,13 +42,17 @@ def after_process_linux_kernel_raw_build_cmd(context):
                                                                                  context.linux_kernel['build cmd'][
                                                                                      'out file'])))
         if os.path.isfile(linux_kernel_build_cmd_full_desc_file):
-            raise FileExistsError('Linux kernel CC full description file "{0}" already exists'.format(
-                linux_kernel_build_cmd_full_desc_file))
-        context.logger.debug(
-            'Dump Linux kernel CC full description to file "{0}"'.format(linux_kernel_build_cmd_full_desc_file))
-        with open(linux_kernel_build_cmd_full_desc_file, 'w', encoding='ascii') as fp:
-            json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
-                      sort_keys=True, indent=4)
+            # Sometimes when building several individual modules the same modules are built several times including
+            # building of corresponding mod.o files. Do not fail in this case.
+            if not context.linux_kernel['build cmd']['out file'].endswith('mod.o'):
+                raise FileExistsError('Linux kernel CC full description file "{0}" already exists'.format(
+                    linux_kernel_build_cmd_full_desc_file))
+        else:
+            context.logger.debug(
+                'Dump Linux kernel CC full description to file "{0}"'.format(linux_kernel_build_cmd_full_desc_file))
+            with open(linux_kernel_build_cmd_full_desc_file, 'w', encoding='ascii') as fp:
+                json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
+                          sort_keys=True, indent=4)
 
     # We need to copy build command description since it may be accidently overwritten by LKBCE.
     linux_kernel_build_cmd_desc = {
