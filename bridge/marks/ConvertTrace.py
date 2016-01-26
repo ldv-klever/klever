@@ -1,4 +1,5 @@
 from types import MethodType
+from reports.etv import error_trace_callstack
 
 # To create new funciton:
 # 1) Add created function to the class ConvertTrace;
@@ -7,7 +8,7 @@ from types import MethodType
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 
-DEFAULT_CONVERT = 'default_convert'
+DEFAULT_CONVERT = 'call_stack'
 
 
 class ConvertTrace(object):
@@ -40,8 +41,7 @@ class ConvertTrace(object):
         except Exception as e:
             self.error = e
             return
-        if not isinstance(self.pattern_error_trace, str) or \
-                len(self.pattern_error_trace) == 0:
+        if not isinstance(self.pattern_error_trace, str) or len(self.pattern_error_trace) == 0:
             self.error = "Convert function reterned empty trace"
 
     def default_convert(self):
@@ -58,3 +58,10 @@ Never failed. Is it useful?
 Maybe...
         """
         return self.error_trace[::-1]
+
+    def call_stack(self):
+        """
+This function is extracting the error trace call stack to first warning.
+Return list of lists of function names in json format.
+        """
+        return error_trace_callstack(self.error_trace)

@@ -1,4 +1,5 @@
 import re
+import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.utils import print_err
@@ -507,3 +508,56 @@ class GetSource(object):
 
 def is_tag(tag, name):
     return bool(re.match('^({.*})*' + name + '$', tag))
+
+
+# Returns string in case success or raise ValueError
+def error_trace_callstack(error_trace):
+    try:
+        graph = GraphMLParser().parse(error_trace.encode('utf8'))
+    except Exception as e:
+        print_err(e)
+        raise ValueError('The error trace has incorrect format')
+    traces = []
+    if graph.set_root_by_attribute('true', 'isEntryNode') is None:
+        raise ValueError('Could not find the entry point was in the error trace')
+
+    for path in graph.bfs():
+        if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
+            traces.append(path)
+    if len(traces) != 1:
+        raise ValueError('Only error traces with one error path are supported')
+    edge_trace1 = []
+    edge_trace2 = []
+    prev_node = traces[0][0]
+    must_have_thread = False
+    for n in traces[0][1:]:
+        e = graph.edge(prev_node, n)
+        if e is not None:
+            if 'thread' in e.attr:
+                must_have_thread = True
+                if e['thread'] == '0':
+                    edge_trace1.append(e)
+                elif e['thread'] == '1':
+                    edge_trace2.append(e)
+            elif must_have_thread:
+                raise ValueError('One of the edges does not have thread attribute')
+            else:
+                edge_trace1.append(e)
+        prev_node = n
+    call_stack1 = []
+    for n in edge_trace1:
+        if 'enterFunction' in n.attr:
+            call_stack1.append(n['enterFunction'])
+        if 'returnFromFunction' in n.attr:
+            call_stack1.pop()
+        if 'warning' in n.attr:
+            break
+    call_stack2 = []
+    for n in edge_trace2:
+        if 'enterFunction' in n.attr:
+            call_stack2.append(n['enterFunction'])
+        if 'returnFromFunction' in n.attr:
+            call_stack2.pop()
+        if 'warning' in n.attr:
+            break
+    return json.dumps([call_stack1, call_stack2])
