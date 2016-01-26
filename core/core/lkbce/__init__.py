@@ -126,7 +126,11 @@ class LKBCE(core.components.Component):
         jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build')
         for build_target in build_targets:
             self.__make(build_target,
-                        jobs_num=jobs_num,
+                        # TODO: measure times and try C versions of wrappers, maybe parrallel build would be better.
+                        # Linux kernel doesn't support parrallel build of several .ko files, so build them using one
+                        # thread. Note that it looks like it is still more optimal than build several .ko files in
+                        # parrallel but invoking make per each .ko file independently.
+                        jobs_num=jobs_num if build_target[1] == 'modules' else 1,
                         specify_arch=True, collect_build_cmds=True)
 
         self.linux_kernel['module deps'] = {}
