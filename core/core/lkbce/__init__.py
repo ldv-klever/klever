@@ -88,7 +88,7 @@ class LKBCE(core.components.Component):
                     for j, modules2 in enumerate(self.conf['Linux kernel']['modules']):
                         if i != j and modules1.startswith(modules2):
                             raise ValueError(
-                                    'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
+                                'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
                 # Examine module sets.
                 modules = []
@@ -121,7 +121,7 @@ class LKBCE(core.components.Component):
 
         if build_targets:
             self.logger.debug('Build following targets:\n{0}'.format(
-                    '\n'.join([' '.join(build_target) for build_target in build_targets])))
+                '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
         for build_target in build_targets:
             self.__make(build_target,
@@ -287,9 +287,8 @@ class LKBCE(core.components.Component):
             raise ValueError('Could not find Makefile in Linux kernel source code')
 
         if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']):
-            self.logger.debug(
-                    'Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
-                                                             self.linux_kernel['work src tree']))
+            self.logger.debug('Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
+                                                                       self.linux_kernel['work src tree']))
             for path in os.listdir(linux_kernel_work_src_tree_root):
                 shutil.move(os.path.join(linux_kernel_work_src_tree_root, path), self.linux_kernel['work src tree'])
             trash_dir = linux_kernel_work_src_tree_root
@@ -421,20 +420,15 @@ class LKBCE(core.components.Component):
                 else:
                     self.linux_kernel['build cmd']['out file'] = opt
         else:
-            raise NotImplementedError(
-                    'Linux kernel raw build command "{0}" is not supported yet'.format(
-                            self.linux_kernel['build cmd']['type']))
+            raise NotImplementedError('Linux kernel raw build command "{0}" is not supported yet'.format(
+                self.linux_kernel['build cmd']['type']))
 
         if cmd_requires_in_files and not self.linux_kernel['build cmd']['in files']:
             raise ValueError(
-                    'Could not get Linux kernel raw build command input files'
-                    + ' from options "{0}"'.format(
-                            opts))
+                'Could not get Linux kernel raw build command input files' + ' from options "{0}"'.format(opts))
         if cmd_requires_out_file and not self.linux_kernel['build cmd']['out file']:
             raise ValueError(
-                    'Could not get Linux kernel raw build command output file'
-                    + ' from options "{0}"'.format(
-                            opts))
+                'Could not get Linux kernel raw build command output file' + ' from options "{0}"'.format(opts))
 
         # Check thar all original options becomes either input files or output file or options.
         # Option -o isn't included in the resulting set.
@@ -445,19 +439,19 @@ class LKBCE(core.components.Component):
         if self.linux_kernel['build cmd']['out file']:
             resulting_opts.append(self.linux_kernel['build cmd']['out file'])
         if set(original_opts) != set(resulting_opts):
-            raise RuntimeError(
-                    'Some options were not parsed: "{0} != {1} + {2} + {3}"'.format(original_opts,
-                                                                                    self.linux_kernel['build cmd'][
-                                                                                        'in files'],
-                                                                                    self.linux_kernel['build cmd'][
-                                                                                        'out file'],
-                                                                                    self.linux_kernel['build cmd'][
-                                                                                        'opts']))
+            raise RuntimeError('Some options were not parsed: "{0} != {1} + {2} + {3}"'.format(original_opts,
+                                                                                               self.linux_kernel[
+                                                                                                   'build cmd'][
+                                                                                                   'in files'],
+                                                                                               self.linux_kernel[
+                                                                                                   'build cmd'][
+                                                                                                   'out file'],
+                                                                                               self.linux_kernel[
+                                                                                                   'build cmd'][
+                                                                                                   'opts']))
 
-        self.logger.debug(
-                'Input files are "{0}"'.format(self.linux_kernel['build cmd']['in files']))
-        self.logger.debug(
-                'Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
+        self.logger.debug('Input files are "{0}"'.format(self.linux_kernel['build cmd']['in files']))
+        self.logger.debug('Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
         self.logger.debug('Options are "{0}"'.format(self.linux_kernel['build cmd']['opts']))
 
     def __make(self, build_target, jobs_num=1, specify_arch=False, invoke_build_cmd_wrappers=False,
