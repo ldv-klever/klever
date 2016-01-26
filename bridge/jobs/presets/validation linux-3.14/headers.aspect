@@ -2,4 +2,6 @@ before: file ("$this")
 {
 #include <linux/poll.h>
 #include <net/sch_generic.h>
+#include <scsi/scsi_device.h>
+#include <scsi/scsi_cmnd.h>
 }

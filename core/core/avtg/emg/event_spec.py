@@ -694,7 +694,6 @@ class EventModel:
                 if label.interfaces:
                     for interface in label.interfaces:
                         # Assign matched signature
-                        # TODO: KeyError('interrupt.line',) - drivers/usb/gadget/g_printer.ko, drivers/usb/gadget/gr_udc.ko.
                         self.logger.debug("Add signature {} to a label {}".
                                           format(self.analysis.interfaces[interface].signature.expression, label.name))
                         label.signature(self.analysis.interfaces[interface].signature, interface)

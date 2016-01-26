@@ -74,7 +74,12 @@ class CategorySpecification:
             if signature.type_class == "interface":
                 if signature.interface.signature.type_class == "interface":
                     raise RuntimeError("Attempt to replace interface signature with an interface signature")
+                intf = signature.interface
                 signature.replace(signature.interface.signature)
+                if type(intf) is Interface:
+                    # todo: something wrong there, seems that signature objects are copied deeply
+                    signature.interface = intf
+                    signature.interface.signature.interface = intf
 
             # Process return value and parameters in case of function
             if signature.type_class == "function":
