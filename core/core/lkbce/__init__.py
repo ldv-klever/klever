@@ -123,9 +123,10 @@ class LKBCE(core.components.Component):
             self.logger.debug('Build following targets:\n{0}'.format(
                 '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
+        jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build')
         for build_target in build_targets:
             self.__make(build_target,
-                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
+                        jobs_num=jobs_num,
                         specify_arch=True, collect_build_cmds=True)
 
         self.linux_kernel['module deps'] = {}
