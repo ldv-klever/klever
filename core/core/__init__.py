@@ -117,33 +117,35 @@ class Core:
                                       },
                                       self.mqs['report files'],
                                       suffix='-validator{0}'.format(i))
-                    os.makedirs(str(i))
-                    with core.utils.Cd(str(i)):
-                        self.get_components(sub_job)
-                        self.create_components_conf(sub_job)
-                        self.callbacks = core.utils.get_component_callbacks(self.logger, self.components,
-                                                                            self.components_conf)
-                        core.utils.invoke_callbacks(self.launch_all_components, (sub_job_id,))
-                        self.wait_for_components()
-                        # TODO: dirty hack to wait for all reports to be uploaded since they may be accidently removed when local source directories use is allowed and next sub-job is decided.
-                        while True:
-                            time.sleep(1)
-                            if self.uploading_reports_process.exitcode or self.mqs['report files'].empty():
-                                time.sleep(3)
-                                break
-                    # TODO: we need to put information on correspondence between obtained and ideal verdicts to Klever Core data.
-                    core.utils.report(self.logger,
-                                      'finish',
-                                      {
-                                          'id': sub_job_id,
-                                          'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                          'desc': '',
-                                          'log': '__log',
-                                          'data': '',
-                                          'files': ['__log']
-                                      },
-                                      self.mqs['report files'],
-                                      suffix='-validator{0}'.format(i))
+                    try:
+                        os.makedirs(str(i))
+                        with core.utils.Cd(str(i)):
+                            self.get_components(sub_job)
+                            self.create_components_conf(sub_job)
+                            self.callbacks = core.utils.get_component_callbacks(self.logger, self.components,
+                                                                                self.components_conf)
+                            core.utils.invoke_callbacks(self.launch_all_components, (sub_job_id,))
+                            self.wait_for_components()
+                            # TODO: dirty hack to wait for all reports to be uploaded since they may be accidently removed when local source directories use is allowed and next sub-job is decided.
+                            while True:
+                                time.sleep(1)
+                                if self.uploading_reports_process.exitcode or self.mqs['report files'].empty():
+                                    time.sleep(3)
+                                    break
+                        # TODO: we need to put information on correspondence between obtained and ideal verdicts to Klever Core data.
+                    finally:
+                        core.utils.report(self.logger,
+                                          'finish',
+                                          {
+                                              'id': sub_job_id,
+                                              'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
+                                              'desc': '',
+                                              'log': '__log',
+                                              'data': '',
+                                              'files': ['__log']
+                                          },
+                                          self.mqs['report files'],
+                                          suffix='-validator{0}'.format(i))
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:
