@@ -548,7 +548,7 @@
           "condition": ["%probe_retval% == 0"]
         },
         "failed_probe": {
-          "condition": ["%probe_retval% == 0"]
+          "condition": ["%probe_retval% != 0"]
         },
         "null": {}
       }
