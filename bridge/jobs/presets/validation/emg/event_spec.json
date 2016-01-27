@@ -25,13 +25,13 @@
           ]
         },
         "assign": {
-          "condition": ["$res == 0"],
+          "condition": ["ldv_check_retval($res)"],
           "statements": [
             "%usb_driver% = $arg1;"
           ]
         },
         "none": {
-          "condition": ["$res != 0"]
+          "condition": ["!ldv_check_retval($res)"]
         }
       }
     },
@@ -188,10 +188,10 @@
           ]
         },
         "none": {
-          "condition": ["$res != 0"]
+          "condition": ["!ldv_check_retval($res)"]
         },
         "assign": {
-          "condition": ["$res == 0"],
+          "condition": ["ldv_check_retval($res)"],
           "statements": [
             "%platform_driver% = $arg1;"
           ]
@@ -219,10 +219,10 @@
           ]
         },
         "none": {
-          "condition": ["$res != 0"]
+          "condition": ["!ldv_check_retval($res)"]
         },
         "assign": {
-          "condition": ["$res == 0"],
+          "condition": ["ldv_check_retval($res)"],
           "statements": [
             "%platform_driver% = $arg1;",
             "%probe% = $arg2;",
@@ -269,10 +269,10 @@
           ]
         },
         "none": {
-          "condition": ["$res != 0"]
+          "condition": ["!ldv_check_retval($res)"]
         },
         "assign": {
-          "condition": ["$res == 0"],
+          "condition": ["ldv_check_retval($res)"],
           "statements": [
             "%timer_list% = $arg1;"
           ]
@@ -305,10 +305,10 @@
           ]
         },
         "none": {
-          "condition": ["$res != 0"]
+          "condition": ["!ldv_check_retval($res)"]
         },
         "assign": {
-          "condition": ["$res == 0"],
+          "condition": ["ldv_check_retval($res)"],
           "statements": [
             "%timer_list% = $arg1;",
             "%function% = $arg2",
@@ -375,10 +375,10 @@
           ]
         },
         "none": {
-          "condition": ["$res != 0"]
+          "condition": ["!ldv_check_retval($res)"]
         },
         "assign": {
-          "condition": ["$res == 0"],
+          "condition": ["ldv_check_retval($res)"],
           "statements": [
             "%line% = $arg1;",
             "%callback% = $arg2;",
