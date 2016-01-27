@@ -60,8 +60,11 @@
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe",
       "VTG strategy": {
-        "resource limits": {
-          "memory size": 12000000000
+        "verifier": {
+          "options": [
+            {"-valueAnalysis": ""},
+            {"-setprop": "cpa.callstack.skipRecursion=true"}
+          ]
         }
       }
     }
