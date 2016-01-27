@@ -58,7 +58,12 @@
         "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
       },
       "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "VTG strategy": {
+        "resource limits": {
+          "memory size": 12000000000
+        }
+      }
     }    
   ],
   "hard jobs": [
