@@ -88,34 +88,50 @@ class LKBCE(core.components.Component):
                     for j, modules2 in enumerate(self.conf['Linux kernel']['modules']):
                         if i != j and modules1.startswith(modules2):
                             raise ValueError(
-                                    'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
+                                'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
                 # Examine module sets.
-                for modules in self.conf['Linux kernel']['modules']:
+                modules = []
+                for modules_set in self.conf['Linux kernel']['modules']:
                     # Module sets ending with .ko imply individual modules.
-                    if re.search(r'\.ko$', modules):
-                        build_targets.append((modules,))
+                    if re.search(r'\.ko$', modules_set):
+                        modules.append(modules_set)
                     # Otherwise it is directory that can contain modules.
                     else:
+                        # Add all individual modules collected thus far as one build target. This helps to keep order
+                        # of modules if both individual modules and module directories are specified.
+                        if modules:
+                            build_targets.append(tuple(modules))
+                            # Clean up list of individual modules to avoid multiple appearance of them.
+                            del modules
+
                         # Add "modules_prepare" target once.
                         if not build_targets or build_targets[0] != ('modules_prepare',):
                             build_targets.insert(0, ('modules_prepare',))
 
-                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules)):
-                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules,
+                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules_set)):
+                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules_set,
                                                                                                 self.linux_kernel[
                                                                                                     'work src tree']))
 
-                        build_targets.append(('M={0}'.format(modules), 'modules'))
+                        build_targets.append(('M={0}'.format(modules_set), 'modules'))
+                # Add all individual modules collected thus far as one build target.
+                if modules:
+                    build_targets.append(tuple(modules))
 
         if build_targets:
             self.logger.debug('Build following targets:\n{0}'.format(
-                    '\n'.join([' '.join(build_target) for build_target in build_targets])))
+                '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
+        jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build')
         for build_target in build_targets:
             self.__make(build_target,
-                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
-                        specify_arch=True, invoke_build_cmd_wrappers=True, collect_build_cmds=True)
+                        # TODO: measure times and try C versions of wrappers, maybe parrallel build would be better.
+                        # Linux kernel doesn't support parrallel build of several .ko files, so build them using one
+                        # thread. Note that it looks like it is still more optimal than build several .ko files in
+                        # parrallel but invoking make per each .ko file independently.
+                        jobs_num=jobs_num if len(build_target) > 1 and build_target[1] == 'modules' else 1,
+                        specify_arch=True, collect_build_cmds=True)
 
         self.linux_kernel['module deps'] = {}
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
@@ -125,12 +141,12 @@ class LKBCE(core.components.Component):
             os.mkdir(self.linux_kernel['modules install'])
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'],
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
-                        specify_arch=False, invoke_build_cmd_wrappers=False, collect_build_cmds=False)
+                        specify_arch=False, collect_build_cmds=False)
             # Extract mod deps
             self.extract_all_linux_kernel_mod_deps()
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
-        with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a') as fp:
+        with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a', encoding='ascii') as fp:
             fp.write(core.lkbce.cmds.cmds.Command.cmds_separator)
 
     def extract_all_linux_kernel_mod_deps(self):
@@ -139,7 +155,7 @@ class LKBCE(core.components.Component):
             path = os.path.join(self.linux_kernel['modules install'], "lib/modules",
                                 self.linux_kernel['version'], "modules.dep")
 
-            with open(path, 'r') as fp:
+            with open(path, encoding='ascii') as fp:
                 for line in fp:
                     splits = line.split(':')
                     if len(splits) == 1:
@@ -172,8 +188,8 @@ class LKBCE(core.components.Component):
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
         if 'configuration' in self.conf['Linux kernel']:
-            self.__make((self.conf['Linux kernel']['configuration'],), specify_arch=True,
-                        invoke_build_cmd_wrappers=True, collect_build_cmds=True, collect_all_stdout=True)
+            self.__make((self.conf['Linux kernel']['configuration'],), specify_arch=True, collect_build_cmds=False,
+                        collect_all_stdout=True)
         else:
             raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
 
@@ -276,9 +292,8 @@ class LKBCE(core.components.Component):
             raise ValueError('Could not find Makefile in Linux kernel source code')
 
         if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']):
-            self.logger.debug(
-                    'Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
-                                                             self.linux_kernel['work src tree']))
+            self.logger.debug('Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
+                                                                       self.linux_kernel['work src tree']))
             for path in os.listdir(linux_kernel_work_src_tree_root):
                 shutil.move(os.path.join(linux_kernel_work_src_tree_root, path), self.linux_kernel['work src tree'])
             trash_dir = linux_kernel_work_src_tree_root
@@ -301,7 +316,7 @@ class LKBCE(core.components.Component):
         while True:
             time.sleep(1)
 
-            with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'r+') as fp:
+            with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'r+', encoding='ascii') as fp:
                 # Move to previous end of file.
                 fp.seek(offset)
 
@@ -410,20 +425,15 @@ class LKBCE(core.components.Component):
                 else:
                     self.linux_kernel['build cmd']['out file'] = opt
         else:
-            raise NotImplementedError(
-                    'Linux kernel raw build command "{0}" is not supported yet'.format(
-                            self.linux_kernel['build cmd']['type']))
+            raise NotImplementedError('Linux kernel raw build command "{0}" is not supported yet'.format(
+                self.linux_kernel['build cmd']['type']))
 
         if cmd_requires_in_files and not self.linux_kernel['build cmd']['in files']:
             raise ValueError(
-                    'Could not get Linux kernel raw build command input files'
-                    + ' from options "{0}"'.format(
-                            opts))
+                'Could not get Linux kernel raw build command input files' + ' from options "{0}"'.format(opts))
         if cmd_requires_out_file and not self.linux_kernel['build cmd']['out file']:
             raise ValueError(
-                    'Could not get Linux kernel raw build command output file'
-                    + ' from options "{0}"'.format(
-                            opts))
+                'Could not get Linux kernel raw build command output file' + ' from options "{0}"'.format(opts))
 
         # Check thar all original options becomes either input files or output file or options.
         # Option -o isn't included in the resulting set.
@@ -434,37 +444,28 @@ class LKBCE(core.components.Component):
         if self.linux_kernel['build cmd']['out file']:
             resulting_opts.append(self.linux_kernel['build cmd']['out file'])
         if set(original_opts) != set(resulting_opts):
-            raise RuntimeError(
-                    'Some options were not parsed: "{0} != {1} + {2} + {3}"'.format(original_opts,
-                                                                                    self.linux_kernel['build cmd'][
-                                                                                        'in files'],
-                                                                                    self.linux_kernel['build cmd'][
-                                                                                        'out file'],
-                                                                                    self.linux_kernel['build cmd'][
-                                                                                        'opts']))
+            raise RuntimeError('Some options were not parsed: "{0} != {1} + {2} + {3}"'.format(original_opts,
+                                                                                               self.linux_kernel[
+                                                                                                   'build cmd'][
+                                                                                                   'in files'],
+                                                                                               self.linux_kernel[
+                                                                                                   'build cmd'][
+                                                                                                   'out file'],
+                                                                                               self.linux_kernel[
+                                                                                                   'build cmd'][
+                                                                                                   'opts']))
 
-        self.logger.debug(
-                'Input files are "{0}"'.format(self.linux_kernel['build cmd']['in files']))
-        self.logger.debug(
-                'Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
+        self.logger.debug('Input files are "{0}"'.format(self.linux_kernel['build cmd']['in files']))
+        self.logger.debug('Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
         self.logger.debug('Options are "{0}"'.format(self.linux_kernel['build cmd']['opts']))
 
-    def __make(self, build_target, jobs_num=1, specify_arch=False, invoke_build_cmd_wrappers=False,
-               collect_build_cmds=False,
-               collect_all_stdout=False):
-        env = None
-
+    def __make(self, build_target, jobs_num=1, specify_arch=False, collect_build_cmds=False, collect_all_stdout=False):
         # Update environment variables so that invoke build command wrappers and optionally collect build commands.
-        if invoke_build_cmd_wrappers or collect_build_cmds:
-            assert invoke_build_cmd_wrappers or not collect_build_cmds, \
-                'Build commands can not be collected without invoking build command wrappers'
-            env = dict(os.environ)
-            if invoke_build_cmd_wrappers:
-                env.update({'PATH': '{0}:{1}'.format(os.path.join(sys.path[0], os.path.pardir, 'core', 'lkbce', 'cmds'),
-                                                     os.environ['PATH'])})
-            if collect_build_cmds:
-                env.update(
-                        {'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
+        env = dict(os.environ)
+        env.update({'PATH': '{0}:{1}'.format(os.path.join(sys.path[0], os.path.pardir, 'core', 'lkbce', 'cmds'),
+                                             os.environ['PATH'])})
+        if collect_build_cmds:
+            env.update({'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
 
         return core.utils.execute(self.logger,
                                   tuple(['make', '-j', str(jobs_num), '-C', self.linux_kernel['work src tree']] +

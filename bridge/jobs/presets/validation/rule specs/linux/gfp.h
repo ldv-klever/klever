@@ -10,5 +10,3 @@
 #endif /* LDV_BITWISE */
 
 #endif /* _GFP_H */
-
-

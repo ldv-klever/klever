@@ -42,9 +42,9 @@ class Scheduler(schedulers.SchedulerExchange):
         self.__kv_url = self.conf["scheduler"]["controller address"]
 
         # Import job configuration prototype
-        with open(self.conf["scheduler"]["job client configuration"], "r") as fh:
+        with open(self.conf["scheduler"]["job client configuration"], encoding="ascii") as fh:
             self.__job_conf_prototype = json.loads(fh.read())
-        with open(self.conf["scheduler"]["task client configuration"], "r") as fh:
+        with open(self.conf["scheduler"]["task client configuration"], encoding="ascii") as fh:
             self.__task_conf_prototype = json.loads(fh.read())
         if "Klever Bridge" not in self.__job_conf_prototype:
             logging.debug("Add Klever Bridge settings to client job configuration")
@@ -138,7 +138,7 @@ class Scheduler(schedulers.SchedulerExchange):
         if desc["resource limits"]["CPU model"] and desc["resource limits"]["CPU model"] != self.__cpu_model:
             raise schedulers.SchedulerException(
                 "Host CPU model is not {} (has only {})".
-                format(desc["resource limits"]["CPU model"]), self.__cpu_model)
+                format(desc["resource limits"]["CPU model"], self.__cpu_model))
 
         if desc["resource limits"]["memory size"] > self.__ram_memory:
             raise schedulers.SchedulerException(
@@ -179,7 +179,7 @@ class Scheduler(schedulers.SchedulerExchange):
         client_conf["common"]["working directory"] = task_work_dir
         for name in ("resource limits", "verifier", "property file", "files"):
             client_conf[name] = desc[name]
-        with open(os.path.join(task_work_dir, 'client.json'), 'w') as fp:
+        with open(os.path.join(task_work_dir, 'client.json'), 'w', encoding="ascii") as fp:
             json.dump(client_conf, fp, sort_keys=True, indent=4)
 
         client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))

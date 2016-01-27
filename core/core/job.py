@@ -19,7 +19,7 @@ class Job:
 
     def get_class(self):
         self.logger.info('Get job class')
-        with open(self.class_file) as fp:
+        with open(self.class_file, encoding='ascii') as fp:
             self.type = fp.read()
         self.logger.debug('Job class is "{0}"'.format(self.type))
 

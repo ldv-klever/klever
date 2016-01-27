@@ -10,7 +10,7 @@ import utils as utils
 import utils.bridge as bridge
 
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
-with open(expect_file) as fh:
+with open(expect_file, encoding="ascii") as fh:
     conf = json.load(fh)
 
 # Sign in

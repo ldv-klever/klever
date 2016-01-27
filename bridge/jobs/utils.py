@@ -409,9 +409,9 @@ def create_version(job, kwargs):
 def create_job(kwargs):
     newjob = Job()
     if 'name' not in kwargs or len(kwargs['name']) == 0:
-        return _("Job title is required")
+        return _("The job title is required")
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        return _("Job author is required")
+        return _("The job author is required")
     newjob.name = kwargs['name']
     newjob.change_author = kwargs['author']
     if 'parent' in kwargs:
@@ -420,7 +420,7 @@ def create_job(kwargs):
     elif 'type' in kwargs:
         newjob.type = kwargs['type']
     else:
-        return _("The parent or the job class are required")
+        return _("The parent or the job class is required")
     if 'pk' in kwargs:
         try:
             Job.objects.get(pk=int(kwargs['pk']))

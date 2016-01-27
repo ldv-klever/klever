@@ -99,7 +99,7 @@ class Component(multiprocessing.Process):
                 exception_info = '{0}Raise exception:\n{1}'.format(self.__get_subcomponent_name(),
                                                                    traceback.format_exc().rstrip())
                 self.logger.error(exception_info)
-                with open('problem desc.txt', 'a') as fp:
+                with open('problem desc.txt', 'a', encoding='ascii') as fp:
                     if fp.tell():
                         fp.write('\n')
                     fp.write(exception_info)
@@ -179,7 +179,7 @@ class Component(multiprocessing.Process):
 
         self.logger.error('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
 
-        with open('problem desc.txt', 'a') as fp:
+        with open('problem desc.txt', 'a', encoding='ascii') as fp:
             if fp.tell():
                 fp.write('\n')
             fp.write(

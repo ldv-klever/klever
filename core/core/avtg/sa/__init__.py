@@ -85,7 +85,7 @@ class SA(core.components.Component):
         )
 
         self.logger.info('Render template {}'.format(template_aspect_file))
-        with open("requests.aspect", "w") as fh:
+        with open("requests.aspect", "w", encoding="ascii") as fh:
             fh.write(env.get_template(os.path.basename(template_aspect_file)).render({
                 "max_args_num": self.conf["max arguments number"],
                 "arg_patterns": {i: ", ".join(["$"] * (i + 1)) for i in range(self.conf["max arguments number"])},
@@ -106,7 +106,7 @@ class SA(core.components.Component):
                 file = os.path.join(self.conf["source tree root"],
                                     section["cc full desc file"])
                 self.logger.info("Import build commands from {}".format(file))
-                with open(file, "r") as fh:
+                with open(file, encoding="ascii") as fh:
                     command = json.loads(fh.read())
                     group["build commands"].append(command)
                     self.files.append(command['in files'][0])
@@ -138,7 +138,7 @@ class SA(core.components.Component):
         if os.path.isfile(file):
             kernel = os.path.realpath(self.conf["source tree root"]) + "/"
             path_re = re.compile(kernel)
-            with open(file, "r") as output_fh:
+            with open(file, encoding="ascii") as output_fh:
                 for line in output_fh:
                     if path_re.search(line):
                         new_line = path_re.sub("", line)
@@ -160,8 +160,8 @@ class SA(core.components.Component):
         func_definition_files = [
             {"file": "execution.txt", "static": False},
             {"file": "static-execution.txt", "static": True},
-            {"file": "declare-function.txt", "static": False},
-            {"file": "static-declare-function.txt", "static": True}
+            {"file": "declare_func.txt", "static": False},
+            {"file": "static-declare_func.txt", "static": True}
         ]
         for execution_source in func_definition_files:
             self.logger.info("Extract function definitions or declarations from {}".format(execution_source["file"]))
@@ -271,7 +271,7 @@ class SA(core.components.Component):
                 os.remove(file)
 
     def _save_collection(self, km_file):
-        with open(km_file, "w") as km_fh:
+        with open(km_file, "w", encoding="ascii") as km_fh:
             json.dump(self.collection, km_fh, sort_keys=True, indent=4)
 
     def _process_collection(self):

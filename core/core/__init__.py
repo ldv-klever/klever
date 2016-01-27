@@ -78,13 +78,13 @@ class Core:
             self.get_components(self.job)
             # Do not read anything from job directory untill job class will be examined (it might be unsupported). This
             # differs from specification that doesn't treat unsupported job classes at all.
-            with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json')) as fp:
+            with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='ascii') as fp:
                 self.job.conf = json.load(fp)
             # TODO: think about implementation in form of classes derived from class Job.
             if self.job.type == 'Verification of Linux kernel modules':
                 self.create_components_conf(self.job)
                 self.callbacks = core.utils.get_component_callbacks(self.logger, self.components, self.components_conf)
-                core.utils.invoke_callbacks(self.launch_all_components)
+                core.utils.invoke_callbacks(self.launch_all_components, (self.id,))
                 self.wait_for_components()
             elif self.job.type == 'Validation on commits in Linux kernel Git repositories':
                 self.logger.info('Prepare sub-jobs of class "Verification of Linux kernel modules"')
@@ -101,53 +101,60 @@ class Core:
                         core.utils.merge_confs(sub_job.conf, sub_job_concrete_conf)
                 self.logger.info('Decide prepared sub-jobs')
                 # TODO: looks very like the code above.
-                core_id = self.id
                 # TODO: create artificial log file for Validator.
-                with open('__log', 'w') as fp:
+                with open('__log', 'w', encoding='ascii') as fp:
                     pass
                 for i, sub_job in enumerate(self.job.sub_jobs):
+                    sub_job_id = '{0}{1}'.format(self.id, str(i))
                     # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
-                    self.id = '{0}{1}'.format(core_id, str(i))
                     core.utils.report(self.logger,
                                       'start',
                                       {
-                                          'id': self.id,
-                                          'parent id': core_id,
+                                          'id': sub_job_id,
+                                          'parent id': self.id,
                                           'name': 'Validator',
                                           'attrs': [{'Sub-job number': str(i)}],
                                       },
                                       self.mqs['report files'],
                                       suffix='-validator{0}'.format(i))
-                    os.makedirs(str(i))
-                    with core.utils.Cd(str(i)):
-                        self.get_components(sub_job)
-                        self.create_components_conf(sub_job)
-                        self.callbacks = core.utils.get_component_callbacks(self.logger, self.components,
-                                                                            self.components_conf)
-                        core.utils.invoke_callbacks(self.launch_all_components)
-                        self.wait_for_components()
-                        # TODO: dirty hack to wait for all reports to be uploaded since they may be accidently removed when local source directories use is allowed and next sub-job is decided.
-                        while True:
-                            time.sleep(1)
-                            if self.uploading_reports_process.exitcode or self.mqs['report files'].empty():
-                                time.sleep(3)
-                                break
-                    # TODO: we need to put information on correspondence between obtained and ideal verdicts to Klever Core data.
-                    core.utils.report(self.logger,
-                                      'finish',
-                                      {
-                                          'id': self.id,
-                                          'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                          'desc': '',
-                                          'log': '__log',
-                                          'data': '',
-                                          'files': ['__log']
-                                      },
-                                      self.mqs['report files'],
-                                      suffix='-validator{0}'.format(i))
+                    try:
+                        os.makedirs(str(i))
+                        with core.utils.Cd(str(i)):
+                            self.get_components(sub_job)
+                            self.create_components_conf(sub_job)
+                            self.callbacks = core.utils.get_component_callbacks(self.logger, self.components,
+                                                                                self.components_conf)
+                            core.utils.invoke_callbacks(self.launch_all_components, (sub_job_id,))
+                            self.wait_for_components()
+                            # TODO: dirty hack to wait for all reports to be uploaded since they may be accidently removed when local source directories use is allowed and next sub-job is decided.
+                            while True:
+                                time.sleep(1)
+                                # Do not wait if reports uploading failed.
+                                if self.uploading_reports_process.exitcode:
+                                    break
+                                if self.mqs['report files'].empty():
+                                    time.sleep(3)
+                                    break
+                        # Do not proceed to other sub-jobs if reports uploading failed.
+                        if self.uploading_reports_process.exitcode:
+                            break
+                        # TODO: we need to put information on correspondence between obtained and ideal verdicts to Klever Core data.
+                    finally:
+                        core.utils.report(self.logger,
+                                          'finish',
+                                          {
+                                              'id': sub_job_id,
+                                              'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
+                                              'desc': '',
+                                              'log': '__log',
+                                              'data': '',
+                                              'files': ['__log']
+                                          },
+                                          self.mqs['report files'],
+                                          suffix='-validator{0}'.format(i))
         except Exception:
             if self.mqs:
-                with open('problem desc.txt', 'w') as fp:
+                with open('problem desc.txt', 'w', encoding='ascii') as fp:
                     traceback.print_exc(file=fp)
 
                 if os.path.isfile('problem desc.txt'):
@@ -220,7 +227,7 @@ class Core:
         self.conf_file = vars(parser.parse_args())['conf file']
 
         # Read configuration from file.
-        with open(self.conf_file) as fp:
+        with open(self.conf_file, encoding='ascii') as fp:
             self.conf = json.load(fp)
 
     def prepare_work_dir(self):
@@ -251,7 +258,7 @@ class Core:
 
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w')
+        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='ascii')
 
     def change_work_dir(self):
         # Remember path to configuration file relative to future working directory before changing to it.
@@ -366,15 +373,17 @@ class Core:
         self.components_conf.update({'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')}})
 
         if self.conf['debug']:
+            if os.path.isfile('components conf.json'):
+                raise FileExistsError('Components configuration file "components conf.json" already exists')
             self.logger.debug('Create components configuration file "components conf.json"')
-            with open('components conf.json', 'w') as fp:
+            with open('components conf.json', 'w', encoding='ascii') as fp:
                 json.dump(self.components_conf, fp, sort_keys=True, indent=4)
 
-    def launch_all_components(self):
+    def launch_all_components(self, parent_id):
         self.logger.info('Launch all components')
 
         for component in self.components:
-            p = component(self.components_conf, self.logger, self.id, self.callbacks, self.mqs,
+            p = component(self.components_conf, self.logger, parent_id, self.callbacks, self.mqs,
                           separate_from_parent=True)
             p.start()
             self.component_processes.append(p)

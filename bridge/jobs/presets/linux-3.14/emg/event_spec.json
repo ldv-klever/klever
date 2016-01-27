@@ -69,12 +69,12 @@
       "subprocesses": {
         "alloc": {
           "statements": [
-            "%netdev% = $ZINIT(%netdev%);"
+            "%netdev% = $ALLOC(%netdev%);"
           ]
         },
         "init": {
           "statements": [
-            "%netdev% = $ZINIT(%netdev%);"
+            "%netdev% = $ALLOC(%netdev%);"
           ]
         },
         "success": {
@@ -172,7 +172,7 @@
         }
       }
     },
-    "platform_driver_register": {
+    "__platform_driver_register": {
       "labels": {
         "platform_driver": {
           "container": true,
@@ -273,28 +273,6 @@
         },
         "assign": {
           "condition": ["$res == 0"],
-          "statements": [
-            "%timer_list% = $arg1;"
-          ]
-        }
-      }
-    },
-    "init_timer_key": {
-      "labels": {
-        "timer_list": {
-          "container": true,
-          "parameter": true,
-          "interface": ["timer.timer_list"]
-        }
-      },
-      "process": "<assign>.[instance_register]",
-      "subprocesses": {
-        "instance_register": {
-          "parameters": [
-            "%timer_list%"
-          ]
-        },
-        "assign": {
           "statements": [
             "%timer_list% = $arg1;"
           ]
@@ -486,7 +464,7 @@
           "signature": "int %s"
         }
       },
-      "process": "(!instance_register).<alloc>.<init>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post].(ret_post) | <null>).[disconnect].(ret_disconnect) | <failed_probe>).<free>.(instance_deregister)",
+      "process": "(!instance_register).<alloc>.<init>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post].(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | <null>).[release].(ret_release) | <failed_probe>).<free>.(instance_deregister)",
       "subprocesses": {
         "instance_register": {
           "parameters": [
@@ -501,12 +479,12 @@
         },
         "alloc": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "init": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "free": {
@@ -524,14 +502,32 @@
           "callback": "%container.probe%",
           "callback return value": "%probe_retval%"
         },
-        "disconnect": {
-          "callback": "%container.disconnect%",
+        "release": {
+          "callback": "%container.release%",
           "parameters": [
             "%resource%"
           ]
         },
-        "ret_disconnect": {
-          "callback": "%container.disconnect%"
+        "suspend": {
+          "callback": "%container.suspend%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_suspend": {
+          "callback": "%container.suspend%"
+        },
+        "resume": {
+          "callback": "%container.resume%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_resume": {
+          "callback": "%container.resume%"
+        },
+        "ret_release": {
+          "callback": "%container.release%"
         },
         "pre": {
           "callback": "%container.pre%",
@@ -552,12 +548,12 @@
           "condition": ["%probe_retval% == 0"]
         },
         "failed_probe": {
-          "condition": ["%probe_retval% == 0"]
+          "condition": ["%probe_retval% != 0"]
         },
         "null": {}
       }
     },
-    "io_instance": {
+    "platform_instance": {
       "labels": {
         "container": {
           "container": true
@@ -568,15 +564,18 @@
         "callback": {
           "callback": true
         },
-        "opened": {
+        "probed": {
           "signature": "int %s",
           "value": "1"
+        },
+        "suspended": {
+          "signature": "int %s"
         }
       },
       "process": "(!register).<init>.{call}",
       "subprocesses": {
         "call": {
-          "process": "[callback].{call} | <positive_open>.[close].<after_close>.{call} | <negative_open>.(<free>.(deregister) | [open].(ret_open).{call})"
+          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} |  <positive_probe>.[suspend].(ret_suspend).(<suspended>.[resume].(ret_resume) | <not_suspended>).{call} | <negative_probe>.(<free>.(deregister) | [probe].(ret_probe).{call})"
         },
         "register": {
           "parameters": [
@@ -594,25 +593,44 @@
             "%resource%"
           ]
         },
-        "close": {
-          "callback": "%container.close%",
+        "release": {
+          "callback": "%container.release%",
           "parameters": [
             "%resource%"
           ]
         },
-        "open": {
-          "callback": "%container.open%",
+        "probe": {
+          "callback": "%container.probe%",
           "parameters": [
             "%resource%"
           ]
         },
-        "ret_open": {
-          "callback": "%container.open%",
-          "callback return value": "%opened%"
+        "ret_probe": {
+          "callback": "%container.probe%",
+          "callback return value": "%probed%"
+        },
+        "suspend": {
+          "callback": "%container.suspend%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_suspend": {
+          "callback": "%container.suspend%",
+          "callback return value": "%suspended%"
+        },
+        "resume": {
+          "callback": "%container.resume%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_resume": {
+          "callback": "%container.resume%"
         },
         "init": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "free": {
@@ -620,16 +638,98 @@
             "$FREE(%resource%);"
           ]
         },
-        "after_close": {
+        "after_release": {
           "statements": [
-            "%opened% = 1;"
+            "%probed% = 1;"
           ]
         },
-        "positive_open": {
-          "condition": ["%opened% == 0"]
+        "positive_probe": {
+          "condition": ["%probed% == 0"]
         },
-        "negative_open": {
-          "condition": ["%opened% != 0"]
+        "negative_probe": {
+          "condition": ["%probed% != 0"]
+        },
+        "suspended": {
+          "condition": ["%suspended% == 0"]
+        },
+        "not_suspended": {
+          "condition": ["%suspended% != 0"]
+        }
+      }
+    },
+    "io_instance": {
+      "labels": {
+        "container": {
+          "container": true
+        },
+        "resource": {
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        },
+        "probed": {
+          "signature": "int %s",
+          "value": "1"
+        }
+      },
+      "process": "(!register).<init>.{call}",
+      "subprocesses": {
+        "call": {
+          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | [probe].(ret_probe).{call})"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "release": {
+          "callback": "%container.release%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "probe": {
+          "callback": "%container.probe%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "ret_probe": {
+          "callback": "%container.probe%",
+          "callback return value": "%probed%"
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        },
+        "after_release": {
+          "statements": [
+            "%probed% = 1;"
+          ]
+        },
+        "positive_probe": {
+          "condition": ["%probed% == 0"]
+        },
+        "negative_probe": {
+          "condition": ["%probed% != 0"]
         }
       }
     },
@@ -709,7 +809,7 @@
         },
         "init": {
           "statements": [
-            "%resource% = $ZINIT(%resource%);"
+            "%resource% = $ALLOC(%resource%);"
           ]
         },
         "free": {

@@ -48,7 +48,7 @@ class TR(core.components.Component):
                 file = os.path.splitext(tmpl)[0]
 
                 # Rendered templates will be placed into files inside TR working directory.
-                with open(file, 'w') as fp:
+                with open(file, 'w', encoding='ascii') as fp:
                     fp.write(env.get_template(tmpl).render(self.abstract_task_desc['template context']))
 
                 self.abstract_task_desc['files'].append(

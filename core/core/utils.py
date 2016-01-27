@@ -181,8 +181,11 @@ def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=Fa
 
 # TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
 def find_file_or_dir(logger, main_work_dir, file_or_dir):
+    search_dirs = ['job/root', os.path.pardir]
+    if 'KLEVER_WORK_DIR' in os.environ:
+        search_dirs.append(os.environ['KLEVER_WORK_DIR'])
     search_dirs = tuple(
-        os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in ('job/root', os.path.pardir))
+        os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs)
 
     for search_dir in search_dirs:
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
@@ -430,7 +433,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     rel_report_file = os.path.relpath(report_file, dir) if dir else report_file
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
-    with open(report_file, 'w') as fp:
+    with open(report_file, 'w', encoding='ascii') as fp:
         json.dump(report, fp, sort_keys=True, indent=4)
 
     logger.debug('{0} report was dumped to file "{1}"'.format(type.capitalize(), rel_report_file))

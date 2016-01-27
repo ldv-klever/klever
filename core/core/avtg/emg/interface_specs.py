@@ -1,4 +1,5 @@
 import json
+import re
 
 
 from core.avtg.emg.representations import Signature, Interface, Implementation
@@ -40,9 +41,10 @@ class CategorySpecification:
                                 "expect 'kernel macro-functions' attribute")
 
         # Populate signatures instead of Interface signatures and assign interface links
-        self.logger.debug("Add references to an Interface objects of categories instead of just interface names")
+        self.logger.info("Add references to an Interface objects of categories instead of just interface names")
+        signatures_to_process = []
         for intf in self.interfaces:
-            self.interfaces[intf].signature = self._process_signature(self.interfaces, self.interfaces[intf].signature)
+            signatures_to_process.append([self.interfaces, self.interfaces[intf].signature])
 
             # Check fields in case of container
             if not self.interfaces[intf].container and self.interfaces[intf].signature.type_class == "struct":
@@ -50,42 +52,56 @@ class CategorySpecification:
                 self.logger.debug("Remove fields description for interface {} which is not a container".format(intf))
                 self.interfaces[intf].signature.fields = {}
 
-        self.logger.debug("Add references to an Interface objects of kernel interfaces instead of just interface names")
+        self.logger.info("Add references to an Interface objects of kernel interfaces instead of just interface names")
         for function in self.kernel_functions:
-            self.kernel_functions[function].signature = \
-                self._process_signature(self.kernel_functions, self.kernel_functions[function].signature)
+            signatures_to_process.append([self.kernel_functions, self.kernel_functions[function].signature])
 
-    def _process_signature(self, collection, signature):
-        self.logger.debug("Replace all entries of interface names with an object references in signature {}".
-                          format(signature.expression))
+        # Process signatures
+        self._process_signatures(signatures_to_process)
 
-        # Replace string interface definition by reference
-        if signature.interface and type(signature.interface) is str:
-            signature.interface = collection[signature.interface]
+    def _process_signatures(self, signatures):
+        processed_or_processing = [sign for coll, sign in signatures]
+        while signatures:
+            collection, signature = signatures.pop()
+            self.logger.debug("Replace all entries of interface names with an object references in signature {}".
+                              format(signature.expression))
 
-        # Replace Interface signature
-        if signature.type_class == "interface":
-            if signature.interface.signature.type_class == "interface":
-                raise RuntimeError("Attempt to replace interface signature with an interface signature")
-            signature = Signature.copy_signature(signature, signature.interface.signature)
+            # Replace string interface definition by reference
+            if signature.interface and type(signature.interface) is str:
+                signature.interface = collection[signature.interface]
 
-        # Process return value and parameters in case of function
-        if signature.type_class == "function":
-            if signature.return_value:
-                signature.return_value = self._process_signature(self.interfaces, signature.return_value)
-            for index in range(len(signature.parameters)):
-                if type(signature.parameters[index]) is Signature:
-                    signature.parameters[index] = self._process_signature(self.interfaces, signature.parameters[index])
+            # Replace Interface signature
+            if signature.type_class == "interface":
+                if signature.interface.signature.type_class == "interface":
+                    raise RuntimeError("Attempt to replace interface signature with an interface signature")
+                intf = signature.interface
+                signature.replace(signature.interface.signature)
+                if type(intf) is Interface:
+                    # todo: something wrong there, seems that signature objects are copied deeply
+                    signature.interface = intf
+                    signature.interface.signature.interface = intf
 
-        # Check fields in case of structure
-        elif signature.type_class == "struct":
-            if len(signature.fields) > 0:
-                for field in signature.fields:
-                    signature.fields[field] = self._process_signature(self.interfaces, signature.fields[field])
-        elif signature.type_class == "interface":
-            raise RuntimeError("Cannot replace signature {} with an interface object reference".
-                               format(signature.expression))
-        return signature
+            # Process return value and parameters in case of function
+            if signature.type_class == "function":
+                if signature.return_value and signature.return_value not in processed_or_processing:
+                    signatures.append([self.interfaces, signature.return_value])
+                for index in range(len(signature.parameters)):
+                    if type(signature.parameters[index]) is Signature and signature.parameters[index] \
+                            not in processed_or_processing:
+                        signatures.append([self.interfaces, signature.parameters[index]])
+
+            # Check fields in case of structure
+            elif signature.type_class == "struct":
+                if len(signature.fields) > 0:
+                    for field in [field for field in signature.fields if signature.fields[field] not in
+                                  processed_or_processing]:
+                        signatures.append([self.interfaces, signature.fields[field]])
+            elif signature.type_class == "interface":
+                raise RuntimeError("Cannot replace signature {} with an interface object reference".
+                                   format(signature.expression))
+
+            if signature not in processed_or_processing:
+                    processed_or_processing.append(signature)
 
     def __import_kernel_interfaces(self, category_name, collection):
         for identifier in collection[category_name]:
@@ -240,7 +256,7 @@ class ModuleSpecification(CategorySpecification):
         self.logger.info("First convert specification to json and then save")
         content = json.dumps(self, indent=4, sort_keys=True, cls=SpecEncoder)
 
-        with open(file, "w") as fh:
+        with open(file, "w", encoding="ascii") as fh:
             fh.write(content)
 
     def __import_source_analysis(self):
@@ -268,10 +284,10 @@ class ModuleSpecification(CategorySpecification):
                 if signature.interface:
                     self.logger.debug("Add global variable {} from {} as implementation of {}".
                                       format(variable, path, signature.interface.full_identifier))
-                    implementation = Implementation(variable,
+                    implementation = Implementation("& " + variable,
                                                     path,
                                                     signature.interface.full_identifier,
-                                                    variable)
+                                                    "& " + variable)
                     self.interfaces[signature.interface.full_identifier].implementations.append(implementation)
 
                     # Import fields implementations
@@ -280,26 +296,33 @@ class ModuleSpecification(CategorySpecification):
                         identifier = "{}.{}".\
                             format(signature.interface.category, signature.interface.fields[field])
                         interface = self.interfaces[identifier]
-                        implementation = Implementation(self.implementations[path][variable][field],
-                                                        path,
-                                                        signature.interface.full_identifier,
-                                                        variable)
-                        interface.implementations.append(implementation)
+
+                        if self.implementations[path][variable][field] != "0" and \
+                                self.implementations[path][variable][field] != "( 0 )" and \
+                                re.compile("[A-Za-z]").search(self.implementations[path][variable][field]):
+                            implementation = Implementation(self.implementations[path][variable][field],
+                                                            path,
+                                                            signature.interface.full_identifier,
+                                                            "& " + variable)
+                            interface.implementations.append(implementation)
 
         # Import implementations from function parameters
-        for function in [name for name in self.analysis["kernel functions"] if name in self.kernel_functions]:
-            for call in [self.analysis["kernel functions"][function]["calls"][name] for name in
-                         self.analysis["kernel functions"][function]["calls"]
-                         if name in self.analysis["modules functions"]]:
-                for index in range(len(call)):
-                    if call[index] and call[index] != "0" and \
-                            self.kernel_functions[function].signature.parameters[index] and \
-                            self.kernel_functions[function].signature.parameters[index].interface:
-                        identifier = \
-                            self.kernel_functions[function].signature.parameters[index].interface.full_identifier
-                        file = [file for file in self.analysis["modules functions"][call[index]][0]]
-                        implementation = Implementation(call[index], file, None, None)
-                        self.interfaces[identifier].implementations.append(implementation)
+        for mf in [self.analysis["modules functions"][name] for name in self.analysis["modules functions"]
+                   if "files" in self.analysis["modules functions"][name]]:
+            for path in [name for name in mf["files"] if "calls" in mf["files"][name]]:
+                for kf in [name for name in mf["files"][path]["calls"] if name in self.kernel_functions]:
+                    for call in mf["files"][path]["calls"][kf]:
+                        for index in range(len(call)):
+                            if call[index] and call[index] != "0" and \
+                                    self.kernel_functions[kf].signature.parameters[index] and \
+                                    self.kernel_functions[kf].signature.parameters[index].interface:
+                                identifier = \
+                                    self.kernel_functions[kf].signature.parameters[index].interface.full_identifier
+
+                                if len([impl for impl in self.interfaces[identifier].implementations
+                                        if impl.value == call[index]]) == 0:
+                                    implementation = Implementation(call[index], path, None, None)
+                                    self.interfaces[identifier].implementations.append(implementation)
 
         self.logger.debug("Remove global variables initialization description")
         del self.analysis["global variable initializations"]

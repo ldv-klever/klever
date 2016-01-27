@@ -23,7 +23,7 @@ class ABKM(core.components.Component):
 
         if self.conf['debug']:
             self.logger.debug('Create verification task description file "task.json"')
-            with open('task.json', 'w') as fp:
+            with open('task.json', 'w', encoding='ascii') as fp:
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
 
         self.prepare_verification_task_files_archive()
@@ -53,7 +53,7 @@ class ABKM(core.components.Component):
         if len(self.conf['abstract task desc']['entry points']) > 1:
             raise NotImplementedError('Several entry points are not supported')
 
-        with open('unreach-call.prp', 'w') as fp:
+        with open('unreach-call.prp', 'w', encoding='ascii') as fp:
             fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
                 self.conf['abstract task desc']['entry points'][0]))
 
@@ -72,15 +72,16 @@ class ABKM(core.components.Component):
 
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
                 trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(extra_c_file['C file'])[0])
-                with open(os.path.join(self.conf['source tree root'], extra_c_file['C file'])) as fp_in, open(
-                        os.path.join(self.conf['source tree root'], trimmed_c_file), 'w') as fp_out:
+                with open(os.path.join(self.conf['source tree root'], extra_c_file['C file']),
+                          encoding='ascii') as fp_in, open(os.path.join(self.conf['source tree root'], trimmed_c_file),
+                                                           'w', encoding='ascii') as fp_out:
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
                 extra_c_file['C file'] = trimmed_c_file
 
             # TODO: CIL can't proces files with spaces in their names. Try to screen spaces.
-            with open('cil input files.txt', 'w') as fp:
+            with open('cil input files.txt', 'w', encoding='ascii') as fp:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
                     fp.write('{0}\n'.format(extra_c_file['C file']))
 
@@ -139,7 +140,7 @@ class ABKM(core.components.Component):
 
                 self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
 
-                with open('task error.txt', 'w') as fp:
+                with open('task error.txt', 'w', encoding='ascii') as fp:
                     fp.write(task_error)
 
                 core.utils.report(self.logger,
@@ -163,7 +164,7 @@ class ABKM(core.components.Component):
                 tar.extractall()
                 tar.close()
 
-                with open('decision results.json') as fp:
+                with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
                 # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
@@ -203,7 +204,7 @@ class ABKM(core.components.Component):
                 elif decision_results['status'] == 'unsafe':
                     self.logger.info('Get source files referred by error trace')
                     src_files = set()
-                    with open('witness.graphml') as fp:
+                    with open('witness.graphml', encoding='ascii') as fp:
                         # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
                         dom = minidom.parse(fp)
                     graphml = dom.getElementsByTagName('graphml')[0]
@@ -331,13 +332,19 @@ class ABKM(core.components.Component):
                                 txt = dom.createTextNode(warns[src_file][i])
                                 warn.appendChild(txt)
                                 warn.setAttribute('key', 'warning')
-                                # Add warning either to edge itself or to first edge with note at violation path. If
-                                # don't do the latter warning will be hidden by error trace visualizer.
+                                # Add warning either to edge itself or to first edge that enters function and has note
+                                # at violation path. If don't do the latter warning will be hidden by error trace
+                                # visualizer.
                                 warn_edge = edge
                                 for cur_src_edge in violation_edges:
+                                    is_func_entry = False
                                     for data in cur_src_edge.getElementsByTagName('data'):
-                                        if data.getAttribute('key') == 'note':
-                                            warn_edge = cur_src_edge
+                                        if data.getAttribute('key') == 'enterFunction':
+                                            is_func_entry = True
+                                    if is_func_entry:
+                                        for data in cur_src_edge.getElementsByTagName('data'):
+                                            if data.getAttribute('key') == 'note':
+                                                warn_edge = cur_src_edge
                                 # Remove note from node for what we are going to add warning if so. Otherwise error
                                 # trace visualizer will be confused.
                                 for data in warn_edge.getElementsByTagName('data'):
@@ -368,10 +375,10 @@ class ABKM(core.components.Component):
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
-                elif decision_results['status'] in ('error', 'CPU time exhausted', 'memory exhausted'):
+                else:
                     # Prepare file to send it with unknown report.
                     if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
-                        with open('error.txt', 'w') as fp:
+                        with open('error.txt', 'w', encoding='ascii') as fp:
                             fp.write(decision_results['status'])
                     core.utils.report(self.logger,
                                       'unknown',
@@ -379,18 +386,13 @@ class ABKM(core.components.Component):
                                           'id': 'unknown',
                                           'parent id': self.task_desc['id'],
                                           # TODO: just the same file as parent log, looks strange.
-                                          'problem desc':
-                                              'cil.i.log' if decision_results['status'] == 'error'
-                                              else 'error.txt',
-                                          'files': ['cil.i.log' if decision_results['status'] == 'error'
-                                                    else 'error.txt']
+                                          'problem desc': 'cil.i.log' if decision_results['status'] not in (
+                                              'CPU time exhausted', 'memory exhausted') else 'error.txt',
+                                          'files': ['cil.i.log' if decision_results['status'] not in (
+                                              'CPU time exhausted', 'memory exhausted') else 'error.txt']
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
-                else:
-                    raise NotImplementedError(
-                        'Status "{0}" of verification task decision results is not supported'.format(
-                            decision_results['status']))
 
                 break
 

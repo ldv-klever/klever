@@ -6,7 +6,7 @@ import logging
 
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
 logging.info("Configuration file: {}".format(expect_file))
-with open(expect_file) as fh:
+with open(expect_file, encoding="ascii") as fh:
     node_conf = json.load(fh)
 
 # Submit content

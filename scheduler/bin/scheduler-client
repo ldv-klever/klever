@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 if args.mode == "JOB":
     if args.file and os.path.isfile(args.file):
-        with open(args.file) as fh:
+        with open(args.file, encoding="ascii") as fh:
             conf = json.loads(fh.read())
     else:
         conf = json.loads(str(args.conf))
@@ -37,7 +37,7 @@ if args.mode == "JOB":
 elif args.mode == "TASK":
     # TODO: merge this code with almost the same code for JOB.
     if args.file and os.path.isfile(args.file):
-        with open(args.file) as fh:
+        with open(args.file, encoding="ascii") as fh:
             conf = json.loads(fh.read())
     else:
         conf = json.loads(str(args.conf))
