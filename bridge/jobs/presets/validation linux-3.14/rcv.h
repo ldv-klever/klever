@@ -1,13 +1,6 @@
 #ifndef _LDV_RCV_H_
 #define _LDV_RCV_H_
 
-bool ldv_check_retval(int retval)
-{
-  bool comparison;
-  comparison = (retval == 0);
-  return comparison;
-}
-
 /* If expr evaluates to zero, ldv_assert() causes a program to reach the error
    label like the standard assert(). */
 #define ldv_assert(expr) ((expr) ? 0 : ldv_error())
