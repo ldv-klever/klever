@@ -53,7 +53,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "2ad1de9~"
+          "commit": "ef70c60~"
         },
         "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
       },
