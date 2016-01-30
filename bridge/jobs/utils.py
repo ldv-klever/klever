@@ -122,8 +122,7 @@ class JobAccess(object):
     def can_edit(self):
         if self.job is None:
             return False
-        return (self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]
-                and (self.__is_author or self.__is_manager))
+        return self.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self.__is_author or self.__is_manager)
 
     def can_stop(self):
         if self.job is None:

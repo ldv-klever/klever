@@ -1,0 +1,47 @@
+.job-href-1 {
+    color: #00aced;
+}
+.job-href-1:visited {
+    color: #00aced;
+}
+.job-href-2 {
+    color: #733eed;
+}
+.job-href-2:visited {
+    color: #733eed;
+}
+.job-th-1 {
+    background-color: #a8e5ff;
+}
+.job-th-2 {
+    background-color: #b7a6ff;
+    height: 50px;
+}
+.blocks-tree {
+    overflow: auto;
+}
+.column1 > .blocks-tree > .comparison-block {
+    float: right;
+}
+.column2 > .blocks-tree > .comparison-block {
+    float: left;
+}
+.comparison-block {
+    position: relative;
+    width: 30%;
+    font-size: 0.8em;
+    border: 1px solid;
+    border-radius: 10px;
+    margin: 15px;
+    padding: 5px;
+}
+.comparison-block h4 {
+    text-align: center;
+}
+
+.block-hover-single {
+    background-color: #f4dfff;
+}
+.block-hover-normal {
+    background-color: #e2ffef;
+}

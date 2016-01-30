@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
 from jobs.models import File, Job
 
 LOG_DIR = 'ReportLogs'
@@ -163,18 +163,22 @@ class ComponentUnknown(models.Model):
         db_table = 'cache_report_component_unknown'
 
 
-class LeavesComparison(models.Model):
-    user = models.ForeignKey(User)
-    safe1 = models.ForeignKey(ReportSafe, null=True)
-    safe2 = models.ForeignKey(ReportSafe, null=True)
-    unsafe1 = models.ForeignKey(ReportUnsafe, null=True)
-    unsafe2 = models.ForeignKey(ReportUnsafe, null=True)
-    unknown1 = models.ForeignKey(ReportUnknown, null=True)
-    unknown2 = models.ForeignKey(ReportUnknown, null=True)
+class CompareJobsInfo(models.Model):
+    user = models.OneToOneField(User)
+    root1 = models.ForeignKey(ReportRoot, related_name='+')
+    root2 = models.ForeignKey(ReportRoot, related_name='+')
+
+    class Meta:
+        db_table = 'cache_report_jobs_compare_info'
 
 
-class UnknownComparison(models.Model):
-    user = models.ForeignKey(User)
-    component = models.ForeignKey(Component)
-    report1 = models.ForeignKey(ReportUnknown, null=True)
-    report2 = models.ForeignKey(ReportUnknown, null=True)
+class CompareJobsCache(models.Model):
+    info = models.ForeignKey(CompareJobsInfo)
+    attrs_id = models.CharField(max_length=1000)
+    verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
+    verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
+    reports1 = models.CharField(max_length=1000)
+    reports2 = models.CharField(max_length=1000)
+
+    class Meta:
+        db_table = 'cache_report_jobs_compare'

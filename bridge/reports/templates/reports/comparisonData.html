@@ -1,0 +1,37 @@
+<div class="ui grid">
+    <div class="seven wide column right aligned">
+        <h3>{{ verdict1 }} (<a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>)</h3>
+    </div>
+    <div class="two wide column center aligned">
+        <h3><i class="arrow right icon"></i></h3>
+    </div>
+    <div class="seven wide column">
+        <h3>{{ verdict2 }} (<a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a>)</h3>
+    </div>
+</div>
+<div class="ui grid">
+    <div class="eight wide column reports-column column1">
+        {% include 'reports/comparisonTree.html' with data=data.0 %}
+    </div>
+    <div class="vertical divider"></div>
+    <div class="seven wide column reports-column column2" style="overflow-x: auto">
+        {% include 'reports/comparisonTree.html' with data=data.1 %}
+    </div>
+</div>
+
+<div style="text-align: center">
+    <div class="ui basic buttons">
+        {% if pages.backward %}
+            <button id="fast_backward_btn" class="ui icon button"><i class="ui fast backward icon"></i></button>
+            <button id="backward_btn" class="ui icon button"><i class="ui backward icon"></i></button>
+        {% endif %}
+        <button class="ui disabled button"><span style="font-weight: bold">{{ pages.num }}</span></button>
+        {% if pages.forward %}
+            <button id="forward_btn" class="ui icon button"><i class="ui forward icon"></i></button>
+            <button id="fast_forward_btn" class="ui icon button"><i class="ui fast forward icon"></i></button>
+        {% endif %}
+    </div>
+</div>
+<input id="total_pages" type="hidden" value="{{ pages.total }}">
+<input id="current_verdict" type="hidden" value="{{ verdict }}">
+<input id="current_page_num" type="hidden" value="{{ pages.num }}">

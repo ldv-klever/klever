@@ -1,104 +1,538 @@
+import re
 import json
-import hashlib
+from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
+from bridge.vars import JOB_STATUS, JOB_CLASSES
+from jobs.utils import JobAccess
 from reports.models import *
+from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
+from marks.tables import UNSAFE_COLOR, SAFE_COLOR
+
+
+COMPARE_ATTRS = {
+    JOB_CLASSES[0][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[1][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[2][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[3][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[4][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[5][0]: ['verification object', 'rule specification']
+}
+
+
+def can_compare(user, job1, job2):
+    if not isinstance(job1, Job) or not isinstance(job2, Job) or not isinstance(user, User):
+        return False
+    if job1.type != job2.type:
+        return False
+    if not JobAccess(user, job1).can_view() or job1.status != JOB_STATUS[3][0]:
+        return False
+    if not JobAccess(user, job2).can_view() or job2.status != JOB_STATUS[3][0]:
+        return False
+    return True
+
+
+class ReportTree(object):
+    def __init__(self, job):
+        self.job = job
+        self.attrs = COMPARE_ATTRS[job.type]
+        self.reports = {}
+        self.attr_values = {}
+        self.__get_tree()
+
+    def __get_tree(self):
+        for u in ReportUnsafe.objects.filter(root__job=self.job):
+            main_attrs = u.attrs.filter(attr__name__name__in=self.attrs)
+            if len(main_attrs) != len(self.attrs):
+                continue
+            attr_values = {}
+            for ma in main_attrs:
+                if ma.attr.name.name in self.attrs:
+                    attr_values[ma.attr.name.name] = ma.attr.value
+            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs))
+            if attrs_id not in self.attr_values:
+                self.attr_values[attrs_id] = {
+                    'ids': [u.pk],
+                    'verdict': COMPARE_VERDICT[1][0]
+                }
+            else:
+                self.attr_values[attrs_id]['ids'].append(u.pk)
+            self.reports[u.pk] = {
+                'type': 'u',
+                'parent': u.parent_id
+            }
+            for leaf in ReportComponentLeaf.objects.filter(Q(unsafe=u) & ~Q(report_id__in=list(self.reports))):
+                self.reports[leaf.report_id] = {
+                    'type': 'c',
+                    'parent': leaf.report.parent_id
+                }
+        for s in ReportSafe.objects.filter(root__job=self.job):
+            main_attrs = s.attrs.filter(attr__name__name__in=self.attrs)
+            if len(main_attrs) != len(self.attrs):
+                continue
+            attr_values = {}
+            for ma in main_attrs:
+                if ma.attr.name.name in self.attrs:
+                    attr_values[ma.attr.name.name] = ma.attr.value
+            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs))
+            if attrs_id not in self.attr_values:
+                self.attr_values[attrs_id] = {
+                    'ids': [s.pk],
+                    'verdict': COMPARE_VERDICT[0][0]
+                }
+            else:
+                raise ValueError('Too many leaf reports for "%s"' % attrs_id)
+            self.reports[s.pk] = {
+                'type': 's',
+                'parent': s.parent_id
+            }
+            for leaf in ReportComponentLeaf.objects.filter(Q(safe=s) & ~Q(report_id__in=list(self.reports))):
+                self.reports[leaf.report_id] = {
+                    'type': 'c',
+                    'parent': leaf.report.parent_id
+                }
+        for f in ReportUnknown.objects.filter(root__job=self.job):
+            main_attrs = f.attrs.filter(attr__name__name__in=self.attrs)
+            if len(main_attrs) != len(self.attrs):
+                continue
+            attr_values = {}
+            for ma in main_attrs:
+                if ma.attr.name.name in self.attrs:
+                    attr_values[ma.attr.name.name] = ma.attr.value
+            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs))
+            if attrs_id not in self.attr_values:
+                self.attr_values[attrs_id] = {
+                    'ids': [f.pk],
+                    'verdict': COMPARE_VERDICT[3][0]
+                }
+            else:
+                for r_id in self.attr_values[attrs_id]['ids']:
+                    if r_id not in self.reports or self.reports[r_id]['type'] != 'u':
+                        raise ValueError('Too many leaf reports for "%s"' % attrs_id)
+                else:
+                    self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[2][0]
+                    self.attr_values[attrs_id]['ids'].append(f.pk)
+            self.reports[f.pk] = {
+                'type': 'f',
+                'parent': f.parent_id
+            }
+            for leaf in ReportComponentLeaf.objects.filter(Q(unknown=f) & ~Q(report_id__in=list(self.reports))):
+                self.reports[leaf.report_id] = {
+                    'type': 'c',
+                    'parent': leaf.report.parent_id
+                }
 
 
 class CompareTree(object):
-    def __init__(self, job1, job2):
+    def __init__(self, user, j1, j2):
+        self.user = user
+        self.tree1 = ReportTree(j1)
+        self.tree2 = ReportTree(j2)
+        self.attr_values = {}
+        self.__compare_values()
+        self.__fill_cache(j1, j2)
+
+    def __compare_values(self):
+        for a_id in self.tree1.attr_values:
+            self.attr_values[a_id] = {
+                'v1': self.tree1.attr_values[a_id]['verdict'],
+                'v2': COMPARE_VERDICT[4][0],
+                'ids1': self.tree1.attr_values[a_id]['ids'],
+                'ids2': []
+            }
+            if a_id in self.tree2.attr_values:
+                self.attr_values[a_id]['v2'] = self.tree2.attr_values[a_id]['verdict']
+                self.attr_values[a_id]['ids2'] = self.tree2.attr_values[a_id]['ids']
+        for a_id in self.tree2.attr_values:
+            if a_id not in self.tree1.attr_values:
+                self.attr_values[a_id] = {
+                    'v1': COMPARE_VERDICT[4][0],
+                    'v2': self.tree2.attr_values[a_id]['verdict'],
+                    'ids1': [],
+                    'ids2': self.tree2.attr_values[a_id]['ids']
+                }
+
+    def __fill_cache(self, j1, j2):
+        CompareJobsInfo.objects.filter(user=self.user).delete()
+        info = CompareJobsInfo.objects.create(user=self.user, root1=j1.reportroot, root2=j2.reportroot)
+        for_cache = []
+        for x in self.attr_values:
+            ids1 = []
+            for r_id in self.attr_values[x]['ids1']:
+                branch_ids = []
+                if r_id in self.tree1.reports:
+                    parent = r_id
+                    while parent is not None and parent in self.tree1.reports:
+                        branch_ids.insert(0, (self.tree1.reports[parent]['type'], parent))
+                        parent = self.tree1.reports[parent]['parent']
+                ids1.append(branch_ids)
+            ids2 = []
+            for r_id in self.attr_values[x]['ids2']:
+                branch_ids = []
+                if r_id in self.tree2.reports:
+                    parent = r_id
+                    while parent is not None and parent in self.tree2.reports:
+                        branch_ids.insert(0, (self.tree2.reports[parent]['type'], parent))
+                        parent = self.tree2.reports[parent]['parent']
+                ids2.append(branch_ids)
+            for_cache.append(CompareJobsCache(
+                info=info, attrs_id=x,
+                verdict1=self.attr_values[x]['v1'], verdict2=self.attr_values[x]['v2'],
+                reports1=json.dumps(ids1), reports2=json.dumps(ids2)
+            ))
+        CompareJobsCache.objects.bulk_create(for_cache)
+
+
+class ComparisonTableData(object):
+    def __init__(self, user, j1, j2):
+        self.job1 = j1
+        self.job2 = j2
+        self.user = user
+        self.data = []
         self.error = None
-        self.__get_jobs(job1, job2)
+        self.info = 0
+        self.__get_data()
+
+    def __get_data(self):
+        try:
+            info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
+        except ObjectDoesNotExist:
+            self.error = _('Compare cache was not found')
+            return
+        self.info = info.pk
+        for v1 in COMPARE_VERDICT:
+            row_data = []
+            for v2 in COMPARE_VERDICT:
+                num = len(CompareJobsCache.objects.filter(info=info, verdict1=v1[0], verdict2=v2[0]))
+                if num == 0:
+                    num = '-'
+                else:
+                    num = (num, v2[0])
+                row_data.append(num)
+            self.data.append(row_data)
+
+
+class ComparisonData(object):
+    def __init__(self, info_id, verdict, page_num, hide_attrs=False, hide_components=False):
+        self.error = None
+        try:
+            self.info = CompareJobsInfo.objects.get(pk=info_id)
+        except ObjectDoesNotExist:
+            self.error = _("Compare cache does not exist")
+            return
+        (self.v1, self.v2) = self.__get_verdicts(verdict)
         if self.error is not None:
             return
-        self.nodes = {}
-        self.tree = self.__get_tree()
+        self.hide_attrs = hide_attrs
+        self.hide_components = hide_components
+        self.pages = {
+            'backward': True,
+            'num': 0,
+            'total': 0,
+            'forward': True
+        }
+        self.data = self.__get_data(page_num)
 
-    def __get_jobs(self, job1, job2):
+    def __get_verdicts(self, verdict):
+        m = re.match('^(\d)_(\d)$', verdict)
+        if m is None:
+            self.error = 'Unknown error'
+            return None, None
+        v1 = m.group(1)
+        v2 = m.group(2)
+        if any(v not in list(x[0] for x in COMPARE_VERDICT) for v in [v1, v2]):
+            self.error = 'Unknown error'
+            return None, None
+        return v1, v2
+
+    def __get_data(self, page_num):
+        data = CompareJobsCache.objects.filter(info=self.info, verdict1=self.v1, verdict2=self.v2).order_by('id')
+        num_of_pages = len(data)
+        if num_of_pages < page_num:
+            self.error = _('Not enough reports to compare. Seems like comparison data is corrupted.')
+            return None
+        if page_num == 1:
+            self.pages['backward'] = False
+        if page_num == num_of_pages:
+            self.pages['forward'] = False
+        self.pages['num'] = page_num
+        self.pages['total'] = num_of_pages
+
+        branches = self.__compare_reports(data[page_num - 1])
+        if branches is None:
+            if self.error is None:
+                self.error = 'Unknown error'
+            return None
+
+        final_data = []
+        for branch in branches:
+            ordered = []
+            for i in sorted(list(branch)):
+                block_width = 40
+                if len(branch[i]) > 2:
+                    block_width = 80 / len(branch[i])
+                ordered.append([branch[i], block_width])
+            final_data.append(ordered)
+        return final_data
+
+    def __compare_reports(self, c):
+        data1 = self.__get_reports_data(json.loads(c.reports1))
+        if data1 is None:
+            if self.error is None:
+                self.error = 'Unknown error'
+            return None
+        data2 = self.__get_reports_data(json.loads(c.reports2))
+        if data2 is None:
+            if self.error is None:
+                self.error = 'Unknown error'
+            return None
+        for i in sorted(list(data1)):
+            if i not in data2:
+                break
+            blocks = self.__compare_lists(data1[i], data2[i])
+            if isinstance(blocks, list) and len(blocks) == 2:
+                data1[i] = blocks[0]
+                data2[i] = blocks[1]
+        return [data1, data2]
+
+    def __compare_lists(self, blocks1, blocks2):
+        for b1 in blocks1:
+            for b2 in blocks2:
+                if b1.block_class != b2.block_class:
+                    continue
+                for a1 in b1.list:
+                    if a1['name'] not in list(x['name'] for x in b2.list):
+                        a1['color'] = '#df0806'
+                    for a2 in b2.list:
+                        if a2['name'] not in list(x['name'] for x in b1.list):
+                            a2['color'] = '#df0806'
+                        if a1['name'] == a2['name'] and a1['value'] != a2['value']:
+                            a1['color'] = a2['color'] = '#cc73cf'
+        if self.hide_attrs:
+            for b1 in blocks1:
+                for b2 in blocks2:
+                    if b1.block_class != b2.block_class:
+                        continue
+                    for b in [b1, b2]:
+                        new_list = []
+                        for a in b.list:
+                            if 'color' in a:
+                                new_list.append(a)
+                        b.list = new_list
+        if self.hide_components:
+            for_del = {
+                'b1': [],
+                'b2': []
+            }
+            for i in range(0, len(blocks1)):
+                for j in range(0, len(blocks2)):
+                    if blocks1[i].block_class != blocks2[j].block_class or blocks1[i].type != 'component':
+                        continue
+                    if blocks1[i].list == blocks2[j].list and blocks1[i].add_info == blocks2[j].add_info:
+                        for_del['b1'].append(i)
+                        for_del['b2'].append(j)
+            new_blocks1 = []
+            for i in range(0, len(blocks1)):
+                if i not in for_del['b1']:
+                    new_blocks1.append(blocks1[i])
+            new_blocks2 = []
+            for i in range(0, len(blocks2)):
+                if i not in for_del['b1']:
+                    new_blocks2.append(blocks2[i])
+            return [new_blocks1, new_blocks2]
+        return None
+
+    def __get_reports_data(self, reports):
+        branch_data = {}
+        for branch in reports:
+            cnt = 1
+            parent = None
+            for rdata in branch:
+                if cnt not in branch_data:
+                    branch_data[cnt] = []
+                if cnt in branch_data and rdata[1] in list(int(re.sub('.*_', '', x.id)) for x in branch_data[cnt]):
+                    pass
+                elif rdata[0] == 'c':
+                    block = self.__component_data(rdata[1], parent)
+                    if self.error is not None:
+                        return None
+                    branch_data[cnt].append(block)
+                elif rdata[0] == 'u':
+                    block = self.__unsafe_data(rdata[1], parent)
+                    if self.error is not None:
+                        return None
+                    branch_data[cnt].append(block)
+                    if self.v1 == self.v2:
+                        cnt += 1
+                        blocks = self.__unsafe_mark_data(rdata[1])
+                        for b in blocks:
+                            if cnt not in branch_data:
+                                branch_data[cnt] = []
+                            if b.id not in list(x.id for x in branch_data[cnt]):
+                                branch_data[cnt].append(b)
+                            else:
+                                for i in range(0, len(branch_data[cnt])):
+                                    if b.id == branch_data[cnt][i].id:
+                                        branch_data[cnt][i].parents.extend(b.parents)
+                                        break
+                    break
+                elif rdata[0] == 's':
+                    block = self.__safe_data(rdata[1], parent)
+                    if self.error is not None:
+                        return None
+                    branch_data[cnt].append(block)
+                    if self.v1 == self.v2:
+                        cnt += 1
+                        blocks = self.__safe_mark_data(rdata[1])
+                        for b in blocks:
+                            if cnt not in branch_data:
+                                branch_data[cnt] = []
+                            if b.id not in list(x.id for x in branch_data[cnt]):
+                                branch_data[cnt].append(b)
+                            else:
+                                for i in range(0, len(branch_data[cnt])):
+                                    if b.id == branch_data[cnt][i].id:
+                                        branch_data[cnt][i].parents.extend(b.parents)
+                                        break
+                    break
+                elif rdata[0] == 'f':
+                    block = self.__unknown_data(rdata[1], parent)
+                    if self.error is not None:
+                        return None
+                    branch_data[cnt].append(block)
+                    if self.v1 == self.v2:
+                        cnt += 1
+                        blocks = self.__unknown_mark_data(rdata[1])
+                        for b in blocks:
+                            if cnt not in branch_data:
+                                branch_data[cnt] = []
+                            if b.id not in list(x.id for x in branch_data[cnt]):
+                                branch_data[cnt].append(b)
+                            else:
+                                for i in range(0, len(branch_data[cnt])):
+                                    if b.id == branch_data[cnt][i].id:
+                                        if b.add_info[0]['value'] == branch_data[cnt][i].add_info[0]['value']:
+                                            branch_data[cnt][i].parents.extend(b.parents)
+                                        else:
+                                            branch_data[cnt].append(b)
+                                        break
+                    break
+                parent = rdata[1]
+                cnt += 1
+        return branch_data
+
+    def __component_data(self, report_id, parent_id):
         try:
-            self.job1 = Job.objects.get(pk=int(job1))
-            self.job2 = Job.objects.get(pk=int(job2))
+            report = ReportComponent.objects.get(pk=report_id)
         except ObjectDoesNotExist:
-            self.error = _('One of jobs was not found')
+            self.error = _('Report was not found. Please, recalculate cache.')
+            return None
+        block = CompareBlock('c_%s' % report_id, 'component', report.component.name, 'comp_%s' % report.component.name)
+        if parent_id is not None:
+            block.parents.append('c_%s' % parent_id)
+        for a in report.attrs.order_by('attr__name__name'):
+            block.list.append({
+                'name': a.attr.name.name,
+                'value': a.attr.value
+            })
+        block.href = reverse('reports:component', args=[report.root.job_id, report.pk])
+        return block
 
-    def __get_tree(self):
-        children = ReportComponent.objects.get(parent=None, root__job=self.job1)
-        while len(children) > 0:
-            children_ids = []
-            for child in children:
-                try:
-                    self.nodes[child.pk] = ReportData(child, ReportUnknown.objects.get(parent_id=child.pk))
-                except ObjectDoesNotExist:
-                    self.nodes[child.pk] = ReportData(child)
-                children_ids.append(child.pk)
-            children = ReportComponent.objects.get(id__in=children_ids)
-        for safe in ReportSafe.objects.filter(root__job=self.job1):
-            self.nodes[safe.pk] = SafeData(safe)
-        return None
+    def __unsafe_data(self, report_id, parent_id):
+        try:
+            report = ReportUnsafe.objects.get(pk=report_id)
+        except ObjectDoesNotExist:
+            self.error = _('Report was not found. Please, recalculate cache.')
+            return None
+        block = CompareBlock('u_%s' % report_id, 'unsafe', _('Unsafe'), 'unsafe')
+        block.parents.append('c_%s' % parent_id)
+        block.add_info.append({'value': report.get_verdict_display(), 'color': UNSAFE_COLOR[report.verdict]})
+        for a in report.attrs.order_by('attr__name__name'):
+            block.list.append({
+                'name': a.attr.name.name,
+                'value': a.attr.value
+            })
+        block.href = reverse('reports:leaf', args=['unsafe', report.pk])
+        return block
 
+    def __safe_data(self, report_id, parent_id):
+        try:
+            report = ReportSafe.objects.get(pk=report_id)
+        except ObjectDoesNotExist:
+            self.error = _('Report was not found. Please, recalculate cache.')
+            return None
+        block = CompareBlock('s_%s' % report_id, 'safe', _('Safe'), 'safe')
+        block.parents.append('c_%s' % parent_id)
+        block.add_info.append({'value': report.get_verdict_display(), 'color': SAFE_COLOR[report.verdict]})
+        for a in report.attrs.order_by('attr__name__name'):
+            block.list.append({
+                'name': a.attr.name.name,
+                'value': a.attr.value
+            })
+        block.href = reverse('reports:leaf', args=['safe', report.pk])
+        return block
 
-class UnknownData(object):
-    def __init__(self, unknown):
-        self.pk = unknown.pk
-        self.type = 'unknown'
-        self.attr = get_attr_hash(unknown)
-        self.problem = self.__get_problem(unknown)
+    def __unknown_data(self, report_id, parent_id):
+        try:
+            report = ReportUnknown.objects.get(pk=report_id)
+        except ObjectDoesNotExist:
+            self.error = _('Report was not found. Please, recalculate cache.')
+            return None
+        block = CompareBlock('f_%s' % report_id, 'unknown', _('Unknown'), 'unknown-%s' % report.component.name)
+        block.parents.append('c_%s' % parent_id)
+        for a in report.attrs.order_by('attr__name__name'):
+            block.list.append({
+                'name': a.attr.name.name,
+                'value': a.attr.value
+            })
+        block.href = reverse('reports:leaf', args=['unknown', report.pk])
+        return block
 
-    def __get_problem(self, unknown):
+    def __unsafe_mark_data(self, report_id):
         self.ccc = 0
+        marks = MarkUnsafeReport.objects.filter(report_id=report_id)
         data = []
-        for mrep in unknown.markreport_set.order_by('problem__name'):
-            data.append(mrep.problem.name)
-        if len(data) == 0:
-            return hashlib.md5(unknown.problem_description).hexdigest()
-        else:
-            return hashlib.md5(json.dumps(data).encode('utf8')).hexdigest()
+        for mark in marks:
+            block = CompareBlock('um_%s' % mark.mark_id, 'mark', _('Unsafes mark'))
+            block.parents.append('u_%s' % report_id)
+            block.add_info.append({'value': mark.mark.get_verdict_display(), 'color': UNSAFE_COLOR[mark.mark.verdict]})
+            block.href = reverse('marks:edit_mark', args=['unsafe', mark.mark_id])
+            data.append(block)
+        return data
 
-
-class ReportData(object):
-    def __init__(self, report, unknown=None):
-        self.pk = report.pk
-        self.type = 'report'
-        self.attr = get_attr_hash(report)
-        self.component = report.component.name
-        self.unknown = self.__get_unknown_data(unknown)
-        self.parent = report.parent_id
-
-    def __get_unknown_data(self, unknown):
+    def __safe_mark_data(self, report_id):
         self.ccc = 0
-        if isinstance(unknown, ReportUnknown):
-            return UnknownData(unknown)
-        return None
+        marks = MarkSafeReport.objects.filter(report_id=report_id)
+        data = []
+        for mark in marks:
+            block = CompareBlock('sm_%s' % mark.mark_id, 'mark', _('Safes mark'))
+            block.parents.append('s_%s' % report_id)
+            block.add_info.append({'value': mark.mark.get_verdict_display(), 'color': SAFE_COLOR[mark.mark.verdict]})
+            block.href = reverse('marks:edit_mark', args=['safe', mark.mark_id])
+            data.append(block)
+        return data
+
+    def __unknown_mark_data(self, report_id):
+        self.ccc = 0
+        marks = MarkUnknownReport.objects.filter(report_id=report_id)
+        data = []
+        for mark in marks:
+            block = CompareBlock("fm_%s" % mark.mark_id, 'mark', _('Unknowns mark'))
+            block.parents.append('f_%s' % report_id)
+            block.add_info.append({'name': _('Problem'), 'value': mark.problem.name})
+            block.href = reverse('marks:edit_mark', args=['unknown', mark.mark_id])
+            data.append(block)
+        return data
 
 
-class SafeData(object):
-    def __init__(self, safe):
-        self.pk = safe.pk
-        self.type = 'safe'
-        self.attr = get_attr_hash(safe)
-        self.verdict = safe.verdict
-        self.proof = hashlib.md5(safe.proof).hexdigest()
-        self.parent = safe.parent_id
-
-
-class UnsafeData(object):
-    def __init__(self, unsafe):
-        self.pk = unsafe.pk
-        self.type = 'unsafe'
-        self.attr = get_attr_hash(unsafe)
-        self.verdict = unsafe.verdict
-        self.error_trace = hashlib.md5(unsafe.error_trace).hexdigest()
-        self.parent = unsafe.parent_id
-
-
-def get_attr_hash(report):
-    attr_data = []
-    for a in report.attrs.order_by('attr__name__name'):
-        attr_data.append("%s#%s" % (a.attr.name.name, a.attr.value))
-    return hashlib.md5(json.dumps(attr_data).encode('utf8')).hexdigest()
-
-
-class TreeNode(object):
-    def __init__(self, parent=None):
-        self.a = 0
-        self.parent = parent
+class CompareBlock(object):
+    def __init__(self, block_id, block_type, title, block_class=None):
+        self.id = block_id
+        self.block_class = block_class if block_class is not None else self.id
+        self.type = block_type
+        self.title = title
+        self.parents = []
+        self.list = []
+        self.add_info = []
+        self.href = None

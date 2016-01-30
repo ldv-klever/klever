@@ -1,0 +1,38 @@
+{% for lvl, width in data %}
+    <div class="blocks-tree">
+    {% for block in lvl %}
+        <div class="comparison-block" style="width:{{ width }}%;border-color: {% if block.type == 'component' %}#021cfc{% elif block.type == 'unsafe' %}#fc902f{% elif block.type == 'safe' %}#42fc51{% elif block.type == 'unknown' %}#fc1c67{% elif block.type == 'mark' %}#a73efc{% endif %}">
+            <input class="block_class" type="hidden" value="{{ block.block_class }}">
+            <h4>
+                {% if block.href %}
+                    <a href="{{ block.href }}">{{ block.title }}</a>
+                {% else %}
+                    {{ block.title }}
+                {% endif %}
+            </h4>
+            {% if block.add_info|length %}
+                <div style="text-align: center">
+                {% for i in block.add_info %}
+                    {% if i.name and i.value %}
+                        <span style="font-weight: bold">{{ i.name }}</span>: <span style="font-style: italic">{{ i.value }}</span>
+                    {% elif i.value %}
+                        <span{% if i.color %} style="color: {{ i.color }}"{% endif %}>{{ i.value }}</span>
+                    {% endif %}
+                {% endfor %}
+                </div>
+            {% endif %}
+            {% if block.list|length %}
+                <ul>
+                {% for a in block.list %}
+                    <li {% if a.color %} style="color: {{ a.color }};"{% endif %}><span style="font-weight: bold">{{ a.name }}</span> <i class="ui long arrow right icon"></i>{{ a.value }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+            <input class="block-id" type="hidden" value="{{ block.id }}">
+            {% for p in block.parents %}
+                <input class="block-parent" type="hidden" value="{{ p }}">
+            {% endfor %}
+        </div>
+    {% endfor %}
+    </div>
+{% endfor %}

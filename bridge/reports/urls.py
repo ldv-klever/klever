@@ -20,5 +20,8 @@ urlpatterns = [
     url(r'^component/(?P<report_id>[0-9]+)/unknowns/(?P<component_id>[0-9]+)/problem/(?P<problem_id>[0-9]+)/$',
         views.report_unknowns_by_problem, name='unknowns_problem'),
     url(r'^upload/$', views.upload_report),
-    url(r'^ajax/get_source/$', views.get_source_code)
+    url(r'^ajax/get_source/$', views.get_source_code),
+    url(r'^ajax/fill_compare_cache/$', views.fill_compare_cache),
+    url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_comparison),
+    url(r'^ajax/get_compare_jobs_data/$', views.get_compare_jobs_data),
 ]

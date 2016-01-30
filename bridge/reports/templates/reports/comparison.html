@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block head_block %}
+    <link href="/static/reports/css/comparison.css" rel="stylesheet">
+    <script src="/static/reports/js/comparison.js"></script>
+{% endblock %}
+
+{% block body_block %}
+    <h3>{% trans 'Comparison of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
+    <div class="ui grid">
+        <div class="ten wide column">
+            <table class="ui selectable compact teal table">
+                <tr>
+                    <th style="background-color: #747eeb"></th>
+                    <th class="job-th-2">{% trans 'Safe' %}</th>
+                    <th class="job-th-2">{% trans 'Unsafe' %}</th>
+                    <th class="job-th-2">{% trans 'Incomplete unsafe' %}</th>
+                    <th class="job-th-2">{% trans 'Unknown' %}</th>
+                    <th class="job-th-2">{% trans 'Unmatched' %}</th>
+                </tr>
+                <tr>
+                    <th class="job-th-1 right aligned">{% trans 'Safe' %}</th>
+                    {% for v in tabledata.0 %}
+                        <td>
+                            {% if v != '-' %}
+                                <a id="compare_cell_0_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
+                            {% else %}
+                                {{ v }}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th class="job-th-1 right aligned">{% trans 'Unsafe' %}</th>
+                    {% for v in tabledata.1 %}
+                        <td>
+                            {% if v != '-' %}
+                                <a id="compare_cell_1_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
+                            {% else %}
+                                {{ v }}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th class="job-th-1 right aligned">{% trans 'Incomplete unsafe' %}</th>
+                    {% for v in tabledata.2 %}
+                        <td>
+                            {% if v != '-' %}
+                                <a id="compare_cell_2_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
+                            {% else %}
+                                {{ v }}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th class="job-th-1 right aligned">{% trans 'Unknown' %}</th>
+                    {% for v in tabledata.3 %}
+                        <td>
+                            {% if v != '-' %}
+                                <a id="compare_cell_3_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
+                            {% else %}
+                                {{ v }}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <th class="job-th-1 right aligned">{% trans 'Unmatched' %}</th>
+                    {% for v in tabledata.4 %}
+                        <td>
+                            {% if v != '-' %}
+                                <a id="compare_cell_4_{{ v.1 }}" href="#" class="compare-cell">{{ v.0 }}</a>
+                            {% else %}
+                                {{ v }}
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            </table>
+        </div>
+        <div class="six wide column">
+            <div class="ui checkbox">
+                <input id="show_all_components" type="checkbox">
+                <label for="show_all_components">{% trans 'Show all components' %}</label>
+            </div>
+            <br><br>
+            <div class="ui checkbox">
+                <input id="show_all_attrs" type="checkbox">
+                <label for="show_all_attrs">{% trans 'Show all attributes' %}</label>
+            </div>
+        </div>
+    </div>
+    <input id="compare_info" type="hidden" value="{{ compare_info }}">
+    <div id="compare_data"></div>
+{% endblock %}

@@ -8,7 +8,7 @@ from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
 from jobs.utils import get_resource_data
 from reports.models import ReportComponent, Attr, AttrName, ReportAttr
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
-from marks.models import UnknownProblem, MarkSafe, MarkUnknown, MarkUnsafe
+from marks.models import UnknownProblem, MarkUnknown
 from bridge.tableHead import Header
 
 

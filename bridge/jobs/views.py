@@ -17,6 +17,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
+from reports.comparison import can_compare
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
 from service.utils import StartJobDecision, StartDecisionData, StopDecision, get_default_data
@@ -802,4 +803,19 @@ def fast_run_decision(request):
     result = StartJobDecision(request.user, json.dumps(data))
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
+    return JsonResponse({})
+
+
+@login_required
+def check_compare_access(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        j1 = Job.objects.get(pk=request.POST.get('job1', 0))
+        j2 = Job.objects.get(pk=request.POST.get('job2', 0))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+    if not can_compare(request.user, j1, j2):
+        return JsonResponse({'error': _("You can't compare selected jobs.")})
     return JsonResponse({})

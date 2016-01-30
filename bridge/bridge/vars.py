@@ -9,6 +9,7 @@ DATAFORMAT = (
 
 ERRORS = {
     404: _('The job was not found'),
+    405: _('One of the selected jobs was not found'),
     400: _("You don't have an access to this job"),
     401: _("You don't have an access to one of the selected jobs"),
     451: _('You specified wrong parameters, please reload the page and try again'),
@@ -21,7 +22,8 @@ ERRORS = {
     704: _("The tag was not found"),
     804: _("The problem was not found"),
     900: _("You don't have an access to this page"),
-    505: _("Couldn't visualize the error trace")
+    505: _("Couldn't visualize the error trace"),
+    506: _("Comparison cache data was not found")
 }
 
 LANGUAGES = (
@@ -44,6 +46,14 @@ JOB_CLASSES = (
     ('3', _('Validation on commits in Linux kernel Git repositories')),
     ('4', _('Verification of C programs')),
     ('5', _('Validation on C programs')),
+)
+
+COMPARE_VERDICT = (
+    ('0', _('Safe')),
+    ('1', _('Unsafe')),
+    ('2', _('Incomplete unsafe')),
+    ('3', _('Unknown')),
+    ('4', _('Unmatched'))
 )
 
 JOB_ROLES = (
