@@ -130,6 +130,7 @@ DEF_KLEVER_CORE_CONFIGURATION = {
     }
 }
 
+# TODO: use dictionary rather than several variables as above. Don't forget to fix production.py as well.
 DEF_USER_DATAFORMAT = 'hum'  # See bridge.vars.DATAFORMAT for options
 
 DEF_USER_LANGUAGE = 'en'  # See bridge.vars.LANGUAGES for options
