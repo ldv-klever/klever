@@ -17,26 +17,22 @@
     background-color: #b7a6ff;
     height: 50px;
 }
-.blocks-tree {
-    overflow: auto;
-}
-.column1 > .blocks-tree > .comparison-block {
-    float: right;
-}
-.column2 > .blocks-tree > .comparison-block {
-    float: left;
-}
+
 .comparison-block {
-    position: relative;
-    width: 30%;
+    display: inline-block;
     font-size: 0.8em;
     border: 1px solid;
     border-radius: 10px;
     margin: 15px;
-    padding: 5px;
+    padding-top: 5px;
+    padding-right: 15px;
 }
-.comparison-block h4 {
+.comparison-block > .block-title {
     text-align: center;
+    font-size: small;
+    font-weight: bold;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .block-hover-single {

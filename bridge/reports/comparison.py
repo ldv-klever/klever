@@ -166,7 +166,8 @@ class CompareTree(object):
                     while parent is not None and parent in self.tree1.reports:
                         branch_ids.insert(0, (self.tree1.reports[parent]['type'], parent))
                         parent = self.tree1.reports[parent]['parent']
-                ids1.append(branch_ids)
+                if len(branch_ids) > 0:
+                    ids1.append(branch_ids)
             ids2 = []
             for r_id in self.attr_values[x]['ids2']:
                 branch_ids = []
@@ -175,10 +176,10 @@ class CompareTree(object):
                     while parent is not None and parent in self.tree2.reports:
                         branch_ids.insert(0, (self.tree2.reports[parent]['type'], parent))
                         parent = self.tree2.reports[parent]['parent']
-                ids2.append(branch_ids)
+                if len(branch_ids) > 0:
+                    ids2.append(branch_ids)
             for_cache.append(CompareJobsCache(
-                info=info, attrs_id=x,
-                verdict1=self.attr_values[x]['v1'], verdict2=self.attr_values[x]['v2'],
+                info=info, verdict1=self.attr_values[x]['v1'], verdict2=self.attr_values[x]['v2'],
                 reports1=json.dumps(ids1), reports2=json.dumps(ids2)
             ))
         CompareJobsCache.objects.bulk_create(for_cache)
@@ -228,11 +229,11 @@ class ComparisonData(object):
         self.hide_components = hide_components
         self.pages = {
             'backward': True,
-            'num': 0,
-            'total': 0,
-            'forward': True
+            'forward': True,
+            'num': page_num,
+            'total': 0
         }
-        self.data = self.__get_data(page_num)
+        self.data = self.__get_data()
 
     def __get_verdicts(self, verdict):
         m = re.match('^(\d)_(\d)$', verdict)
@@ -246,20 +247,16 @@ class ComparisonData(object):
             return None, None
         return v1, v2
 
-    def __get_data(self, page_num):
-        data = CompareJobsCache.objects.filter(info=self.info, verdict1=self.v1, verdict2=self.v2).order_by('id')
-        num_of_pages = len(data)
-        if num_of_pages < page_num:
+    def __get_data(self):
+        data = self.info.comparejobscache_set.filter(verdict1=self.v1, verdict2=self.v2).order_by('id')
+        self.pages['total'] = len(data)
+        if self.pages['total'] < self.pages['num']:
             self.error = _('Not enough reports to compare. Seems like comparison data is corrupted.')
             return None
-        if page_num == 1:
-            self.pages['backward'] = False
-        if page_num == num_of_pages:
-            self.pages['forward'] = False
-        self.pages['num'] = page_num
-        self.pages['total'] = num_of_pages
+        self.pages['backward'] = (self.pages['num'] > 1)
+        self.pages['forward'] = (self.pages['num'] < self.pages['total'])
 
-        branches = self.__compare_reports(data[page_num - 1])
+        branches = self.__compare_reports(data[self.pages['num'] - 1])
         if branches is None:
             if self.error is None:
                 self.error = 'Unknown error'
@@ -269,10 +266,8 @@ class ComparisonData(object):
         for branch in branches:
             ordered = []
             for i in sorted(list(branch)):
-                block_width = 40
-                if len(branch[i]) > 2:
-                    block_width = 80 / len(branch[i])
-                ordered.append([branch[i], block_width])
+                if len(branch[i]) > 0:
+                    ordered.append(branch[i])
             final_data.append(ordered)
         return final_data
 
@@ -299,7 +294,7 @@ class ComparisonData(object):
     def __compare_lists(self, blocks1, blocks2):
         for b1 in blocks1:
             for b2 in blocks2:
-                if b1.block_class != b2.block_class:
+                if b1.block_class != b2.block_class or b1.type == 'mark':
                     continue
                 for a1 in b1.list:
                     if a1['name'] not in list(x['name'] for x in b2.list):
@@ -312,7 +307,7 @@ class ComparisonData(object):
         if self.hide_attrs:
             for b1 in blocks1:
                 for b2 in blocks2:
-                    if b1.block_class != b2.block_class:
+                    if b1.block_class != b2.block_class or b1.type == 'mark':
                         continue
                     for b in [b1, b2]:
                         new_list = []
@@ -447,7 +442,7 @@ class ComparisonData(object):
             return None
         block = CompareBlock('u_%s' % report_id, 'unsafe', _('Unsafe'), 'unsafe')
         block.parents.append('c_%s' % parent_id)
-        block.add_info.append({'value': report.get_verdict_display(), 'color': UNSAFE_COLOR[report.verdict]})
+        block.add_info = {'value': report.get_verdict_display(), 'color': UNSAFE_COLOR[report.verdict]}
         for a in report.attrs.order_by('attr__name__name'):
             block.list.append({
                 'name': a.attr.name.name,
@@ -464,7 +459,7 @@ class ComparisonData(object):
             return None
         block = CompareBlock('s_%s' % report_id, 'safe', _('Safe'), 'safe')
         block.parents.append('c_%s' % parent_id)
-        block.add_info.append({'value': report.get_verdict_display(), 'color': SAFE_COLOR[report.verdict]})
+        block.add_info = {'value': report.get_verdict_display(), 'color': SAFE_COLOR[report.verdict]}
         for a in report.attrs.order_by('attr__name__name'):
             block.list.append({
                 'name': a.attr.name.name,
@@ -496,8 +491,10 @@ class ComparisonData(object):
         for mark in marks:
             block = CompareBlock('um_%s' % mark.mark_id, 'mark', _('Unsafes mark'))
             block.parents.append('u_%s' % report_id)
-            block.add_info.append({'value': mark.mark.get_verdict_display(), 'color': UNSAFE_COLOR[mark.mark.verdict]})
+            block.add_info = {'value': mark.mark.get_verdict_display(), 'color': UNSAFE_COLOR[mark.mark.verdict]}
             block.href = reverse('marks:edit_mark', args=['unsafe', mark.mark_id])
+            for t in mark.mark.versions.order_by('-version')[0].tags.all():
+                block.list.append({'name': None, 'value': t.tag.tag})
             data.append(block)
         return data
 
@@ -508,7 +505,7 @@ class ComparisonData(object):
         for mark in marks:
             block = CompareBlock('sm_%s' % mark.mark_id, 'mark', _('Safes mark'))
             block.parents.append('s_%s' % report_id)
-            block.add_info.append({'value': mark.mark.get_verdict_display(), 'color': SAFE_COLOR[mark.mark.verdict]})
+            block.add_info = {'value': mark.mark.get_verdict_display(), 'color': SAFE_COLOR[mark.mark.verdict]}
             block.href = reverse('marks:edit_mark', args=['safe', mark.mark_id])
             data.append(block)
         return data
@@ -520,7 +517,7 @@ class ComparisonData(object):
         for mark in marks:
             block = CompareBlock("fm_%s" % mark.mark_id, 'mark', _('Unknowns mark'))
             block.parents.append('f_%s' % report_id)
-            block.add_info.append({'name': _('Problem'), 'value': mark.problem.name})
+            block.add_info = {'value': mark.problem.name}
             block.href = reverse('marks:edit_mark', args=['unknown', mark.mark_id])
             data.append(block)
         return data
@@ -534,5 +531,5 @@ class CompareBlock(object):
         self.title = title
         self.parents = []
         self.list = []
-        self.add_info = []
+        self.add_info = None
         self.href = None

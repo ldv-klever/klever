@@ -10,11 +10,11 @@
     </div>
 </div>
 <div class="ui grid">
-    <div class="eight wide column reports-column column1">
+    <div class="eight wide column reports-column column1" style="overflow-x: auto; white-space: nowrap;">
         {% include 'reports/comparisonTree.html' with data=data.0 %}
     </div>
     <div class="vertical divider"></div>
-    <div class="seven wide column reports-column column2" style="overflow-x: auto">
+    <div class="seven wide column reports-column column2" style="overflow-x: auto; white-space: nowrap;">
         {% include 'reports/comparisonTree.html' with data=data.1 %}
     </div>
 </div>

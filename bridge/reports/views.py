@@ -14,7 +14,7 @@ from reports.models import *
 from reports.utils import *
 from django.utils.translation import ugettext as _, activate, string_concat
 from reports.etv import GetSource, GetETV
-from reports.comparison import CompareTree, ComparisonTableData, ComparisonData
+from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
 
 
 @login_required
@@ -373,7 +373,7 @@ def fill_compare_cache(request):
         CompareTree(request.user, j1, j2)
     except Exception as e:
         print_err(e)
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': 'Unknown error while filling comparison cache'})
     return JsonResponse({})
 
 
@@ -385,6 +385,8 @@ def jobs_comparison(request, job1_id, job2_id):
         job2 = Job.objects.get(pk=job2_id)
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[405]))
+    if not can_compare(request.user, job1, job2):
+        return HttpResponseRedirect(reverse('error', args=[507]))
     tabledata = ComparisonTableData(request.user, job1, job2)
     if tabledata.error is not None:
         return HttpResponseRedirect(reverse('error', args=[506]))
@@ -414,7 +416,7 @@ def get_compare_jobs_data(request):
         True if 'hide_components' in request.POST else False
     )
     if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+        return JsonResponse({'error': str(result.error)})
     v1 = result.v1
     v2 = result.v2
     for v in COMPARE_VERDICT:

@@ -1,41 +1,31 @@
-function style_blocks() {
-    var cnt = 0;
-    $('.block-parent').each(function () {
-        var block = $(this).parent(), parent = null, parent_id = $(this).val(),
-            block_id = block.find('.block-id').first().val(), column = $(this).closest('.reports-column');
-        column.find('.block-id').each(function () {
-            if ($(this).val() == parent_id) {
-                parent = $(this).parent();
-            }
-        });
-        if (!parent || !block_id.length) {
-            return true;
-        }
-        var s_x = block.offset().left + parseInt(block.width() / 2), s_y = block.offset().top,
-            e_x = parent.offset().left + parseInt(block.width() / 2), e_y = parent.offset().top + parent.height(),
-            line_w = parseInt(s_x - e_x), line_h = parseInt(s_y - e_y),
-            canvas_id = block_id + '___' + parent_id + '__' + cnt;
+function draw_connections() {
+    var cnt = 1;
+    function draw_line(b1, b2, column) {
+        var s_x = b1.position().left + parseInt(b1.width() / 2), s_y = b1.position().top + b1.height(),
+            e_x = b2.position().left + parseInt(b2.width() / 2), e_y = b2.position().top,
+            line_w = parseInt(e_x - s_x), line_h = parseInt(e_y - s_y) - 1,
+            canvas_id = 'canvas__' + cnt;
         cnt++;
         if (line_w == 0) {
             line_w = 1;
         }
-        line_h -= 10;
-        $('#compare_data').append($('<canvas>', {id: canvas_id}));
+        line_h -= 7;
+        column.append($('<canvas>', {id: canvas_id}));
         var c = $('#' + canvas_id);
         c.attr('width', Math.abs(line_w));
         c.attr('height', line_h);
         if (line_w > 0) {
             c.css({
                 position: 'absolute',
-                top: e_y + 11,
-                left: e_x
+                top: s_y + 23,
+                left: s_x + column.scrollLeft() + 10
             });
         }
         else {
             c.css({
                 position: 'absolute',
-                top: e_y + 11,
-                left: e_x + line_w
+                top: s_y + 23,
+                left: s_x + line_w + column.scrollLeft() + 10
             });
         }
 
@@ -50,27 +40,35 @@ function style_blocks() {
         }
 
         ctx.stroke();
+    }
+    $('.block-parent').each(function () {
+        var block = $(this).closest('.comparison-block'), column = $(this).closest('.reports-column'),
+            parent_id = $(this).val();
+        column.find('.block-id').each(function () {
+            if ($(this).val() == parent_id) {
+                draw_line($(this).closest('.comparison-block'), block, column);
+            }
+        });
     });
+}
 
-    $('.comparison-block').hover(
-        function () {
-            var column1 = $(this).closest('.reports-column'), column2, block_class = $(this).find('.block_class').val();
-            $('.reports-column').each(function () {
-                if (!$(this).is(column1)) {
-                    column2 = $(this);
-                }
-            });
-            if (column2.find('.block_class[value="' + block_class + '"]').length > 0) {
-                $('.block_class[value="' + block_class + '"]').closest('.comparison-block').addClass('block-hover-normal');
-            }
-            else {
-                $('.block_class[value="' + block_class + '"]').closest('.comparison-block').addClass('block-hover-single');
-            }
-        },
-        function () {
-            $('.comparison-block').removeClass('block-hover-single block-hover-normal');
+function block_hover_on() {
+    var column1 = $(this).closest('.reports-column'), column2, block_class = $(this).find('.block_class').val();
+    $('.reports-column').each(function () {
+        if (!$(this).is(column1)) {
+            column2 = $(this);
         }
-    );
+    });
+    if (column2 && column2.find('.block_class[value="' + block_class + '"]').length > 0) {
+        $('.block_class[value="' + block_class + '"]').closest('.comparison-block').addClass('block-hover-normal');
+    }
+    else {
+        $('.block_class[value="' + block_class + '"]').closest('.comparison-block').addClass('block-hover-single');
+    }
+}
+
+function block_hover_off() {
+    $('.comparison-block').removeClass('block-hover-single block-hover-normal');
 }
 
 function setup_buttons() {
@@ -118,7 +116,8 @@ function get_comparison(v_id, page_num) {
             }
             else {
                 $('#compare_data').html(data);
-                style_blocks();
+                $('.comparison-block').hover(block_hover_on, block_hover_off);
+                draw_connections();
                 setup_buttons();
             }
         }

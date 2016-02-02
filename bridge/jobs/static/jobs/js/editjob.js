@@ -985,8 +985,7 @@ $(document).ready(function () {
                     }
                 }
             ).fail(function (x) {
-                console.log(x.responseText);
-                    clearInterval(interval);
+                clearInterval(interval);
             });
         }, 3000);
     }

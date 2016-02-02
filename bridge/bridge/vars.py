@@ -23,7 +23,8 @@ ERRORS = {
     804: _("The problem was not found"),
     900: _("You don't have an access to this page"),
     505: _("Couldn't visualize the error trace"),
-    506: _("Comparison cache data was not found")
+    506: _("Comparison cache data was not found or corrupted"),
+    507: _("You don't have access to compare these jobs"),
 }
 
 LANGUAGES = (
