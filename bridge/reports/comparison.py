@@ -298,12 +298,12 @@ class ComparisonData(object):
                     continue
                 for a1 in b1.list:
                     if a1['name'] not in list(x['name'] for x in b2.list):
-                        a1['color'] = '#df0806'
+                        a1['color'] = '#c60806'
                     for a2 in b2.list:
                         if a2['name'] not in list(x['name'] for x in b1.list):
-                            a2['color'] = '#df0806'
+                            a2['color'] = '#c60806'
                         if a1['name'] == a2['name'] and a1['value'] != a2['value']:
-                            a1['color'] = a2['color'] = '#cc73cf'
+                            a1['color'] = a2['color'] = '#af49bd'
         if self.hide_attrs:
             for b1 in blocks1:
                 for b2 in blocks2:
@@ -427,10 +427,13 @@ class ComparisonData(object):
         if parent_id is not None:
             block.parents.append('c_%s' % parent_id)
         for a in report.attrs.order_by('attr__name__name'):
-            block.list.append({
+            attr_data = {
                 'name': a.attr.name.name,
                 'value': a.attr.value
-            })
+            }
+            if attr_data['name'] in COMPARE_ATTRS[self.info.root1.job.type]:
+                attr_data['color'] = '#8bb72c'
+            block.list.append(attr_data)
         block.href = reverse('reports:component', args=[report.root.job_id, report.pk])
         return block
 
@@ -444,10 +447,13 @@ class ComparisonData(object):
         block.parents.append('c_%s' % parent_id)
         block.add_info = {'value': report.get_verdict_display(), 'color': UNSAFE_COLOR[report.verdict]}
         for a in report.attrs.order_by('attr__name__name'):
-            block.list.append({
+            attr_data = {
                 'name': a.attr.name.name,
                 'value': a.attr.value
-            })
+            }
+            if attr_data['name'] in COMPARE_ATTRS[self.info.root1.job.type]:
+                attr_data['color'] = '#8bb72c'
+            block.list.append(attr_data)
         block.href = reverse('reports:leaf', args=['unsafe', report.pk])
         return block
 
@@ -461,10 +467,13 @@ class ComparisonData(object):
         block.parents.append('c_%s' % parent_id)
         block.add_info = {'value': report.get_verdict_display(), 'color': SAFE_COLOR[report.verdict]}
         for a in report.attrs.order_by('attr__name__name'):
-            block.list.append({
+            attr_data = {
                 'name': a.attr.name.name,
                 'value': a.attr.value
-            })
+            }
+            if attr_data['name'] in COMPARE_ATTRS[self.info.root1.job.type]:
+                attr_data['color'] = '#8bb72c'
+            block.list.append(attr_data)
         block.href = reverse('reports:leaf', args=['safe', report.pk])
         return block
 
@@ -477,10 +486,13 @@ class ComparisonData(object):
         block = CompareBlock('f_%s' % report_id, 'unknown', _('Unknown'), 'unknown-%s' % report.component.name)
         block.parents.append('c_%s' % parent_id)
         for a in report.attrs.order_by('attr__name__name'):
-            block.list.append({
+            attr_data = {
                 'name': a.attr.name.name,
                 'value': a.attr.value
-            })
+            }
+            if attr_data['name'] in COMPARE_ATTRS[self.info.root1.job.type]:
+                attr_data['color'] = '#8bb72c'
+            block.list.append(attr_data)
         block.href = reverse('reports:leaf', args=['unknown', report.pk])
         return block
 
