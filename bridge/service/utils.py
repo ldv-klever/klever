@@ -706,7 +706,7 @@ class SetSchedulersStatus(object):
             if scheduler.type == SCHEDULER_TYPE[0][0]:
                 progress.finish_date = now()
                 progress.error = "Klever scheduler was disconnected"
-                progress.job.status = JOB_STATUS[4][0]
+                progress.job.status = JOB_STATUS[5][0]
                 progress.job.save()
             progress.save()
 
