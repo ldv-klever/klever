@@ -396,7 +396,8 @@ def jobs_comparison(request, job1_id, job2_id):
             'job1': job1,
             'job2': job2,
             'tabledata': tabledata.data,
-            'compare_info': tabledata.info
+            'compare_info': tabledata.info,
+            'attrs': tabledata.attrs
         }
     )
 
@@ -406,14 +407,17 @@ def get_compare_jobs_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
-    if any(x not in request.POST for x in ['info_id', 'verdict']):
+    if 'info_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    if all(x not in request.POST for x in ['verdict', 'attrs']):
         return JsonResponse({'error': 'Unknown error'})
     result = ComparisonData(
         request.POST['info_id'],
-        request.POST['verdict'],
         int(request.POST.get('page_num', 1)),
         True if 'hide_attrs' in request.POST else False,
-        True if 'hide_components' in request.POST else False
+        True if 'hide_components' in request.POST else False,
+        request.POST.get('verdict', None),
+        request.POST.get('attrs', None)
     )
     if result.error is not None:
         return JsonResponse({'error': str(result.error)})
@@ -433,6 +437,7 @@ def get_compare_jobs_data(request):
             'job2': result.info.root2.job,
             'data': result.data,
             'pages': result.pages,
-            'verdict': request.POST['verdict']
+            'verdict': request.POST.get('verdict', None),
+            'attrs': request.POST.get('attrs', None)
         }
     )

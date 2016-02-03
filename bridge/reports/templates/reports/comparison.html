@@ -84,17 +84,40 @@
             </table>
         </div>
         <div class="six wide column">
-            <div class="ui checkbox">
-                <input id="show_all_components" type="checkbox">
-                <label for="show_all_components">{% trans 'Show all components' %}</label>
-            </div>
-            <br><br>
-            <div class="ui checkbox">
-                <input id="show_all_attrs" type="checkbox">
-                <label for="show_all_attrs">{% trans 'Show all attributes' %}</label>
+            {% for attr in attrs %}
+                <span style="font-weight: bold;">{{ attr.name }}</span>
+                <div class="ui small search selection fluid dropdown attrs-dropdown">
+                    <input type="hidden" name="attr_value">
+                    <i class="dropdown icon"></i>
+                    <div class="default text">{% trans 'Select attribute value' %}</div>
+                    <div class="menu">
+                        {% for av in attr.values %}
+                            <div class="item">{{ av }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <br>
+            {% endfor %}
+            <div class="ui grid">
+                <div class="eleven wide column">
+                    <br>
+                    <div class="ui checkbox">
+                        <input id="show_all_components" type="checkbox">
+                        <label for="show_all_components">{% trans 'Show all components' %}</label>
+                    </div>
+                    <br><br>
+                    <div class="ui checkbox">
+                        <input id="show_all_attrs" type="checkbox">
+                        <label for="show_all_attrs">{% trans 'Show all attributes' %}</label>
+                    </div>
+                </div>
+                <div class="five wide column right aligned">
+                    <button id="search_by_attrs" type="button" class="ui small violet button">{% trans 'Search' %}</button>
+                </div>
             </div>
         </div>
     </div>
     <input id="compare_info" type="hidden" value="{{ compare_info }}">
     <div id="compare_data"></div>
+    <span id="error__no_selected_attribute" hidden>{% trans 'Please select all attributes' %}</span>
 {% endblock %}

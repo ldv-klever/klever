@@ -33,6 +33,11 @@
     </div>
 </div>
 <input id="total_pages" type="hidden" value="{{ pages.total }}">
-<input id="current_verdict" type="hidden" value="{{ verdict }}">
+
 <input id="current_page_num" type="hidden" value="{{ pages.num }}">
+{% if verdict %}
+    <input id="current_verdict" type="hidden" value="{{ verdict }}">
+{% elif attrs %}
+    <input id="attrs_search_value" type="hidden" value="{{ attrs }}">
+{% endif %}
 <br>

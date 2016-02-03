@@ -179,7 +179,8 @@ class CompareTree(object):
                 if len(branch_ids) > 0:
                     ids2.append(branch_ids)
             for_cache.append(CompareJobsCache(
-                info=info, verdict1=self.attr_values[x]['v1'], verdict2=self.attr_values[x]['v2'],
+                info=info, attr_values=x,
+                verdict1=self.attr_values[x]['v1'], verdict2=self.attr_values[x]['v2'],
                 reports1=json.dumps(ids1), reports2=json.dumps(ids2)
             ))
         CompareJobsCache.objects.bulk_create(for_cache)
@@ -193,6 +194,7 @@ class ComparisonTableData(object):
         self.data = []
         self.error = None
         self.info = 0
+        self.attrs = []
         self.__get_data()
 
     def __get_data(self):
@@ -212,28 +214,47 @@ class ComparisonTableData(object):
                     num = (num, v2[0])
                 row_data.append(num)
             self.data.append(row_data)
+        all_attrs = {}
+        for compare in info.comparejobscache_set.all():
+            try:
+                attr_values = json.loads(compare.attr_values)
+            except Exception as e:
+                self.error = 'Unknown error'
+                print(e)
+                return
+            if len(attr_values) != len(COMPARE_ATTRS[info.root1.job.type]):
+                self.error = 'Unknown error'
+                return
+            for i in range(0, len(attr_values)):
+                if COMPARE_ATTRS[info.root1.job.type][i] not in all_attrs:
+                    all_attrs[COMPARE_ATTRS[info.root1.job.type][i]] = []
+                if attr_values[i] not in all_attrs[COMPARE_ATTRS[info.root1.job.type][i]]:
+                    all_attrs[COMPARE_ATTRS[info.root1.job.type][i]].append(attr_values[i])
+
+        for a in COMPARE_ATTRS[info.root1.job.type]:
+            if a in all_attrs:
+                self.attrs.append({'name': a, 'values': list(sorted(all_attrs[a]))})
 
 
 class ComparisonData(object):
-    def __init__(self, info_id, verdict, page_num, hide_attrs=False, hide_components=False):
+    def __init__(self, info_id, page_num, hide_attrs, hide_components, verdict=None, attrs=None):
         self.error = None
         try:
             self.info = CompareJobsInfo.objects.get(pk=info_id)
         except ObjectDoesNotExist:
             self.error = _("Compare cache does not exist")
             return
-        (self.v1, self.v2) = self.__get_verdicts(verdict)
-        if self.error is not None:
-            return
+        self.v1 = self.v2 = None
         self.hide_attrs = hide_attrs
         self.hide_components = hide_components
+        self.attr_search = False
         self.pages = {
             'backward': True,
             'forward': True,
             'num': page_num,
             'total': 0
         }
-        self.data = self.__get_data()
+        self.data = self.__get_data(verdict, attrs)
 
     def __get_verdicts(self, verdict):
         m = re.match('^(\d)_(\d)$', verdict)
@@ -247,16 +268,32 @@ class ComparisonData(object):
             return None, None
         return v1, v2
 
-    def __get_data(self):
-        data = self.info.comparejobscache_set.filter(verdict1=self.v1, verdict2=self.v2).order_by('id')
+    def __get_data(self, verdict=None, search_attrs=None):
+        if search_attrs is not None:
+            try:
+                search_attrs = json.dumps(json.loads(search_attrs))
+            except ValueError:
+                self.error = 'Unknown error'
+                return None
+            data = self.info.comparejobscache_set.filter(attr_values=search_attrs).order_by('id')
+            self.attr_search = True
+        elif verdict is not None:
+            (v1, v2) = self.__get_verdicts(verdict)
+            data = self.info.comparejobscache_set.filter(verdict1=v1, verdict2=v2).order_by('id')
+        else:
+            self.error = 'Unknown error'
+            return None
         self.pages['total'] = len(data)
         if self.pages['total'] < self.pages['num']:
-            self.error = _('Not enough reports to compare. Seems like comparison data is corrupted.')
+            self.error = _('Needed reports was not found')
             return None
         self.pages['backward'] = (self.pages['num'] > 1)
         self.pages['forward'] = (self.pages['num'] < self.pages['total'])
+        data = data[self.pages['num'] - 1]
+        self.v1 = data.verdict1
+        self.v2 = data.verdict2
 
-        branches = self.__compare_reports(data[self.pages['num'] - 1])
+        branches = self.__compare_reports(data)
         if branches is None:
             if self.error is None:
                 self.error = 'Unknown error'
