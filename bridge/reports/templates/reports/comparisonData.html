@@ -18,7 +18,7 @@
         {% include 'reports/comparisonTree.html' with data=data.1 %}
     </div>
 </div>
-
+<br>
 <div style="text-align: center">
     <div class="ui basic buttons">
         {% if pages.backward %}
@@ -35,3 +35,4 @@
 <input id="total_pages" type="hidden" value="{{ pages.total }}">
 <input id="current_verdict" type="hidden" value="{{ verdict }}">
 <input id="current_page_num" type="hidden" value="{{ pages.num }}">
+<br>
