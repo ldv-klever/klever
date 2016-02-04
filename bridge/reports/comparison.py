@@ -522,6 +522,14 @@ class ComparisonData(object):
             return None
         block = CompareBlock('f_%s' % report_id, 'unknown', _('Unknown'), 'unknown-%s' % report.component.name)
         block.parents.append('c_%s' % parent_id)
+        problems = list(x.problem.name for x in report.markreport_set.order_by('id'))
+        if len(problems) > 0:
+            block.add_info = {
+                'value': '; '.join(problems),
+                'color': '#c60806'
+            }
+        else:
+            block.add_info = {'value': _('Without marks')}
         for a in report.attrs.order_by('attr__name__name'):
             attr_data = {
                 'name': a.attr.name.name,
