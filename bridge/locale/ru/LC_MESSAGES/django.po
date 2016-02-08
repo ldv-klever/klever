@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-08 12:49+0000\n"
+"POT-Creation-Date: 2016-02-08 12:56+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1156,7 +1156,7 @@ msgstr ""
 #: jobs/templates/jobs/viewVersions.html:40
 #: jobs/templates/jobs/viewVersions.html:44
 #: marks/templates/marks/markVersions.html:41
-#: marks/templates/marks/markVersions.html:45 templates/Population.html:60
+#: marks/templates/marks/markVersions.html:45 templates/Population.html:63
 #: templates/error.html:12
 msgid "OK"
 msgstr "Хорошо"
@@ -2005,62 +2005,62 @@ msgstr "Планировщик Klever нездоров"
 msgid "Population"
 msgstr "Наполнение базы данных"
 
-#: templates/Population.html:13
+#: templates/Population.html:16
 msgid "A new Manager was created"
 msgstr "Был создан новый Руководитель"
 
-#: templates/Population.html:14 templates/Population.html.py:24
+#: templates/Population.html:17 templates/Population.html.py:27
 #: users/templates/users/login.html:19
 #: users/templates/users/schedulerUser.html:6
 msgid "Username"
 msgstr "Имя пользователя"
 
-#: templates/Population.html:15 templates/Population.html.py:25
+#: templates/Population.html:18 templates/Population.html.py:28
 #: users/forms.py:20 users/templates/users/login.html:21
 #: users/templates/users/schedulerUser.html:24
 msgid "Password"
 msgstr "Пароль"
 
-#: templates/Population.html:16
+#: templates/Population.html:19
 msgid "Please save this data and give it to the user who will be the Manager"
 msgstr ""
 "Пожалуйста, сохранить эти данные и передайте их пользователю, который будет "
 "Руководителем"
 
-#: templates/Population.html:23
+#: templates/Population.html:26
 msgid "A new service user was created"
 msgstr "Был создан новый служебный пользователь"
 
-#: templates/Population.html:26
+#: templates/Population.html:29
 msgid "Please save this data and give it to the service user"
 msgstr ""
 "Пожалуйста, сохранить эти данные и передайте их служебному пользователю"
 
-#: templates/Population.html:34
+#: templates/Population.html:37
 msgid "Error traces conversion and comparison functions were updated"
 msgstr "Были обновлены функции преобразования и сравнения трасс ошибок"
 
-#: templates/Population.html:39
+#: templates/Population.html:42
 msgid "New root jobs were uploaded"
 msgstr "Были загружены новые корневые задания"
 
-#: templates/Population.html:44
+#: templates/Population.html:47
 msgid "New preset jobs were uploaded"
 msgstr "Были загружены новые предустановленные задания"
 
-#: templates/Population.html:54
+#: templates/Population.html:57
 msgid "New unknown marks were uploaded"
 msgstr "Были загружены новые оценки проблем в компонентах"
 
-#: templates/Population.html:58
+#: templates/Population.html:61
 msgid "Nothing changed"
 msgstr "Ничего не изменилось"
 
-#: templates/Population.html:62
+#: templates/Population.html:65
 msgid "Welcome to Klever Bridge!"
 msgstr "Добро пожаловать!"
 
-#: templates/Population.html:69
+#: templates/Population.html:72
 msgid ""
 "Create the Manager with the specified username and jobs of all classes on "
 "behalf of that Manager"
@@ -2068,19 +2068,23 @@ msgstr ""
 "Создать Руководителя с указанным именем и задания всех классов от имени "
 "данного Руководителя"
 
-#: templates/Population.html:71
+#: templates/Population.html:74
 msgid "Manager username"
 msgstr "Имя Руководителя"
 
-#: templates/Population.html:79
+#: templates/Population.html:82
 msgid "Create the service user with the specified username"
 msgstr "Создать служебного пользователя с указанным именем"
 
-#: templates/Population.html:81
+#: templates/Population.html:84
 msgid "Service username"
 msgstr "Имя служебного пользователя"
 
-#: templates/Population.html:88
+#: templates/Population.html:92
+msgid "Manager and service usernames must be different"
+msgstr "Имена Руководителя и служебного пользователя должны быть разными"
+
+#: templates/Population.html:95
 msgid "Populate"
 msgstr "Наполнить базу данных"
 
