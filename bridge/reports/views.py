@@ -334,7 +334,7 @@ def get_log_content(request, report_id):
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
     if len(report.log.file) > 10000:
-        return HttpResponse(_('The component log is huge and can not be showed. But you can download it'))
+        return HttpResponse(_('The component log is huge and can not be showed but you can download it'))
     return HttpResponse(report.log.file.read().decode('utf8'))
 
 
