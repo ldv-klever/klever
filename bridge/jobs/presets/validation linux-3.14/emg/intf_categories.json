@@ -1,0 +1,401 @@
+{
+  "kernel functions": {
+    "usb_reset_device": {
+      "signature": "int %s usb_reset_device(struct usb_device *%s)",
+      "header": "include/linux/usb.h"
+    },
+    "usb_register": {
+      "signature": "$ usb_register(*%usb.usb_driver%)",
+      "header": "include/linux/usb.h"
+    },
+    "usb_deregister": {
+      "signature": "$ usb_deregister(*%usb.usb_driver%)",
+      "header": "include/linux/usb.h"
+    },
+    "platform_driver_unregister": {
+      "signature": "$ platform_driver_unregister(*%platform.platform_driver%)",
+      "header": "include/linux/platform_device.h"
+    },
+    "platform_driver_probe": {
+      "signature": "$ platform_driver_probe(*%platform.platform_driver%, *%platform.probe%, ...)",
+      "header": "include/linux/platform_device.h"
+    },
+    "platform_driver_register": {
+      "signature": "$ platform_driver_register(*%platform.platform_driver%, ...)",
+      "header": "include/linux/platform_device.h"
+    },
+    "alloc_netdev": {
+      "signature": "*%net.net_device% alloc_netdev($, $, $, *%net.setup%)",
+      "header": "include/linux/netdevice.h"
+    },
+    "register_netdev": {
+      "signature": "$ register_netdev(*%net.net_device%)",
+      "header": "include/linux/netdevice.h"
+    },
+    "unregister_netdev": {
+      "signature": "$ unregister_netdev(*%net.net_device%)",
+      "header": "include/linux/netdevice.h"
+    },
+    "free_netdev": {
+      "signature": "$ free_netdev(*%net.net_device%)",
+      "header": "include/linux/netdevice.h"
+    },
+    "mod_timer": {
+      "signature": "$ mod_timer(*%timer.timer_list%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "mod_timer_pinned": {
+      "signature": "int %s mod_timer_pinned(*%timer.timer_list%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "mod_timer_pending": {
+      "signature": "int %s mod_timer_pending(*%timer.timer_list%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "del_timer": {
+      "signature": "int %s del_timer(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "del_timer_sync": {
+      "signature": "int %s del_timer_sync(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "try_to_del_timer_sync": {
+      "signature": "int %s try_to_del_timer_sync(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "request_threaded_irq": {
+      "signature": "int %s request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+      "header": "include/linux/interrupt.h"
+    },
+    "request_irq": {
+      "signature": "int %s request_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
+      "header": "include/linux/interrupt.h"
+    },
+    "devm_request_threaded_irq": {
+      "signature": "int %s devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+      "header": "include/linux/interrupt.h"
+    },
+    "free_irq": {
+      "signature": "$ free_irq(%interrupt.line%, %interrupt.data%)",
+      "header": "include/linux/interrupt.h"
+    },
+    "i2c_register_driver": {
+      "signature": "int %s i2c_register_driver($, *%i2c.i2c_driver%)",
+      "header": "include/linux/i2c.h"
+    },
+    "i2c_del_driver": {
+      "signature": "void i2c_del_driver(*%i2c.i2c_driver%)",
+      "header": "include/linux/i2c.h"
+    }
+  },
+  "kernel macro-functions": {
+    "usb_register": {
+      "signature": "int %s usb_register(*%usb.usb_driver%)",
+      "header": "include/linux/usb.h"
+    },
+    "init_timer": {
+      "signature": "init_timer(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "init_timer_deferrable": {
+      "signature": "init_timer_deferrable(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "init_timer_on_stack": {
+      "signature": "init_timer_on_stack(*%timer.timer_list%)",
+      "header": "include/linux/timer.h"
+    },
+    "setup_timer": {
+      "signature": "setup_timer(*%timer.timer_list%, *%timer.handler%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "setup_timer_on_stack": {
+      "signature": "setup_timer_on_stack(*%timer.timer_list%, *%timer.handler%, %timer.data%)",
+      "header": "include/linux/timer.h"
+    },
+    "register_qdisc": {
+      "signature": "int %s register_qdisc(*%Qdisc.Qdisc_ops%)",
+      "header": "include/net/pkt_sched.h"
+    },
+    "unregister_qdisc": {
+      "signature": "int %s unregister_qdisc(*%Qdisc.Qdisc_ops%)",
+      "header": "include/net/pkt_sched.h"
+    }
+  },
+  "categories": {
+    "usb": {
+      "containers": {
+        "usb_driver": {
+          "header": "include/linux/usb.h",
+          "signature": "struct usb_driver %s",
+          "fields": {
+            "pre_reset": "pre",
+            "post_reset": "post",
+            "disconnect": "release",
+            "suspend": "suspend",
+            "resume": "resume"
+          }
+        }
+      },
+      "callbacks": {
+        "pre": {
+          "signature": "int %s (*%usb.pre%) (*%usb.usb_interface%)"
+        },
+        "post": {
+          "signature": "int %s (*%usb.post%) (*%usb.usb_interface%)"
+        },
+        "release": {
+          "signature": "void (*%usb.release%) (*%usb.usb_interface%)"
+        },
+        "suspend": {
+          "signature": "int %s (*%usb.suspend%) (*%usb.usb_interface%, %usb.pm_mesage%)"
+        },
+        "resume": {
+          "signature": "int %s (*%usb.resume%) (*%usb.usb_interface%)"
+        }
+      },
+      "resources": {
+        "usb_interface": {
+          "signature": "struct usb_interface %s",
+          "header": "include/linux/usb.h",
+          "implemented in kernel": true
+        },
+        "pm_mesage": {
+          "signature": "pm_message_t %s"
+        }
+      }
+    },
+    "net": {
+      "containers": {
+        "net_device": {
+          "signature": "struct net_device %s",
+          "header": "include/linux/netdevice.h",
+          "fields": {
+            "netdev_ops": "net_device_ops",
+            "ethtool_ops": "ethtool_ops"
+          }
+        },
+        "net_device_ops": {
+          "signature": "struct net_device_ops %s",
+          "header": "include/linux/netdevice.h",
+          "fields": {
+            "ndo_open": "open",
+            "ndo_stop": "stop"
+          }
+        },
+        "ethtool_ops": {
+          "signature": "struct ethtool_ops %s",
+          "header": "include/linux/netdevice.h"
+        }
+      },
+      "callbacks": {
+        "open": {
+          "signature": "int %s (*%net.open%)(*%net.net_device%)"
+        },
+        "stop": {
+          "signature": "int %s (*%net.stop%)(*%net.net_device%)"
+        },
+        "setup": {
+          "signature": "$ (*%net.setup%)(*%net.net_device%)"
+        }
+      },
+      "resources": {
+        "net_device": {}
+      }
+    },
+    "proto": {
+      "containers": {
+        "proto_ops": {
+          "signature": "struct proto_ops %s",
+          "header": "include/linux/net.h",
+          "fields": {
+            "bind": "probe",
+            "release": "release"
+          }
+        }
+      },
+      "resources": {
+        "socket": {
+          "signature": "struct socket %s"
+        },
+        "sockaddr": {
+          "signature": "struct socket %s"
+        },
+        "sockaddr_len": {
+          "signature": "int %s"
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int %s (*%proto.probe%)(*%proto.socket%, *%proto.sockaddr%, %proto.sockaddr_len%)"
+        },
+        "release": {
+          "signature": "int %s (*%proto.release%)(*%proto.socket%)"
+        }
+      }
+    },
+    "device_driver": {
+      "containers": {
+        "device_driver": {
+          "signature": "struct device_driver %s",
+          "header": "include/linux/device.h",
+          "fields": {
+            "pm": "dev_pm_ops"
+          }
+        },
+        "dev_pm_ops": {
+          "signature": "struct dev_pm_ops *%s",
+          "header": "include/linux/pm.h"
+        }
+      }
+    },
+    "platform": {
+      "containers": {
+        "platform_driver": {
+          "signature": "struct platform_driver %s",
+          "header": "include/linux/platform_device.h",
+          "fields": {
+            "probe": "probe",
+            "remove": "release"
+          }
+        }
+      },
+      "resources": {
+        "platform_device": {
+          "signature": "struct platform_device %s",
+          "header": "include/linux/platform_device.h",
+          "implemented in kernel": true
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int %s (*%platform.probe%)(*%platform.platform_device%)"
+        },
+        "release": {
+          "signature": "int %s (*%platform.release%)(*%platform.platform_device%)"
+        }
+      }
+    },
+    "file_operations": {
+      "containers": {
+        "file_operations": {
+          "signature": "struct file_operations %s",
+          "header": "include/linux/fs.h",
+          "fields": {
+            "release": "release",
+            "open": "probe"
+          }
+        }
+      },
+      "resources": {
+        "file": {
+          "signature": "struct file %s"
+        },
+        "inode": {
+          "signature": "struct inode %s"
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int %s (*%file_operations.probe%) (*%file_operations.inode%, *%file_operations.file%)"
+        },
+        "release": {
+          "signature": "$ (*%file_operations.release%) (*%file_operations.inode%, *%file_operations.file%)"
+        }
+      }
+    },
+    "i2c": {
+      "containers": {
+        "i2c_driver": {
+          "signature": "struct i2c_driver %s",
+          "header": "include/linux/i2c.h",
+          "fields": {
+            "remove": "release"
+          }
+        }
+      },
+      "resources": {
+        "client": {
+          "signature": "struct i2c_client %s"
+        }
+      },
+      "callbacks": {
+        "release": {
+          "signature": "int %s (*%i2c.release%)(*%i2c.client%)"
+        }
+      }
+    },
+    "Qdisc": {
+      "containers": {
+        "Qdisc_ops": {
+          "signature": "struct Qdisc_ops %s",
+          "header": "include/net/sch_generic.h",
+          "fields": {
+            "init": "probe",
+            "destroy": "release"
+          }
+        }
+      },
+      "resources": {
+        "Qdisc": {
+          "signature": "struct Qdisc *%s"
+        },
+        "nlattr": {
+          "signature": "struct nlattr *%s"
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int %s (*%Qdisc.probe%)(*%Qdisc.Qdisc%, *%Qdisc.nlattr%)"
+        },
+        "release": {
+          "signature": "void (*%Qdisc.release%)(*%Qdisc.Qdisc%)"
+        }
+      }
+    },
+    "timer": {
+      "containers": {
+        "timer_list": {
+          "signature": "struct timer_list %s",
+          "header": "include/linux/timer.h",
+          "fields": {
+            "data": "data",
+            "function": "handler"
+          }
+        }
+      },
+      "resources": {
+        "data": {
+          "signature": "unsigned long %s"
+        }
+      },
+      "callbacks": {
+        "handler": {
+          "signature": "void (*%timer.handler%)(%timer.data%)",
+          "interrupt context": true
+        }
+      }
+    },
+    "interrupt": {
+      "containers": {},
+      "resources": {
+        "line": {
+          "signature": "unsigned int %s"
+        },
+        "data": {
+          "signature": "void *%s"
+        }
+      },
+      "callbacks": {
+        "handler": {
+          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, *%interrupt.data%)",
+          "interrupt context": true
+        },
+        "thread": {
+          "signature": "irqreturn_t %s (*%interrupt.handler%)(%interrupt.line%, *%interrupt.data%)"
+        }
+      }
+    }
+  }
+}

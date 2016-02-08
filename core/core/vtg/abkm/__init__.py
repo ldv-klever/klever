@@ -332,13 +332,19 @@ class ABKM(core.components.Component):
                                 txt = dom.createTextNode(warns[src_file][i])
                                 warn.appendChild(txt)
                                 warn.setAttribute('key', 'warning')
-                                # Add warning either to edge itself or to first edge with note at violation path. If
-                                # don't do the latter warning will be hidden by error trace visualizer.
+                                # Add warning either to edge itself or to first edge that enters function and has note
+                                # at violation path. If don't do the latter warning will be hidden by error trace
+                                # visualizer.
                                 warn_edge = edge
                                 for cur_src_edge in violation_edges:
+                                    is_func_entry = False
                                     for data in cur_src_edge.getElementsByTagName('data'):
-                                        if data.getAttribute('key') == 'note':
-                                            warn_edge = cur_src_edge
+                                        if data.getAttribute('key') == 'enterFunction':
+                                            is_func_entry = True
+                                    if is_func_entry:
+                                        for data in cur_src_edge.getElementsByTagName('data'):
+                                            if data.getAttribute('key') == 'note':
+                                                warn_edge = cur_src_edge
                                 # Remove note from node for what we are going to add warning if so. Otherwise error
                                 # trace visualizer will be confused.
                                 for data in warn_edge.getElementsByTagName('data'):

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-01-19 10:07+0000\n"
+"POT-Creation-Date: 2016-02-08 13:49+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -159,7 +159,7 @@ msgstr "Эксперт и оператор"
 msgid "Not solved"
 msgstr "Не решено"
 
-#: bridge/vars.py:59 bridge/vars.py:354
+#: bridge/vars.py:59 bridge/vars.py:356
 msgid "Pending"
 msgstr "Ожидает"
 
@@ -179,7 +179,7 @@ msgstr "Провалено"
 msgid "Corrupted"
 msgstr "Повреждено"
 
-#: bridge/vars.py:64 bridge/vars.py:358
+#: bridge/vars.py:64 bridge/vars.py:360
 msgid "Cancelled"
 msgstr "Отменено"
 
@@ -235,52 +235,52 @@ msgstr "Несовместимые оценки"
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: bridge/vars.py:329 bridge/vars.py:348
+#: bridge/vars.py:331 bridge/vars.py:350
 #: service/templates/service/scheduler.html:27
 msgid "Healthy"
 msgstr "Здоровый"
 
-#: bridge/vars.py:330 bridge/vars.py:349
+#: bridge/vars.py:332 bridge/vars.py:351
 #: service/templates/service/scheduler.html:29
 msgid "Ailing"
 msgstr "Нездоровый"
 
-#: bridge/vars.py:331 bridge/vars.py:350
+#: bridge/vars.py:333 bridge/vars.py:352
 #: service/templates/service/scheduler.html:31
 msgid "Disconnected"
 msgstr "Отключенный"
 
-#: bridge/vars.py:340
+#: bridge/vars.py:342
 msgid "Urgent"
 msgstr "Срочный"
 
-#: bridge/vars.py:341
+#: bridge/vars.py:343
 msgid "High"
 msgstr "Высокий"
 
-#: bridge/vars.py:342
+#: bridge/vars.py:344
 msgid "Low"
 msgstr "Низкий"
 
-#: bridge/vars.py:343
+#: bridge/vars.py:345
 msgid "Idle"
 msgstr "Незанятый"
 
-#: bridge/vars.py:347
+#: bridge/vars.py:349
 msgid "User occupied"
 msgstr "Занятый пользователем"
 
-#: bridge/vars.py:355
+#: bridge/vars.py:357
 msgid "Processing"
 msgstr "Решается"
 
-#: bridge/vars.py:357 templates/error.html:5
+#: bridge/vars.py:359 templates/error.html:5
 msgid "Error"
 msgstr "Ошибка"
 
-#: bridge/views.py:34 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:748
-#: marks/utils.py:806 marks/utils.py:941 marks/views.py:209 marks/views.py:405
-#: marks/views.py:435 marks/views.py:446 reports/etv.py:380
+#: bridge/views.py:34 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:747
+#: marks/utils.py:805 marks/utils.py:940 marks/views.py:209 marks/views.py:405
+#: marks/views.py:435 marks/views.py:446 reports/etv.py:381
 #: service/utils.py:822 service/utils.py:830 service/utils.py:921
 #: service/utils.py:943 service/utils.py:986 service/utils.py:990
 #: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
@@ -345,9 +345,11 @@ msgstr "Статус решения"
 msgid "Start date"
 msgstr "Дата начала работы"
 
-#: jobs/JobTableProperties.py:31 reports/templates/reports/ReportMain.html:88
+#: jobs/JobTableProperties.py:31
+#: reports/templates/reports/AttrsFilters.html:23
+#: reports/templates/reports/ReportMain.html:88
 msgid "Finish date"
-msgstr "Дата завершение работы"
+msgstr "Дата завершения работы"
 
 #: jobs/JobTableProperties.py:42 jobs/utils.py:39
 msgid "Last change date"
@@ -362,8 +364,8 @@ msgstr "Потребленные ресурсы"
 #: jobs/JobTableProperties.py:44 jobs/JobTableProperties.py:45
 #: jobs/templates/jobs/viewJobFilters.html:60
 #: jobs/templates/jobs/viewJobFilters.html:101
-#: reports/templates/reports/AttrsFilters.html:8
-#: reports/templates/reports/UnknownsFilters.html:15
+#: reports/templates/reports/AttrsFilters.html:49
+#: reports/templates/reports/UnknownsFilters.html:30
 #: tools/templates/tools/ManagerPanel.html:23
 msgid "Component name"
 msgstr "Название компонента"
@@ -728,11 +730,12 @@ msgstr "ГБ"
 #: jobs/templates/jobs/startDecision.html:71
 #: marks/templates/marks/filters.html:61
 #: marks/templates/marks/filters.html:166
-#: reports/templates/reports/AttrsFilters.html:31
-#: reports/templates/reports/ListFilters.html:13
-#: reports/templates/reports/ListFilters.html:20
-#: reports/templates/reports/UnknownsFilters.html:13
-#: reports/templates/reports/UnknownsFilters.html:38
+#: reports/templates/reports/AttrsFilters.html:41
+#: reports/templates/reports/AttrsFilters.html:72
+#: reports/templates/reports/ListFilters.html:26
+#: reports/templates/reports/ListFilters.html:35
+#: reports/templates/reports/UnknownsFilters.html:26
+#: reports/templates/reports/UnknownsFilters.html:53
 msgid "e.g."
 msgstr "например,"
 
@@ -881,11 +884,11 @@ msgstr "Добавить фильтр по"
 #: marks/templates/marks/filters.html:127
 #: marks/templates/marks/filters.html:149
 #: marks/templates/marks/filters.html:172
-#: reports/templates/reports/AttrsFilters.html:13
-#: reports/templates/reports/AttrsFilters.html:37
-#: reports/templates/reports/ListFilters.html:26
-#: reports/templates/reports/UnknownsFilters.html:20
-#: reports/templates/reports/UnknownsFilters.html:44
+#: reports/templates/reports/AttrsFilters.html:54
+#: reports/templates/reports/AttrsFilters.html:78
+#: reports/templates/reports/ListFilters.html:41
+#: reports/templates/reports/UnknownsFilters.html:35
+#: reports/templates/reports/UnknownsFilters.html:59
 msgid "is"
 msgstr "совпадает с"
 
@@ -900,11 +903,11 @@ msgstr "совпадает с"
 #: jobs/templates/jobs/viewJobFilters.html:142
 #: marks/templates/marks/filters.html:106
 #: marks/templates/marks/filters.html:173
-#: reports/templates/reports/AttrsFilters.html:14
-#: reports/templates/reports/AttrsFilters.html:38
-#: reports/templates/reports/ListFilters.html:27
-#: reports/templates/reports/UnknownsFilters.html:21
-#: reports/templates/reports/UnknownsFilters.html:45
+#: reports/templates/reports/AttrsFilters.html:55
+#: reports/templates/reports/AttrsFilters.html:79
+#: reports/templates/reports/ListFilters.html:42
+#: reports/templates/reports/UnknownsFilters.html:36
+#: reports/templates/reports/UnknownsFilters.html:60
 msgid "starts with"
 msgstr "начинается с"
 
@@ -917,8 +920,8 @@ msgstr "начинается с"
 #: jobs/templates/jobs/viewJobFilters.html:107
 #: jobs/templates/jobs/viewJobFilters.html:126
 #: jobs/templates/jobs/viewJobFilters.html:143
-#: reports/templates/reports/AttrsFilters.html:15
-#: reports/templates/reports/UnknownsFilters.html:22
+#: reports/templates/reports/AttrsFilters.html:56
+#: reports/templates/reports/UnknownsFilters.html:37
 msgid "contains"
 msgstr "содержит"
 
@@ -1485,7 +1488,7 @@ msgstr "Проблема"
 #: marks/tables.py:29 marks/templates/marks/EditUnknownMark.html:42
 #: marks/templates/marks/ViewMark.html:24
 #: marks/templates/marks/filters.html:19 marks/templates/marks/filters.html:99
-#: reports/utils.py:21
+#: reports/templates/reports/AttrsFilters.html:13 reports/utils.py:21
 msgid "Component"
 msgstr "Компонент"
 
@@ -1509,7 +1512,7 @@ msgstr "Удалена"
 msgid "Comparison failed"
 msgstr "Сравнение провалилось"
 
-#: marks/tables.py:526 reports/utils.py:274
+#: marks/tables.py:526 reports/utils.py:296
 #, python-format
 msgid "%(all)s (%(broken)s are broken)"
 msgstr "%(all)s (%(broken)s сломаны)"
@@ -1681,11 +1684,12 @@ msgstr "Упорядочить по атрибуту"
 
 #: marks/templates/marks/filters.html:61
 #: marks/templates/marks/filters.html:166
-#: reports/templates/reports/AttrsFilters.html:31
-#: reports/templates/reports/ListFilters.html:13
-#: reports/templates/reports/ListFilters.html:20
-#: reports/templates/reports/UnknownsFilters.html:13
-#: reports/templates/reports/UnknownsFilters.html:38
+#: reports/templates/reports/AttrsFilters.html:41
+#: reports/templates/reports/AttrsFilters.html:72
+#: reports/templates/reports/ListFilters.html:26
+#: reports/templates/reports/ListFilters.html:35
+#: reports/templates/reports/UnknownsFilters.html:26
+#: reports/templates/reports/UnknownsFilters.html:53
 msgid "Enter the full name of the attribute"
 msgstr "Введите полное название атрибута"
 
@@ -1699,31 +1703,31 @@ msgid "is not"
 msgstr "не совпадает с"
 
 #: marks/templates/marks/filters.html:161
-#: reports/templates/reports/AttrsFilters.html:26
-#: reports/templates/reports/ListFilters.html:15
-#: reports/templates/reports/UnknownsFilters.html:33
+#: reports/templates/reports/AttrsFilters.html:67
+#: reports/templates/reports/ListFilters.html:30
+#: reports/templates/reports/UnknownsFilters.html:48
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:767 marks/views.py:186
+#: marks/utils.py:766 marks/views.py:186
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: marks/utils.py:771
+#: marks/utils.py:770
 msgid "The mark format is not supported"
 msgstr "Формат оценки не поддерживается"
 
-#: marks/utils.py:855 marks/utils.py:858
+#: marks/utils.py:854 marks/utils.py:857
 msgid "The attributes have wrong format"
 msgstr "Формат атрибутов некорректный"
 
-#: marks/utils.py:894 marks/utils.py:902 marks/utils.py:907 marks/utils.py:910
-#: marks/utils.py:915 marks/utils.py:920 marks/utils.py:922 marks/utils.py:924
-#: marks/utils.py:927
+#: marks/utils.py:893 marks/utils.py:901 marks/utils.py:906 marks/utils.py:909
+#: marks/utils.py:914 marks/utils.py:919 marks/utils.py:921 marks/utils.py:923
+#: marks/utils.py:926
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
-#: marks/utils.py:912
+#: marks/utils.py:911
 msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
@@ -1743,13 +1747,25 @@ msgstr "У Вас нет прав создавать новые оценки"
 msgid "You can't delete one of the selected mark"
 msgstr "Вы не можете удалить одну из отмеченных оценок"
 
-#: reports/etv.py:377
+#: reports/etv.py:378
 msgid "Could not find the corresponding unsafe"
 msgstr "Не удалось найти соответствующие предупреждение об ошибке"
 
-#: reports/etv.py:388
+#: reports/etv.py:389
 msgid "Could not find the source file"
 msgstr "Не удалось найти файл с исходным кодом"
+
+#: reports/templates/reports/AttrsFilters.html:8
+msgid "Order by"
+msgstr "Упорядочить по"
+
+#: reports/templates/reports/AttrsFilters.html:18
+msgid "Attribute"
+msgstr "Атрибут"
+
+#: reports/templates/reports/AttrsFilters.html:47
+msgid "Only finished children will be shown"
+msgstr "Будут показаны только завершенные потомки"
 
 #: reports/templates/reports/ETV.html:21
 msgid "Play"
@@ -1806,6 +1822,10 @@ msgstr "Проигрывание трассы ошибки завершено"
 msgid "Error trace"
 msgstr "Трасса ошибки"
 
+#: reports/templates/reports/ListFilters.html:26
+msgid "Leave empty for order by creation date"
+msgstr "Оставьте пустым для упорядочивания по дате создания"
+
 #: reports/templates/reports/ReportMain.html:35
 msgid "In progress"
 msgstr "Выполняется"
@@ -1842,6 +1862,10 @@ msgstr "Потомков нет, пожалуйста, подождите их �
 #: reports/templates/reports/ReportMain.html:174
 msgid "Statistics on component and its children"
 msgstr "Статистика по компоненту и его потомкам"
+
+#: reports/templates/reports/UnknownsFilters.html:26
+msgid "Leave empty for order by component"
+msgstr "Оставьте пустым для упорядочивания по компоненту"
 
 #: reports/templates/reports/etv_fullscreen.html:6
 msgid "Error Trace Fullscreen"

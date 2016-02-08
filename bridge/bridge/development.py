@@ -118,7 +118,7 @@ DEF_KLEVER_CORE_RESTRICTIONS = {
 DEF_KLEVER_CORE_CONFIGURATION = {
     'debug': True,
     'allow_local_dir': True,  # Allow use of local source directories
-    'priority': 'IDLE',  # See bridge.vars.PRIORITY for more options
+    'priority': 'LOW',  # See bridge.vars.PRIORITY for more options
     'avtg_priority': 'balance',  # See service.utils.AVTG_PRIORITY for more options
     'formatters': {
         'console': "%(name)s %(levelname)5s> %(message)s",
@@ -130,6 +130,7 @@ DEF_KLEVER_CORE_CONFIGURATION = {
     }
 }
 
+# TODO: use dictionary rather than several variables as above. Don't forget to fix production.py as well.
 DEF_USER_DATAFORMAT = 'hum'  # See bridge.vars.DATAFORMAT for options
 
 DEF_USER_LANGUAGE = 'en'  # See bridge.vars.LANGUAGES for options

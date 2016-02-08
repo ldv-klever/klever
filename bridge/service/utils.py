@@ -1,12 +1,13 @@
 import json
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
 from bridge.utils import print_err
 from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_CONFIGURATION
 from jobs.utils import JobAccess
-from reports.models import ReportRoot, Report, ReportUnknown
+from reports.models import ReportRoot, Report, ReportUnknown, ReportComponent
 from service.models import *
 
 
@@ -491,8 +492,8 @@ class GetTasks(object):
                     if progress.job.identifier in data['jobs']['finished']:
                         try:
                             if len(ReportUnknown.objects.filter(
-                                    parent=Report.objects.get(
-                                        parent=None, root=progress.job.reportroot
+                                    parent=ReportComponent.objects.get(
+                                        Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
                                     )
                             )) > 0:
                                 progress.job.status = JOB_STATUS[5][0]
@@ -706,7 +707,7 @@ class SetSchedulersStatus(object):
             if scheduler.type == SCHEDULER_TYPE[0][0]:
                 progress.finish_date = now()
                 progress.error = "Klever scheduler was disconnected"
-                progress.job.status = JOB_STATUS[4][0]
+                progress.job.status = JOB_STATUS[5][0]
                 progress.job.save()
             progress.save()
 

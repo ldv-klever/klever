@@ -1,20 +1,20 @@
 {
   "Linux kernel": {
-    "source": "linux-3.14.tar.xz",
+    "source": "linux-3.5.tar.bz2",
     "configuration": "allmodconfig",
     "build kernel": false,
-    "modules": ["drivers/block/cciss.ko"]
+    "modules": ["drivers/net/usb/kaweth.ko"]
   },
   "LKVOG strategy": {
     "name": "separate modules"
   },
   "rule specifications DB": "rule specs.json",
-  "rule specifications": ["linux:mutex"],
+  "rule specifications": ["linux:alloc2", "linux:mutex", "linux:module"],
   "VTG strategy": {
     "name": "all bug kinds merge",
     "verifier": {
       "name": "CPAchecker",
-      "version": "1.4",
+      "version": "19280",
       "options": [
         {"-ldv": ""}
       ]

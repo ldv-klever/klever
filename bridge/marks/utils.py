@@ -83,8 +83,7 @@ class NewMark(object):
                         func.name, report.error_trace.decode('utf8'))
                     if converted.error is not None:
                         return converted.error
-                    mark.error_trace = converted.pattern_error_trace\
-                        .encode('utf8')
+                    mark.error_trace = converted.pattern_error_trace.encode('utf8')
                 except ObjectDoesNotExist:
                     return "Convertion function was not found"
 

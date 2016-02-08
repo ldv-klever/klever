@@ -13,7 +13,7 @@
       "name": "all bug kinds merge",
       "verifier": {
         "name": "CPAchecker",
-        "version": "18921",
+        "version": "19280",
         "options": [
           {"-ldv": ""}
         ]
@@ -43,102 +43,30 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "ae3f348~"
-        },
-        "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe"
-    },    
-    {
-      "Linux kernel": {
-        "Git repository": {
           "commit": "e4c7f25~"
         },
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe"
-    },    
+    },
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "2ad1de9~"
+          "commit": "ef70c60~"
         },
         "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
       },
       "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe"
-    },    
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "511f1df~"
-        },
-        "modules": ["drivers/net/ppp/ppp_generic.ko"]
-      },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "7c3214d~"
-        },
-        "modules": ["net/sunrpc/sunrpc.ko"]
-      },
-      "rule specifications": ["linux:module"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "df074ad~"
-        },
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "1d0aa4e~"
-        },
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "214c97a12~"
-        },
-        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "a0f1046~"
-        },
-        "modules": ["drivers/w1/wire.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "a5d0e7c~"
-        },
-        "modules": ["net/tipc/tipc.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "VTG strategy": {
+        "verifier": {
+          "options": [
+            {"-valueAnalysis": ""},
+            {"-setprop": "cpa.callstack.skipRecursion=true"}
+          ]
+        }
+      }
     }
   ],
   "hard jobs": [

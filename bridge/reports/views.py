@@ -10,11 +10,10 @@ from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
 from marks.utils import MarkAccess
-from marks.models import UnsafeTag, SafeTag
+from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
-
 from reports.etv import GetSource, GetETV
 
 
@@ -317,7 +316,7 @@ def get_component_log(request, report_id):
     logname = report.component.name + '.log'
     response = StreamingHttpResponse(FileWrapper(report.log.file, 8192), content_type='text/plain')
     response['Content-Length'] = len(report.log.file)
-    response['Content-Disposition'] = "attachment; filename=%s" % quote(logname)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
 

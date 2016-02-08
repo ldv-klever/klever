@@ -36,11 +36,16 @@ class Translator(AbstractTranslator):
 
     def _generate_entry_point(self):
         # Initialize additional attributes
-        self.unmatched_constant = 2
+        self.instance_modifier = 2
         self.callback_fsa = []
         self.model_fsa = []
         self.entry_fsa = None
         self.__identifier_cnt = -1
+
+        # Read translation options
+        if "translation options" in self.conf:
+            if "instance modifier" in self.conf["translation options"]:
+                self.instance_modifier = self.conf["translation options"]["instance modifier"]
 
         # Determine how many instances is required for a model
         self.logger.info("Determine how many instances is required to add to an environment model for each process")
@@ -57,7 +62,7 @@ class Translator(AbstractTranslator):
 
             # Determine is it necessary to make several instances
             if len(undefined_labels) > 0:
-                base_list = [copy.deepcopy(process) for i in range(self.unmatched_constant)]
+                base_list = [copy.deepcopy(process) for i in range(self.instance_modifier)]
             else:
                 base_list = [process]
             self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
@@ -176,6 +181,27 @@ class Translator(AbstractTranslator):
 
                         new_base_list.append(newp)
                 base_list = new_base_list
+
+        # Copy callbacks or resources which are not tied to a container
+        accesses = base_list[0].accesses()
+        relevant_multi_leafs = []
+        for access in accesses.values():
+            relevant_multi_leafs.extend([inst for inst in access if inst.interface and
+                                         len(inst.interface.implementations) > 1])
+        if len(relevant_multi_leafs) > 0:
+            for access in relevant_multi_leafs:
+                new_base_list = []
+                for implementation in access.interface.implementations:
+                    for instance in base_list:
+                        newp = copy.deepcopy(instance)
+                        newp_accesses = newp.accesses()
+                        modify_acc = [acc for acc in newp_accesses[access.expression]
+                                      if acc.interface.full_identifier == access.interface.full_identifier][0]
+                        modify_acc.interface.implementations = [implementation]
+                        new_base_list.append(newp)
+
+                base_list = new_base_list
+
         return base_list
 
     def generate_entry_function(self):

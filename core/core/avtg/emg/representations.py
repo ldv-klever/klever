@@ -356,7 +356,10 @@ class Variable:
     def declare(self, extern=False):
         # Generate declaration
         declaration = self.signature.expression
-        if self.signature.type_class == "function":
+
+        # todo: investigate deeper why the condition should be so strange
+        if self.signature.type_class == "function" and not (not self.signature.return_value and
+                        None in self.signature.parameters):
             if self.signature.return_value:
                 declaration = self.signature.return_value.expression.replace("%s", "") + " "
             else:

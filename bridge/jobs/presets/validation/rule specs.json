@@ -25,7 +25,9 @@
             "specifications directory": "emg",
             "entry point": "entry_point",
             "translator": "sequential",
-            "translation options": {},
+            "translation options": {
+              "instance modifier": 1
+            },
             "additional headers": [
               "rcv.h",
               "sv-comp.h"
@@ -85,7 +87,9 @@
             "specifications directory": "emg",
             "entry point": "entry_point",
             "translator": "sequential",
-            "translation options": {},
+            "translation options": {
+              "instance modifier": 1
+            },
             "additional headers": [
               "rcv.h",
               "sv-comp.h"
