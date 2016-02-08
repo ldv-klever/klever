@@ -35,7 +35,7 @@ class Population(object):
     def __population(self):
         if self.user is not None:
             try:
-                self.user.extended
+                Extended.objects.get(user=self.user)
             except ObjectDoesNotExist:
                 self.__extend_user(self.user)
         self.__populate_functions()

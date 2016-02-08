@@ -7,7 +7,7 @@ from bridge.vars import JOB_STATUS
 from bridge.utils import print_err
 from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_CONFIGURATION
 from jobs.utils import JobAccess
-from reports.models import ReportRoot, Report, ReportUnknown, ReportComponent
+from reports.models import ReportRoot, ReportUnknown, ReportComponent
 from service.models import *
 
 
