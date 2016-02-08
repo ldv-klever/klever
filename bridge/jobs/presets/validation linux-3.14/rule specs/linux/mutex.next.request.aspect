@@ -1,0 +1,46 @@
+before: file ("$this")
+{
+#include <linux/kernel.h>
+#include <linux/mutex.h>
+
+extern void mutex_lock(struct mutex *);
+extern void mutex_lock_nested(struct mutex *, unsigned int);
+extern int mutex_lock_interruptible(struct mutex *);
+extern int mutex_lock_killable(struct mutex *);
+}
+
+around: define(mutex_lock(lock))
+{
+mutex_lock(lock)
+}
+
+around: define(mutex_lock_nested(lock, subclass))
+{
+mutex_lock_nested(lock, subclass)
+}
+
+around: define(mutex_lock_interruptible(lock))
+{
+mutex_lock_interruptible(lock)
+}
+
+around: define(mutex_lock_killable(lock))
+{
+mutex_lock_killable(lock)
+}
+
+info: call(void mutex_lock(struct mutex *)) || 
+      call(void mutex_lock_nested(struct mutex *, unsigned int)) ||
+      call(int mutex_lock_interruptible(struct mutex *)) ||
+      call(int mutex_lock_killable(struct mutex *)) ||
+      call(static inline int mutex_is_locked(struct mutex *)) ||
+      call(int mutex_trylock(struct mutex *)) ||
+      call(void mutex_unlock(struct mutex *))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(int atomic_dec_and_mutex_lock(atomic_t *, struct mutex *))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign2>
+}

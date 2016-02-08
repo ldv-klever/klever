@@ -44,7 +44,7 @@ class EMG(core.components.Component):
                 for file in headers:
                     self.logger.info("Search for header file {}".format(file))
                     header_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
-                    with open(header_file, "r") as fh:
+                    with open(header_file, encoding="ascii") as fh:
                         headers_lines.extend(fh.readlines())
                     headers_lines.append("\n")
             self.logger.info("{} additional header files are successfully imported for further importing in the model".
@@ -61,7 +61,7 @@ class EMG(core.components.Component):
                 for file in aspects:
                     self.logger.info("Search for aspect {}".format(file))
                     aspect_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
-                    with open(aspect_file, "r") as fh:
+                    with open(aspect_file, encoding="ascii") as fh:
                         aspect_lines.extend(fh.readlines())
                     aspect_lines.append("\n")
             self.logger.info("{} additional aspect files are successfully imported for further weaving with an "
@@ -85,7 +85,7 @@ class EMG(core.components.Component):
         if "source analysis" in avt:
             analysis_file = os.path.join(self.conf["main working directory"], avt["source analysis"])
             self.logger.info("Read file with results of source analysis from {}".format(analysis_file))
-            with open(analysis_file, "r") as fh:
+            with open(analysis_file, encoding="ascii") as fh:
                 analysis = json.loads(fh.read())
         else:
             self.logger.warning("Cannot find any results of source analysis provided from SA plugin")
@@ -153,7 +153,7 @@ class EMG(core.components.Component):
 
         for file in files:
             logger.info("Import content of specification file {}".format(file))
-            with open(file, "r") as fh:
+            with open(file, encoding="ascii") as fh:
                 spec = json.loads(fh.read())
 
             logger.info("Going to analyze content of specification file {}".format(file))

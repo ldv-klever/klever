@@ -25,7 +25,7 @@ def extract_description(solution_dir, description_file):
     logging.debug("Import description from the file {}".format(desc_file))
     description["desc"] = ""
     if os.path.isfile(desc_file):
-        with open(desc_file, "r") as di:
+        with open(desc_file, encoding="ascii") as di:
             for line in di:
                 key, value = line.strip().split("=")
                 if key == "tool":
@@ -41,7 +41,7 @@ def extract_description(solution_dir, description_file):
     termination_reason = None
     number = re.compile("(\d.*\d)")
     if os.path.isfile(general_file):
-        with open(general_file, "r") as gi:
+        with open(general_file, encoding="ascii") as gi:
             for line in gi:
                 key, value = line.strip().split("=", maxsplit=1)
                 if key == "terminationreason":
@@ -73,13 +73,9 @@ def extract_description(solution_dir, description_file):
     else:
         raise FileNotFoundError("There is no solution file {}".format(general_file))
 
-    # According to documentation remove exit code in case of killing
-    if "signal num" in description:
-        del description["return value"]
-
     # Set final status
     if termination_reason:
-        if termination_reason == "time":
+        if termination_reason == "cputime":
             description["status"] = "CPU time exhausted"
         elif termination_reason == "memory":
             description["status"] = "memory exhausted"
@@ -103,7 +99,7 @@ def extract_description(solution_dir, description_file):
     logging.debug("Import host information from the file {}".format(host_file))
     lv_re = re.compile("Linux\s(\d.*)")
     if os.path.isfile(host_file):
-        with open(host_file, "r") as hi:
+        with open(host_file, encoding="ascii") as hi:
             for line in hi:
                 key, value = line.strip().split("=", maxsplit=1)
                 if key == "name":
@@ -125,7 +121,7 @@ def extract_description(solution_dir, description_file):
 
     # Save description
     logging.debug("Save solution description to the file {}".format(description_file))
-    with open(description_file, "w") as df:
+    with open(description_file, "w", encoding="ascii") as df:
         df.write(json.dumps(description, sort_keys=True, indent=4))
 
     return identifier, description

@@ -14,6 +14,9 @@ void __VERIFIER_error(void);
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_assume(int expr);
 
+/* Check that error has not been found until there. */
+void ldv_check_final_state(void);
+
 /* Special nondeterministic functions. */
 int ldv_undef_int(void);
 void *ldv_undef_ptr(void);
