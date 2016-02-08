@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-01-19 10:07+0000\n"
+"POT-Creation-Date: 2016-02-08 12:49+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -278,9 +278,9 @@ msgstr "Решается"
 msgid "Error"
 msgstr "Ошибка"
 
-#: bridge/views.py:34 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:748
-#: marks/utils.py:806 marks/utils.py:941 marks/views.py:209 marks/views.py:405
-#: marks/views.py:435 marks/views.py:446 reports/etv.py:380
+#: bridge/views.py:34 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:747
+#: marks/utils.py:805 marks/utils.py:940 marks/views.py:209 marks/views.py:405
+#: marks/views.py:435 marks/views.py:446 reports/etv.py:381
 #: service/utils.py:822 service/utils.py:830 service/utils.py:921
 #: service/utils.py:943 service/utils.py:986 service/utils.py:990
 #: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
@@ -1705,25 +1705,25 @@ msgstr "не совпадает с"
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:767 marks/views.py:186
+#: marks/utils.py:766 marks/views.py:186
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: marks/utils.py:771
+#: marks/utils.py:770
 msgid "The mark format is not supported"
 msgstr "Формат оценки не поддерживается"
 
-#: marks/utils.py:855 marks/utils.py:858
+#: marks/utils.py:854 marks/utils.py:857
 msgid "The attributes have wrong format"
 msgstr "Формат атрибутов некорректный"
 
-#: marks/utils.py:894 marks/utils.py:902 marks/utils.py:907 marks/utils.py:910
-#: marks/utils.py:915 marks/utils.py:920 marks/utils.py:922 marks/utils.py:924
-#: marks/utils.py:927
+#: marks/utils.py:893 marks/utils.py:901 marks/utils.py:906 marks/utils.py:909
+#: marks/utils.py:914 marks/utils.py:919 marks/utils.py:921 marks/utils.py:923
+#: marks/utils.py:926
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
-#: marks/utils.py:912
+#: marks/utils.py:911
 msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
@@ -1743,11 +1743,11 @@ msgstr "У Вас нет прав создавать новые оценки"
 msgid "You can't delete one of the selected mark"
 msgstr "Вы не можете удалить одну из отмеченных оценок"
 
-#: reports/etv.py:377
+#: reports/etv.py:378
 msgid "Could not find the corresponding unsafe"
 msgstr "Не удалось найти соответствующие предупреждение об ошибке"
 
-#: reports/etv.py:388
+#: reports/etv.py:389
 msgid "Could not find the source file"
 msgstr "Не удалось найти файл с исходным кодом"
 
