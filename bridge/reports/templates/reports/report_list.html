@@ -53,7 +53,7 @@
     </div>
     <br>
     {% if TableData.table_data.values|length %}
-        <div id="report_list_table" style="overflow-x:auto;max-height:80vh;overflow-y:auto;">
+        <div id="report_list_table" style="overflow-x:auto;max-height:75vh;overflow-y:auto;">
             <table class="ui compact celled table {% if view_type == '6' %}red{% elif view_type == '5' %}green{% elif view_type == '4' %}orange{% endif %} ">
                 <thead>
                     {% for column_row in TableData.table_data.header %}

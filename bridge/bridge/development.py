@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import json
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -73,12 +74,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'bridge.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'bridge', 'mysql-db.cnf')},
-    }
-}
+DATABASES = {'default': {'ENGINE': 'django.db.backends.postgresql_psycopg2'}}
+
+DATABASES['default'].update(
+    json.loads(''.join(open(os.path.join(BASE_DIR, 'bridge', 'postgres-db.json'), 'r').read().split('\n')))
+)
 
 LANGUAGE_CODE = 'en-us'
 

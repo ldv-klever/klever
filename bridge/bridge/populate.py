@@ -141,7 +141,7 @@ class Population(object):
                 with override(DEFAULT_LANGUAGE):
                     args['name'] = JOB_CLASSES[i][1]
                     args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
-                    args['pk'] = i + 1
+                    # args['pk'] = i + 1
                     args['type'] = JOB_CLASSES[i][0]
                     create_job(args)
                     sleep(0.1)
