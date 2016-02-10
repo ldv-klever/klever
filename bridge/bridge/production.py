@@ -58,17 +58,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'bridge.wsgi.application'
 
-DB_TYPE = 'PostgreSQL'  # 'MySQL' or 'PostgreSQL'
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2' if DB_TYPE == 'PostgreSQL' else 'django.db.backends.mysql'
-    }
+    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json')))
 }
-
-DATABASES['default'].update(
-    json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json')))
-)
 
 LANGUAGE_CODE = 'en-us'
 
