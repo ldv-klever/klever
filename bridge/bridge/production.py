@@ -61,7 +61,7 @@ WSGI_APPLICATION = 'bridge.wsgi.application'
 DATABASES = {'default': {'ENGINE': 'django.db.backends.postgresql_psycopg2'}}
 
 DATABASES['default'].update(
-    json.loads(''.join(open(os.path.join(BASE_DIR, 'bridge', 'postgres-db.json'), 'r').read().split('\n')))
+    json.load(open(os.path.join(BASE_DIR, 'bridge', 'postgres-db.json')))
 )
 
 LANGUAGE_CODE = 'en-us'
