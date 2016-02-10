@@ -3,6 +3,9 @@
 {% load i18n %}
 
 {% block title %}{% trans 'Population' %}{% endblock %}
+{% block head_block %}
+    <script src="/static/js/population.js"></script>
+{% endblock %}
 
 {% block body_block %}
     {% if changes %}
@@ -85,6 +88,10 @@
             {% endif %}
             </div>
             <br><br>
+            <div id="usernames_err" style="display: none;">
+                <span style="color: #ff4b8c;">{% trans 'Manager and service usernames must be different' %}</span>
+                <br><br>
+            </div>
             <button type="submit" id="populate_button" class="ui green button">{% trans 'Populate' %}</button>
         </form>
     {% endif %}

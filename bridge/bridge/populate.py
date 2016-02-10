@@ -30,12 +30,13 @@ class Population(object):
         self.user = user
         self.manager = self.__get_manager(manager)
         self.__population()
-        self.__add_service_user(service)
+        if service != manager:
+            self.__add_service_user(service)
 
     def __population(self):
         if self.user is not None:
             try:
-                self.user.extended
+                Extended.objects.get(user=self.user)
             except ObjectDoesNotExist:
                 self.__extend_user(self.user)
         self.__populate_functions()
