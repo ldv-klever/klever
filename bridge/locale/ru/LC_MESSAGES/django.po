@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-08 14:11+0000\n"
+"POT-Creation-Date: 2016-02-10 15:29+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -480,7 +480,7 @@ msgstr "Сохранить"
 #: jobs/templates/jobs/filesTree.html:134
 #: jobs/templates/jobs/filesTree.html:168
 #: jobs/templates/jobs/filesTree.html:195 jobs/templates/jobs/tree.html:408
-#: jobs/templates/jobs/viewJob.html:187
+#: jobs/templates/jobs/viewJob.html:187 jobs/templates/jobs/viewJob.html:206
 #: jobs/templates/jobs/viewVersions.html:18
 #: jobs/templates/jobs/viewVersions.html:32
 #: marks/templates/marks/CreateMark.html:111
@@ -824,6 +824,7 @@ msgid "Allow use of local source directories"
 msgstr "Разрешить использовать локальные директории с исходным кодом"
 
 #: jobs/templates/jobs/startDecision.html:130
+#: jobs/templates/jobs/viewJob.html:207
 msgid "Start"
 msgstr "Начать"
 
@@ -1017,6 +1018,7 @@ msgid "unsaved"
 msgstr "не сохранено"
 
 #: jobs/templates/jobs/tree.html:399 jobs/templates/jobs/viewJob.html:178
+#: jobs/templates/jobs/viewJob.html:197
 #: jobs/templates/jobs/viewVersions.html:23
 #: marks/templates/marks/EditMark.html:137
 #: marks/templates/marks/EditUnknownMark.html:133
@@ -1124,6 +1126,10 @@ msgstr "Последнее изменение"
 #: jobs/templates/jobs/viewJob.html:182
 msgid "All versions and all data of this job will be deleted"
 msgstr "Все версии и все данные задания будут удалены"
+
+#: jobs/templates/jobs/viewJob.html:201
+msgid "All reports of this job will be deleted"
+msgstr "Все отчеты задания будут удалены"
 
 #: jobs/templates/jobs/viewJobFilters.html:49
 msgid "Hide problems without marks"
@@ -1910,7 +1916,8 @@ msgstr "Проблемы в компонентах с оценкой"
 
 #: reports/views.py:337
 msgid "The component log is huge and can not be showed but you can download it"
-msgstr "Лог компонента большой и не может быть показан, но Вы можете загрузить его"
+msgstr ""
+"Лог компонента большой и не может быть показан, но Вы можете загрузить его"
 
 #: service/templates/service/scheduler.html:4 templates/base.html:43
 msgid "Schedulers"
