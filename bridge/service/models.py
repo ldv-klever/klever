@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models.signals import pre_delete
+from django.db.models.signals import pre_delete, post_init
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.formatChecker import RestrictedFileField
@@ -95,6 +95,13 @@ class SolvingProgress(models.Model):
         db_table = 'solving_progress'
 
 
+@receiver(post_init, sender=SolvingProgress)
+def get_progress_configuration(**kwargs):
+    progress = kwargs['instance']
+    if not isinstance(progress.configuration, bytes):
+        progress.configuration = progress.configuration.tobytes()
+
+
 class Task(models.Model):
     progress = models.ForeignKey(SolvingProgress)
     status = models.CharField(max_length=10, choices=TASK_STATUS, default='PENDING')
@@ -105,6 +112,13 @@ class Task(models.Model):
 
     class Meta:
         db_table = 'task'
+
+
+@receiver(post_init, sender=Task)
+def get_task_description(**kwargs):
+    task = kwargs['instance']
+    if not isinstance(task.description, bytes):
+        task.description = task.description.tobytes()
 
 
 @receiver(pre_delete, sender=Task)
@@ -122,6 +136,13 @@ class Solution(models.Model):
 
     class Meta:
         db_table = 'solution'
+
+
+@receiver(post_init, sender=Solution)
+def get_solution_description(**kwargs):
+    solution = kwargs['instance']
+    if not isinstance(solution.description, bytes):
+        solution.description = solution.description.tobytes()
 
 
 @receiver(pre_delete, sender=Solution)
