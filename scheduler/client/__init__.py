@@ -153,7 +153,7 @@ def solve_task(conf):
         {"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"},
         # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
         # general memory size limit.
-        {"-heap": '{0}m'.format(round(conf["resource limits"]["memory size"] / (4 * 1000 ** 2)))}
+        {"-heap": '{0}m'.format(round(3 * conf["resource limits"]["memory size"] / (4 * 1000 ** 2)))}
     ]:
         for name in opt:
             ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
