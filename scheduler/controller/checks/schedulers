@@ -3,10 +3,10 @@ import os
 import json
 import sys
 import consulate
+import subprocess
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
-import utils as utils
 import utils.bridge as bridge
 
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
@@ -22,12 +22,11 @@ status = {
     "Klever": "DISCONNECTED"
 }
 
-a = utils.get_output("ps -aux | grep -F \"klever-scheduler.py\" ")
-ks_out = int(utils.get_output("ps -aux | grep -F \"native-scheduler\" -c"))
-if ks_out > 2:
+ks_out = subprocess.getoutput('ps -aux | grep [n]ative-scheduler')
+if ks_out and ks_out != '':
     status["Klever"] = "HEALTHY"
-vc_out = int(utils.get_output("ps -aux | grep -F \"verifiercloud-scheduler\" -c"))
-if vc_out > 2:
+vc_out = subprocess.getoutput('ps -aux | grep [v]erifiercloud-scheduler')
+if vc_out and vc_out != '':
     status["VerifierCloud"] = "HEALTHY"
 
 data = {
