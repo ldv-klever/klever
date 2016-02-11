@@ -43,7 +43,7 @@ class ASE(core.components.Component):
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
         # "-nostdinc" option and system stdarg.h couldn't be used.
-        gcc_search_dir = '-I{0}'.format(
+        gcc_search_dir = '-isystem{0}'.format(
             core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'), collect_all_stdout=True)[0])
 
         env = dict(os.environ)
