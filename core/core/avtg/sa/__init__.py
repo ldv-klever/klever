@@ -129,7 +129,7 @@ class SA(core.components.Component):
                                                      (['--keep'] if self.conf['debug'] else []) +
                                                      ['--'] +
                                                      command["opts"] +
-                                                     ['-I{0}'.format(stdout[0])]),
+                                                     ['-isystem{0}'.format(stdout[0])]),
                                   cwd=self.conf['source tree root'])
 
     def _import_content(self, file):
