@@ -21,6 +21,8 @@ Klever Bridge installation
 
     MariaDB [(none)]> CREATE USER `db_user`@`localhost` IDENTIFIED BY 'db_user_passwd';
 
+   .. note:: Password can be omitted.
+
 #. Create a new MySQL/MariaDB database (**db_name**) with character set utf8 and grant full access on all its tables to
    **db_user**::
 
@@ -28,13 +30,21 @@ Klever Bridge installation
     MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
     MariaDB [(none)]> FLUSH PRIVILEGES;
 
-#. Create :file:`bridge/bridge/mysql-db.cnf`::
+#. Create :file:`bridge/bridge/db.json`:
 
-    [client]
-    database = db_name
-    user = db_user
-    password = db_user_passwd
-    default-character-set = utf8
+   .. code-block:: json
+
+      {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "db_name",
+        "USER": "db_user",
+        "PASSWORD": "db_user_passwd",
+        "HOST": "127.0.0.1",
+        "PORT": "3306"
+      }
+
+   .. note:: Password can be omitted if it wasn't set before. Host and port can be omitted if they don't differ from the
+             values specified in the example.
 
 #. Execute the following manage.py tasks::
 
