@@ -4,4 +4,4 @@ import sys
 
 import core.lkbce.cmds.cmds
 
-core.lkbce.cmds.cmds.Command(sys.argv).launch()
+exit(core.lkbce.cmds.cmds.Command(sys.argv).launch())
