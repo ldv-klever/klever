@@ -53,6 +53,9 @@ def after_generate_all_verification_obj_descs(context):
 def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
 
+    if 'rule specifications' not in conf:
+        return []
+
     # Read rule specification descriprions DB.
     with open(core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB']),
               encoding='ascii') as fp:
