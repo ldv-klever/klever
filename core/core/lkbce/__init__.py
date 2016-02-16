@@ -59,6 +59,10 @@ class LKBCE(core.components.Component):
         # This file should be specified to collect build commands during configuring and building of the Linux kernel.
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
         self.configure_linux_kernel()
+        # Always create Linux kernel raw build commands file prior to its reading in
+        # self.process_all_linux_kernel_raw_build_cmds().
+        with open(self.linux_kernel['raw build cmds file'], 'w'):
+            pass
         self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
         if not self.conf['debug']:
