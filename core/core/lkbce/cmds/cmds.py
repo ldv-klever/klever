@@ -15,7 +15,7 @@ class Command:
         self.opts = argv[1:]
 
     def launch(self):
-        # Eclude path where wrapper build command is located.
+        # Exclude path where wrapper build command is located.
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
 
         # Execute original build command.
