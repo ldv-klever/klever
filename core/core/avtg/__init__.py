@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import copy
+import importlib
 import json
 import multiprocessing
 import os
@@ -8,16 +9,6 @@ import queue
 
 import core.components
 import core.utils
-
-# TODO: try to use modulefinder package to avoid explicit enumerating of these plugins here and setting list of these
-# plugins below.
-# ATVG plugins.
-from core.avtg.sa import SA
-from core.avtg.emg import EMG
-from core.avtg.ase import ASE
-from core.avtg.tr import TR
-from core.avtg.rsg import RSG
-from core.avtg.weaver import Weaver
 
 
 def before_launch_all_components(context):
@@ -161,7 +152,6 @@ def _extract_rule_spec_descs(conf, logger):
 
 
 _rule_spec_descs = None
-_plugins = (SA, EMG, ASE, TR, RSG, Weaver)
 
 
 def get_subcomponent_callbacks(conf, logger):
@@ -175,16 +165,14 @@ def get_subcomponent_callbacks(conf, logger):
     # Find appropriate classes for plugins if so.
     for rule_spec_desc in _rule_spec_descs:
         for plugin_desc in rule_spec_desc['plugins']:
-            plugin_found = False
-            for plugin in _plugins:
-                if plugin_desc['name'] == plugin.__name__:
-                    plugin_found = True
-                    # Remember found class to create its instance during main operation.
-                    plugin_desc['plugin'] = plugin
-                    if plugin not in plugins:
-                        plugins.append(plugin)
-                    break
-            if not plugin_found:
+            try:
+                plugin = getattr(importlib.import_module('.{0}'.format(plugin_desc['name'].lower()), 'core.avtg'),
+                                 plugin_desc['name'])
+                # Remember found class to create its instance during main operation.
+                plugin_desc['plugin'] = plugin
+                if plugin not in plugins:
+                    plugins.append(plugin)
+            except ImportError:
                 raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
 
     return core.utils.get_component_callbacks(logger, plugins, conf)
