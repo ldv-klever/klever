@@ -457,8 +457,9 @@ class LKBCE(core.components.Component):
             env.update({'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
 
         return core.utils.execute(self.logger,
-                                  tuple(['make', '-j', str(jobs_num), '-C', self.linux_kernel['work src tree']] +
+                                  tuple(['make', '-j', str(jobs_num)] +
                                         (['ARCH={0}'.format(self.linux_kernel['arch'])] if specify_arch else []) +
                                         list(build_target)),
                                   env,
+                                  cwd=self.linux_kernel['work src tree'],
                                   collect_all_stdout=collect_all_stdout)
