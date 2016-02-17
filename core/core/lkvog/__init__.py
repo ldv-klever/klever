@@ -283,8 +283,7 @@ class LKVOG(core.components.Component):
                             match = True
                             break
             else:
-                self.logger.warning(
-                    'Nothing will be verified since "modules" attribute is not specified or its value is empty')
+                self.logger.warning('Nothing will be verified since modules are not specified')
 
             if match:
                 self.linux_kernel_module_names_mq.put(desc['out file'])
