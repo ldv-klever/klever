@@ -95,20 +95,12 @@ class LKBCE(core.components.Component):
                                 'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
                 # Examine module sets.
-                modules = []
                 for modules_set in self.conf['Linux kernel']['modules']:
                     # Module sets ending with .ko imply individual modules.
                     if re.search(r'\.ko$', modules_set):
-                        modules.append(modules_set)
+                        build_targets.append((modules_set,))
                     # Otherwise it is directory that can contain modules.
                     else:
-                        # Add all individual modules collected thus far as one build target. This helps to keep order
-                        # of modules if both individual modules and module directories are specified.
-                        if modules:
-                            build_targets.append(tuple(modules))
-                            # Clean up list of individual modules to avoid multiple appearance of them.
-                            del modules
-
                         # Add "modules_prepare" target once.
                         if not build_targets or build_targets[0] != ('modules_prepare',):
                             build_targets.insert(0, ('modules_prepare',))
@@ -119,9 +111,6 @@ class LKBCE(core.components.Component):
                                                                                                     'work src tree']))
 
                         build_targets.append(('M={0}'.format(modules_set), 'modules'))
-                # Add all individual modules collected thus far as one build target.
-                if modules:
-                    build_targets.append(tuple(modules))
 
         if build_targets:
             self.logger.debug('Build following targets:\n{0}'.format(
