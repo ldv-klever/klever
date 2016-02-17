@@ -111,6 +111,8 @@ class LKBCE(core.components.Component):
                                                                                                     'work src tree']))
 
                         build_targets.append(('M={0}'.format(modules_set), 'modules'))
+        else:
+            self.logger.warning('Nothing will be verified since modules are not specified')
 
         if build_targets:
             self.logger.debug('Build following targets:\n{0}'.format(
