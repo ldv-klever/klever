@@ -77,7 +77,7 @@ class LKVOG(core.components.Component):
         self.module = {}
         self.all_modules = {}
         self.verification_obj_desc = {}
-        self.checked_modules = []
+        self.checked_clusters = {}
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         core.utils.invoke_callbacks(self.extract_common_prj_attrs)
@@ -162,8 +162,13 @@ class LKVOG(core.components.Component):
             if strategy_name in strategies_list:
                 clusters = strategy.divide(self.module['name'])
                 for cluster in clusters:
-                    self.cluster = cluster
-                    core.utils.invoke_callbacks(self.generate_verification_obj_desc)
+                    cluster_hash = hash(cluster)
+                    if cluster_hash not in self.checked_clusters or frozenset(cluster.modules) not in \
+                            [frozenset(pos_cluster.modules) for pos_cluster in self.checked_clusters[cluster_hash]]:
+                        self.checked_clusters.setdefault(cluster_hash, [])
+                        self.checked_clusters[cluster_hash].append(cluster)
+                        self.cluster = cluster
+                        core.utils.invoke_callbacks(self.generate_verification_obj_desc)
 
     def generate_verification_obj_desc(self):
         self.logger.info(
