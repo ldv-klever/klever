@@ -283,7 +283,9 @@ class LKVOG(core.components.Component):
                             match = True
                             break
             else:
-                self.logger.warning('Nothing will be verified since modules are not specified')
+                self.logger.warning(
+                    'Module {0} will not be verified since modules to be verified are not specified'.format(
+                        desc['out file']))
 
             if match:
                 self.linux_kernel_module_names_mq.put(desc['out file'])

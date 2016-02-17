@@ -243,6 +243,11 @@ class AVTG(core.components.Component):
                 self.mqs['verification obj descs'].close()
                 break
 
+            if not self.rule_spec_descs:
+                self.logger.warning(
+                    'Verification object {0} will not be verified since rule specifications are not specified'.format(
+                        verification_obj_desc['id']))
+
             # TODO: specification requires to do this in parallel...
             for rule_spec_desc in self.rule_spec_descs:
                 core.utils.invoke_callbacks(self.generate_abstact_verification_task_desc,
