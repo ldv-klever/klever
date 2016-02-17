@@ -134,7 +134,7 @@ class LKBCE(core.components.Component):
                         # Linux kernel doesn't support parrallel build of several .ko files, so build them using one
                         # thread. Note that it looks like it is still more optimal than build several .ko files in
                         # parrallel but invoking make per each .ko file independently.
-                        jobs_num=jobs_num if len(build_target) > 1 and build_target[1] == 'modules' else 1,
+                        jobs_num=jobs_num if build_target[1] == 'modules' else 1,
                         specify_arch=True, collect_build_cmds=True)
 
         self.linux_kernel['module deps'] = {}
