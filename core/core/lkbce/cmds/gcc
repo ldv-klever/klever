@@ -2,6 +2,6 @@
 
 import sys
 
-import core.lkbce.cmds.cmds
+import cmds
 
-exit(core.lkbce.cmds.cmds.Command(sys.argv).launch())
+exit(cmds.Command(sys.argv).launch())
