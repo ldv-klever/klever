@@ -28,13 +28,16 @@ def after_build_linux_kernel(context):
 
 
 def after_process_linux_kernel_raw_build_cmd(context):
-    # Do not dump full description if input file is absent or '/dev/null' or STDIN ('-') or output file is absent.
-    # Corresponding CC commands will not be traversed when building verification object descriptions.
-    if context.linux_kernel['build cmd']['type'] == 'CC' \
-            and context.linux_kernel['build cmd']['in files'] \
-            and context.linux_kernel['build cmd']['in files'][0] != '-' \
-            and not re.search(r'^/', context.linux_kernel['build cmd']['in files'][0]) \
-            and context.linux_kernel['build cmd']['out file']:
+    if context.linux_kernel['build cmd']['type'] == 'CC':
+        # Filter out CC commands if input file is absent or '/dev/null' or STDIN ('-') or 'init/version.c' or output
+        # file is absent. They won't be used when building verification object descriptions.
+        if not context.linux_kernel['build cmd']['in files'] \
+           or re.search(r'^/', context.linux_kernel['build cmd']['in files'][0]) \
+           or context.linux_kernel['build cmd']['in files'][0] == '-' \
+           or context.linux_kernel['build cmd']['in files'][0] == 'init/version.c' \
+           or not context.linux_kernel['build cmd']['out file']:
+            return
+
         context.linux_kernel['build cmd']['full desc file'] = '{0}.json'.format(
             context.linux_kernel['build cmd']['out file'])
         linux_kernel_build_cmd_full_desc_file = os.path.relpath(os.path.join(context.linux_kernel['work src tree'],
