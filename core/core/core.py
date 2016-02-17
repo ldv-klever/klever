@@ -212,7 +212,7 @@ class Core:
                 if self.logger:
                     self.logger.info('Exit with code "{0}"'.format(self.exit_code))
 
-                exit(self.exit_code)
+                return self.exit_code
 
     def get_conf(self):
         # Get configuration file from command-line options. If it is not specified, then use the default one.
