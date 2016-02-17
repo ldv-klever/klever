@@ -1,5 +1,6 @@
 import argparse
 import copy
+import importlib
 import json
 import multiprocessing
 import os
@@ -10,12 +11,6 @@ import traceback
 import core.job
 import core.session
 import core.utils
-
-# Klever Core components.
-from core.lkbce import LKBCE
-from core.lkvog import LKVOG
-from core.avtg import AVTG
-from core.vtg import VTG
 
 
 class Core:
@@ -38,10 +33,10 @@ class Core:
         self.uploading_reports_process = None
         self.job_class_components = {
             'Verification of Linux kernel modules': [
-                LKBCE,
-                LKVOG,
-                AVTG,
-                VTG,
+                'LKBCE',
+                'LKVOG',
+                'AVTG',
+                'VTG',
             ],
             'Validation on commits in Linux kernel Git repositories': [],
         }
@@ -347,7 +342,8 @@ class Core:
         if job.type not in self.job_class_components:
             raise KeyError('Job class "{0}" is not supported'.format(job.type))
 
-        self.components = self.job_class_components[job.type]
+        self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'core'), component) for
+                           component in self.job_class_components[job.type]]
 
         self.logger.debug(
             'Components to be launched: "{0}"'.format(', '.join([component.__name__ for component in self.components])))
