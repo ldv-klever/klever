@@ -45,6 +45,7 @@ def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
 
     if 'rule specifications' not in conf:
+        logger.warning('Nothing will be verified since rule specifications are not specified')
         return []
 
     # Read rule specification descriprions DB.
