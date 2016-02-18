@@ -66,7 +66,7 @@
         <form method="post">
             {% csrf_token %}
             <div class="ui grid">
-            {% if need_manager %}
+            {% if need_manager and need_service %}
                 <div class="nine wide column">
                     <div class="ui orange segment">
                         <h5 class="ui orange header">{% trans "Create the Manager with the specified username and jobs of all classes on behalf of that Manager" %}</h5>
@@ -75,8 +75,6 @@
                         </div>
                     </div>
                 </div>
-            {% endif %}
-            {% if need_service %}
                 <div class="seven wide column">
                     <div class="ui teal segment">
                         <h5 class="ui teal header">{% trans "Create the service user with the specified username" %}</h5>
@@ -90,6 +88,10 @@
             <br><br>
             <div id="usernames_err" style="display: none;">
                 <span style="color: #ff4b8c;">{% trans 'Manager and service usernames must be different' %}</span>
+                <br><br>
+            </div>
+            <div id="usernames_required_err" style="display: none;">
+                <span style="color: #ff4b8c;">{% trans 'Manager and service usernames are required' %}</span>
                 <br><br>
             </div>
             <button type="submit" id="populate_button" class="ui green button">{% trans 'Populate' %}</button>
