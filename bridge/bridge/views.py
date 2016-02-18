@@ -45,6 +45,8 @@ def population(request):
         activate(request.LANGUAGE_CODE)
     if not request.user.is_staff:
         return HttpResponseRedirect(reverse('error', args=[900]))
+    need_manager = (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0)
+    need_service = (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0)
     if request.method == 'POST':
         manager_username = request.POST.get('manager_username', '')
         if len(manager_username) == 0:
@@ -52,10 +54,12 @@ def population(request):
         service_username = request.POST.get('service_username', '')
         if len(service_username) == 0:
             service_username = None
+        if need_manager and need_service and (manager_username is None or service_username is None):
+            return HttpResponseRedirect(reverse('error', args=[605]))
         return render(request, 'Population.html', {
             'changes': Population(request.user, manager_username, service_username).changes
         })
     return render(request, 'Population.html', {
-        'need_manager': (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0),
-        'need_service': (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0),
+        'need_manager': need_manager,
+        'need_service': need_service,
     })
