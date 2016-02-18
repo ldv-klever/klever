@@ -78,12 +78,14 @@ class Weaver(core.components.Component):
                                          cc_full_desc['opts'] +
                                          ['-isystem{0}'.format(stdout[0])] +
                                          # Besides header files specific for rule specifications will be searched for.
-                                         ["-I{0}".format(os.path.relpath(
+                                         (["-I{0}".format(os.path.relpath(
                                                  core.utils.find_file_or_dir(self.logger,
                                                                              self.conf['main working directory'],
                                                                              self.abstract_task_desc[
                                                                                  'rule specifications directory']),
-                                                 os.path.realpath(self.conf['source tree root'])))]),
+                                                 os.path.realpath(self.conf['source tree root'])))]
+                                          if 'rule specifications directory' in self.abstract_task_desc else [])
+                                         ),
                                    cwd=self.conf['source tree root'])
                 self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
 
