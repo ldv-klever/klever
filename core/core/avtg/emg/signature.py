@@ -11,19 +11,24 @@ declaration = function_declaration |
               interface_declaration |
               undefined_declaration;
 
-function_declaration = return_value:(declaration | {void_specifiers}+) main_declarator:declarator '(' parameters+:parameter_list ')';
+function_declaration = return_value:declaration main_declarator:declarator '(' parameters+:parameter_list ')' |
+                       return_value:declaration main_declarator:declarator '(' parameters:void ')' |
+                       return_value:void main_declarator:declarator '(' parameters+:parameter_list ')' |
+                       return_value:void main_declarator:declarator '(' parameters:void ')';
 
 primitive_declaration = specifiers:{declaration_specifiers}+ main_declarator:declarator;
 
-parameter_list = (@+:declaration {',' (@+:declaration | '...')}*) | "void";
+parameter_list = @+:'...' |
+                 (@+:declaration {',' @+:('...' | declaration)}*);
 
 declaration_specifiers = storage_class_specifier |
                          type_qualifier |
                          function_specifier |
                          type_specifier;
 
-void_specifiers = "void" |
-                  storage_class_specifier |
+void = {void_specifiers}* @:"void";
+
+void_specifiers = storage_class_specifier |
                   type_qualifier |
                   function_specifier;
 
@@ -126,11 +131,21 @@ strings = [
     "int %s (*%s)(int %s, ...)",
     "void (*%s)(void)",
     "int %s func(void (*%s)(void), ...)",
+    "int __must_check %s request_percpu_irq(unsigned int %s, irq_handler_t %s, const char *%s, void __percpu *%s)",
+    "int %s func(int *%s, int %s (*%s)(int %s))",
+    "int %s func(int *%s, void (*%s)(void *%s))",
     "int %s func(int *%s, void (*%s)(void))",
+    "void (*%s)(void)",
+    "void (*%s)(void (*%s)(void), ...)",
+    "int %s func(...)",
+    "void (*%s)(*%isb.usb_driver%)",
+    "void (*%s)($, *%isb.usb_driver%)",
+    "int %s func($, void %s (*%s)(*%isb.usb_driver%))",
+    "int %s (*%s)(...)",
+    "int %s func(int %s (*%s)(int %s, ...))",
+    "int %s func(int %s (*%s)(...), ...)",
     "int %s func(int %s (*%s)(int %s, ...), ...)",
     "int %s (*%s)(int %s (*%s)(int %s, ...), ...)",
-    "void (*%s)(void)",
-    "void (*%s)(void (*%s)(void), ...)"
 ]
 asts = []
 for string in strings:
