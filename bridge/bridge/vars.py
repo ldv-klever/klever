@@ -22,7 +22,7 @@ ERRORS = {
     804: _("The problem was not found"),
     900: _("You don't have an access to this page"),
     505: _("Couldn't visualize the error trace"),
-    605: _("Can't populate without service or manager")
+    605: _("Can't populate without Manager and service user")
 }
 
 LANGUAGES = (
