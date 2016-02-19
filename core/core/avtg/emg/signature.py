@@ -2,7 +2,7 @@ import grako
 
 signature_grammar1 = \
 """
-(* Declaration syntax based on Committee Draft — April 12, 2011 ISO/IEC 9899:201x but it is simplified*)
+(* Declaration syntax based on Committee Draft — April 12, 2011 ISO/IEC 9899:201x but it is rather simplified *)
 
 signature = @:declaration $;
 
@@ -16,10 +16,9 @@ function_declaration = return_value:declaration main_declarator:declarator '(' p
                        return_value:void main_declarator:declarator '(' parameters+:parameter_list ')' |
                        return_value:void main_declarator:declarator '(' parameters:void ')';
 
-primitive_declaration = specifiers:{declaration_specifiers}+ main_declarator:declarator;
+primitive_declaration = specifiers:{declaration_specifiers}* main_declarator:declarator;
 
-parameter_list = @+:'...' |
-                 (@+:declaration {',' @+:('...' | declaration)}*);
+parameter_list = @+:('...' | declaration) { ',' @+:('...' | declaration) }*;
 
 declaration_specifiers = storage_class_specifier |
                          type_qualifier |
@@ -116,6 +115,7 @@ strings = [
     "struct usb_driver (* %s) []",
     "struct usb_driver * const %s []",
     "struct usb_driver * const (*%s)[]",
+    "struct usb_driver * const (*%s []) []",
     "$ func($)",
     "$ func($, $)",
     "void %s func($)",
@@ -140,10 +140,11 @@ strings = [
     "int %s func(...)",
     "void (*%s)(*%isb.usb_driver%)",
     "void (*%s)($, *%isb.usb_driver%)",
-    "int %s func($, void %s (*%s)(*%isb.usb_driver%))",
+    "int %s func($, void (*%s)(*%isb.usb_driver%))",
     "int %s (*%s)(...)",
-    "int %s func(int %s (*%s)(int %s, ...))",
+    "int %s func(int %s (*%s)(...))",
     "int %s func(int %s (*%s)(...), ...)",
+    "int %s func(int %s (*%s)(int %s, ...))",
     "int %s func(int %s (*%s)(int %s, ...), ...)",
     "int %s (*%s)(int %s (*%s)(int %s, ...), ...)",
 ]
