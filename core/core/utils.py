@@ -174,6 +174,8 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
 
     if p.poll():
         logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
+        with open('problem desc.txt', 'a', encoding='ascii') as fp:
+            fp.write('\n'.join(err_q.output))
         raise CommandError('"{0}" failed'.format(cmd))
 
     return out_q.output

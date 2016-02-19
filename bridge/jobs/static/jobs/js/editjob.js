@@ -949,11 +949,11 @@ $(document).ready(function () {
                     }
                     if (data['can_decide']) {
                         $('#decide_job_btn').removeClass('disabled');
-                        $('#fast_job_start').removeClass('disabled');
+                        $('#show_fast_job_start_popup').removeClass('disabled');
                     }
                     else {
                         $('#decide_job_btn').addClass('disabled');
-                        $('#fast_job_start').addClass('disabled');
+                        $('#show_fast_job_start_popup').addClass('disabled');
                     }
                     if (data['can_stop']) {
                         $('#stop_job_btn').removeClass('disabled');
