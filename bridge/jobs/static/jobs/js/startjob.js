@@ -120,8 +120,8 @@ $(document).ready(function () {
         else {
             var data = {
                 scheduler: $('input[name="scheduler"]:checked').val(),
-                priority: $('#priority').val(),
-                avtg_priority: $('#avtg_priority').val(),
+                priority: $('input[name="priority"]:checked').val(),
+                avtg_priority: $('input[name="avtg_priority"]:checked').val(),
                 job_id: $('#job_pk').val(),
                 cpu_model: $('#cpu_model').val(),
                 max_wall_time: $('#max_wall_time').val(),
