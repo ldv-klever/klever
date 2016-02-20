@@ -128,7 +128,7 @@ class StreamQueue:
             # This will put lines from stream to queue until stream will be closed. For instance it will happen when
             # execution of command will be completed.
             for line in self.stream:
-                line = line.decode('utf8').rstrip()
+                line = line.decode('ascii').rstrip()
                 self.queue.put(line)
                 if self.collect_all_output:
                     self.output.append(line)
@@ -306,7 +306,7 @@ def get_logger(name, conf):
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log', encoding='utf8')
+            handler = logging.FileHandler('log', encoding='ascii')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
