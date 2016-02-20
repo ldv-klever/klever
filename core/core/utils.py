@@ -107,6 +107,7 @@ class StreamQueue:
         self.collect_all_output = collect_all_output
         self.queue = queue.Queue()
         self.finished = False
+        self.traceback = None
         self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
         self.output = []
 
@@ -123,16 +124,20 @@ class StreamQueue:
         self.thread.start()
 
     def __put_lines_from_stream_to_queue(self):
-        # This will put lines from stream to queue until stream will be closed. For instance it will happen when
-        # execution of command will be completed.
-        for line in self.stream:
-            line = line.decode('utf8').rstrip()
-            self.queue.put(line)
-            if self.collect_all_output:
-                self.output.append(line)
+        try:
+            # This will put lines from stream to queue until stream will be closed. For instance it will happen when
+            # execution of command will be completed.
+            for line in self.stream:
+                line = line.decode('utf8').rstrip()
+                self.queue.put(line)
+                if self.collect_all_output:
+                    self.output.append(line)
 
-        # Nothing will be put to queue from now.
-        self.finished = True
+            # Nothing will be put to queue from now.
+            self.finished = True
+        except Exception:
+            import traceback
+            self.traceback = traceback.format_exc().rstrip()
 
 
 def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False):
@@ -152,6 +157,10 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
     # print last messages queued before command finishes.
     last_try = True
     while not out_q.finished or not err_q.finished or last_try:
+        if out_q.traceback:
+            raise RuntimeError('STDOUT reader thread failed with the following traceback:\n{0}'. format(out_q.traceback))
+        if err_q.traceback:
+            raise RuntimeError('STDERR reader thread failed with the following traceback:\n{0}'. format(err_q.traceback))
         last_try = not out_q.finished or not err_q.finished
         time.sleep(timeout)
 
