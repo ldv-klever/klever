@@ -6,19 +6,17 @@ signature_grammar1 = \
 
 signature = @:declaration $;
 
-declaration = function_declaration |
-              primitive_declaration |
-              interface_declaration |
+declaration = function_declaration~ |
+              primitive_declaration~ |
+              interface_declaration~ |
               undefined_declaration;
 
-function_declaration = return_value:declaration main_declarator:declarator '(' parameters+:parameter_list ')' |
-                       return_value:declaration main_declarator:declarator '(' parameters:void ')' |
-                       return_value:void main_declarator:declarator '(' parameters+:parameter_list ')' |
-                       return_value:void main_declarator:declarator '(' parameters:void ')';
+function_declaration = return_value:declaration main_declarator:declarator '(' parameters+:(parameter_list | void) ')' ~ |
+                       return_value:void main_declarator:declarator '(' parameters+:(parameter_list | void) ')';
 
 primitive_declaration = specifiers:{declaration_specifiers}* main_declarator:declarator;
 
-parameter_list = @+:('...' | declaration) { ',' @+:('...' | declaration) }*;
+parameter_list = { [','] @:(function_declaration~ | primitive_declaration~ | interface_declaration~ | undefined_declaration~ | '...') }+;
 
 declaration_specifiers = storage_class_specifier |
                          type_qualifier |
@@ -142,6 +140,7 @@ strings = [
     "void (*%s)($, *%isb.usb_driver%)",
     "int %s func($, void (*%s)(*%isb.usb_driver%))",
     "int %s (*%s)(...)",
+    "void (**%s)(struct nvme_dev *%s, void *%s, struct nvme_completion *%s)",
     "int %s func(int %s (*%s)(...))",
     "int %s func(int %s (*%s)(...), ...)",
     "int %s func(int %s (*%s)(int %s, ...))",
