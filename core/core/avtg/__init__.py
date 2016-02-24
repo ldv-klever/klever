@@ -100,7 +100,7 @@ def _extract_rule_spec_descs(conf, logger):
         logger.debug('Rule specification "{0}" template is "{1}"'.format(rule_spec_id, tmpl_id))
         if 'templates' not in descs or tmpl_id not in descs['templates']:
             raise ValueError(
-                'Template "{0}" specified in rule specification "{0}" could not be found in rule specifications DB'.format(
+                'Template "{0}" of rule specification "{1}" could not be found in rule specifications DB'.format(
                     tmpl_id, rule_spec_id))
         tmpl_desc = descs['templates'][tmpl_id]
 
