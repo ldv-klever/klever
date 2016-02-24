@@ -13,6 +13,19 @@ import core.session
 import core.utils
 
 
+def before_launch_all_components(context):
+    context.mqs['verification statuses'] = multiprocessing.Queue()
+
+
+def after_decide_verification_task(context):
+    context.mqs['verification statuses'].put(context.verification_status)
+
+
+def after_generate_all_verification_tasks(context):
+    context.logger.info('Terminate verification statuses message queue')
+    context.mqs['verification statuses'].put(None)
+
+
 class Core:
     def __init__(self):
         self.exit_code = 0
@@ -138,8 +151,19 @@ class Core:
                         # Do not proceed to other sub-jobs if reports uploading failed.
                         if self.uploading_reports_process.exitcode:
                             break
-                        # TODO: we need to put information on correspondence between obtained and ideal verdicts to Klever Core data.
                     finally:
+                        # TODO: report differences immediately after implementation of https://forge.ispras.ru/issues/6889.
+                        sub_job.conf['obtained verification statuses'] = []
+                        while True:
+                            verification_status = self.mqs['verification statuses'].get()
+
+                            if verification_status is None:
+                                self.logger.debug('Verification statuses message queue was terminated')
+                                self.mqs['verification statuses'].close()
+                                break
+
+                            sub_job.conf['obtained verification statuses'].append(verification_status)
+
                         core.utils.report(self.logger,
                                           'finish',
                                           {
