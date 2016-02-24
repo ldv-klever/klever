@@ -269,7 +269,8 @@ function compare_jobs() {
         selected_jobs.push($(this).attr('id').replace('job_checkbox__', ''));
     });
     if (selected_jobs.length != 2) {
-        err_notify($('#error__no_jobs_to_compare').val());
+        err_notify($('#error__no_jobs_to_compare').text());
+        return false;
     }
     $.post(
         job_ajax_url + 'check_compare_access/',

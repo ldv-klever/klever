@@ -9,7 +9,12 @@
 {% endblock %}
 
 {% block body_block %}
-    <h3>{% trans 'Comparison of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
+    <div class="ui grid">
+        <div class="ten wide column">
+            <h3>{% trans 'Comparison of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
+        </div>
+        <div class="six wide column right aligned"><a class="ui violet button" href="{% url 'jobs:comparison' job1.pk job2.pk %}">{% trans 'Files differences' %}</a></div>
+    </div>
     <div class="ui grid">
         <div class="ten wide column">
             <table class="ui selectable compact teal table">

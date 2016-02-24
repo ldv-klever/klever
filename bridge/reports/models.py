@@ -212,6 +212,7 @@ class CompareJobsInfo(models.Model):
     user = models.OneToOneField(User)
     root1 = models.ForeignKey(ReportRoot, related_name='+')
     root2 = models.ForeignKey(ReportRoot, related_name='+')
+    files_diff = models.TextField()
 
     class Meta:
         db_table = 'cache_report_jobs_compare_info'

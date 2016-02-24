@@ -1,3 +1,5 @@
+import os
+import json
 import hashlib
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
@@ -9,7 +11,10 @@ from bridge.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from bridge.utils import print_err
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
+from reports.models import CompareJobsInfo
 
+
+READABLE = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h']
 
 # List of available types of 'safe' column class.
 SAFES = [
@@ -554,3 +559,79 @@ def get_user_time(user, milliseconds):
     if user.extended.data_format == 'hum':
         converted = convert_time(converted, accuracy)
     return converted
+
+
+class CompareFileSet(object):
+    def __init__(self, job1, job2):
+        self.j1 = job1
+        self.j2 = job2
+        self.data = {
+            'same': [],
+            'diff': [],
+            'unmatched1': [],
+            'unmatched2': []
+        }
+        self.__get_comparison()
+
+    def __get_comparison(self):
+
+        def get_files(job):
+            files = []
+            last_v = job.versions.order_by('-version')[0]
+            for f in last_v.filesystem_set.all():
+                if f.file is not None:
+                    parent = f.parent
+                    f_name = f.name
+                    while parent is not None:
+                        f_name = os.path.join(parent.name, f_name)
+                        parent = parent.parent
+                    files.append([f_name, f.file.hash_sum])
+            return files
+
+        files1 = get_files(self.j1)
+        files2 = get_files(self.j2)
+        for f1 in files1:
+            if f1[0] not in list(x[0] for x in files2):
+                ext = os.path.splitext(f1[0])[1]
+                if len(ext) > 0 and ext[1:] in READABLE:
+                    self.data['unmatched1'].insert(0, [f1[0], f1[1]])
+                else:
+                    self.data['unmatched1'].append([f1[0]])
+            else:
+                for f2 in files2:
+                    if f2[0] == f1[0]:
+                        ext = os.path.splitext(f1[0])[1]
+                        if f2[1] == f1[1]:
+                            if len(ext) > 0 and ext[1:] in READABLE:
+                                self.data['same'].insert(0, [f1[0], f1[1]])
+                            else:
+                                self.data['same'].append([f1[0]])
+                        else:
+                            if len(ext) > 0 and ext[1:] in READABLE:
+                                self.data['diff'].insert(0, [f1[0], f1[1], f2[1]])
+                            else:
+                                self.data['diff'].append([f1[0]])
+                        break
+        for f2 in files2:
+            if f2[0] not in list(x[0] for x in files1):
+                ext = os.path.splitext(f2[0])[1]
+                if len(ext) > 0 and ext[1:] in READABLE:
+                    self.data['unmatched2'].insert(0, [f2[0], f2[1]])
+                else:
+                    self.data['unmatched2'].append([f2[0]])
+
+
+class GetFilesComparison(object):
+    def __init__(self, user, job1, job2):
+        self.user = user
+        self.job1 = job1
+        self.job2 = job2
+        self.data = self.__get_info()
+
+    def __get_info(self):
+        try:
+            info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
+        except ObjectDoesNotExist:
+            self.error = _('Compare cache was not found')
+            return
+        return json.loads(info.files_diff)

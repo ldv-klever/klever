@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import JOB_STATUS, JOB_CLASSES
-from jobs.utils import JobAccess
+from jobs.utils import JobAccess, CompareFileSet
 from reports.models import *
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
 from marks.tables import UNSAFE_COLOR, SAFE_COLOR
@@ -155,7 +155,10 @@ class CompareTree(object):
 
     def __fill_cache(self, j1, j2):
         CompareJobsInfo.objects.filter(user=self.user).delete()
-        info = CompareJobsInfo.objects.create(user=self.user, root1=j1.reportroot, root2=j2.reportroot)
+        info = CompareJobsInfo.objects.create(
+            user=self.user, root1=j1.reportroot, root2=j2.reportroot,
+            files_diff=json.dumps(CompareFileSet(j1, j2).data)
+        )
         for_cache = []
         for x in self.attr_values:
             ids1 = []

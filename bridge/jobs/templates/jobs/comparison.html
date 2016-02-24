@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block head_block %}
+    <link href="/static/reports/css/comparison.css" rel="stylesheet">
+    <link href="/static/jobs/css/comparison.css" rel="stylesheet">
+    <script src="/static/jobs/js/comparison.js"></script>
+{% endblock %}
+
+{% block title %}
+    {% trans 'Files comparison' %}
+{% endblock %}
+
+{% block body_block %}
+    <div class="ui grid">
+        <div class="ten wide column">
+            <h3>{% trans 'Comparison of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
+        </div>
+        <div class="six wide column right aligned"><a class="ui violet button" href="{% url 'reports:comparison' job1.pk job2.pk %}">{% trans 'Reports differences' %}</a></div>
+    </div>
+    <div class="ui grid">
+        {% if data.same|length > 0 %}
+            <div class="five wide column">
+                <h4>{% trans 'Files without differences' %}</h4>
+                <div style="max-height: 600px;overflow: auto">
+                    <ul>
+                        {% for f in data.same %}
+                            <li>
+                                {% if f|length == 1 %}
+                                    {{ f.0 }}
+                                {% else %}
+                                    <a class="show_file_content">{{ f.0 }}</a>
+                                    <input type="hidden" value="{{ f.1 }}">
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+        {% if data.diff|length > 0 %}
+            <div class="five wide column">
+                <h4>{% trans 'Different files' %}</h4>
+                <div style="max-height: 600px;overflow: auto">
+                    <ul>
+                        {% for f in data.diff %}
+                            <li>
+                                {% if f|length == 1 %}
+                                    {{ f.0 }}
+                                {% else %}
+                                    <a class="show_file_content">{{ f.0 }}</a>
+                                    <input type="hidden" value="{{ f.1 }}">
+                                    <input type="hidden" value="{{ f.2 }}">
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+        {% if data.unmatched1|length > 0 or data.unmatched2|length > 0 %}
+            <div class="six wide column">
+                <h4>{% trans 'Unmatched files' %}</h4>
+                <div style="max-height: 700px;overflow: auto">
+                    <ul>
+                        {% for f in data.unmatched1 %}
+                            <li>
+                                {% if f|length == 1 %}
+                                    {{ f.0 }}<i class="ui arrow right icon"></i><i class="ui ban red icon"></i>
+                                {% else %}
+                                    <a class="show_file_content">{{ f.0 }}</a><i class="ui arrow right icon"></i><i class="ui ban red icon"></i>
+                                    <input type="hidden" value="{{ f.1 }}">
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                        {% for f in data.unmatched2 %}
+                            <li>
+                                {% if f|length == 1 %}
+                                    <i class="ui ban red icon"></i><i class="ui arrow right icon"></i>{{ f.0 }}
+                                {% else %}
+                                    <i class="ui ban red icon"></i><i class="ui arrow right icon"></i><a class="show_file_content">{{ f.0 }}</a>
+                                    <input type="hidden" value="{{ f.1 }}">
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    {% if data.same|length == 0 and data.unmatched1|length == 0 and data.unmatched2|length == 0 and data.diff|length == 0 %}
+        <h1 class="ui red header">{% trans 'Jobs does not have files' %}</h1>
+    {% endif %}
+    <div id="file_content_modal" class="ui dinamic large modal">
+        <div class="content">
+            <div class="ui grid">
+                <div class="two wide column right aligned"></div>
+                <div class="twelve wide column ui header center aligned" id="file_content_name"></div>
+                <div class="two wide column right aligned">
+                    <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
+                </div>
+            </div>
+            <div class="filecontent ui olive segment" id="file_content" style="height:700px;"></div>
+        </div>
+    </div>
+    <input id="job1_name" type="hidden" value="{{ job1.name }}">
+    <input id="job2_name" type="hidden" value="{{ job2.name }}">
+{% endblock %}
