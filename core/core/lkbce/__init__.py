@@ -87,6 +87,27 @@ class LKBCE(core.components.Component):
 
                 build_targets.append(('modules',))
             else:
+                if 'modules dep file' in self.conf['Linux kernel'] \
+                        and self.conf['LKVOG strategy']['name'] != 'separate modules':
+                    # Append dependencies
+                    self.logger.info('Append dependencies')
+                    self.extract_all_linux_kernel_mod_deps()
+                    for module1 in self.conf['Linux kernel']['modules']:
+                        deps_processing = []
+                        for module in self.conf['Linux kernel']['module deps']:
+                            if module.startswith(module1):
+                                deps_processing.extend(self.conf['Linux kernel']['module deps'][module])
+                        while deps_processing:
+                            dep = deps_processing.pop(0)
+                            for module2 in self.conf['Linux kernel']['modules']:
+                                if dep.startswith(module2):
+                                    break
+                            else:
+                                self.logger.info('Append {0} for {1} module'.format(dep, module1))
+                                self.conf['Linux kernel']['modules'].append(dep)
+                            if dep in self.conf['Linux kernel']['module deps']:
+                                deps_processing.extend(self.conf['Linux kernel']['module deps'][dep])
+
                 # Check that module sets aren't intersect explicitly.
                 for i, modules1 in enumerate(self.conf['Linux kernel']['modules']):
                     for j, modules2 in enumerate(self.conf['Linux kernel']['modules']):
@@ -124,7 +145,6 @@ class LKBCE(core.components.Component):
                         jobs_num=jobs_num,
                         specify_arch=True, collect_build_cmds=True)
 
-        self.linux_kernel['module deps'] = {}
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel']:
             # Install modules
@@ -135,14 +155,13 @@ class LKBCE(core.components.Component):
                         specify_arch=False, collect_build_cmds=False)
             # Extract mod deps
             self.extract_all_linux_kernel_mod_deps()
-        elif 'modules dep file' in self.conf['Linux kernel']:
-            self.extract_all_linux_kernel_mod_deps()
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a', encoding='ascii') as fp:
             fp.write(core.lkbce.cmds.cmds.Command.cmds_separator)
 
     def extract_all_linux_kernel_mod_deps(self):
+        self.linux_kernel['module deps'] = {}
         path = None
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
