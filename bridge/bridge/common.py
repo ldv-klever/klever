@@ -127,6 +127,93 @@ DEF_KLEVER_CORE_CONFIGURATION = {
     },
 }
 
+# Definitions of Klever Core log formatters (see documentation for Python 3 logging for details)
+_KLEVER_CORE_LOG_FORMATTERS = {
+    'brief': "%(name)s %(levelname)5s> %(message)s",
+    'detailed': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
+    'paranoid': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s (%(process)d) %(levelname)5s> %(message)s",
+}
+
+# Each Klever Core parallelism pack represents set of numbers of parallel threads/processes for following actions:
+#   build,
+#   tasks generation.
+_KLEVER_CORE_PARALLELISM_PACKS = {
+    'sequantial': (1, 1),
+    'slow': (2, 2),
+    'fast': (1.0, 1.0),
+    'super fast': (2.0, 2.0),
+}
+
+# Each Klever Core mode represents sets of values for following sets of attributes:
+#   scheduling:
+#     job priority - see bridge.vars.PRIORITY for available values,
+#     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
+#     abstract task generation priority - see service.utils.AVTG_PRIORITY for available values,
+#   parallism pack - one of packs from _KLEVER_CORE_PARALLELISM_PACKS,
+#   logging:
+#     console log level - see documentation for Python 3 logging for available values,
+#     console log formatter - one of formatters from _KLEVER_CORE_LOG_FORMATTERS,
+#     file log level - like console log level,
+#     file log formatter - like console log formatter,
+#   keep intermediate files - True or False,
+#   upload input files of static verifiers - True or False,
+#   upload other intermediate files - True or False,
+#   allow local source directories use - True or False,
+#   ignore another instance of Klever Core - True or False.
+DEF_KLEVER_CORE_MODES = [
+    {
+        'production': (
+            (
+                'LOW',
+                'Klever',
+                'balance',
+            ),
+            (
+                'WARNING',
+                'brief',
+                'INFO',
+                'brief',
+            ),
+            'slow',
+            False,
+            False,
+            False,
+            False,
+            False,
+        )
+    },
+    {
+        'development': (
+            'IDLE',
+            'balance'
+            'INFO',
+            'brief',
+            'DEBUG',
+            'detailed',
+            True,
+            True,
+            False,
+            True,
+            True,
+        )
+    },
+    {
+        'paranoid development': (
+            'IDLE',
+            'balance'
+            'INFO',
+            'brief',
+            'DEBUG',
+            'paranoid',
+            True,
+            True,
+            True,
+            True,
+            True,
+        )
+    },
+]
+
 DEF_USER = {
     'dataformat': 'hum',  # See bridge.vars.DATAFORMAT for options
     'language': 'en',  # See bridge.vars.LANGUAGES for options
