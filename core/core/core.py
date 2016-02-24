@@ -81,7 +81,8 @@ class Core:
             # TODO: think about implementation in form of classes derived from class Job.
             if self.job.type == 'Verification of Linux kernel modules':
                 self.create_components_conf(self.job)
-                self.callbacks = core.utils.get_component_callbacks(self.logger, self.components, self.components_conf)
+                self.callbacks = core.utils.get_component_callbacks(self.logger, [self.__class__] + self.components,
+                                                                    self.components_conf)
                 core.utils.invoke_callbacks(self.launch_all_components, (self.id,))
                 self.wait_for_components()
             elif self.job.type == 'Validation on commits in Linux kernel Git repositories':
@@ -120,7 +121,8 @@ class Core:
                         with core.utils.Cd(str(i)):
                             self.get_components(sub_job)
                             self.create_components_conf(sub_job)
-                            self.callbacks = core.utils.get_component_callbacks(self.logger, self.components,
+                            self.callbacks = core.utils.get_component_callbacks(self.logger,
+                                                                                [self.__class__] + self.components,
                                                                                 self.components_conf)
                             core.utils.invoke_callbacks(self.launch_all_components, (sub_job_id,))
                             self.wait_for_components()
