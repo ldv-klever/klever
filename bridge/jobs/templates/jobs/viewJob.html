@@ -21,7 +21,7 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Download' %}</p>
                 </div>
-                <button id="decide_job_btn_show_popup" href="{% url 'jobs:prepare_run' job.pk %}" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play icon"></i></button>
+                <button id="decide_job_btn_show_popup" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play icon"></i></button>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
                 </div>
@@ -171,60 +171,56 @@
         </div>
         <div id="edit_job_div" class="eight wide column"></div>
     </div>
-        {% if can_delete %}
-            <div id="remove_job_popup" class="ui basic modal">
-                <div class="ui icon header">
-                    <i class="warning sign icon"></i>
-                    {% trans 'Are you sure' %}?
-                </div>
-                <div class="content">
-                    <div class="ui center aligned grid">
-                        <p>{% trans 'All versions and all data of this job will be deleted' %}!</p>
-                    </div>
-                </div>
-                <div class="actions">
-                    <div class="ui center aligned grid">
-                        <button id="cancel_remove_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                        <button id="remove_job_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
-                    </div>
+        <div id="remove_job_popup" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'All versions and all data of this job will be deleted' %}!</p>
                 </div>
             </div>
-        {% endif %}
-        {% if can_decide %}
-            <div id="fast_start_job_popup" class="ui basic modal">
-                <div class="ui icon header">
-                    <i class="warning sign icon"></i>
-                    {% trans 'Are you sure' %}?
-                </div>
-                <div class="content">
-                    <div class="ui center aligned grid">
-                        <p>{% trans 'All existing reports of this job will be deleted' %}!</p>
-                    </div>
-                </div>
-                <div class="actions">
-                    <div class="ui center aligned grid">
-                        <button id="cancel_fast_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                        <button id="fast_job_start" type="button" class="ui red basic inverted button">{% trans 'Start' %}</button>
-                    </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_remove_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="remove_job_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
                 </div>
             </div>
-            <div id="start_job_popup" class="ui basic modal">
-                <div class="ui icon header">
-                    <i class="warning sign icon"></i>
-                    {% trans 'Are you sure' %}?
-                </div>
-                <div class="content">
-                    <div class="ui center aligned grid">
-                        <p>{% trans 'All existing reports of this job will be deleted' %}!</p>
-                    </div>
-                </div>
-                <div class="actions">
-                    <div class="ui center aligned grid">
-                        <button id="cancel_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                        <a id="decide_job_btn" href="{% url 'jobs:prepare_run' job.pk %}" class="ui red basic inverted button">{% trans 'Start' %}</a>
-                    </div>
+        </div>
+        <div id="fast_start_job_popup" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'All existing reports of this job will be deleted' %}!</p>
                 </div>
             </div>
-        {% endif %}
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_fast_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="fast_job_start" type="button" class="ui red basic inverted button">{% trans 'Start' %}</button>
+                </div>
+            </div>
+        </div>
+        <div id="start_job_popup" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'All existing reports of this job will be deleted' %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <a href="{% url 'jobs:prepare_run' job.pk %}" class="ui red basic inverted button">{% trans 'Start' %}</a>
+                </div>
+            </div>
+        </div>
     {% endif %}
 {% endblock %}
