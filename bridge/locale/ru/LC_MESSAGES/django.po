@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-01-19 10:07+0000\n"
+"POT-Creation-Date: 2016-02-19 09:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -37,8 +37,8 @@ msgstr "Без обработки"
 msgid "Human-readable"
 msgstr "Удобочитаемый"
 
-#: bridge/vars.py:11 jobs/views.py:337 jobs/views.py:359 jobs/views.py:434
-#: jobs/views.py:494 jobs/views.py:754 service/utils.py:918
+#: bridge/vars.py:11 jobs/views.py:338 jobs/views.py:360 jobs/views.py:435
+#: jobs/views.py:495 jobs/views.py:757 service/utils.py:919
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
@@ -96,216 +96,220 @@ msgstr "У Вас нет прав на данную страницу"
 msgid "Couldn't visualize the error trace"
 msgstr "Не удалось визуализировать трассу ошибки"
 
-#: bridge/vars.py:33 bridge/vars.py:50
+#: bridge/vars.py:25
+msgid "Can't populate without Manager and service user"
+msgstr "Наполнение базы данных невозможно без Руководителя и служебного пользователя"
+
+#: bridge/vars.py:34 bridge/vars.py:51
 #: tools/templates/tools/ManagerPanel.html:12 tools/views.py:28
 #: tools/views.py:77 tools/views.py:96 tools/views.py:123 tools/views.py:142
 #: tools/views.py:156
 msgid "No access"
 msgstr "Нет доступа"
 
-#: bridge/vars.py:34 users/notifications.py:222
+#: bridge/vars.py:35 users/notifications.py:222
 msgid "Producer"
 msgstr "Постановщик"
 
-#: bridge/vars.py:35 users/notifications.py:223
+#: bridge/vars.py:36 users/notifications.py:223
 msgid "Manager"
 msgstr "Руководитель"
 
-#: bridge/vars.py:36 bridge/vars.py:52 users/notifications.py:222
+#: bridge/vars.py:37 bridge/vars.py:53 users/notifications.py:222
 msgid "Expert"
 msgstr "Эксперт"
 
-#: bridge/vars.py:37
+#: bridge/vars.py:38
 msgid "Service user"
 msgstr "Служебный пользователь"
 
-#: bridge/vars.py:41
+#: bridge/vars.py:42
 msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
-#: bridge/vars.py:42
+#: bridge/vars.py:43
 msgid "Validation on Linux kernel modules"
 msgstr "Валидация на модулях ядра Linux"
 
-#: bridge/vars.py:43
+#: bridge/vars.py:44
 msgid "Verification of commits in Linux kernel Git repositories"
 msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
-#: bridge/vars.py:44
+#: bridge/vars.py:45
 msgid "Validation on commits in Linux kernel Git repositories"
 msgstr "Валидация на коммитах в Git-репозиториях ядра Linux"
 
-#: bridge/vars.py:45
+#: bridge/vars.py:46
 msgid "Verification of C programs"
 msgstr "Верификация Си-программ"
 
-#: bridge/vars.py:46
+#: bridge/vars.py:47
 msgid "Validation on C programs"
 msgstr "Валидация на Си-программах"
 
-#: bridge/vars.py:51 users/notifications.py:222
+#: bridge/vars.py:52 users/notifications.py:222
 msgid "Observer"
 msgstr "Обозреватель"
 
-#: bridge/vars.py:53
+#: bridge/vars.py:54
 msgid "Observer and Operator"
 msgstr "Обозреватель и оператор"
 
-#: bridge/vars.py:54
+#: bridge/vars.py:55
 msgid "Expert and Operator"
 msgstr "Эксперт и оператор"
 
-#: bridge/vars.py:58
+#: bridge/vars.py:59
 msgid "Not solved"
 msgstr "Не решено"
 
-#: bridge/vars.py:59 bridge/vars.py:354
+#: bridge/vars.py:60 bridge/vars.py:357
 msgid "Pending"
 msgstr "Ожидает"
 
-#: bridge/vars.py:60
+#: bridge/vars.py:61
 msgid "Is solving"
 msgstr "Решается"
 
-#: bridge/vars.py:61
+#: bridge/vars.py:62
 msgid "Solved"
 msgstr "Решено"
 
-#: bridge/vars.py:62 reports/templates/reports/ReportMain.html:33
+#: bridge/vars.py:63 reports/templates/reports/ReportMain.html:33
 msgid "Failed"
 msgstr "Провалено"
 
-#: bridge/vars.py:63
+#: bridge/vars.py:64
 msgid "Corrupted"
 msgstr "Повреждено"
 
-#: bridge/vars.py:64 bridge/vars.py:358
+#: bridge/vars.py:65 bridge/vars.py:361
 msgid "Cancelled"
 msgstr "Отменено"
 
-#: bridge/vars.py:123
+#: bridge/vars.py:124
 msgid "Unreported"
 msgstr "Не сообщена"
 
-#: bridge/vars.py:124
+#: bridge/vars.py:125
 msgid "Reported"
 msgstr "Сообщена"
 
-#: bridge/vars.py:125
+#: bridge/vars.py:126
 msgid "Fixed"
 msgstr "Исправлена"
 
-#: bridge/vars.py:126
+#: bridge/vars.py:127
 msgid "Rejected"
 msgstr "Отклонена"
 
-#: bridge/vars.py:130 bridge/vars.py:137 bridge/vars.py:143 bridge/vars.py:152
+#: bridge/vars.py:131 bridge/vars.py:138 bridge/vars.py:144 bridge/vars.py:153
 #: jobs/utils.py:44 jobs/utils.py:52
 #: reports/templates/reports/report_leaf.html:7 reports/utils.py:32
 msgid "Unknown"
 msgstr "Неизвестно"
 
-#: bridge/vars.py:131 bridge/vars.py:144
+#: bridge/vars.py:132 bridge/vars.py:145
 msgid "Bug"
 msgstr "Ошибка"
 
-#: bridge/vars.py:132 bridge/vars.py:145
+#: bridge/vars.py:133 bridge/vars.py:146
 msgid "Target bug"
 msgstr "Целевая ошибка"
 
-#: bridge/vars.py:133 bridge/vars.py:146
+#: bridge/vars.py:134 bridge/vars.py:147
 msgid "False positive"
 msgstr "Ложное сообщение об ошибке"
 
-#: bridge/vars.py:138 bridge/vars.py:153 jobs/utils.py:43
+#: bridge/vars.py:139 bridge/vars.py:154 jobs/utils.py:43
 msgid "Incorrect proof"
 msgstr "Некорректное доказательство"
 
-#: bridge/vars.py:139 bridge/vars.py:154
+#: bridge/vars.py:140 bridge/vars.py:155
 msgid "Missed target bug"
 msgstr "Пропуск целевой ошибки"
 
-#: bridge/vars.py:147 bridge/vars.py:155 jobs/utils.py:45 jobs/utils.py:53
+#: bridge/vars.py:148 bridge/vars.py:156 jobs/utils.py:45 jobs/utils.py:53
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: bridge/vars.py:148 bridge/vars.py:156 jobs/JobTableProperties.py:583
+#: bridge/vars.py:149 bridge/vars.py:157 jobs/JobTableProperties.py:583
 #: jobs/JobTableProperties.py:588 jobs/ViewJobData.py:175 jobs/utils.py:46
 #: jobs/utils.py:54
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: bridge/vars.py:329 bridge/vars.py:348
+#: bridge/vars.py:332 bridge/vars.py:351
 #: service/templates/service/scheduler.html:27
 msgid "Healthy"
 msgstr "Здоровый"
 
-#: bridge/vars.py:330 bridge/vars.py:349
+#: bridge/vars.py:333 bridge/vars.py:352
 #: service/templates/service/scheduler.html:29
 msgid "Ailing"
 msgstr "Нездоровый"
 
-#: bridge/vars.py:331 bridge/vars.py:350
+#: bridge/vars.py:334 bridge/vars.py:353
 #: service/templates/service/scheduler.html:31
 msgid "Disconnected"
 msgstr "Отключенный"
 
-#: bridge/vars.py:340
+#: bridge/vars.py:343
 msgid "Urgent"
 msgstr "Срочный"
 
-#: bridge/vars.py:341
+#: bridge/vars.py:344
 msgid "High"
 msgstr "Высокий"
 
-#: bridge/vars.py:342
+#: bridge/vars.py:345
 msgid "Low"
 msgstr "Низкий"
 
-#: bridge/vars.py:343
+#: bridge/vars.py:346
 msgid "Idle"
 msgstr "Незанятый"
 
-#: bridge/vars.py:347
+#: bridge/vars.py:350
 msgid "User occupied"
 msgstr "Занятый пользователем"
 
-#: bridge/vars.py:355
+#: bridge/vars.py:358
 msgid "Processing"
 msgstr "Решается"
 
-#: bridge/vars.py:357 templates/error.html:5
+#: bridge/vars.py:360 templates/error.html:5
 msgid "Error"
 msgstr "Ошибка"
 
-#: bridge/views.py:34 jobs/utils.py:276 jobs/utils.py:459 marks/utils.py:748
-#: marks/utils.py:806 marks/utils.py:941 marks/views.py:209 marks/views.py:405
-#: marks/views.py:435 marks/views.py:446 reports/etv.py:380
-#: service/utils.py:822 service/utils.py:830 service/utils.py:921
-#: service/utils.py:943 service/utils.py:986 service/utils.py:990
+#: bridge/views.py:34 jobs/utils.py:275 jobs/utils.py:458 marks/utils.py:746
+#: marks/utils.py:804 marks/utils.py:939 marks/views.py:209 marks/views.py:405
+#: marks/views.py:435 marks/views.py:446 reports/etv.py:381
+#: service/utils.py:823 service/utils.py:831 service/utils.py:922
+#: service/utils.py:944 service/utils.py:987 service/utils.py:991
 #: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
 #: tools/views.py:120 tools/views.py:140 users/views.py:316
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
-#: jobs/Download.py:256 jobs/Download.py:292 jobs/Download.py:305
-#: jobs/Download.py:324
+#: jobs/Download.py:255 jobs/Download.py:288 jobs/Download.py:301
+#: jobs/Download.py:320
 msgid "The job archive is corrupted"
 msgstr "Архив задания поврежден"
 
-#: jobs/Download.py:294
+#: jobs/Download.py:290
 msgid "The job format is not supported"
 msgstr "Формат задания не поддерживается"
 
-#: jobs/Download.py:296
+#: jobs/Download.py:292
 msgid "The job class does not equal to the parent class"
 msgstr "Класс задания не совпадает с классом родителя"
 
-#: jobs/Download.py:298
+#: jobs/Download.py:294
 msgid "The job status is wrong"
 msgstr "Статус задания некорректный"
 
-#: jobs/Download.py:364
+#: jobs/Download.py:360
 msgid "One of the reports was not uploaded"
 msgstr "Один из отчетов не был загружен на сервер"
 
@@ -345,9 +349,11 @@ msgstr "Статус решения"
 msgid "Start date"
 msgstr "Дата начала работы"
 
-#: jobs/JobTableProperties.py:31 reports/templates/reports/ReportMain.html:88
+#: jobs/JobTableProperties.py:31
+#: reports/templates/reports/AttrsFilters.html:23
+#: reports/templates/reports/ReportMain.html:88
 msgid "Finish date"
-msgstr "Дата завершение работы"
+msgstr "Дата завершения работы"
 
 #: jobs/JobTableProperties.py:42 jobs/utils.py:39
 msgid "Last change date"
@@ -362,8 +368,8 @@ msgstr "Потребленные ресурсы"
 #: jobs/JobTableProperties.py:44 jobs/JobTableProperties.py:45
 #: jobs/templates/jobs/viewJobFilters.html:60
 #: jobs/templates/jobs/viewJobFilters.html:101
-#: reports/templates/reports/AttrsFilters.html:8
-#: reports/templates/reports/UnknownsFilters.html:15
+#: reports/templates/reports/AttrsFilters.html:49
+#: reports/templates/reports/UnknownsFilters.html:30
 #: tools/templates/tools/ManagerPanel.html:23
 msgid "Component name"
 msgstr "Название компонента"
@@ -371,7 +377,7 @@ msgstr "Название компонента"
 #: jobs/JobTableProperties.py:45 jobs/templates/jobs/jobData.html:7
 #: jobs/templates/jobs/viewJobFilters.html:22
 #: jobs/templates/jobs/viewJobFilters.html:44 jobs/utils.py:56
-#: reports/views.py:122 templates/base.html:49
+#: reports/views.py:123 templates/base.html:49
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
@@ -461,7 +467,7 @@ msgid "Comment"
 msgstr "Комментарий"
 
 #: jobs/templates/jobs/editJob.html:103
-#: jobs/templates/jobs/startDecision.html:43 jobs/templates/jobs/tree.html:346
+#: jobs/templates/jobs/startDecision.html:47 jobs/templates/jobs/tree.html:346
 #: marks/templates/marks/CreateMark.html:112
 #: marks/templates/marks/CreateMark.html:188
 #: marks/templates/marks/CreateMark.html:248
@@ -478,7 +484,8 @@ msgstr "Сохранить"
 #: jobs/templates/jobs/filesTree.html:134
 #: jobs/templates/jobs/filesTree.html:168
 #: jobs/templates/jobs/filesTree.html:195 jobs/templates/jobs/tree.html:408
-#: jobs/templates/jobs/viewJob.html:187
+#: jobs/templates/jobs/viewJob.html:187 jobs/templates/jobs/viewJob.html:206
+#: jobs/templates/jobs/viewJob.html:223
 #: jobs/templates/jobs/viewVersions.html:18
 #: jobs/templates/jobs/viewVersions.html:32
 #: marks/templates/marks/CreateMark.html:111
@@ -493,7 +500,7 @@ msgstr "Сохранить"
 msgid "Cancel"
 msgstr "Отменить"
 
-#: jobs/templates/jobs/editJob.html:126 jobs/utils.py:464
+#: jobs/templates/jobs/editJob.html:126 jobs/utils.py:463
 #: marks/templates/marks/EditMark.html:133
 #: marks/templates/marks/EditUnknownMark.html:129
 msgid "Change comment is required"
@@ -657,14 +664,14 @@ msgstr ""
 
 #: jobs/templates/jobs/jobData.html:53
 #: jobs/templates/jobs/viewJobFilters.html:12 jobs/utils.py:48
-#: jobs/utils.py:62 reports/views.py:111 reports/views.py:115
+#: jobs/utils.py:62 reports/views.py:112 reports/views.py:116
 #: templates/base.html:48
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
 #: jobs/templates/jobs/jobData.html:71
 #: jobs/templates/jobs/viewJobFilters.html:17 jobs/utils.py:41
-#: jobs/utils.py:61 reports/views.py:100 reports/views.py:104
+#: jobs/utils.py:61 reports/views.py:101 reports/views.py:105
 #: templates/base.html:50
 msgid "Safes"
 msgstr "Доказательства корректности"
@@ -698,133 +705,135 @@ msgstr "Начать решение задания"
 msgid "Tasks scheduler"
 msgstr "Планировщик задач"
 
-#: jobs/templates/jobs/startDecision.html:30
+#: jobs/templates/jobs/startDecision.html:32
 msgid "Job priority"
 msgstr "Приоритет задания"
 
-#: jobs/templates/jobs/startDecision.html:48
+#: jobs/templates/jobs/startDecision.html:52
 msgid "Resource limits for Klever Core"
 msgstr "Ограничения на ресурсы для Klever Core"
 
-#: jobs/templates/jobs/startDecision.html:49
+#: jobs/templates/jobs/startDecision.html:53
 #: service/templates/service/scheduler.html:82
 #: service/templates/service/scheduler.html:129
 #: service/templates/service/scheduler.html:147
 msgid "Memory size"
 msgstr "Объем оперативной памяти"
 
-#: jobs/templates/jobs/startDecision.html:49
-#: jobs/templates/jobs/startDecision.html:59 jobs/utils.py:346
+#: jobs/templates/jobs/startDecision.html:53
+#: jobs/templates/jobs/startDecision.html:63 jobs/utils.py:345
 #: service/templates/service/scheduler.html:129
 #: service/templates/service/scheduler.html:130
 #: service/templates/service/scheduler.html:193
 msgid "GB"
 msgstr "ГБ"
 
-#: jobs/templates/jobs/startDecision.html:49
-#: jobs/templates/jobs/startDecision.html:54
-#: jobs/templates/jobs/startDecision.html:59
-#: jobs/templates/jobs/startDecision.html:66
-#: jobs/templates/jobs/startDecision.html:71
+#: jobs/templates/jobs/startDecision.html:53
+#: jobs/templates/jobs/startDecision.html:58
+#: jobs/templates/jobs/startDecision.html:63
+#: jobs/templates/jobs/startDecision.html:70
+#: jobs/templates/jobs/startDecision.html:75
 #: marks/templates/marks/filters.html:61
 #: marks/templates/marks/filters.html:166
-#: reports/templates/reports/AttrsFilters.html:31
-#: reports/templates/reports/ListFilters.html:13
-#: reports/templates/reports/ListFilters.html:20
-#: reports/templates/reports/UnknownsFilters.html:13
-#: reports/templates/reports/UnknownsFilters.html:38
+#: reports/templates/reports/AttrsFilters.html:41
+#: reports/templates/reports/AttrsFilters.html:72
+#: reports/templates/reports/ListFilters.html:26
+#: reports/templates/reports/ListFilters.html:35
+#: reports/templates/reports/UnknownsFilters.html:26
+#: reports/templates/reports/UnknownsFilters.html:53
 msgid "e.g."
 msgstr "например,"
 
-#: jobs/templates/jobs/startDecision.html:54
+#: jobs/templates/jobs/startDecision.html:58
 #: service/templates/service/scheduler.html:81
 #: service/templates/service/scheduler.html:128
 #: service/templates/service/scheduler.html:146
 msgid "Number of CPU cores"
 msgstr "Количество ядер процессора"
 
-#: jobs/templates/jobs/startDecision.html:59
+#: jobs/templates/jobs/startDecision.html:63
 #: service/templates/service/scheduler.html:83
 #: service/templates/service/scheduler.html:130
 #: service/templates/service/scheduler.html:148
 msgid "Disk memory size"
 msgstr "Объем дисковой памяти"
 
-#: jobs/templates/jobs/startDecision.html:66
+#: jobs/templates/jobs/startDecision.html:70
 #: reports/templates/reports/ReportMain.html:100
 msgid "Wall time"
 msgstr "Астрономическое время"
 
-#: jobs/templates/jobs/startDecision.html:66
-#: jobs/templates/jobs/startDecision.html:71 jobs/utils.py:324
+#: jobs/templates/jobs/startDecision.html:70
+#: jobs/templates/jobs/startDecision.html:75 jobs/utils.py:323
 msgid "s"
 msgstr "с"
 
-#: jobs/templates/jobs/startDecision.html:66
-#: jobs/templates/jobs/startDecision.html:71
+#: jobs/templates/jobs/startDecision.html:70
+#: jobs/templates/jobs/startDecision.html:75
 msgid "empty value means unlimited time"
 msgstr "пустое значение означает неограниченное время"
 
-#: jobs/templates/jobs/startDecision.html:71
+#: jobs/templates/jobs/startDecision.html:75
 #: reports/templates/reports/ReportMain.html:101
 msgid "CPU time"
 msgstr "Процессорное время"
 
-#: jobs/templates/jobs/startDecision.html:76
+#: jobs/templates/jobs/startDecision.html:80
 #: service/templates/service/scheduler.html:127
 #: service/templates/service/scheduler.html:145
 msgid "CPU model"
 msgstr "Модель процессора"
 
-#: jobs/templates/jobs/startDecision.html:76
+#: jobs/templates/jobs/startDecision.html:80
 msgid "empty value means any model"
 msgstr "пустое значение означает любую модель"
 
-#: jobs/templates/jobs/startDecision.html:85
+#: jobs/templates/jobs/startDecision.html:89
 msgid "Klever Core configuration"
 msgstr "Конфигурация Klever Core"
 
-#: jobs/templates/jobs/startDecision.html:86
+#: jobs/templates/jobs/startDecision.html:90
 msgid "Abstract tasks generation priority"
 msgstr "Приоритет генерации абстрактных задач"
 
-#: jobs/templates/jobs/startDecision.html:92
+#: jobs/templates/jobs/startDecision.html:98
 msgid "Parallelism"
 msgstr "Параллелизм"
 
-#: jobs/templates/jobs/startDecision.html:93
+#: jobs/templates/jobs/startDecision.html:99
 msgid "Linux kernel build"
 msgstr "Сборка ядра Linux"
 
-#: jobs/templates/jobs/startDecision.html:97
+#: jobs/templates/jobs/startDecision.html:103
 msgid "Tasks generation"
 msgstr "Генерация задач"
 
-#: jobs/templates/jobs/startDecision.html:103
+#: jobs/templates/jobs/startDecision.html:109
 msgid "Log Formatters"
 msgstr "Форматтеры логов"
 
-#: jobs/templates/jobs/startDecision.html:104
+#: jobs/templates/jobs/startDecision.html:110
 msgid "Console"
 msgstr "Консоль"
 
-#: jobs/templates/jobs/startDecision.html:109
+#: jobs/templates/jobs/startDecision.html:115
 msgid "File"
 msgstr "Файл"
 
-#: jobs/templates/jobs/startDecision.html:119
+#: jobs/templates/jobs/startDecision.html:125
 msgid "Debug"
 msgstr "Отладка"
 
-#: jobs/templates/jobs/startDecision.html:125
+#: jobs/templates/jobs/startDecision.html:131
 msgid "Allow use of local source directories"
 msgstr "Разрешить использовать локальные директории с исходным кодом"
 
-#: jobs/templates/jobs/startDecision.html:130
+#: jobs/templates/jobs/startDecision.html:136
+#: jobs/templates/jobs/viewJob.html:207 jobs/templates/jobs/viewJob.html:224
 msgid "Start"
 msgstr "Начать"
 
-#: jobs/templates/jobs/startDecision.html:135
+#: jobs/templates/jobs/startDecision.html:141
 msgid ""
 "VerifierCloud credentials were successfully saved (you can change them in "
 "your settings)"
@@ -832,7 +841,7 @@ msgstr ""
 "Идентификационная информация для VerifierCloud была успешно сохранена (Вы "
 "можете изменить ее в Ваших настройках)"
 
-#: jobs/templates/jobs/startDecision.html:136
+#: jobs/templates/jobs/startDecision.html:142
 msgid "Field(s) with red background are required"
 msgstr "Требуется заполнить поле(я) с красным фоном"
 
@@ -881,11 +890,11 @@ msgstr "Добавить фильтр по"
 #: marks/templates/marks/filters.html:127
 #: marks/templates/marks/filters.html:149
 #: marks/templates/marks/filters.html:172
-#: reports/templates/reports/AttrsFilters.html:13
-#: reports/templates/reports/AttrsFilters.html:37
-#: reports/templates/reports/ListFilters.html:26
-#: reports/templates/reports/UnknownsFilters.html:20
-#: reports/templates/reports/UnknownsFilters.html:44
+#: reports/templates/reports/AttrsFilters.html:54
+#: reports/templates/reports/AttrsFilters.html:78
+#: reports/templates/reports/ListFilters.html:41
+#: reports/templates/reports/UnknownsFilters.html:35
+#: reports/templates/reports/UnknownsFilters.html:59
 msgid "is"
 msgstr "совпадает с"
 
@@ -900,11 +909,11 @@ msgstr "совпадает с"
 #: jobs/templates/jobs/viewJobFilters.html:142
 #: marks/templates/marks/filters.html:106
 #: marks/templates/marks/filters.html:173
-#: reports/templates/reports/AttrsFilters.html:14
-#: reports/templates/reports/AttrsFilters.html:38
-#: reports/templates/reports/ListFilters.html:27
-#: reports/templates/reports/UnknownsFilters.html:21
-#: reports/templates/reports/UnknownsFilters.html:45
+#: reports/templates/reports/AttrsFilters.html:55
+#: reports/templates/reports/AttrsFilters.html:79
+#: reports/templates/reports/ListFilters.html:42
+#: reports/templates/reports/UnknownsFilters.html:36
+#: reports/templates/reports/UnknownsFilters.html:60
 msgid "starts with"
 msgstr "начинается с"
 
@@ -917,8 +926,8 @@ msgstr "начинается с"
 #: jobs/templates/jobs/viewJobFilters.html:107
 #: jobs/templates/jobs/viewJobFilters.html:126
 #: jobs/templates/jobs/viewJobFilters.html:143
-#: reports/templates/reports/AttrsFilters.html:15
-#: reports/templates/reports/UnknownsFilters.html:22
+#: reports/templates/reports/AttrsFilters.html:56
+#: reports/templates/reports/UnknownsFilters.html:37
 msgid "contains"
 msgstr "содержит"
 
@@ -968,7 +977,7 @@ msgid "New view name"
 msgstr "Название нового представления"
 
 #: jobs/templates/jobs/tree.html:356 jobs/templates/jobs/tree.html.py:389
-#: jobs/templates/jobs/viewJobFilters.html:5 jobs/views.py:89
+#: jobs/templates/jobs/viewJobFilters.html:5 jobs/views.py:90
 #: marks/templates/marks/filters.html:5
 #: reports/templates/reports/AttrsFilters.html:5
 #: reports/templates/reports/ListFilters.html:5
@@ -1014,6 +1023,7 @@ msgid "unsaved"
 msgstr "не сохранено"
 
 #: jobs/templates/jobs/tree.html:399 jobs/templates/jobs/viewJob.html:178
+#: jobs/templates/jobs/viewJob.html:197 jobs/templates/jobs/viewJob.html:214
 #: jobs/templates/jobs/viewVersions.html:23
 #: marks/templates/marks/EditMark.html:137
 #: marks/templates/marks/EditUnknownMark.html:133
@@ -1122,6 +1132,10 @@ msgstr "Последнее изменение"
 msgid "All versions and all data of this job will be deleted"
 msgstr "Все версии и все данные задания будут удалены"
 
+#: jobs/templates/jobs/viewJob.html:201 jobs/templates/jobs/viewJob.html:218
+msgid "All existing reports of this job will be deleted"
+msgstr "Все существующие отчеты задания будут удалены"
+
 #: jobs/templates/jobs/viewJobFilters.html:49
 msgid "Hide problems without marks"
 msgstr "Не показывать проблемы без оценок"
@@ -1156,7 +1170,7 @@ msgstr ""
 #: jobs/templates/jobs/viewVersions.html:40
 #: jobs/templates/jobs/viewVersions.html:44
 #: marks/templates/marks/markVersions.html:41
-#: marks/templates/marks/markVersions.html:45 templates/Population.html:60
+#: marks/templates/marks/markVersions.html:45 templates/Population.html:63
 #: templates/error.html:12
 msgid "OK"
 msgstr "Хорошо"
@@ -1237,130 +1251,130 @@ msgstr "Прогресс решения задания"
 msgid "Number of task decisions"
 msgstr "Количество решений задач"
 
-#: jobs/utils.py:247 jobs/utils.py:251
+#: jobs/utils.py:246 jobs/utils.py:250
 msgid "Saving folder failed"
 msgstr "Сохранение папки провалилось"
 
-#: jobs/utils.py:259 jobs/utils.py:293
+#: jobs/utils.py:258 jobs/utils.py:292
 msgid "The file was not uploaded"
 msgstr "Файл не был загружен на сервер"
 
-#: jobs/utils.py:287
+#: jobs/utils.py:286
 msgid "You can't specify an empty name"
 msgstr "Вы не можете указать пустое имя"
 
-#: jobs/utils.py:295
+#: jobs/utils.py:294
 msgid "You can't use the same names in one folder"
 msgstr "Вы не можете использовать одни и те же имена в одной папке"
 
-#: jobs/utils.py:320
+#: jobs/utils.py:319
 msgid "ms"
 msgstr "мс"
 
-#: jobs/utils.py:328
+#: jobs/utils.py:327
 msgid "min"
 msgstr "мин"
 
-#: jobs/utils.py:329
+#: jobs/utils.py:328
 msgid "h"
 msgstr "ч"
 
-#: jobs/utils.py:337
+#: jobs/utils.py:336
 msgid "B"
 msgstr "Б"
 
-#: jobs/utils.py:341
+#: jobs/utils.py:340
 msgid "KB"
 msgstr "КБ"
 
-#: jobs/utils.py:345
+#: jobs/utils.py:344
 msgid "MB"
 msgstr "МБ"
 
-#: jobs/utils.py:412
+#: jobs/utils.py:411
 msgid "The job title is required"
 msgstr "Требуется название задания"
 
-#: jobs/utils.py:414
+#: jobs/utils.py:413
 msgid "The job author is required"
 msgstr "Требуется автор задания"
 
-#: jobs/utils.py:423
+#: jobs/utils.py:422
 msgid "The parent or the job class is required"
 msgstr "Требуется родитель или класс задания"
 
-#: jobs/utils.py:461
+#: jobs/utils.py:460
 msgid "Change author is required"
 msgstr "Требуется автор изменения"
 
-#: jobs/views.py:62
+#: jobs/views.py:63
 msgid "The default view was made preferred"
 msgstr ""
 "Представление, которое используется по умолчанию, было сделано предпочитаемым"
 
-#: jobs/views.py:63
+#: jobs/views.py:64
 msgid "The default view is already preferred"
 msgstr ""
 "Представление, которое используется по умолчанию, уже является предпочитаемым"
 
-#: jobs/views.py:68 jobs/views.py:121 jobs/views.py:156
+#: jobs/views.py:69 jobs/views.py:122 jobs/views.py:157
 msgid "The view was not found"
 msgstr "Представление не было найдено"
 
-#: jobs/views.py:74
+#: jobs/views.py:75
 msgid "The preferred view was successfully changed"
 msgstr "Предпочитаемое представление было успешно изменено"
 
-#: jobs/views.py:90 jobs/views.py:96
+#: jobs/views.py:91 jobs/views.py:97
 msgid "Please choose another view name"
 msgstr "Пожалуйста, выберете другое название представления"
 
-#: jobs/views.py:93 jobs/views.py:128
+#: jobs/views.py:94 jobs/views.py:129
 msgid "The view name is required"
 msgstr "Требуется указать название представления"
 
-#: jobs/views.py:116
+#: jobs/views.py:117
 msgid "You can't edit the default view"
 msgstr ""
 "Вы не можете редактировать представление, которое используется по умолчанию"
 
-#: jobs/views.py:134
+#: jobs/views.py:135
 msgid "The view was successfully saved"
 msgstr "Представление было успешно сохранено"
 
-#: jobs/views.py:150
+#: jobs/views.py:151
 msgid "You can't remove the default view"
 msgstr "Вы не можете удалить представление, которое используется по умолчанию"
 
-#: jobs/views.py:157
+#: jobs/views.py:158
 msgid "The view was successfully removed"
 msgstr "Представление было успешно удалено"
 
-#: jobs/views.py:294 marks/views.py:70
+#: jobs/views.py:295 marks/views.py:70
 msgid "Current version"
 msgstr "Текущая версия"
 
-#: jobs/views.py:339
+#: jobs/views.py:340
 msgid "You don't have access to delete versions"
 msgstr "У Вас нет прав удалить версии"
 
-#: jobs/views.py:345 marks/views.py:425
+#: jobs/views.py:346 marks/views.py:425
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
-#: jobs/views.py:346 marks/views.py:427
+#: jobs/views.py:347 marks/views.py:427
 msgid "Nothing to delete"
 msgstr "Нечего удалять"
 
-#: jobs/views.py:436
+#: jobs/views.py:437
 msgid "You don't have an access to edit this job"
 msgstr "У Вас нет прав редактировать данное задание"
 
-#: jobs/views.py:442 jobs/views.py:471
+#: jobs/views.py:443 jobs/views.py:472
 msgid "The job parent was not found"
 msgstr "Родитель задания не был найден"
 
-#: jobs/views.py:445
+#: jobs/views.py:446
 msgid ""
 "Several parents match the specified identifier, please increase the length "
 "of the parent identifier"
@@ -1368,63 +1382,63 @@ msgstr ""
 "Указанному идентификатору соответствуют несколько родителей, пожалуйста, "
 "увеличьте длину идентификатора родителя"
 
-#: jobs/views.py:450
+#: jobs/views.py:451
 msgid "Parent can't be specified for root jobs"
 msgstr "Нельзя указывать родителя для корневых заданий"
 
-#: jobs/views.py:452
+#: jobs/views.py:453
 msgid "The specified parent can't be set for this job"
 msgstr "Для этого задания не может быть установлен указанный родитель"
 
-#: jobs/views.py:455
+#: jobs/views.py:456
 msgid "The parent identifier is required for this job"
 msgstr "Для этого задания требуется идентификатор родителя"
 
-#: jobs/views.py:457 marks/views.py:228
+#: jobs/views.py:458 marks/views.py:228
 msgid "Your version is expired, please reload the page"
 msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
-#: jobs/views.py:473
+#: jobs/views.py:474
 msgid "You don't have an access to create new jobs"
 msgstr "У Вас нет прав создавать новые задания"
 
-#: jobs/views.py:495 jobs/views.py:634 tools/utils.py:198
+#: jobs/views.py:496 jobs/views.py:637 tools/utils.py:198
 msgid "One of the selected jobs was not found"
 msgstr "Одно из отмеченных заданий не было найдено"
 
-#: jobs/views.py:498
+#: jobs/views.py:499
 msgid "You don't have an access to remove this job"
 msgstr "У Вас нет прав удалить данное задание"
 
-#: jobs/views.py:499
+#: jobs/views.py:500
 msgid "You don't have an access to remove one of the selected jobs"
 msgstr "У Вас нет прав удалить одно из отмеченных заданий"
 
-#: jobs/views.py:548
+#: jobs/views.py:549
 msgid "File uploading failed"
 msgstr "Загрузка файла на сервер провалилась"
 
-#: jobs/views.py:636
+#: jobs/views.py:639
 msgid "You don't have an access to download one of the selected jobs"
 msgstr "У Вас нет прав загрузить одно из отмеченных заданий"
 
-#: jobs/views.py:649
+#: jobs/views.py:652
 msgid "The parent identifier was not got"
 msgstr "Не был получен идентификатор родителя"
 
-#: jobs/views.py:655
+#: jobs/views.py:658
 msgid "The parent with the specified identifier was not found"
 msgstr "Родитель с указанным идентификатором не был найден"
 
-#: jobs/views.py:661
+#: jobs/views.py:664
 msgid "Too many jobs starts with the specified identifier"
 msgstr "Слишком много заданий начинаются с указанного идентификатора"
 
-#: jobs/views.py:740
+#: jobs/views.py:743
 msgid "The file was not found"
 msgstr "Файл не был найден"
 
-#: jobs/views.py:756
+#: jobs/views.py:759
 msgid "You don't have an access to stop decision of this job"
 msgstr "У Вас нет прав остановить решение данного задания"
 
@@ -1485,7 +1499,7 @@ msgstr "Проблема"
 #: marks/tables.py:29 marks/templates/marks/EditUnknownMark.html:42
 #: marks/templates/marks/ViewMark.html:24
 #: marks/templates/marks/filters.html:19 marks/templates/marks/filters.html:99
-#: reports/utils.py:21
+#: reports/templates/reports/AttrsFilters.html:13 reports/utils.py:21
 msgid "Component"
 msgstr "Компонент"
 
@@ -1509,7 +1523,7 @@ msgstr "Удалена"
 msgid "Comparison failed"
 msgstr "Сравнение провалилось"
 
-#: marks/tables.py:526 reports/utils.py:274
+#: marks/tables.py:526 reports/utils.py:296
 #, python-format
 msgid "%(all)s (%(broken)s are broken)"
 msgstr "%(all)s (%(broken)s сломаны)"
@@ -1681,11 +1695,12 @@ msgstr "Упорядочить по атрибуту"
 
 #: marks/templates/marks/filters.html:61
 #: marks/templates/marks/filters.html:166
-#: reports/templates/reports/AttrsFilters.html:31
-#: reports/templates/reports/ListFilters.html:13
-#: reports/templates/reports/ListFilters.html:20
-#: reports/templates/reports/UnknownsFilters.html:13
-#: reports/templates/reports/UnknownsFilters.html:38
+#: reports/templates/reports/AttrsFilters.html:41
+#: reports/templates/reports/AttrsFilters.html:72
+#: reports/templates/reports/ListFilters.html:26
+#: reports/templates/reports/ListFilters.html:35
+#: reports/templates/reports/UnknownsFilters.html:26
+#: reports/templates/reports/UnknownsFilters.html:53
 msgid "Enter the full name of the attribute"
 msgstr "Введите полное название атрибута"
 
@@ -1699,31 +1714,31 @@ msgid "is not"
 msgstr "не совпадает с"
 
 #: marks/templates/marks/filters.html:161
-#: reports/templates/reports/AttrsFilters.html:26
-#: reports/templates/reports/ListFilters.html:15
-#: reports/templates/reports/UnknownsFilters.html:33
+#: reports/templates/reports/AttrsFilters.html:67
+#: reports/templates/reports/ListFilters.html:30
+#: reports/templates/reports/UnknownsFilters.html:48
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:767 marks/views.py:186
+#: marks/utils.py:765 marks/views.py:186
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: marks/utils.py:771
+#: marks/utils.py:769
 msgid "The mark format is not supported"
 msgstr "Формат оценки не поддерживается"
 
-#: marks/utils.py:855 marks/utils.py:858
+#: marks/utils.py:853 marks/utils.py:856
 msgid "The attributes have wrong format"
 msgstr "Формат атрибутов некорректный"
 
-#: marks/utils.py:894 marks/utils.py:902 marks/utils.py:907 marks/utils.py:910
-#: marks/utils.py:915 marks/utils.py:920 marks/utils.py:922 marks/utils.py:924
-#: marks/utils.py:927
+#: marks/utils.py:892 marks/utils.py:900 marks/utils.py:905 marks/utils.py:908
+#: marks/utils.py:913 marks/utils.py:918 marks/utils.py:920 marks/utils.py:922
+#: marks/utils.py:925
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
-#: marks/utils.py:912
+#: marks/utils.py:910
 msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
@@ -1743,13 +1758,25 @@ msgstr "У Вас нет прав создавать новые оценки"
 msgid "You can't delete one of the selected mark"
 msgstr "Вы не можете удалить одну из отмеченных оценок"
 
-#: reports/etv.py:377
+#: reports/etv.py:378
 msgid "Could not find the corresponding unsafe"
 msgstr "Не удалось найти соответствующие предупреждение об ошибке"
 
-#: reports/etv.py:388
+#: reports/etv.py:389
 msgid "Could not find the source file"
 msgstr "Не удалось найти файл с исходным кодом"
+
+#: reports/templates/reports/AttrsFilters.html:8
+msgid "Order by"
+msgstr "Упорядочить по"
+
+#: reports/templates/reports/AttrsFilters.html:18
+msgid "Attribute"
+msgstr "Атрибут"
+
+#: reports/templates/reports/AttrsFilters.html:47
+msgid "Only finished children will be shown"
+msgstr "Будут показаны только завершенные потомки"
 
 #: reports/templates/reports/ETV.html:21
 msgid "Play"
@@ -1806,6 +1833,10 @@ msgstr "Проигрывание трассы ошибки завершено"
 msgid "Error trace"
 msgstr "Трасса ошибки"
 
+#: reports/templates/reports/ListFilters.html:26
+msgid "Leave empty for order by creation date"
+msgstr "Оставьте пустым для упорядочивания по дате создания"
+
 #: reports/templates/reports/ReportMain.html:35
 msgid "In progress"
 msgstr "Выполняется"
@@ -1843,6 +1874,10 @@ msgstr "Потомков нет, пожалуйста, подождите их �
 msgid "Statistics on component and its children"
 msgstr "Статистика по компоненту и его потомкам"
 
+#: reports/templates/reports/UnknownsFilters.html:26
+msgid "Leave empty for order by component"
+msgstr "Оставьте пустым для упорядочивания по компоненту"
+
 #: reports/templates/reports/etv_fullscreen.html:6
 msgid "Error Trace Fullscreen"
 msgstr "Полноэкранная Трасса ошибки"
@@ -1856,33 +1891,38 @@ msgstr "Привязанные оценки"
 msgid "Number of associated marks"
 msgstr "Количество привязанных оценок"
 
-#: reports/views.py:98
+#: reports/views.py:99
 msgid "All safes"
 msgstr "Все доказательства корректности"
 
-#: reports/views.py:107
+#: reports/views.py:108
 msgid "Safes marked by"
 msgstr "Доказательства корректности с оценкой"
 
-#: reports/views.py:109
+#: reports/views.py:110
 msgid "All unsafes"
 msgstr "Все предупрeждения об ошибках"
 
-#: reports/views.py:118
+#: reports/views.py:119
 msgid "Unsafes marked by"
 msgstr "Предупреждения об ошибках с оценкой"
 
-#: reports/views.py:120
+#: reports/views.py:121
 msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
-#: reports/views.py:124
+#: reports/views.py:125
 msgid "Unknowns without marks"
 msgstr "Проблемы в компонентах без оценок"
 
-#: reports/views.py:126
+#: reports/views.py:127
 msgid "Unknowns marked by"
 msgstr "Проблемы в компонентах с оценкой"
+
+#: reports/views.py:337
+msgid "The component log is huge and can not be showed but you can download it"
+msgstr ""
+"Лог компонента большой и не может быть показан, но Вы можете загрузить его"
 
 #: service/templates/service/scheduler.html:4 templates/base.html:43
 msgid "Schedulers"
@@ -1957,47 +1997,47 @@ msgstr "Зарезервировано"
 msgid "Available"
 msgstr "Доступно"
 
-#: service/utils.py:15
+#: service/utils.py:16
 msgid "Balance"
 msgstr "Баланс"
 
-#: service/utils.py:16
+#: service/utils.py:17
 msgid "Rule specifications"
 msgstr "Спецификации правил"
 
-#: service/utils.py:17
+#: service/utils.py:18
 msgid "Verification objects"
 msgstr "Верификационные объекты"
 
-#: service/utils.py:255
+#: service/utils.py:256
 msgid "The job solving progress does not exist"
 msgstr "Прогресс решения задания не существует"
 
-#: service/utils.py:258
+#: service/utils.py:259
 msgid "Only pending and processing jobs can be stopped"
 msgstr "Только ожидающие и решающиеся задания могут быть остановлены"
 
-#: service/utils.py:911
+#: service/utils.py:912
 msgid "The scheduler was not found"
 msgstr "Планировщик не был найден"
 
-#: service/utils.py:924
+#: service/utils.py:925
 msgid "You don't have an access to start decision of this job"
 msgstr "У Вас нет прав начать решение данного задания"
 
-#: service/utils.py:946 service/utils.py:994
+#: service/utils.py:947 service/utils.py:995
 msgid "The Klever scheduler is disconnected"
 msgstr "Планировщик Klever отключен"
 
-#: service/utils.py:950
+#: service/utils.py:951
 msgid "The VerifierCloud scheduler is disconnected"
 msgstr "Планировщик VerifierCloud отключен"
 
-#: service/utils.py:955
+#: service/utils.py:956
 msgid "You didn't specify credentials for VerifierCloud"
 msgstr "Вы не указали идентификационную информацию для VerifierCloud"
 
-#: service/utils.py:992
+#: service/utils.py:993
 msgid "The Klever scheduler is ailing"
 msgstr "Планировщик Klever нездоров"
 
@@ -2005,62 +2045,62 @@ msgstr "Планировщик Klever нездоров"
 msgid "Population"
 msgstr "Наполнение базы данных"
 
-#: templates/Population.html:13
+#: templates/Population.html:16
 msgid "A new Manager was created"
 msgstr "Был создан новый Руководитель"
 
-#: templates/Population.html:14 templates/Population.html.py:24
+#: templates/Population.html:17 templates/Population.html.py:27
 #: users/templates/users/login.html:19
 #: users/templates/users/schedulerUser.html:6
 msgid "Username"
 msgstr "Имя пользователя"
 
-#: templates/Population.html:15 templates/Population.html.py:25
+#: templates/Population.html:18 templates/Population.html.py:28
 #: users/forms.py:20 users/templates/users/login.html:21
 #: users/templates/users/schedulerUser.html:24
 msgid "Password"
 msgstr "Пароль"
 
-#: templates/Population.html:16
+#: templates/Population.html:19
 msgid "Please save this data and give it to the user who will be the Manager"
 msgstr ""
 "Пожалуйста, сохранить эти данные и передайте их пользователю, который будет "
 "Руководителем"
 
-#: templates/Population.html:23
+#: templates/Population.html:26
 msgid "A new service user was created"
 msgstr "Был создан новый служебный пользователь"
 
-#: templates/Population.html:26
+#: templates/Population.html:29
 msgid "Please save this data and give it to the service user"
 msgstr ""
 "Пожалуйста, сохранить эти данные и передайте их служебному пользователю"
 
-#: templates/Population.html:34
+#: templates/Population.html:37
 msgid "Error traces conversion and comparison functions were updated"
 msgstr "Были обновлены функции преобразования и сравнения трасс ошибок"
 
-#: templates/Population.html:39
+#: templates/Population.html:42
 msgid "New root jobs were uploaded"
 msgstr "Были загружены новые корневые задания"
 
-#: templates/Population.html:44
+#: templates/Population.html:47
 msgid "New preset jobs were uploaded"
 msgstr "Были загружены новые предустановленные задания"
 
-#: templates/Population.html:54
+#: templates/Population.html:57
 msgid "New unknown marks were uploaded"
 msgstr "Были загружены новые оценки проблем в компонентах"
 
-#: templates/Population.html:58
+#: templates/Population.html:61
 msgid "Nothing changed"
 msgstr "Ничего не изменилось"
 
-#: templates/Population.html:62
+#: templates/Population.html:65
 msgid "Welcome to Klever Bridge!"
 msgstr "Добро пожаловать!"
 
-#: templates/Population.html:69
+#: templates/Population.html:72
 msgid ""
 "Create the Manager with the specified username and jobs of all classes on "
 "behalf of that Manager"
@@ -2068,19 +2108,27 @@ msgstr ""
 "Создать Руководителя с указанным именем и задания всех классов от имени "
 "данного Руководителя"
 
-#: templates/Population.html:71
+#: templates/Population.html:74
 msgid "Manager username"
 msgstr "Имя Руководителя"
 
-#: templates/Population.html:79
+#: templates/Population.html:80
 msgid "Create the service user with the specified username"
 msgstr "Создать служебного пользователя с указанным именем"
 
-#: templates/Population.html:81
+#: templates/Population.html:82
 msgid "Service username"
 msgstr "Имя служебного пользователя"
 
-#: templates/Population.html:88
+#: templates/Population.html:90
+msgid "Manager and service usernames must be different"
+msgstr "Имена Руководителя и служебного пользователя должны быть разными"
+
+#: templates/Population.html:94
+msgid "Manager and service usernames are required"
+msgstr "Требуется заполнить имена Руководителя и служебного пользователя"
+
+#: templates/Population.html:97
 msgid "Populate"
 msgstr "Наполнить базу данных"
 

@@ -1,6 +1,4 @@
-bridge/mysql-db.cnf
-bridge/postgres-db.json
+bridge/db.json
 locale/ru/LC_MESSAGES/django.mo
 media
 migrations/
-

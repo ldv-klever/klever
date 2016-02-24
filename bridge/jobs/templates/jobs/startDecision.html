@@ -19,20 +19,24 @@
         <input type="hidden" id="job_pk" value="{{ job.pk }}">
         <div class="ui grid">
             <div class="five wide column">
-                <label for="scheduler">{% trans 'Tasks scheduler' %}</label>
-                <select id="scheduler" class="ui dropdown fluid">
-                    {% for sch in data.schedulers %}
-                        <option value="{{ sch.0 }}">{{ sch.1 }}</option>
-                    {% endfor %}
-                </select>
-                <br>
+                <h5>{% trans 'Tasks scheduler' %}</h5>
+                {% for sch in data.schedulers %}
+                    <div class="ui radio scheduler-checkbox">
+                        <input id="scheduler__{{ sch.0 }}" name="scheduler" type="radio" value="{{ sch.0 }}"{% if sch.0 == '0' %} checked{% endif %}>
+                        <label for="scheduler__{{ sch.0 }}">{{ sch.1 }}</label>
+                    </div>
+                    <br>
+                {% endfor %}
+                <br><br>
                 <div class="need-auth">
-                    <label for="priority">{% trans 'Job priority' %}</label>
-                    <select id="priority" class="ui dropdown fluid normal-dropdown">
-                        {% for p in data.priorities %}
-                            <option value="{{ p.0 }}"{% if data.def_config.priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
-                        {% endfor %}
-                    </select>
+                    <h5>{% trans 'Job priority' %}</h5>
+                    {% for p in data.priorities %}
+                        <div class="ui radio checkbox">
+                            <input id="priority__{{ p.0 }}" name="priority" type="radio" value="{{ p.0 }}"{% if data.def_config.priority == p.0 %} checked{% endif %}>
+                            <label for="priority__{{ p.0 }}">{{ p.1 }}</label>
+                        </div>
+                        <br>
+                    {% endfor %}
                 </div>
             </div>
             {% if data.need_auth %}
@@ -83,12 +87,14 @@
         <div class="ui grid need-auth">
             <div class="five wide column">
                 <h4 class="ui header">{% trans 'Klever Core configuration' %}</h4>
-                <label for="avtg_priority">{% trans 'Abstract tasks generation priority' %}</label>
-                <select id="avtg_priority" class="ui dropdown fluid normal-dropdown">
-                    {% for p in data.gen_priorities %}
-                        <option value="{{ p.0 }}"{% if data.def_config.avtg_priority == p.0 %} selected{% endif %}>{{ p.1 }}</option>
-                    {% endfor %}
-                </select>
+                <h5>{% trans 'Abstract tasks generation priority' %}</h5>
+                {% for p in data.gen_priorities %}
+                    <div class="ui radio checkbox">
+                        <input id="avtg_priority__{{ p.0 }}" name="avtg_priority" type="radio" value="{{ p.0 }}"{% if data.def_config.avtg_priority == p.0 %} checked{% endif %}>
+                        <label for="avtg_priority__{{ p.0 }}">{{ p.1 }}</label>
+                    </div>
+                    <br>
+                {% endfor %}
                 <h5 class="ui header">{% trans 'Parallelism' %}</h5>
                 <label for="parallelism_linux_kernel_build">{% trans 'Linux kernel build' %}</label>
                 <div class="ui input fluid">

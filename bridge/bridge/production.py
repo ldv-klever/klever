@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import json
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -58,10 +59,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'bridge.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'OPTIONS': {'read_default_file': os.path.join(BASE_DIR, 'bridge', 'mysql-db.cnf')},
-    }
+    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json')))
 }
 
 LANGUAGE_CODE = 'en-us'

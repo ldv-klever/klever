@@ -25,6 +25,7 @@ ERRORS = {
     505: _("Couldn't visualize the error trace"),
     506: _("Comparison cache data was not found or corrupted"),
     507: _("You don't have access to compare these jobs"),
+    605: _("Can't populate without Manager and service user")
 }
 
 LANGUAGES = (
@@ -214,8 +215,9 @@ VIEWJOB_DEF_VIEW = {
 REPORT_ATTRS_DEF_VIEW = {
     # Available filters (id [types], (example attr), (example value)):
     # component [iexact, istartswith, icontains] (<any text>)
-    # attr [iexact, istartswith]
-    #     (<attribute name separated by ':'>) (<any text>)
+    # attr [iexact, istartswith] (<attribute name separated by ':'>) (<any text>)
+    # Available oreders:
+    # (<attribute name>|component|date, down|up) - tuple
     'filters': {
         # 'component': {
         #     'type': 'istartswith',
@@ -226,11 +228,12 @@ REPORT_ATTRS_DEF_VIEW = {
         #     'type': 'istartswith',
         #     'value': 'Separate'
         # }
-    }
+    },
+    'order': ('component', 'down')
 }
 
 UNSAFE_LIST_DEF_VIEW = {
-    # 'order': 'verification obj',
+    'order': ('default', 'down'),
     'filters': {
         # 'attr': {
         #     'attr': 'Linux kernel verification objs gen strategy:name',
@@ -241,7 +244,7 @@ UNSAFE_LIST_DEF_VIEW = {
 }
 
 SAFE_LIST_DEF_VIEW = {
-    # 'order': 'verification obj',
+    'order': ('default', 'down'),
     'filters': {
         # 'attr': {
         #     'attr': 'Linux kernel verification objs gen strategy:name',
@@ -252,7 +255,7 @@ SAFE_LIST_DEF_VIEW = {
 }
 
 UNKNOWN_LIST_DEF_VIEW = {
-    # 'order': 'verification obj',
+    'order': ('component', 'down'),
     'filters': {
         # 'component': {
         #     'type': 'istartswith',

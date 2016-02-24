@@ -107,6 +107,7 @@ class StreamQueue:
         self.collect_all_output = collect_all_output
         self.queue = queue.Queue()
         self.finished = False
+        self.traceback = None
         self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
         self.output = []
 
@@ -123,19 +124,23 @@ class StreamQueue:
         self.thread.start()
 
     def __put_lines_from_stream_to_queue(self):
-        # This will put lines from stream to queue until stream will be closed. For instance it will happen when
-        # execution of command will be completed.
-        for line in self.stream:
-            line = line.decode('utf8').rstrip()
-            self.queue.put(line)
-            if self.collect_all_output:
-                self.output.append(line)
+        try:
+            # This will put lines from stream to queue until stream will be closed. For instance it will happen when
+            # execution of command will be completed.
+            for line in self.stream:
+                line = line.decode('ascii').rstrip()
+                self.queue.put(line)
+                if self.collect_all_output:
+                    self.output.append(line)
 
-        # Nothing will be put to queue from now.
-        self.finished = True
+            # Nothing will be put to queue from now.
+            self.finished = True
+        except Exception:
+            import traceback
+            self.traceback = traceback.format_exc().rstrip()
 
 
-def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=False):
+def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False):
     cmd = args[0]
     logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
                                               '' if len(args) == 1 else ' ',
@@ -152,6 +157,10 @@ def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=Fa
     # print last messages queued before command finishes.
     last_try = True
     while not out_q.finished or not err_q.finished or last_try:
+        if out_q.traceback:
+            raise RuntimeError('STDOUT reader thread failed with the following traceback:\n{0}'. format(out_q.traceback))
+        if err_q.traceback:
+            raise RuntimeError('STDERR reader thread failed with the following traceback:\n{0}'. format(err_q.traceback))
         last_try = not out_q.finished or not err_q.finished
         time.sleep(timeout)
 
@@ -174,6 +183,8 @@ def execute(logger, args, env=None, cwd=None, timeout=0.5, collect_all_stdout=Fa
 
     if p.poll():
         logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
+        with open('problem desc.txt', 'a', encoding='ascii') as fp:
+            fp.write('\n'.join(err_q.output))
         raise CommandError('"{0}" failed'.format(cmd))
 
     return out_q.output
@@ -295,7 +306,7 @@ def get_logger(name, conf):
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log', encoding='utf8')
+            handler = logging.FileHandler('log', encoding='ascii')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(

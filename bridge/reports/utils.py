@@ -111,15 +111,13 @@ class ReportTable(object):
         if view is not None:
             return json.loads(view), None
         if view_id is None:
-            pref_view = self.user.preferableview_set.filter(
-                view__type=self.type)
+            pref_view = self.user.preferableview_set.filter(view__type=self.type)
             if len(pref_view) > 0:
                 return json.loads(pref_view[0].view.view), pref_view[0].view_id
         elif view_id == 'default':
             return def_views[self.type], 'default'
         else:
-            user_view = self.user.view_set.filter(
-                pk=int(view_id), type=self.type)
+            user_view = self.user.view_set.filter(pk=int(view_id), type=self.type)
             if len(user_view):
                 return json.loads(user_view[0].view), user_view[0].pk
         return def_views[self.type], 'default'
@@ -167,23 +165,44 @@ class ReportTable(object):
             component_filters[
                 'component__name__' + self.view['filters']['component']['type']
                 ] = self.view['filters']['component']['value']
+        finish_dates = {}
         for report in ReportComponent.objects.filter(**component_filters):
             for rep_attr in report.attrs.order_by('id'):
                 if rep_attr.attr.name.name not in data:
                     columns.append(rep_attr.attr.name.name)
                     data[rep_attr.attr.name.name] = {}
                 data[rep_attr.attr.name.name][report.pk] = rep_attr.attr.value
+                if self.view['order'][0] == 'date':
+                    if report.finish_date is not None:
+                        finish_dates[report.pk] = report.finish_date
             components[report.pk] = report.component
 
         comp_data = []
         for pk in components:
-            comp_data.append((components[pk].name, {
-                'pk': pk,
-                'component': components[pk]
-            }))
+            if self.view['order'][0] == 'component':
+                comp_data.append((components[pk].name, {
+                    'pk': pk,
+                    'component': components[pk]
+                }))
+            elif self.view['order'][0] == 'date':
+                if pk in finish_dates:
+                    comp_data.append((finish_dates[pk], {
+                        'pk': pk,
+                        'component': components[pk]
+                    }))
+            else:
+                attr_val = '-'
+                if self.view['order'][0] in data and pk in data[self.view['order'][0]]:
+                    attr_val = data[self.view['order'][0]][pk]
+                comp_data.append((attr_val, {
+                    'pk': pk,
+                    'component': components[pk]
+                }))
         sorted_components = []
         for name, dt in sorted(comp_data, key=lambda x: x[0]):
             sorted_components.append(dt)
+        if self.view['order'] is not None and self.view['order'][1] == 'up':
+            sorted_components = list(reversed(sorted_components))
 
         values_data = []
         for comp_data in sorted_components:
@@ -238,10 +257,10 @@ class ReportTable(object):
                 data[rep_attr.attr.name.name][report] = rep_attr.attr.value
 
         reports_ordered = []
-        if 'order' in self.view and self.view['order'] in data:
-            for report in data[self.view['order']]:
+        if 'order' in self.view and self.view['order'][0] in data:
+            for report in data[self.view['order'][0]]:
                 reports_ordered.append(
-                    (data[self.view['order']][report], report)
+                    (data[self.view['order'][0]][report], report)
                 )
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
         else:
@@ -249,6 +268,9 @@ class ReportTable(object):
                 for report in data[attr]:
                     if report not in reports_ordered:
                         reports_ordered.append(report)
+            reports_ordered = sorted(reports_ordered, key=lambda x: x.pk)
+        if 'order' in self.view and self.view['order'][1] == 'up':
+            reports_ordered = list(reversed(reports_ordered))
 
         cnt = 1
         values_data = []
@@ -354,10 +376,10 @@ class ReportTable(object):
             components[report.pk] = report.component.name
 
         report_ids = []
-        if 'order' in self.view and self.view['order'] in data:
+        if 'order' in self.view and self.view['order'][0] in data:
             ids_ordered = []
-            for rep_id in data[self.view['order']]:
-                ids_ordered.append((data[self.view['order']][rep_id], rep_id))
+            for rep_id in data[self.view['order'][0]]:
+                ids_ordered.append((data[self.view['order'][0]][rep_id], rep_id))
             report_ids = [x[1] for x in sorted(ids_ordered, key=lambda x: x[0])]
         else:
             comp_data = []
@@ -365,6 +387,8 @@ class ReportTable(object):
                 comp_data.append((components[pk], pk))
             for name, rep_id in sorted(comp_data, key=lambda x: x[0]):
                 report_ids.append(rep_id)
+        if 'order' in self.view and self.view['order'][1] == 'up':
+            report_ids = list(reversed(report_ids))
 
         values_data = []
         for rep_id in report_ids:

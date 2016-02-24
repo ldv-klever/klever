@@ -1,6 +1,5 @@
 import os
 import json
-import hashlib
 import tarfile
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
@@ -8,6 +7,7 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
+from bridge.utils import file_checksum
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
@@ -38,6 +38,8 @@ class UploadReport(object):
             self.__job_failed(self.error)
 
     def __job_failed(self, error=None):
+        if 'id' in self.data:
+            error = 'Report with id "%s" has led to fail. ' + error
         KleverCoreFinishDecision(self.job, error)
 
     def __check_data(self, data):
@@ -273,6 +275,8 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             self.error = 'Updated report does not exist'
             return
+        if report.finish_date is not None:
+            self.error = 'The component is finished already (there was finish report earlier)'
 
         report.cpu_time = int(self.data['resources']['CPU time'])
         report.memory = int(self.data['resources']['memory size'])
@@ -508,26 +512,24 @@ class UploadReportFiles(object):
             if f.isreg():
                 file_obj = zipfile.extractfile(f)
                 if logname is not None and file_name == logname:
-                    file_content = BytesIO(file_obj.read())
-                    check_sum = hashlib.md5(file_content.read()).hexdigest()
+                    check_sum = file_checksum(file_obj)
                     try:
                         db_file = File.objects.get(hash_sum=check_sum)
                     except ObjectDoesNotExist:
                         db_file = File()
-                        db_file.file.save(os.path.basename(file_name), NewFile(file_content))
+                        db_file.file.save(os.path.basename(file_name), NewFile(file_obj))
                         db_file.hash_sum = check_sum
                         db_file.save()
                     self.log = db_file
                 elif report_filename is not None and file_name == report_filename:
                     self.file_content = file_obj.read()
                 elif self.need_other:
-                    file_content = BytesIO(file_obj.read())
-                    check_sum = hashlib.md5(file_content.read()).hexdigest()
+                    check_sum = file_checksum(file_obj)
                     try:
                         db_file = File.objects.get(hash_sum=check_sum)
                     except ObjectDoesNotExist:
                         db_file = File()
-                        db_file.file.save(os.path.basename(file_name), NewFile(file_content))
+                        db_file.file.save(os.path.basename(file_name), NewFile(file_obj))
                         db_file.hash_sum = check_sum
                         db_file.save()
                     self.other_files.append({'name': file_name, 'file': db_file})

@@ -28,7 +28,7 @@ class ABKM(core.components.Component):
 
         self.prepare_verification_task_files_archive()
 
-        self.decide_verification_task()
+        core.utils.invoke_callbacks(self.decide_verification_task)
 
     main = generate_verification_tasks
 
@@ -153,6 +153,8 @@ class ABKM(core.components.Component):
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
+
+                self.verification_status = 'unknown'
                 break
 
             if task_status == 'FINISHED':
@@ -394,6 +396,7 @@ class ABKM(core.components.Component):
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
 
+                self.verification_status = decision_results['status']
                 break
 
             time.sleep(1)

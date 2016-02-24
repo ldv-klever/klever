@@ -79,8 +79,7 @@ class NewMark(object):
                 try:
                     func = MarkUnsafeConvert.objects.get(
                         pk=int(args['convert_id']))
-                    converted = ConvertTrace(
-                        func.name, report.error_trace.decode('utf8'))
+                    converted = ConvertTrace(func.name, report.error_trace.decode('utf8'))
                     if converted.error is not None:
                         return converted.error
                     mark.error_trace = converted.pattern_error_trace.encode('utf8')

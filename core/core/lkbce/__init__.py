@@ -59,6 +59,10 @@ class LKBCE(core.components.Component):
         # This file should be specified to collect build commands during configuring and building of the Linux kernel.
         self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
         self.configure_linux_kernel()
+        # Always create Linux kernel raw build commands file prior to its reading in
+        # self.process_all_linux_kernel_raw_build_cmds().
+        with open(self.linux_kernel['raw build cmds file'], 'w'):
+            pass
         self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
         if not self.conf['debug']:
@@ -91,20 +95,12 @@ class LKBCE(core.components.Component):
                                 'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
                 # Examine module sets.
-                modules = []
                 for modules_set in self.conf['Linux kernel']['modules']:
                     # Module sets ending with .ko imply individual modules.
                     if re.search(r'\.ko$', modules_set):
-                        modules.append(modules_set)
+                        build_targets.append((modules_set,))
                     # Otherwise it is directory that can contain modules.
                     else:
-                        # Add all individual modules collected thus far as one build target. This helps to keep order
-                        # of modules if both individual modules and module directories are specified.
-                        if modules:
-                            build_targets.append(tuple(modules))
-                            # Clean up list of individual modules to avoid multiple appearance of them.
-                            del modules
-
                         # Add "modules_prepare" target once.
                         if not build_targets or build_targets[0] != ('modules_prepare',):
                             build_targets.insert(0, ('modules_prepare',))
@@ -115,9 +111,8 @@ class LKBCE(core.components.Component):
                                                                                                     'work src tree']))
 
                         build_targets.append(('M={0}'.format(modules_set), 'modules'))
-                # Add all individual modules collected thus far as one build target.
-                if modules:
-                    build_targets.append(tuple(modules))
+        else:
+            self.logger.warning('Nothing will be verified since modules are not specified')
 
         if build_targets:
             self.logger.debug('Build following targets:\n{0}'.format(
@@ -126,11 +121,7 @@ class LKBCE(core.components.Component):
         jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build')
         for build_target in build_targets:
             self.__make(build_target,
-                        # TODO: measure times and try C versions of wrappers, maybe parrallel build would be better.
-                        # Linux kernel doesn't support parrallel build of several .ko files, so build them using one
-                        # thread. Note that it looks like it is still more optimal than build several .ko files in
-                        # parrallel but invoking make per each .ko file independently.
-                        jobs_num=jobs_num if len(build_target) > 1 and build_target[1] == 'modules' else 1,
+                        jobs_num=jobs_num,
                         specify_arch=True, collect_build_cmds=True)
 
         self.linux_kernel['module deps'] = {}
@@ -468,8 +459,9 @@ class LKBCE(core.components.Component):
             env.update({'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
 
         return core.utils.execute(self.logger,
-                                  tuple(['make', '-j', str(jobs_num), '-C', self.linux_kernel['work src tree']] +
+                                  tuple(['make', '-j', str(jobs_num)] +
                                         (['ARCH={0}'.format(self.linux_kernel['arch'])] if specify_arch else []) +
                                         list(build_target)),
                                   env,
+                                  cwd=self.linux_kernel['work src tree'],
                                   collect_all_stdout=collect_all_stdout)

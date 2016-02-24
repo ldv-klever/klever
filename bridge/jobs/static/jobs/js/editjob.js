@@ -791,9 +791,22 @@ $(document).ready(function () {
     $('#remove_job_popup').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_job_popup', 'show');
+    $('#fast_start_job_popup').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#show_fast_job_start_popup', 'show');
+
+    $('#start_job_popup').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#decide_job_btn_show_popup', 'show');
 
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
+    });
+    $('#cancel_fast_start_job').click(function () {
+        $('#fast_start_job_popup').modal('hide');
+    });
+    $('#cancel_start_job').click(function () {
+        $('#start_job_popup').modal('hide');
     });
 
     var job_status_popup = $('#job_status_popup');
@@ -936,11 +949,11 @@ $(document).ready(function () {
                     }
                     if (data['can_decide']) {
                         $('#decide_job_btn').removeClass('disabled');
-                        $('#fast_job_start').removeClass('disabled');
+                        $('#show_fast_job_start_popup').removeClass('disabled');
                     }
                     else {
                         $('#decide_job_btn').addClass('disabled');
-                        $('#fast_job_start').addClass('disabled');
+                        $('#show_fast_job_start_popup').addClass('disabled');
                     }
                     if (data['can_stop']) {
                         $('#stop_job_btn').removeClass('disabled');

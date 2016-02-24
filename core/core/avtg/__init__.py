@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import copy
+import importlib
 import json
 import multiprocessing
 import os
@@ -8,16 +9,6 @@ import queue
 
 import core.components
 import core.utils
-
-# TODO: try to use modulefinder package to avoid explicit enumerating of these plugins here and setting list of these
-# plugins below.
-# ATVG plugins.
-from core.avtg.sa import SA
-from core.avtg.emg import EMG
-from core.avtg.ase import ASE
-from core.avtg.tr import TR
-from core.avtg.rsg import RSG
-from core.avtg.weaver import Weaver
 
 
 def before_launch_all_components(context):
@@ -53,6 +44,10 @@ def after_generate_all_verification_obj_descs(context):
 def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
 
+    if 'rule specifications' not in conf:
+        logger.warning('Nothing will be verified since rule specifications are not specified')
+        return []
+
     # Read rule specification descriprions DB.
     with open(core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB']),
               encoding='ascii') as fp:
@@ -87,6 +82,8 @@ def _extract_rule_spec_descs(conf, logger):
                         rule_spec_id))
         else:
             rule_spec_desc = descs['rule specifications'][rule_spec_id]
+
+        rule_spec_desc['id'] = rule_spec_id
 
         # Get rid of useless information.
         for attr in ('aliases', 'description'):
@@ -125,7 +122,7 @@ def _extract_rule_spec_descs(conf, logger):
         rule_spec_plugin_names = []
         for attr in rule_spec_desc:
             # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-            if attr not in ('aliases', 'description', 'bug kinds', 'template'):
+            if attr not in ('id', 'bug kinds'):
                 plugin_name = attr
                 rule_spec_plugin_names.append(plugin_name)
                 is_plugin_specified = False
@@ -152,13 +149,12 @@ def _extract_rule_spec_descs(conf, logger):
             del (rule_spec_desc[plugin_name])
         rule_spec_desc['plugins'] = plugin_descs
 
-        rule_spec_descs.append({'id': rule_spec_id, 'plugins': plugin_descs, 'bug kinds': rule_spec_desc['bug kinds']})
+        rule_spec_descs.append(rule_spec_desc)
 
     return rule_spec_descs
 
 
 _rule_spec_descs = None
-_plugins = (SA, EMG, ASE, TR, RSG, Weaver)
 
 
 def get_subcomponent_callbacks(conf, logger):
@@ -172,16 +168,14 @@ def get_subcomponent_callbacks(conf, logger):
     # Find appropriate classes for plugins if so.
     for rule_spec_desc in _rule_spec_descs:
         for plugin_desc in rule_spec_desc['plugins']:
-            plugin_found = False
-            for plugin in _plugins:
-                if plugin_desc['name'] == plugin.__name__:
-                    plugin_found = True
-                    # Remember found class to create its instance during main operation.
-                    plugin_desc['plugin'] = plugin
-                    if plugin not in plugins:
-                        plugins.append(plugin)
-                    break
-            if not plugin_found:
+            try:
+                plugin = getattr(importlib.import_module('.{0}'.format(plugin_desc['name'].lower()), 'core.avtg'),
+                                 plugin_desc['name'])
+                # Remember found class to create its instance during main operation.
+                plugin_desc['plugin'] = plugin
+                if plugin not in plugins:
+                    plugins.append(plugin)
+            except ImportError:
                 raise NotImplementedError('Plugin {0} is not supported'.format(plugin_desc['name']))
 
     return core.utils.get_component_callbacks(logger, plugins, conf)
@@ -189,11 +183,13 @@ def get_subcomponent_callbacks(conf, logger):
 
 class AVTG(core.components.Component):
     def generate_abstract_verification_tasks(self):
+        # TODO: get rid of these variables.
         self.common_prj_attrs = {}
         self.plugins_work_dir = None
         self.abstract_task_desc = None
         self.abstract_task_desc_num = 0
 
+        # TODO: combine extracting and reporting of attributes.
         self.extract_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
@@ -250,6 +246,11 @@ class AVTG(core.components.Component):
                 self.logger.debug('Verification object descriptions message queue was terminated')
                 self.mqs['verification obj descs'].close()
                 break
+
+            if not self.rule_spec_descs:
+                self.logger.warning(
+                    'Verification object {0} will not be verified since rule specifications are not specified'.format(
+                        verification_obj_desc['id']))
 
             # TODO: specification requires to do this in parallel...
             for rule_spec_desc in self.rule_spec_descs:
@@ -310,7 +311,9 @@ class AVTG(core.components.Component):
             plugin_conf = copy.deepcopy(self.conf)
             if 'options' in plugin_desc:
                 plugin_conf.update(plugin_desc['options'])
-            plugin_conf.update({'rule spec id': rule_spec_desc['id'], 'bug kinds': rule_spec_desc['bug kinds']})
+            plugin_conf.update({'rule spec id': rule_spec_desc['id']})
+            if 'bug kinds' in rule_spec_desc:
+                plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
 
             p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
                                       '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),

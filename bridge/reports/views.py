@@ -1,18 +1,19 @@
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.core.servers.basehttp import FileWrapper
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
+from django.utils.translation import ugettext as _, activate, string_concat
 from bridge.vars import JOB_STATUS
 from bridge.utils import unparallel_group, print_err
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
+from marks.utils import MarkAccess
 from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe
 from reports.UploadReport import UploadReport
-from marks.utils import MarkAccess
 from reports.models import *
 from reports.utils import *
-from django.utils.translation import ugettext as _, activate, string_concat
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
 
@@ -314,7 +315,8 @@ def get_component_log(request, report_id):
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
     logname = report.component.name + '.log'
-    response = HttpResponse(report.log.file.read(), content_type='text/plain')
+    response = StreamingHttpResponse(FileWrapper(report.log.file, 8192), content_type='text/plain')
+    response['Content-Length'] = len(report.log.file)
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
@@ -332,6 +334,8 @@ def get_log_content(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
+    if len(report.log.file) > 10000:
+        return HttpResponse(_('The component log is huge and can not be showed but you can download it'))
     return HttpResponse(report.log.file.read().decode('utf8'))
 
 

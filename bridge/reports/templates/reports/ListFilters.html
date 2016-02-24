@@ -6,11 +6,26 @@
     </div>
     <div class="content ui small form">
         <h5 class="header">{% trans 'Order by attribute' %}</h5>
-        <label for="filter__attr__order"></label>
-        <div class="fluid">
-            <input id="filter__attr__order" type="text" value="{{ view.order }}">
+        <div class="ui grid">
+            <div class="two wide column">
+                <div class="ui radio checkbox">
+                    <input id="order__value__up" name="order_value" type="radio" value="up" {% if view.order.1 == 'up' %} checked{% endif %}>
+                    <label for="order__value__up"><i class="ui arrow up icon"></i></label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order__value__down" name="order_value" type="radio" value="down" {% if view.order.1 == 'down' %} checked{% endif %}>
+                    <label for="order__value__down"><i class="ui arrow down icon"></i></label>
+                </div>
+            </div>
+            <div class="fourteen wide column">
+                <label for="filter__attr__order"></label>
+                <div class="fluid">
+                    <input id="filter__attr__order" type="text"{% if view.order.0 != 'default' %} value="{{ view.order.0 }}"{% endif %}>
+                </div>
+                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i>. {% trans 'Leave empty for order by creation date' %}.</small>
+            </div>
         </div>
-        <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i></small>
         <div class="ui divider"></div>
         <h5 class="header">{% trans 'Value of attribute' %}</h5>
         <label for="filter__attr__attr"></label>

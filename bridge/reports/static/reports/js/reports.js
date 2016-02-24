@@ -17,15 +17,24 @@ function component_filters_data() {
             value: attr_val
         }
     }
-
-    return JSON.stringify({filters: filter_values});
+    var order_type = $('input[name="order_type"]:checked').val();
+    if (order_type == 'attr') {
+        order_type = $('#order__attr__name').val();
+        if (order_type.length == 0) {
+            order_type = 'component';
+        }
+    }
+    return JSON.stringify({filters: filter_values, order: [order_type, $('input[name="order_value"]:checked').val()]});
 }
 
 function unsafe_filters_data() {
     var view_values = {}, filter_values = {};
     var order = $('#filter__attr__order').val();
     if (order.length > 0) {
-        view_values['order'] = order;
+        view_values['order'] = [order, $('input[name="order_value"]:checked').val()];
+    }
+    else {
+        view_values['order'] = ['default', $('input[name="order_value"]:checked').val()];
     }
 
     var attr_val = $('#filter__attr__value').val(),
@@ -50,7 +59,10 @@ function unknown_filters_data() {
 
     var order = $('#filter__attr__order').val();
     if (order.length > 0) {
-        view_values['order'] = order;
+        view_values['order'] = [order, $('input[name="order_value"]:checked').val()];
+    }
+    else {
+        view_values['order'] = ['component', $('input[name="order_value"]:checked').val()];
     }
 
     var comp_val = $('#filter__value__attr_component').val();
@@ -77,6 +89,21 @@ $(document).ready(function () {
     $('#computer_description_tr').popup({popup: $('#computer_info_popup'), position: 'right center'});
     $('.parent-popup').popup({inline:true});
     $('.ui.dropdown').dropdown();
+    $('#order__type__attr').parent().checkbox({
+        onChecked: function () {
+            $('#order__attr__value_div').show();
+        }
+    });
+    $('#order__type__component').parent().checkbox({
+        onChecked: function () {
+            $('#order__attr__value_div').hide();
+        }
+    });
+    $('#order__type__date').parent().checkbox({
+        onChecked: function () {
+            $('#order__attr__value_div').hide();
+        }
+    });
 
     /*var report_list = $('#report_list_table').find('tbody').children();
     if (report_list.length == 1) {

@@ -65,7 +65,7 @@ class VTG(core.components.Component):
 
         self.extract_src_tree_root()
 
-        self.generate_all_verification_tasks()
+        core.utils.invoke_callbacks(self.generate_all_verification_tasks)
 
     main = generate_verification_tasks
 

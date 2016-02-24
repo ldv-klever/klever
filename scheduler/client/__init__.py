@@ -45,6 +45,7 @@ def solve_job(conf):
     if "Klever Core path" not in conf["client"]:
         logging.debug("There is no configuration option 'client''Klever Core path'")
         bin = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../core/bin/klever-core")
+        os.environ['PYTHONPATH'] = os.path.join(os.path.dirname(bin), os.path.pardir)
     else:
         bin = conf["client"]["Klever Core path"]
 
@@ -150,11 +151,12 @@ def solve_task(conf):
     rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
     for opt in conf["verifier"]["options"] + [
         {"-setprop": "parser.readLineDirectives=true"},
-        {"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"},
+        {"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"}
+    ] + ([] if "-heap" in [list(opt.keys())[0] for opt in conf["verifier"]["options"]] else [
         # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
         # general memory size limit.
-        {"-heap": '{0}m'.format(round(conf["resource limits"]["memory size"] / (4 * 1000 ** 2)))}
-    ]:
+        {"-heap": '{0}m'.format(round(3 * conf["resource limits"]["memory size"] / (4 * 1000 ** 2)))}
+    ]):
         for name in opt:
             ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
     ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
