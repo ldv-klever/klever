@@ -42,7 +42,7 @@ class Session:
                     resp = self.session.get(url, **kwargs)
 
                 if resp.status_code != 200:
-                    with open('response error.html', 'w', encoding='ascii') as fp:
+                    with open('response error.html', 'w', encoding='utf8') as fp:
                         fp.write(resp.text)
                     raise IOError(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,

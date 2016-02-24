@@ -4,12 +4,13 @@
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
+      <env name="KLEVER_WORK_DIR" value="/abs/path/to/work/dir" />
       <env name="PATH" value="$CONTENT_OF_LOCAL_PATH:/abs/path/to/cif/bin/:/abs/path/to/cil/obj/x86_LINUX" />
     </envs>
     <option name="SDK_HOME" value="/usr/bin/python3.4" />
     <option name="WORKING_DIRECTORY" value="/abs/path/to/work/dir" />
     <option name="IS_MODULE_SDK" value="false" />
-    <option name="ADD_CONTENT_ROOTS" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="false" />
     <module name="core" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />

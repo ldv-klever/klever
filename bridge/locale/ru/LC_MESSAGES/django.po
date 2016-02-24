@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-10 15:35+0000\n"
+"POT-Creation-Date: 2016-02-19 09:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -96,190 +96,194 @@ msgstr "У Вас нет прав на данную страницу"
 msgid "Couldn't visualize the error trace"
 msgstr "Не удалось визуализировать трассу ошибки"
 
-#: bridge/vars.py:33 bridge/vars.py:50
+#: bridge/vars.py:25
+msgid "Can't populate without Manager and service user"
+msgstr "Наполнение базы данных невозможно без Руководителя и служебного пользователя"
+
+#: bridge/vars.py:34 bridge/vars.py:51
 #: tools/templates/tools/ManagerPanel.html:12 tools/views.py:28
 #: tools/views.py:77 tools/views.py:96 tools/views.py:123 tools/views.py:142
 #: tools/views.py:156
 msgid "No access"
 msgstr "Нет доступа"
 
-#: bridge/vars.py:34 users/notifications.py:222
+#: bridge/vars.py:35 users/notifications.py:222
 msgid "Producer"
 msgstr "Постановщик"
 
-#: bridge/vars.py:35 users/notifications.py:223
+#: bridge/vars.py:36 users/notifications.py:223
 msgid "Manager"
 msgstr "Руководитель"
 
-#: bridge/vars.py:36 bridge/vars.py:52 users/notifications.py:222
+#: bridge/vars.py:37 bridge/vars.py:53 users/notifications.py:222
 msgid "Expert"
 msgstr "Эксперт"
 
-#: bridge/vars.py:37
+#: bridge/vars.py:38
 msgid "Service user"
 msgstr "Служебный пользователь"
 
-#: bridge/vars.py:41
+#: bridge/vars.py:42
 msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
-#: bridge/vars.py:42
+#: bridge/vars.py:43
 msgid "Validation on Linux kernel modules"
 msgstr "Валидация на модулях ядра Linux"
 
-#: bridge/vars.py:43
+#: bridge/vars.py:44
 msgid "Verification of commits in Linux kernel Git repositories"
 msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
-#: bridge/vars.py:44
+#: bridge/vars.py:45
 msgid "Validation on commits in Linux kernel Git repositories"
 msgstr "Валидация на коммитах в Git-репозиториях ядра Linux"
 
-#: bridge/vars.py:45
+#: bridge/vars.py:46
 msgid "Verification of C programs"
 msgstr "Верификация Си-программ"
 
-#: bridge/vars.py:46
+#: bridge/vars.py:47
 msgid "Validation on C programs"
 msgstr "Валидация на Си-программах"
 
-#: bridge/vars.py:51 users/notifications.py:222
+#: bridge/vars.py:52 users/notifications.py:222
 msgid "Observer"
 msgstr "Обозреватель"
 
-#: bridge/vars.py:53
+#: bridge/vars.py:54
 msgid "Observer and Operator"
 msgstr "Обозреватель и оператор"
 
-#: bridge/vars.py:54
+#: bridge/vars.py:55
 msgid "Expert and Operator"
 msgstr "Эксперт и оператор"
 
-#: bridge/vars.py:58
+#: bridge/vars.py:59
 msgid "Not solved"
 msgstr "Не решено"
 
-#: bridge/vars.py:59 bridge/vars.py:356
+#: bridge/vars.py:60 bridge/vars.py:357
 msgid "Pending"
 msgstr "Ожидает"
 
-#: bridge/vars.py:60
+#: bridge/vars.py:61
 msgid "Is solving"
 msgstr "Решается"
 
-#: bridge/vars.py:61
+#: bridge/vars.py:62
 msgid "Solved"
 msgstr "Решено"
 
-#: bridge/vars.py:62 reports/templates/reports/ReportMain.html:33
+#: bridge/vars.py:63 reports/templates/reports/ReportMain.html:33
 msgid "Failed"
 msgstr "Провалено"
 
-#: bridge/vars.py:63
+#: bridge/vars.py:64
 msgid "Corrupted"
 msgstr "Повреждено"
 
-#: bridge/vars.py:64 bridge/vars.py:360
+#: bridge/vars.py:65 bridge/vars.py:361
 msgid "Cancelled"
 msgstr "Отменено"
 
-#: bridge/vars.py:123
+#: bridge/vars.py:124
 msgid "Unreported"
 msgstr "Не сообщена"
 
-#: bridge/vars.py:124
+#: bridge/vars.py:125
 msgid "Reported"
 msgstr "Сообщена"
 
-#: bridge/vars.py:125
+#: bridge/vars.py:126
 msgid "Fixed"
 msgstr "Исправлена"
 
-#: bridge/vars.py:126
+#: bridge/vars.py:127
 msgid "Rejected"
 msgstr "Отклонена"
 
-#: bridge/vars.py:130 bridge/vars.py:137 bridge/vars.py:143 bridge/vars.py:152
+#: bridge/vars.py:131 bridge/vars.py:138 bridge/vars.py:144 bridge/vars.py:153
 #: jobs/utils.py:44 jobs/utils.py:52
 #: reports/templates/reports/report_leaf.html:7 reports/utils.py:32
 msgid "Unknown"
 msgstr "Неизвестно"
 
-#: bridge/vars.py:131 bridge/vars.py:144
+#: bridge/vars.py:132 bridge/vars.py:145
 msgid "Bug"
 msgstr "Ошибка"
 
-#: bridge/vars.py:132 bridge/vars.py:145
+#: bridge/vars.py:133 bridge/vars.py:146
 msgid "Target bug"
 msgstr "Целевая ошибка"
 
-#: bridge/vars.py:133 bridge/vars.py:146
+#: bridge/vars.py:134 bridge/vars.py:147
 msgid "False positive"
 msgstr "Ложное сообщение об ошибке"
 
-#: bridge/vars.py:138 bridge/vars.py:153 jobs/utils.py:43
+#: bridge/vars.py:139 bridge/vars.py:154 jobs/utils.py:43
 msgid "Incorrect proof"
 msgstr "Некорректное доказательство"
 
-#: bridge/vars.py:139 bridge/vars.py:154
+#: bridge/vars.py:140 bridge/vars.py:155
 msgid "Missed target bug"
 msgstr "Пропуск целевой ошибки"
 
-#: bridge/vars.py:147 bridge/vars.py:155 jobs/utils.py:45 jobs/utils.py:53
+#: bridge/vars.py:148 bridge/vars.py:156 jobs/utils.py:45 jobs/utils.py:53
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: bridge/vars.py:148 bridge/vars.py:156 jobs/JobTableProperties.py:583
+#: bridge/vars.py:149 bridge/vars.py:157 jobs/JobTableProperties.py:583
 #: jobs/JobTableProperties.py:588 jobs/ViewJobData.py:175 jobs/utils.py:46
 #: jobs/utils.py:54
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: bridge/vars.py:331 bridge/vars.py:350
+#: bridge/vars.py:332 bridge/vars.py:351
 #: service/templates/service/scheduler.html:27
 msgid "Healthy"
 msgstr "Здоровый"
 
-#: bridge/vars.py:332 bridge/vars.py:351
+#: bridge/vars.py:333 bridge/vars.py:352
 #: service/templates/service/scheduler.html:29
 msgid "Ailing"
 msgstr "Нездоровый"
 
-#: bridge/vars.py:333 bridge/vars.py:352
+#: bridge/vars.py:334 bridge/vars.py:353
 #: service/templates/service/scheduler.html:31
 msgid "Disconnected"
 msgstr "Отключенный"
 
-#: bridge/vars.py:342
+#: bridge/vars.py:343
 msgid "Urgent"
 msgstr "Срочный"
 
-#: bridge/vars.py:343
+#: bridge/vars.py:344
 msgid "High"
 msgstr "Высокий"
 
-#: bridge/vars.py:344
+#: bridge/vars.py:345
 msgid "Low"
 msgstr "Низкий"
 
-#: bridge/vars.py:345
+#: bridge/vars.py:346
 msgid "Idle"
 msgstr "Незанятый"
 
-#: bridge/vars.py:349
+#: bridge/vars.py:350
 msgid "User occupied"
 msgstr "Занятый пользователем"
 
-#: bridge/vars.py:357
+#: bridge/vars.py:358
 msgid "Processing"
 msgstr "Решается"
 
-#: bridge/vars.py:359 templates/error.html:5
+#: bridge/vars.py:360 templates/error.html:5
 msgid "Error"
 msgstr "Ошибка"
 
-#: bridge/views.py:34 jobs/utils.py:275 jobs/utils.py:458 marks/utils.py:747
-#: marks/utils.py:805 marks/utils.py:940 marks/views.py:209 marks/views.py:405
+#: bridge/views.py:34 jobs/utils.py:275 jobs/utils.py:458 marks/utils.py:746
+#: marks/utils.py:804 marks/utils.py:939 marks/views.py:209 marks/views.py:405
 #: marks/views.py:435 marks/views.py:446 reports/etv.py:381
 #: service/utils.py:823 service/utils.py:831 service/utils.py:922
 #: service/utils.py:944 service/utils.py:987 service/utils.py:991
@@ -463,7 +467,7 @@ msgid "Comment"
 msgstr "Комментарий"
 
 #: jobs/templates/jobs/editJob.html:103
-#: jobs/templates/jobs/startDecision.html:45 jobs/templates/jobs/tree.html:346
+#: jobs/templates/jobs/startDecision.html:47 jobs/templates/jobs/tree.html:346
 #: marks/templates/marks/CreateMark.html:112
 #: marks/templates/marks/CreateMark.html:188
 #: marks/templates/marks/CreateMark.html:248
@@ -481,6 +485,7 @@ msgstr "Сохранить"
 #: jobs/templates/jobs/filesTree.html:168
 #: jobs/templates/jobs/filesTree.html:195 jobs/templates/jobs/tree.html:408
 #: jobs/templates/jobs/viewJob.html:187 jobs/templates/jobs/viewJob.html:206
+#: jobs/templates/jobs/viewJob.html:223
 #: jobs/templates/jobs/viewVersions.html:18
 #: jobs/templates/jobs/viewVersions.html:32
 #: marks/templates/marks/CreateMark.html:111
@@ -704,30 +709,30 @@ msgstr "Планировщик задач"
 msgid "Job priority"
 msgstr "Приоритет задания"
 
-#: jobs/templates/jobs/startDecision.html:50
+#: jobs/templates/jobs/startDecision.html:52
 msgid "Resource limits for Klever Core"
 msgstr "Ограничения на ресурсы для Klever Core"
 
-#: jobs/templates/jobs/startDecision.html:51
+#: jobs/templates/jobs/startDecision.html:53
 #: service/templates/service/scheduler.html:82
 #: service/templates/service/scheduler.html:129
 #: service/templates/service/scheduler.html:147
 msgid "Memory size"
 msgstr "Объем оперативной памяти"
 
-#: jobs/templates/jobs/startDecision.html:51
-#: jobs/templates/jobs/startDecision.html:61 jobs/utils.py:345
+#: jobs/templates/jobs/startDecision.html:53
+#: jobs/templates/jobs/startDecision.html:63 jobs/utils.py:345
 #: service/templates/service/scheduler.html:129
 #: service/templates/service/scheduler.html:130
 #: service/templates/service/scheduler.html:193
 msgid "GB"
 msgstr "ГБ"
 
-#: jobs/templates/jobs/startDecision.html:51
-#: jobs/templates/jobs/startDecision.html:56
-#: jobs/templates/jobs/startDecision.html:61
-#: jobs/templates/jobs/startDecision.html:68
-#: jobs/templates/jobs/startDecision.html:73
+#: jobs/templates/jobs/startDecision.html:53
+#: jobs/templates/jobs/startDecision.html:58
+#: jobs/templates/jobs/startDecision.html:63
+#: jobs/templates/jobs/startDecision.html:70
+#: jobs/templates/jobs/startDecision.html:75
 #: marks/templates/marks/filters.html:61
 #: marks/templates/marks/filters.html:166
 #: reports/templates/reports/AttrsFilters.html:41
@@ -739,96 +744,96 @@ msgstr "ГБ"
 msgid "e.g."
 msgstr "например,"
 
-#: jobs/templates/jobs/startDecision.html:56
+#: jobs/templates/jobs/startDecision.html:58
 #: service/templates/service/scheduler.html:81
 #: service/templates/service/scheduler.html:128
 #: service/templates/service/scheduler.html:146
 msgid "Number of CPU cores"
 msgstr "Количество ядер процессора"
 
-#: jobs/templates/jobs/startDecision.html:61
+#: jobs/templates/jobs/startDecision.html:63
 #: service/templates/service/scheduler.html:83
 #: service/templates/service/scheduler.html:130
 #: service/templates/service/scheduler.html:148
 msgid "Disk memory size"
 msgstr "Объем дисковой памяти"
 
-#: jobs/templates/jobs/startDecision.html:68
+#: jobs/templates/jobs/startDecision.html:70
 #: reports/templates/reports/ReportMain.html:100
 msgid "Wall time"
 msgstr "Астрономическое время"
 
-#: jobs/templates/jobs/startDecision.html:68
-#: jobs/templates/jobs/startDecision.html:73 jobs/utils.py:323
+#: jobs/templates/jobs/startDecision.html:70
+#: jobs/templates/jobs/startDecision.html:75 jobs/utils.py:323
 msgid "s"
 msgstr "с"
 
-#: jobs/templates/jobs/startDecision.html:68
-#: jobs/templates/jobs/startDecision.html:73
+#: jobs/templates/jobs/startDecision.html:70
+#: jobs/templates/jobs/startDecision.html:75
 msgid "empty value means unlimited time"
 msgstr "пустое значение означает неограниченное время"
 
-#: jobs/templates/jobs/startDecision.html:73
+#: jobs/templates/jobs/startDecision.html:75
 #: reports/templates/reports/ReportMain.html:101
 msgid "CPU time"
 msgstr "Процессорное время"
 
-#: jobs/templates/jobs/startDecision.html:78
+#: jobs/templates/jobs/startDecision.html:80
 #: service/templates/service/scheduler.html:127
 #: service/templates/service/scheduler.html:145
 msgid "CPU model"
 msgstr "Модель процессора"
 
-#: jobs/templates/jobs/startDecision.html:78
+#: jobs/templates/jobs/startDecision.html:80
 msgid "empty value means any model"
 msgstr "пустое значение означает любую модель"
 
-#: jobs/templates/jobs/startDecision.html:87
+#: jobs/templates/jobs/startDecision.html:89
 msgid "Klever Core configuration"
 msgstr "Конфигурация Klever Core"
 
-#: jobs/templates/jobs/startDecision.html:88
+#: jobs/templates/jobs/startDecision.html:90
 msgid "Abstract tasks generation priority"
 msgstr "Приоритет генерации абстрактных задач"
 
-#: jobs/templates/jobs/startDecision.html:94
+#: jobs/templates/jobs/startDecision.html:98
 msgid "Parallelism"
 msgstr "Параллелизм"
 
-#: jobs/templates/jobs/startDecision.html:95
+#: jobs/templates/jobs/startDecision.html:99
 msgid "Linux kernel build"
 msgstr "Сборка ядра Linux"
 
-#: jobs/templates/jobs/startDecision.html:99
+#: jobs/templates/jobs/startDecision.html:103
 msgid "Tasks generation"
 msgstr "Генерация задач"
 
-#: jobs/templates/jobs/startDecision.html:105
+#: jobs/templates/jobs/startDecision.html:109
 msgid "Log Formatters"
 msgstr "Форматтеры логов"
 
-#: jobs/templates/jobs/startDecision.html:106
+#: jobs/templates/jobs/startDecision.html:110
 msgid "Console"
 msgstr "Консоль"
 
-#: jobs/templates/jobs/startDecision.html:111
+#: jobs/templates/jobs/startDecision.html:115
 msgid "File"
 msgstr "Файл"
 
-#: jobs/templates/jobs/startDecision.html:121
+#: jobs/templates/jobs/startDecision.html:125
 msgid "Debug"
 msgstr "Отладка"
 
-#: jobs/templates/jobs/startDecision.html:127
+#: jobs/templates/jobs/startDecision.html:131
 msgid "Allow use of local source directories"
 msgstr "Разрешить использовать локальные директории с исходным кодом"
 
-#: jobs/templates/jobs/startDecision.html:132
-#: jobs/templates/jobs/viewJob.html:207
+#: jobs/templates/jobs/startDecision.html:136
+#: jobs/templates/jobs/viewJob.html:207 jobs/templates/jobs/viewJob.html:224
 msgid "Start"
 msgstr "Начать"
 
-#: jobs/templates/jobs/startDecision.html:137
+#: jobs/templates/jobs/startDecision.html:141
 msgid ""
 "VerifierCloud credentials were successfully saved (you can change them in "
 "your settings)"
@@ -836,7 +841,7 @@ msgstr ""
 "Идентификационная информация для VerifierCloud была успешно сохранена (Вы "
 "можете изменить ее в Ваших настройках)"
 
-#: jobs/templates/jobs/startDecision.html:138
+#: jobs/templates/jobs/startDecision.html:142
 msgid "Field(s) with red background are required"
 msgstr "Требуется заполнить поле(я) с красным фоном"
 
@@ -1018,7 +1023,7 @@ msgid "unsaved"
 msgstr "не сохранено"
 
 #: jobs/templates/jobs/tree.html:399 jobs/templates/jobs/viewJob.html:178
-#: jobs/templates/jobs/viewJob.html:197
+#: jobs/templates/jobs/viewJob.html:197 jobs/templates/jobs/viewJob.html:214
 #: jobs/templates/jobs/viewVersions.html:23
 #: marks/templates/marks/EditMark.html:137
 #: marks/templates/marks/EditUnknownMark.html:133
@@ -1127,9 +1132,9 @@ msgstr "Последнее изменение"
 msgid "All versions and all data of this job will be deleted"
 msgstr "Все версии и все данные задания будут удалены"
 
-#: jobs/templates/jobs/viewJob.html:201
-msgid "All reports of this job will be deleted"
-msgstr "Все отчеты задания будут удалены"
+#: jobs/templates/jobs/viewJob.html:201 jobs/templates/jobs/viewJob.html:218
+msgid "All existing reports of this job will be deleted"
+msgstr "Все существующие отчеты задания будут удалены"
 
 #: jobs/templates/jobs/viewJobFilters.html:49
 msgid "Hide problems without marks"
@@ -1715,25 +1720,25 @@ msgstr "не совпадает с"
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:766 marks/views.py:186
+#: marks/utils.py:765 marks/views.py:186
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: marks/utils.py:770
+#: marks/utils.py:769
 msgid "The mark format is not supported"
 msgstr "Формат оценки не поддерживается"
 
-#: marks/utils.py:854 marks/utils.py:857
+#: marks/utils.py:853 marks/utils.py:856
 msgid "The attributes have wrong format"
 msgstr "Формат атрибутов некорректный"
 
-#: marks/utils.py:893 marks/utils.py:901 marks/utils.py:906 marks/utils.py:909
-#: marks/utils.py:914 marks/utils.py:919 marks/utils.py:921 marks/utils.py:923
-#: marks/utils.py:926
+#: marks/utils.py:892 marks/utils.py:900 marks/utils.py:905 marks/utils.py:908
+#: marks/utils.py:913 marks/utils.py:918 marks/utils.py:920 marks/utils.py:922
+#: marks/utils.py:925
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
-#: marks/utils.py:911
+#: marks/utils.py:910
 msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
@@ -2107,19 +2112,23 @@ msgstr ""
 msgid "Manager username"
 msgstr "Имя Руководителя"
 
-#: templates/Population.html:82
+#: templates/Population.html:80
 msgid "Create the service user with the specified username"
 msgstr "Создать служебного пользователя с указанным именем"
 
-#: templates/Population.html:84
+#: templates/Population.html:82
 msgid "Service username"
 msgstr "Имя служебного пользователя"
 
-#: templates/Population.html:92
+#: templates/Population.html:90
 msgid "Manager and service usernames must be different"
 msgstr "Имена Руководителя и служебного пользователя должны быть разными"
 
-#: templates/Population.html:95
+#: templates/Population.html:94
+msgid "Manager and service usernames are required"
+msgstr "Требуется заполнить имена Руководителя и служебного пользователя"
+
+#: templates/Population.html:97
 msgid "Populate"
 msgstr "Наполнить базу данных"
 
