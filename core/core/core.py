@@ -57,6 +57,7 @@ class Core:
         self.components_conf = None
         self.callbacks = {}
         self.component_processes = []
+        self.data = None
 
     def main(self):
         try:
@@ -176,6 +177,11 @@ class Core:
                                           },
                                           self.mqs['report files'],
                                           suffix='-validator{0}'.format(i))
+                self.data = []
+                for sub_job in self.job.sub_jobs:
+                    self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
+                                      sub_job.conf['ideal verdict']] +
+                                     sub_job.conf['obtained verification statuses'])
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:
@@ -215,7 +221,7 @@ class Core:
                                               self.start_time),
                                           'desc': self.conf_file,
                                           'log': 'log',
-                                          'data': '',
+                                          'data': json.dumps(self.data),
                                           'files': [self.conf_file, 'log']
                                       },
                                       self.mqs['report files'])
