@@ -112,10 +112,9 @@ DEF_KLEVER_CORE_CONFIGURATION = {
     }
 }
 
-DEF_USER_DATAFORMAT = 'hum'  # See bridge.vars.DATAFORMAT for options
-
-DEF_USER_LANGUAGE = 'en'  # See bridge.vars.LANGUAGES for options
-
-DEF_USER_TIMEZONE = 'Europe/Moscow'  # See pytz.common_timezones for options
-
-DEF_USER_ACCURACY = 2  # 0 - 10
+DEF_USER = {
+    'dataformat': 'hum',  # See bridge.vars.DATAFORMAT for options
+    'language': 'en',  # See bridge.vars.LANGUAGES for options
+    'timezone': 'Europe/Moscow',  # See pytz.common_timezones for options
+    'accuracy': 2  # 0 - 10
+}

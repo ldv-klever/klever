@@ -12,7 +12,7 @@ from django.utils.timezone import pytz
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
 from bridge.vars import LANGUAGES, SCHEDULER_TYPE
-from bridge.settings import DEF_USER_TIMEZONE
+from bridge.settings import DEF_USER
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
 from jobs.models import Job
@@ -81,7 +81,7 @@ def register(request):
                       'user_form': user_form,
                       'profile_form': profile_form,
                       'timezones': pytz.common_timezones,
-                      'def_timezone': DEF_USER_TIMEZONE
+                      'def_timezone': DEF_USER['timezone']
                   })
 
 
