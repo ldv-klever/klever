@@ -1,0 +1,30 @@
+{% load i18n %}
+
+
+{% if component == 'Core' and type == '0' %}
+    <p>{{ data }}</p>
+{% elif component == 'Core' and type == '3' %}
+    <h5 class="ui brown header">{% trans 'Validation verdicts' %}</h5>
+    <table class="ui compact brown table">
+        <thead>
+            <tr>
+                <th>{% trans 'Commit' %}</th>
+                <th>{% trans 'Ideal verdict' %}</th>
+                <th>{% trans 'Real verdict' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in data %}
+                <tr>
+                    <td>{{ d.0 }}</td>
+                    <td>{{ d.1 }}</td>
+                    <td>{{ d.2 }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>{% trans 'Component' %}: {{ component }}</p>
+    <p>{% trans 'Class id' %}: {{ type }}</p>
+    <p>{% trans 'Data' %}: "{{ data }}"</p>
+{% endif %}

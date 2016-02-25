@@ -42,18 +42,8 @@
                     <th class="right aligned">{% trans 'Computer' %}</th>
                     <td>{{ computer.name }}</td>
                 </tr>
-                {% if report.description %}
-                    <tr>
-                        <th colspan="2" class="center aligned">
-                            <h4 class="header" style="margin-top: 5px;margin-bottom: 5px;">{% trans 'Description' %}</h4>
-                        </th>
-                    </tr>
-                {% endif %}
             </tbody>
         </table>
-        {% if report.description %}
-            <div class="ui segment bottom attached bottom attached filecontent" style="max-height: 400px;">{{ report.description }}</div>
-        {% endif %}
         {% if SelfAttrsData.values|length %}
             <h4 class="header ui violet">{% trans 'Attributes' %}</h4>
             <div style="overflow-x: auto">
@@ -112,6 +102,14 @@
             </div>
         </div>
         <input id="report_pk" type="hidden" value="{{ report.pk }}">
+
+        {% if data %}
+            <h4 class="header ui violet">{% trans 'Data' %}</h4>
+            <div class="ui brown segment">
+                {% include 'reports/ReportData.html' with data=data component=report.component.name type=report.root.job.type %}
+            </div>
+        {% endif %}
+
         {% if report.log %}<br><br><button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>{% endif %}
     </div>
 

@@ -71,12 +71,6 @@
                 </tbody>
             </table>
         </div>
-        {% if report.description %}
-            <div class="ui blue segment">
-                <div class="ui top left attached large blue label">{% trans 'Description' %}</div>
-                <div class="filecontent">{{ report.description }}</div>
-            </div>
-        {% endif %}
     </div>
     <div class="eight wide column">
         {% if MarkTable.values|length %}
