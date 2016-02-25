@@ -19,16 +19,12 @@
             "specifications directory": "emg",
             "entry point": "entry_point",
             "translator": "sequential",
-            "translation options": {
-              "instance modifier": 1
-            },
+            "translation options": {"instance modifier": 1},
             "additional headers": [
               "rcv.h",
               "sv-comp.h"
             ],
-            "additional aspects": [
-              "headers.aspect"
-            ]
+            "additional aspects": ["headers.aspect"]
           }
         },
         {
@@ -49,13 +45,9 @@
               "-D__KERNEL__",
               "-Os"
             ],
-            "common models": [
-              "err.c"
-            ],
+            "common models": ["err.c"],
             "aspects directory": "rule specs/linux",
-            "common aspects": [
-              "err.aspect"
-            ]
+            "common aspects": ["err.aspect"]
           }
         },
         "Weaver"
@@ -74,9 +66,7 @@
           }
         },
         {
-          "TR": {
-            "templates directory": "rule specs/linux"
-          }
+          "TR": {"templates directory": "rule specs/linux"}
         },
         "RSG",
         "Weaver"
@@ -89,51 +79,33 @@
       "template": "Empty"
     },
     "linux:alloc1": {
-      "aliases": [
-        "10"
-      ],
+      "aliases": ["10"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "alloc1.c"
-        ],
-        "aspects": [
-          "alloc1.aspect"
-        ]
+        "models": ["alloc1.c"],
+        "aspects": ["alloc1.aspect"]
       }
     },
     "linux:alloc2": {
-      "aliases": [
-        "43"
-      ],
+      "aliases": ["43"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "alloc2.c"
-        ],
-        "aspects": [
-          "alloc2.aspect"
-        ]
+        "models": ["alloc2.c"],
+        "aspects": ["alloc2.aspect"]
       }
     },
     "linux:alloc3": {
-      "aliases": [
-        "77"
-      ],
+      "aliases": ["77"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "alloc3.c"
-        ],
-        "aspects": [
-          "alloc3.aspect"
-        ]
+        "models": ["alloc3.c"],
+        "aspects": ["alloc3.aspect"]
       }
     },
     "linux:empty": {
@@ -142,57 +114,37 @@
       "template": "Common for Linux kernel modules"
     },
     "linux:mmc:sdio_func": {
-      "aliases": [
-        "150"
-      ],
+      "aliases": ["150"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "mmc/sdio_func.c"
-        ],
-        "aspects": [
-          "mmc/sdio_func.aspect"
-        ]
+        "models": ["mmc/sdio_func.c"],
+        "aspects": ["mmc/sdio_func.aspect"]
       }
     },
     "linux:module": {
-      "aliases": [
-        "8"
-      ],
+      "aliases": ["8"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "module.c"
-        ],
-        "aspects": [
-          "module.aspect"
-        ]
+        "models": ["module.c"],
+        "aspects": ["module.aspect"]
       }
     },
     "linux:module:next": {
-      "aliases": [
-        "8"
-      ],
+      "aliases": ["8"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "module.next.c"
-        ],
-        "aspects": [
-          "module.next.aspect"
-        ]
+        "models": ["module.next.c"],
+        "aspects": ["module.next.aspect"]
       }
     },
     "linux:mutex": {
-      "aliases": [
-        "32"
-      ],
+      "aliases": ["32"],
       "description": "...",
       "bug kinds": [
         "one thread:double acquisition",
@@ -200,12 +152,8 @@
       ],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "mutex.c"
-        ],
-        "aspects": [
-          "mutex.aspect"
-        ]
+        "models": ["mutex.c"],
+        "aspects": ["mutex.aspect"]
       }
     },
     "linux:mutex:as": {
@@ -215,9 +163,7 @@
         "one thread:unreleased at exit"
       ],
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {
-        "request aspect": "mutex.request.aspect"
-      },
+      "ASE": {"request aspect": "mutex.request.aspect"},
       "TR": {
         "templates": [
           "mutex.c.tmpl",
@@ -232,9 +178,7 @@
         "one thread:unreleased at exit"
       ],
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {
-        "request aspect": "mutex.next.request.aspect"
-      },
+      "ASE": {"request aspect": "mutex.next.request.aspect"},
       "TR": {
         "templates": [
           "mutex.next.c.tmpl",
@@ -243,31 +187,21 @@
       }
     },
     "linux:rwlock": {
-      "aliases": [
-        "118"
-      ],
+      "aliases": ["118"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "rwlock.c"
-        ],
-        "aspects": [
-          "rwlock.aspect"
-        ]
+        "models": ["rwlock.c"],
+        "aspects": ["rwlock.aspect"]
       }
     },
     "linux:spinlock:as": {
-      "aliases": [
-        "39"
-      ],
+      "aliases": ["39"],
       "description": "...",
       "bug kinds": [],
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {
-        "request aspect": "spinlock.request.aspect"
-      },
+      "ASE": {"request aspect": "spinlock.request.aspect"},
       "TR": {
         "templates": [
           "spinlock.c.tmpl",
@@ -276,9 +210,7 @@
       }
     },
     "linux:usb1": {
-      "aliases": [
-        "132"
-      ],
+      "aliases": ["132"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
@@ -294,35 +226,23 @@
       }
     },
     "linux:usb2": {
-      "aliases": [
-        "134"
-      ],
+      "aliases": ["134"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "usb2.c"
-        ],
-        "aspects": [
-          "usb2.aspect"
-        ]
+        "models": ["usb2.c"],
+        "aspects": ["usb2.aspect"]
       }
     },
     "linux:usb:gadget": {
-      "aliases": [
-        "106"
-      ],
+      "aliases": ["106"],
       "description": "...",
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "usb/gadget.c"
-        ],
-        "aspects": [
-          "usb/gadget.aspect"
-        ]
+        "models": ["usb/gadget.c"],
+        "aspects": ["usb/gadget.aspect"]
       }
     }
   }
