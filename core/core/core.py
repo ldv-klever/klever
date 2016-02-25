@@ -244,7 +244,7 @@ class Core:
                                               self.start_time),
                                           'desc': self.conf_file,
                                           'log': 'log',
-                                          'data': json.dumps(self.data),
+                                          'data': json.dumps(self.data) if self.data else '',
                                           'files': [self.conf_file, 'log']
                                       },
                                       self.mqs['report files'])
