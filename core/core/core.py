@@ -189,6 +189,7 @@ class Core:
                                 if verification_status is None:
                                     self.logger.debug('Verification statuses message queue was terminated')
                                     self.mqs['verification statuses'].close()
+                                    del self.mqs['verification statuses']
                                     break
 
                                 sub_job.conf['obtained verification statuses'].append(verification_status)
