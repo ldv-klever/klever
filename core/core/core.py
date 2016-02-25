@@ -203,9 +203,7 @@ class Core:
                                           {
                                               'id': sub_job_id,
                                               'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                              'desc': '',
                                               'log': '__log',
-                                              'data': '',
                                               'files': ['__log']
                                           },
                                           self.mqs['report files'],
@@ -240,18 +238,19 @@ class Core:
                         p.stop()
 
                 if self.mqs:
+                    finish_report = {
+                        'id': self.id,
+                        'resources': core.utils.count_consumed_resources(
+                            self.logger,
+                            self.start_time),
+                        'log': 'log',
+                        'files': ['log']
+                    }
+                    if self.data:
+                        finish_report.update({'data': json.dumps(self.data)})
                     core.utils.report(self.logger,
                                       'finish',
-                                      {
-                                          'id': self.id,
-                                          'resources': core.utils.count_consumed_resources(
-                                              self.logger,
-                                              self.start_time),
-                                          'desc': self.conf_file,
-                                          'log': 'log',
-                                          'data': json.dumps(self.data) if self.data else '',
-                                          'files': [self.conf_file, 'log']
-                                      },
+                                      finish_report,
                                       self.mqs['report files'])
 
                     self.logger.info('Terminate report files message queue')

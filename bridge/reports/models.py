@@ -35,17 +35,9 @@ class Report(models.Model):
     root = models.ForeignKey(ReportRoot)
     parent = models.ForeignKey('self', null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
-    description = models.BinaryField(null=True)
 
     class Meta:
         db_table = 'report'
-
-
-@receiver(post_init, sender=Report)
-def get_report_description(**kwargs):
-    report = kwargs['instance']
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ReportAttr(models.Model):
@@ -93,8 +85,6 @@ def get_report_data(**kwargs):
     report = kwargs['instance']
     if report.data is not None and not isinstance(report.data, bytes):
         report.data = report.data.tobytes()
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ReportUnsafe(Report):
@@ -110,8 +100,6 @@ def get_unsafe_trace(**kwargs):
     report = kwargs['instance']
     if not isinstance(report.error_trace, bytes):
         report.error_trace = report.error_trace.tobytes()
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ETVFiles(models.Model):
@@ -136,8 +124,6 @@ def get_safe_proof(**kwargs):
     report = kwargs['instance']
     if not isinstance(report.proof, bytes):
         report.proof = report.proof.tobytes()
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ReportUnknown(Report):
@@ -153,8 +139,6 @@ def get_unknown_problem(**kwargs):
     report = kwargs['instance']
     if not isinstance(report.problem_description, bytes):
         report.problem_description = report.problem_description.tobytes()
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ReportComponentLeaf(models.Model):

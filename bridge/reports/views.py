@@ -58,6 +58,11 @@ def report_component(request, job_id, report_id):
         status = 3
     except ObjectDoesNotExist:
         pass
+    try:
+        report_data = json.loads(report.data.decode('utf8'))
+    except Exception as e:
+        print_err(e)
+        report_data = None
 
     return render(
         request,
@@ -73,6 +78,7 @@ def report_component(request, job_id, report_id):
             'TableData': ReportTable(*report_attrs_data, table_type='3'),
             'status': status,
             'unknown': unknown_href,
+            'data': report_data
         }
     )
 
