@@ -176,16 +176,17 @@ class Core:
                         self.exit_code = 1
                     finally:
                         # TODO: report differences immediately after implementation of https://forge.ispras.ru/issues/6889.
-                        sub_job.conf['obtained verification statuses'] = []
-                        while True:
-                            verification_status = self.mqs['verification statuses'].get()
+                        if 'verification statuses' in self.mqs:
+                            sub_job.conf['obtained verification statuses'] = []
+                            while True:
+                                verification_status = self.mqs['verification statuses'].get()
 
-                            if verification_status is None:
-                                self.logger.debug('Verification statuses message queue was terminated')
-                                self.mqs['verification statuses'].close()
-                                break
+                                if verification_status is None:
+                                    self.logger.debug('Verification statuses message queue was terminated')
+                                    self.mqs['verification statuses'].close()
+                                    break
 
-                            sub_job.conf['obtained verification statuses'].append(verification_status)
+                                sub_job.conf['obtained verification statuses'].append(verification_status)
 
                         core.utils.report(self.logger,
                                           'finish',
