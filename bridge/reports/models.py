@@ -87,6 +87,15 @@ def get_report_data(**kwargs):
         report.data = report.data.tobytes()
 
 
+class ReportFiles(models.Model):
+    report = models.ForeignKey(ReportComponent, related_name='files')
+    file = models.ForeignKey(File)
+    name = models.CharField(max_length=1024)
+
+    class Meta:
+        db_table = 'report_files'
+
+
 class ReportUnsafe(Report):
     error_trace = models.BinaryField()
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')

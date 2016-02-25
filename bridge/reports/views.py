@@ -365,3 +365,17 @@ def get_source_code(request):
         'name': filename,
         'fullname': request.POST['file_name']
     })
+
+
+@login_required
+@unparallel_group(['report'])
+def download_report_files(request, report_id):
+    try:
+        report = ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+    res = GetReportFiles(report)
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = 'attachment; filename="%s"' % res.tarname
+    response.write(res.memory.read())
+    return response

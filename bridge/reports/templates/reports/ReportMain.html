@@ -109,8 +109,20 @@
                 {% include 'reports/ReportData.html' with data=data component=report.component.name type=report.root.job.type %}
             </div>
         {% endif %}
+        <br>
+        <div class="ui grid">
+            {% if report.log %}
+                <div class="eight wide column">
+                    <button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>
+                </div>
+            {% endif %}
+            {% if report.files.all|length > 0 %}
+                <div class="eight wide column right aligned">
+                    <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download files' %}</a>
+                </div>
+            {% endif %}
+        </div>
 
-        {% if report.log %}<br><br><button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>{% endif %}
     </div>
 
     <div class="nine wide column">

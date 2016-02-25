@@ -250,14 +250,18 @@ class UploadReport(object):
             report.cpu_time = int(self.data['resources']['CPU time'])
             report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
+        uf = None
         if 'log' in self.data:
-            uf = UploadReportFiles(self.archive, log=self.data['log'])
+            uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
             if uf.log is None:
                 self.error = 'The report log was not found in archive'
                 return
             report.log = uf.log
 
         report.save()
+        if uf is not None:
+            for src_f in uf.other_files:
+                ReportFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], report=report)
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
@@ -284,8 +288,9 @@ class UploadReport(object):
         report.cpu_time = int(self.data['resources']['CPU time'])
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
+        uf = None
         if 'log' in self.data:
-            uf = UploadReportFiles(self.archive, log=self.data['log'])
+            uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
             if uf.log is None:
                 self.error = 'The report log was not found in archive'
                 return
@@ -293,6 +298,9 @@ class UploadReport(object):
         report.data = self.data['data'].encode('utf8')
         report.finish_date = now()
         report.save()
+        if uf is not None:
+            for src_f in uf.other_files:
+                ReportFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], report=report)
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
