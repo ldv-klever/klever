@@ -168,7 +168,8 @@ class Core:
                                                       'problem desc': 'problem desc.txt',
                                                       'files': ['problem desc.txt']
                                                   },
-                                                  self.mqs['report files'])
+                                                  self.mqs['report files'],
+                                                  suffix=' validator {0}'.format(commit))
 
                         if self.logger:
                             self.logger.exception('Catch exception')
