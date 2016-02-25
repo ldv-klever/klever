@@ -180,7 +180,6 @@ class ABKM(core.components.Component):
                                       'attrs': [],
                                       'name': self.conf['VTG strategy']['verifier']['name'],
                                       'resources': decision_results['resources'],
-                                      'desc': decision_results['desc'],
                                       'log': 'cil.i.log',
                                       'files': ['cil.i.log']
                                   },

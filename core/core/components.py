@@ -140,7 +140,6 @@ class Component(multiprocessing.Process):
                                           self.start_time,
                                           self.include_child_resources,
                                           all_child_resources),
-                                      'desc': 'desc.txt' if os.path.isfile('desc.txt') else '',
                                       'log': 'log',
                                       'files': (['desc.txt'] if os.path.isfile('desc.txt') else []) + ['log']
                                   },

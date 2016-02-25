@@ -199,7 +199,6 @@ class Core:
                                           {
                                               'id': sub_job_id,
                                               'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                              'desc': '',
                                               'log': '__log',
                                               'files': ['__log']
                                           },
@@ -240,9 +239,8 @@ class Core:
                         'resources': core.utils.count_consumed_resources(
                             self.logger,
                             self.start_time),
-                        'desc': self.conf_file,
                         'log': 'log',
-                        'files': [self.conf_file, 'log']
+                        'files': ['log']
                     }
                     if self.data:
                         finish_report.update({'data': json.dumps(self.data)})
