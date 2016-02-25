@@ -35,9 +35,6 @@ class RSG(core.components.Component):
         if 'files' in self.abstract_task_desc:
             self.abstract_task_desc.pop('files')
 
-        # TODO: this is done to allow to add search path later in Weaver. This should be likely refactored.
-        self.abstract_task_desc['rule specifications directory'] = self.conf['rule specifications directory']
-
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = generate_rule_specification
@@ -47,9 +44,7 @@ class RSG(core.components.Component):
 
         # Get common and rule specific aspects.
         for aspect in (self.conf.get('common aspects') or []) + (self.conf.get('aspects') or []):
-            # All aspects are relative to aspects directory.
-            aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                 os.path.join(self.conf['aspects directory'], aspect))
+            aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], aspect)
             self.logger.debug('Get aspect "{0}"'.format(aspect))
             aspects.append(os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])))
 
@@ -70,9 +65,7 @@ class RSG(core.components.Component):
 
         # Get common and rule specific models.
         for model in (self.conf.get('common models') or []) + (self.conf.get('models') or []):
-            # All models are relative to models directory.
-            model = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                os.path.join(self.conf['models directory'], model))
+            model = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], model)
             self.logger.debug('Get model "{0}"'.format(model))
             models.append(os.path.relpath(model, os.path.realpath(self.conf['source tree root'])))
 

@@ -70,6 +70,7 @@ def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
 
     return plugin_descs
 
+
 # This function is invoked to collect plugin callbacks.
 def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
