@@ -117,8 +117,9 @@ class Core:
                 # TODO: create artificial log file for Validator.
                 with open('__log', 'w', encoding='ascii') as fp:
                     pass
-                for i, sub_job in enumerate(self.job.sub_jobs):
-                    sub_job_id = '{0}{1}'.format(self.id, str(i))
+                for sub_job in self.job.sub_jobs:
+                    commit = sub_job.conf['Linux kernel']['Git repository']['commit']
+                    sub_job_id = '{0}{1}'.format(self.id, str(commit))
                     # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
                     core.utils.report(self.logger,
                                       'start',
@@ -126,13 +127,13 @@ class Core:
                                           'id': sub_job_id,
                                           'parent id': self.id,
                                           'name': 'Validator',
-                                          'attrs': [{'Sub-job number': str(i)}],
+                                          'attrs': [{'Commit': commit}],
                                       },
                                       self.mqs['report files'],
-                                      suffix='-validator{0}'.format(i))
+                                      suffix=' validator {0}'.format(commit))
                     try:
-                        os.makedirs(str(i))
-                        with core.utils.Cd(str(i)):
+                        os.makedirs(commit)
+                        with core.utils.Cd(commit):
                             self.get_components(sub_job)
                             self.create_components_conf(sub_job)
                             self.callbacks = core.utils.get_component_callbacks(self.logger,
@@ -199,7 +200,7 @@ class Core:
                                               'files': ['__log']
                                           },
                                           self.mqs['report files'],
-                                          suffix='-validator{0}'.format(i))
+                                          suffix=' validator {0}'.format(commit))
                 self.data = []
                 for sub_job in self.job.sub_jobs:
                     self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
