@@ -117,6 +117,7 @@ class Core:
                 # TODO: create artificial log file for Validator.
                 with open('__log', 'w', encoding='ascii') as fp:
                     pass
+                self.data = []
                 for sub_job in self.job.sub_jobs:
                     commit = sub_job.conf['Linux kernel']['Git repository']['commit']
                     sub_job_id = '{0}{1}'.format(self.id, str(commit))
@@ -189,6 +190,10 @@ class Core:
 
                                 sub_job.conf['obtained verification statuses'].append(verification_status)
 
+                            self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
+                                              sub_job.conf['ideal verdict']] +
+                                             sub_job.conf['obtained verification statuses'])
+
                         core.utils.report(self.logger,
                                           'finish',
                                           {
@@ -201,11 +206,6 @@ class Core:
                                           },
                                           self.mqs['report files'],
                                           suffix=' validator {0}'.format(commit))
-                self.data = []
-                for sub_job in self.job.sub_jobs:
-                    self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
-                                      sub_job.conf['ideal verdict']] +
-                                     sub_job.conf['obtained verification statuses'])
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:
