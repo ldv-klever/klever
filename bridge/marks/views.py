@@ -159,14 +159,14 @@ def save_mark(request):
     else:
         return HttpResponseRedirect(reverse('error', args=[650]))
 
-    mark = NewMark(inst, request.user, savedata['data_type'], savedata)
-    if mark.error is not None:
-        print_err(mark.error)
+    res = NewMark(inst, request.user, savedata['data_type'], savedata)
+    if res.error is not None:
+        print_err(res.error)
         return HttpResponseRedirect(reverse('error', args=[650]))
     return render(request, 'marks/SaveMarkResult.html', {
-        'mark_type': mark.type,
-        'mark': mark.mark,
-        'MarkTable': MarkChangesTable(request.user, mark.mark, mark.changes)
+        'mark_type': res.type,
+        'mark': res.mark,
+        'MarkTable': MarkChangesTable(request.user, res.mark, res.changes)
     })
 
 
@@ -402,7 +402,7 @@ def remove_versions(request):
         elif mark_type == 'unknown':
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
-            return JsonResponse({'message': _('Unknown error')})
+            return JsonResponse({'message': 'Unknown error'})
         mark_history = mark.versions.filter(~Q(version__in=[mark.version, 1]))
     except ObjectDoesNotExist:
         return JsonResponse({
