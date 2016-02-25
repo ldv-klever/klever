@@ -360,3 +360,13 @@ TASK_STATUS = (
     ('ERROR', _('Error')),
     ('CANCELLED', _('Cancelled'))
 )
+
+# TODO: real attributes lists for job classes 2-5 (see JOB_CLASSES)
+DEFAULT_COMPARE_ATTRS = {
+    '0': ['rule specification', 'verification object'],
+    '1': ['rule specification', 'verification object'],
+    '2': ['verification object'],
+    '3': ['verification object'],
+    '4': ['rule specification'],
+    '5': ['rule specification'],
+}
