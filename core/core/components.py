@@ -142,7 +142,6 @@ class Component(multiprocessing.Process):
                                           all_child_resources),
                                       'desc': 'desc.txt' if os.path.isfile('desc.txt') else '',
                                       'log': 'log',
-                                      'data': '',
                                       'files': (['desc.txt'] if os.path.isfile('desc.txt') else []) + ['log']
                                   },
                                   self.mqs['report files'],
