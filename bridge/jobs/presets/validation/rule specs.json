@@ -2,26 +2,20 @@
   "templates": {
     "Empty": {
       "description": "...",
-      "plugins": [
-        {
-          "name": "Weaver"
-        }
-      ]
+      "plugins": ["Weaver"]
     },
-    "Common for Linux kernel modules": {
+    "Linux kernel modules": {
       "description": "...",
       "plugins": [
         {
-          "name": "SA",
-          "options": {
+          "SA": {
             "template aspect": "sa.aspect.tmpl",
             "max arguments number": 30,
             "filter kernel functions": true
           }
         },
         {
-          "name": "EMG",
-          "options": {
+          "EMG": {
             "specifications directory": "emg",
             "entry point": "entry_point",
             "translator": "sequential",
@@ -38,8 +32,7 @@
           }
         },
         {
-          "name": "RSG",
-          "options": {
+          "RSG": {
             "rule specifications directory": "rule specs",
             "models directory": "rule specs/linux",
             "model CC options": [
@@ -65,84 +58,28 @@
             ]
           }
         },
-        {
-          "name": "Weaver"
-        }
+        "Weaver"
       ]
     },
     "Argument signatures for Linux kernel modules": {
       "description": "...",
+      "template": "Linux kernel modules",
       "plugins": [
+        "SA",
+        "EMG",
         {
-          "name": "SA",
-          "options": {
-            "template aspect": "sa.aspect.tmpl",
-            "max arguments number": 30,
-            "filter kernel functions": true
-          }
-        },
-        {
-          "name": "EMG",
-          "options": {
-            "specifications directory": "emg",
-            "entry point": "entry_point",
-            "translator": "sequential",
-            "translation options": {
-              "instance modifier": 1
-            },
-            "additional headers": [
-              "rcv.h",
-              "sv-comp.h"
-            ],
-            "additional aspects": [
-              "headers.aspect"
-            ]
-          }
-        },
-        {
-          "name": "ASE",
-          "options": {
+          "ASE": {
             "algorithm": "COMPLEX_ID",
             "request aspects directory": "rule specs/linux"
           }
         },
         {
-          "name": "TR",
-          "options": {
+          "TR": {
             "templates directory": "rule specs/linux"
           }
         },
-        {
-          "name": "RSG",
-          "options": {
-            "rule specifications directory": "rule specs",
-            "models directory": "rule specs/linux",
-            "model CC options": [
-              "-nostdinc",
-              "-Iarch/$hdr_arch/include",
-              "-Iarch/$hdr_arch/include/generated",
-              "-Iinclude",
-              "-Iarch/$hdr_arch/include/uapi",
-              "-Iarch/$hdr_arch/include/generated/uapi",
-              "-Iinclude/uapi",
-              "-Iinclude/generated/uapi",
-              "-include",
-              "include/linux/kconfig.h",
-              "-D__KERNEL__",
-              "-Os"
-            ],
-            "common models": [
-              "err.c"
-            ],
-            "aspects directory": "rule specs/linux",
-            "common aspects": [
-              "err.aspect"
-            ]
-          }
-        },
-        {
-          "name": "Weaver"
-        }
+        "RSG",
+        "Weaver"
       ]
     }
   },
@@ -157,7 +94,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "alloc1.c"
@@ -173,7 +110,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "alloc2.c"
@@ -189,7 +126,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "alloc3.c"
@@ -210,7 +147,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "mmc/sdio_func.c"
@@ -226,7 +163,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "module.c"
@@ -242,7 +179,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "module.next.c"
@@ -261,7 +198,7 @@
         "one thread:double acquisition",
         "one thread:unreleased at exit"
       ],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "mutex.c"
@@ -311,7 +248,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "rwlock.c"
@@ -344,7 +281,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "asm/atomic.c",
@@ -362,7 +299,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "usb2.c"
@@ -378,7 +315,7 @@
       ],
       "description": "...",
       "bug kinds": [],
-      "template": "Common for Linux kernel modules",
+      "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "usb/gadget.c"
