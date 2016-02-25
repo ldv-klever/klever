@@ -177,6 +177,8 @@ class Core:
                             traceback.print_exc()
 
                         self.exit_code = 1
+
+                        break
                     finally:
                         # TODO: report differences immediately after implementation of https://forge.ispras.ru/issues/6889.
                         if 'verification statuses' in self.mqs:
