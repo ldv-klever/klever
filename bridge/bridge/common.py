@@ -103,30 +103,6 @@ MEDIA_URL = '/media/'
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-DEF_KLEVER_CORE_RESTRICTIONS = {
-    'max_ram': '1.0',
-    'max_cpus': '2',
-    'max_disk': '100.0',
-    'max_wall_time': '',
-    'max_cpu_time': '',
-    'cpu_model': '',
-}
-
-DEF_KLEVER_CORE_CONFIGURATION = {
-    'debug': True,
-    'allow_local_dir': True,  # Allow use of local source directories
-    'priority': 'LOW',  # See bridge.vars.PRIORITY for more options
-    'avtg_priority': 'balance',  # See service.utils.AVTG_PRIORITY for more options
-    'formatters': {
-        'console': "%(name)s %(levelname)5s> %(message)s",
-        'file': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
-    },
-    'parallelism': {
-        'linux_kernel_build': '1.0',
-        'tasks_generation': '1.0',
-    },
-}
-
 # Definitions of Klever Core log formatters (see documentation for Python 3 logging for details)
 _KLEVER_CORE_LOG_FORMATTERS = {
     'brief': "%(name)s %(levelname)5s> %(message)s",
@@ -141,7 +117,7 @@ _KLEVER_CORE_PARALLELISM_PACKS = {
     'sequantial': (1, 1),
     'slow': (2, 2),
     'fast': (1.0, 1.0),
-    'super fast': (2.0, 2.0),
+    'very fast': (2.0, 2.0),
 }
 
 # Each Klever Core mode represents sets of values for following sets of attributes:
@@ -150,6 +126,13 @@ _KLEVER_CORE_PARALLELISM_PACKS = {
 #     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
 #     abstract task generation priority - see service.utils.AVTG_PRIORITY for available values,
 #   parallism pack - one of packs from _KLEVER_CORE_PARALLELISM_PACKS,
+#   limits:
+#     memory size - in GB,
+#     number of CPU cores,
+#     disk memory size - in GB,
+#     CPU model,
+#     CPU time - in minutes,
+#     wall time - in minutes,
 #   logging:
 #     console log level - see documentation for Python 3 logging for available values,
 #     console log formatter - one of formatters from _KLEVER_CORE_LOG_FORMATTERS,
@@ -163,53 +146,29 @@ _KLEVER_CORE_PARALLELISM_PACKS = {
 DEF_KLEVER_CORE_MODES = [
     {
         'production': (
-            (
-                'LOW',
-                'Klever',
-                'balance',
-            ),
-            (
-                'WARNING',
-                'brief',
-                'INFO',
-                'brief',
-            ),
+            ('LOW', 'Klever', 'balance',),
             'slow',
-            False,
-            False,
-            False,
-            False,
-            False,
+            (1.0, 2, 100.0, '', 0, 0,),
+            ('WARNING', 'brief', 'INFO', 'brief',),
+            False, False, False, False, False,
         )
     },
     {
         'development': (
-            'IDLE',
-            'balance'
-            'INFO',
-            'brief',
-            'DEBUG',
-            'detailed',
-            True,
-            True,
-            False,
-            True,
-            True,
+            ('IDLE', 'Klever', 'balance',),
+            'fast',
+            (1.0, 1.0, 100.0, '', 0, 0,),
+            ('INFO', 'detailed', 'DEBUG', 'detailed',),
+            True, True, False, True, True,
         )
     },
     {
         'paranoid development': (
-            'IDLE',
-            'balance'
-            'INFO',
-            'brief',
-            'DEBUG',
-            'paranoid',
-            True,
-            True,
-            True,
-            True,
-            True,
+            ('IDLE', 'Klever', 'balance',),
+            'fast',
+            (1.0, 1.0, 100.0, '', 0, 0,),
+            ('INFO', 'detailed', 'DEBUG', 'paranoid',),
+            True, True, True, True, True,
         )
     },
 ]
