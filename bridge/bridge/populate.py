@@ -249,7 +249,7 @@ class Population(object):
                     except Exception as e:
                         print_err(e)
                         continue
-                if not isinstance(data, dict) or any(x not in data for x in ['class', 'function', 'pattern']):
+                if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
                     print_err('Wrong unknown mark data: %s' % fname)
                     continue
                 if 'link' not in data:
@@ -260,8 +260,7 @@ class Population(object):
                     data['status'] = MARK_STATUS[0][0]
                 if 'is_modifiable' not in data:
                     data['is_modifiable'] = True
-                if data['class'] not in list(x[0] for x in JOB_CLASSES) \
-                        or data['status'] not in list(x[0] for x in MARK_STATUS) \
+                if data['status'] not in list(x[0] for x in MARK_STATUS) \
                         or len(data['function']) == 0 \
                         or not 0 < len(data['pattern']) <= 15 \
                         or not isinstance(data['is_modifiable'], bool):
@@ -269,7 +268,6 @@ class Population(object):
                     continue
                 try:
                     MarkUnknown.objects.get(
-                        type=data['class'],
                         component__name=component,
                         function=data['function'],
                         problem_pattern=data['pattern']
@@ -279,7 +277,6 @@ class Population(object):
                     create_args = {
                         'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
                         'component': Component.objects.get_or_create(name=component)[0],
-                        'type': data['class'],
                         'author': self.manager,
                         'status': data['status'],
                         'is_modifiable': data['is_modifiable'],

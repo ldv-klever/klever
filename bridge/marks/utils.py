@@ -30,7 +30,7 @@ class NewMark(object):
         :param inst: instance of ReportUnsafe/ReportSafe for creating mark
         and insatnce of MarkUnsafe/MarkSafe for changing it
         :param user: instance of User (author of mark change/creation)
-        :param mark_type: 'safe' or 'unsafe'
+        :param mark_type: 'safe', 'unsafe' or 'unknown'
         :param args: dictionary with keys:
             'status': see MARK_STATUS from bridge.vars, default - '0'.
             'verdict': see MARK_UNSAFE/MARK_SAFE from bridge.vars, default - '0'
@@ -106,7 +106,6 @@ class NewMark(object):
             mark.component = report.component
 
         mark.format = report.root.job.format
-        mark.type = report.root.job.type
         mark.job = report.root.job
 
         time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
@@ -323,7 +322,7 @@ class ConnectReportWithMarks(object):
 
     def __connect_unsafe(self):
         self.report.markreport_set.all().delete()
-        for mark in MarkUnsafe.objects.filter(type=self.report.root.job.type):
+        for mark in MarkUnsafe.objects.all():
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
                     try:
@@ -347,7 +346,7 @@ class ConnectReportWithMarks(object):
 
     def __connect_safe(self):
         self.report.markreport_set.all().delete()
-        for mark in MarkSafe.objects.filter(type=self.report.root.job.type):
+        for mark in MarkSafe.objects.all():
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
                     try:
@@ -361,7 +360,7 @@ class ConnectReportWithMarks(object):
     def __connect_unknown(self):
         self.report.markreport_set.all().delete()
         changes = {self.report: {}}
-        for mark in MarkUnknown.objects.filter(type=self.report.root.job.type, component=self.report.component):
+        for mark in MarkUnknown.objects.filter(component=self.report.component):
             problem = MatchUnknown(
                 self.report.problem_description.decode('utf8'),
                 mark.function,
@@ -404,7 +403,7 @@ class ConnectMarkWithReports(object):
                 'verdict1': mark_unsafe.report.verdict,
             }
         self.mark.markreport_set.all().delete()
-        for unsafe in ReportUnsafe.objects.filter(root__job__type=self.mark.type):
+        for unsafe in ReportUnsafe.objects.all():
             for attr in last_version.attrs.all():
                 if attr.is_compare:
                     try:
@@ -443,7 +442,7 @@ class ConnectMarkWithReports(object):
                 'verdict1': mark_safe.report.verdict,
             }
         self.mark.markreport_set.all().delete()
-        for safe in ReportSafe.objects.filter(root__job__type=self.mark.type):
+        for safe in ReportSafe.objects.all():
             for attr in last_version.attrs.all():
                 if attr.is_compare:
                     try:
@@ -462,7 +461,7 @@ class ConnectMarkWithReports(object):
         for mark_unknown in self.mark.markreport_set.all():
             self.changes[mark_unknown.report] = {'kind': '-'}
         self.mark.markreport_set.all().delete()
-        for unknown in ReportUnknown.objects.filter(component=self.mark.component, root__job__type=self.mark.type):
+        for unknown in ReportUnknown.objects.filter(component=self.mark.component):
             problem = MatchUnknown(
                 unknown.problem_description.decode('utf8'),
                 self.mark.function,
@@ -714,7 +713,6 @@ class CreateMarkTar(object):
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
-            'type': self.mark.type,
             'format': self.mark.format
         }
         if self.type == 'unknown':
@@ -767,7 +765,6 @@ class ReadTarMark(object):
             mark.format = int(args['format'])
             if mark.format != FORMAT:
                 return _('The mark format is not supported')
-            mark.type = args['type']
 
             time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
             mark.identifier = hashlib.md5(time_encoded).hexdigest()
@@ -899,9 +896,7 @@ class ReadTarMark(object):
                 except ValueError:
                     return _("The mark archive is corrupted")
 
-        if not isinstance(mark_data, dict) or \
-                any(x not in mark_data for x in [
-                    'mark_type', 'is_modifiable', 'type', 'format']):
+        if not isinstance(mark_data, dict) or any(x not in mark_data for x in ['mark_type', 'is_modifiable', 'format']):
             return _("The mark archive is corrupted")
         self.type = mark_data['mark_type']
         if self.type not in ['safe', 'unsafe', 'unknown']:
@@ -920,11 +915,11 @@ class ReadTarMark(object):
                 return _("The mark archive is corrupted")
             if self.type != 'unknown' and any(x not in version for x in ['verdict', 'attrs', 'tags']):
                 return _("The mark archive is corrupted")
-            if self.type == 'unknown' \
-                    and any(x not in version for x in ['problem', 'function']):
+            if self.type == 'unknown' and any(x not in version for x in ['problem', 'function']):
                 return _("The mark archive is corrupted")
 
-        new_m_args = mark_data
+        new_m_args = {}
+        new_m_args.update(mark_data)
         new_m_args.update(version_list[0])
         if self.type == 'unsafe':
             new_m_args['error_trace'] = err_trace
