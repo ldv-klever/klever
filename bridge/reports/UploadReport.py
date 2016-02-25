@@ -67,7 +67,7 @@ class UploadReport(object):
                 json.loads(data['data'])
             except Exception as e:
                 print_err(e)
-                return "Report's 'data' must be json parsable"
+                return "Component data must be represented in JSON"
 
         if data['type'] == 'start':
             if data['id'] == '/':
