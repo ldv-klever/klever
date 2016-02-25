@@ -152,6 +152,28 @@ class Core:
                         # Do not proceed to other sub-jobs if reports uploading failed.
                         if self.uploading_reports_process.exitcode:
                             break
+                    except Exception:
+                        if self.mqs:
+                            with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                                traceback.print_exc(file=fp)
+
+                            if os.path.isfile('problem desc.txt'):
+                                core.utils.report(self.logger,
+                                                  'unknown',
+                                                  {
+                                                      'id': 'unknown',
+                                                      'parent id': sub_job_id,
+                                                      'problem desc': 'problem desc.txt',
+                                                      'files': ['problem desc.txt']
+                                                  },
+                                                  self.mqs['report files'])
+
+                        if self.logger:
+                            self.logger.exception('Catch exception')
+                        else:
+                            traceback.print_exc()
+
+                        self.exit_code = 1
                     finally:
                         # TODO: report differences immediately after implementation of https://forge.ispras.ru/issues/6889.
                         sub_job.conf['obtained verification statuses'] = []
