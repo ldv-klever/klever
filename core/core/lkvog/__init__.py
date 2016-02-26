@@ -32,7 +32,7 @@ def after_process_linux_kernel_raw_build_cmd(context):
         # Filter out CC commands if input file is absent or '/dev/null' or STDIN ('-') or 'init/version.c' or output
         # file is absent. They won't be used when building verification object descriptions.
         if not context.linux_kernel['build cmd']['in files'] \
-           or re.search(r'^/', context.linux_kernel['build cmd']['in files'][0]) \
+           or context.linux_kernel['build cmd']['in files'][0] == '/dev/null' \
            or context.linux_kernel['build cmd']['in files'][0] == '-' \
            or context.linux_kernel['build cmd']['in files'][0] == 'init/version.c' \
            or not context.linux_kernel['build cmd']['out file']:
