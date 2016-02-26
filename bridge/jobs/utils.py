@@ -14,7 +14,7 @@ from users.notifications import Notify
 from reports.models import CompareJobsInfo
 
 
-READABLE = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h']
+READABLE = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl']
 
 # List of available types of 'safe' column class.
 SAFES = [

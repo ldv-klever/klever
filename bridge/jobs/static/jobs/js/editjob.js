@@ -1,4 +1,4 @@
-var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h'];
+var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'];
 
 function isFileReadable(name) {
     var found = name.lastIndexOf('.') + 1,
