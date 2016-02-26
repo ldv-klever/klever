@@ -135,6 +135,9 @@ class LKBCE(core.components.Component):
 
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
+            self.logger.info('Extract all Linux kernel module dependencies')
+            
+            self.logger.info('Install Linux kernel modules')
             self.linux_kernel['modules install'] = os.path.join(self.conf['main working directory'], 'linux-modules')
             os.mkdir(self.linux_kernel['modules install'])
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'],
