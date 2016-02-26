@@ -7,19 +7,11 @@ import core.utils
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.module_categories import ModuleCategoriesSpecification
 from core.avtg.emg.event_spec import EventModel
-# todo: import dinamically
-from core.avtg.emg.translator import sequential
-
 
 class EMG(core.components.Component):
 
     def generate_environment(self):
         self.logger.info("Start environment model generator {}".format(self.id))
-        self.module_interface_spec = None
-        self.model = None
-        self.interface_spec = None
-        self.event_spec = None
-        self.translator = None
 
         # Initialization of EMG
         self.logger.info("============== Initialization stage ==============")
@@ -33,56 +25,58 @@ class EMG(core.components.Component):
         spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
                                                self.conf["specifications directory"])
 
-        self.logger.info("Determine which configuration files are provided")
-        self.__get_specs(self.logger, spec_dir)
-        self.logger.info("All configuration files are successfully imported")
+        self.logger.info("Import results of source analysis from SA plugin")
+        analysis = self.__get_analysis(avt)
 
-        # Import auxilary files for environment model
-        self.logger.info("Check whether additional header files are provided to be included in an environment model")
-        headers_lines = []
-        if "additional headers" in self.conf:
-            headers = self.conf["additional headers"]
-            if len(headers) > 0:
-                for file in headers:
-                    self.logger.info("Search for header file {}".format(file))
-                    header_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
-                    with open(header_file, encoding="ascii") as fh:
-                        headers_lines.extend(fh.readlines())
-                    headers_lines.append("\n")
-            self.logger.info("{} additional header files are successfully imported for further importing in the model".
-                             format(len(headers)))
-        else:
-            self.logger.info("No additional header files are provided to be added to the an environment model")
+        # Choose translator
+        tr = self.__get_translator(avt)
 
-        # Import additional aspect files
-        self.logger.info("Check whether additional aspect files are provided to be included in an environment model")
-        aspect_lines = []
-        if "additional aspects" in self.conf:
-            aspects = self.conf["additional aspects"]
-            if len(aspects) > 0:
-                for file in aspects:
-                    self.logger.info("Search for aspect {}".format(file))
-                    aspect_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
-                    with open(aspect_file, encoding="ascii") as fh:
-                        aspect_lines.extend(fh.readlines())
-                    aspect_lines.append("\n")
-            self.logger.info("{} additional aspect files are successfully imported for further weaving with an "
-                             "environment model".format(len(aspects)))
-        else:
-            self.logger.info("No additional aspect files are provided to be added to the an environment model")
+        # Find specifications
+        self.logger.info("Determine which specifications are provided")
+        interface_spec, module_interface_spec, event_categories_spec = self.__get_specs(self.logger, spec_dir)
+        self.logger.info("All necessary data has been successfully found")
 
         # Generate module interface specification
         self.logger.info("============== Modules interface categories selection stage ==============")
+        mcs = ModuleCategoriesSpecification(self.logger)
+        mcs.import_specification(interface_spec, interface_spec, module_interface_spec, analysis)
+        # todo: export specification (issue 6561)
+        #mcs.save_to_file("module_specification.json")
 
-        # Import interface categories configuration
-        self.logger.info("Import content of provided interface categories specification")
-        intf_spec = CategoriesSpecification(self.logger)
-        intf_spec.import_specification(self.interface_spec)
-        self.logger.info("Interface categories specification has been imported successfully")
+        # Generate module interface specification
+        self.logger.info("============== An intermediate model preparation stage ==============")
+        model = EventModel(self.logger, mcs, event_categories_spec)
+        self.logger.info("An intermediate environment model has been prepared")
 
-        # Import results of source code analysis
-        self.logger.info("Import results of source analysis from SA plugin")
-        module_spec = ModuleCategoriesSpecification(self.logger)
+        # Generate module interface specification
+        self.logger.info("============== An intermediat model translation stage ==============")
+        tr.translate(mcs, model)
+        self.logger.info("An environment model has been generated successfully")
+
+        self.logger.info("Add generated environment model to the abstract verification task")
+        self.mqs['abstract task description'].put(avt)
+
+        self.logger.info("Environment model generator successfully finished")
+
+    def __read_additional_content(self, file_type):
+        lines = []
+        if "additional {}".format(file_type) in self.conf:
+            files = self.conf["additional {}".format(file_type)]
+            if len(files) > 0:
+                for file in files:
+                    self.logger.info("Search for {} file {}".format(file, file_type))
+                    path = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
+                    with open(path, encoding="ascii") as fh:
+                        lines.extend(fh.readlines())
+                    lines.append("\n")
+            self.logger.info("{} additional {} files are successfully imported for further importing in the model".
+                             format(len(files), file_type))
+        else:
+            self.logger.info("No additional {} files are provided to be added to the an environment model".
+                             format(file_type))
+        return lines
+
+    def __get_analysis(self, avt):
         analysis = {}
         if "source analysis" in avt:
             analysis_file = os.path.join(self.conf["main working directory"], avt["source analysis"])
@@ -91,54 +85,28 @@ class EMG(core.components.Component):
                 analysis = json.loads(fh.read())
         else:
             self.logger.warning("Cannot find any results of source analysis provided from SA plugin")
-        module_spec.import_specification(self.module_interface_spec, analysis, intf_spec)
-        self.module_interface_spec = module_spec
 
-        new_module_spec_file = "module_specification.json"
-        self.logger.info("Save modules interface specification to '{}'".format(new_module_spec_file))
-        self.module_interface_spec.save_to_file(new_module_spec_file)
+        return analysis
 
-        # Generate module interface specification
-        self.logger.info("============== An intermediate model preparation stage ==============")
-        # todo: Import existing environment model
-
-        # Import event categories specification
-        self.logger.info("Start preparation of an intermediate environment model")
-        self.model = EventModel(self.logger, self.module_interface_spec, self.event_spec).model
-        self.logger.info("An intermediate environment model has been prepared")
-
-        # Generate module interface specification
-        self.logger.info("============== An intermediat model translation stage ==============")
-
-        # Choose translator
+    def __get_translator(self, avt):
         self.logger.info("Choose translator module to translate an intermediate model to C code")
         if "translator" in self.conf:
             translator_name = self.conf["translator"]
         else:
             translator_name = "sequential"
-
         self.logger.info("Translation module {} has been chosen".format(translator_name))
 
-        # Start translation
-        if translator_name == "sequential":
-            sequential.Translator(
-                self.logger,
-                self.conf,
-                avt,
-                self.module_interface_spec,
-                self.model,
-                headers_lines,
-                aspect_lines
-            )
-        else:
-            raise NotImplementedError("Oops, seems that provided translation module {} has not been implemented yet".
-                                      format(translator_name))
-        self.logger.info("An environment model has been generated successfully")
+        translator_module = __import__("core.avtg.emg.translator.{}".format(translator_name))
 
-        self.logger.info("Add generated environment model to the abstract verification task")
-        self.mqs['abstract task description'].put(avt)
+        # Import auxilary files for environment model
+        self.logger.info("Check whether additional header files are provided to be included in an environment model")
+        headers_lines = self.__read_additional_content("headers")
 
-        self.logger.info("Environment model generator successfully finished")
+        # Import additional aspect files
+        self.logger.info("Check whether additional aspect files are provided to be included in an environment model")
+        aspect_lines = self.__read_additional_content("aspects")
+
+        return translator_module.Translator(self.logger, self.conf, avt, headers_lines, aspect_lines)
 
     def __get_specs(self, logger, directory):
         """
@@ -148,6 +116,10 @@ class EMG(core.components.Component):
         :param directory: Provided directory with files.
         :return: Dictionaries with interface categories specification and event categories specifications.
         """
+        interface_spec = None
+        module_interface_spec = None
+        event_categories_spec = None
+
         files = [os.path.join(directory, name) for name in os.listdir(directory)]
         if len(files) < 2:
             FileNotFoundError("Environment model generator expects no less than 2 specifications but found only {}".
@@ -163,13 +135,13 @@ class EMG(core.components.Component):
             if "categories" in spec and "interface implementations" in spec:
                 # todo: not supported yet
                 logger.info("Specification file {} is treated as module interface specification".format(file))
-                self.module_interface_spec = spec
+                module_interface_spec = spec
             elif "categories" in spec and "interface implementations" not in spec:
                 logger.info("Specification file {} is treated as interface categories specification".format(file))
-                self.interface_spec = spec
+                interface_spec = spec
             elif "environment processes" in spec:
                 logger.info("Specification file {} is treated as event categories specification".format(file))
-                self.event_spec = spec
+                event_categories_spec = spec
             else:
                 raise FileNotFoundError("Specification file {} does not match interface categories specification nor it"
                                         " matches event categories specification, please check its content".
@@ -179,6 +151,8 @@ class EMG(core.components.Component):
             raise FileNotFoundError("Environment model generator missed an interface categories specification")
         elif not self.event_spec:
             raise FileNotFoundError("Environment model generator missed an event categories specification")
+
+        return interface_spec, module_interface_spec, event_categories_spec
 
     main = generate_environment
 
