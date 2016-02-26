@@ -1,5 +1,0 @@
-{
-  "function": "FileNotFoundError:",
-  "pattern": "File not found",
-  "link": "https://docs.python.org/3/library/exceptions.html#FileNotFoundError"
-}
