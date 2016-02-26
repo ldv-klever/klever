@@ -2,9 +2,98 @@ import re
 
 __fi_regex = None
 __fi_extract = None
+__declaration_model = None
+__declaration_grammar = \
+    """
+    (* Declaration syntax based on Committee Draft — April 12, 2011 ISO/IEC 9899:201x but it is rather simplified *)
 
+    signature = @:declaration $;
 
-# todo: merge with the next one
+    declaration = function_declaration~ |
+                  primitive_declaration~ |
+                  interface_declaration~ |
+                  undefined_declaration;
+
+    function_declaration = return_value:declaration main_declarator:declarator '(' parameters:(parameter_list | void) ')' ~ |
+                           return_value:void main_declarator:declarator '(' parameters:(parameter_list | void) ')';
+
+    primitive_declaration = specifiers:{declaration_specifiers}* main_declarator:declarator;
+
+    parameter_list = { [','] @:(function_declaration~ | primitive_declaration~ | interface_declaration~ | undefined_declaration~ | '...') }+;
+
+    declaration_specifiers = storage_class_specifier |
+                             type_qualifier |
+                             function_specifier |
+                             type_specifier;
+
+    void = {void_specifiers}* @:"void";
+
+    void_specifiers = storage_class_specifier |
+                      type_qualifier |
+                      function_specifier;
+
+    function_specifier = "inline" | "_Noreturn";
+
+    type_qualifier = "const" | "restrict" | "volatile" | "_Atomic";
+
+    storage_class_specifier = "extern" |
+                              "static" |
+                              "_Thread_local" |
+                              "auto" |
+                              "register";
+
+    type_specifier = struct |
+                     union |
+                     enum |
+                     ("_Atomic" identifier) |
+                     ("void" |
+                      "char" |
+                      "short" |
+                      "int" |
+                      "long" |
+                      "float" |
+                      "double" |
+                      "signed" |
+                      "unsigned" |
+                      "_Bool" |
+                      "_Complex") |
+                     typedef;
+
+    struct = structure:'struct' identifier:identifier;
+
+    union = union:'union' identifier:identifier;
+
+    enum = enum:"enum" identifier;
+
+    typedef = typedef:identifier;
+
+    interface_declaration = interface:interface;
+
+    interface = pointer:{pointer}* '%' category:identifier '.' identifier:identifier '%';
+
+    declarator = pointer:{pointer}* declarator:direct_declarator;
+
+    pointer = @:pointer_sign {type_qualifier}*;
+
+    direct_declarator = array_declarator |
+                        primary_declarator;
+
+    primary_declarator = brackets | name_identifier;
+
+    brackets = '(' @:declarator ')';
+
+    array_declarator = declarator:primary_declarator array:('[' pointer ']' |
+                                                 '[' {type_qualifier}* ']');
+
+    pointer_sign = pointer:'*';
+
+    name_identifier = identifier | "%s";
+
+    identifier = /\w+/;
+
+    undefined_declaration = undefined:"$";
+    """
+
 def __is_full_identifier(string):
     global __fi_regex
     global __fi_extract
@@ -31,24 +120,43 @@ def extract_full_identifier(string):
 
 
 def yield_basetype(signature):
-    pass
+    global __declaration_model
+    global __declaration_grammar
+
+    if not __declaration_model:
+        grako = __import__('grako')
+        __declaration_model = grako.genmodel('signature', __declaration_grammar)
+
+    ast = __declaration_model.parse(signature, ignorecase=True)
+    if "return_value" in ast:
+        return Function(ast)
+    elif "interface" in ast:
+        return InterfaceReference(ast)
+    elif "undefined" in ast:
+        return UndefinedReference(ast)
+    elif None in ast:
+        return Structure(ast)
+    elif "main_declarator" in ast:
+        return Primitive(ast)
+    else:
+        raise NotImplementedError("Cannot parse signature: {}".format(signature))
 
 
 class __BaseType:
 
-    def __init__(self, signature):
+    def __init__(self, signature, ast):
         self._signature = signature
         self.implementations = []
         self.path = None
 
     def pointer_alias(self, value):
-        pass
+        raise NotImplementedError
 
     def add_pointer_implementations(self):
-        pass
+        raise NotImplementedError
 
     def add_implementation(self):
-        pass
+        raise NotImplementedError
 
 
 class Primitive(__BaseType):
@@ -64,9 +172,26 @@ class Function(__BaseType):
         self.return_value = None
         self.call = []
 
+        # parse function
+        self.type_class = 'function'
+        self.__parse_main_declarator(ast['main_declarator'])
+
+        if ast['return_value'] == 'void':
+            ast['return_value'] = None
+        else:
+            self.return_value = Signature(None, ast['return_value'])
+
+        self.parameters = []
+        if 'void' not in ast['parameters']:
+            for p_ast in ast['parameters']:
+                if p_ast != '...':
+                    self.parameters.append(Signature(None, p_ast))
+                else:
+                    self.varaible_params = True
+
     @property
     def suits_for_callback(self):
-        pass
+        raise NotImplementedError
 
 
 class Structure(__BaseType):
@@ -79,6 +204,12 @@ class Array(__BaseType):
 
     def __init__(self, ast):
         self.element = None
+
+class InterfaceReference(__BaseType):
+    pass
+
+class UndefinedReference(__BaseType):
+    pass
 
 
 class Implementation:
@@ -106,7 +237,7 @@ class Interface:
         self.rv_interface = False
 
     def import_signature(self, signature):
-        pass
+        raise NotImplementedError
 
 #    @property
 #    def full_identifier(self, full_identifier=None):

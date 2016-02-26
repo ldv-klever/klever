@@ -1,6 +1,6 @@
 import copy
 
-from core.avtg.emg.common.interface import Signature, Interface
+from core.avtg.emg.common.interface import Interface, yield_basetype
 from core.avtg.emg.common.process import Process, Subprocess, Label, Access, process_parse
 
 
@@ -20,7 +20,6 @@ class EventModel:
 
         self.logger.info("Import processes from provided event categories specification")
         for collection in self.events:
-            # Import kernel models
             self.logger.info("Import processes from '{}'".format(collection))
             self.__import_processes(raw, collection)
 
@@ -32,6 +31,9 @@ class EventModel:
         self.logger.info("Generate an intermediate model")
         self.__select_processes_and_models()
 
+        # Finish entry point process generation
+        self.__finish_entry()
+
         # Fill all signatures carefully
         self.logger.info("Assign process signatures")
         self.__assign_signatures()
@@ -41,15 +43,12 @@ class EventModel:
         self.__resolve_accesses()
 
     def __import_processes(self, raw, category):
-        if "kernel model" in raw:
-            for name_list in raw[category]:
-                names = name_list.split(", ")
-                for name in names:
-                    self.logger.debug("Import process which models {}".format(name))
-                    process = Process(name, raw[category][name_list])
-                    self.events[category][name] = process
-        else:
-            self.logger.warning("Cannot find 'kernel model' section in event categories specification")
+        for name_list in raw[category]:
+            names = name_list.split(", ")
+            for name in names:
+                self.logger.debug("Import process which models {}".format(name))
+                process = Process(name, raw[category][name_list])
+                self.events[category][name] = process
 
     def __generate_entry(self):
         # todo: Implement multimodule processes creation
@@ -69,11 +68,11 @@ class EventModel:
         init_name = list(self.analysis.inits.values())[0]
         init_label = Label('init')
         init_label.value = "& {}".format(init_name)
-        init_label.signature(Signature("int (*%s)(void)"))
+        init_label.signature(yield_basetype("int %s (*%s)(void)"))
         self.logger.debug("Found init function {}".format(init_name))
 
         ret_label = Label('ret')
-        ret_label.signature(Signature("int %s"))
+        ret_label.signature(yield_basetype("int %s"))
         ret_init = Subprocess('ret_init', {})
         ret_init.type = "receive"
         ret_init.callback_retval = "%ret%"
@@ -86,7 +85,7 @@ class EventModel:
         exit_subprocess.parameters = []
 
         exit_label = Label('exit')
-        exit_label.signature(Signature("void (*%s)(void)".format()))
+        exit_label.signature(yield_basetype("void (*%s)(void)".format()))
         if len(self.analysis.exits) != 0:
             exit_name = list(self.analysis.exits.values())[0]
             exit_label.value = "& {}".format(exit_name)
@@ -171,9 +170,6 @@ class EventModel:
             else:
                 self.logger.info("Ignore interface category {}, since it does not have callbacks to call".
                                  format(category))
-
-        # Finish entry point process generation
-        self.__finish_entry()
 
     def __import_kernel_models(self):
         for function in self.events["kernel model"]:
