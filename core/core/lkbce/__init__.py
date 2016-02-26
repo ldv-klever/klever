@@ -162,7 +162,6 @@ class LKBCE(core.components.Component):
                     module_deps = [dep[7:] if dep.startswith('kernel/') else dep for dep in module_deps]
                     module_deps = list(sorted(module_deps))
                     self.linux_kernel['module deps'][module_name] = module_deps
-            self.conf['Linux kernel']['module deps'] = self.linux_kernel['module deps']
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
