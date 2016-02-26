@@ -1,0 +1,5 @@
+{
+  "function": "KeyError: 'exit'",
+  "pattern": "No exit",
+  "link": "http://forge.ispras.ru/issues/6571"
+}

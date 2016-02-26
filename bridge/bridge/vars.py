@@ -360,3 +360,12 @@ TASK_STATUS = (
     ('ERROR', _('Error')),
     ('CANCELLED', _('Cancelled'))
 )
+
+DEFAULT_COMPARE_ATTRS = {
+    '0': ['rule specification', 'verification object'],
+    '1': ['rule specification', 'verification object'],
+    '2': ['rule specification', 'verification object'],
+    '3': ['rule specification', 'verification object'],
+    '4': ['rule specification', 'verification object'],
+    '5': ['rule specification', 'verification object'],
+}

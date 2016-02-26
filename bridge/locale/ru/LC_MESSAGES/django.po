@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-19 09:58+0000\n"
+"POT-Creation-Date: 2016-02-25 14:31+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -98,7 +98,8 @@ msgstr "Не удалось визуализировать трассу ошиб
 
 #: bridge/vars.py:25
 msgid "Can't populate without Manager and service user"
-msgstr "Наполнение базы данных невозможно без Руководителя и служебного пользователя"
+msgstr ""
+"Наполнение базы данных невозможно без Руководителя и служебного пользователя"
 
 #: bridge/vars.py:34 bridge/vars.py:51
 #: tools/templates/tools/ManagerPanel.html:12 tools/views.py:28
@@ -292,24 +293,24 @@ msgstr "Ошибка"
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
-#: jobs/Download.py:255 jobs/Download.py:288 jobs/Download.py:301
-#: jobs/Download.py:320
+#: jobs/Download.py:253 jobs/Download.py:286 jobs/Download.py:299
+#: jobs/Download.py:318
 msgid "The job archive is corrupted"
 msgstr "Архив задания поврежден"
 
-#: jobs/Download.py:290
+#: jobs/Download.py:288
 msgid "The job format is not supported"
 msgstr "Формат задания не поддерживается"
 
-#: jobs/Download.py:292
+#: jobs/Download.py:290
 msgid "The job class does not equal to the parent class"
 msgstr "Класс задания не совпадает с классом родителя"
 
-#: jobs/Download.py:294
+#: jobs/Download.py:292
 msgid "The job status is wrong"
 msgstr "Статус задания некорректный"
 
-#: jobs/Download.py:360
+#: jobs/Download.py:358
 msgid "One of the reports was not uploaded"
 msgstr "Один из отчетов не был загружен на сервер"
 
@@ -344,14 +345,14 @@ msgstr "Дата"
 msgid "Decision status"
 msgstr "Статус решения"
 
-#: jobs/JobTableProperties.py:30 reports/templates/reports/ReportMain.html:86
-#: reports/templates/reports/ReportMain.html:96
+#: jobs/JobTableProperties.py:30 reports/templates/reports/ReportMain.html:76
+#: reports/templates/reports/ReportMain.html:86
 msgid "Start date"
 msgstr "Дата начала работы"
 
 #: jobs/JobTableProperties.py:31
 #: reports/templates/reports/AttrsFilters.html:23
-#: reports/templates/reports/ReportMain.html:88
+#: reports/templates/reports/ReportMain.html:78
 msgid "Finish date"
 msgstr "Дата завершения работы"
 
@@ -377,7 +378,7 @@ msgstr "Название компонента"
 #: jobs/JobTableProperties.py:45 jobs/templates/jobs/jobData.html:7
 #: jobs/templates/jobs/viewJobFilters.html:22
 #: jobs/templates/jobs/viewJobFilters.html:44 jobs/utils.py:56
-#: reports/views.py:123 templates/base.html:49
+#: reports/views.py:129 templates/base.html:49
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
@@ -434,9 +435,6 @@ msgstr "Идентификатор родителя"
 #: marks/templates/marks/MarkUnknownData.html:15
 #: marks/templates/marks/MarkUnknownData.html:18
 #: marks/templates/marks/ViewMark.html:190
-#: reports/templates/reports/ReportMain.html:48
-#: reports/templates/reports/report_leaf.html:114
-#: reports/templates/reports/report_unsafe.html:76
 msgid "Description"
 msgstr "Описание"
 
@@ -484,8 +482,8 @@ msgstr "Сохранить"
 #: jobs/templates/jobs/filesTree.html:134
 #: jobs/templates/jobs/filesTree.html:168
 #: jobs/templates/jobs/filesTree.html:195 jobs/templates/jobs/tree.html:408
-#: jobs/templates/jobs/viewJob.html:187 jobs/templates/jobs/viewJob.html:206
-#: jobs/templates/jobs/viewJob.html:223
+#: jobs/templates/jobs/viewJob.html:186 jobs/templates/jobs/viewJob.html:203
+#: jobs/templates/jobs/viewJob.html:220
 #: jobs/templates/jobs/viewVersions.html:18
 #: jobs/templates/jobs/viewVersions.html:32
 #: marks/templates/marks/CreateMark.html:111
@@ -536,7 +534,7 @@ msgstr "Заменить файл"
 #: jobs/templates/jobs/filesTree.html:27
 #: jobs/templates/jobs/filesTree.html:137 jobs/templates/jobs/tree.html:364
 #: jobs/templates/jobs/tree.html.py:409 jobs/templates/jobs/viewJob.html:47
-#: jobs/templates/jobs/viewJob.html:188
+#: jobs/templates/jobs/viewJob.html:187
 #: jobs/templates/jobs/viewVersions.html:17
 #: jobs/templates/jobs/viewVersions.html:33
 #: marks/templates/marks/EditMark.html:22
@@ -664,14 +662,14 @@ msgstr ""
 
 #: jobs/templates/jobs/jobData.html:53
 #: jobs/templates/jobs/viewJobFilters.html:12 jobs/utils.py:48
-#: jobs/utils.py:62 reports/views.py:112 reports/views.py:116
+#: jobs/utils.py:62 reports/views.py:118 reports/views.py:122
 #: templates/base.html:48
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
 #: jobs/templates/jobs/jobData.html:71
 #: jobs/templates/jobs/viewJobFilters.html:17 jobs/utils.py:41
-#: jobs/utils.py:61 reports/views.py:101 reports/views.py:105
+#: jobs/utils.py:61 reports/views.py:107 reports/views.py:111
 #: templates/base.html:50
 msgid "Safes"
 msgstr "Доказательства корректности"
@@ -759,7 +757,7 @@ msgid "Disk memory size"
 msgstr "Объем дисковой памяти"
 
 #: jobs/templates/jobs/startDecision.html:70
-#: reports/templates/reports/ReportMain.html:100
+#: reports/templates/reports/ReportMain.html:90
 msgid "Wall time"
 msgstr "Астрономическое время"
 
@@ -774,7 +772,7 @@ msgid "empty value means unlimited time"
 msgstr "пустое значение означает неограниченное время"
 
 #: jobs/templates/jobs/startDecision.html:75
-#: reports/templates/reports/ReportMain.html:101
+#: reports/templates/reports/ReportMain.html:91
 msgid "CPU time"
 msgstr "Процессорное время"
 
@@ -829,7 +827,7 @@ msgid "Allow use of local source directories"
 msgstr "Разрешить использовать локальные директории с исходным кодом"
 
 #: jobs/templates/jobs/startDecision.html:136
-#: jobs/templates/jobs/viewJob.html:207 jobs/templates/jobs/viewJob.html:224
+#: jobs/templates/jobs/viewJob.html:204 jobs/templates/jobs/viewJob.html:221
 msgid "Start"
 msgstr "Начать"
 
@@ -1022,8 +1020,8 @@ msgstr "Представление"
 msgid "unsaved"
 msgstr "не сохранено"
 
-#: jobs/templates/jobs/tree.html:399 jobs/templates/jobs/viewJob.html:178
-#: jobs/templates/jobs/viewJob.html:197 jobs/templates/jobs/viewJob.html:214
+#: jobs/templates/jobs/tree.html:399 jobs/templates/jobs/viewJob.html:177
+#: jobs/templates/jobs/viewJob.html:194 jobs/templates/jobs/viewJob.html:211
 #: jobs/templates/jobs/viewVersions.html:23
 #: marks/templates/marks/EditMark.html:137
 #: marks/templates/marks/EditUnknownMark.html:133
@@ -1098,6 +1096,7 @@ msgid "Delete versions"
 msgstr "Удалить версии"
 
 #: jobs/templates/jobs/viewJob.html:60 jobs/utils.py:66
+#: reports/templates/reports/ReportData.html:28
 msgid "Class"
 msgstr "Класс"
 
@@ -1118,7 +1117,7 @@ msgid "Parents"
 msgstr "Родители"
 
 #: jobs/templates/jobs/viewJob.html:97
-#: reports/templates/reports/ReportMain.html:143
+#: reports/templates/reports/ReportMain.html:141
 msgid "Children"
 msgstr "Потомки"
 
@@ -1128,11 +1127,11 @@ msgstr "Потомки"
 msgid "Last change"
 msgstr "Последнее изменение"
 
-#: jobs/templates/jobs/viewJob.html:182
+#: jobs/templates/jobs/viewJob.html:181
 msgid "All versions and all data of this job will be deleted"
 msgstr "Все версии и все данные задания будут удалены"
 
-#: jobs/templates/jobs/viewJob.html:201 jobs/templates/jobs/viewJob.html:218
+#: jobs/templates/jobs/viewJob.html:198 jobs/templates/jobs/viewJob.html:215
 msgid "All existing reports of this job will be deleted"
 msgstr "Все существующие отчеты задания будут удалены"
 
@@ -1499,7 +1498,8 @@ msgstr "Проблема"
 #: marks/tables.py:29 marks/templates/marks/EditUnknownMark.html:42
 #: marks/templates/marks/ViewMark.html:24
 #: marks/templates/marks/filters.html:19 marks/templates/marks/filters.html:99
-#: reports/templates/reports/AttrsFilters.html:13 reports/utils.py:21
+#: reports/templates/reports/AttrsFilters.html:13
+#: reports/templates/reports/ReportData.html:27 reports/utils.py:21
 msgid "Component"
 msgstr "Компонент"
 
@@ -1530,7 +1530,7 @@ msgstr "%(all)s (%(broken)s сломаны)"
 
 #: marks/templates/marks/CreateMark.html:4
 #: reports/templates/reports/report_leaf.html:79
-#: reports/templates/reports/report_unsafe.html:115
+#: reports/templates/reports/report_unsafe.html:109
 msgid "Create mark"
 msgstr "Создать оценку"
 
@@ -1549,7 +1549,7 @@ msgstr "Функция сравнения трасс ошибок"
 #: marks/templates/marks/MarkAddData.html:63
 #: marks/templates/marks/ViewMark.html:105
 #: marks/templates/marks/ViewMark.html:146
-#: reports/templates/reports/ReportMain.html:58
+#: reports/templates/reports/ReportMain.html:48
 #: reports/templates/reports/report_unsafe.html:53
 msgid "Attributes"
 msgstr "Атрибуты"
@@ -1837,6 +1837,27 @@ msgstr "Трасса ошибки"
 msgid "Leave empty for order by creation date"
 msgstr "Оставьте пустым для упорядочивания по дате создания"
 
+#: reports/templates/reports/ReportData.html:7
+msgid "Validation results"
+msgstr "Результаты валидации"
+
+#: reports/templates/reports/ReportData.html:11
+msgid "Commit"
+msgstr "Коммит"
+
+#: reports/templates/reports/ReportData.html:12
+msgid "Ideal verdict"
+msgstr "Идеальный вердикт"
+
+#: reports/templates/reports/ReportData.html:13
+msgid "Verification status"
+msgstr "Верификационный статус"
+
+#: reports/templates/reports/ReportData.html:29
+#: reports/templates/reports/ReportMain.html:107
+msgid "Data"
+msgstr "Данные"
+
 #: reports/templates/reports/ReportMain.html:35
 msgid "In progress"
 msgstr "Выполняется"
@@ -1850,27 +1871,27 @@ msgstr "Завершился"
 msgid "Computer"
 msgstr "Компьютер"
 
-#: reports/templates/reports/ReportMain.html:90
+#: reports/templates/reports/ReportMain.html:80
 msgid "Duration"
 msgstr "Продолжительность"
 
-#: reports/templates/reports/ReportMain.html:93
+#: reports/templates/reports/ReportMain.html:83
 msgid "Creation date"
 msgstr "Дата создания"
 
-#: reports/templates/reports/ReportMain.html:102
+#: reports/templates/reports/ReportMain.html:92
 msgid "Maximum memory size"
 msgstr "Максимальный объем оперативной памяти"
 
-#: reports/templates/reports/ReportMain.html:115
+#: reports/templates/reports/ReportMain.html:113
 msgid "Log"
 msgstr "Лог"
 
-#: reports/templates/reports/ReportMain.html:170
+#: reports/templates/reports/ReportMain.html:168
 msgid "There is no children, please wait for them or change the view"
 msgstr "Потомков нет, пожалуйста, подождите их или измените представление"
 
-#: reports/templates/reports/ReportMain.html:174
+#: reports/templates/reports/ReportMain.html:172
 msgid "Statistics on component and its children"
 msgstr "Статистика по компоненту и его потомкам"
 
@@ -1883,7 +1904,7 @@ msgid "Error Trace Fullscreen"
 msgstr "Полноэкранная Трасса ошибки"
 
 #: reports/templates/reports/report_leaf.html:47
-#: reports/templates/reports/report_unsafe.html:83
+#: reports/templates/reports/report_unsafe.html:77
 msgid "Associated marks"
 msgstr "Привязанные оценки"
 
@@ -1891,35 +1912,35 @@ msgstr "Привязанные оценки"
 msgid "Number of associated marks"
 msgstr "Количество привязанных оценок"
 
-#: reports/views.py:99
+#: reports/views.py:105
 msgid "All safes"
 msgstr "Все доказательства корректности"
 
-#: reports/views.py:108
+#: reports/views.py:114
 msgid "Safes marked by"
 msgstr "Доказательства корректности с оценкой"
 
-#: reports/views.py:110
+#: reports/views.py:116
 msgid "All unsafes"
 msgstr "Все предупрeждения об ошибках"
 
-#: reports/views.py:119
+#: reports/views.py:125
 msgid "Unsafes marked by"
 msgstr "Предупреждения об ошибках с оценкой"
 
-#: reports/views.py:121
+#: reports/views.py:127
 msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
-#: reports/views.py:125
+#: reports/views.py:131
 msgid "Unknowns without marks"
 msgstr "Проблемы в компонентах без оценок"
 
-#: reports/views.py:127
+#: reports/views.py:133
 msgid "Unknowns marked by"
 msgstr "Проблемы в компонентах с оценкой"
 
-#: reports/views.py:337
+#: reports/views.py:343
 msgid "The component log is huge and can not be showed but you can download it"
 msgstr ""
 "Лог компонента большой и не может быть показан, но Вы можете загрузить его"

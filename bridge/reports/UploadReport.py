@@ -67,7 +67,7 @@ class UploadReport(object):
                 json.loads(data['data'])
             except Exception as e:
                 print_err(e)
-                return "Report's 'data' must be json parsable"
+                return "Component data must be represented in JSON"
 
         if data['type'] == 'start':
             if data['id'] == '/':
@@ -97,11 +97,12 @@ class UploadReport(object):
             try:
                 self.data.update({
                     'log': data['log'],
-                    'data': data['data'],
                     'resources': data['resources'],
                 })
             except KeyError as e:
                 return "Property '%s' is required." % e
+            if 'data' in data:
+                self.data.update({'data': data['data']})
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -115,10 +116,11 @@ class UploadReport(object):
                     'name': data['name'],
                     'resources': data['resources'],
                     'log': data['log'],
-                    'data': data['data'],
                 })
             except KeyError as e:
                 return "Property '%s' is required." % e
+            if 'data' in data:
+                self.data.update({'data': data['data']})
             if 'comp' in data:
                 self.data['comp'] = data['comp']
         elif data['type'] == 'safe':
@@ -295,7 +297,8 @@ class UploadReport(object):
                 self.error = 'The report log was not found in archive'
                 return
             report.log = uf.log
-        report.data = self.data['data'].encode('utf8')
+        if 'data' in self.data:
+            report.data = self.data['data'].encode('utf8')
         report.finish_date = now()
         report.save()
         if uf is not None:

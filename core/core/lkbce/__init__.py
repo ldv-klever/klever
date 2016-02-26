@@ -124,29 +124,31 @@ class LKBCE(core.components.Component):
                         jobs_num=jobs_num,
                         specify_arch=True, collect_build_cmds=True)
 
-        self.linux_kernel['module deps'] = {}
-        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
-                and 'build kernel' in self.conf['Linux kernel']:
-            # Install modules
-            self.linux_kernel['modules install'] = os.path.join(self.conf['main working directory'], 'linux-modules')
-            os.mkdir(self.linux_kernel['modules install'])
-            self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'],
-                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
-                        specify_arch=False, collect_build_cmds=False)
-            # Extract mod deps
-            self.extract_all_linux_kernel_mod_deps()
+        self.extract_all_linux_kernel_mod_deps()
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a', encoding='ascii') as fp:
             fp.write(core.lkbce.cmds.cmds.Command.cmds_separator)
 
     def extract_all_linux_kernel_mod_deps(self):
+        self.linux_kernel['module deps'] = {}
+
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
-            path = os.path.join(self.linux_kernel['modules install'], "lib/modules",
-                                self.linux_kernel['version'], "modules.dep")
+            self.logger.info('Extract all Linux kernel module dependencies')
 
-            with open(path, encoding='ascii') as fp:
+            self.logger.info('Install Linux kernel modules')
+
+            # Specify installed Linux kernel modules directory like Linux kernel working source tree in
+            # fetch_linux_kernel_work_src_tree().
+            self.linux_kernel['installed modules dir'] = os.path.join(os.path.pardir, 'linux-modules')
+            os.mkdir(self.linux_kernel['installed modules dir'])
+            self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
+                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
+                        specify_arch=False, collect_build_cmds=False)
+
+            with open(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                   self.linux_kernel['version'], 'modules.dep'), encoding='ascii') as fp:
                 for line in fp:
                     splits = line.split(':')
                     if len(splits) == 1:
@@ -160,7 +162,6 @@ class LKBCE(core.components.Component):
                     module_deps = [dep[7:] if dep.startswith('kernel/') else dep for dep in module_deps]
                     module_deps = list(sorted(module_deps))
                     self.linux_kernel['module deps'][module_name] = module_deps
-            self.conf['Linux kernel']['module deps'] = self.linux_kernel['module deps']
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')

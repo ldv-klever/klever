@@ -168,7 +168,8 @@ class Core:
                                                       'problem desc': 'problem desc.txt',
                                                       'files': ['problem desc.txt']
                                                   },
-                                                  self.mqs['report files'])
+                                                  self.mqs['report files'],
+                                                  suffix=' validator {0}'.format(commit))
 
                         if self.logger:
                             self.logger.exception('Catch exception')
@@ -176,6 +177,8 @@ class Core:
                             traceback.print_exc()
 
                         self.exit_code = 1
+
+                        break
                     finally:
                         # TODO: report differences immediately after implementation of https://forge.ispras.ru/issues/6889.
                         if 'verification statuses' in self.mqs:
@@ -186,6 +189,7 @@ class Core:
                                 if verification_status is None:
                                     self.logger.debug('Verification statuses message queue was terminated')
                                     self.mqs['verification statuses'].close()
+                                    del self.mqs['verification statuses']
                                     break
 
                                 sub_job.conf['obtained verification statuses'].append(verification_status)
@@ -199,9 +203,7 @@ class Core:
                                           {
                                               'id': sub_job_id,
                                               'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                              'desc': '',
                                               'log': '__log',
-                                              'data': '',
                                               'files': ['__log']
                                           },
                                           self.mqs['report files'],
@@ -236,18 +238,19 @@ class Core:
                         p.stop()
 
                 if self.mqs:
+                    finish_report = {
+                        'id': self.id,
+                        'resources': core.utils.count_consumed_resources(
+                            self.logger,
+                            self.start_time),
+                        'log': 'log',
+                        'files': ['log']
+                    }
+                    if self.data:
+                        finish_report.update({'data': json.dumps(self.data)})
                     core.utils.report(self.logger,
                                       'finish',
-                                      {
-                                          'id': self.id,
-                                          'resources': core.utils.count_consumed_resources(
-                                              self.logger,
-                                              self.start_time),
-                                          'desc': self.conf_file,
-                                          'log': 'log',
-                                          'data': json.dumps(self.data) if self.data else '',
-                                          'files': [self.conf_file, 'log']
-                                      },
+                                      finish_report,
                                       self.mqs['report files'])
 
                     self.logger.info('Terminate report files message queue')

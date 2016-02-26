@@ -1,6 +1,0 @@
-{
-  "class": "0",
-  "function": "KeyError:",
-  "pattern": "Key error",
-  "link": "https://docs.python.org/3/library/exceptions.html#KeyError"
-}

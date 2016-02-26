@@ -1,0 +1,5 @@
+{
+  "function": "KeyError: 'init'",
+  "pattern": "No init",
+  "link": "http://forge.ispras.ru/issues/6571"
+}
