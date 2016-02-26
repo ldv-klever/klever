@@ -1,0 +1,5 @@
+{
+  "function": "ValueError: Cannot determine signature type",
+  "pattern": "SignParsingFail",
+  "link": "http://forge.ispras.ru/issues/6565"
+}

@@ -1,0 +1,4 @@
+{
+  "function": "error: variable or field '.+' declared void",
+  "pattern": "VoidVarOrField"
+}

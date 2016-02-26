@@ -1,0 +1,4 @@
+{
+  "function": "core\\.utils\\.CommandError: \"cif\" failed",
+  "pattern": "CIF failure"
+}
