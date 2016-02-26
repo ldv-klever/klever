@@ -273,7 +273,10 @@ class LKVOG(core.components.Component):
                                                       len(self.linux_kernel_build_cmd_out_file_desc[desc['out file']]),
                                                       out_file_ext)
 
-            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = desc
+            # Do not include assembler files into verification objects since we have no means to instrument and to
+            # analyse them.
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = None if desc['type'] == 'CC' and re.search(
+                r'\.S$', desc['in files'][0], re.IGNORECASE) else desc
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             match = False
@@ -300,11 +303,12 @@ class LKVOG(core.components.Component):
 
         out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file]
 
-        if out_file_desc['type'] == 'CC':
-            cc_full_desc_files.append(out_file_desc['full desc file'])
-        else:
-            for in_file in out_file_desc['in files']:
-                if not re.search(r'\.mod\.o$', in_file):
-                    cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
+        if out_file_desc:
+            if out_file_desc['type'] == 'CC':
+                cc_full_desc_files.append(out_file_desc['full desc file'])
+            else:
+                for in_file in out_file_desc['in files']:
+                    if not re.search(r'\.mod\.o$', in_file):
+                        cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
         return cc_full_desc_files
