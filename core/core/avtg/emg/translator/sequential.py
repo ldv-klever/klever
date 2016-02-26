@@ -154,9 +154,9 @@ class Translator(AbstractTranslator):
 
         # Copy instances for each implementation of a container
         if len(relevant_multi_containers) > 0:
-            new_base_list = []
             for interface in relevant_multi_containers:
                 implementations = interface.implementations
+                new_base_list = []
 
                 for implementation in implementations:
                     for instance in base_list:
