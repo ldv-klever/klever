@@ -819,7 +819,7 @@ def check_compare_access(request):
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
     if not can_compare(request.user, j1, j2):
-        return JsonResponse({'error': _("You can't compare selected jobs.")})
+        return JsonResponse({'error': _("You can't compare the selected jobs")})
     return JsonResponse({})
 
 

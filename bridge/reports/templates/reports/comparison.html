@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans 'Jobs comparison' %}{% endblock %}
+{% block title %}{% trans 'Job reports comparison' %}{% endblock %}
 
 {% block head_block %}
     <link href="/static/reports/css/comparison.css" rel="stylesheet">
@@ -11,23 +11,23 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="ten wide column">
-            <h3>{% trans 'Comparison of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
+            <h3>{% trans 'Comparison of reports of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
         </div>
-        <div class="six wide column right aligned"><a class="ui violet button" href="{% url 'jobs:comparison' job1.pk job2.pk %}">{% trans 'Files differences' %}</a></div>
+        <div class="six wide column right aligned"><a class="ui violet button" href="{% url 'jobs:comparison' job1.pk job2.pk %}">{% trans 'Job files comparison' %}</a></div>
     </div>
     <div class="ui grid">
         <div class="ten wide column">
             <table class="ui selectable compact teal table">
                 <tr>
                     <th style="background-color: #747eeb"></th>
-                    <th class="job-th-2">{% trans 'Safe' %}</th>
-                    <th class="job-th-2">{% trans 'Unsafe' %}</th>
-                    <th class="job-th-2">{% trans 'Incomplete unsafe' %}</th>
+                    <th class="job-th-2">{% trans 'Total safe' %}</th>
+                    <th class="job-th-2">{% trans 'Found all unsafes' %}</th>
+                    <th class="job-th-2">{% trans 'Found not all unsafes' %}</th>
                     <th class="job-th-2">{% trans 'Unknown' %}</th>
                     <th class="job-th-2">{% trans 'Unmatched' %}</th>
                 </tr>
                 <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Safe' %}</th>
+                    <th class="job-th-1 right aligned">{% trans 'Total safe' %}</th>
                     {% for v in tabledata.0 %}
                         <td>
                             {% if v != '-' %}
@@ -39,7 +39,7 @@
                     {% endfor %}
                 </tr>
                 <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Unsafe' %}</th>
+                    <th class="job-th-1 right aligned">{% trans 'Found all unsafes' %}</th>
                     {% for v in tabledata.1 %}
                         <td>
                             {% if v != '-' %}
@@ -51,7 +51,7 @@
                     {% endfor %}
                 </tr>
                 <tr>
-                    <th class="job-th-1 right aligned">{% trans 'Incomplete unsafe' %}</th>
+                    <th class="job-th-1 right aligned">{% trans 'Found not all unsafes' %}</th>
                     {% for v in tabledata.2 %}
                         <td>
                             {% if v != '-' %}
@@ -94,7 +94,7 @@
                 <div class="ui small search selection fluid dropdown attrs-dropdown">
                     <input type="hidden" name="attr_value">
                     <i class="dropdown icon"></i>
-                    <div class="default text">{% trans 'Select attribute value' %}</div>
+                    <div class="default text">{% trans 'Value of attribute' %}</div>
                     <div class="menu">
                         {% for av in attr.values %}
                             <div class="item">{{ av }}</div>
@@ -108,7 +108,7 @@
                     <br>
                     <div class="ui checkbox">
                         <input id="show_all_components" type="checkbox">
-                        <label for="show_all_components">{% trans 'Show all components' %}</label>
+                        <label for="show_all_components">{% trans 'Show all (sub)components' %}</label>
                     </div>
                     <br><br>
                     <div class="ui checkbox">
@@ -124,5 +124,5 @@
     </div>
     <input id="compare_info" type="hidden" value="{{ compare_info }}">
     <div id="compare_data"></div>
-    <span id="error__no_selected_attribute" hidden>{% trans 'Please select all attributes' %}</span>
+    <span id="error__no_selected_attribute" hidden>{% trans 'Please select to show all attributes' %}</span>
 {% endblock %}

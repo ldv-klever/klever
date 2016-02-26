@@ -204,7 +204,7 @@ class ComparisonTableData(object):
         try:
             info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
         except ObjectDoesNotExist:
-            self.error = _('Compare cache was not found')
+            self.error = _('The comparison cache was not found')
             return
         self.info = info.pk
         for v1 in COMPARE_VERDICT:
@@ -245,7 +245,7 @@ class ComparisonData(object):
         try:
             self.info = CompareJobsInfo.objects.get(pk=info_id)
         except ObjectDoesNotExist:
-            self.error = _("Compare cache does not exist")
+            self.error = _("The comparison cache was not found")
             return
         self.v1 = self.v2 = None
         self.hide_attrs = hide_attrs
@@ -288,7 +288,7 @@ class ComparisonData(object):
             return None
         self.pages['total'] = len(data)
         if self.pages['total'] < self.pages['num']:
-            self.error = _('Needed reports was not found')
+            self.error = _('Required reports were not found')
             return None
         self.pages['backward'] = (self.pages['num'] > 1)
         self.pages['forward'] = (self.pages['num'] < self.pages['total'])
@@ -461,7 +461,7 @@ class ComparisonData(object):
         try:
             report = ReportComponent.objects.get(pk=report_id)
         except ObjectDoesNotExist:
-            self.error = _('Report was not found. Please, recalculate cache.')
+            self.error = _('The report was not found, please recalculate the comparison cache')
             return None
         block = CompareBlock('c_%s' % report_id, 'component', report.component.name, 'comp_%s' % report.component.name)
         if parent_id is not None:
@@ -481,7 +481,7 @@ class ComparisonData(object):
         try:
             report = ReportUnsafe.objects.get(pk=report_id)
         except ObjectDoesNotExist:
-            self.error = _('Report was not found. Please, recalculate cache.')
+            self.error = _('The report was not found, please recalculate the comparison cache')
             return None
         block = CompareBlock('u_%s' % report_id, 'unsafe', _('Unsafe'), 'unsafe')
         block.parents.append('c_%s' % parent_id)
@@ -501,7 +501,7 @@ class ComparisonData(object):
         try:
             report = ReportSafe.objects.get(pk=report_id)
         except ObjectDoesNotExist:
-            self.error = _('Report was not found. Please, recalculate cache.')
+            self.error = _('The report was not found, please recalculate the comparison cache')
             return None
         block = CompareBlock('s_%s' % report_id, 'safe', _('Safe'), 'safe')
         block.parents.append('c_%s' % parent_id)
@@ -521,7 +521,7 @@ class ComparisonData(object):
         try:
             report = ReportUnknown.objects.get(pk=report_id)
         except ObjectDoesNotExist:
-            self.error = _('Report was not found. Please, recalculate cache.')
+            self.error = _('The report was not found, please recalculate the comparison cache')
             return None
         block = CompareBlock('f_%s' % report_id, 'unknown', _('Unknown'), 'unknown-%s' % report.component.name)
         block.parents.append('c_%s' % parent_id)

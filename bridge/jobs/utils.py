@@ -632,6 +632,6 @@ class GetFilesComparison(object):
         try:
             info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
         except ObjectDoesNotExist:
-            self.error = _('Compare cache was not found')
+            self.error = _('The comparison cache was not found')
             return
         return json.loads(info.files_diff)

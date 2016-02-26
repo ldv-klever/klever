@@ -23,8 +23,8 @@ ERRORS = {
     804: _("The problem was not found"),
     900: _("You don't have an access to this page"),
     505: _("Couldn't visualize the error trace"),
-    506: _("Comparison cache data was not found or corrupted"),
-    507: _("You don't have access to compare these jobs"),
+    506: _("The comparison cache was not found or was corrupted"),
+    507: _("You don't have an access to compare these jobs"),
     605: _("Can't populate without Manager and service user")
 }
 
@@ -51,9 +51,9 @@ JOB_CLASSES = (
 )
 
 COMPARE_VERDICT = (
-    ('0', _('Safe')),
-    ('1', _('Unsafe')),
-    ('2', _('Incomplete unsafe')),
+    ('0', _('Total safe')),
+    ('1', _('Found all unsafes')),
+    ('2', _('Found not all unsafes')),
     ('3', _('Unknown')),
     ('4', _('Unmatched'))
 )

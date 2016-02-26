@@ -8,15 +8,15 @@
 {% endblock %}
 
 {% block title %}
-    {% trans 'Files comparison' %}
+    {% trans 'Job files comparison' %}
 {% endblock %}
 
 {% block body_block %}
     <div class="ui grid">
         <div class="ten wide column">
-            <h3>{% trans 'Comparison of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
+            <h3>{% trans 'Comparison of files of jobs' %}: <a href="{% url 'jobs:job' job1.pk %}" class="job-href-1">{{ job1.name }}</a>, <a href="{% url 'jobs:job' job2.pk %}" class="job-href-2">{{ job2.name }}</a></h3>
         </div>
-        <div class="six wide column right aligned"><a class="ui violet button" href="{% url 'reports:comparison' job1.pk job2.pk %}">{% trans 'Reports differences' %}</a></div>
+        <div class="six wide column right aligned"><a class="ui violet button" href="{% url 'reports:comparison' job1.pk job2.pk %}">{% trans 'Job reports comparison' %}</a></div>
     </div>
     <div class="ui grid">
         {% if data.same|length > 0 %}
@@ -40,7 +40,7 @@
         {% endif %}
         {% if data.diff|length > 0 %}
             <div class="five wide column">
-                <h4>{% trans 'Different files' %}</h4>
+                <h4>{% trans 'Files with differences' %}</h4>
                 <div style="max-height: 600px;overflow: auto">
                     <ul>
                         {% for f in data.diff %}
@@ -89,7 +89,7 @@
         {% endif %}
     </div>
     {% if data.same|length == 0 and data.unmatched1|length == 0 and data.unmatched2|length == 0 and data.diff|length == 0 %}
-        <h1 class="ui red header">{% trans 'Jobs does not have files' %}</h1>
+        <h1 class="ui red header">{% trans 'Jobs do not have files' %}</h1>
     {% endif %}
     <div id="file_content_modal" class="ui dinamic large modal">
         <div class="content">
