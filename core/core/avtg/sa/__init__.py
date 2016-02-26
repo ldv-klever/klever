@@ -404,19 +404,23 @@ class GlobalInitParser:
                     path, name, struct_type = match.groups()
                     self.analysis[path][name]["signature"] = "struct {} %s".format(struct_type)
                     self.analysis[path][name]["struct type"] = struct_type
+                    self.analysis[path][name]["value"] = name
                     current_entity = self.analysis[path][name]
                 else:
                     match = struct_ptr_init_begin_re.match(line)
                     if match:
-                        path, name = match.groups()
-                        self.analysis[path][name]["type"] = "STRUCTURE POINTER"
-                        current_entity = self.analysis[path][name]
+                        raise NotImplementedError("Support structure pointers")
+                        #path, name = match.groups()
+                        #self.analysis[path][name]["type"] = "pointer to structure"
+                        #self.analysis[path][name]["signature"] = "struct {} *%s".format(struct_type)
+                        #current_entity = self.analysis[path][name]
                     else:
                         match = struct_ptr_array_init_begin_re.match(line)
                         if match:
-                            path, name = match.groups()
-                            self.analysis[path][name]["type"] = "STRUCTURE POINTERS ARRAY"
-                            current_entity = self.analysis[path][name]
+                            raise NotImplementedError("Support arrays")
+                            #path, name = match.groups()
+                            #self.analysis[path][name]["type"] = "array"
+                            #current_entity = self.analysis[path][name]
                 state = 1
             elif state == 1:
                 if init_re.match(line):
@@ -526,7 +530,7 @@ class GlobalInitParser:
                 else:
                     current_block.append(line)
 
-        # Parse last element
+        # Parse the last element
         self._parse_element(current_element, current_block)
 
     def _parse_element(self, element, block):
@@ -571,19 +575,21 @@ class GlobalInitParser:
                 # Ignore "Initializer list" first string
                 self._parse_array(element["elements"], block[1:])
         elif element["type"] == "typedef":
+            # todo: ignore typedefs unless CIF issue #6896 (incomplete signatures for typedefs) is fixed
+            pass
             # Check typedef element
-            if value_re.match(block[0]):
-                value = value_re.match(block[0]).group(1)
-                element["value"] = value
+            #if value_re.match(block[0]):
+            #    value = value_re.match(block[0]).group(1)
+            #    element["value"] = value
             # Do not parse empty initializers like for parport_sysctl_template (drivers/parport/parport.ko)
             # Ignore "Initializer list" first string
-            elif len(block[1:]):
-                if array_re.match(block[1]):
-                    self._parse_array(element["elements"], block[1:])
-                elif struct_re.match(block[1]):
-                    self._parse_structure(element["fields"], block[1:])
-                else:
-                    raise NotImplementedError("Could not parse element initializer")
+            #elif len(block[1:]):
+            #   if array_re.match(block[1]):
+            #       self._parse_array(element["elements"], block[1:])
+            #   elif struct_re.match(block[1]):
+            #       self._parse_structure(element["fields"], block[1:])
+            #    else:
+            #       raise NotImplementedError("Could not parse element initializer")
         else:
             raise NotImplementedError("Field type '{}' is not supported by global variables initialization parser".
                                       format(element["type"]))
