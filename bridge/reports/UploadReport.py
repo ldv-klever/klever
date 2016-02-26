@@ -7,7 +7,7 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import file_checksum
+from bridge.utils import file_checksum, print_err
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
@@ -56,14 +56,18 @@ class UploadReport(object):
                 return 'Resources has wrong format: %s' % json.dumps(data['resources'])
 
         self.data = {'type': data['type'], 'id': data['id']}
-        if 'desc' in data:
-            self.data['description'] = data['desc']
         if 'comp' in data:
             err = self.__check_comp(data['comp'])
             if err is not None:
                 return err
         if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 15:
             return 'Component name is too long (max 15 symbols expected)'
+        if 'data' in data:
+            try:
+                json.loads(data['data'])
+            except Exception as e:
+                print_err(e)
+                return "Component data must be represented in JSON"
 
         if data['type'] == 'start':
             if data['id'] == '/':
@@ -93,11 +97,12 @@ class UploadReport(object):
             try:
                 self.data.update({
                     'log': data['log'],
-                    'data': data['data'],
                     'resources': data['resources'],
                 })
             except KeyError as e:
                 return "Property '%s' is required." % e
+            if 'data' in data:
+                self.data.update({'data': data['data']})
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -111,10 +116,11 @@ class UploadReport(object):
                     'name': data['name'],
                     'resources': data['resources'],
                     'log': data['log'],
-                    'data': data['data'],
                 })
             except KeyError as e:
                 return "Property '%s' is required." % e
+            if 'data' in data:
+                self.data.update({'data': data['data']})
             if 'comp' in data:
                 self.data['comp'] = data['comp']
         elif data['type'] == 'safe':
@@ -231,8 +237,7 @@ class UploadReport(object):
                 root=self.root,
                 start_date=now(),
                 data=self.data['data'].encode('utf8') if 'data' in self.data else None,
-                component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0],
-                description=self.data['description'].encode('utf8') if 'description' in self.data else None
+                component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
 
         if self.data['type'] == 'verification':
@@ -247,14 +252,18 @@ class UploadReport(object):
             report.cpu_time = int(self.data['resources']['CPU time'])
             report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
+        uf = None
         if 'log' in self.data:
-            uf = UploadReportFiles(self.archive, log=self.data['log'])
+            uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
             if uf.log is None:
                 self.error = 'The report log was not found in archive'
                 return
             report.log = uf.log
 
         report.save()
+        if uf is not None:
+            for src_f in uf.other_files:
+                ReportFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], report=report)
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
@@ -281,17 +290,20 @@ class UploadReport(object):
         report.cpu_time = int(self.data['resources']['CPU time'])
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
+        uf = None
         if 'log' in self.data:
-            uf = UploadReportFiles(self.archive, log=self.data['log'])
+            uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
             if uf.log is None:
                 self.error = 'The report log was not found in archive'
                 return
             report.log = uf.log
-        report.data = self.data['data'].encode('utf8')
-        if 'description' in self.data:
-            report.description = self.data['description'].encode('utf8')
+        if 'data' in self.data:
+            report.data = self.data['data'].encode('utf8')
         report.finish_date = now()
         report.save()
+        if uf is not None:
+            for src_f in uf.other_files:
+                ReportFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], report=report)
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
@@ -316,7 +328,6 @@ class UploadReport(object):
                 identifier=identifier,
                 parent=self.parent,
                 root=self.root,
-                description=self.data['description'].encode('utf8') if 'description' in self.data else None,
                 component=self.parent.component
             )
 
@@ -356,7 +367,6 @@ class UploadReport(object):
                 identifier=identifier,
                 parent=self.parent,
                 root=self.root,
-                description=self.data['description'].encode('utf8') if 'description' in self.data else None
             )
 
         uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
@@ -392,8 +402,7 @@ class UploadReport(object):
             report = ReportUnsafe(
                 identifier=identifier,
                 parent=self.parent,
-                root=self.root,
-                description=self.data['description'].encode('utf8') if 'description' in self.data else None
+                root=self.root
             )
 
         uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)

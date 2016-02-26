@@ -117,8 +117,10 @@ class Core:
                 # TODO: create artificial log file for Validator.
                 with open('__log', 'w', encoding='ascii') as fp:
                     pass
-                for i, sub_job in enumerate(self.job.sub_jobs):
-                    sub_job_id = '{0}{1}'.format(self.id, str(i))
+                self.data = []
+                for sub_job in self.job.sub_jobs:
+                    commit = sub_job.conf['Linux kernel']['Git repository']['commit']
+                    sub_job_id = '{0}{1}'.format(self.id, str(commit))
                     # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
                     core.utils.report(self.logger,
                                       'start',
@@ -126,13 +128,13 @@ class Core:
                                           'id': sub_job_id,
                                           'parent id': self.id,
                                           'name': 'Validator',
-                                          'attrs': [{'Sub-job number': str(i)}],
+                                          'attrs': [{'Commit': commit}],
                                       },
                                       self.mqs['report files'],
-                                      suffix='-validator{0}'.format(i))
+                                      suffix=' validator {0}'.format(commit))
                     try:
-                        os.makedirs(str(i))
-                        with core.utils.Cd(str(i)):
+                        os.makedirs(commit)
+                        with core.utils.Cd(commit):
                             self.get_components(sub_job)
                             self.create_components_conf(sub_job)
                             self.callbacks = core.utils.get_component_callbacks(self.logger,
@@ -152,36 +154,60 @@ class Core:
                         # Do not proceed to other sub-jobs if reports uploading failed.
                         if self.uploading_reports_process.exitcode:
                             break
+                    except Exception:
+                        if self.mqs:
+                            with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                                traceback.print_exc(file=fp)
+
+                            if os.path.isfile('problem desc.txt'):
+                                core.utils.report(self.logger,
+                                                  'unknown',
+                                                  {
+                                                      'id': 'unknown',
+                                                      'parent id': sub_job_id,
+                                                      'problem desc': 'problem desc.txt',
+                                                      'files': ['problem desc.txt']
+                                                  },
+                                                  self.mqs['report files'],
+                                                  suffix=' validator {0}'.format(commit))
+
+                        if self.logger:
+                            self.logger.exception('Catch exception')
+                        else:
+                            traceback.print_exc()
+
+                        self.exit_code = 1
+
+                        break
                     finally:
                         # TODO: report differences immediately after implementation of https://forge.ispras.ru/issues/6889.
-                        sub_job.conf['obtained verification statuses'] = []
-                        while True:
-                            verification_status = self.mqs['verification statuses'].get()
+                        if 'verification statuses' in self.mqs:
+                            sub_job.conf['obtained verification statuses'] = []
+                            while True:
+                                verification_status = self.mqs['verification statuses'].get()
 
-                            if verification_status is None:
-                                self.logger.debug('Verification statuses message queue was terminated')
-                                self.mqs['verification statuses'].close()
-                                break
+                                if verification_status is None:
+                                    self.logger.debug('Verification statuses message queue was terminated')
+                                    self.mqs['verification statuses'].close()
+                                    del self.mqs['verification statuses']
+                                    break
 
-                            sub_job.conf['obtained verification statuses'].append(verification_status)
+                                sub_job.conf['obtained verification statuses'].append(verification_status)
+
+                            self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
+                                              sub_job.conf['ideal verdict']] +
+                                             sub_job.conf['obtained verification statuses'])
 
                         core.utils.report(self.logger,
                                           'finish',
                                           {
                                               'id': sub_job_id,
                                               'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                              'desc': '',
                                               'log': '__log',
-                                              'data': '',
                                               'files': ['__log']
                                           },
                                           self.mqs['report files'],
-                                          suffix='-validator{0}'.format(i))
-                self.data = []
-                for sub_job in self.job.sub_jobs:
-                    self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
-                                      sub_job.conf['ideal verdict']] +
-                                     sub_job.conf['obtained verification statuses'])
+                                          suffix=' validator {0}'.format(commit))
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:
@@ -212,18 +238,19 @@ class Core:
                         p.stop()
 
                 if self.mqs:
+                    finish_report = {
+                        'id': self.id,
+                        'resources': core.utils.count_consumed_resources(
+                            self.logger,
+                            self.start_time),
+                        'log': 'log',
+                        'files': ['log']
+                    }
+                    if self.data:
+                        finish_report.update({'data': json.dumps(self.data)})
                     core.utils.report(self.logger,
                                       'finish',
-                                      {
-                                          'id': self.id,
-                                          'resources': core.utils.count_consumed_resources(
-                                              self.logger,
-                                              self.start_time),
-                                          'desc': self.conf_file,
-                                          'log': 'log',
-                                          'data': json.dumps(self.data),
-                                          'files': [self.conf_file, 'log']
-                                      },
+                                      finish_report,
                                       self.mqs['report files'])
 
                     self.logger.info('Terminate report files message queue')

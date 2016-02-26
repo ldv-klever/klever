@@ -25,4 +25,5 @@ urlpatterns = [
     url(r'^ajax/get_source/$', views.get_source_code),
     url(r'^ajax/fill_compare_cache/$', views.fill_compare_cache),
     url(r'^ajax/get_compare_jobs_data/$', views.get_compare_jobs_data),
+    url(r'^component/(?P<report_id>[0-9]+)/download_files/$', views.download_report_files, name='download_files'),
 ]

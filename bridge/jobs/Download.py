@@ -189,7 +189,6 @@ class ReportsData(object):
             'start_date': get_date(report.start_date),
             'finish_date': get_date(report.finish_date),
             'data': report.data.decode('utf8') if report.data is not None else None,
-            'description': report.description.decode('utf8') if report.description is not None else None,
             'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
 
@@ -199,7 +198,6 @@ class ReportsData(object):
             'pk': report.pk,
             'parent': report.parent_id,
             'identifier': report.identifier,
-            'description': report.description.decode('utf8') if report.description is not None else None,
             'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
 
@@ -408,7 +406,6 @@ class UploadReports(object):
             root=self.job.reportroot,
             parent=parent,
             identifier=data['identifier'],
-            description=data['description'].encode('utf8') if data['description'] is not None else None,
             computer=Computer.objects.get_or_create(description=data['computer'])[0],
             component=Component.objects.get_or_create(name=data['component'])[0],
             cpu_time=data['resource']['cpu_time'] if data['resource'] is not None else None,
@@ -434,7 +431,6 @@ class UploadReports(object):
             root=self.job.reportroot,
             parent=parent,
             identifier=data['identifier'],
-            description=data['description'].encode('utf8') if data['description'] is not None else None,
             proof=self.files[('safe', data['pk'])].read()
         )
         for attr in data['attrs']:
@@ -451,7 +447,6 @@ class UploadReports(object):
             root=self.job.reportroot,
             parent=parent,
             identifier=data['identifier'],
-            description=data['description'].encode('utf8') if data['description'] is not None else None,
             problem_description=self.files[('unknown', data['pk'])].read(),
             component=parent.component
         )
@@ -474,7 +469,6 @@ class UploadReports(object):
             root=self.job.reportroot,
             parent=parent,
             identifier=data['identifier'],
-            description=data['description'],
             error_trace=uf.file_content
         )
         for attr in data['attrs']:

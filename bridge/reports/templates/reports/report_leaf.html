@@ -109,12 +109,6 @@
         {% elif type == 'unknown' %}
             <div class="ui red segment filecontent" style="height:400px;">{{ report.problem_description }}</div>
         {% endif %}
-        {% if report.description %}
-            <div class="ui blue segment">
-                <div class="ui top left attached large blue label">{% trans 'Description' %}</div>
-                <div class="filecontent">{{ report.description }}</div>
-            </div>
-        {% endif %}
     </div>
 </div>
 

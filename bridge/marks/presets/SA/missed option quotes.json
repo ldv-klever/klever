@@ -1,0 +1,5 @@
+{
+  "function": "error: kernel\.org: No such file or directory",
+  "pattern": "MissedOptQuote",
+  "link": "http://forge.ispras.ru/issues/6901"
+}
