@@ -50,16 +50,19 @@ class ABKM(core.components.Component):
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
 
-        if len(self.conf['abstract task desc']['entry points']) > 1:
-            raise NotImplementedError('Several entry points are not supported')
+        if 'entry points' in self.conf['abstract task desc']:
+            if len(self.conf['abstract task desc']['entry points']) > 1:
+                raise NotImplementedError('Several entry points are not supported')
 
-        with open('unreach-call.prp', 'w', encoding='ascii') as fp:
-            fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
-                self.conf['abstract task desc']['entry points'][0]))
+            with open('unreach-call.prp', 'w', encoding='ascii') as fp:
+                fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
+                    self.conf['abstract task desc']['entry points'][0]))
 
-        self.task_desc['property file'] = 'unreach-call.prp'
+            self.task_desc['property file'] = 'unreach-call.prp'
 
-        self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
+            self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
+        else:
+            self.logger.warning('Verifier property file was not prepared since entry points were not specified')
 
     def prepare_src_files(self):
         self.task_desc['files'] = []
@@ -121,13 +124,19 @@ class ABKM(core.components.Component):
         self.logger.info('Prepare archive with verification task files')
 
         with tarfile.open('task files.tar.gz', 'w:gz') as tar:
-            tar.add('unreach-call.prp')
+            if os.path.isfile('unreach-call.prp'):
+                tar.add('unreach-call.prp')
             for file in self.task_desc['files']:
                 tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def decide_verification_task(self):
         self.logger.info('Decide verification task')
+        self.verification_status = None
+
+        if not os.path.isfile('unreach-call.prp'):
+            self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
+            return
 
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         task_id = session.schedule_task(self.task_desc)
