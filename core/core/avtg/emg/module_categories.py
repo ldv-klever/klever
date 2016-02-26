@@ -1,256 +1,25 @@
 import json
 import re
 
-
-from core.avtg.emg.representations import Signature, Interface, Implementation
-
-
-class CategorySpecification:
-
-    def __init__(self, logger):
-        self.logger = logger
-        self.categories = {}
-        self.interfaces = {}
-        self.kernel_functions = {}
-        self.kernel_macro_functions = {}
-        self.kernel_macros = {}
-        self.logger.info("Interface categories specification has been initialized")
-
-    def import_specification(self, specification):
-        self.logger.info("Analyze provided interface categories specification")
-        for category in specification["categories"]:
-            self.logger.debug("Found interface category {}".format(category))
-            self.__import_category_interfaces(category, specification["categories"][category])
-
-        if "kernel functions" in specification:
-            self.logger.info("Import kernel functions description")
-            for intf in self.__import_kernel_interfaces("kernel functions", specification):
-                self.kernel_functions[intf.identifier] = intf
-                self.logger.debug("New interface {} has been imported".format(intf.full_identifier))
-        else:
-            self.logger.warning("Kernel functions are not provided within an interface categories specification, "
-                                "expect 'kernel functions' attribute")
-
-        if "kernel macro-functions" in specification:
-            self.logger.info("Import kernel macro-functions description")
-            for intf in self.__import_kernel_interfaces("kernel macro-functions", specification):
-                self.kernel_macro_functions[intf.identifier] = intf
-                self.logger.debug("New interface {} has been imported".format(intf.full_identifier))
-        else:
-            self.logger.warning("Kernel functions are not provided within an interface categories specification, "
-                                "expect 'kernel macro-functions' attribute")
-
-        # Populate signatures instead of Interface signatures and assign interface links
-        self.logger.info("Add references to an Interface objects of categories instead of just interface names")
-        signatures_to_process = []
-        for intf in self.interfaces:
-            signatures_to_process.append([self.interfaces, self.interfaces[intf].signature])
-
-            # Check fields in case of container
-            if not self.interfaces[intf].container and self.interfaces[intf].signature.type_class == "struct":
-                # Fields matter for containers only, do not keep unnecessary date
-                self.logger.debug("Remove fields description for interface {} which is not a container".format(intf))
-                self.interfaces[intf].signature.fields = {}
-
-        self.logger.info("Add references to an Interface objects of kernel interfaces instead of just interface names")
-        for function in self.kernel_functions:
-            signatures_to_process.append([self.kernel_functions, self.kernel_functions[function].signature])
-
-        # Process signatures
-        self._process_signatures(signatures_to_process)
-
-    def _process_signatures(self, signatures):
-        processed_or_processing = [sign for coll, sign in signatures]
-        while signatures:
-            collection, signature = signatures.pop()
-            self.logger.debug("Replace all entries of interface names with an object references in signature {}".
-                              format(signature.expression))
-
-            # Replace string interface definition by reference
-            if signature.interface and type(signature.interface) is str:
-                signature.interface = collection[signature.interface]
-
-            # Replace Interface signature
-            if signature.type_class == "interface":
-                if signature.interface.signature.type_class == "interface":
-                    raise RuntimeError("Attempt to replace interface signature with an interface signature")
-                intf = signature.interface
-                signature.replace(signature.interface.signature)
-                if type(intf) is Interface:
-                    # todo: something wrong there, seems that signature objects are copied deeply
-                    signature.interface = intf
-                    signature.interface.signature.interface = intf
-
-            # Process return value and parameters in case of function
-            if signature.type_class == "function":
-                if signature.return_value and signature.return_value not in processed_or_processing:
-                    signatures.append([self.interfaces, signature.return_value])
-                for index in range(len(signature.parameters)):
-                    if type(signature.parameters[index]) is Signature and signature.parameters[index] \
-                            not in processed_or_processing:
-                        signatures.append([self.interfaces, signature.parameters[index]])
-
-            # Check fields in case of structure
-            elif signature.type_class == "struct":
-                if len(signature.fields) > 0:
-                    for field in [field for field in signature.fields if signature.fields[field] not in
-                                  processed_or_processing]:
-                        signatures.append([self.interfaces, signature.fields[field]])
-            elif signature.type_class == "interface":
-                raise RuntimeError("Cannot replace signature {} with an interface object reference".
-                                   format(signature.expression))
-
-            if signature not in processed_or_processing:
-                    processed_or_processing.append(signature)
-
-    def __import_kernel_interfaces(self, category_name, collection):
-        for identifier in collection[category_name]:
-            self.logger.debug("Import a description of kernel interface {} from category {}".
-                              format(identifier, category_name))
-            if "signature" not in collection[category_name][identifier]:
-                raise TypeError("Specify 'signature' for kernel interface {} at {}".format(identifier, category_name))
-            elif "header" not in collection[category_name][identifier]:
-                raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category_name))
-
-            # Create interface description
-            intf = Interface(collection[category_name][identifier]["signature"],
-                             "kernel",
-                             identifier,
-                             collection[category_name][identifier]["header"],
-                             True)
-
-            # Assign additional values
-            intf.category = category_name
-            intf.signature.interface = intf.identifier
-
-            # Check whether interface corresponds its signature
-            self.logger.debug("Check whether interface corresponds its signature")
-            if intf.signature.function_name and intf.signature.function_name != identifier:
-                raise ValueError("Kernel function name {} does not correspond its signature {}".
-                                 format(identifier, intf.signature.expression))
-            elif not intf.signature.function_name:
-                raise ValueError("Kernel function name {} is not a macro or a function".
-                                 format(identifier, intf.signature.expression))
-            yield intf
-
-    def __import_interfaces(self, category_name, collection):
-        for intf_identifier in collection:
-            if "{}.{}".format(category_name, intf_identifier) in self.interfaces:
-                self.logger.debug("Found a description of an existing interface {} from category {}".
-                                  format(intf_identifier, category_name))
-                yield self.interfaces["{}.{}".format(category_name, intf_identifier)]
-            else:
-                self.logger.debug("Initialize description of an interface {} from category {}".
-                                  format(intf_identifier, category_name))
-
-                implmented_flag = False
-                if "implemented in kernel" in collection[intf_identifier]:
-                    implmented_flag = True
-                if "header" in collection[intf_identifier]:
-                    header = collection[intf_identifier]["header"]
-                else:
-                    header = None
-
-                if "signature" in collection[intf_identifier]:
-                    intf = Interface(collection[intf_identifier]["signature"],
-                                     category_name,
-                                     intf_identifier,
-                                     header,
-                                     implmented_flag)
-                    if "fields" in collection[intf_identifier]:
-                        intf.fields = collection[intf_identifier]["fields"]
-
-                    yield intf
-                elif "signature" not in collection[intf_identifier] and \
-                     "{}.{}".format(category_name, intf_identifier) in self.interfaces:
-                    yield self.interfaces["{}.{}".format(category_name, intf_identifier)]
-                else:
-                    raise TypeError("Provide 'signature' for interface {} at {} or define it as a container".
-                                    format(intf_identifier, category_name))
-
-    def __import_category_interfaces(self, category_name, dictionary):
-        self.logger.debug("Initialize description for category {}".format(category_name))
-        if category_name in self.categories:
-            self.logger.warning("Category {} has been already defined in the inteface category specification".
-                                format(category_name))
-        else:
-            self.categories[category_name] = {
-                "containers": {},
-                "resources": {},
-                "callbacks": {}
-            }
-
-        if "containers" in dictionary:
-            self.logger.debug("Import containers from a description of an interface category {}".format(category_name))
-            for intf in self.__import_interfaces(category_name, dictionary["containers"]):
-                if intf and intf.full_identifier not in self.interfaces:
-                    self.logger.debug("Imported new interface description {}".format(intf.full_identifier))
-                    self.interfaces[intf.full_identifier] = intf
-                    intf.container = True
-                    self.categories[intf.category]["containers"][intf.identifier] = intf
-                elif intf and intf.full_identifier in self.interfaces:
-                    self.logger.debug("Imported existing interface description {}".format(intf.full_identifier))
-                    self.categories[intf.category]["containers"][intf.identifier] = intf
-                    intf.container = True
-        if "resources" in dictionary:
-            self.logger.debug("Import resources from a description of an interface category {}".format(category_name))
-            for intf in self.__import_interfaces(category_name, dictionary["resources"]):
-                if intf and intf.full_identifier not in self.interfaces:
-                    self.logger.debug("Imported new interface description {}".format(intf.full_identifier))
-                    intf.resource = True
-                    self.interfaces[intf.full_identifier] = intf
-                    self.categories[intf.category]["resources"][intf.identifier] = intf
-                elif intf and intf.full_identifier in self.interfaces:
-                    self.logger.debug("Imported existing interface description {}".format(intf.full_identifier))
-                    self.categories[intf.category]["resources"][intf.identifier] = intf
-                    intf.resource = True
-        if "callbacks" in dictionary:
-            self.logger.debug("Import callbacks from a description of an interface category {}".format(category_name))
-            for intf in self.__import_interfaces(category_name, dictionary["callbacks"]):
-                if intf and intf.full_identifier not in self.interfaces:
-                    self.logger.debug("Imported new interface description {}".format(intf.full_identifier))
-                    intf.callback = True
-                    self.interfaces[intf.full_identifier] = intf
-                    self.categories[intf.category]["callbacks"][intf.identifier] = intf
-                elif intf and intf.full_identifier in self.interfaces:
-                    self.logger.debug("Imported existing interface description {}".format(intf.full_identifier))
-                    self.categories[intf.category]["callbacks"][intf.identifier] = intf
-                    intf.callback = True
+from core.avtg.emg.interface_categories import CategoriesSpecification
+from core.avtg.emg.common.interface import Implementation, Function, Primitive, Structure, yield_basetype
 
 
-class ModuleSpecification(CategorySpecification):
+class ModuleCategoriesSpecification(CategoriesSpecification):
 
-    def import_specification(self, specification, analysis=None, categories=None):
-
-        # Check specification and analysis
-        if not analysis:
-            analysis = {}
-
-        # Import categories
-        self.categories = categories.categories
-        self.interfaces = categories.interfaces
-        self.kernel_functions = categories.kernel_functions
-        self.kernel_macro_functions = categories.kernel_macro_functions
-        self.kernel_macros = categories.kernel_macros
-        self.analysis = analysis
+    def __init__(self):
         self.inits = None
         self.exits = None
         self.modules_functions = None
-        self.implementations = {}
 
-        # Import categories from modules specification
+    def import_specification(self, specification=None, analysis=None):
+        # Import interface categories
         if specification:
             super().import_specification(specification)
 
-        # todo: import existing module specification
-
         # Import source analysis
-        self.logger.info("Import results of source code analysis first")
-        self.__import_source_analysis()
-        self.logger.info("Results of source code analysis are imported")
-
-        # Remove categories without callbacks or relevant interfaces
-        self.__remove_categories()
+        self.logger.info("Import results of source code analysis")
+        self.__import_source_analysis(analysis)
 
     def save_to_file(self, file):
         self.logger.info("First convert specification to json and then save")
@@ -259,6 +28,222 @@ class ModuleSpecification(CategorySpecification):
         with open(file, "w", encoding="ascii") as fh:
             fh.write(content)
 
+    def __import_source_analysis(self, analysis):
+        self.logger.info("Import modules init and exit functions")
+        inits, exits = self.__import_inits_exits(analysis)
+        self.inits = inits
+        self.exits = exits
+
+        self.logger.info("Extract complete types definitions")
+        kernel_functions, module_functions, types = self.__extract_types(analysis)
+
+        self.logger.info("Determine categories from extracted types")
+        categories = self.__extract_categories(types)
+
+        self.logger.info("Merge interface categories from both interface categories specification and modules "
+                         "interface specification")
+        self.merge_categories(categories, kernel_functions,  module_functions)
+
+    def __extract_types(self, analysis):
+        types = {}
+        entities = []
+        if 'global variable initializations' in analysis:
+            self.logger.info("Import types from global variables initializations")
+            for path in analysis["global variable initializations"]:
+                for variable in analysis["global variable initializations"][path]:
+                    analysis["global variable initializations"][path][variable]["value"] = variable
+                    bt = self.__add_type(analysis["global variable initializations"][path][variable]["signature"], types)
+                    entity = {
+                        "path": path,
+                        "description": analysis["global variable initializations"][path][variable],
+                        "root values": None,
+                        "root types": None,
+                        "root sequence": [],
+                        "type": bt.identifier
+                    }
+                    types[bt.identifier] = bt
+                    entities.append(entity)
+            self.__import_entities(entities, types)
+
+        if 'kernel functions' in analysis:
+            self.logger.info("Import types from kernel functions")
+            kernel_functions = {}
+            for function in analysis['kernel functions']:
+                self.logger.debug("Parse signature of function {}".format(function))
+                kernel_functions[function] = self.__add_function_type(function, types)
+        
+        modules_functions = {}
+        if 'modules functions' in analysis:
+            self.logger.info("Import modules functions and implementations from kernel functions calls in it")
+            for function in [name for name in analysis["modules functions"]
+                             if 'files' in analysis["modules functions"][name]]:
+                modules_functions[function] = {}
+                module_function = analysis["modules functions"][function]
+                for path in module_function["files"]:
+                    self.logger.debug("Parse signature of function {} from file {}".format(function, path))
+                    modules_functions[function][path] = \
+                        self.__add_function_type(module_function["files"][path]["signature"], types)
+
+                    if "calls" in module_function["files"][path]:
+                        for kernel_function in [name for name in module_function["files"][path]["calls"]
+                                                if name in kernel_functions]:
+                            for call in module_function["files"][path]["calls"][kernel_function]:
+                                for index in range(len(call)):
+                                    if call[index] and call[index] != "0":
+                                        kernel_functions[kernel_function].parameters[index].\
+                                            add_implementation(call[index], path, None, None)
+
+        return kernel_functions, modules_functions, types
+
+    def __import_entities(self, entities, types):
+        while len(entities) > 0:
+            entity = entities.pop()
+            bt = entity["type"]
+
+            if "value" in entity["description"]:
+                bt.add_implementation(
+                    entity["description"]["value"],
+                    entity["path"],
+                    entity["root type"],
+                    entity["root value"]
+                )
+
+
+            if entity["description"]['type'] == 'structure':
+                if not entity["root type"] and not entity["root value"]:
+                    new_root_type = bt
+                    new_root_value = entity["description"]["value"]
+                else:
+                    new_root_type = entity["root type"]
+                    new_root_value = entity["root value"]
+
+                for field in entity["description"]['fields']:
+                    f_bt = self.__add_type(entity["description"]['fields'][field]["signature"], types)
+                    if f_bt.identifier not in types:
+                        types[f_bt.identifier] = f_bt
+
+                    new_desc = {
+                        "type": f_bt,
+                        "description": entity["description"]['fields'][field]["signature"],
+                        "path": entity["path"],
+                        "root type": new_root_type,
+                        "root value": new_root_value,
+                        "root sequence": entity["root sequence"] + field
+                    }
+
+                    entities.append(new_desc)
+                    bt.fields[field] = f_bt
+            elif entity["description"]['type'] == 'array':
+                # todo: support arrays
+                # todo: add element number to sequence number instead of the field
+                raise NotImplementedError("support arrays")
+
+    def __extract_categories(self, types):
+        callbacks = [cb for cb in types if type(cb) is Function and cb.suits_for_callback]
+        categories = []
+        category = {
+            "callbacks": [],
+            "containers": [],
+            "resources": []
+        }
+
+        while len(callbacks) > 0:
+            cb = callbacks.pop()
+            del types[cb.identifier]
+
+            category = {
+                "callbacks": [cb],
+                "containers": [],
+                "resources": []
+            }
+
+            number = len(category["callbacks"]) + len(category["containers"]) + len(category["resources"])
+            new_number = 0
+            while new_number != number:
+                number = new_number
+
+                for tp in list(types.values):
+                    if type(tp) is Structure:
+                        self.__container_check(tp, category)
+                        self.__resource_check(tp, category)
+                    elif type(tp) is Function:
+                        self.__callback_check(tp, category)
+                        self.__resource_check(tp, category)
+                    elif type(tp) is Primitive:
+                        self.__resource_check(tp, category)
+                    else:
+                        raise NotImplementedError("Unknown type category")
+
+                new_number = len(category["callbacks"]) + len(category["containers"]) + len(category["resources"])
+
+            self.remove_pointer_aliases(category, "containers", "containers")
+            self.remove_pointer_aliases(category, "containers", "resources")
+            self.remove_pointer_aliases(category, "resources", "resources")
+
+        return categories
+
+    def __container_check(self, tp, category):
+        pass
+
+    def __resource_check(self, tp, category):
+        pass
+
+    def __callback_check(self, tp, category):
+        pass
+
+    @staticmethod
+    def __add_type(signature, types):
+        new_type = yield_basetype(signature)
+        if new_type.identifier not in types:
+            types[new_type.ideintifier] = new_type
+
+            if type(new_type) is Function:
+                if new_type.return_value and new_type.return_value.idenitfier in types:
+                    new_type.return_value = types[new_type.return_value.idenitfier]
+                elif new_type.return_value and \
+                                new_type.return_value.idenitfier not in types:
+                    types[new_type.return_value.idenitfier] = new_type.return_value
+
+                for index in range(len(new_type.parameters)):
+                    parameter = new_type.parameters[index]
+                    if type(parameter) is not str and parameter.identifier in types:
+                        new_type.parameters[index] = types[parameter.identifier]
+                    elif type(parameter) is not str and parameter.identifier not in types:
+                        types[parameter.identifier] = new_type.parameters[index]
+        else:
+            new_type = types[new_type.ideintifier]
+
+        return new_type
+
+    @staticmethod
+    def remove_pointer_aliases(category, main_type, secondary_type):
+        for main in category[main_type]:
+            for alias in list(category[secondary_type]):
+                if main.pointer_alias(alias):
+                    del category[secondary_type][category[secondary_type].index(alias)]
+                    main.add_pointer_implementations(alias)
+                    if main_type != secondary_type:
+                        category[secondary_type].append(main)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def __import_source_analysis(self):
         self.logger.info("Start processing source code amnalysis raw data")
         self.__parse_signatures_as_is()
@@ -266,8 +251,7 @@ class ModuleSpecification(CategorySpecification):
         self.logger.info("Mark all found types as interfaces if there are already specified")
         self.__mark_existing_interfaces()
 
-        self.logger.info("Yield more new interfaces from existng data in source analysis data")
-        self.__add_new_interfaces()
+
 
         self.logger.info("Mark all found types as interfaces if there are already specified")
         self.__mark_existing_interfaces()
@@ -816,7 +800,7 @@ class SpecEncoder(json.JSONEncoder):
                     fd["categories"][category]["callbacks"][callback] = {
                         "signature": object.categories[category]["callbacks"][callback].signature.get_string()
                     }
-                    
+
                 # Add resources
                 for resource in object.categories[category]["resources"]:
                     fd["categories"][category]["resources"][resource] = {}

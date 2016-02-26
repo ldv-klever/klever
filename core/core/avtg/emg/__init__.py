@@ -4,8 +4,10 @@ import os
 import core.components
 import core.utils
 
-from core.avtg.emg.interface_specs import CategorySpecification, ModuleSpecification
+from core.avtg.emg.interface_categories import CategoriesSpecification
+from core.avtg.emg.module_categories import ModuleCategoriesSpecification
 from core.avtg.emg.event_spec import EventModel
+# todo: import dinamically
 from core.avtg.emg.translator import sequential
 
 
@@ -74,13 +76,13 @@ class EMG(core.components.Component):
 
         # Import interface categories configuration
         self.logger.info("Import content of provided interface categories specification")
-        intf_spec = CategorySpecification(self.logger)
+        intf_spec = CategoriesSpecification(self.logger)
         intf_spec.import_specification(self.interface_spec)
         self.logger.info("Interface categories specification has been imported successfully")
 
         # Import results of source code analysis
         self.logger.info("Import results of source analysis from SA plugin")
-        module_spec = ModuleSpecification(self.logger)
+        module_spec = ModuleCategoriesSpecification(self.logger)
         analysis = {}
         if "source analysis" in avt:
             analysis_file = os.path.join(self.conf["main working directory"], avt["source analysis"])

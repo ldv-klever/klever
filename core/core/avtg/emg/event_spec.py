@@ -1,6 +1,7 @@
 import copy
 
-from core.avtg.emg.representations import Signature, Interface, Process, Subprocess, Label, Access, process_parse
+from core.avtg.emg.common.interface import Signature, Interface
+from core.avtg.emg.common.process import Process, Subprocess, Label, Access, process_parse
 
 
 class EventModel:
