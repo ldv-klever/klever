@@ -1,0 +1,5 @@
+{
+  "function": "error: invalid application of 'sizeof' to incomplete type",
+  "pattern": "Incomplete type",
+  "link": "http://forge.ispras.ru/issues/6560"
+}

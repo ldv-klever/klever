@@ -1,8 +1,7 @@
-import os
-import json
 import mimetypes
 from io import BytesIO
 from urllib.parse import quote
+from difflib import unified_diff
 from django.contrib.auth.decorators import login_required
 from django.core.servers.basehttp import FileWrapper
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
@@ -18,6 +17,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
+from reports.comparison import can_compare
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
 from service.utils import StartJobDecision, StartDecisionData, StopDecision, get_default_data
@@ -806,3 +806,71 @@ def fast_run_decision(request):
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
+
+
+@login_required
+def check_compare_access(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        j1 = Job.objects.get(pk=request.POST.get('job1', 0))
+        j2 = Job.objects.get(pk=request.POST.get('job2', 0))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+    if not can_compare(request.user, j1, j2):
+        return JsonResponse({'error': _("You can't compare the selected jobs")})
+    return JsonResponse({})
+
+
+@login_required
+def jobs_files_comparison(request, job1_id, job2_id):
+    activate(request.user.extended.language)
+    try:
+        job1 = Job.objects.get(pk=job1_id)
+        job2 = Job.objects.get(pk=job2_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[405]))
+    if not can_compare(request.user, job1, job2):
+        return HttpResponseRedirect(reverse('error', args=[507]))
+    res = GetFilesComparison(request.user, job1, job2)
+    return render(request, 'jobs/comparison.html', {
+        'job1': job1,
+        'job2': job2,
+        'data': res.data
+    })
+
+
+@login_required
+def get_file_by_checksum(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        check_sums = json.loads(request.POST['check_sums'])
+    except Exception as e:
+        print_err(e)
+        return JsonResponse({'error': 'Unknown error'})
+    if len(check_sums) == 1:
+        try:
+            f = File.objects.get(hash_sum=check_sums[0])
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The file was not found') + ''})
+        return HttpResponse(f.file.read())
+    elif len(check_sums) == 2:
+        try:
+            f1 = File.objects.get(hash_sum=check_sums[0])
+            f2 = File.objects.get(hash_sum=check_sums[1])
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The file was not found') + ''})
+        diff_result = []
+        for line in unified_diff(
+                f1.file.read().decode('utf8').split('\n'),
+                f2.file.read().decode('utf8').split('\n'),
+                fromfile=request.POST.get('job1_name', ''),
+                tofile=request.POST.get('job2_name', '')
+        ):
+            diff_result.append(line)
+        return HttpResponse('\n'.join(diff_result))
+
+    return JsonResponse({'error': 'Unknown error'})

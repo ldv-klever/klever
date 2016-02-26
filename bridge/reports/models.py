@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models.signals import post_init
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
 from jobs.models import File, Job
 
 LOG_DIR = 'ReportLogs'
@@ -35,17 +35,9 @@ class Report(models.Model):
     root = models.ForeignKey(ReportRoot)
     parent = models.ForeignKey('self', null=True, related_name='+')
     identifier = models.CharField(max_length=255, unique=True)
-    description = models.BinaryField(null=True)
 
     class Meta:
         db_table = 'report'
-
-
-@receiver(post_init, sender=Report)
-def get_report_description(**kwargs):
-    report = kwargs['instance']
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ReportAttr(models.Model):
@@ -93,8 +85,15 @@ def get_report_data(**kwargs):
     report = kwargs['instance']
     if report.data is not None and not isinstance(report.data, bytes):
         report.data = report.data.tobytes()
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
+
+
+class ReportFiles(models.Model):
+    report = models.ForeignKey(ReportComponent, related_name='files')
+    file = models.ForeignKey(File)
+    name = models.CharField(max_length=1024)
+
+    class Meta:
+        db_table = 'report_files'
 
 
 class ReportUnsafe(Report):
@@ -110,8 +109,6 @@ def get_unsafe_trace(**kwargs):
     report = kwargs['instance']
     if not isinstance(report.error_trace, bytes):
         report.error_trace = report.error_trace.tobytes()
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ETVFiles(models.Model):
@@ -136,8 +133,6 @@ def get_safe_proof(**kwargs):
     report = kwargs['instance']
     if not isinstance(report.proof, bytes):
         report.proof = report.proof.tobytes()
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ReportUnknown(Report):
@@ -153,8 +148,6 @@ def get_unknown_problem(**kwargs):
     report = kwargs['instance']
     if not isinstance(report.problem_description, bytes):
         report.problem_description = report.problem_description.tobytes()
-    if report.description is not None and not isinstance(report.description, bytes):
-        report.description = report.description.tobytes()
 
 
 class ReportComponentLeaf(models.Model):
@@ -206,3 +199,25 @@ class ComponentUnknown(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_unknown'
+
+
+class CompareJobsInfo(models.Model):
+    user = models.OneToOneField(User)
+    root1 = models.ForeignKey(ReportRoot, related_name='+')
+    root2 = models.ForeignKey(ReportRoot, related_name='+')
+    files_diff = models.TextField()
+
+    class Meta:
+        db_table = 'cache_report_jobs_compare_info'
+
+
+class CompareJobsCache(models.Model):
+    info = models.ForeignKey(CompareJobsInfo)
+    attr_values = models.TextField()
+    verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
+    verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
+    reports1 = models.CharField(max_length=1000)
+    reports2 = models.CharField(max_length=1000)
+
+    class Meta:
+        db_table = 'cache_report_jobs_compare'

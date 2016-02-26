@@ -15,6 +15,7 @@ from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
 from reports.etv import GetSource, GetETV
+from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
 
 
 @login_required
@@ -58,6 +59,11 @@ def report_component(request, job_id, report_id):
         status = 3
     except ObjectDoesNotExist:
         pass
+    try:
+        report_data = json.loads(report.data.decode('utf8'))
+    except Exception as e:
+        print_err(e)
+        report_data = None
 
     return render(
         request,
@@ -73,6 +79,7 @@ def report_component(request, job_id, report_id):
             'TableData': ReportTable(*report_attrs_data, table_type='3'),
             'status': status,
             'unknown': unknown_href,
+            'data': report_data
         }
     )
 
@@ -359,3 +366,101 @@ def get_source_code(request):
         'name': filename,
         'fullname': request.POST['file_name']
     })
+
+
+@unparallel_group(['decision', 'job'])
+@login_required
+def fill_compare_cache(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        j1 = Job.objects.get(pk=request.POST.get('job1', 0))
+        j2 = Job.objects.get(pk=request.POST.get('job2', 0))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+    try:
+        CompareTree(request.user, j1, j2)
+    except Exception as e:
+        print_err(e)
+        return JsonResponse({'error': 'Unknown error while filling comparison cache'})
+    return JsonResponse({})
+
+
+@login_required
+def jobs_comparison(request, job1_id, job2_id):
+    activate(request.user.extended.language)
+    try:
+        job1 = Job.objects.get(pk=job1_id)
+        job2 = Job.objects.get(pk=job2_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[405]))
+    if not can_compare(request.user, job1, job2):
+        return HttpResponseRedirect(reverse('error', args=[507]))
+    tabledata = ComparisonTableData(request.user, job1, job2)
+    if tabledata.error is not None:
+        return HttpResponseRedirect(reverse('error', args=[506]))
+    return render(
+        request, 'reports/comparison.html',
+        {
+            'job1': job1,
+            'job2': job2,
+            'tabledata': tabledata.data,
+            'compare_info': tabledata.info,
+            'attrs': tabledata.attrs
+        }
+    )
+
+
+@login_required
+def get_compare_jobs_data(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'info_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    if all(x not in request.POST for x in ['verdict', 'attrs']):
+        return JsonResponse({'error': 'Unknown error'})
+    result = ComparisonData(
+        request.POST['info_id'],
+        int(request.POST.get('page_num', 1)),
+        True if 'hide_attrs' in request.POST else False,
+        True if 'hide_components' in request.POST else False,
+        request.POST.get('verdict', None),
+        request.POST.get('attrs', None)
+    )
+    if result.error is not None:
+        return JsonResponse({'error': str(result.error)})
+    v1 = result.v1
+    v2 = result.v2
+    for v in COMPARE_VERDICT:
+        if result.v1 == v[0]:
+            v1 = v[1]
+        if result.v2 == v[0]:
+            v2 = v[1]
+    return render(
+        request, 'reports/comparisonData.html',
+        {
+            'verdict1': v1,
+            'verdict2': v2,
+            'job1': result.info.root1.job,
+            'job2': result.info.root2.job,
+            'data': result.data,
+            'pages': result.pages,
+            'verdict': request.POST.get('verdict', None),
+            'attrs': request.POST.get('attrs', None)
+        }
+    )
+
+@login_required
+@unparallel_group(['report'])
+def download_report_files(request, report_id):
+    try:
+        report = ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+    res = GetReportFiles(report)
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = 'attachment; filename="%s"' % res.tarname
+    response.write(res.memory.read())
+    return response

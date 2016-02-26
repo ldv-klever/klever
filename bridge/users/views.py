@@ -226,7 +226,7 @@ def show_profile(request, user_id=None):
             'obj_link': act.mark.identifier,
             'href': reverse('marks:edit_mark', args=['unsafe', act.mark_id])
         })
-    for act in target.markunknownhistory_set.all().order_by('-change_date')[:30]:
+    for act in target.markunknownhistory.all().order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
         if len(act_comment) > 47:

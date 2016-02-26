@@ -143,9 +143,6 @@ $(document).ready(function () {
                     else {
                         window.location.replace($('#job_link').attr('href'));
                     }
-                },
-                error: function(x) {
-                    console.log(x.responseText);
                 }
             });
         }

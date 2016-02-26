@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_init
 from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, JOB_CLASSES, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
+from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent,\
     Component, ReportUnknown, AttrName
 from jobs.models import Job
@@ -44,13 +44,10 @@ class MarkUnsafeCompare(models.Model):
 # Abstract tables
 class Mark(models.Model):
     identifier = models.CharField(max_length=255, unique=True)
-    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL,
-                            related_name="%(class)s")
+    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
-    type = models.CharField(max_length=1, choices=JOB_CLASSES, default='0')
-    author = models.ForeignKey(User, related_name="%(class)s", null=True,
-                               on_delete=models.SET_NULL)
+    author = models.ForeignKey(User, related_name="%(class)s", null=True, on_delete=models.SET_NULL)
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
@@ -233,37 +230,21 @@ class SafeReportTag(models.Model):
 
 
 # For unknowns
-class MarkUnknown(models.Model):
-    identifier = models.CharField(max_length=255, unique=True)
-    version = models.PositiveSmallIntegerField(default=1)
-    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL)
-    format = models.PositiveSmallIntegerField(default=FORMAT)
-    type = models.CharField(max_length=1, choices=JOB_CLASSES, default='0')
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
-    status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
-    is_modifiable = models.BooleanField(default=True)
-    change_date = models.DateTimeField(auto_now=True)
+class MarkUnknown(Mark):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
     function = models.TextField()
     problem_pattern = models.CharField(max_length=15)
     link = models.URLField(null=True)
-    description = models.TextField(default='')
 
     class Meta:
         db_table = 'mark_unknown'
 
 
-class MarkUnknownHistory(models.Model):
+class MarkUnknownHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnknown, related_name='versions')
-    version = models.PositiveSmallIntegerField()
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
-    status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     function = models.TextField()
     problem_pattern = models.CharField(max_length=100)
     link = models.URLField(null=True)
-    change_date = models.DateTimeField()
-    comment = models.TextField()
-    description = models.TextField()
 
     class Meta:
         db_table = 'mark_unknown_history'

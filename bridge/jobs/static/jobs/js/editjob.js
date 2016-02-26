@@ -1,4 +1,4 @@
-var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i'];
+var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'];
 
 function isFileReadable(name) {
     var found = name.lastIndexOf('.') + 1,
@@ -266,7 +266,7 @@ function load_new_files() {
                         }
                     }
                     else {
-                        var file_names = data.errors.file;
+                        var file_names = data['errors'].file;
                         for (var i = 0; i < file_names.length; i++) {
                             err_notify(current_input.val() + ': ' + file_names[i], 10000);
                         }
@@ -948,11 +948,11 @@ $(document).ready(function () {
                         $('#load_job_btn').addClass('disabled');
                     }
                     if (data['can_decide']) {
-                        $('#decide_job_btn').removeClass('disabled');
+                        $('#decide_job_btn_show_popup').removeClass('disabled');
                         $('#show_fast_job_start_popup').removeClass('disabled');
                     }
                     else {
-                        $('#decide_job_btn').addClass('disabled');
+                        $('#decide_job_btn_show_popup').addClass('disabled');
                         $('#show_fast_job_start_popup').addClass('disabled');
                     }
                     if (data['can_stop']) {
@@ -977,29 +977,31 @@ $(document).ready(function () {
                     }
                     if ('jobstatus' in data) {
                         if ('jobstatus_href' in data) {
-                            if ($('#job_status_p').length) {
-                                $('#job_status_p').parent().append($('<a>', {id: 'job_status_link'}));
-                                $('#job_status_p').remove();
+                            var job_status_p = $('#job_status_p');
+                            if (job_status_p.length) {
+                                job_status_p.parent().append($('<a>', {id: 'job_status_link'}));
+                                job_status_p.remove();
                             }
-                            $('#job_status_link').attr('href', data['jobstatus_href']);
-                            $('#job_status_link').attr('class', 'status-link status' + data['jobstatus'] + '-link');
-                            $('#job_status_link').text(data['jobstatus_text']);
+                            var job_status_link = $('#job_status_link');
+                            job_status_link.attr('href', data['jobstatus_href']);
+                            job_status_link.attr('class', 'status-link status' + data['jobstatus'] + '-link');
+                            job_status_link.text(data['jobstatus_text']);
                         }
                         else {
-                            if ($('#job_status_link').length) {
-                                $('#job_status_link').parent().append($('<p>', {
+                            var job_status_a = $('#job_status_link');
+                            if (job_status_a.length) {
+                                job_status_a.parent().append($('<p>', {
                                     id: 'job_status_p',
                                     style: 'color:#f1ffff;'
                                 }));
-                                $('#job_status_link').remove();
+                                job_status_a.remove();
                             }
                             $('#job_status_p').text(data['jobstatus_text']);
                         }
                     }
                 }
-            ).fail(function (x) {
-                console.log(x.responseText);
-                    clearInterval(interval);
+            ).fail(function () {
+                clearInterval(interval);
             });
         }, 3000);
     }

@@ -22,10 +22,10 @@ class TR(core.components.Component):
             self.abstract_task_desc['files'] = []
 
             env = jinja2.Environment(
-                # All templates reside at templates directory.
-                loader=jinja2.FileSystemLoader(
+                # All templates reside in the same directory as rule specifications DB.
+                loader=jinja2.FileSystemLoader(os.path.dirname(
                     core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                self.conf['templates directory'])),
+                                                self.conf['rule specifications DB']))),
                 # This allows to start template statements with the specified prefix rather than to put them inside
                 # special "braces", e.g. in "{% ... %}" by default.
                 # "//" is the beginning of one-line C/C++ comments, so editors will likely treat these lines as
@@ -48,6 +48,7 @@ class TR(core.components.Component):
                 file = os.path.splitext(tmpl)[0]
 
                 # Rendered templates will be placed into files inside TR working directory.
+                os.makedirs(os.path.dirname(file), exist_ok=True)
                 with open(file, 'w', encoding='ascii') as fp:
                     fp.write(env.get_template(tmpl).render(self.abstract_task_desc['template context']))
 

@@ -1,5 +1,4 @@
 {
-  "class": "0",
   "function": "core\\.utils\\.CommandError: \"make\" failed",
   "pattern": "Build failure"
 }

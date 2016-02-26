@@ -1,0 +1,43 @@
+.job-href-1 {
+    color: #00aced;
+}
+.job-href-1:visited {
+    color: #00aced;
+}
+.job-href-2 {
+    color: #733eed;
+}
+.job-href-2:visited {
+    color: #733eed;
+}
+.job-th-1 {
+    background-color: #a8e5ff;
+}
+.job-th-2 {
+    background-color: #b7a6ff;
+    height: 50px;
+}
+
+.comparison-block {
+    display: inline-block;
+    font-size: 0.8em;
+    border: 1px solid;
+    border-radius: 10px;
+    margin: 15px;
+    padding-top: 5px;
+    padding-right: 15px;
+}
+.comparison-block > .block-title {
+    text-align: center;
+    font-size: small;
+    font-weight: bold;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.block-hover-single {
+    background-color: #f4dfff;
+}
+.block-hover-normal {
+    background-color: #e2ffef;
+}
