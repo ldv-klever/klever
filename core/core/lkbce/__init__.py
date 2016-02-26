@@ -147,10 +147,8 @@ class LKBCE(core.components.Component):
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
                         specify_arch=False, collect_build_cmds=False)
 
-            path = os.path.join(self.linux_kernel['installed modules dir'], "lib/modules",
-                                self.linux_kernel['version'], "modules.dep")
-
-            with open(path, encoding='ascii') as fp:
+            with open(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                   self.linux_kernel['version'], 'modules.dep'), encoding='ascii') as fp:
                 for line in fp:
                     splits = line.split(':')
                     if len(splits) == 1:
