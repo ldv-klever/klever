@@ -136,15 +136,18 @@ class LKBCE(core.components.Component):
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
             self.logger.info('Extract all Linux kernel module dependencies')
-            
+
             self.logger.info('Install Linux kernel modules')
-            self.linux_kernel['modules install'] = os.path.join(self.conf['main working directory'], 'linux-modules')
-            os.mkdir(self.linux_kernel['modules install'])
-            self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['modules install']), 'modules_install'],
+
+            # Specify installed Linux kernel modules directory like Linux kernel working source tree in
+            # fetch_linux_kernel_work_src_tree().
+            self.linux_kernel['installed modules dir'] = os.path.join(os.path.pardir, 'linux-modules')
+            os.mkdir(self.linux_kernel['installed modules dir'])
+            self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
                         specify_arch=False, collect_build_cmds=False)
 
-            path = os.path.join(self.linux_kernel['modules install'], "lib/modules",
+            path = os.path.join(self.linux_kernel['installed modules dir'], "lib/modules",
                                 self.linux_kernel['version'], "modules.dep")
 
             with open(path, encoding='ascii') as fp:
