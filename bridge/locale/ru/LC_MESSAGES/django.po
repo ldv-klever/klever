@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-25 14:31+0000\n"
+"POT-Creation-Date: 2016-02-26 10:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -206,7 +206,7 @@ msgstr "Отклонена"
 
 #: bridge/vars.py:131 bridge/vars.py:138 bridge/vars.py:144 bridge/vars.py:153
 #: jobs/utils.py:44 jobs/utils.py:52
-#: reports/templates/reports/report_leaf.html:7 reports/utils.py:32
+#: reports/templates/reports/report_leaf.html:7 reports/utils.py:36
 msgid "Unknown"
 msgstr "Неизвестно"
 
@@ -283,13 +283,13 @@ msgstr "Решается"
 msgid "Error"
 msgstr "Ошибка"
 
-#: bridge/views.py:34 jobs/utils.py:275 jobs/utils.py:458 marks/utils.py:746
-#: marks/utils.py:804 marks/utils.py:939 marks/views.py:209 marks/views.py:405
-#: marks/views.py:435 marks/views.py:446 reports/etv.py:381
-#: service/utils.py:823 service/utils.py:831 service/utils.py:922
-#: service/utils.py:944 service/utils.py:987 service/utils.py:991
-#: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
-#: tools/views.py:120 tools/views.py:140 users/views.py:316
+#: bridge/views.py:34 jobs/utils.py:275 jobs/utils.py:458 marks/utils.py:744
+#: marks/utils.py:801 marks/utils.py:934 marks/views.py:209 marks/views.py:435
+#: marks/views.py:446 reports/etv.py:381 service/utils.py:823
+#: service/utils.py:831 service/utils.py:922 service/utils.py:944
+#: service/utils.py:987 service/utils.py:991 tools/views.py:25
+#: tools/views.py:66 tools/views.py:74 tools/views.py:93 tools/views.py:120
+#: tools/views.py:140 users/views.py:316
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
@@ -1117,7 +1117,7 @@ msgid "Parents"
 msgstr "Родители"
 
 #: jobs/templates/jobs/viewJob.html:97
-#: reports/templates/reports/ReportMain.html:141
+#: reports/templates/reports/ReportMain.html:153
 msgid "Children"
 msgstr "Потомки"
 
@@ -1401,7 +1401,7 @@ msgstr "Ваша версия устарела, пожалуйста, обнов
 msgid "You don't have an access to create new jobs"
 msgstr "У Вас нет прав создавать новые задания"
 
-#: jobs/views.py:496 jobs/views.py:637 tools/utils.py:198
+#: jobs/views.py:496 jobs/views.py:637 tools/utils.py:197
 msgid "One of the selected jobs was not found"
 msgstr "Одно из отмеченных заданий не было найдено"
 
@@ -1455,15 +1455,15 @@ msgstr "Тип изменения"
 #: marks/templates/marks/ViewMark.html:84
 #: marks/templates/marks/ViewMark.html:132
 #: marks/templates/marks/filters.html:25
-#: marks/templates/marks/filters.html:121 reports/utils.py:17
+#: marks/templates/marks/filters.html:121 reports/utils.py:21
 msgid "Verdict"
 msgstr "Вердикт"
 
-#: marks/tables.py:19 reports/utils.py:23
+#: marks/tables.py:19 reports/utils.py:27
 msgid "Total verdict"
 msgstr "Итоговый вердикт"
 
-#: marks/tables.py:20 reports/utils.py:18
+#: marks/tables.py:20 reports/utils.py:22
 msgid "Similarity"
 msgstr "Похожесть"
 
@@ -1475,7 +1475,7 @@ msgstr "Похожесть"
 #: marks/templates/marks/ViewMark.html:89
 #: marks/templates/marks/ViewMark.html:137
 #: marks/templates/marks/filters.html:30 marks/templates/marks/filters.html:74
-#: reports/templates/reports/ReportMain.html:30 reports/utils.py:19
+#: reports/templates/reports/ReportMain.html:30 reports/utils.py:23
 #: service/templates/service/scheduler.html:16
 #: service/templates/service/scheduler.html:144
 msgid "Status"
@@ -1499,7 +1499,7 @@ msgstr "Проблема"
 #: marks/templates/marks/ViewMark.html:24
 #: marks/templates/marks/filters.html:19 marks/templates/marks/filters.html:99
 #: reports/templates/reports/AttrsFilters.html:13
-#: reports/templates/reports/ReportData.html:27 reports/utils.py:21
+#: reports/templates/reports/ReportData.html:27 reports/utils.py:25
 msgid "Component"
 msgstr "Компонент"
 
@@ -1519,11 +1519,11 @@ msgstr "Новая"
 msgid "Deleted"
 msgstr "Удалена"
 
-#: marks/tables.py:354 marks/tables.py:750
+#: marks/tables.py:353 marks/tables.py:749
 msgid "Comparison failed"
 msgstr "Сравнение провалилось"
 
-#: marks/tables.py:526 reports/utils.py:296
+#: marks/tables.py:523 reports/utils.py:300
 #, python-format
 msgid "%(all)s (%(broken)s are broken)"
 msgstr "%(all)s (%(broken)s сломаны)"
@@ -1671,7 +1671,7 @@ msgstr "Теги отсутствуют"
 msgid "Tags can't be more than 15 characters"
 msgstr "Теги не могут быть больше 15 символов"
 
-#: marks/templates/marks/base.html:5 reports/utils.py:16
+#: marks/templates/marks/base.html:5 reports/utils.py:20
 msgid "Mark"
 msgstr "Оценка"
 
@@ -1720,25 +1720,25 @@ msgstr "не совпадает с"
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:765 marks/views.py:186
+#: marks/utils.py:763 marks/views.py:186
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: marks/utils.py:769
+#: marks/utils.py:767
 msgid "The mark format is not supported"
 msgstr "Формат оценки не поддерживается"
 
-#: marks/utils.py:853 marks/utils.py:856
+#: marks/utils.py:850 marks/utils.py:853
 msgid "The attributes have wrong format"
 msgstr "Формат атрибутов некорректный"
 
-#: marks/utils.py:892 marks/utils.py:900 marks/utils.py:905 marks/utils.py:908
-#: marks/utils.py:913 marks/utils.py:918 marks/utils.py:920 marks/utils.py:922
-#: marks/utils.py:925
+#: marks/utils.py:889 marks/utils.py:897 marks/utils.py:900 marks/utils.py:903
+#: marks/utils.py:908 marks/utils.py:913 marks/utils.py:915 marks/utils.py:917
+#: marks/utils.py:919
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
-#: marks/utils.py:910
+#: marks/utils.py:905
 msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
@@ -1883,15 +1883,19 @@ msgstr "Дата создания"
 msgid "Maximum memory size"
 msgstr "Максимальный объем оперативной памяти"
 
-#: reports/templates/reports/ReportMain.html:113
+#: reports/templates/reports/ReportMain.html:116
 msgid "Log"
 msgstr "Лог"
 
-#: reports/templates/reports/ReportMain.html:168
+#: reports/templates/reports/ReportMain.html:121
+msgid "Download files"
+msgstr "Загрузить файлы"
+
+#: reports/templates/reports/ReportMain.html:180
 msgid "There is no children, please wait for them or change the view"
 msgstr "Потомков нет, пожалуйста, подождите их или измените представление"
 
-#: reports/templates/reports/ReportMain.html:172
+#: reports/templates/reports/ReportMain.html:184
 msgid "Statistics on component and its children"
 msgstr "Статистика по компоненту и его потомкам"
 
@@ -1908,7 +1912,7 @@ msgstr "Полноэкранная Трасса ошибки"
 msgid "Associated marks"
 msgstr "Привязанные оценки"
 
-#: reports/utils.py:22
+#: reports/utils.py:26
 msgid "Number of associated marks"
 msgstr "Количество привязанных оценок"
 
@@ -2290,7 +2294,7 @@ msgstr "Кэш ресурсов"
 msgid "All caches"
 msgstr "Все кэши"
 
-#: tools/utils.py:204
+#: tools/utils.py:203
 msgid "Please select jobs to recalculate caches for them"
 msgstr "Пожалуйста, отметьте задания, для которых Вы хотите пересчитать кэши"
 
