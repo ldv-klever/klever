@@ -10,17 +10,14 @@ class CategoriesSpecification:
         self.kernel_macro_functions = {}
         self.kernel_macros = {}
 
-    @property
     def containers(self, category=None):
         return [interface for interface in self.interfaces.values() if interface.container and
                 (not category or interface.category == category)]
 
-    @property
     def callbacks(self, category=None):
         return [interface for interface in self.interfaces.values() if interface.callback and
                 (not category or interface.category == category)]
 
-    @property
     def resources(self, category=None):
         return [interface for interface in self.interfaces.values() if interface.resource and
                 (not category or interface.category == category)]
@@ -28,6 +25,9 @@ class CategoriesSpecification:
     @property
     def categories(self):
         return set([interface.category for interface in self.interfaces.values()])
+
+    def resolve_interface(self, signature):
+        pass
 
     def import_specification(self, specification):
         self.logger.info("Analyze provided interface categories specification")
