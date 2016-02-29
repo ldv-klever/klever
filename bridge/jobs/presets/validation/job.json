@@ -67,13 +67,42 @@
           ]
         }
       }
-    }
-  ],
-  "hard jobs": [
+    },
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "c420496~"
+          "commit": "bcb4a75"
+        },
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "safe",
+      "comment": "WTF?"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "e4c7f25"
+        },
+        "modules": ["drivers/net/usb/kaweth.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "ef70c60"
+        },
+        "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "790cc82~"
         },
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
@@ -83,7 +112,47 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "e70988d~"
+          "commit": "511f1df~"
+        },
+        "modules": ["drivers/net/ppp/ppp_generic.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "44f6943~"
+        },
+        "modules": ["net/sunrpc/sunrpc.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "60b3593~"
+        },
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "5c256d21~"
+        },
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "ac4de08~"
         },
         "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
       },
@@ -93,7 +162,47 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "725a145~"
+          "commit": "214c97a12~"
+        },
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "063579d~"
+        },
+        "modules": ["drivers/w1/wire.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "21a018a~"
+        },
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "ae3f348~"
+        },
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "9aaf967~"
         },
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
@@ -103,7 +212,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "4483562~"
+          "commit": "faa4cc1~"
         },
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
@@ -113,12 +222,368 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "f139c20~"
+          "commit": "7ce7751~"
         },
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "790cc82"
+        },
+        "modules": ["drivers/input/misc/arizona-haptics.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "511f1df"
+        },
+        "modules": ["drivers/net/ppp/ppp_generic.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "44f6943"
+        },
+        "modules": ["net/sunrpc/sunrpc.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "60b3593"
+        },
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "5c256d21"
+        },
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "ac4de08"
+        },
+        "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "214c97a12"
+        },
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "063579d"
+        },
+        "modules": ["drivers/w1/wire.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "21a018a"
+        },
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "ae3f348"
+        },
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "9aaf967"
+        },
+        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "faa4cc1"
+        },
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "7ce7751"
+        },
+        "modules": ["drivers/usb/serial/opticon.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    }
+  ],
+  "Source code > 25 KLOC": [
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "058ac41~"
+        },
+        "modules": ["fs/btrfs/btrfs.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "058ac41"
+        },
+        "modules": ["fs/btrfs/btrfs.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "80bd602~"
+        },
+        "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "80bd602"
+        },
+        "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "3bcf978~"
+        },
+        "modules": ["drivers/gpu/drm/i915/i915.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "3bcf978"
+        },
+        "modules": ["drivers/gpu/drm/i915/i915.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "d3f0969~"
+        },
+        "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "d3f0969"
+        },
+        "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    }
+  ],
+  "Specific configuration (architecture)": [
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "0eff4d6~"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "0eff4d6"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "82d16b3~"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "82d16b3"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "44efe16~"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "44efe16"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    }
+  ],
+  "Not a module": [
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "c9bf87d~"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "c9bf87d"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "55a3dfc~"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "55a3dfc"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "b716357~"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "b716357"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "f673015~"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {
+          "commit": "f673015"
+        },
+        "modules": ["???"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
     }
   ]
 }
