@@ -196,7 +196,8 @@ class Core:
 
                             self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
                                               sub_job.conf['ideal verdict']] +
-                                             sub_job.conf['obtained verification statuses'])
+                                             sub_job.conf['obtained verification statuses'] +
+                                             [sub_job.conf['comment'] if 'comment' in sub_job.conf else None])
 
                         core.utils.report(self.logger,
                                           'finish',
@@ -208,6 +209,44 @@ class Core:
                                           },
                                           self.mqs['report files'],
                                           suffix=' validator {0}'.format(commit))
+                self.logger.info(
+                    'Rearrange validation results to relate verification statuses before and after bug fixes')
+                # Sort by commit hashes. Bug identifiers will be commit hashes before corresponding bug fixes.
+                sorted(self.data)
+                # Relate validation results on commits before and after corresponding bug fixes if so.
+                validation_results = []
+                validation_results_before_bug_fixes = []
+                validation_results_after_bug_fixes = []
+                for validation_res in self.data:
+                    # Corresponds to validation result before bug fix.
+                    if validation_res[1] == 'unsafe':
+                        validation_results_before_bug_fixes.append(validation_res)
+                    # Corresponds to validation result after bug fix.
+                    elif validation_res[1] == 'safe':
+                        validation_results_after_bug_fixes.append(validation_res)
+                    else:
+                        raise ValueError(
+                            'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(validation_res[1]))
+                for commit1, ideal_verdict1, verification_status1, comment1 in validation_results_before_bug_fixes:
+                    found_validation_res_after_bug_fix = False
+                    for commit2, ideal_verdict2, verification_status2, comment2 in validation_results_after_bug_fixes:
+                        # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash".
+                        if commit1.startswith(commit2):
+                            found_validation_res_after_bug_fix = True
+                            break
+                    validation_res_msg = 'Verification status of bug "{0}" before fix is "{1}"{2}'.format(
+                        commit1, verification_status1, ' ("{0}")'.format(comment1) if comment1 else '')
+                    # At least save validation result before bug fix.
+                    if not found_validation_res_after_bug_fix:
+                        self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(commit1))
+                        validation_results.append([commit1, verification_status1, comment1, None, None])
+                    else:
+                        validation_res_msg += ', after fix is "{0}"{1}'.format(
+                            verification_status2, ' ("{0}")'.format(comment2) if comment2 else '')
+                        validation_results.append(
+                            [commit1, verification_status1, comment1, verification_status2, comment2])
+                    self.logger.info(validation_res_msg)
+                self.data = validation_results
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:

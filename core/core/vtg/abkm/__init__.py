@@ -155,7 +155,7 @@ class ABKM(core.components.Component):
                 core.utils.report(self.logger,
                                   'unknown',
                                   {
-                                      'id': 'unknown',
+                                      'id': '{0}/unknown'.format(self.id),
                                       'parent id': self.id,
                                       'problem desc': 'task error.txt',
                                       'files': ['task error.txt']
@@ -178,12 +178,13 @@ class ABKM(core.components.Component):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
+                verification_report_id = '{0}/verification'.format(self.id)
                 # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
                 core.utils.report(self.logger,
                                   'verification',
                                   {
                                       # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                                      'id': self.task_desc['id'],
+                                      'id': verification_report_id,
                                       'parent id': self.id,
                                       # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
                                       'attrs': [],
@@ -201,8 +202,8 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'safe',
                                       {
-                                          'id': 'safe',
-                                          'parent id': self.task_desc['id'],
+                                          'id': '{0}/safe'.format(verification_report_id),
+                                          'parent id': verification_report_id,
                                           'attrs': [],
                                           # TODO: just the same file as parent log, looks strange.
                                           'proof': 'cil.i.log',
@@ -376,8 +377,8 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
-                                          'id': 'unsafe',
-                                          'parent id': self.task_desc['id'],
+                                          'id': '{0}/unsafe'.format(verification_report_id),
+                                          'parent id': verification_report_id,
                                           'attrs': [],
                                           'error trace': 'witness.processed.graphml',
                                           'files': ['witness.processed.graphml'] + list(src_files)
@@ -392,8 +393,8 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': 'unknown',
-                                          'parent id': self.task_desc['id'],
+                                          'id': '{0}/unknown'.format(verification_report_id),
+                                          'parent id': verification_report_id,
                                           # TODO: just the same file as parent log, looks strange.
                                           'problem desc': 'cil.i.log' if decision_results['status'] not in (
                                               'CPU time exhausted', 'memory exhausted') else 'error.txt',
