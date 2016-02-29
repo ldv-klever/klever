@@ -29,7 +29,7 @@ class EMG(core.components.Component):
         analysis = self.__get_analysis(avt)
 
         # Choose translator
-        tr = self.__get_translator(avt)
+        #tr = self.__get_translator(avt)
 
         # Find specifications
         self.logger.info("Determine which specifications are provided")
@@ -45,12 +45,13 @@ class EMG(core.components.Component):
 
         # Generate module interface specification
         self.logger.info("============== An intermediate model preparation stage ==============")
-        model = EventModel(self.logger, mcs, event_categories_spec)
+        #model = EventModel(self.logger, event_categories_spec)
+        #model.prepare(mcs)
         self.logger.info("An intermediate environment model has been prepared")
 
         # Generate module interface specification
         self.logger.info("============== An intermediat model translation stage ==============")
-        tr.translate(mcs, model)
+        #tr.translate(mcs, model)
         self.logger.info("An environment model has been generated successfully")
 
         self.logger.info("Add generated environment model to the abstract verification task")

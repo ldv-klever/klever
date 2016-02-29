@@ -6,30 +6,52 @@ from core.avtg.emg.common.process import Process, Subprocess, Label, Access, pro
 
 class EventModel:
 
-    def __init__(self, logger, analysis, raw):
+    def __init__(self, logger, raw):
         self.logger = logger
-        self.analysis = analysis
-        self.model = {
-            "models": [],
-            "processes": []
-        }
-        self.events = {
-            "kernel model": {},
-            "environment processes": {}
-        }
+        self.model_processes = {}
+        self.event_processes = {}
+        self.entry_process = None
+        self.__abstr_model_processes = {}
+        self.__abstr_event_processes = {}
+        self.__called_callbacks = []
+        self.__uncalled_callbacks = []
 
         self.logger.info("Import processes from provided event categories specification")
-        for collection in self.events:
-            self.logger.info("Import processes from '{}'".format(collection))
-            self.__import_processes(raw, collection)
+        if "kernel model" in raw:
+            self.logger.info("Import processes from 'kernel model'")
+            for name_list in raw["kernel model"]:
+                names = name_list.split(", ")
+                for name in names:
+                    self.logger.debug("Import process which models {}".format(name))
+                    process = Process(name, raw["kernel model"][name_list])
+                    self.__abstr_model_processes[name] = process
+        if "kernel model" in raw:
+            self.logger.info("Import processes from 'kernel model'")
+            for name_list in raw["kernel model"]:
+                names = name_list.split(", ")
+                for name in names:
+                    self.logger.debug("Import process which models {}".format(name))
+                    process = Process(name, raw["kernel model"][name_list])
+                    self.__abstr_model_processes[name] = process
+        else:
+            self.logger.warning("Kernel model is not provided")
+        if "environment processes" in raw:
+            self.logger.info("Import processes from 'environment processes'")
+            for name in raw["environment processes"]:
+                self.logger.debug("Import environment process {}".format(name))
+                process = Process(name, raw["environment processes"][name])
+                self.__abstr_model_processes[name] = process
+        else:
+            raise KeyError("Model cannot be generated without environment processes")
 
-        # todo: will work with multi-module analysis?
+    def prepare(self, analysis):
+        # todo: should work with multi-module analysis (issues #6558, #6563)
         self.logger.info("Generate model processes for Init and Exit module functions")
-        self.__generate_entry()
+        self.__generate_entry(analysis)
 
         # Generate intermediate model
         self.logger.info("Generate an intermediate model")
-        self.__select_processes_and_models()
+        self.__select_processes_and_models(analysis)
 
         # Finish entry point process generation
         self.__finish_entry()
@@ -42,20 +64,12 @@ class EventModel:
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
         self.__resolve_accesses()
 
-    def __import_processes(self, raw, category):
-        for name_list in raw[category]:
-            names = name_list.split(", ")
-            for name in names:
-                self.logger.debug("Import process which models {}".format(name))
-                process = Process(name, raw[category][name_list])
-                self.events[category][name] = process
-
-    def __generate_entry(self):
-        # todo: Implement multimodule processes creation
+    def __generate_entry(self, analysis):
+        # todo: Implement multimodule processes creation (issues #6563, #6571, #6558)
         self.logger.info("Generate artificial process description to call Init and Exit module functions 'EMGentry'")
         ep = Process("EMGentry")
         ep.category = "entry"
-        self.model["entry"] = ep
+        self.entry_process = ep
 
         # Generate init subprocess
         init_subprocess = Subprocess('init', {})
@@ -63,9 +77,10 @@ class EventModel:
         init_subprocess.callback = "%init%"
         init_subprocess.parameters = []
 
-        if len(self.analysis.inits) == 0:
+        if len(analysis.inits) == 0:
             raise RuntimeError('Module does not have Init function')
-        init_name = list(self.analysis.inits.values())[0]
+        # todo: Add none instead of particular name (relevant to #6571)
+        init_name = list(analysis.inits.values())[0]
         init_label = Label('init')
         init_label.value = "& {}".format(init_name)
         init_label.signature(yield_basetype("int %s (*%s)(void)"))
@@ -86,8 +101,9 @@ class EventModel:
 
         exit_label = Label('exit')
         exit_label.signature(yield_basetype("void (*%s)(void)".format()))
-        if len(self.analysis.exits) != 0:
-            exit_name = list(self.analysis.exits.values())[0]
+        # todo: Add none instead of particular name (relevant to #6571)
+        if len(analysis.exits) != 0:
+            exit_name = list(analysis.exits.values())[0]
             exit_label.value = "& {}".format(exit_name)
             self.logger.debug("Found exit function {}".format(exit_name))
         else:
@@ -106,13 +122,13 @@ class EventModel:
         self.logger.info("Add signal dispatched for that processes which have no known registration and deregistration"
                          " kernel functions")
         # Retval check
-        # todo: it can be done much, much better ...
+        # todo: it can be done much, much better (relevant to issue #6566)
         dispatches = ['[init_success]']
         # All default registrations and then deregistrations
-        names = [name for name in self.model["entry"].subprocesses if name not in ["init", "exit"] and
-                 self.model["entry"].subprocesses[name].type == "dispatch"]
+        names = [name for name in self.entry_process.subprocesses if name not in ["init", "exit"] and
+                 self.entry_process.subprocesses[name].type == "dispatch"]
         for name in names:
-            self.model["entry"].subprocesses[name].broadcast = True
+            self.entry_process.subprocesses[name].broadcast = True
         names.sort()
         names.reverse()
         dispatches.extend(["[@{}]".format(name) for name in names])
@@ -121,33 +137,33 @@ class EventModel:
         success = Subprocess('init_success', {})
         success.type = "condition"
         success.condition = ["%ret% == 0"]
-        self.model["entry"].subprocesses['init_success'] = success
+        self.entry_process.subprocesses['init_success'] = success
 
         failed = Subprocess('init_failed', {})
         failed.type = "condition"
         failed.condition = ["%ret% != 0"]
-        self.model["entry"].subprocesses['init_failed'] = failed
+        self.entry_process.subprocesses['init_failed'] = failed
 
         stop = Subprocess('stop', {})
         stop.type = "condition"
         stop.statements = ["ldv_check_final_state();"]
-        self.model["entry"].subprocesses['stop'] = stop
+        self.entry_process.subprocesses['stop'] = stop
 
         none = Subprocess('none', {})
         none.type = "condition"
-        self.model["entry"].subprocesses['none'] = none
+        self.entry_process.subprocesses['none'] = none
 
         # Add subprocesses finally
-        self.model["entry"].process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.({} | <none>).[exit]." \
+        self.entry_process.process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.({} | <none>).[exit]." \
                                       "<stop>)".format('.'.join(dispatches))
-        self.model["entry"].process_ast = process_parse(self.model["entry"].process)
+        self.entry_process.process_ast = process_parse(self.entry_process.process)
 
-    def __select_processes_and_models(self):
+    def __select_processes_and_models(self, analysis):
         # Import necessary kernel models
         self.logger.info("First, add relevant models of kernel functions")
-        self.__import_kernel_models()
+        self.__import_kernel_models(analysis)
 
-        for category in self.analysis.categories:
+        for category in analysis.categories:
             uncalled_callbacks = self.__get_uncalled_callbacks(category)
             self.logger.debug("There are {} callbacks in category {}".format(len(uncalled_callbacks), category))
 
@@ -157,7 +173,7 @@ class EventModel:
 
                 # Sanity check
                 self.logger.info("Check again how many callbacks are not called still in category {}".format(category))
-                uncalled_callbacks = self.__get_uncalled_callbacks(category)
+                uncalled_callbacks = self. self.__uncalled_callbacks(category)
                 if uncalled_callbacks:
                     names = str([callback.full_identifier for callback in uncalled_callbacks])
                     raise RuntimeError("There are callbacks from category {} which are not called at all in the "
@@ -171,18 +187,18 @@ class EventModel:
                 self.logger.info("Ignore interface category {}, since it does not have callbacks to call".
                                  format(category))
 
-    def __import_kernel_models(self):
-        for function in self.events["kernel model"]:
-            if function in self.analysis.kernel_functions:
+    def __import_kernel_models(self, analysis):
+        for function in self.__abstr_model_processes:
+            if function in analysis.kernel_functions:
                 self.logger.debug("Add model of function '{}' to an environment model".format(function))
-                new_process = self.__add_process(self.events["kernel model"][function], model=True)
+                new_process = self.__add_process(self.__abstr_model_processes[function], model=True)
                 new_process.category = "kernel models"
 
                 self.logger.debug("Assign label interfaces according to function parameters for added process {} "
                                   "with an identifier {}".format(new_process.name, new_process.identifier))
                 for label in new_process.labels:
                     if new_process.labels[label].parameter and not new_process.labels[label].signature():
-                        for parameter in self.analysis.kernel_functions[function]["signature"].parameters:
+                        for parameter in analysis.kernel_functions[function]["signature"].parameters:
                             if parameter.interface and parameter.interface.full_identifier in \
                                     new_process.labels[label].interfaces:
                                 self.logger.debug("Set label {} signature according to interface {}".
@@ -194,12 +210,7 @@ class EventModel:
                                              format(label, function))
 
     def __get_uncalled_callbacks(self, category):
-        self.logger.debug("Calculate callbacks which cannot be called in the model from category {}".format(category))
-        callbacks = [self.analysis.categories[category]["callbacks"][callback] for callback
-                     in self.analysis.categories[category]["callbacks"]
-                     if not self.analysis.categories[category]["callbacks"][callback].called_in_model]
-        self.logger.debug("There are {} callbacks are not called in the model from category {}, there are: {}".
-                          format(len(callbacks), category, str([callback.full_identifier for callback in callbacks])))
+        callbacks = [callback for callback in  self.__uncalled_callbacks if callback.category == category]
         return callbacks
 
     def __choose_processes(self, category):
@@ -207,10 +218,10 @@ class EventModel:
 
         self.logger.info("Choose process to call callbacks from category {}".format(category))
         # First random
-        best_process = self.events["environment processes"][[name for name in estimations if estimations[name]][0]]
+        best_process = self.__abstr_event_processes[[name for name in estimations if estimations[name]][0]]
         best_map = estimations[best_process.name]
 
-        for process in [self.events["environment processes"][name] for name in estimations]:
+        for process in [self.__abstr_event_processes[name] for name in estimations]:
             label_map = estimations[process.name]
             if label_map and len(label_map["matched calls"]) > 0 and len(label_map["unmatched labels"]) == 0:
                 self.logger.info("Matching process {} for category {}, it has:".format(process.name, category))
@@ -255,7 +266,7 @@ class EventModel:
 
     def __estimate_processes(self, category):
         maps = {}
-        for process in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
+        for process in [self.__abstr_event_processes[name] for name in self.__abstr_event_processes]:
             self.logger.debug("Estimate correspondence between  process {} and category {}".
                               format(process.name, category))
             maps[process.name] = self.__match_labels(process, category)
@@ -266,14 +277,14 @@ class EventModel:
         self.logger.debug("Make copy of process {} before adding it to the model".format(process.name))
         new = copy.deepcopy(process)
 
-        # todo: Assign category for each new process not even for that which have callbacks
-        new.identifier = len(self.model["models"]) + len(self.model["processes"])
+        # todo: Assign category for each new process not even for that which have callbacks (issue #6564)
+        new.identifier = len(self.model_processes) + len(self.event_processes)
         self.logger.info("Finally add process {} to the model".
                          format(process.name))
         if model:
-            self.model["models"].append(new)
+            self.model_processes.append(new)
         else:
-            self.model["processes"].append(new)
+            self.event_processes.append(new)
 
         if label_map:
             self.logger.debug("Set interfaces for given labels")
@@ -293,17 +304,17 @@ class EventModel:
     def __normalize_model(self):
         # Peer processes with models
         self.logger.info("Try to establish connections between process dispatches and receivings")
-        for model in self.model["models"]:
-            for process in self.model["processes"]:
+        for model in self.model_processes:
+            for process in self.event_processes:
                 self.logger.debug("Analyze signals of processes {} and {} in the model with identifiers {} and {}".
                                   format(model.name, process.name, model.identifier, process.identifier))
                 model.establish_peers(process)
 
         # Peer processes with each other
-        for index1 in range(len(self.model["processes"])):
-            p1 = self.model["processes"][index1]
-            for index2 in range(index1 + 1, len(self.model["processes"])):
-                p2 = self.model["processes"][index2]
+        for index1 in range(len(self.event_processes)):
+            p1 = self.event_processes[index1]
+            for index2 in range(index1 + 1, len(self.event_processes)):
+                p2 = self.event_processes[index2]
                 self.logger.debug("Analyze signals of processes {} and {}".format(p1.name, p2.name))
                 p1.establish_peers(p2)
 
@@ -313,8 +324,10 @@ class EventModel:
 
     def _mark_called_callbacks(self):
         self.logger.info("Check which callbacks can be called in the intermediate environment model")
-        for process in [process for process in self.model["models"]] +\
-                       [process for process in self.model["processes"]]:
+        self.__called_callbacks = []
+        self.__uncalled_callbacks = []
+        for process in [process for process in self.model_processes] +\
+                       [process for process in self.event_processes]:
             self.logger.debug("Check process callback calls at process {} with category {}".
                               format(process.name, process.category))
 
@@ -322,23 +335,24 @@ class EventModel:
             for callback_name in set([process.subprocesses[name].callback for name in process.subprocesses
                                       if process.subprocesses[name].callback and
                                       process.subprocesses[name].type == "dispatch"]):
+                # todo: refactoring #6565
                 label, tail = process.extract_label_with_tail(callback_name)
 
                 if label.interfaces:
-                    for interface in [self.analysis.interfaces[name] for name in label.interfaces]:
+                    for interface in [analysis.interfaces[name] for name in label.interfaces]:
                         if interface.container and len(tail) > 0:
                             intfs = self.__resolve_interface(interface, tail)
                             if intfs and intfs[-1] not in called:
                                 self.logger.debug("Callback {} can be called in the model".
                                                   format(intfs[-1].full_identifier))
-                                intfs[-1].called_in_model = True
+                                self.__called_callbacks.append(intfs[-1])
                             else:
                                 self.logger.warning("Cannot resolve callback '{}' in description of process '{}'".
                                                     format(callback_name, process.name))
                         elif interface.callback and interface not in called:
                             self.logger.debug("Callback {} can be called in the model".
                                               format(interface.full_identifier))
-                            interface.called_in_model = True
+                            self.__called_callbacks.append(interface)
                         else:
                             raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
                                              format(callback_name, process.name))
@@ -380,7 +394,7 @@ class EventModel:
         for label in process.labels.values():
             if label.interfaces:
                 for intf in label.interfaces:
-                    if intf in self.analysis.interfaces and self.analysis.interfaces[intf].category == category:
+                    if intf in analysis.interfaces and analysis.interfaces[intf].category == category:
                         ni.append(intf)
                         self.__add_label_match(label_map, label, intf)
             label_map["native interfaces"] = len(ni)
@@ -400,13 +414,13 @@ class EventModel:
 
                 if label.name not in label_map["matched labels"] and label.interfaces:
                     for interface in label.interfaces:
-                        if interface in self.analysis.interfaces \
-                                and self.analysis.interfaces[interface].category == category:
+                        if interface in analysis.interfaces \
+                                and analysis.interfaces[interface].category == category:
                             self.__add_label_match(label_map, label, interface)
                 elif not label.interfaces and not label.signature() and tail and label.container and label.name \
                         not in label_map["matched labels"]:
-                    for container in [self.analysis.categories[category]["containers"][name] for name
-                                      in self.analysis.categories[category]["containers"]]:
+                    for container in [analysis.categories[category]["containers"][name] for name
+                                      in analysis.categories[category]["containers"]]:
                         interfaces = self.__resolve_interface(container, tail)
                         self.logger.debug("Trying to match label {} with a container {}".
                                           format(label.name, container.full_identifier))
@@ -419,15 +433,15 @@ class EventModel:
                 if label.name in label_map["matched labels"] and label.container:
                     for intf in label_map["matched labels"][label.name]:
                         intfs = self.__resolve_interface(
-                            self.analysis.interfaces[intf], tail)
+                            analysis.interfaces[intf], tail)
                         if intfs:
                             functions.append(intfs[-1])
                 elif label.name in label_map["matched labels"] and label.callback:
                     if type(label_map["matched labels"][label.name]) is list:
-                        functions.extend([self.analysis.interfaces[name] for name in
+                        functions.extend([analysis.interfaces[name] for name in
                                          label_map["matched labels"][label.name]])
                     else:
-                        functions.append(self.analysis.interfaces[label_map["matched labels"][label.name]])
+                        functions.append(analysis.interfaces[label_map["matched labels"][label.name]])
 
                 for function in functions:
                     if len(subprocess.parameters) <= len(function.signature.parameters):
@@ -449,10 +463,10 @@ class EventModel:
                     containers = [cn for cn in process.containers
                                   if cn.name not in label_map["matched labels"]]
                     self.logger.debug("Try to match containers for callback {}".format(function))
-                    containers_intfs = [self.analysis.categories[category]["containers"][name] for name in
-                                        self.analysis.categories[category]["containers"] if
+                    containers_intfs = [analysis.categories[category]["containers"][name] for name in
+                                        analysis.categories[category]["containers"] if
                                         function.identifier in
-                                        self.analysis.categories[category]["containers"][name].fields]
+                                        analysis.categories[category]["containers"][name].fields]
                     for intf in containers_intfs:
                         for container in containers:
                             self.__add_label_match(label_map, container, intf.full_identifier)
@@ -463,17 +477,17 @@ class EventModel:
             if len(matched_containers) > 0 and len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
                     for container in matched_containers:
-                        for container_intf in [self.analysis.interfaces[intf] for intf in
+                        for container_intf in [analysis.interfaces[intf] for intf in
                                                label_map["matched labels"][container.name]]:
                             for field in container_intf.fields.values():
                                 name = "{}.{}".format(category, field)
-                                if name in self.analysis.interfaces and self.analysis.interfaces[name].callback:
+                                if name in analysis.interfaces and analysis.interfaces[name].callback:
                                     self.__add_label_match(label_map, callback, name)
             elif len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
-                    for intf in [self.analysis.categories[category]["callbacks"][name] for name in
-                                     self.analysis.categories[category]["callbacks"]
-                                     if self.analysis.categories[category]["callbacks"][name].callback]:
+                    for intf in [analysis.categories[category]["callbacks"][name] for name in
+                                     analysis.categories[category]["callbacks"]
+                                     if analysis.categories[category]["callbacks"][name].callback]:
                         self.__add_label_match(label_map, callback, intf.full_identifier)
 
             # Discard unmatched labels
@@ -506,7 +520,7 @@ class EventModel:
                         label_map["unmatched callbacks"].append(subprocess.callback)
                 elif label.container and tail and label.name in label_map["matched labels"]:
                     for intf in label_map["matched labels"][label.name]:
-                        intfs = self.__resolve_interface(self.analysis.interfaces[intf], tail)
+                        intfs = self.__resolve_interface(analysis.interfaces[intf], tail)
 
                         if not intfs and subprocess.callback not in label_map["unmatched callbacks"]:
                             label_map["unmatched callbacks"].append(subprocess.callback)
@@ -516,9 +530,9 @@ class EventModel:
                                 label_map["matched calls"].append(subprocess.callback)
 
             # Discard uncalled callbacks and recalculate it
-            label_map["uncalled callbacks"] = [self.analysis.categories[category]["callbacks"][name].full_identifier
-                                               for name in self.analysis.categories[category]["callbacks"] if
-                                               self.analysis.categories[category]["callbacks"][name].full_identifier
+            label_map["uncalled callbacks"] = [analysis.categories[category]["callbacks"][name].full_identifier
+                                               for name in analysis.categories[category]["callbacks"] if
+                                               analysis.categories[category]["callbacks"][name].full_identifier
                                                not in label_map["matched callbacks"]]
 
             if start:
@@ -533,7 +547,7 @@ class EventModel:
             label, tail = process.extract_label_with_tail(subprocess.callback)
             if label.container and tail and label.name in label_map["matched labels"]:
                 for intf in label_map["matched labels"][label.name]:
-                    intfs = self.__resolve_interface(self.analysis.interfaces[intf], tail)
+                    intfs = self.__resolve_interface(analysis.interfaces[intf], tail)
                     if intfs:
                         # Discard general callbacks match
                         for callback_label in [label.name for label in process.labels.values() if label.callback and
@@ -570,9 +584,9 @@ class EventModel:
 
         if type(interface) is Interface:
             matched = [interface]
-        elif type(interface) is str and interface in self.analysis.interfaces:
-            matched = [self.analysis.interfaces[interface]]
-        elif type(interface) is str and interface not in self.analysis.interfaces:
+        elif type(interface) is str and interface in analysis.interfaces:
+            matched = [analysis.interfaces[interface]]
+        elif type(interface) is str and interface not in analysis.interfaces:
             return None
         else:
             raise TypeError("Expect Interface object but not {}".format(str(type(interface))))
@@ -583,9 +597,9 @@ class EventModel:
                 return None
             else:
                 if index == (len(tail) - 1):
-                    matched.append(self.analysis.interfaces["{}.{}".format(matched[-1].category, field)])
-                elif self.analysis.interfaces["{}.{}".format(matched[-1].category, field)].container:
-                    matched.append(self.analysis.interfaces["{}.{}".format(matched[-1].category, field)])
+                    matched.append(analysis.interfaces["{}.{}".format(matched[-1].category, field)])
+                elif analysis.interfaces["{}.{}".format(matched[-1].category, field)].container:
+                    matched.append(analysis.interfaces["{}.{}".format(matched[-1].category, field)])
                 else:
                     return None
 
@@ -593,7 +607,7 @@ class EventModel:
         return matched
 
     def __establish_signal_peers(self, process):
-        for candidate in [self.events["environment processes"][name] for name in self.events["environment processes"]]:
+        for candidate in [self.__abstr_event_processes[name] for name in self.__abstr_event_processes]:
             peers = process.get_available_peers(candidate)
 
             # Be sure that process have not been added yet
@@ -647,14 +661,15 @@ class EventModel:
             })
         process.subprocesses[new_dispatch.name].peers.append(
             {
-                "process": self.model["entry"],
+                "process": self.entry_process,
                 "subprocess": new_dispatch
             })
 
-        self.logger.debug("Add dispatch {} to process {}".format(new_dispatch.name, self.model["entry"].name))
-        self.model["entry"].subprocesses[new_dispatch.name] = new_dispatch
+        self.logger.debug("Add dispatch {} to process {}".format(new_dispatch.name, self.entry_process.name))
+        self.entry_process.subprocesses[new_dispatch.name] = new_dispatch
 
         # todo: implement it taking into account that each parameter may have sevaral implementations
+        # todo: relevant to issue #6566
         # Add labels if necessary
         #for index in range(len(new_dispatch.parameters)):
         #    parameter = new_dispatch.parameters[index]
@@ -664,13 +679,13 @@ class EventModel:
         #
         #    # Copy label to add to dispatcher process
         #    new_label_name = "{}_{}_{}".format(process.name, label.name, process.identifier)
-        #    if new_label_name not in self.model["entry"].labels:
+        #    if new_label_name not in self.entry_process.labels:
         #        new_label = copy.deepcopy(label)
         #        new_label.name = new_label_name
-        #        self.logger.debug("To process {} add new label {}".format(self.model["entry"].name, new_label_name))
-        #        self.model["entry"].labels[new_label.name] = new_label
+        #        self.logger.debug("To process {} add new label {}".format(self.entry_process.name, new_label_name))
+        #        self.entry_process.labels[new_label.name] = new_label
         #    else:
-        #        self.logger.debug("Process {} already has label {}".format(self.model["entry"].name, new_label_name))
+        #        self.logger.debug("Process {} already has label {}".format(self.entry_process.name, new_label_name))
         #
         #    # Replace parameter
         #    new_dispatch.parameters[index] = parameter.replace(label.name, new_label_name)
@@ -678,13 +693,13 @@ class EventModel:
         receive.parameters = []
 
         # Replace condition
-        # todo: do this according to parameters
+        # todo: do this according to parameters (relevant to issue #6566)
         if new_dispatch.condition:
             new_dispatch.condition = None
             process.subprocesses[new_dispatch.name].condition = None
 
     def __assign_signatures(self):
-        for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
+        for process in self.model_processes + self.event_processes + [self.entry_process]:
             self.logger.info("Assign signatures of process {} with category {} to labels with given interfaces".
                              format(process.name, process.category))
             for label in [process.labels[name] for name in process.labels]:
@@ -692,10 +707,10 @@ class EventModel:
                     for interface in label.interfaces:
                         # Assign matched signature
                         self.logger.debug("Add signature {} to a label {}".
-                                          format(self.analysis.interfaces[interface].signature.expression, label.name))
-                        label.signature(self.analysis.interfaces[interface].signature, interface)
+                                          format(analysis.interfaces[interface].signature.expression, label.name))
+                        label.signature(analysis.interfaces[interface].signature, interface)
 
-        for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
+        for process in self.model_processes + self.event_processes + [self.entry_process]:
             self.logger.info("Assign signatures of process {} with category {} to labels according to signal "
                              "parameters".format(process.name, process.category))
 
@@ -703,7 +718,7 @@ class EventModel:
             for subprocess in [process.subprocesses[name] for name in process.subprocesses
                                if process.subprocesses[name].type in ["dispatch", "receive"]]:
                 for peer in subprocess.peers:
-                    if peer["process"].name in self.events["kernel model"]:
+                    if peer["process"].name in self.__abstr_model_processes:
                         for index in range(len(peer["subprocess"].parameters)):
                             peer_parameter = peer["subprocess"].parameters[index]
                             peer_label = peer["process"].extract_label(peer_parameter)
@@ -758,7 +773,7 @@ class EventModel:
                                                          peer["process"].name))
                                 peer_label.signature(label_signature)
 
-        for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
+        for process in self.model_processes + self.event_processes + [self.entry_process]:
             # Assign interface signatures
             self.logger.debug("Assign pointer flag of process {} with category {} to labels signatures".
                               format(process.name, process.category))
@@ -775,7 +790,7 @@ class EventModel:
 
     def __resolve_accesses(self):
         self.logger.info("Convert interfaces access by expressions on base of containers and their fields")
-        for process in self.model["models"] + self.model["processes"] + [self.model["entry"]]:
+        for process in self.model_processes + self.event_processes + [self.entry_process]:
             self.logger.debug("Analyze subprocesses of process {} with category {}".
                               format(process.name, process.category))
 
@@ -804,8 +819,8 @@ class EventModel:
                                 # Add also label itself
                                 laccess = Access(label_access)
                                 laccess.label = label
-                                laccess.interface = self.analysis.interfaces[interface]
-                                laccess.list_interface = [self.analysis.interfaces[interface]]
+                                laccess.interface = analysis.interfaces[interface]
+                                laccess.list_interface = [analysis.interfaces[interface]]
                                 laccess.list_access = [label.name]
 
                                 if laccess.expression not in accesses:
@@ -832,9 +847,9 @@ class EventModel:
                                     raise ValueError("Cannot resolve access {} with a base interface {} in process {}".
                                                      format(access, interface, process.name))
                             else:
-                                new.interface = self.analysis.interfaces[interface]
+                                new.interface = analysis.interfaces[interface]
                                 new.list_access = [label.name]
-                                new.list_interface = [self.analysis.interfaces[interface]]
+                                new.list_interface = [analysis.interfaces[interface]]
 
                             # Complete list accesses if possible
                             if new.interface:
@@ -844,7 +859,7 @@ class EventModel:
                                     interface = to_process.pop()
                                     category = new.interface.category
 
-                                    for container in self.analysis.categories[category]["containers"].values():
+                                    for container in analysis.categories[category]["containers"].values():
                                         if interface.identifier in list(container.fields.values()):
                                             new_tail.append(container)
                                             to_process.append(container)

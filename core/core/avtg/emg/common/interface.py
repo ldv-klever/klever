@@ -1,7 +1,3 @@
-import re
-
-__fi_regex = None
-__fi_extract = None
 __declaration_model = None
 __declaration_grammar = \
     """
@@ -94,38 +90,23 @@ __declaration_grammar = \
     undefined_declaration = undefined:"$";
     """
 
-def __is_full_identifier(string):
-    global __fi_regex
-    global __fi_extract
 
-    if not __fi_regex or not __fi_extract:
-        __fi_regex = re.compile("(\w*)\.(\w*)")
-        __fi_extract = re.compile("\*?%((?:\w*\.)?\w*)%")
+def extract_identifier(string):
+    __check_grammar()
+    ast = __declaration_model.parse(string, ignorecase=True)
 
-    if __fi_regex.fullmatch(string) and len(__fi_regex.fullmatch(string).groups()) == 2:
-        return True
-    else:
-        return False
+    # todo: extract
+    category = None
+    identifier = None
 
-
-def extract_full_identifier(string):
-    global __fi_regex
-
-    if __is_full_identifier(string):
-        category, short_identifier = __fi_regex.fullmatch(string).groups()
-
-        return category, "{}.{}".format(category, short_identifier)
+    if category and identifier:
+        return category, identifier
     else:
         raise ValueError("Given string {} is not an identifier".format(string))
 
 
 def yield_basetype(signature):
-    global __declaration_model
-    global __declaration_grammar
-
-    if not __declaration_model:
-        grako = __import__('grako')
-        __declaration_model = grako.genmodel('signature', __declaration_grammar)
+    __check_grammar()
 
     ast = __declaration_model.parse(signature, ignorecase=True)
     if "return_value" in ast:
@@ -140,6 +121,15 @@ def yield_basetype(signature):
         return Primitive(ast)
     else:
         raise NotImplementedError("Cannot parse signature: {}".format(signature))
+
+
+def __check_grammar():
+    global __declaration_model
+    global __declaration_grammar
+
+    if not __declaration_model:
+        grako = __import__('grako')
+        __declaration_model = grako.genmodel('signature', __declaration_grammar)
 
 
 class __BaseType:
@@ -179,13 +169,15 @@ class Function(__BaseType):
         if ast['return_value'] == 'void':
             ast['return_value'] = None
         else:
-            self.return_value = Signature(None, ast['return_value'])
+           pass
+           # self.return_value = Signature(None, ast['return_value'])
 
         self.parameters = []
         if 'void' not in ast['parameters']:
             for p_ast in ast['parameters']:
                 if p_ast != '...':
-                    self.parameters.append(Signature(None, p_ast))
+                    pass
+                    #self.parameters.append(Signature(None, p_ast))
                 else:
                     self.varaible_params = True
 
