@@ -1,0 +1,5 @@
+{
+  "function": "RuntimeError: There are callbacks from category usb which are not called at all in the model",
+  "pattern": "USBSpec",
+  "link": "http://forge.ispras.ru/issues/6578"
+}

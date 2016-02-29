@@ -4,7 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.tableHead import Header
-from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW
+from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, DEFAULT_COMPARE_ATTRS
 from marks.models import *
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -341,8 +341,7 @@ class ReportMarkTable(object):
                 color = None
                 if col == 'number':
                     value = cnt
-                    href = reverse('marks:edit_mark',
-                                   args=[self.type, mark_rep.mark.pk])
+                    href = reverse('marks:edit_mark', args=[self.type, mark_rep.mark.pk])
                 elif col == 'verdict':
                     value = mark_rep.mark.get_verdict_display()
                     if self.type == 'unsafe':
@@ -421,8 +420,7 @@ class MarksList(object):
             return def_views[self.type], 'default'
         else:
             try:
-                user_view = self.user.view_set.get(
-                    pk=int(view_id), type=view_types[self.type])
+                user_view = self.user.view_set.get(pk=int(view_id), type=view_types[self.type])
                 return json.loads(user_view.view), user_view.pk
             except ObjectDoesNotExist:
                 pass
@@ -514,8 +512,7 @@ class MarksList(object):
                         break
                 elif col == 'mark_num':
                     val = cnt
-                    href = reverse('marks:edit_mark',
-                                   args=[self.type, mark.pk])
+                    href = reverse('marks:edit_mark', args=[self.type, mark.pk])
                 elif col == 'num_of_links':
                     val = len(mark.markreport_set.all())
                     if 'order' in self.view and self.view['order'] == 'num_of_links':
@@ -600,7 +597,11 @@ class MarkData(object):
                 values.append((attr.attr.name.name, attr.attr.value, attr.is_compare))
         elif isinstance(report, (ReportUnsafe, ReportSafe)):
             for rep_attr in report.attrs.order_by('id'):
-                values.append((rep_attr.attr.name.name, rep_attr.attr.value, True))
+                is_compare = False
+                if report.root.job.type in DEFAULT_COMPARE_ATTRS \
+                        and rep_attr.attr.name.name in DEFAULT_COMPARE_ATTRS[report.root.job.type]:
+                    is_compare = True
+                values.append((rep_attr.attr.name.name, rep_attr.attr.value, is_compare))
         else:
             return None
         return values
@@ -626,8 +627,7 @@ class MarkData(object):
                 }
                 if (isinstance(self.mark_version, MarkUnsafeHistory) and
                         verdict_data['value'] == self.mark_version.verdict) or \
-                        (not isinstance(self.mark_version, MarkUnsafeHistory)
-                         and verdict_data['value'] == '0'):
+                        (not isinstance(self.mark_version, MarkUnsafeHistory) and verdict_data['value'] == '0'):
                     verdict_data['checked'] = True
                 verdicts.append(verdict_data)
         elif self.type == 'safe':
@@ -640,8 +640,7 @@ class MarkData(object):
                 }
                 if (isinstance(self.mark_version, MarkSafeHistory) and
                         verdict_data['value'] == self.mark_version.verdict) or \
-                        (not isinstance(self.mark_version, MarkSafeHistory)
-                         and verdict_data['value'] == '0'):
+                        (not isinstance(self.mark_version, MarkSafeHistory) and verdict_data['value'] == '0'):
                     verdict_data['checked'] = True
                 verdicts.append(verdict_data)
         return verdicts

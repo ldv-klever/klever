@@ -1,0 +1,4 @@
+{
+  "function": "RuntimeError: Seems two values spring from one variable",
+  "pattern": "TwoVarValue"
+}

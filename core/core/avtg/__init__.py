@@ -40,6 +40,37 @@ def after_generate_all_verification_obj_descs(context):
     context.mqs['verification obj descs'].put(None)
 
 
+def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
+    logger.info('Extract descriptions for plugins of template "{0}"'.format(tmpl_id))
+
+    if 'plugins' not in tmpl_desc:
+        raise ValueError(
+            'Template "{0}" has not mandatory attribute "plugins"'.format(tmpl_id))
+
+    # Copy plugin descriptions since we will overwrite them while the same template can be used by different rule
+    # specifications
+    plugin_descs = copy.deepcopy(tmpl_desc['plugins'])
+
+    for idx, plugin_desc in enumerate(plugin_descs):
+        if isinstance(plugin_desc, dict) \
+                and (len(plugin_desc.keys()) > 1 or not isinstance(list(plugin_desc.keys())[0], str)) \
+                and not isinstance(plugin_desc, str):
+            raise ValueError(
+                'Description of template "{0}" plugin "{1}" has incorrect format'.format(tmpl_id, idx))
+        if isinstance(plugin_desc, dict):
+            plugin_descs[idx] = {
+                'name': list(plugin_desc.keys())[0],
+                'options': plugin_desc[list(plugin_desc.keys())[0]]
+            }
+        else:
+            plugin_descs[idx] = {'name': plugin_desc}
+
+    logger.debug(
+        'Template "{0}" plugins are "{1}"'.format(tmpl_id, [plugin_desc['name'] for plugin_desc in plugin_descs]))
+
+    return plugin_descs
+
+
 # This function is invoked to collect plugin callbacks.
 def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
@@ -100,23 +131,33 @@ def _extract_rule_spec_descs(conf, logger):
         logger.debug('Rule specification "{0}" template is "{1}"'.format(rule_spec_id, tmpl_id))
         if 'templates' not in descs or tmpl_id not in descs['templates']:
             raise ValueError(
-                'Template "{0}" specified in rule specification "{0}" could not be found in rule specifications DB'.format(
+                'Template "{0}" of rule specification "{1}" could not be found in rule specifications DB'.format(
                     tmpl_id, rule_spec_id))
         tmpl_desc = descs['templates'][tmpl_id]
 
-        # Get raw template plugins.
-        if 'plugins' not in tmpl_desc:
-            raise ValueError(
-                'Template "{0}" has not mandatory attribute "plugins"'.format(tmpl_id))
-        # Copy plugin descriptions since we will overwrite them while the same template can be used by different rule
-        # specifications
-        plugin_descs = copy.deepcopy(tmpl_desc['plugins'])
-        for idx, plugin_desc in enumerate(plugin_descs):
-            if 'name' not in plugin_desc:
-                raise ValueError(
-                    'Template "{0}" plugin "{1}" has not mandatory attribute "name"'.format(tmpl_id, idx))
-        logger.debug(
-            'Template "{0}" plugins are "{1}"'.format(tmpl_id, [plugin_desc['name'] for plugin_desc in plugin_descs]))
+        # Get options for plugins specified in template.
+        plugin_descs = _extract_plugin_descs(logger, tmpl_id, tmpl_desc)
+
+        # Get options for plugins specified in base template and merge them with the ones extracted above.
+        if 'template' in tmpl_desc:
+            if tmpl_desc['template'] not in descs['templates']:
+                raise ValueError('Template "{0}" of template "{1}" could not be found in rule specifications DB'.format(
+                    tmpl_desc['template'], tmpl_id))
+
+            logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
+
+            base_tmpl_plugin_descs = _extract_plugin_descs(logger, tmpl_desc['template'],
+                                                           descs['templates'][tmpl_desc['template']])
+
+            for plugin_desc in plugin_descs:
+                for base_tmpl_plugin_desc in base_tmpl_plugin_descs:
+                    if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
+                        if 'options' in base_tmpl_plugin_desc:
+                            if 'options' in plugin_desc:
+                                plugin_desc['options'] = core.utils.merge_confs(base_tmpl_plugin_desc['options'],
+                                                                                plugin_desc['options'])
+                            else:
+                                plugin_desc['options'] = base_tmpl_plugin_desc['options']
 
         # Add plugin options specific for rule specification.
         rule_spec_plugin_names = []

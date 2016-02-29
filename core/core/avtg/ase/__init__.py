@@ -37,8 +37,7 @@ class ASE(core.components.Component):
         self.logger.info('Request argument signatures')
 
         request_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                     os.path.join(self.conf['request aspects directory'],
-                                                                  self.conf['request aspect']))
+                                                     self.conf['request aspect'])
         self.logger.debug('Request aspect is "{0}"'.format(request_aspect))
 
         # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with

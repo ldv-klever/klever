@@ -58,6 +58,11 @@ def report_component(request, job_id, report_id):
         status = 3
     except ObjectDoesNotExist:
         pass
+    try:
+        report_data = json.loads(report.data.decode('utf8'))
+    except Exception as e:
+        print_err(e)
+        report_data = None
 
     return render(
         request,
@@ -73,6 +78,7 @@ def report_component(request, job_id, report_id):
             'TableData': ReportTable(*report_attrs_data, table_type='3'),
             'status': status,
             'unknown': unknown_href,
+            'data': report_data
         }
     )
 
@@ -359,3 +365,17 @@ def get_source_code(request):
         'name': filename,
         'fullname': request.POST['file_name']
     })
+
+
+@login_required
+@unparallel_group(['report'])
+def download_report_files(request, report_id):
+    try:
+        report = ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+    res = GetReportFiles(report)
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = 'attachment; filename="%s"' % res.tarname
+    response.write(res.memory.read())
+    return response

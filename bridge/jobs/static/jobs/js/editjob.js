@@ -948,11 +948,11 @@ $(document).ready(function () {
                         $('#load_job_btn').addClass('disabled');
                     }
                     if (data['can_decide']) {
-                        $('#decide_job_btn').removeClass('disabled');
+                        $('#decide_job_btn_show_popup').removeClass('disabled');
                         $('#show_fast_job_start_popup').removeClass('disabled');
                     }
                     else {
-                        $('#decide_job_btn').addClass('disabled');
+                        $('#decide_job_btn_show_popup').addClass('disabled');
                         $('#show_fast_job_start_popup').addClass('disabled');
                     }
                     if (data['can_stop']) {
