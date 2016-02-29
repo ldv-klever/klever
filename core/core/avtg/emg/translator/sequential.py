@@ -85,7 +85,7 @@ class Translator(AbstractTranslator):
                 self.model_fsa.append(fsa)
 
         # Generate state machine for init an exit
-        # todo: check that all functions are there or signals ar skipped in init
+        # todo: multimodule automaton (issues #6563, #6571, #6558)
         self.logger.info("Generate FSA for module initialization and exit functions")
         self.entry_fsa = Automaton(self.logger, self.model["entry"], self.identifier)
 

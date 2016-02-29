@@ -372,7 +372,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 class SpecEncoder(json.JSONEncoder):
 
     def default(self, object):
-        # todo: this does not work currently (issue 6561)
+        # todo: this does not work currently (issue #6561)
         fd = {}
 
         if type(object) is ModuleCategoriesSpecification:

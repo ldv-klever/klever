@@ -232,6 +232,7 @@ class SA(core.components.Component):
         #     else:
         #         raise ValueError("Cannot parse line '{}' in file {}".format(line, export_file))
 
+        # todo: support non-standart kinds of initializations (issues #6571, #6558)
         init_file = "init.txt"
         self.logger.info("Extract initialization functions from {}".format(init_file))
         content = self._import_content(init_file)
@@ -380,7 +381,7 @@ class GlobalInitParser:
         struct_init_begin_re = \
             re.compile("^{}Structure initializer description begin path='([^']*)' name='([^']*)' type='([^']*)'".
                        format(indent_str))
-        # TODO: structure type is unknown in case of (arrays of) structure pointers. Implement them later.
+        # TODO: structure type is unknown in case of (arrays of) structure pointers. Implement them later. (issue #6559)
         struct_ptr_init_begin_re = \
             re.compile("^{}Structure pointer initializer description begin path='([^']*)' name='([^']*)'".
                        format(indent_str))
