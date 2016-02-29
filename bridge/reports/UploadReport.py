@@ -177,29 +177,18 @@ class UploadReport(object):
 
     def __get_parent(self):
         if 'parent id' in self.data:
-            if self.data['parent id'] == '/':
-                try:
-                    return ReportComponent.objects.get(root=self.job.reportroot, identifier=self.job.identifier)
-                except ObjectDoesNotExist:
-                    self.error = 'Report parent was not found'
-            else:
-                try:
-                    return ReportComponent.objects.get(
-                        root=self.job.reportroot,
-                        identifier__endswith=('##' + self.data['parent id'])
-                    )
-                except ObjectDoesNotExist:
-                    self.error = 'Report parent was not found'
-                except MultipleObjectsReturned:
-                    self.error = 'Identifiers are not unique'
+            try:
+                return ReportComponent.objects.get(
+                    root=self.job.reportroot,
+                    identifier=self.job.identifier + self.data['parent id']
+                )
+            except ObjectDoesNotExist:
+                self.error = 'Report parent was not found'
         elif self.data['id'] == '/':
             return None
         else:
             try:
-                curr_report = ReportComponent.objects.get(
-                    identifier__startswith=self.job.identifier,
-                    identifier__endswith=("##%s" % self.data['id'])
-                )
+                curr_report = ReportComponent.objects.get(identifier=self.job.identifier + self.data['id'])
                 return ReportComponent.objects.get(pk=curr_report.parent_id)
             except ObjectDoesNotExist:
                 self.error = 'Report parent was not found'
@@ -215,10 +204,7 @@ class UploadReport(object):
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown
         }
-        if self.parent is None:
-            identifier = self.job.identifier
-        else:
-            identifier = "%s##%s" % (self.parent.identifier, self.data['id'])
+        identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
         if self.error is None:
             if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
