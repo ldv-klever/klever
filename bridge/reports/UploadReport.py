@@ -45,7 +45,8 @@ class UploadReport(object):
     def __check_data(self, data):
         if not isinstance(data, dict):
             return 'Data is not a dictionary'
-        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0:
+        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0 \
+                or not data['id'].startswith('/'):
             return 'Type and id are required or have wrong format'
         if 'parent id' in data and not isinstance(data['parent id'], str):
             return 'Parent id has wrong format'
@@ -187,7 +188,7 @@ class UploadReport(object):
             try:
                 return ReportComponent.objects.get(
                     root=self.job.reportroot,
-                    identifier=self.job.identifier + '##' + self.data['parent id']
+                    identifier=self.job.identifier + self.data['parent id']
                 )
             except ObjectDoesNotExist:
                 self.error = 'Report parent was not found'
@@ -195,7 +196,7 @@ class UploadReport(object):
             return None
         else:
             try:
-                curr_report = ReportComponent.objects.get(identifier=self.job.identifier + '##' + self.data['id'])
+                curr_report = ReportComponent.objects.get(identifier=self.job.identifier + self.data['id'])
                 return ReportComponent.objects.get(pk=curr_report.parent_id)
             except ObjectDoesNotExist:
                 self.error = 'Report parent was not found'
@@ -212,7 +213,7 @@ class UploadReport(object):
             'unknown': self.__create_report_unknown,
             'data': self.__update_report_data
         }
-        identifier = self.job.identifier + '##' + self.data['id']
+        identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
         if self.error is None:
             if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
