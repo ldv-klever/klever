@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-02-26 11:31+0000\n"
+"POT-Creation-Date: 2016-03-01 07:58+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -245,6 +245,7 @@ msgid "Rejected"
 msgstr "Отклонена"
 
 #: bridge/vars.py:143 bridge/vars.py:156
+#: reports/templates/reports/ReportData.html:11
 msgid "Bug"
 msgstr "Ошибка"
 
@@ -1165,7 +1166,7 @@ msgid "Delete versions"
 msgstr "Удалить версии"
 
 #: jobs/templates/jobs/viewJob.html:60 jobs/utils.py:71
-#: reports/templates/reports/ReportData.html:28
+#: reports/templates/reports/ReportData.html:40
 msgid "Class"
 msgstr "Класс"
 
@@ -1577,7 +1578,7 @@ msgstr "Проблема"
 #: marks/templates/marks/ViewMark.html:24
 #: marks/templates/marks/filters.html:19 marks/templates/marks/filters.html:99
 #: reports/templates/reports/AttrsFilters.html:13
-#: reports/templates/reports/ReportData.html:27 reports/utils.py:25
+#: reports/templates/reports/ReportData.html:39 reports/utils.py:25
 msgid "Component"
 msgstr "Компонент"
 
@@ -1932,19 +1933,15 @@ msgstr "Оставьте пустым для упорядочивания по �
 msgid "Validation results"
 msgstr "Результаты валидации"
 
-#: reports/templates/reports/ReportData.html:11
-msgid "Commit"
-msgstr "Коммит"
-
 #: reports/templates/reports/ReportData.html:12
-msgid "Ideal verdict"
-msgstr "Идеальный вердикт"
+msgid "Before fix"
+msgstr "До исправления"
 
 #: reports/templates/reports/ReportData.html:13
-msgid "Verification status"
-msgstr "Верификационный статус"
+msgid "After fix"
+msgstr "После исправления"
 
-#: reports/templates/reports/ReportData.html:29
+#: reports/templates/reports/ReportData.html:41
 #: reports/templates/reports/ReportMain.html:107
 msgid "Data"
 msgstr "Данные"
