@@ -124,7 +124,7 @@ class Core:
                 self.data = []
                 for sub_job in self.job.sub_jobs:
                     commit = sub_job.conf['Linux kernel']['Git repository']['commit']
-                    sub_job_id = '{0}{1}'.format(self.id, str(commit))
+                    sub_job_id = self.id + str(commit)
                     # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
                     core.utils.report(self.logger,
                                       'start',

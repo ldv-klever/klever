@@ -155,7 +155,7 @@ class ABKM(core.components.Component):
                 core.utils.report(self.logger,
                                   'unknown',
                                   {
-                                      'id': '{0}/unknown'.format(self.id),
+                                      'id': self.id + '/unknown',
                                       'parent id': self.id,
                                       'problem desc': 'task error.txt',
                                       'files': ['task error.txt']
@@ -202,7 +202,7 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'safe',
                                       {
-                                          'id': '{0}/safe'.format(verification_report_id),
+                                          'id': verification_report_id + '/safe',
                                           'parent id': verification_report_id,
                                           'attrs': [],
                                           # TODO: just the same file as parent log, looks strange.
@@ -377,7 +377,7 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
-                                          'id': '{0}/unsafe'.format(verification_report_id),
+                                          'id': verification_report_id + '/unsafe',
                                           'parent id': verification_report_id,
                                           'attrs': [],
                                           'error trace': 'witness.processed.graphml',
@@ -393,7 +393,7 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': '{0}/unknown'.format(verification_report_id),
+                                          'id': verification_report_id + '/unknown',
                                           'parent id': verification_report_id,
                                           # TODO: just the same file as parent log, looks strange.
                                           'problem desc': 'cil.i.log' if decision_results['status'] not in (
