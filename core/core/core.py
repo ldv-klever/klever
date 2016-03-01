@@ -75,10 +75,14 @@ class Core:
             self.get_comp_desc()
             start_report_file = core.utils.report(self.logger,
                                                   'start',
-                                                  {'id': self.id,
-                                                   'attrs': [{'Klever Core version': self.version}],
-                                                   'comp': [{attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
-                                                            for attr in self.comp for attr_shortcut in attr]})
+                                                  {
+                                                      'id': self.id,
+                                                      'attrs': [{'Klever Core version': self.version}],
+                                                      'comp': [
+                                                          {attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
+                                                          for attr in self.comp for attr_shortcut in attr
+                                                      ]
+                                                  })
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.job.id)
             self.session.decide_job(self.job, start_report_file)
             # TODO: create parallel process to send requests about successful operation to Klever Bridge.
