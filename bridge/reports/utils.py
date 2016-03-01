@@ -47,7 +47,7 @@ def computer_description(computer):
     }
 
 
-def get_parents(report):
+def get_parents__old(report):
     parents_data = []
     parents_ids = []
     ids_sep = report.identifier.split('##')
@@ -74,6 +74,28 @@ def get_parents(report):
             'href': href,
             'attrs': parent_attrs
         })
+    return parents_data
+
+
+def get_parents(report):
+    parents_data = []
+    try:
+        parent = ReportComponent.objects.get(id=report.parent_id)
+    except ObjectDoesNotExist:
+        parent = None
+    while parent is not None:
+        parent_attrs = []
+        for rep_attr in parent.attrs.order_by('attr__name__name'):
+            parent_attrs.append([rep_attr.attr.name.name, rep_attr.attr.value])
+        parents_data.insert(0, {
+            'title': parent.component.name,
+            'href': reverse('reports:component', args=[report.root.job.pk, parent.pk]),
+            'attrs': parent_attrs
+        })
+        try:
+            parent = ReportComponent.objects.get(id=parent.parent_id)
+        except ObjectDoesNotExist:
+            parent = None
     return parents_data
 
 
