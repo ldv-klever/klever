@@ -26,7 +26,7 @@ Klever Bridge installation
 #. Create a new MySQL/MariaDB database (**db_name**) with character set utf8 and grant full access on all its tables to
    **db_user**::
 
-    MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8;
+    MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8 COLLATE utf8_bin;
     MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
     MariaDB [(none)]> FLUSH PRIVILEGES;
 

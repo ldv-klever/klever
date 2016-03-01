@@ -109,7 +109,7 @@ class Component(multiprocessing.Process):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': 'unknown',
+                                          'id': self.id + '/unknown',
                                           'parent id': self.id,
                                           'problem desc': 'problem desc.txt',
                                           'files': ['problem desc.txt']

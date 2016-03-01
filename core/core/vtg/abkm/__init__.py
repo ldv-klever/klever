@@ -50,16 +50,19 @@ class ABKM(core.components.Component):
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
 
-        if len(self.conf['abstract task desc']['entry points']) > 1:
-            raise NotImplementedError('Several entry points are not supported')
+        if 'entry points' in self.conf['abstract task desc']:
+            if len(self.conf['abstract task desc']['entry points']) > 1:
+                raise NotImplementedError('Several entry points are not supported')
 
-        with open('unreach-call.prp', 'w', encoding='ascii') as fp:
-            fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
-                self.conf['abstract task desc']['entry points'][0]))
+            with open('unreach-call.prp', 'w', encoding='ascii') as fp:
+                fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
+                    self.conf['abstract task desc']['entry points'][0]))
 
-        self.task_desc['property file'] = 'unreach-call.prp'
+            self.task_desc['property file'] = 'unreach-call.prp'
 
-        self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
+            self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
+        else:
+            self.logger.warning('Verifier property file was not prepared since entry points were not specified')
 
     def prepare_src_files(self):
         self.task_desc['files'] = []
@@ -121,13 +124,19 @@ class ABKM(core.components.Component):
         self.logger.info('Prepare archive with verification task files')
 
         with tarfile.open('task files.tar.gz', 'w:gz') as tar:
-            tar.add('unreach-call.prp')
+            if os.path.isfile('unreach-call.prp'):
+                tar.add('unreach-call.prp')
             for file in self.task_desc['files']:
                 tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def decide_verification_task(self):
         self.logger.info('Decide verification task')
+        self.verification_status = None
+
+        if not os.path.isfile('unreach-call.prp'):
+            self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
+            return
 
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         task_id = session.schedule_task(self.task_desc)
@@ -146,7 +155,7 @@ class ABKM(core.components.Component):
                 core.utils.report(self.logger,
                                   'unknown',
                                   {
-                                      'id': 'unknown',
+                                      'id': self.id + '/unknown',
                                       'parent id': self.id,
                                       'problem desc': 'task error.txt',
                                       'files': ['task error.txt']
@@ -169,12 +178,13 @@ class ABKM(core.components.Component):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
+                verification_report_id = '{0}/verification'.format(self.id)
                 # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
                 core.utils.report(self.logger,
                                   'verification',
                                   {
                                       # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                                      'id': self.task_desc['id'],
+                                      'id': verification_report_id,
                                       'parent id': self.id,
                                       # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
                                       'attrs': [],
@@ -192,8 +202,8 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'safe',
                                       {
-                                          'id': 'safe',
-                                          'parent id': self.task_desc['id'],
+                                          'id': verification_report_id + '/safe',
+                                          'parent id': verification_report_id,
                                           'attrs': [],
                                           # TODO: just the same file as parent log, looks strange.
                                           'proof': 'cil.i.log',
@@ -367,8 +377,8 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
-                                          'id': 'unsafe',
-                                          'parent id': self.task_desc['id'],
+                                          'id': verification_report_id + '/unsafe',
+                                          'parent id': verification_report_id,
                                           'attrs': [],
                                           'error trace': 'witness.processed.graphml',
                                           'files': ['witness.processed.graphml'] + list(src_files)
@@ -383,8 +393,8 @@ class ABKM(core.components.Component):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': 'unknown',
-                                          'parent id': self.task_desc['id'],
+                                          'id': verification_report_id + '/unknown',
+                                          'parent id': verification_report_id,
                                           # TODO: just the same file as parent log, looks strange.
                                           'problem desc': 'cil.i.log' if decision_results['status'] not in (
                                               'CPU time exhausted', 'memory exhausted') else 'error.txt',
