@@ -1,6 +1,6 @@
 from urllib.parse import quote
+from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
-from django.core.servers.basehttp import FileWrapper
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat

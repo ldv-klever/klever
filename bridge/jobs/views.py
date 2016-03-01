@@ -2,8 +2,8 @@ import mimetypes
 from io import BytesIO
 from urllib.parse import quote
 from difflib import unified_diff
+from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
-from django.core.servers.basehttp import FileWrapper
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import get_template
