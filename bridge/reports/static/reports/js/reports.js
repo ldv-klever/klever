@@ -87,6 +87,9 @@ function unknown_filters_data() {
 $(document).ready(function () {
     $('#component_name_tr').popup({popup: $('#timeinfo_popup'), position: 'right center'});
     $('#computer_description_tr').popup({popup: $('#computer_info_popup'), position: 'right center'});
+
+    $('.report-data-popup').popup({position: 'right center'});
+
     $('.parent-popup').popup({inline:true});
     $('.ui.dropdown').dropdown();
     $('#order__type__attr').parent().checkbox({

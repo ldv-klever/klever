@@ -1,5 +1,6 @@
 {% load i18n %}
 
+{% block reports_head_block %}<link href="/static/reports/css/reports.css" rel="stylesheet">{% endblock %}
 
 {% if component == 'Core' and type == '0' %}
     <p>{{ data }}</p>
@@ -17,19 +18,11 @@
             {% for validation_res in data %}
                 <tr>
                     <td>{{ validation_res.0 }}</td>
-                    <td {% if validation_res.2 %}title="{{validation_res.2}}"{% endif %}>
-                        {% if validation_res.1 == 'unsafe' %}
-                            {{ validation_res.1 }}
-                        {% else %}
-                            <span style="color: #ff4b8c;">{{ validation_res.1 }}</span>
-                        {% endif %}
+                    <td>
+                        <span{% if validation_res.1 != 'unsafe' %} style="color: #ff3463;"{% endif %}{% if validation_res.2 %} class="report-data-popup" data-content="{{ validation_res.2 }}" data-variation="very wide"{% endif %}>{{ validation_res.1 }}</span>
                     </td>
-                    <td {% if validation_res.4 %}title="{{validation_res.4}}"{% endif %}>
-                        {% if validation_res.3 == 'safe' %}
-                            {{ validation_res.3 }}
-                        {% else %}
-                            <span style="color: #ff4b8c;">{{ validation_res.3 }}</span>
-                        {% endif %}
+                    <td>
+                        <span{% if validation_res.3 != 'safe' %} style="color: #ff3463;"{% endif %}{% if validation_res.4 %} class="report-data-popup" data-content="{{ validation_res.4 }}" data-variation="very wide"{% endif %}>{{ validation_res.3 }}</span>
                     </td>
                 </tr>
             {% endfor %}
