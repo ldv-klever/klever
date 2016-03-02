@@ -7,6 +7,7 @@ DATAFORMAT = (
     ('hum', _('Human-readable')),
 )
 
+# Do not use error code 500 (Unknown error)
 ERRORS = {
     404: _('The job was not found'),
     405: _('One of the selected jobs was not found'),
@@ -380,3 +381,23 @@ DEFAULT_COMPARE_ATTRS = {
     '4': ['rule specification', 'verification object'],
     '5': ['rule specification', 'verification object'],
 }
+
+# TODO: keys and values are almost the same and thus can be refactored.
+AVTG_PRIORITY = [
+    ('balance', _('Balance')),
+    ('rule specifications', _('Rule specifications')),
+    ('verification objects', _('Verification objects')),
+]
+
+KLEVER_CORE_PARALLELISM = (
+    ('sequantial', _('Sequantial')),
+    ('slow', _('Slow')),
+    ('fast', _('Fast')),
+    ('very fast', _('Very fast'))
+)
+
+KLEVER_CORE_FORMATTERS = (
+    ('brief', _('Brief')),
+    ('detailed', _('Detailed')),
+    ('paranoid', _('Paranoid'))
+)

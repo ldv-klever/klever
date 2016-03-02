@@ -59,6 +59,7 @@ class RunHistory(models.Model):
     job = models.ForeignKey(Job)
     configuration = models.ForeignKey(File)
     date = models.DateTimeField(auto_now=True)
+    status = models.CharField(choices=JOB_STATUS, max_length=1)
 
     class Meta:
         db_table = 'job_run_history'

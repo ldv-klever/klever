@@ -5,22 +5,13 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
-from bridge.vars import JOB_STATUS
+from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS
+from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS
 from bridge.utils import print_err, file_checksum
-from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_CONFIGURATION
 from jobs.models import RunHistory
-from jobs.utils import JobAccess, File
+from jobs.utils import JobAccess, File, change_job_status
 from reports.models import ReportRoot, ReportUnknown, ReportComponent
 from service.models import *
-
-
-# TODO: move it to bridge/vars.py.
-# TODO: keys and values are almost the same and thus can be refactored.
-AVTG_PRIORITY = [
-    ('balance', _('Balance')),
-    ('rule specifications', _('Rule specifications')),
-    ('verification objects', _('Verification objects')),
-]
 
 
 # Case 3.1(3) DONE
@@ -206,8 +197,7 @@ class KleverCoreFinishDecision(object):
             self.progress = job.solvingprogress
         except ObjectDoesNotExist:
             self.error = "The job doesn't have solving progress"
-            job.status = JOB_STATUS[5][0]
-            job.save()
+            change_job_status(job, JOB_STATUS[5][0])
             return
         self.error = None
         for task in job.solvingprogress.task_set.all():
@@ -217,12 +207,10 @@ class KleverCoreFinishDecision(object):
         self.progress.finish_date = now()
         if error is not None:
             self.progress.error = error
-            job.status = JOB_STATUS[5][0]
-            job.save()
+            change_job_status(job, JOB_STATUS[5][0])
         elif self.error is not None:
             self.progress.error = self.error
-            job.status = JOB_STATUS[5][0]
-            job.save()
+            change_job_status(job, JOB_STATUS[5][0])
         self.progress.save()
 
 
@@ -265,8 +253,7 @@ class StopDecision(object):
         self.__clear_tasks()
         if self.error is not None:
             return
-        self.job.status = JOB_STATUS[6][0]
-        self.job.save()
+        change_job_status(job, JOB_STATUS[6][0])
 
     def __clear_tasks(self):
         for task in self.progress.task_set.all():
@@ -483,8 +470,7 @@ class GetTasks(object):
                     new_data['job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
                     if progress.job.identifier in data['jobs']['error']:
-                        progress.job.status = JOB_STATUS[4][0]
-                        progress.job.save()
+                        change_job_status(progress.job, JOB_STATUS[4][0])
                         if progress.job.identifier in data['job errors']:
                             progress.error = data['job errors'][progress.job.identifier]
                         else:
@@ -500,17 +486,13 @@ class GetTasks(object):
                                         Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
                                     )
                             )) > 0:
-                                progress.job.status = JOB_STATUS[5][0]
-                                progress.job.save()
+                                change_job_status(progress.job, JOB_STATUS[5][0])
                             else:
-                                progress.job.status = JOB_STATUS[3][0]
-                                progress.job.save()
+                                change_job_status(progress.job, JOB_STATUS[3][0])
                         except ObjectDoesNotExist:
-                            progress.job.status = JOB_STATUS[5][0]
-                            progress.job.save()
+                            change_job_status(progress.job, JOB_STATUS[5][0])
                     elif progress.job.identifier in data['jobs']['error']:
-                        progress.job.status = JOB_STATUS[4][0]
-                        progress.job.save()
+                        change_job_status(progress.job, JOB_STATUS[4][0])
                         if progress.job.identifier in data['job errors']:
                             progress.error = data['job errors'][progress.job.identifier]
                         else:
@@ -711,8 +693,7 @@ class SetSchedulersStatus(object):
             if scheduler.type == SCHEDULER_TYPE[0][0]:
                 progress.finish_date = now()
                 progress.error = "Klever scheduler was disconnected"
-                progress.job.status = JOB_STATUS[5][0]
-                progress.job.save()
+                change_job_status(progress.job, JOB_STATUS[5][0])
             progress.save()
 
 
@@ -818,25 +799,20 @@ class NodesData(object):
 
 # Case 3.4(5) DONE
 class StartJobDecision(object):
-    def __init__(self, user, data):
+    def __init__(self, user, job_id, data):
         self.error = None
         self.operator = user
-        try:
-            self.data = json.loads(data)
-        except ValueError:
-            self.error = _('Unknown error')
+        if not check_core_configuration(data):
+            self.error = 'Unknown error'
             return
-        self.job = self.__get_job()
+        self.data = data
+        self.job = self.__get_job(job_id)
         if self.error is not None:
-            return
-        try:
-            self.klever_core_data = self.__get_klever_core_data()
-        except ValueError or KeyError:
-            self.error = _('Unknown error')
             return
         self.job_scheduler = self.__get_scheduler()
         if self.error is not None:
             return
+        self.klever_core_data = self.__get_klever_core_data()
         self.__check_schedulers()
         if self.error is not None:
             return
@@ -852,78 +828,47 @@ class StartJobDecision(object):
         self.job.save()
 
     def __get_klever_core_data(self):
-        conf = {
+        return {
             'identifier': self.job.identifier,
-            'priority': self.data['priority'],
-            'debug': self.data['debug'],
-            'allow local source directories use': self.data['allow_local_dir'],
-            'abstract tasks generation priority': self.data['avtg_priority'],
-            'logging': {
-                'formatters': [
-                    {
-                        'name': 'brief',
-                        'value': self.data['console_log_formatter']
-                    },
-                    {
-                        'name': 'detailed',
-                        'value': self.data['file_log_formatter']
-                    }
-                ],
-                'loggers': [
-                    {
-                        "name": "default",
-                        "handlers": [
-                            {
-                                "name": "console",
-                                "level": "INFO",
-                                "formatter": "brief"
-                            },
-                            {
-                                "name": "file",
-                                "level": "DEBUG",
-                                "formatter": "detailed"
-                            }
-                        ]
-                    }
-                ]
+            'scheduling': {
+                'job priority': self.data[0][0],
+                'task scheduler': self.job_scheduler.get_type_display(),
+                'abstract task generation priority': self.data[0][2]
             },
-            'parallelism': {},
+            'parallelism': KLEVER_CORE_PARALLELISM_PACKS[self.data[1]],
             'resource limits': {
-                'wall time': int(self.data['max_wall_time']) * 10**3 if len(self.data['max_wall_time']) > 0 else None,
-                'CPU time': int(self.data['max_cpu_time']) * 10**3 if len(self.data['max_cpu_time']) > 0 else None,
-                'memory size': int(float(self.data['max_ram']) * 10**9),
-                'number of CPU cores': int(self.data['max_cpus']),
-                'CPU model': self.data['cpu_model'] if len(self.data['cpu_model']) > 0 else None,
-                'disk memory size': int(float(self.data['max_disk']) * 10**9)
-            }
+                'memory size': int(float(self.data[2][0]) * 10**9),
+                'number of CPU cores': int(self.data[2][1]),
+                'disk memory size': int(float(self.data[2][2]) * 10**9),
+                'CPU model': self.data[2][3] if len(self.data[2][3]) > 0 else None,
+                'CPU time': int(self.data[2][4]) * 10**3 * 60 if self.data[2][4] is not None else None,
+                'wall time': int(self.data[2][5]) * 10**3 * 60 if self.data[2][5] is not None else None
+            },
+            'keep intermediate files': self.data[4],
+            'upload input files of static verifiers': self.data[5],
+            'upload other intermediate files': self.data[6],
+            'allow local source directories use': self.data[7],
+            'ignore another instance of Klever Core': self.data[8],
+            'logging': {
+                'console log level': self.data[3][0],
+                'console log formatter': self.data[3][1],
+                'file log level': self.data[3][2],
+                'file log formatter': self.data[3][3]
+            },
         }
-        parallelism_kinds = {
-            'parallelism_linux_kernel_build': 'Linux kernel build',
-            'parallelism_tasks_generation': 'Tasks generation'
-        }
-        for parallelism_kind in parallelism_kinds:
-            try:
-                parallelism = int(self.data[parallelism_kind])
-            except ValueError:
-                parallelism = float(self.data[parallelism_kind])
-            conf['parallelism'][parallelism_kinds[parallelism_kind]] = parallelism
-        return conf
 
     def __get_scheduler(self):
         try:
-            return Scheduler.objects.get(type=self.data['scheduler'])
+            return Scheduler.objects.get(type=self.data[0][1])
         except ObjectDoesNotExist:
             self.error = _('The scheduler was not found')
-            return
+            return None
 
-    def __get_job(self):
+    def __get_job(self, job_id):
         try:
-            job = Job.objects.get(pk=int(self.data['job_id']))
+            job = Job.objects.get(pk=job_id)
         except ObjectDoesNotExist:
             self.error = _('The job was not found')
-            return
-        except ValueError:
-            self.error = _('Unknown error')
             return
         if not JobAccess(self.operator, job).can_decide():
             self.error = _("You don't have an access to start decision of this job")
@@ -937,7 +882,7 @@ class StartJobDecision(object):
             pass
         self.__save_configuration()
         return SolvingProgress.objects.create(
-            job=self.job, priority=self.data['priority'],
+            job=self.job, priority=self.data[0][0],
             scheduler=self.job_scheduler,
             configuration=json.dumps(self.klever_core_data).encode('utf8')
         )
@@ -954,7 +899,7 @@ class StartJobDecision(object):
             db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
             db_file.hash_sum = check_sum
             db_file.save()
-        RunHistory.objects.create(job=self.job, configuration=db_file)
+        RunHistory.objects.create(job=self.job, configuration=db_file, status=JOB_STATUS[1][0])
 
     def __check_schedulers(self):
         try:
@@ -978,59 +923,96 @@ class StartJobDecision(object):
 
 # Case 3.4(5) DONE
 class StartDecisionData(object):
-    def __init__(self, user):
+    def __init__(self, user, data):
         self.error = None
-        self.schedulers = []
+        if not check_core_configuration(data):
+            self.error = 'Unknown error'
+            return
+        self.default = data
+
         self.job_sch_err = None
-        self.error = self.__get_schedulers()
+        self.schedulers = self.__get_schedulers()
         if self.error is not None:
             return
+
         self.priorities = list(reversed(PRIORITY))
+        self.logging_levels = LOGGING_LEVELS
 
         self.need_auth = False
         try:
             user.scheduleruser
         except ObjectDoesNotExist:
             self.need_auth = True
-
-        self.restrictions = DEF_KLEVER_CORE_RESTRICTIONS
-        self.gen_priorities = AVTG_PRIORITY
-        self.parallelism = DEF_KLEVER_CORE_CONFIGURATION['parallelism']
-        self.logging = DEF_KLEVER_CORE_CONFIGURATION['formatters']
-        self.def_config = DEF_KLEVER_CORE_CONFIGURATION
+        self.parallelism = KLEVER_CORE_PARALLELISM
+        self.formatters = KLEVER_CORE_FORMATTERS
+        self.avtg_priorities = AVTG_PRIORITY
 
     def __get_schedulers(self):
+        schedulers = []
         try:
             klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
         except ObjectDoesNotExist:
-            return _('Unknown error')
+            self.error = 'Unknown error'
+            return []
         try:
             cloud_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[1][0])
         except ObjectDoesNotExist:
-            return _('Unknown error')
+            self.error = 'Unknown error'
+            return []
         if klever_sch.status == SCHEDULER_STATUS[1][0]:
             self.job_sch_err = _("The Klever scheduler is ailing")
         elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            return _("The Klever scheduler is disconnected")
-        self.schedulers.append([
+            self.error = _("The Klever scheduler is disconnected")
+            return []
+        schedulers.append([
             klever_sch.type,
             string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')
         ])
         if cloud_sch.status != SCHEDULER_STATUS[2][0]:
-            self.schedulers.append([
+            schedulers.append([
                 cloud_sch.type,
                 string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
             ])
+        return schedulers
 
 
-def get_default_data():
-    data = {
-        'console_log_formatter': DEF_KLEVER_CORE_CONFIGURATION['formatters']['console'],
-        'file_log_formatter': DEF_KLEVER_CORE_CONFIGURATION['formatters']['file'],
-        'parallelism_linux_kernel_build': DEF_KLEVER_CORE_CONFIGURATION['parallelism']['linux_kernel_build'],
-        'parallelism_tasks_generation': DEF_KLEVER_CORE_CONFIGURATION['parallelism']['tasks_generation'],
-        'scheduler': SCHEDULER_TYPE[0][0]
-    }
-    data.update(DEF_KLEVER_CORE_CONFIGURATION)
-    data.update(DEF_KLEVER_CORE_RESTRICTIONS)
-    return data
+def check_core_configuration(configuration):
+    if not isinstance(configuration, list) or len(configuration) != 9:
+        return False
+    if not isinstance(configuration[0], list) or len(configuration[0]) != 3:
+        return False
+    if configuration[1] not in KLEVER_CORE_PARALLELISM_PACKS:
+        return False
+    if not isinstance(configuration[2], list) or len(configuration[2]) != 6:
+        return False
+    if not isinstance(configuration[3], list) or len(configuration[3]) != 4:
+        return False
+    if any(not isinstance(x, bool) for x in configuration[4:]):
+        return False
+    if configuration[0][0] not in list(x[0] for x in PRIORITY):
+        return False
+    if configuration[0][1] not in list(x[0] for x in SCHEDULER_TYPE):
+        return False
+    if configuration[0][2] not in list(x[0] for x in AVTG_PRIORITY):
+        return False
+    if not isinstance(configuration[2][0], (float, int)):
+        return False
+    if not isinstance(configuration[2][1], int):
+        return False
+    if not isinstance(configuration[2][2], (float, int)):
+        return False
+    if not isinstance(configuration[2][3], str):
+        return False
+    if not isinstance(configuration[2][4], (float, int)):
+        return False
+    if not isinstance(configuration[2][5], (float, int)):
+        return False
+    if configuration[3][0] not in LOGGING_LEVELS:
+        return False
+    if configuration[3][2] not in LOGGING_LEVELS:
+        return False
+    if configuration[3][1] not in KLEVER_CORE_LOG_FORMATTERS:
+        return False
+    if configuration[3][3] not in KLEVER_CORE_LOG_FORMATTERS:
+        return False
+    return True

@@ -104,7 +104,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Definitions of Klever Core log formatters (see documentation for Python 3 logging for details)
-_KLEVER_CORE_LOG_FORMATTERS = {
+# WARNING!!! Change also KLEVER_CORE_FORMATTERS form bridge.vars when you change these packs
+KLEVER_CORE_LOG_FORMATTERS = {
     'brief': "%(name)s %(levelname)5s> %(message)s",
     'detailed': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
     'paranoid': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s (%(process)d) %(levelname)5s> %(message)s",
@@ -113,19 +114,22 @@ _KLEVER_CORE_LOG_FORMATTERS = {
 # Each Klever Core parallelism pack represents set of numbers of parallel threads/processes for following actions:
 #   build,
 #   tasks generation.
-_KLEVER_CORE_PARALLELISM_PACKS = {
+# WARNING!!! Change also KLEVER_CORE_PARALLELISM form bridge.vars when you change these packs
+KLEVER_CORE_PARALLELISM_PACKS = {
     'sequantial': (1, 1),
     'slow': (2, 2),
     'fast': (1.0, 1.0),
     'very fast': (2.0, 2.0),
 }
 
+LOGGING_LEVELS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
+
 # Each Klever Core mode represents sets of values for following sets of attributes:
 #   scheduling:
 #     job priority - see bridge.vars.PRIORITY for available values,
 #     task scheduler - see bridge.vars.SCHEDULER_TYPE for available values,
 #     abstract task generation priority - see service.utils.AVTG_PRIORITY for available values,
-#   parallism pack - one of packs from _KLEVER_CORE_PARALLELISM_PACKS,
+#   parallelism pack - one of packs from KLEVER_CORE_PARALLELISM_PACKS,
 #   limits:
 #     memory size - in GB,
 #     number of CPU cores,
@@ -135,7 +139,7 @@ _KLEVER_CORE_PARALLELISM_PACKS = {
 #     wall time - in minutes,
 #   logging:
 #     console log level - see documentation for Python 3 logging for available values,
-#     console log formatter - one of formatters from _KLEVER_CORE_LOG_FORMATTERS,
+#     console log formatter - one of formatters from KLEVER_CORE_LOG_FORMATTERS,
 #     file log level - like console log level,
 #     file log formatter - like console log formatter,
 #   keep intermediate files - True or False,
@@ -145,31 +149,31 @@ _KLEVER_CORE_PARALLELISM_PACKS = {
 #   ignore another instance of Klever Core - True or False.
 DEF_KLEVER_CORE_MODES = [
     {
-        'production': (
-            ('LOW', 'Klever', 'balance',),
+        'production': [
+            ['LOW', '0', 'balance'],
             'slow',
-            (1.0, 2, 100.0, '', 0, 0,),
-            ('WARNING', 'brief', 'INFO', 'brief',),
-            False, False, False, False, False,
-        )
+            [1.0, 2, 100.0, '', 0, 0],
+            ['WARNING', 'brief', 'INFO', 'brief'],
+            False, False, False, False, False
+        ]
     },
     {
-        'development': (
-            ('IDLE', 'Klever', 'balance',),
+        'development': [
+            ['IDLE', '0', 'balance'],
             'fast',
-            (1.0, 1.0, 100.0, '', 0, 0,),
-            ('INFO', 'detailed', 'DEBUG', 'detailed',),
-            True, True, False, True, True,
-        )
+            [1.0, 1, 100.0, '', 0, 0],
+            ['INFO', 'detailed', 'DEBUG', 'detailed'],
+            True, True, False, True, True
+        ]
     },
     {
-        'paranoid development': (
-            ('IDLE', 'Klever', 'balance',),
+        'paranoid development': [
+            ['IDLE', '0', 'balance'],
             'fast',
-            (1.0, 1.0, 100.0, '', 0, 0,),
-            ('INFO', 'detailed', 'DEBUG', 'paranoid',),
-            True, True, True, True, True,
-        )
+            [1.0, 1, 100.0, '', 0, 0],
+            ['INFO', 'detailed', 'DEBUG', 'paranoid'],
+            True, True, True, True, True
+        ]
     },
 ]
 

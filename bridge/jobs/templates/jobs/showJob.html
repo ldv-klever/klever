@@ -1,15 +1,31 @@
 {% load i18n %}
 
+<div class="ui horizontal segments">
+    {% if job.parent_id %}
+        <div class="ui green segment">
+            <div class="ui top left attached green large label">{% trans 'Parent identifier' %}</div>
+            <p>{{ job.parent.identifier }}</p>
+        </div>
+    {% endif %}
+    {% if job.runhistory_set.all|length %}
+        <div class="ui orange segment">
+            <div class="ui top left attached orange large label">{% trans 'History of configurations' %}</div>
+            <div class="ui form">
+                <label for="run_history"></label>
+                <select id="run_history" class="ui dropdown normal-dropdown">
+                    {% for rh in job.runhistory_set.all|dictsortreversed:'date' %}
+                        <option value="{{ rh.pk }}">{{ rh.get_status_display }} ({{ rh.date }})</option>
+                    {% endfor %}
+                </select>
+                <button id="download_configuration" class="ui violet button">{% trans 'Download configuration' %}</button>
+            </div>
+        </div>
+    {% endif %}
+</div>
 {% if description|length %}
     <div class="ui violet segment">
         <div class="ui top left attached violet large label">{% trans 'Description' %}</div>
         {{ description|safe }}
-    </div>
-{% endif %}
-{% if job.parent_id %}
-    <div class="ui green segment">
-        <div class="ui top left attached green large label">{% trans 'Parent identifier' %}</div>
-        <p>{{ job.parent.identifier }}</p>
     </div>
 {% endif %}
 {% if filedata|length %}

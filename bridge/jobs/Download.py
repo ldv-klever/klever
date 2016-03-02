@@ -12,7 +12,7 @@ from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
 from bridge.utils import print_err, file_checksum
 from jobs.models import JOBFILE_DIR
-from jobs.utils import create_job, update_job
+from jobs.utils import create_job, update_job, change_job_status
 from reports.UploadReport import UploadReportFiles
 from reports.models import *
 from reports.utils import AttrData
@@ -345,9 +345,8 @@ class UploadJob(object):
             if not isinstance(updated_job, Job):
                 job.delete()
                 return updated_job
+        change_job_status(job, jobdata['status'])
         self.job = job
-        self.job.status = jobdata['status']
-        self.job.save()
         ReportRoot.objects.create(user=self.user, job=self.job)
         try:
             UploadReports(self.job, json.loads(jobdata['reports']), report_files)

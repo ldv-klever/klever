@@ -7,8 +7,9 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
-from bridge.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from bridge.settings import DEF_KLEVER_CORE_MODES
 from bridge.utils import print_err
+from bridge.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
 from reports.models import CompareJobsInfo
@@ -635,3 +636,31 @@ class GetFilesComparison(object):
             self.error = _('The comparison cache was not found')
             return
         return json.loads(info.files_diff)
+
+
+def change_job_status(job, status):
+    if not isinstance(job, Job) or status not in list(x[0] for x in JOB_STATUS):
+        return
+    job.status = status
+    job.save()
+    try:
+        run_data = job.runhistory_set.latest('date')
+        run_data.status = status
+        run_data.save()
+    except ObjectDoesNotExist:
+        pass
+
+
+def get_default_configuration(config_name):
+    for conf in DEF_KLEVER_CORE_MODES:
+        mode = next(iter(conf))
+        if mode == config_name:
+            return conf[mode]
+    return None
+
+
+def get_default_configurations():
+    configurations = []
+    for conf in DEF_KLEVER_CORE_MODES:
+        configurations.append(next(iter(conf)))
+    return configurations

@@ -826,6 +826,10 @@ $(document).ready(function () {
                 $('#edit_job_div').html(data);
                 inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
                 set_action_on_file_click();
+                $('.normal-dropdown').dropdown();
+                $('#download_configuration').click(function () {
+                    window.location.replace('/jobs/download_configuration/' + $('#run_history').val() + '/');
+                });
             }
         });
     }

@@ -84,6 +84,53 @@ function set_actions_for_scheduler_user() {
 
 
 $(document).ready(function () {
+    function collect_data() {
+        return {
+            data: JSON.stringify([
+                [
+                    $('input[name="priority"]:checked').val(),
+                    $('input[name="scheduler"]:checked').val(),
+                    $('input[name="avtg_priority"]:checked').val()
+                ],
+                $('input[name="parallelism"]:checked').val(),
+                [
+                    parseFloat($('#max_ram').val()),
+                    parseInt($('#max_cpus').val()),
+                    parseFloat($('#max_disk').val()),
+                    $('#cpu_model').val(),
+                    parseFloat($('#max_cpu_time').val()),
+                    parseFloat($('#max_wall_time').val())
+                ],
+                [
+                    $('#console_logging_level').val(),
+                    $('input[name="console_formatter"]:checked').val(),
+                    $('#file_logging_level').val(),
+                    $('input[name="file_formatter"]:checked').val()
+                ],
+                $('#keep_files_checkbox').is(':checked'),
+                $('#upload_verifier_checkbox').is(':checked'),
+                $('#upload_other_checkbox').is(':checked'),
+                $('#allow_localdir_checkbox').is(':checked'),
+                $('#ignore_core_checkbox').is(':checked')
+            ]),
+            job_id: $('#job_pk').val()
+        }
+    }
+    $('#default_configs').dropdown({
+        onChange: function () {
+            var conf_name = $('#default_configs').val();
+            if (conf_name == 'file_conf') {
+                $('#upload_file_conf_form').show();
+            }
+            else {
+                $.redirectPost('', {conf_name: conf_name});
+            }
+        }
+    });
+    $('#configuration_file_input').on('fileselect', function () {
+        $('#upload_file_conf_form').submit();
+    });
+
     $('.normal-dropdown').dropdown();
     $('.ui.scheduler-checkbox').addClass('checkbox');
     $('.scheduler-checkbox').checkbox({onChecked: function () {
@@ -101,10 +148,9 @@ $(document).ready(function () {
     }});
     set_actions_for_scheduler_user();
     $('#start_job_decision').click(function () {
+
         var required_fields = [
-            'max_ram', 'max_cpus', 'max_disk',
-            'parallelism_linux_kernel_build', 'parallelism_tasks_generation',
-            'console_log_formatter', 'file_log_formatter'
+            'max_ram', 'max_cpus', 'max_disk'
         ], err_found = false;
         $.each(required_fields, function (i, v) {
             var curr_input = $('#' + v);
@@ -118,23 +164,9 @@ $(document).ready(function () {
             err_notify($('#fields_required').text());
         }
         else {
-            var data = {
-                scheduler: $('input[name="scheduler"]:checked').val(),
-                priority: $('input[name="priority"]:checked').val(),
-                avtg_priority: $('input[name="avtg_priority"]:checked').val(),
-                job_id: $('#job_pk').val(),
-                cpu_model: $('#cpu_model').val(),
-                max_wall_time: $('#max_wall_time').val(),
-                max_cpu_time: $('#max_cpu_time').val(),
-                debug: $('#debug_checkbox').is(':checked'),
-                allow_local_dir: $('#allow_localdir_checkbox').is(':checked')
-            };
-            $.each(required_fields, function (i, v) {
-                data[v] = $('#' + v).val();
-            });
             $.ajax({
                 url: job_ajax_url + 'run_decision/',
-                data: {data: JSON.stringify(data)},
+                data: collect_data(),
                 type: 'POST',
                 success: function (data) {
                     if (data.error) {
