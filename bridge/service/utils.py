@@ -1,12 +1,15 @@
 import json
+from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import print_err
+from bridge.utils import print_err, file_checksum
 from bridge.settings import DEF_KLEVER_CORE_RESTRICTIONS, DEF_KLEVER_CORE_CONFIGURATION
-from jobs.utils import JobAccess
+from jobs.models import RunHistory
+from jobs.utils import JobAccess, File
 from reports.models import ReportRoot, ReportUnknown, ReportComponent
 from service.models import *
 
@@ -903,7 +906,7 @@ class StartJobDecision(object):
             except ValueError:
                 parallelism = float(self.data[parallelism_kind])
             conf['parallelism'][parallelism_kinds[parallelism_kind]] = parallelism
-        return json.dumps(conf)
+        return conf
 
     def __get_scheduler(self):
         try:
@@ -931,11 +934,26 @@ class StartJobDecision(object):
             self.job.solvingprogress.delete()
         except ObjectDoesNotExist:
             pass
+        self.__save_configuration()
         return SolvingProgress.objects.create(
             job=self.job, priority=self.data['priority'],
             scheduler=self.job_scheduler,
-            configuration=self.klever_core_data.encode('utf8')
+            configuration=json.dumps(self.klever_core_data).encode('utf8')
         )
+
+    def __save_configuration(self):
+        m = BytesIO()
+        m.write(json.dumps(self.klever_core_data, sort_keys=True, indent=4).encode('utf8'))
+        m.seek(0)
+        check_sum = file_checksum(m)
+        try:
+            db_file = File.objects.get(hash_sum=check_sum)
+        except ObjectDoesNotExist:
+            db_file = File()
+            db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
+            db_file.hash_sum = check_sum
+            db_file.save()
+        RunHistory.objects.create(job=self.job, configuration=db_file)
 
     def __check_schedulers(self):
         try:
