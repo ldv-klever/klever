@@ -14,6 +14,7 @@ from reports.models import ReportRoot, ReportUnknown, ReportComponent
 from service.models import *
 
 
+# TODO: move it to bridge/vars.py.
 # TODO: keys and values are almost the same and thus can be refactored.
 AVTG_PRIORITY = [
     ('balance', _('Balance')),
