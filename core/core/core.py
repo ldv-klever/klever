@@ -198,6 +198,11 @@ class Core:
 
                                 sub_job.conf['obtained verification statuses'].append(verification_status)
 
+                            # There is no verification statuses when some (sub)component failed prior to VTG strategy
+                            # receives some abstract verification tasks.
+                            if not sub_job.conf['obtained verification statuses']:
+                                sub_job.conf['obtained verification statuses'].append('unknown')
+
                             self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
                                               sub_job.conf['ideal verdict']] +
                                              sub_job.conf['obtained verification statuses'] +
