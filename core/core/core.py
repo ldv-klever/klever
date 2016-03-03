@@ -220,8 +220,6 @@ class Core:
                                           suffix=' validator {0}'.format(commit))
                 self.logger.info(
                     'Rearrange validation results to relate verification statuses before and after bug fixes')
-                # Sort by commit hashes. Bug identifiers will be commit hashes before corresponding bug fixes.
-                sorted(self.data)
                 # Relate validation results on commits before and after corresponding bug fixes if so.
                 validation_results = []
                 validation_results_before_bug_fixes = []
