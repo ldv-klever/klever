@@ -373,7 +373,7 @@ class UploadReports(object):
         curr_func = self.__create_report_component
         for data in self.data:
             if 'identifier' in data:
-                m = re.match('.*?(##.*)', data['identifier'])
+                m = re.match('.*?(/.*)', data['identifier'])
                 if m is None:
                     data['identifier'] = self.job.identifier
                 else:

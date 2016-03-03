@@ -2,7 +2,7 @@ import os
 import json
 import tarfile
 from io import BytesIO
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.timezone import now
@@ -45,7 +45,8 @@ class UploadReport(object):
     def __check_data(self, data):
         if not isinstance(data, dict):
             return 'Data is not a dictionary'
-        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0:
+        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0 \
+                or not data['id'].startswith('/'):
             return 'Type and id are required or have wrong format'
         if 'parent id' in data and not isinstance(data['parent id'], str):
             return 'Parent id has wrong format'
@@ -151,6 +152,13 @@ class UploadReport(object):
                 })
             except KeyError as e:
                 return "Property '%s' is required." % e
+        elif data['type'] == 'data':
+            try:
+                self.data.update({
+                    'data': data['data']
+                })
+            except KeyError as e:
+                return "Property '%s' is required." % e
         else:
             return "Report type is not supported"
         return None
@@ -202,7 +210,8 @@ class UploadReport(object):
             'verification': self.__create_report_component,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
-            'unknown': self.__create_report_unknown
+            'unknown': self.__create_report_unknown,
+            'data': self.__update_report_data
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
@@ -261,6 +270,14 @@ class UploadReport(object):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
+        except ObjectDoesNotExist:
+            self.error = 'Updated report does not exist'
+
+    def __update_report_data(self, identifier):
+        try:
+            report = ReportComponent.objects.get(identifier=identifier)
+            report.data = self.data['data'].encode('utf8')
+            report.save()
         except ObjectDoesNotExist:
             self.error = 'Updated report does not exist'
 
@@ -349,11 +366,7 @@ class UploadReport(object):
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
-            report = ReportSafe(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root,
-            )
+            report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
 
         uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
         if uf.file_content is None:
