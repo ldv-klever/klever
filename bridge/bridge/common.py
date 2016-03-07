@@ -104,7 +104,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Definitions of Klever Core log formatters (see documentation for Python 3 logging for details)
-# WARNING!!! Change also KLEVER_CORE_FORMATTERS form bridge.vars when you change these packs
+# WARNING!!! Change also KLEVER_CORE_FORMATTERS from bridge.vars when you change these packs
 KLEVER_CORE_LOG_FORMATTERS = {
     'brief': "%(name)s %(levelname)5s> %(message)s",
     'detailed': "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
@@ -114,7 +114,7 @@ KLEVER_CORE_LOG_FORMATTERS = {
 # Each Klever Core parallelism pack represents set of numbers of parallel threads/processes for following actions:
 #   build,
 #   tasks generation.
-# WARNING!!! Change also KLEVER_CORE_PARALLELISM form bridge.vars when you change these packs
+# WARNING!!! Change also KLEVER_CORE_PARALLELISM from bridge.vars when you change these packs
 KLEVER_CORE_PARALLELISM_PACKS = {
     'sequantial': (1, 1),
     'slow': (2, 2),
@@ -147,12 +147,13 @@ LOGGING_LEVELS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
 #   upload other intermediate files - True or False,
 #   allow local source directories use - True or False,
 #   ignore another instance of Klever Core - True or False.
+# WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
     {
         'production': [
             ['LOW', '0', 'balance'],
             'slow',
-            [1.0, 2, 100.0, '', 0, 0],
+            [1.0, 2, 100.0, None, None, None],
             ['WARNING', 'brief', 'INFO', 'brief'],
             False, False, False, False, False
         ]
@@ -161,7 +162,7 @@ DEF_KLEVER_CORE_MODES = [
         'development': [
             ['IDLE', '0', 'balance'],
             'fast',
-            [1.0, 1, 100.0, '', 0, 0],
+            [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
             True, True, False, True, True
         ]
@@ -170,7 +171,7 @@ DEF_KLEVER_CORE_MODES = [
         'paranoid development': [
             ['IDLE', '0', 'balance'],
             'fast',
-            [1.0, 1, 100.0, '', 0, 0],
+            [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
             True, True, True, True, True
         ]

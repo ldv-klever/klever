@@ -3,10 +3,9 @@ from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, string_concat
+from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS
-from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS
+from bridge.vars import JOB_STATUS
 from bridge.utils import print_err, file_checksum
 from jobs.models import RunHistory
 from jobs.utils import JobAccess, File, change_job_status
@@ -802,9 +801,6 @@ class StartJobDecision(object):
     def __init__(self, user, job_id, data):
         self.error = None
         self.operator = user
-        if not check_core_configuration(data):
-            self.error = 'Unknown error'
-            return
         self.data = data
         self.job = self.__get_job(job_id)
         if self.error is not None:
@@ -828,33 +824,57 @@ class StartJobDecision(object):
         self.job.save()
 
     def __get_klever_core_data(self):
+        scheduler = SCHEDULER_TYPE[0][1]
+        for sch in SCHEDULER_TYPE:
+            if sch[0] == self.data[0][1]:
+                scheduler = sch[1]
+                break
         return {
             'identifier': self.job.identifier,
-            'scheduling': {
-                'job priority': self.data[0][0],
-                'task scheduler': self.job_scheduler.get_type_display(),
-                'abstract task generation priority': self.data[0][2]
-            },
-            'parallelism': KLEVER_CORE_PARALLELISM_PACKS[self.data[1]],
+            'priority': self.data[0][0],
+            'abstract task generation priority': self.data[0][2],
+            'task scheduler': scheduler,
             'resource limits': {
-                'memory size': int(float(self.data[2][0]) * 10**9),
-                'number of CPU cores': int(self.data[2][1]),
-                'disk memory size': int(float(self.data[2][2]) * 10**9),
-                'CPU model': self.data[2][3] if len(self.data[2][3]) > 0 else None,
-                'CPU time': int(self.data[2][4]) * 10**3 * 60 if self.data[2][4] is not None else None,
-                'wall time': int(self.data[2][5]) * 10**3 * 60 if self.data[2][5] is not None else None
+                'memory size': int(self.data[2][0] * 10**9),
+                'number of CPU cores': self.data[2][1],
+                'disk memory size': int(self.data[2][2] * 10**9),
+                'CPU model': self.data[2][3] if isinstance(self.data[2][3], str) and len(self.data[2][3]) > 0 else None,
+                'CPU time': int(self.data[2][4] * 10**4 * 6) if self.data[2][4] is not None else None,
+                'wall time': int(self.data[2][5] * 10**4 * 6) if self.data[2][5] is not None else None
             },
-            'keep intermediate files': self.data[4],
-            'upload input files of static verifiers': self.data[5],
-            'upload other intermediate files': self.data[6],
-            'allow local source directories use': self.data[7],
-            'ignore another instance of Klever Core': self.data[8],
+            'keep intermediate files': self.data[4][0],
+            'upload input files of static verifiers': self.data[4][1],
+            'upload other intermediate files': self.data[4][2],
+            'allow local source directories use': self.data[4][3],
+            'ignore another instance of Klever Core': self.data[4][4],
             'logging': {
-                'console log level': self.data[3][0],
-                'console log formatter': self.data[3][1],
-                'file log level': self.data[3][2],
-                'file log formatter': self.data[3][3]
+                'formatters': [
+                    {
+                        'name': 'brief',
+                        'value': self.data[3][1]
+                    },
+                    {
+                        'name': 'detailed',
+                        'value': self.data[3][3]
+                    }
+                ],
+                'loggers': [
+                    {
+                        'formatter': 'brief',
+                        'level': self.data[3][0],
+                        'name': 'console'
+                    },
+                    {
+                        'formatter': 'detailed',
+                        'level': self.data[3][2],
+                        'name': 'file'
+                    }
+                ]
             },
+            'parallelism': {
+                'Linux kernel build': self.data[1][0],
+                'Tasks generation': self.data[1][1]
+            }
         }
 
     def __get_scheduler(self):
@@ -919,100 +939,3 @@ class StartJobDecision(object):
             except ObjectDoesNotExist:
                 self.error = _("You didn't specify credentials for VerifierCloud")
                 return
-
-
-# Case 3.4(5) DONE
-class StartDecisionData(object):
-    def __init__(self, user, data):
-        self.error = None
-        if not check_core_configuration(data):
-            self.error = 'Unknown error'
-            return
-        self.default = data
-
-        self.job_sch_err = None
-        self.schedulers = self.__get_schedulers()
-        if self.error is not None:
-            return
-
-        self.priorities = list(reversed(PRIORITY))
-        self.logging_levels = LOGGING_LEVELS
-
-        self.need_auth = False
-        try:
-            user.scheduleruser
-        except ObjectDoesNotExist:
-            self.need_auth = True
-        self.parallelism = KLEVER_CORE_PARALLELISM
-        self.formatters = KLEVER_CORE_FORMATTERS
-        self.avtg_priorities = AVTG_PRIORITY
-
-    def __get_schedulers(self):
-        schedulers = []
-        try:
-            klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
-        except ObjectDoesNotExist:
-            self.error = 'Unknown error'
-            return []
-        try:
-            cloud_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[1][0])
-        except ObjectDoesNotExist:
-            self.error = 'Unknown error'
-            return []
-        if klever_sch.status == SCHEDULER_STATUS[1][0]:
-            self.job_sch_err = _("The Klever scheduler is ailing")
-        elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _("The Klever scheduler is disconnected")
-            return []
-        schedulers.append([
-            klever_sch.type,
-            string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')
-        ])
-        if cloud_sch.status != SCHEDULER_STATUS[2][0]:
-            schedulers.append([
-                cloud_sch.type,
-                string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
-            ])
-        return schedulers
-
-
-def check_core_configuration(configuration):
-    if not isinstance(configuration, list) or len(configuration) != 9:
-        return False
-    if not isinstance(configuration[0], list) or len(configuration[0]) != 3:
-        return False
-    if configuration[1] not in KLEVER_CORE_PARALLELISM_PACKS:
-        return False
-    if not isinstance(configuration[2], list) or len(configuration[2]) != 6:
-        return False
-    if not isinstance(configuration[3], list) or len(configuration[3]) != 4:
-        return False
-    if any(not isinstance(x, bool) for x in configuration[4:]):
-        return False
-    if configuration[0][0] not in list(x[0] for x in PRIORITY):
-        return False
-    if configuration[0][1] not in list(x[0] for x in SCHEDULER_TYPE):
-        return False
-    if configuration[0][2] not in list(x[0] for x in AVTG_PRIORITY):
-        return False
-    if not isinstance(configuration[2][0], (float, int)):
-        return False
-    if not isinstance(configuration[2][1], int):
-        return False
-    if not isinstance(configuration[2][2], (float, int)):
-        return False
-    if not isinstance(configuration[2][3], str):
-        return False
-    if not isinstance(configuration[2][4], (float, int)):
-        return False
-    if not isinstance(configuration[2][5], (float, int)):
-        return False
-    if configuration[3][0] not in LOGGING_LEVELS:
-        return False
-    if configuration[3][2] not in LOGGING_LEVELS:
-        return False
-    if configuration[3][1] not in KLEVER_CORE_LOG_FORMATTERS:
-        return False
-    if configuration[3][3] not in KLEVER_CORE_LOG_FORMATTERS:
-        return False
-    return True

@@ -401,3 +401,9 @@ KLEVER_CORE_FORMATTERS = (
     ('detailed', _('Detailed')),
     ('paranoid', _('Paranoid'))
 )
+
+START_JOB_DEFAULT_MODES = {
+    'production': _('Production'),
+    'development': _('Development'),
+    'paranoid development': _('Paranoid development')
+}

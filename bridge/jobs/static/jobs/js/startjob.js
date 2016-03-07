@@ -92,7 +92,7 @@ $(document).ready(function () {
                     $('input[name="scheduler"]:checked').val(),
                     $('input[name="avtg_priority"]:checked').val()
                 ],
-                $('input[name="parallelism"]:checked').val(),
+                [$('#kernel_build_parallelism__value').val(), $('#tasks_gen_parallelism__value').val()],
                 [
                     parseFloat($('#max_ram').val()),
                     parseInt($('#max_cpus').val()),
@@ -103,15 +103,17 @@ $(document).ready(function () {
                 ],
                 [
                     $('#console_logging_level').val(),
-                    $('input[name="console_formatter"]:checked').val(),
+                    $('#console_log_formatter__value').val(),
                     $('#file_logging_level').val(),
-                    $('input[name="file_formatter"]:checked').val()
+                    $('#file_log_formatter__value').val()
                 ],
-                $('#keep_files_checkbox').is(':checked'),
-                $('#upload_verifier_checkbox').is(':checked'),
-                $('#upload_other_checkbox').is(':checked'),
-                $('#allow_localdir_checkbox').is(':checked'),
-                $('#ignore_core_checkbox').is(':checked')
+                [
+                    $('#keep_files_checkbox').is(':checked'),
+                    $('#upload_verifier_checkbox').is(':checked'),
+                    $('#upload_other_checkbox').is(':checked'),
+                    $('#allow_localdir_checkbox').is(':checked'),
+                    $('#ignore_core_checkbox').is(':checked')
+                ]
             ]),
             job_id: $('#job_pk').val()
         }
@@ -150,7 +152,9 @@ $(document).ready(function () {
     $('#start_job_decision').click(function () {
 
         var required_fields = [
-            'max_ram', 'max_cpus', 'max_disk'
+            'max_ram', 'max_cpus', 'max_disk',
+            'console_log_formatter__value', 'file_log_formatter__value',
+            'kernel_build_parallelism__value', 'tasks_gen_parallelism__value'
         ], err_found = false;
         $.each(required_fields, function (i, v) {
             var curr_input = $('#' + v);
@@ -178,5 +182,27 @@ $(document).ready(function () {
                 }
             });
         }
+    });
+
+    $('.get-attr-value').click(function () {
+        $(this).find('input').each(function () {
+            var attr_input = $(this);
+            $.ajax({
+                url: job_ajax_url + 'get_def_start_job_val/',
+                data: {
+                    name: attr_input.attr('name'),
+                    value: attr_input.val()
+                },
+                type: 'POST',
+                success: function (data) {
+                    if (data.error) {
+                        err_notify(data.error);
+                    }
+                    else {
+                        $('#' + attr_input.attr('class') + '__value').val(data.value);
+                    }
+                }
+            });
+        });
     });
 });

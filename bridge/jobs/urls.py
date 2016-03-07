@@ -34,6 +34,7 @@ urlpatterns = [
     url(r'^ajax/get_job_data/$', views.get_job_data),
     url(r'^ajax/check_compare_access/$', views.check_compare_access),
     url(r'^ajax/get_file_by_checksum/$', views.get_file_by_checksum),
+    url(r'^ajax/get_def_start_job_val/$', views.get_def_start_job_val),
 
     # For Klever Core
     url(r'^decide_job/$', views.decide_job),

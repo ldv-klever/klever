@@ -7,12 +7,15 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
-from bridge.settings import DEF_KLEVER_CORE_MODES
+from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
+    DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES
 from bridge.utils import print_err
-from bridge.vars import USER_ROLES, JOB_ROLES, JOB_STATUS
+from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
+    USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
 from reports.models import CompareJobsInfo
+from service.models import SchedulerUser, Scheduler
 
 
 READABLE = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl']
@@ -651,16 +654,224 @@ def change_job_status(job, status):
         pass
 
 
-def get_default_configuration(config_name):
-    for conf in DEF_KLEVER_CORE_MODES:
-        mode = next(iter(conf))
-        if mode == config_name:
-            return conf[mode]
-    return None
-
-
 def get_default_configurations():
     configurations = []
     for conf in DEF_KLEVER_CORE_MODES:
-        configurations.append(next(iter(conf)))
+        mode = next(iter(conf))
+        configurations.append([
+            mode,
+            START_JOB_DEFAULT_MODES[mode] if mode in START_JOB_DEFAULT_MODES else mode
+        ])
     return configurations
+
+
+class GetConfiguration(object):
+    def __init__(self, conf_name=None, file_conf=None, user_conf=None):
+        self.error = None
+        self.configuration = None
+        if conf_name is not None:
+            self.__get_default_conf(conf_name)
+        elif file_conf is not None:
+            self.__get_file_conf(file_conf)
+        elif user_conf is not None:
+            self.__get_user_conf(user_conf)
+        if not self.__check_conf():
+            self.configuration = None
+
+    def __get_default_conf(self, name):
+        if name is None:
+            name = DEF_KLEVER_CORE_MODE
+        conf_template = None
+        for conf in DEF_KLEVER_CORE_MODES:
+            mode = next(iter(conf))
+            if mode == name:
+                conf_template = conf[mode]
+        if conf_template is None:
+            return
+        try:
+            self.configuration = [
+                list(conf_template[0]),
+                list(KLEVER_CORE_PARALLELISM_PACKS[conf_template[1]]),
+                list(conf_template[2]),
+                [
+                    conf_template[3][0],
+                    KLEVER_CORE_LOG_FORMATTERS[conf_template[3][1]],
+                    conf_template[3][2],
+                    KLEVER_CORE_LOG_FORMATTERS[conf_template[3][3]],
+                ],
+                list(conf_template[4:])
+            ]
+        except Exception as e:
+            print_err(e)
+
+    def __get_file_conf(self, filedata):
+        scheduler = None
+        for sch in SCHEDULER_TYPE:
+            if sch[1] == filedata['task scheduler']:
+                scheduler = sch[0]
+        if scheduler is None:
+            print_err('Scheduler %s is not supported' % filedata['task scheduler'])
+            return
+
+        cpu_time = filedata['resource limits']['CPU time']
+        if isinstance(cpu_time, int):
+            cpu_time = float("%0.3f" % (filedata['resource limits']['CPU time'] / (6 * 10**4)))
+        wall_time = filedata['resource limits']['wall time']
+        if isinstance(wall_time, int):
+            wall_time = float("%0.3f" % (filedata['resource limits']['wall time'] / (6 * 10**4)))
+
+        try:
+            formatters = {}
+            for f in filedata['logging']['formatters']:
+                formatters[f['name']] = f['value']
+            loggers = {}
+            for l in filedata['logging']['loggers']:
+                loggers[l['name']] = {
+                    'formatter': formatters[l['formatter']],
+                    'level': l['level']
+                }
+            logging = [
+                loggers['console']['level'],
+                loggers['console']['formatter'],
+                loggers['file']['level'],
+                loggers['file']['formatter']
+            ]
+        except Exception as e:
+            print_err("Wrong logging format: %s" % e)
+            return
+
+        try:
+            self.configuration = [
+                [filedata['priority'], scheduler, filedata['abstract task generation priority']],
+                [filedata['parallelism']['Linux kernel build'], filedata['parallelism']['Tasks generation']],
+                [
+                    filedata['resource limits']['memory size'] / 10**9,
+                    filedata['resource limits']['number of CPU cores'],
+                    filedata['resource limits']['disk memory size'] / 10**9,
+                    filedata['resource limits']['CPU model'],
+                    cpu_time, wall_time
+                ],
+                logging,
+                [
+                    filedata['keep intermediate files'],
+                    filedata['upload input files of static verifiers'],
+                    filedata['upload other intermediate files'],
+                    filedata['allow local source directories use'],
+                    filedata['ignore another instance of Klever Core']
+                ]
+            ]
+        except Exception as e:
+            print_err("Wrong core configuration format: %s" % e)
+
+    def __get_user_conf(self, conf):
+        def int_or_float(val):
+            try:
+                return int(val)
+            except ValueError:
+                return float(val)
+
+        try:
+            conf[1][0] = int_or_float(conf[1][0])
+            conf[1][1] = int_or_float(conf[1][1])
+            if len(conf[2][3]) == 0:
+                conf[2][3] = None
+        except Exception as e:
+            print_err("Wrong user configuration format: %s" % e)
+            return
+        self.configuration = conf
+
+    def __check_conf(self):
+        if not isinstance(self.configuration, list) or len(self.configuration) != 5:
+            return False
+        if not isinstance(self.configuration[0], list) or len(self.configuration[0]) != 3:
+            return False
+        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 2:
+            return False
+        if not isinstance(self.configuration[2], list) or len(self.configuration[2]) != 6:
+            return False
+        if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
+            return False
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 5:
+            return False
+        if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
+            return False
+        if self.configuration[0][1] not in list(x[0] for x in SCHEDULER_TYPE):
+            return False
+        if self.configuration[0][2] not in list(x[0] for x in AVTG_PRIORITY):
+            return False
+        if not isinstance(self.configuration[1][0], (float, int)):
+            return False
+        if not isinstance(self.configuration[1][1], (float, int)):
+            return False
+        if not isinstance(self.configuration[2][0], (float, int)):
+            return False
+        if not isinstance(self.configuration[2][1], int):
+            return False
+        if not isinstance(self.configuration[2][2], (float, int)):
+            return False
+        if not isinstance(self.configuration[2][3], str) and self.configuration[2][3] is not None:
+            return False
+        if not isinstance(self.configuration[2][4], (float, int)) and self.configuration[2][4] is not None:
+            return False
+        if not isinstance(self.configuration[2][5], (float, int)) and self.configuration[2][5] is not None:
+            return False
+        if self.configuration[3][0] not in LOGGING_LEVELS:
+            return False
+        if self.configuration[3][2] not in LOGGING_LEVELS:
+            return False
+        if not isinstance(self.configuration[3][1], str) or not isinstance(self.configuration[3][3], str):
+            return False
+        if any(not isinstance(x, bool) for x in self.configuration[4]):
+            return False
+        return True
+
+
+class StartDecisionData(object):
+    def __init__(self, user, data):
+        self.error = None
+        self.default = data
+
+        self.job_sch_err = None
+        self.schedulers = self.__get_schedulers()
+        if self.error is not None:
+            return
+
+        self.priorities = list(reversed(PRIORITY))
+        self.logging_levels = LOGGING_LEVELS
+        self.parallelism = KLEVER_CORE_PARALLELISM
+        self.formatters = KLEVER_CORE_FORMATTERS
+        self.avtg_priorities = AVTG_PRIORITY
+
+        self.need_auth = False
+        try:
+            SchedulerUser.objects.get(user=user)
+        except ObjectDoesNotExist:
+            self.need_auth = True
+
+    def __get_schedulers(self):
+        schedulers = []
+        try:
+            klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
+        except ObjectDoesNotExist:
+            self.error = 'Unknown error'
+            return []
+        try:
+            cloud_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[1][0])
+        except ObjectDoesNotExist:
+            self.error = 'Unknown error'
+            return []
+        if klever_sch.status == SCHEDULER_STATUS[1][0]:
+            self.job_sch_err = _("The Klever scheduler is ailing")
+        elif klever_sch.status == SCHEDULER_STATUS[2][0]:
+            self.error = _("The Klever scheduler is disconnected")
+            return []
+        schedulers.append([
+            klever_sch.type,
+            string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')
+        ])
+        if cloud_sch.status != SCHEDULER_STATUS[2][0]:
+            schedulers.append([
+                cloud_sch.type,
+                string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
+            ])
+        return schedulers

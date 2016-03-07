@@ -9,8 +9,7 @@ from django.shortcuts import get_object_or_404, render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
-from bridge.settings import DEF_KLEVER_CORE_MODE
-from bridge.vars import VIEW_TYPES, PRIORITY
+from bridge.vars import VIEW_TYPES
 from bridge.utils import unparallel, unparallel_group, print_exec_time, file_checksum
 from jobs.forms import FileForm
 from jobs.ViewJobData import ViewJobData
@@ -22,7 +21,7 @@ from reports.comparison import can_compare
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
 from jobs.models import RunHistory
-from service.utils import StartJobDecision, StartDecisionData, StopDecision
+from service.utils import StartJobDecision, StopDecision
 
 
 @login_required
@@ -773,10 +772,12 @@ def run_decision(request):
     if any(x not in request.POST for x in ['data', 'job_id']):
         return JsonResponse({'error': 'Unknown error'})
     try:
-        config = json.loads(request.POST['data'])
+        configuration = GetConfiguration(user_conf=json.loads(request.POST['data'])).configuration
     except ValueError:
         return JsonResponse({'error': 'Unknown error'})
-    result = StartJobDecision(request.user, request.POST['job_id'], config)
+    if configuration is None:
+        return JsonResponse({'error': 'Unknown error'})
+    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
@@ -795,14 +796,16 @@ def prepare_decision(request, job_id):
             if 'file_conf' not in request.FILES:
                 return HttpResponseRedirect(reverse('error', args=[500]))
             try:
-                configuration = json.loads(request.FILES['file_conf'].read().decode('utf8'))
+                configuration = GetConfiguration(
+                    file_conf=json.loads(request.FILES['file_conf'].read().decode('utf8'))
+                ).configuration
             except Exception as e:
                 print_err(e)
                 return HttpResponseRedirect(reverse('error', args=[500]))
         else:
-            configuration = get_default_configuration(request.POST['conf_name'])
+            configuration = GetConfiguration(conf_name=request.POST['conf_name']).configuration
     else:
-        configuration = get_default_configuration(DEF_KLEVER_CORE_MODE)
+        configuration = GetConfiguration(conf_name=DEF_KLEVER_CORE_MODE).configuration
         current_conf = DEF_KLEVER_CORE_MODE
     if configuration is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
@@ -824,7 +827,10 @@ def fast_run_decision(request):
         return JsonResponse({'error': 'Unknown error'})
     if DEF_KLEVER_CORE_MODE not in DEF_KLEVER_CORE_MODES:
         return JsonResponse({'error': 'Unknown error'})
-    result = StartJobDecision(request.user, request.POST['job_id'], get_default_configuration(DEF_KLEVER_CORE_MODE))
+    configuration = GetConfiguration(conf_name=DEF_KLEVER_CORE_MODE).configuration
+    if configuration is None:
+        return JsonResponse({'error': 'Unknown error'})
+    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
@@ -910,3 +916,17 @@ def download_configuration(request, runhistory_id):
     response['Content-Length'] = len(run_history.configuration.file)
     response['Content-Disposition'] = "attachment; filename=%s" % quote(file_name)
     return response
+
+
+def get_def_start_job_val(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'name' not in request.POST or 'value' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    if request.POST['name'] == 'formatter' and request.POST['value'] in KLEVER_CORE_LOG_FORMATTERS:
+        return JsonResponse({'value': KLEVER_CORE_LOG_FORMATTERS[request.POST['value']]})
+    if request.POST['name'] == 'kernel_build_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
+        return JsonResponse({'value': str(KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][0])})
+    if request.POST['name'] == 'tasks_gen_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
+        return JsonResponse({'value': str(KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][1])})
+    return JsonResponse({'error': 'Unknown error'})
