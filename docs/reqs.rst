@@ -48,6 +48,7 @@ To run Klever Core you need:
 
 * `GNU make <https://www.gnu.org/software/make/>`_.
 * `GNU bc <https://www.gnu.org/software/bc/>`_.
+* `git <https://git-scm.com/>`_ (just if you are going to verify commits to Git repositories).
 * `graphviz <http://graphviz.org/>`_.
 * `CIF <http://forge.ispras.ru/projects/cif>`_.
 
