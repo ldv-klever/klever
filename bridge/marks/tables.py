@@ -4,7 +4,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.tableHead import Header
-from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, DEFAULT_COMPARE_ATTRS
+from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS
 from marks.models import *
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -598,8 +598,8 @@ class MarkData(object):
         elif isinstance(report, (ReportUnsafe, ReportSafe)):
             for rep_attr in report.attrs.order_by('id'):
                 is_compare = False
-                if report.root.job.type in DEFAULT_COMPARE_ATTRS \
-                        and rep_attr.attr.name.name in DEFAULT_COMPARE_ATTRS[report.root.job.type]:
+                if report.root.job.type in MARKS_COMPARE_ATTRS \
+                        and rep_attr.attr.name.name in MARKS_COMPARE_ATTRS[report.root.job.type]:
                     is_compare = True
                 values.append((rep_attr.attr.name.name, rep_attr.attr.value, is_compare))
         else:
