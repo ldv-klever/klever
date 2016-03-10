@@ -15,7 +15,7 @@ COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['verification object', 'rule specification'],
     JOB_CLASSES[1][0]: ['verification object', 'rule specification'],
     JOB_CLASSES[2][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[3][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[3][0]: ['Commit', 'verification object', 'rule specification'],
     JOB_CLASSES[4][0]: ['verification object', 'rule specification'],
     JOB_CLASSES[5][0]: ['verification object', 'rule specification']
 }
