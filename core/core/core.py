@@ -499,8 +499,8 @@ class Core:
         for commit1, ideal_verdict1, verification_status1, comment1 in validation_results_before_bug_fixes:
             found_validation_res_after_bug_fix = False
             for commit2, ideal_verdict2, verification_status2, comment2 in validation_results_after_bug_fixes:
-                # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash".
-                if commit1.startswith(commit2):
+                # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v.
+                if commit1 == commit2 + '~' or commit2 == commit1 + '~':
                     found_validation_res_after_bug_fix = True
                     break
             validation_res_msg = 'Verification status of bug "{0}" before fix is "{1}"{2}'.format(
