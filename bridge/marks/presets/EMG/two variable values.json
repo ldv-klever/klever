@@ -1,4 +1,5 @@
 {
   "function": "RuntimeError: Seems two values spring from one variable",
-  "pattern": "TwoVarValue"
+  "pattern": "TwoVarValue",
+  "link": "https://forge.ispras.ru/issues/6773"
 }
