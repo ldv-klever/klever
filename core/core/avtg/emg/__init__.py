@@ -39,7 +39,7 @@ class EMG(core.components.Component):
         # Generate module interface specification
         self.logger.info("============== Modules interface categories selection stage ==============")
         mcs = ModuleCategoriesSpecification(self.logger)
-        mcs.import_specification(interface_spec, interface_spec, module_interface_spec, analysis)
+        mcs.import_specification(interface_spec, module_interface_spec, analysis)
         # todo: export specification (issue 6561)
         #mcs.save_to_file("module_specification.json")
 
@@ -148,9 +148,9 @@ class EMG(core.components.Component):
                                         " matches event categories specification, please check its content".
                                         format(file))
 
-        if not self.interface_spec:
+        if not interface_spec:
             raise FileNotFoundError("Environment model generator missed an interface categories specification")
-        elif not self.event_spec:
+        elif not event_spec:
             raise FileNotFoundError("Environment model generator missed an event categories specification")
 
         return interface_spec, module_interface_spec, event_categories_spec

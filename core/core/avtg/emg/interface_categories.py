@@ -1,14 +1,7 @@
-from core.avtg.emg.common.interface import Interface, extract_full_identifier
+from core.avtg.emg.common.interface import Interface, InterfaceReference, Function, import_signature
 
 
 class CategoriesSpecification:
-
-    def __init__(self, logger):
-        self.logger = logger
-        self.interfaces = {}
-        self.kernel_functions = {}
-        self.kernel_macro_functions = {}
-        self.kernel_macros = {}
 
     def containers(self, category=None):
         return [interface for interface in self.interfaces.values() if interface.container and
@@ -27,7 +20,37 @@ class CategoriesSpecification:
         return set([interface.category for interface in self.interfaces.values()])
 
     def resolve_interface(self, signature):
-        pass
+        if type(signature) is InterfaceReference and signature.interface in self.interfaces:
+            return self.interfaces[signature.interface]
+        elif type(signature) is InterfaceReference and signature.interface not in self.interfaces:
+            new = Interface(signature.category, signature.short_identifier)
+            self.interfaces[new.identifier] = new
+            return new
+        else:
+            for interface in self.interfaces.values():
+                if type(interface.declaration) is type(signature) and \
+                        (interface.declaration.identifier == signature.identifier or \
+                         signature.pointer_alias(interface.declaration)):
+                    return interface
+
+            return None
+
+    def _resolve_function_interfaces(self, interface):
+        if interface.declaration.return_value:
+            rv_interface = self.resolve_interface(interface.declaration.return_value)
+            if rv_interface:
+                interface.rv_interface = rv_interface
+
+        for index in range(len(interface.declaration.parameters)):
+            if type(interface.declaration.parameters[index]) is not str:
+                p_interface = self.resolve_interface(interface.declaration.parameters[index])
+            else:
+                p_interface = None
+
+            if len(interface.param_interfaces) > index:
+                interface.param_interfaces[index] = p_interface
+            else:
+                interface.param_interfaces.append(p_interface)
 
     def import_specification(self, specification):
         self.logger.info("Analyze provided interface categories specification")
@@ -39,19 +62,20 @@ class CategoriesSpecification:
             self.logger.info("Import kernel functions description")
             for intf in self.__import_kernel_interfaces("kernel functions", specification):
                 self.kernel_functions[intf.identifier] = intf
-                self.logger.debug("New interface {} has been imported".format(intf.full_identifier))
+                self.logger.debug("New interface {} has been imported".format(intf.identifier))
         else:
             self.logger.warning("Kernel functions are not provided within an interface categories specification, "
                                 "expect 'kernel functions' attribute")
 
-        if "kernel macro-functions" in specification:
-            self.logger.info("Import kernel macro-functions description")
-            for intf in self.__import_kernel_interfaces("kernel macro-functions", specification):
-                self.kernel_macro_functions[intf.identifier] = intf
-                self.logger.debug("New interface {} has been imported".format(intf.full_identifier))
-        else:
-            self.logger.warning("Kernel functions are not provided within an interface categories specification, "
-                                "expect 'kernel macro-functions' attribute")
+        # todo: do not ignore the section (issue #6573)
+        #if "kernel macro-functions" in specification:
+        #    self.logger.info("Import kernel macro-functions description")
+        #    for intf in self.__import_kernel_interfaces("kernel macro-functions", specification):
+        #        self.kernel_macro_functions[intf.identifier] = intf
+        #        self.logger.debug("New interface {} has been imported".format(intf.identifier))
+        #else:
+        #    self.logger.warning("Kernel functions are not provided within an interface categories specification, "
+        #                        "expect 'kernel macro-functions' attribute")
 
     def __import_kernel_interfaces(self, category_name, collection):
         for identifier in collection[category_name]:
@@ -63,7 +87,9 @@ class CategoriesSpecification:
                 raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category_name))
 
             interface = Interface(category_name, identifier)
-            interface.import_signature(collection[category_name][identifier]["signature"])
+            interface.import_declaration(collection[category_name][identifier]["signature"])
+            if type(interface.declaration) is Function:
+                self._resolve_function_interfaces(interface)
             interface.header = collection[category_name][identifier]["header"]
             interface.implemented_in_kernel = True
 
@@ -86,17 +112,20 @@ class CategoriesSpecification:
                 interface.header = collection[intf_identifier]["header"]
 
             if "signature" in collection[intf_identifier]:
-                interface.import_signature(collection[intf_identifier]["signature"])
+                interface.import_declaration(collection[intf_identifier]["signature"])
+                if type(interface.declaration) is Function:
+                    self._resolve_function_interfaces(interface)
 
                 # Import field interfaces
                 if "fields" in collection[intf_identifier]:
                     for field in collection[intf_identifier]["fields"]:
-                        if collection[intf_identifier]["fields"] in self.interfaces:
-                            p_interface = self.interfaces[collection[intf_identifier]["fields"]]
-                        else:
-                            p_category, p_identifier = extract_full_identifier(collection[intf_identifier]["fields"])
-                            p_interface = Interface(p_category, p_identifier)
-                            self.interfaces[p_interface.identifier] = p_interface
+                        f_interfce = import_signature(collection[intf_identifier]["fields"][field])
+                        if type(f_interfce) is InterfaceReference:
+                            if f_interfce.interface in self.interfaces:
+                                p_interface = self.interfaces[f_interfce.interface]
+                            else:
+                                p_interface = Interface(f_interfce.category, f_interfce.short_identifier)
+                                self.interfaces[p_interface.identifier] = p_interface
 
                         interface.field_interfaces[field] = p_interface
             elif "signature" not in collection[intf_identifier] and \

@@ -1,15 +1,20 @@
 import json
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
-from core.avtg.emg.common.interface import Interface, Function, Primitive, Structure, yield_basetype
+from core.avtg.emg.common.interface import Interface, Function, Primitive, Structure, import_signature
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
 
-    def __init__(self):
+    def __init__(self, logger):
+        self.logger = logger
+        self.interfaces = {}
+        self.kernel_functions = {}
+        self.kernel_macro_functions = {}
+        self.kernel_macros = {}
+        self.modules_functions = None
         self.inits = None
         self.exits = None
-        self.modules_functions = None
 
     def import_specification(self, specification=None, module_specification=None, analysis=None):
         # Import interface categories
@@ -35,16 +40,16 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
     @staticmethod
     def __add_type(signature, types):
-        new_type = yield_basetype(signature)
+        new_type = import_signature(signature)
         if new_type.identifier not in types:
-            types[new_type.ideintifier] = new_type
+            types[new_type.identifier] = new_type
 
             if type(new_type) is Function:
-                if new_type.return_value and new_type.return_value.idenitfier in types:
-                    new_type.return_value = types[new_type.return_value.idenitfier]
+                if new_type.return_value and new_type.return_value.identifier in types:
+                    new_type.return_value = types[new_type.return_value.identifier]
                 elif new_type.return_value and \
-                                new_type.return_value.idenitfier not in types:
-                    types[new_type.return_value.idenitfier] = new_type.return_value
+                                new_type.return_value.identifier not in types:
+                    types[new_type.return_value.identifier] = new_type.return_value
 
                 for index in range(len(new_type.parameters)):
                     parameter = new_type.parameters[index]
@@ -53,7 +58,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     elif type(parameter) is not str and parameter.identifier not in types:
                         types[parameter.identifier] = new_type.parameters[index]
         else:
-            new_type = types[new_type.ideintifier]
+            new_type = types[new_type.identifier]
 
         return new_type
 
@@ -80,6 +85,21 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         return relevant
 
+    @staticmethod
+    def __container_check(self, tp, category):
+        if tp.suits_for_container and tp not in category['containers']:
+            category['containers'].append(tp)
+
+    @staticmethod
+    def __resource_check(self, tp, category):
+        if tp not in category['resources']:
+            category['resources'].append(tp)
+
+    @staticmethod
+    def __callback_check(self, tp, category):
+        if tp.suits_for_callbacks and tp not in category['callbacks']:
+            category['callbacks'].append(tp)
+
     def __import_source_analysis(self, analysis):
         self.logger.info("Import modules init and exit functions")
         self.__import_inits_exits(analysis)
@@ -100,11 +120,11 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
     def __import_inits_exits(self, analysis):
         self.logger.debug("Move module initilizations functions to the modules interface specification")
         if "init" in analysis:
-            self.inits = self.analysis["init"]
+            self.inits = analysis["init"]
 
         self.logger.debug("Move module exit functions to the modules interface specification")
-        if "exit" in self.analysis:
-            self.exits = self.analysis["exit"]
+        if "exit" in analysis:
+            self.exits = analysis["exit"]
 
     def __extract_types(self, analysis):
         types = {}
@@ -118,10 +138,10 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     entity = {
                         "path": path,
                         "description": analysis["global variable initializations"][path][variable],
-                        "root values": None,
-                        "root types": None,
+                        "root value": None,
+                        "root type": None,
                         "root sequence": [],
-                        "type": bt.identifier
+                        "type": bt
                     }
                     types[bt.identifier] = bt
                     entities.append(entity)
@@ -132,7 +152,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             kernel_functions = {}
             for function in analysis['kernel functions']:
                 self.logger.debug("Parse signature of function {}".format(function))
-                kernel_functions[function] = self.__add_type(function, types)
+                kernel_functions[function] = self.__add_type(analysis['kernel functions'][function]['signature'], types)
         
         modules_functions = {}
         if 'modules functions' in analysis:
@@ -171,7 +191,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     entity["root sequence"]
                 )
 
-            if entity["description"]['type'] == 'structure':
+            if 'fields' in entity['description']:
                 if not entity["root type"] and not entity["root value"]:
                     new_root_type = bt
                     new_root_value = entity["description"]["value"]
@@ -195,7 +215,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
                     entities.append(new_desc)
                     bt.fields[field] = f_bt
-            elif entity["description"]['type'] == 'array':
+            elif 'elements' in entity['description']:
                 # todo: support arrays (issue #6559)
                 # todo: add element number to sequence number instead of the field
                 raise NotImplementedError("support arrays")
@@ -240,15 +260,6 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         return categories
 
-    def __container_check(self, tp, category):
-        raise NotImplementedError
-
-    def __resource_check(self, tp, category):
-        raise NotImplementedError
-
-    def __callback_check(self, tp, category):
-        raise NotImplementedError
-
     def __merge_categories(self, categories, kernel_functions,  module_functions):
         self.logger.info("Try to find suitable interface descriptions for found types")
         for category in categories:
@@ -260,7 +271,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     interface = self.resolve_interface(signature)
                     if not interface:
                         interface = Interface(category_identifier, signature.identifier)
-                    interface.import_signature(signature)
+                    interface.import_declaration(signature)
 
                     if interface_category == "callbacks":
                         interface.callback = True
@@ -278,32 +289,16 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
             # Resolve callback parameters
             for callback in self.callbacks(category_identifier):
-                self.__resolve_function_interfaces(callback)
+                self._resolve_function_interfaces(callback)
 
             # Resolve kernel function parameters
             for function in self.kernel_functions.values():
-                self.__resolve_function_interfaces(function)
+                self._resolve_function_interfaces(function)
 
             # Resolve module function parameters
             for function_name in self.modules_functions:
                 for function in self.modules_functions[function_name].values():
-                    self.__resolve_function_interfaces(function)
-
-    def __resolve_function_interfaces(self, interface):
-        if interface.declaration.return_value:
-            rv_interface = self.resolve_interface(interface.declaration.return_value)
-            if rv_interface:
-                interface.rv_interface = rv_interface
-
-        for index in range(len(interface.declaration.parameters)):
-            if type(interface.declaration.parameters[index]) is not str:
-                p_interface = self.resolve_interface(interface.declaration.parameters[index])
-                if p_interface:
-                    interface.param_interfaces[index] = p_interface
-                else:
-                    interface.param_interfaces[index] = None
-            else:
-                interface.param_interfaces[index] = None
+                    self._resolve_function_interfaces(function)
 
     def __yield_category(self, category):
         category_identifier = None

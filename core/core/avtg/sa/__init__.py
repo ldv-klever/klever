@@ -169,11 +169,16 @@ class SA(core.components.Component):
             for line in content:
                 if exec_re.fullmatch(line):
                     path, name, ret_type, args, is_var_args = exec_re.fullmatch(line).groups()
+
                     if not self.collection["functions"][name]["files"][path]:
-                        self.collection["functions"][name]["files"][path]["return value type"] = ret_type
-                        self.collection["functions"][name]["files"][path]["parameters"] = [arg[1] for arg in arg_re.findall(args)]
-                        self.collection["functions"][name]["files"][path]["signature"] = "{} {}({})".\
-                            format("$", name, "..")
+                        if ret_type == 'void %s':
+                            ret_type = 'void'
+                        parameters = ', '.join([arg[1] for arg in arg_re.findall(args)])
+                        if parameters == '':
+                            parameters = 'void'
+                        self.collection["functions"][name]["files"][path]["signature"] = \
+                            "{} {}({})".format(ret_type, name, parameters)
+
                         self.collection["functions"][name]["files"][path]["variable arguments"] = is_var_args
                     if not self.collection["functions"][name]["files"][path]["static"]:
                         self.collection["functions"][name]["files"][path]["static"] = execution_source["static"]
@@ -549,12 +554,15 @@ class GlobalInitParser:
             all_args_re = re.compile("\s'([^']*)'")
 
             return_type = ret_re.match(block[0]).group(1)
+            if return_type == 'void %s':
+                return_type = 'void'
             args = args_re.match(block[1]).group(1)
             parameters = all_args_re.findall(args)
-            value = value_re.match(block[2]).group(1)
-            signature = "{} (*%name%)({})".format("$", "..")
+
+            signature = "{} (*%s)({})".format(return_type, ', '.join(parameters))
             element["signature"] = signature
             element["return value type"] = return_type
+            value = value_re.match(block[2]).group(1)
             element["parameters"] = parameters
             element["value"] = value
         elif element["type"] in ["primitive", "primitive pointer", "pointer to structure variable",

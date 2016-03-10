@@ -1,6 +1,6 @@
 import copy
 
-from core.avtg.emg.common.interface import Interface, yield_basetype
+from core.avtg.emg.common.interface import Interface, import_signature
 from core.avtg.emg.common.process import Process, Subprocess, Label, Access, process_parse
 
 
@@ -83,11 +83,11 @@ class EventModel:
         init_name = list(analysis.inits.values())[0]
         init_label = Label('init')
         init_label.value = "& {}".format(init_name)
-        init_label.signature(yield_basetype("int %s (*%s)(void)"))
+        init_label.signature(import_signature("int %s (*%s)(void)"))
         self.logger.debug("Found init function {}".format(init_name))
 
         ret_label = Label('ret')
-        ret_label.signature(yield_basetype("int %s"))
+        ret_label.signature(import_signature("int %s"))
         ret_init = Subprocess('ret_init', {})
         ret_init.type = "receive"
         ret_init.callback_retval = "%ret%"
@@ -100,7 +100,7 @@ class EventModel:
         exit_subprocess.parameters = []
 
         exit_label = Label('exit')
-        exit_label.signature(yield_basetype("void (*%s)(void)".format()))
+        exit_label.signature(import_signature("void (*%s)(void)".format()))
         # todo: Add none instead of particular name (relevant to #6571)
         if len(analysis.exits) != 0:
             exit_name = list(analysis.exits.values())[0]
@@ -198,14 +198,13 @@ class EventModel:
                                   "with an identifier {}".format(new_process.name, new_process.identifier))
                 for label in new_process.labels:
                     if new_process.labels[label].parameter and not new_process.labels[label].signature():
-                        for parameter in analysis.kernel_functions[function]["signature"].parameters:
-                            if parameter.interface and parameter.interface.full_identifier in \
-                                    new_process.labels[label].interfaces:
+                        for index in analysis.kernel_functions[function].param_interfaces:
+                            parameter = analysis.kernel_functions[function].param_interfaces[index]
+                            signature = analysis.kernel_functions[function].declaration.parameters[index]
+                            if parameter and parameter.identifier in new_process.labels[label].interfaces:
                                 self.logger.debug("Set label {} signature according to interface {}".
-                                                  format(label, parameter.interface.full_identifier))
-                                new_process.labels[label].signature(parameter)
-                                new_process.labels[label].signature(parameter, parameter.interface.full_identifier)
-                        if not new_process.labels[label].signature():
+                                                  format(label, parameter.identifier))
+                                new_process.labels[label].signature(signature, parameter.identifier)
                             raise ValueError("Cannot find suitable signature for label '{}' at function model '{}'".
                                              format(label, function))
 
@@ -214,7 +213,11 @@ class EventModel:
         return callbacks
 
     def __choose_processes(self, category):
-        estimations = self.__estimate_processes(category)
+        estimations = {}
+        for process in [self.__abstr_event_processes[name] for name in self.__abstr_event_processes]:
+            self.logger.debug("Estimate correspondence between  process {} and category {}".
+                              format(process.name, category))
+        estimations[process.name] = self.__match_labels(process, category)
 
         self.logger.info("Choose process to call callbacks from category {}".format(category))
         # First random
@@ -258,21 +261,13 @@ class EventModel:
             raise RuntimeError("Cannot find suitable process in event categories specification for category {}"
                                .format(category))
         else:
-            new = self.__add_process(best_process, False, best_map)
+            new = self.__add_process(best_process, category, False, best_map)
             new.category = category
             self.logger.debug("Finally choose process {} for category {} as the best one".
                               format(best_process.name, category))
             return new
 
-    def __estimate_processes(self, category):
-        maps = {}
-        for process in [self.__abstr_event_processes[name] for name in self.__abstr_event_processes]:
-            self.logger.debug("Estimate correspondence between  process {} and category {}".
-                              format(process.name, category))
-            maps[process.name] = self.__match_labels(process, category)
-        return maps
-
-    def __add_process(self, process, model=False, label_map=None, peer=None):
+    def __add_process(self, process, category=None, model=False, label_map=None, peer=None):
         self.logger.info("Add process {} to the model".format(process.name))
         self.logger.debug("Make copy of process {} before adding it to the model".format(process.name))
         new = copy.deepcopy(process)
@@ -281,10 +276,14 @@ class EventModel:
         new.identifier = len(self.model_processes) + len(self.event_processes)
         self.logger.info("Finally add process {} to the model".
                          format(process.name))
-        if model:
+
+        if model and not category:
             self.model_processes.append(new)
-        else:
+        elif not model and category:
+            new.category = category
             self.event_processes.append(new)
+        else:
+            raise ValueError('Provide either model or category arguments but not simultaneously')
 
         if label_map:
             self.logger.debug("Set interfaces for given labels")
@@ -320,9 +319,8 @@ class EventModel:
 
         # Calculate callbacks which can be called in the model at the moment
         self.logger.info("Recalculate which callbacks can be now called in the model")
-        self._mark_called_callbacks()
 
-    def _mark_called_callbacks(self):
+    def _mark_called_callbacks(self, analysis):
         self.logger.info("Check which callbacks can be called in the intermediate environment model")
         self.__called_callbacks = []
         self.__uncalled_callbacks = []
@@ -331,7 +329,6 @@ class EventModel:
             self.logger.debug("Check process callback calls at process {} with category {}".
                               format(process.name, process.category))
 
-            called = []
             for callback_name in set([process.subprocesses[name].callback for name in process.subprocesses
                                       if process.subprocesses[name].callback and
                                       process.subprocesses[name].type == "dispatch"]):
@@ -621,7 +618,7 @@ class EventModel:
                 self.logger.debug("Establish signal references between process {} with category {} and process {} with "
                                   "category {}".
                                   format(process.name, process.category, candidate.name, candidate.category))
-                new = self.__add_process(candidate, model=False, label_map=None, peer=process)
+                new = self.__add_process(candidate, process.category, model=False, label_map=None, peer=process)
                 if new.unmatched_receives or new.unmatched_dispatches:
                     self.__establish_signal_peers(new)
 
