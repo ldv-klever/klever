@@ -13,7 +13,7 @@
       "name": "all bug kinds merge",
       "verifier": {
         "name": "CPAchecker",
-        "version": "19280",
+        "version": "19575",
         "options": [
           {"-ldv": ""}
         ]
