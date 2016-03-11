@@ -53,24 +53,6 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "ef70c60~"
-        },
-        "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
-      },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe",
-      "VTG strategy": {
-        "verifier": {
-          "options": [
-            {"-valueAnalysis": ""},
-            {"-setprop": "cpa.callstack.skipRecursion=true"}
-          ]
-        }
-      }
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
           "commit": "bcb4a75"
         },
         "modules": ["drivers/hid/hid.ko"]
@@ -85,16 +67,6 @@
           "commit": "e4c7f25"
         },
         "modules": ["drivers/net/usb/kaweth.ko"]
-      },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {
-          "commit": "ef70c60"
-        },
-        "modules": ["drivers/net/ethernet/mellanox/mlx4/mlx4_en.ko"]
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "safe"
