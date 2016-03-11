@@ -59,7 +59,7 @@
       },
       "rule specifications": ["linux:usb:gadget"],
       "ideal verdict": "safe",
-      "comment": "WTF?"
+      "comment": "Non-target bug"
     },
     {
       "Linux kernel": {
@@ -69,7 +69,8 @@
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
       "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "safe"
+      "ideal verdict": "safe",
+      "comment": "Non-target bug"
     },
     {
       "Linux kernel": {
