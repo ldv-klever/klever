@@ -168,7 +168,8 @@
         "modules": ["net/tipc/tipc.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "https://forge.ispras.ru/issues/6773"
     },
     {
       "Linux kernel": {
