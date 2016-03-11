@@ -91,7 +91,8 @@
         "modules": ["drivers/net/ppp/ppp_generic.ko"]
       },
       "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
     },
     {
       "Linux kernel": {
