@@ -5,18 +5,14 @@
       "configuration": "allmodconfig",
       "build kernel": false
     },
-    "LKVOG strategy": {
-      "name": "separate modules"
-    },
+    "LKVOG strategy": {"name": "separate modules"},
     "rule specifications DB": "rule specs.json",
     "VTG strategy": {
       "name": "all bug kinds merge",
       "verifier": {
         "name": "CPAchecker",
         "version": "19280",
-        "options": [
-          {"-ldv": ""}
-        ]
+        "options": [{"-ldv": ""}]
       },
       "resource limits": {
         "wall time": 1000000,
@@ -109,9 +105,7 @@
           "sound/soundcore.ko"
         ]
       },
-      "rule specifications": [
-        "linux:module"
-      ],
+      "rule specifications": ["linux:module"],
       "false alarms": [
         "drivers/atm/atmtcp.ko: False alarm reason is \"envgen:2struct\n\"",
         "drivers/block/loop.ko: False alarm reason is \"envgen:ctrl\n\"",
@@ -210,9 +204,7 @@
           "drivers/staging/iio/adc/ad7280a.ko"
         ]
       },
-      "rule specifications": [
-        "linux:alloc1"
-      ],
+      "rule specifications": ["linux:alloc1"],
       "false alarms": [
         "drivers/block/skd.ko: False alarm reason is \"kernel_model:bit\n\"",
         "drivers/iio/adc/max1363.ko: False alarm reason is \"envgen:threaded_irq\n\"",
@@ -284,9 +276,7 @@
           "sound/pci/ice1712/snd-ice1724.ko"
         ]
       },
-      "rule specifications": [
-        "linux:mutex:as"
-      ],
+      "rule specifications": ["linux:mutex:as"],
       "false alarms": [
         "drivers/ata/libata.ko: False alarm reason is \"envgen:1struct\n\"",
         "drivers/ata/libata.ko: False alarm reason is \"envgen:init\n\"",
@@ -406,9 +396,7 @@
           "sound/core/snd-pcm.ko"
         ]
       },
-      "rule specifications": [
-        "linux:spinlock:as"
-      ],
+      "rule specifications": ["linux:spinlock:as"],
       "false alarms": [
         "drivers/gpu/drm/gma500/gma500_gfx.ko: False alarm reason is \"rule_spec:rerouter:same_objects\n\"",
         "drivers/isdn/i4l/isdn.ko: False alarm reason is \"kernel_model:param\n\"",
@@ -487,9 +475,7 @@
           "net/unix/unix.ko"
         ]
       },
-      "rule specifications": [
-        "linux:alloc2"
-      ],
+      "rule specifications": ["linux:alloc2"],
       "false alarms": [
         "drivers/atm/he.ko: False alarm reason is \"rule_spec:bit\n\"",
         "drivers/block/skd.ko: False alarm reason is \"rule_spec:bit\n\"",
@@ -510,14 +496,8 @@
       ]
     },
     {
-      "Linux kernel": {
-        "modules": [
-          "drivers/usb/core/usbcore.ko"
-        ]
-      },
-      "rule specifications": [
-        "linux:alloc3"
-      ]
+      "Linux kernel": {"modules": ["drivers/usb/core/usbcore.ko"]},
+      "rule specifications": ["linux:alloc3"]
     },
     {
       "Linux kernel": {
@@ -554,9 +534,7 @@
           "drivers/video/fb.ko"
         ]
       },
-      "rule specifications": [
-        "linux:usb:gadget"
-      ],
+      "rule specifications": ["linux:usb:gadget"],
       "false alarms": [
         "drivers/base/firmware_class.ko: False alarm reason is \"envgen:not_found_init\n\"",
         "drivers/char/ppdev.ko: False alarm reason is \"multimodule\n\"",
@@ -596,9 +574,7 @@
           "net/x25/x25.ko"
         ]
       },
-      "rule specifications": [
-        "linux:rwlock"
-      ],
+      "rule specifications": ["linux:rwlock"],
       "false alarms": [
         "drivers/net/wireless/hostap/hostap.ko: False alarm reason is \"envgen:1struct:seq_operations\n\"",
         "net/appletalk/appletalk.ko: False alarm reason is \"envgen:1struct:seq_operations\n\"",
@@ -654,9 +630,7 @@
           "sound/usb/usx2y/snd-usb-us122l.ko"
         ]
       },
-      "rule specifications": [
-        "linux:usb1"
-      ],
+      "rule specifications": ["linux:usb1"],
       "false alarms": [
         "drivers/media/usb/cx231xx/cx231xx.ko: False alarm reason is \"envgen:2struct\n\"",
         "drivers/media/usb/hdpvr/hdpvr.ko: False alarm reason is \"kernel_model:param\n\"",
@@ -699,9 +673,7 @@
           "drivers/net/ethernet/chelsio/cxgb/cxgb.ko"
         ]
       },
-      "rule specifications": [
-        "linux:usb2"
-      ],
+      "rule specifications": ["linux:usb2"],
       "false alarms": [
         "drivers/message/fusion/mptlan.ko: False alarm reason is \"rule_spec:registration_in_a_loop\n\"",
         "drivers/net/ethernet/chelsio/cxgb/cxgb.ko: False alarm reason is \"rule_spec:registration_in_a_loop\n\""
@@ -716,9 +688,7 @@
           "drivers/net/wireless/cw1200/cw1200_wlan_sdio.ko"
         ]
       },
-      "rule specifications": [
-        "linux:mmc:sdio_func"
-      ],
+      "rule specifications": ["linux:mmc:sdio_func"],
       "false alarms": [
         "drivers/bluetooth/btmrvl_sdio.ko: False alarm reason is \"verifier:pointer\n\"",
         "drivers/mmc/card/sdio_uart.ko: False alarm reason is \"envgen:1struct:tty_operations\n\"",
