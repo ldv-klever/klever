@@ -273,7 +273,8 @@
         "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
+      "ideal verdict": "safe",
+      "comment": "See comment for unsafe"
     },
     {
       "Linux kernel": {
@@ -303,7 +304,8 @@
         "modules": ["net/tipc/tipc.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe"
+      "ideal verdict": "safe",
+      "comment": "See comment for unsafe"
     },
     {
       "Linux kernel": {
@@ -313,7 +315,8 @@
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe"
+      "ideal verdict": "safe",
+      "comment": "See comment for unsafe"
     },
     {
       "Linux kernel": {
@@ -323,7 +326,8 @@
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe"
+      "ideal verdict": "safe",
+      "comment": "See comment for unsafe"
     },
     {
       "Linux kernel": {
