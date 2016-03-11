@@ -261,7 +261,7 @@ class UploadJob(object):
                             db_file.file.save(file_name, NewFile(fp))
                         db_file.hash_sum = check_sum
                         db_file.save()
-                    files_in_db[os.path.join(JOBFILE_DIR, file_name)] = check_sum
+                    files_in_db['/'.join([JOBFILE_DIR, file_name])] = check_sum
                 elif file_name.startswith('version-'):
                     version_id = int(file_name.replace('version-', ''))
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
@@ -397,15 +397,26 @@ class UploadReports(object):
         self.timedata[action]['num'] += 1
         self.timedata[action]['time'] += now() - time
 
+    def __fix_identifiers(self):
+        ids_in_use = []
+        for data in self.data:
+            if isinstance(data, dict):
+                if 'identifier' in data:
+                    m = re.match('.*?(/.*)', data['identifier'])
+                    if m is None:
+                        data['identifier'] = self.job.identifier
+                        print("Core component, old id: %s" % data['identifier'])
+                    else:
+                        data['identifier'] = self.job.identifier + m.group(1)
+                    if data['identifier'] in ids_in_use:
+                        raise ValueError('Report identifier "%s" is not unique' % data['identifier'])
+                    else:
+                        ids_in_use.append(data['identifier'])
+
     def __upload_all(self):
         curr_func = self.__create_report_component
+        self.__fix_identifiers()
         for data in self.data:
-            if 'identifier' in data:
-                m = re.match('.*?(/.*)', data['identifier'])
-                if m is None:
-                    data['identifier'] = self.job.identifier
-                else:
-                    data['identifier'] = self.job.identifier + m.group(1)
             if isinstance(data, dict):
                 curr_func(data)
             elif isinstance(data, str) and data == 'safes':

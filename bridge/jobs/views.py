@@ -671,7 +671,8 @@ def upload_job(request, parent_id=None):
         with tempfile.NamedTemporaryFile() as fp:
             for chunk in f.chunks():
                 fp.write(chunk)
-            with tarfile.open(fp.name) as tar, tempfile.TemporaryDirectory() as tmp_dir_name:
+            fp.seek(0)
+            with tarfile.open(fileobj=fp, mode='r:gz') as tar, tempfile.TemporaryDirectory() as tmp_dir_name:
                 tar.extractall(tmp_dir_name)
                 zipdata = UploadJob(parent, request.user, tmp_dir_name)
                 if zipdata.err_message is not None:
