@@ -133,15 +133,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "511f1df~"},
-        "modules": ["drivers/net/ppp/ppp_generic.ko"]
-      },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe",
-      "comment": "Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "4483562~"},
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
@@ -157,6 +148,15 @@
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe",
       "comment": "https://forge.ispras.ru/issues/6575"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "511f1df~"},
+        "modules": ["drivers/net/ppp/ppp_generic.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe",
+      "comment": "Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
     },
     {
       "Linux kernel": {
@@ -191,7 +191,8 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
-      "ideal verdict": "safe"
+      "ideal verdict": "safe",
+      "comment": "See comment for unsafe"
     },
     {
       "Linux kernel": {
@@ -239,14 +240,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "511f1df"},
-        "modules": ["drivers/net/ppp/ppp_generic.ko"]
-      },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "4483562"},
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
@@ -257,6 +250,14 @@
       "Linux kernel": {
         "Git repository": {"commit": "7ce7751"},
         "modules": ["drivers/usb/serial/opticon.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "511f1df"},
+        "modules": ["drivers/net/ppp/ppp_generic.ko"]
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "safe"
