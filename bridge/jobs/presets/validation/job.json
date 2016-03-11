@@ -141,7 +141,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "214c97a12~"
+          "commit": "214c97a12"
         },
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
@@ -273,7 +273,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "214c97a12"
+          "commit": "214c97a12~"
         },
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
