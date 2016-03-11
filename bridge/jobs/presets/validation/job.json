@@ -44,6 +44,15 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "60b3593~"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Looks like unsafe can not be always found due to nondeterminism in EMG"
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "bcb4a75"},
         "modules": ["drivers/hid/hid.ko"]
       },
@@ -62,21 +71,11 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "790cc82~"},
-        "modules": ["drivers/input/misc/arizona-haptics.ko"]
+        "Git repository": {"commit": "60b3593"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6822"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "511f1df~"},
-        "modules": ["drivers/net/ppp/ppp_generic.ko"]
-      },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe",
-      "comment": "Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
+      "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
@@ -89,48 +88,12 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "60b3593~"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "Looks like unsafe can not be always found due to nondeterminism in EMG"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "5c256d21~"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it."
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "ac4de08~"},
         "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
       "comment": "https://forge.ispras.ru/issues/6560"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "214c97a12"},
-        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it, but it also takes quite much time."
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "063579d~"},
-        "modules": ["drivers/w1/wire.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "Target bug is in __w1_remove_master_device() that is called when all devices added by means of w1_add_master_device() are deregistered. But w1_add_master_device() is called just from other modules."
     },
     {
       "Linux kernel": {
@@ -161,6 +124,24 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "790cc82~"},
+        "modules": ["drivers/input/misc/arizona-haptics.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "https://forge.ispras.ru/issues/6822"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "511f1df~"},
+        "modules": ["drivers/net/ppp/ppp_generic.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe",
+      "comment": "Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "4483562~"},
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
@@ -179,19 +160,30 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "790cc82"},
-        "modules": ["drivers/input/misc/arizona-haptics.ko"]
+        "Git repository": {"commit": "5c256d21~"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
+      "ideal verdict": "unsafe",
+      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it."
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "511f1df"},
-        "modules": ["drivers/net/ppp/ppp_generic.ko"]
+        "Git repository": {"commit": "214c97a12"},
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it, but it also takes quite much time."
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "063579d~"},
+        "modules": ["drivers/w1/wire.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Target bug is in __w1_remove_master_device() that is called when all devices added by means of w1_add_master_device() are deregistered. But w1_add_master_device() is called just from other modules."
     },
     {
       "Linux kernel": {
@@ -203,44 +195,12 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "60b3593"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "5c256d21"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "ac4de08"},
         "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "safe",
       "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "214c97a12~"},
-        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "063579d"},
-        "modules": ["drivers/w1/wire.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
@@ -271,6 +231,22 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "790cc82"},
+        "modules": ["drivers/input/misc/arizona-haptics.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "511f1df"},
+        "modules": ["drivers/net/ppp/ppp_generic.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "4483562"},
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
@@ -283,6 +259,30 @@
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
       "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "5c256d21"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "214c97a12~"},
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "063579d"},
+        "modules": ["drivers/w1/wire.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "safe"
     }
   ],
