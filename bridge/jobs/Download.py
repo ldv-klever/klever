@@ -81,7 +81,7 @@ class DownloadJob(object):
     def __create_tar(self):
 
         files_in_tar = {}
-        self.tarname = 'Job-' + self.job.identifier[:10] + '.tar.gz'
+        self.tarname = 'Job-%s-%s.tar.gz' % (self.job.identifier[:10], self.job.type)
         jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
 
         def write_file_str(file_name, file_content):

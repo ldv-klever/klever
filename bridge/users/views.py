@@ -13,6 +13,7 @@ from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
 from bridge.vars import LANGUAGES, SCHEDULER_TYPE
 from bridge.settings import DEF_USER_TIMEZONE
+from bridge.populate import extend_user
 from django.shortcuts import get_object_or_404
 from jobs.utils import JobAccess
 from jobs.models import Job
@@ -32,10 +33,10 @@ def user_signin(request):
                 login(request, user)
                 try:
                     Extended.objects.get(user=user)
-                    if len(Job.objects.all()) > 0:
-                        return HttpResponseRedirect(reverse('jobs:tree'))
                 except ObjectDoesNotExist:
-                    pass
+                    extend_user(user)
+                if len(Job.objects.all()) > 0:
+                    return HttpResponseRedirect(reverse('jobs:tree'))
                 return HttpResponseRedirect(reverse('population'))
             else:
                 login_error = _("Account has been disabled")
