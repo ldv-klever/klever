@@ -1,6 +1,6 @@
 import ply.lex as lex
 import ply.yacc as yacc
-import json
+
 
 tokens = (
     'TYPE_SPECIFIER',
@@ -75,6 +75,10 @@ def t_INTERFACE(t):
 
 
 def t_error(t):
+    raise TypeError("Unknown text '%s'" % (t.value,))
+
+
+def p_error(t):
     raise TypeError("Unknown text '%s'" % (t.value,))
 
 
@@ -438,190 +442,6 @@ def direct_declarator_processing(p):
                 p[0] = p[2]
 
 
-lex.lex()
-yacc.yacc(debug=0, write_tables=0)
-
-tests = [
-    'int a',
-    'static int a',
-    'static const int a',
-    'static int const a',
-    'int * a',
-    'int ** a',
-    'int * const a',
-    'int * const * a',
-    'int * const ** a',
-    'int ** const ** a',
-    'struct usb a',
-    'const struct usb a',
-    'const struct usb * a',
-    'struct usb * const a',
-    'union usb * const a',
-    'enum usb * const a',
-    'mytypedef * a',
-    'int a []',
-    'int a [1]',
-    'int a [const 1]',
-    'int a [*]',
-    'int a [const *]',
-    'int a [const *][1]',
-    'int a [const *][1][]',
-    'static struct usb ** a [const 1][2][*]',
-    'int (a)',
-    'int *(*a)',
-    'int *(**a)',
-    'int *(* const a [])',
-    'int *(* const a) []',
-    'int *(* const a []) [*]',
-    'int *(*(a))',
-    'int (*(*(a) [])) []',
-    'int (*(*(*(a) []))) []',
-    'int a(int)',
-    'int a(int, int)',
-    'int a(void)',
-    'void a(void)',
-    'void a(int, ...)',
-    'void (*a) (int, ...)',
-    "int func(int, void (*)(void))",
-    "int func(void (*)(void), int)",
-    "int func(int, int (*)(int))",
-    "int func(int, void (*)(void *))",
-    "int func(int *, void (*)(void))",
-    "int func(int, int (*)(int))",
-    "int func(int *, int (*)(int, int))",
-    "int func(int *, int (*)(int, int), ...)",
-    "int (*f)(int *)",
-    "int (*f)(int *, int *)",
-    "int func(struct nvme_dev *, void *)",
-    "int (*f)(struct nvme_dev *, void *)",
-    "void (**a)(struct nvme_dev *, void *)",
-    "void (**a)",
-    "void func(struct nvme_dev *, void *, struct nvme_completion *)",
-    "void (**a)(void)",
-    "void (**a)(struct nvme_dev * a)",
-    "void (**a)(struct nvme_dev * a, int)",
-    "void (**a)(struct nvme_dev * a, void * a)",
-    "void (**a)(struct nvme_dev *, void *)",
-    "void (**a)(struct nvme_dev *, void *, struct nvme_completion *)",
-    "void (**a)(struct nvme_dev *, void *, int (*)(void))",
-    "int func(int (*)(int))",
-    "int func(int (*)(int *), ...)",
-    "int func(int (*)(int, ...))",
-    "int func(int (*)(int, ...), ...)",
-    "int (*a)(int (*)(int, ...), ...)",
-    'void (*((*a)(int, ...)) []) (void) []',
-    '%usb.driver%',
-    '$ my_function($, %usb.driver%, int)',
-    '%usb.driver% function(int, void *)',
-]
-
-if True:
-    string = 'void (*((*a)(int, ...)) []) (void) []'
-    ast = yacc.parse(string, debug=False)
-    ast["origin expression"] = string
-    print(json.dumps(ast, indent=4, sort_keys=True))
-else:
-    for test in tests:
-        print(test)
-        ast = yacc.parse(test, debug=False)
-        ast["origin expression"] = test
-        print(json.dumps(ast, indent=4, sort_keys=True))
-        a = 1
-
-
-__declaration_model = None
-__declaration_grammar = \
-    """
-    (* Declaration syntax based on Committee Draft — April 12, 2011 ISO/IEC 9899:201x but it is rather simplified *)
-
-    signature = @:declaration $;
-
-    declaration = function_declaration~ |
-                  primitive_declaration~ |
-                  interface_declaration~ |
-                  undefined_declaration;
-
-    function_declaration = return_value:declaration main_declarator:declarator '(' parameters+:(parameter_list | void) ')' ~ |
-                           return_value:void main_declarator:declarator '(' parameters+:(parameter_list | void) ')';
-
-    primitive_declaration = specifiers:{declaration_specifiers}* main_declarator:declarator;
-
-    parameter_list = @:{ [','] @:(function_declaration~ | primitive_declaration~ | interface_declaration~ | undefined_declaration~ | '...') }+;
-
-    declaration_specifiers = storage_class_specifier:storage_class_specifier |
-                             type_qualifier:type_qualifier |
-                             function_specifier:function_specifier |
-                             type_specifier:type_specifier;
-
-    void = {void_specifiers}* @:"void";
-
-    void_specifiers = storage_class_specifier |
-                      type_qualifier |
-                      function_specifier;
-
-    function_specifier = "inline" | "_Noreturn";
-
-    type_qualifier = "const" | "restrict" | "volatile" | "_Atomic";
-
-    storage_class_specifier = "extern" |
-                              "static" |
-                              "_Thread_local" |
-                              "auto" |
-                              "register";
-
-    type_specifier = struct |
-                     union |
-                     enum |
-                     ("_Atomic" identifier) |
-                     ("void" |
-                      "char" |
-                      "short" |
-                      "int" |
-                      "long" |
-                      "float" |
-                      "double" |
-                      "signed" |
-                      "unsigned" |
-                      "_Bool" |
-                      "_Complex") |
-                     typedef;
-
-    struct = structure:'struct' identifier:identifier;
-
-    union = union:'union' identifier:identifier;
-
-    enum = enum:"enum" identifier;
-
-    typedef = typedef:identifier;
-
-    interface_declaration = interface:interface;
-
-    interface = pointer:{pointer}* '%' category:identifier '.' identifier:identifier '%';
-
-    declarator = pointer:{pointer}* declarator:direct_declarator;
-
-    pointer = @:pointer_sign {type_qualifier}*;
-
-    direct_declarator = array_declarator |
-                        primary_declarator;
-
-    primary_declarator = brackets | name_identifier;
-
-    brackets = '(' @:declarator ')';
-
-    array_declarator = declarator:primary_declarator array:('[' pointer ']' |
-                                                 '[' {type_qualifier}* ']');
-
-    pointer_sign = pointer:'*';
-
-    name_identifier = [identifier | "%s"];
-
-    identifier = /\w+/;
-
-    undefined_declaration = undefined:"$";
-    """
-
-
 def extract_identifier(string):
     if '%' not in string:
         string = "%{}%".format(string)
@@ -643,7 +463,7 @@ def import_signature(signature, ast=None):
         __check_grammar()
 
         try:
-            ast = __declaration_model.parse(signature, ignorecase=True)
+            ast = yacc.parse(signature)
         except:
             raise ValueError("Cannot parse signature: {}".format(signature))
 
@@ -666,12 +486,8 @@ def import_signature(signature, ast=None):
 
 
 def __check_grammar():
-    global __declaration_model
-    global __declaration_grammar
-
-    if not __declaration_model:
-        grako = __import__('grako')
-        __declaration_model = grako.genmodel('signature', __declaration_grammar)
+    lex.lex()
+    yacc.yacc(debug=0, write_tables=0)
 
 
 class __BaseType:
