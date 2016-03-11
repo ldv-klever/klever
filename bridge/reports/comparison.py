@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
+from bridge.utils import print_err
 from jobs.utils import JobAccess, CompareFileSet
 from reports.models import *
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
@@ -212,8 +213,8 @@ class ComparisonTableData(object):
             try:
                 attr_values = json.loads(compare.attr_values)
             except Exception as e:
+                print_err(e)
                 self.error = 'Unknown error'
-                print(e)
                 return
             if len(attr_values) != len(JOBS_COMPARE_ATTRS[info.root1.job.type]):
                 self.error = 'Unknown error'
