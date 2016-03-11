@@ -23,6 +23,14 @@ from service.models import Scheduler
 JOB_SETTINGS_FILE = 'settings.json'
 
 
+def extend_user(user, role=USER_ROLES[1][0]):
+    try:
+        user.extended.role = role
+        user.extended.save()
+    except ObjectDoesNotExist:
+        Extended.objects.create(first_name='Firstname', last_name='Lastname', role=role, user=user)
+
+
 class Population(object):
 
     def __init__(self, user=None, manager=None, service=None):
@@ -38,7 +46,7 @@ class Population(object):
             try:
                 Extended.objects.get(user=self.user)
             except ObjectDoesNotExist:
-                self.__extend_user(self.user)
+                extend_user(self.user)
         self.__populate_functions()
         if len(Job.objects.filter(parent=None)) < 3:
             self.__populate_jobs()
@@ -81,14 +89,6 @@ class Population(object):
                 new_descr_strs.append(s)
         return '\n'.join(new_descr_strs)
 
-    def __extend_user(self, user, role=USER_ROLES[1][0]):
-        self.ccc = 0
-        try:
-            user.extended.role = role
-            user.extended.save()
-        except ObjectDoesNotExist:
-            Extended.objects.create(first_name='Firstname', last_name='Lastname', role=role, user=user)
-
     def __get_manager(self, manager_username):
         if manager_username is None:
             try:
@@ -103,17 +103,17 @@ class Population(object):
                 'username': manager.username,
                 'password': self.__add_password(manager)
             }
-        self.__extend_user(manager, USER_ROLES[2][0])
+        extend_user(manager, USER_ROLES[2][0])
         return manager
 
     def __add_service_user(self, service_username):
         if service_username is None:
             return
         try:
-            self.__extend_user(User.objects.get(username=service_username), USER_ROLES[4][0])
+            extend_user(User.objects.get(username=service_username), USER_ROLES[4][0])
         except ObjectDoesNotExist:
             service = User.objects.create(username=service_username)
-            self.__extend_user(service, USER_ROLES[4][0])
+            extend_user(service, USER_ROLES[4][0])
             self.changes['service'] = {
                 'username': service.username,
                 'password': self.__add_password(service)
