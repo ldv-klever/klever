@@ -80,7 +80,8 @@
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "https://forge.ispras.ru/issues/6822"
     },
     {
       "Linux kernel": {
