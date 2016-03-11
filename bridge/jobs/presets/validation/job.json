@@ -113,7 +113,8 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "Looks like unsafe can not be always found due to nondeterminism in EMG"
     },
     {
       "Linux kernel": {
