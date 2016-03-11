@@ -191,7 +191,8 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
-      "ideal verdict": "safe"
+      "ideal verdict": "safe",
+      "comment": "See comment for unsafe"
     },
     {
       "Linux kernel": {
