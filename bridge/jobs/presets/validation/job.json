@@ -157,7 +157,8 @@
         "modules": ["drivers/w1/wire.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "Target bug is in __w1_remove_master_device() that is called when all devices added by means of w1_add_master_device() are deregistered. But w1_add_master_device() is called just from other modules."
     },
     {
       "Linux kernel": {
