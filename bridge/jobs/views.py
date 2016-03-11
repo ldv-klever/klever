@@ -534,7 +534,7 @@ def upload_file(request):
             if title_size > 30:
                 fname = fname[(title_size - 30):]
         try:
-            check_sum = file_get_or_create(request.FILES[f], fname)[1]
+            check_sum = file_get_or_create(request.FILES[f], fname, True)[1]
         except Exception as e:
             return JsonResponse({'error': str(string_concat(_('File uploading failed'), ' (%s): ' % fname, e))})
         return JsonResponse({'checksum': check_sum})

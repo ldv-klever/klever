@@ -202,7 +202,7 @@ class Population(object):
                 self.cnt += 1
                 if os.path.isfile(f):
                     try:
-                        check_sum = file_get_or_create(open(f, 'rb'), base_f)[1]
+                        check_sum = file_get_or_create(open(f, 'rb'), base_f, True)[1]
                     except Exception as e:
                         print_err('One of the job files was not uploaded: %s' % e)
                         continue

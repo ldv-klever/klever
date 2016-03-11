@@ -252,7 +252,7 @@ class UploadJob(object):
                     try:
                         files_in_db['/'.join([JOBFILE_DIR, file_name])] = file_get_or_create(
                             open(os.path.join(dir_path, file_name), mode='rb'),
-                            file_name
+                            file_name, True
                         )[1]
                     except Exception as e:
                         print_err(e)
@@ -283,8 +283,7 @@ class UploadJob(object):
         files_map = json.loads(jobdata['filedata'])
         for f_id in files_map:
             if files_map[f_id] in files_in_db:
-                files_map[f_id] = \
-                    files_in_db[files_map[f_id]]
+                files_map[f_id] = files_in_db[files_map[f_id]]
             else:
                 return _("The job archive is corrupted")
 
@@ -302,8 +301,7 @@ class UploadJob(object):
                 if file['file'] is not None:
                     if str(file['file']) in jobdata['filedata']:
                         fdata_elem['type'] = '1'
-                        fdata_elem['hash_sum'] = \
-                            files_map[str(file['file'])]
+                        fdata_elem['hash_sum'] = files_map[str(file['file'])]
                     else:
                         return _("The job archive is corrupted")
                 filedata.append(fdata_elem)

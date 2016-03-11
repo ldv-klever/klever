@@ -80,16 +80,18 @@ def file_checksum(f, block_size=2**20):
     return md5.hexdigest()
 
 
-def file_get_or_create(fp, filename):
+def file_get_or_create(fp, filename, check_size=False):
+    if check_size:
+        file_size = fp.seek(0, os.SEEK_END)
+        if file_size > MAX_FILE_SIZE:
+            raise ValueError(
+                _('Please keep the file size under {0} (the current file size is {1})'.format(
+                    filesizeformat(MAX_FILE_SIZE),
+                    filesizeformat(file_size)
+                ))
+            )
+    fp.seek(0)
     check_sum = file_checksum(fp)
-    file_size = fp.seek(0, os.SEEK_END)
-    if file_size > MAX_FILE_SIZE:
-        raise ValueError(
-            _('Please keep the file size under {0} (the current file size is {1})'.format(
-                filesizeformat(MAX_FILE_SIZE),
-                filesizeformat(file_size)
-            ))
-        )
     try:
         return File.objects.get(hash_sum=check_sum), check_sum
     except ObjectDoesNotExist:
