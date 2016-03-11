@@ -1,4 +1,6 @@
 import mimetypes
+import tarfile
+import tempfile
 from io import BytesIO
 from urllib.parse import quote
 from difflib import unified_diff
@@ -666,9 +668,14 @@ def upload_job(request, parent_id=None):
     parent = parents[0]
     failed_jobs = []
     for f in request.FILES.getlist('file'):
-        zipdata = UploadJob(parent, request.user, f)
-        if zipdata.err_message is not None:
-            failed_jobs.append([zipdata.err_message + '', f.name])
+        with tempfile.NamedTemporaryFile() as fp:
+            for chunk in f.chunks():
+                fp.write(chunk)
+            with tarfile.open(fp.name) as tar, tempfile.TemporaryDirectory() as tmp_dir_name:
+                tar.extractall(tmp_dir_name)
+                zipdata = UploadJob(parent, request.user, tmp_dir_name)
+                if zipdata.err_message is not None:
+                    failed_jobs.append([zipdata.err_message + '', f.name])
     if len(failed_jobs) > 0:
         return JsonResponse({
             'status': False,

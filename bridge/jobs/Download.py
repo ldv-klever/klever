@@ -228,59 +228,53 @@ class ReportsData(object):
 
 
 class UploadJob(object):
-    def __init__(self, parent, user, zip_archive):
+    def __init__(self, parent, user, job_dir):
         self.parent = parent
         self.job = None
         self.user = user
-        self.zip_file = zip_archive
+        self.job_dir = job_dir
         self.err_message = self.__create_job_from_tar()
 
     def __create_job_from_tar(self):
-        inmemory = BytesIO(self.zip_file.read())
-        jobzip_file = tarfile.open(fileobj=inmemory, mode='r')
         jobdata = None
         files_in_db = {}
         versions_data = {}
         report_files = {}
-        for f in jobzip_file.getmembers():
-            file_name = f.name
-            file_obj = jobzip_file.extractfile(f)
-            if file_name == 'jobdata':
-                try:
-                    jobdata = json.loads(file_obj.read().decode('utf-8'))
-                except Exception as e:
-                    print_err(e)
-                    return _("The job archive is corrupted")
-            elif file_name.startswith(JOBFILE_DIR):
-                if f.isreg():
-                    check_sum = file_checksum(file_obj)
+        for dir_path, dir_names, file_names in os.walk(self.job_dir):
+            for file_name in file_names:
+                if file_name == 'jobdata':
+                    try:
+                        with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
+                            jobdata = json.load(fp)
+                    except Exception as e:
+                        print_err(e)
+                        return _("The job archive is corrupted")
+                elif dir_path.endswith(JOBFILE_DIR):
+                    with open(os.path.join(dir_path, file_name), mode='rb') as fp:
+                        check_sum = file_checksum(fp)
                     try:
                         File.objects.get(hash_sum=check_sum)
                     except ObjectDoesNotExist:
                         db_file = File()
-                        db_file.file.save(os.path.basename(file_name), NewFile(file_obj))
+                        with open(os.path.join(dir_path, file_name), mode='rb') as fp:
+                            db_file.file.save(file_name, NewFile(fp))
                         db_file.hash_sum = check_sum
                         db_file.save()
-                    files_in_db[file_name] = check_sum
-            elif file_name.startswith('version-'):
-                version_id = int(file_name.replace('version-', ''))
-                versions_data[version_id] = json.loads(file_obj.read().decode('utf8'))
-            elif file_name.startswith('Unsafes'):
-                m = re.match('Unsafes.(\d+)\.tar\.gz', file_name)
-                if m is not None:
-                    report_files[('unsafe', int(m.group(1)))] = file_obj
-            elif file_name.startswith('Safes'):
-                m = re.match('Safes.(\d+)', file_name)
-                if m is not None:
-                    report_files[('safe', int(m.group(1)))] = file_obj
-            elif file_name.startswith('Unknowns'):
-                m = re.match('Unknowns.(\d+)', file_name)
-                if m is not None:
-                    report_files[('unknown', int(m.group(1)))] = file_obj
-            elif file_name.startswith('Logs'):
-                m = re.match('Logs.(\d+)', file_name)
-                if m is not None:
-                    report_files[('log', int(m.group(1)))] = file_obj
+                    files_in_db[os.path.join(JOBFILE_DIR, file_name)] = check_sum
+                elif file_name.startswith('version-'):
+                    version_id = int(file_name.replace('version-', ''))
+                    with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
+                        versions_data[version_id] = json.load(fp)
+                elif dir_path.endswith('Unsafes'):
+                    m = re.match('(\d+)\.tar\.gz', file_name)
+                    if m is not None:
+                        report_files[('unsafe', int(m.group(1)))] = os.path.join(dir_path, file_name)
+                elif dir_path.endswith('Safes'):
+                    report_files[('safe', int(file_name))] = os.path.join(dir_path, file_name)
+                elif dir_path.endswith('Unknowns'):
+                    report_files[('unknown', int(file_name))] = os.path.join(dir_path, file_name)
+                elif dir_path.endswith('Logs'):
+                    report_files[('log', int(file_name))] = os.path.join(dir_path, file_name)
 
         if any(x not in jobdata for x in ['format', 'type', 'status', 'filedata', 'reports']):
             return _("The job archive is corrupted")
@@ -427,12 +421,13 @@ class UploadReports(object):
         parent = None
         if 'parent' in data and data['parent'] in self._pk_map:
             parent = self._pk_map[data['parent']]
-        report = ReportSafe.objects.create(
-            root=self.job.reportroot,
-            parent=parent,
-            identifier=data['identifier'],
-            proof=self.files[('safe', data['pk'])].read()
-        )
+        with open(self.files[('safe', data['pk'])], mode='rb') as fp:
+            report = ReportSafe.objects.create(
+                root=self.job.reportroot,
+                parent=parent,
+                identifier=data['identifier'],
+                proof=fp.read()
+            )
         for attr in data['attrs']:
             self._attrs.add(report.pk, attr[0], attr[1])
 
@@ -443,13 +438,14 @@ class UploadReports(object):
         parent = None
         if 'parent' in data and data['parent'] in self._pk_map:
             parent = self._pk_map[data['parent']]
-        report = ReportUnknown.objects.create(
-            root=self.job.reportroot,
-            parent=parent,
-            identifier=data['identifier'],
-            problem_description=self.files[('unknown', data['pk'])].read(),
-            component=parent.component
-        )
+        with open(self.files[('unknown', data['pk'])], mode='rb') as fp:
+            report = ReportUnknown.objects.create(
+                root=self.job.reportroot,
+                parent=parent,
+                identifier=data['identifier'],
+                problem_description=fp.read(),
+                component=parent.component
+            )
         for attr in data['attrs']:
             self._attrs.add(report.pk, attr[0], attr[1])
 
@@ -457,7 +453,8 @@ class UploadReports(object):
         if ('unsafe', data['pk']) not in self.files:
             print_err('Unsafe without files was found')
             return
-        uf = UploadReportFiles(self.files[('unsafe', data['pk'])], file_name=ET_FILE, need_other=True)
+        with open(self.files[('unsafe', data['pk'])], mode='rb') as fp:
+            uf = UploadReportFiles(fp, file_name=ET_FILE, need_other=True)
         if uf.file_content is None:
             print_err('Unsafe without error trace was found')
             return
@@ -478,12 +475,14 @@ class UploadReports(object):
 
     def __get_log(self, rep_id, component):
         if ('log', rep_id) in self.files:
-            check_sum = file_checksum(self.files[('log', rep_id)])
+            with open(self.files[('log', rep_id)], mode='rb') as fp:
+                check_sum = file_checksum(fp)
             try:
                 db_file = File.objects.get(hash_sum=check_sum)
             except ObjectDoesNotExist:
                 db_file = File()
-                db_file.file.save('%s.log' % component, NewFile(self.files[('log', rep_id)]))
+                with open(self.files[('log', rep_id)], mode='rb') as fp:
+                    db_file.file.save('%s.log' % component, NewFile(fp))
                 db_file.hash_sum = check_sum
                 db_file.save()
             return db_file
