@@ -196,7 +196,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "faa4cc1~"
+          "commit": "4483562~"
         },
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
@@ -326,7 +326,7 @@
     {
       "Linux kernel": {
         "Git repository": {
-          "commit": "faa4cc1"
+          "commit": "4483562"
         },
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
