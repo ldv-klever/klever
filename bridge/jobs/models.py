@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from bridge.formatChecker import RestrictedFileField
 from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
 
 
@@ -49,11 +48,7 @@ class JobHistory(JobBase):
 # When you add this model to any other, check delete() method for all uses of File
 class File(models.Model):
     hash_sum = models.CharField(max_length=255)
-    file = RestrictedFileField(
-        upload_to=JOBFILE_DIR,
-        max_upload_size=104857600,
-        null=False
-    )
+    file = models.FileField(upload_to=JOBFILE_DIR, null=False)
 
     class Meta:
         db_table = 'file'

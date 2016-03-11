@@ -5,12 +5,11 @@ import tarfile
 from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
-from bridge.utils import print_err, file_checksum
+from bridge.utils import print_err, file_get_or_create
 from jobs.models import JOBFILE_DIR
 from jobs.utils import create_job, update_job
 from reports.UploadReport import UploadReportFiles
@@ -250,17 +249,14 @@ class UploadJob(object):
                         print_err(e)
                         return _("The job archive is corrupted")
                 elif dir_path.endswith(JOBFILE_DIR):
-                    with open(os.path.join(dir_path, file_name), mode='rb') as fp:
-                        check_sum = file_checksum(fp)
                     try:
-                        File.objects.get(hash_sum=check_sum)
-                    except ObjectDoesNotExist:
-                        db_file = File()
-                        with open(os.path.join(dir_path, file_name), mode='rb') as fp:
-                            db_file.file.save(file_name, NewFile(fp))
-                        db_file.hash_sum = check_sum
-                        db_file.save()
-                    files_in_db['/'.join([JOBFILE_DIR, file_name])] = check_sum
+                        files_in_db['/'.join([JOBFILE_DIR, file_name])] = file_get_or_create(
+                            open(os.path.join(dir_path, file_name), mode='rb'),
+                            file_name
+                        )[1]
+                    except Exception as e:
+                        print_err(e)
+                        return _("Creating job's file failed")
                 elif file_name.startswith('version-'):
                     version_id = int(file_name.replace('version-', ''))
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
@@ -490,15 +486,5 @@ class UploadReports(object):
 
     def __get_log(self, rep_id, component):
         if ('log', rep_id) in self.files:
-            with open(self.files[('log', rep_id)], mode='rb') as fp:
-                check_sum = file_checksum(fp)
-            try:
-                db_file = File.objects.get(hash_sum=check_sum)
-            except ObjectDoesNotExist:
-                db_file = File()
-                with open(self.files[('log', rep_id)], mode='rb') as fp:
-                    db_file.file.save('%s.log' % component, NewFile(fp))
-                db_file.hash_sum = check_sum
-                db_file.save()
-            return db_file
+            return file_get_or_create(open(self.files[('log', rep_id)], mode='rb'), '%s.log' % component)[0]
         return None
