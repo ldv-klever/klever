@@ -190,7 +190,8 @@
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "https://forge.ispras.ru/issues/6560"
     },
     {
       "Linux kernel": {
