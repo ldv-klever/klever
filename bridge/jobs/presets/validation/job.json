@@ -404,66 +404,42 @@
   ],
   "Not a module": [
     {
-      "Linux kernel": {
-        "Git repository": {"commit": "c9bf87d~"},
-        "modules": ["???"]
-      },
+      "Linux kernel": {"Git repository": {"commit": "c9bf87d~"}},
       "rule specifications": ["linux:rwlock"],
       "ideal verdict": "unsafe"
     },
     {
-      "Linux kernel": {
-        "Git repository": {"commit": "c9bf87d"},
-        "modules": ["???"]
-      },
+      "Linux kernel": {"Git repository": {"commit": "c9bf87d"}},
       "rule specifications": ["linux:rwlock"],
       "ideal verdict": "safe"
     },
     {
-      "Linux kernel": {
-        "Git repository": {"commit": "55a3dfc~"},
-        "modules": ["???"]
-      },
+      "Linux kernel": {"Git repository": {"commit": "55a3dfc~"}},
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe"
     },
     {
-      "Linux kernel": {
-        "Git repository": {"commit": "55a3dfc"},
-        "modules": ["???"]
-      },
+      "Linux kernel": {"Git repository": {"commit": "55a3dfc"}},
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "safe"
     },
     {
-      "Linux kernel": {
-        "Git repository": {"commit": "b716357~"},
-        "modules": ["???"]
-      },
+      "Linux kernel": {"Git repository": {"commit": "b716357~"}},
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe"
     },
     {
-      "Linux kernel": {
-        "Git repository": {"commit": "b716357"},
-        "modules": ["???"]
-      },
+      "Linux kernel": {"Git repository": {"commit": "b716357"}},
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "safe"
     },
     {
-      "Linux kernel": {
-        "Git repository": {"commit": "f673015~"},
-        "modules": ["???"]
-      },
+      "Linux kernel": {"Git repository": {"commit": "f673015~"}},
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe"
     },
     {
-      "Linux kernel": {
-        "Git repository": {"commit": "f673015"},
-        "modules": ["???"]
-      },
+      "Linux kernel": {"Git repository": {"commit": "f673015"}},
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "safe"
     }
