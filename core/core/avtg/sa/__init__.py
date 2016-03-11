@@ -8,6 +8,8 @@ import collections
 import core.components
 import core.utils
 
+from core.avtg.sa.initparser import parse_initializations
+
 
 def nested_dict():
     return collections.defaultdict(nested_dict)
@@ -151,8 +153,9 @@ class SA(core.components.Component):
         return content
 
     def _fulfill_collection(self):
+        # Patterns to parse
+        function_signature_re = re.compile('([^\s]+) (\w+) signature=\'(.+)\'\n$')
         all_args_re = "(?:\sarg\d+='[^']*')*"
-        exec_re = re.compile("^([^\s]*)\s(\w*)\sret='([^']*)'({})(\s\.\.\.)?\n".format(all_args_re))
         call_re = re.compile("^([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
         arg_re = re.compile("\sarg(\d+)='([^']*)'")
         short_pair_re = re.compile("^([^\s]*)\s(\w*)\n")
@@ -167,19 +170,11 @@ class SA(core.components.Component):
             self.logger.info("Extract function definitions or declarations from {}".format(execution_source["file"]))
             content = self._import_content(execution_source["file"])
             for line in content:
-                if exec_re.fullmatch(line):
-                    path, name, ret_type, args, is_var_args = exec_re.fullmatch(line).groups()
+                if function_signature_re.fullmatch(line):
+                    path, name, signature = function_signature_re.fullmatch(line).groups()
 
                     if not self.collection["functions"][name]["files"][path]:
-                        if ret_type == 'void %s':
-                            ret_type = 'void'
-                        parameters = ', '.join([arg[1] for arg in arg_re.findall(args)])
-                        if parameters == '':
-                            parameters = 'void'
-                        self.collection["functions"][name]["files"][path]["signature"] = \
-                            "{} {}({})".format(ret_type, name, parameters)
-
-                        self.collection["functions"][name]["files"][path]["variable arguments"] = is_var_args
+                        self.collection["functions"][name]["files"][path]["signature"] = signature
                     if not self.collection["functions"][name]["files"][path]["static"]:
                         self.collection["functions"][name]["files"][path]["static"] = execution_source["static"]
                 else:
@@ -215,10 +210,8 @@ class SA(core.components.Component):
 
         global_file = "global.txt"
         self.logger.debug("Extract global variables from {}".format(global_file))
-        content = self._import_content(global_file)
-        gi_parser = GlobalInitParser(content)
         # todo: add some logging here
-        self.collection["global variable initializations"] = gi_parser.analysis
+        self.collection["global variable initializations"] = parse_initializations(global_file)
 
         # export_file = "exported-symbols.txt"
         # self.logger.info("Extract export symbols from {}".format(export_file))
@@ -364,243 +357,5 @@ class SA(core.components.Component):
         del self.collection["functions"]
 
     main = analyze_sources
-
-
-class GlobalInitParser:
-    result = dict()
-    indent_re = re.compile("^(\s*)\w")
-
-    def __init__(self, content):
-        # todo: add logger here if necessary
-        self.content = content
-        self.analysis = collections.defaultdict(nested_dict)
-        if len(content) > 0:
-            self._parse(content)
-
-    def _get_indent(self, string):
-        return self.indent_re.match(string).group(1)
-
-    def _parse(self, lines):
-        indent_str = self._get_indent(lines[0])
-
-        struct_init_begin_re = \
-            re.compile("^{}Structure initializer description begin path='([^']*)' name='([^']*)' type='([^']*)'".
-                       format(indent_str))
-        # TODO: structure type is unknown in case of (arrays of) structure pointers. Implement them later. (issue #6559)
-        struct_ptr_init_begin_re = \
-            re.compile("^{}Structure pointer initializer description begin path='([^']*)' name='([^']*)'".
-                       format(indent_str))
-        struct_ptr_array_init_begin_re = \
-            re.compile("^{}Structure pointers array initializer description begin path='([^']*)' name='([^']*)'".
-                       format(indent_str))
-        init_re = re.compile("^{}Initializer list".format(indent_str))
-        struct_init_end_re = re.compile("^{}Structure initializer description end".format(indent_str))
-        struct_ptr_init_end_re = re.compile("^{}Structure pointer initializer description end".format(indent_str))
-        struct_ptr_array_init_end_re = re.compile("^{}Structure pointers array initializer description end".format(indent_str))
-
-        # TODO: add syntax checks and corresponding exceptions!
-        # 0 - begin, 1 - in initializer, 2 - out of initializer
-        state = 0
-        for line in lines:
-            if state in [0, 2]:
-                current_entity = None
-                current_block = None
-                match = struct_init_begin_re.match(line)
-                if match:
-                    path, name, struct_type = match.groups()
-                    self.analysis[path][name]["signature"] = "struct {} %s".format(struct_type)
-                    self.analysis[path][name]["struct type"] = struct_type
-                    self.analysis[path][name]["value"] = name
-                    current_entity = self.analysis[path][name]
-                else:
-                    match = struct_ptr_init_begin_re.match(line)
-                    if match:
-                        raise NotImplementedError("Support structure pointers")
-                        #path, name = match.groups()
-                        #self.analysis[path][name]["type"] = "pointer to structure"
-                        #self.analysis[path][name]["signature"] = "struct {} *%s".format(struct_type)
-                        #current_entity = self.analysis[path][name]
-                    else:
-                        match = struct_ptr_array_init_begin_re.match(line)
-                        if match:
-                            raise NotImplementedError("Support arrays")
-                            #path, name = match.groups()
-                            #self.analysis[path][name]["type"] = "array"
-                            #current_entity = self.analysis[path][name]
-                state = 1
-            elif state == 1:
-                if init_re.match(line):
-                    current_block = []
-                elif struct_init_end_re.match(line):
-                    self._parse_structure(current_entity["fields"], current_block)
-                    state = 2
-                elif struct_ptr_init_end_re.match(line):
-                    current_entity["initializer"] = re.match("^\s*Value\sis\s'([^']*)'", current_block[1]).group(1)
-                    state = 2
-                elif struct_ptr_array_init_end_re.match(line):
-                    self._parse_array(current_entity["elements"], current_block)
-                    state = 2
-                else:
-                    current_block.append(line)
-        return
-
-    def _parse_structure(self, fields, block):
-        # Do not parse empty initializers like for anx9805_i2c_func (drivers/gpu/drm/nouveau/nouveau.ko) and
-        # lme2510_props (drivers/media/usb/dvb-usb-v2/dvb-usb-lmedm04.ko)
-        if not len(block):
-            return
-
-        indent_str = self._get_indent(block[0])
-        begin_re = re.compile("^{}Structure field initialization".format(indent_str))
-        name_re = re.compile("^{}Field\sname\sis\s'([^']*)'".format(indent_str))
-        type_re = re.compile("^{}Type\sis\s'([^']*)'".format(indent_str))
-        sign_re = re.compile("^{}Declaration\sis\s'([^']*)'".format(indent_str))
-
-        # 0 - out of field description,
-        # 1 - at the beginning,
-        # 2 - with filled name
-        # 3 - with filled type
-        # 4 - with filled signature
-        state = 0
-
-        current_field = None
-        current_block = []
-        for line in block:
-            if state == 0:
-                # Skip the first line
-                state = 1
-            elif state == 1:
-                # Parse name
-                current_block = None
-                current_name = name_re.match(line).group(1)
-                current_field = fields[current_name]
-                state = 2
-            elif state == 2:
-                field_type = type_re.match(line).group(1)
-                current_field["type"] = field_type
-                state = 3
-            elif state == 3:
-                signature = sign_re.match(line).group(1)
-                current_field["signature"] = signature
-                current_block = []
-                state = 4
-            elif state == 4:
-                if begin_re.match(line):
-                    self._parse_element(current_field, current_block)
-                    state = 1
-                else:
-                    current_block.append(line)
-
-        # Parse last element
-        self._parse_element(current_field, current_block)
-
-    def _parse_array(self, elements, block):
-        indent_str = self._get_indent(block[0])
-        begin_re = re.compile("^{}Array\selement\sinitialization".format(indent_str))
-        index_re = re.compile("^{}Array\sindex\sis\s'([^']*)'".format(indent_str))
-        type_re = re.compile("^{}Type\sis\s'([^']*)'".format(indent_str))
-        sign_re = re.compile("^{}Declaration\sis\s'([^']*)'".format(indent_str))
-
-        # 0 - out of field description,
-        # 1 - at the beginning,
-        # 2 - with filled name
-        # 3 - with filled type
-        # 4 - with filled signature
-        state = 0
-
-        current_element = None
-        current_block = []
-        for line in block:
-            if state == 0:
-                # Skip the first line
-                state = 1
-            elif state == 1:
-                # Parse name
-                current_block = None
-                current_index = index_re.match(line).group(1)
-                current_element = elements[current_index]
-                state = 2
-            elif state == 2:
-                field_type = type_re.match(line).group(1)
-                current_element["type"] = field_type
-                state = 3
-            elif state == 3:
-                signature = sign_re.match(line).group(1)
-                current_element["signature"] = signature
-                current_block = []
-                state = 4
-            elif state == 4:
-                if begin_re.match(line):
-                    self._parse_element(current_element, current_block)
-                    state = 1
-                else:
-                    current_block.append(line)
-
-        # Parse the last element
-        self._parse_element(current_element, current_block)
-
-    def _parse_element(self, element, block):
-        value_re = re.compile("^\s*Value\sis\s'([^']*)'")
-        string_value_re = re.compile("^\s*Value\sis\s'(\"[^']*\")'")
-        array_re = re.compile("^\s*Array\selement\sinitialization")
-        struct_re = re.compile("^\s*Structure field initialization")
-
-        if element["type"] == "structure":
-            # Ignore "Initializer list" first string
-            self._parse_structure(element["fields"], block[1:])
-        elif element["type"] == "function pointer":
-            ret_re = re.compile("^\s*Pointed\sfunction\sreturn\stype\sdeclaration\sis\s'([^']*)'")
-            args_re = re.compile("^\s*Pointed\sfunction\sargument\stype\sdeclarations\sare([^\n]*)\n")
-            all_args_re = re.compile("\s'([^']*)'")
-
-            return_type = ret_re.match(block[0]).group(1)
-            if return_type == 'void %s':
-                return_type = 'void'
-            args = args_re.match(block[1]).group(1)
-            parameters = all_args_re.findall(args)
-
-            signature = "{} (*%s)({})".format(return_type, ', '.join(parameters))
-            element["signature"] = signature
-            element["return value type"] = return_type
-            value = value_re.match(block[2]).group(1)
-            element["parameters"] = parameters
-            element["value"] = value
-        elif element["type"] in ["primitive", "primitive pointer", "pointer to structure variable",
-                                 "pointer to pointer"]:
-            if not value_re.match(block[0]):
-                # TODO: Remove this when CIF will always return only Value for primitives
-                element["value"] = None
-            else:
-                value = value_re.match(block[0]).group(1)
-                element["value"] = value
-        elif element["type"] == "array":
-            # Parse strings (arrays of chars)
-            if len(block) == 1:
-                match = string_value_re.match(block[0])
-                if match:
-                    element["value"] = match.group(1)
-            # Parse non strings
-            if "value" not in element:
-                # Ignore "Initializer list" first string
-                self._parse_array(element["elements"], block[1:])
-        elif element["type"] == "typedef":
-            # todo: ignore typedefs unless CIF issue #6896 (incomplete signatures for typedefs) is fixed
-            pass
-            # Check typedef element
-            #if value_re.match(block[0]):
-            #    value = value_re.match(block[0]).group(1)
-            #    element["value"] = value
-            # Do not parse empty initializers like for parport_sysctl_template (drivers/parport/parport.ko)
-            # Ignore "Initializer list" first string
-            #elif len(block[1:]):
-            #   if array_re.match(block[1]):
-            #       self._parse_array(element["elements"], block[1:])
-            #   elif struct_re.match(block[1]):
-            #       self._parse_structure(element["fields"], block[1:])
-            #    else:
-            #       raise NotImplementedError("Could not parse element initializer")
-        else:
-            raise NotImplementedError("Field type '{}' is not supported by global variables initialization parser".
-                                      format(element["type"]))
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
