@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
-from django.utils.timezone import datetime, pytz
+from django.utils.timezone import datetime, pytz, now, timedelta
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
 from bridge.utils import print_err, file_checksum
 from jobs.models import JOBFILE_DIR
@@ -236,6 +236,7 @@ class UploadJob(object):
         self.err_message = self.__create_job_from_tar()
 
     def __create_job_from_tar(self):
+        t1 = now()
         inmemory = BytesIO(self.zip_file.read())
         jobzip_file = tarfile.open(fileobj=inmemory, mode='r')
         jobdata = None
@@ -318,6 +319,9 @@ class UploadJob(object):
                         return _("The job archive is corrupted")
                 filedata.append(fdata_elem)
             version_list[i]['filedata'] = filedata
+        print("Data extraction: %s" % str(now() - t1))
+        t1 = now()
+
         job = create_job({
             'name': version_list[0]['name'],
             'author': self.user,
@@ -330,6 +334,9 @@ class UploadJob(object):
         })
         if not isinstance(job, Job):
             return job
+        print("Job creation: %s" % str(now() - t1))
+        t1 = now()
+
         for version_data in version_list[1:]:
             updated_job = update_job({
                 'job': job,
@@ -345,9 +352,15 @@ class UploadJob(object):
             if not isinstance(updated_job, Job):
                 job.delete()
                 return updated_job
+        print("Job versions creation: %s" % str(now() - t1))
+        t1 = now()
+
         self.job = job
         self.job.status = jobdata['status']
         self.job.save()
+        print("Job status change: %s" % str(now() - t1))
+        t1 = now()
+
         ReportRoot.objects.create(user=self.user, job=self.job)
         try:
             UploadReports(self.job, json.loads(jobdata['reports']), report_files)
@@ -356,6 +369,7 @@ class UploadJob(object):
             self.job.delete()
             self.job = None
             return _("One of the reports was not uploaded")
+        print("All reports upload: %s" % str(now() - t1))
         return None
 
 
@@ -367,7 +381,27 @@ class UploadReports(object):
         self.files = files
         self._pk_map = {}
         self._attrs = AttrData()
+        self.timedata = {}
         self.__upload_all()
+        self.__print_time_results()
+
+    def __print_time_results(self):
+        for t in self.timedata:
+            if self.timedata[t]['num'] > 0:
+                print("Average time for %s (number - %s): %s" % (
+                    t,
+                    self.timedata[t]['num'],
+                    str(self.timedata[t]['time'] / self.timedata[t]['num'])
+                ))
+
+    def __add_time(self, action, time):
+        if action not in self.timedata:
+            self.timedata[action] = {
+                'num': 0,
+                'time': timedelta(0)
+            }
+        self.timedata[action]['num'] += 1
+        self.timedata[action]['time'] += now() - time
 
     def __upload_all(self):
         curr_func = self.__create_report_component
@@ -386,15 +420,23 @@ class UploadReports(object):
                 curr_func = self.__create_report_unsafe
             elif isinstance(data, str) and data == 'unknowns':
                 curr_func = self.__create_report_unknown
+        t1 = now()
         self._attrs.upload()
+        print("Upload of all attributes: %s" % str(now() - t1))
+        t1 = now()
+
         Verdict.objects.bulk_create(list(
             Verdict(report=self._pk_map[rep_id]) for rep_id in self._pk_map
         ))
+        print("Verdicts for all reports creation: %s" % str(now() - t1))
+        t1 = now()
 
         from tools.utils import Recalculation
         Recalculation('all', json.dumps([self.job.pk]))
+        print("Cache recalculation: %s" % str(now() - t1))
 
     def __create_report_component(self, data):
+        t1 = now()
         parent = None
         if 'parent' in data and data['parent'] is not None:
             if data['parent'] in self._pk_map:
@@ -419,8 +461,10 @@ class UploadReports(object):
         )
         for attr in data['attrs']:
             self._attrs.add(self._pk_map[data['pk']].pk, attr[0], attr[1])
+        self.__add_time('component', t1)
 
     def __create_report_safe(self, data):
+        t1 = now()
         if ('safe', data['pk']) not in self.files:
             print_err('Safe without proof was found')
             return
@@ -435,8 +479,10 @@ class UploadReports(object):
         )
         for attr in data['attrs']:
             self._attrs.add(report.pk, attr[0], attr[1])
+        self.__add_time('safe', t1)
 
     def __create_report_unknown(self, data):
+        t1 = now()
         if ('unknown', data['pk']) not in self.files:
             print_err('Unknown without problem description was found')
             return
@@ -452,8 +498,10 @@ class UploadReports(object):
         )
         for attr in data['attrs']:
             self._attrs.add(report.pk, attr[0], attr[1])
+        self.__add_time('unknown', t1)
 
     def __create_report_unsafe(self, data):
+        t1 = now()
         if ('unsafe', data['pk']) not in self.files:
             print_err('Unsafe without files was found')
             return
@@ -475,10 +523,13 @@ class UploadReports(object):
             self._attrs.add(report.pk, attr[0], attr[1])
         for src_f in uf.other_files:
             ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
+        self.__add_time('unsafe', t1)
 
     def __get_log(self, rep_id, component):
         if ('log', rep_id) in self.files:
+            t1 = t2 = now()
             check_sum = file_checksum(self.files[('log', rep_id)])
+            self.__add_time('log checksum', t2)
             try:
                 db_file = File.objects.get(hash_sum=check_sum)
             except ObjectDoesNotExist:
@@ -486,5 +537,6 @@ class UploadReports(object):
                 db_file.file.save('%s.log' % component, NewFile(self.files[('log', rep_id)]))
                 db_file.hash_sum = check_sum
                 db_file.save()
+            self.__add_time('log', t1)
             return db_file
         return None
