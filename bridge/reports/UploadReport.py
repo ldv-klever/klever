@@ -2,11 +2,10 @@ import os
 import json
 import tarfile
 from io import BytesIO
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.timezone import now
-from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, print_err
 from reports.models import *
 from reports.utils import save_attrs
@@ -45,7 +44,8 @@ class UploadReport(object):
     def __check_data(self, data):
         if not isinstance(data, dict):
             return 'Data is not a dictionary'
-        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0:
+        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0 \
+                or not data['id'].startswith('/'):
             return 'Type and id are required or have wrong format'
         if 'parent id' in data and not isinstance(data['parent id'], str):
             return 'Parent id has wrong format'
@@ -151,6 +151,13 @@ class UploadReport(object):
                 })
             except KeyError as e:
                 return "Property '%s' is required." % e
+        elif data['type'] == 'data':
+            try:
+                self.data.update({
+                    'data': data['data']
+                })
+            except KeyError as e:
+                return "Property '%s' is required." % e
         else:
             return "Report type is not supported"
         return None
@@ -202,7 +209,8 @@ class UploadReport(object):
             'verification': self.__create_report_component,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
-            'unknown': self.__create_report_unknown
+            'unknown': self.__create_report_unknown,
+            'data': self.__update_report_data
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
@@ -264,6 +272,14 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             self.error = 'Updated report does not exist'
 
+    def __update_report_data(self, identifier):
+        try:
+            report = ReportComponent.objects.get(identifier=identifier)
+            report.data = self.data['data'].encode('utf8')
+            report.save()
+        except ObjectDoesNotExist:
+            self.error = 'Updated report does not exist'
+
     def __finish_report_component(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
@@ -296,13 +312,10 @@ class UploadReport(object):
         self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            for rep in ReportComponent.objects.filter(root__job=self.job):
-                if len(ReportComponent.objects.filter(parent_id=rep.pk)) == 0:
-                    rep.resources_cache.filter(component=None).delete()
-            if len(ReportComponent.objects.filter(finish_date=None, root=self.root)):
+            if len(ReportComponent.objects.filter(finish_date=None, root=self.root)) > 0:
                 self.__job_failed("There are unfinished reports")
-            elif self.job.status != JOB_STATUS[5][0]:
-                KleverCoreFinishDecision(self.job)
+                return
+            KleverCoreFinishDecision(self.job)
 
     def __create_report_unknown(self, identifier):
         try:
@@ -349,11 +362,7 @@ class UploadReport(object):
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
-            report = ReportSafe(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root,
-            )
+            report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
 
         uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
         if uf.file_content is None:
@@ -462,7 +471,8 @@ class UploadReport(object):
                 cpu_time=report.cpu_time,
                 memory=report.memory
             )
-        update_total_resources(report)
+        if len(ReportComponent.objects.filter(parent_id=report.pk)) > 0:
+            update_total_resources(report)
 
         parent = self.parent
         while parent is not None:

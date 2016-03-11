@@ -373,13 +373,23 @@ TASK_STATUS = (
     ('CANCELLED', _('Cancelled'))
 )
 
-DEFAULT_COMPARE_ATTRS = {
-    '0': ['rule specification', 'verification object'],
-    '1': ['rule specification', 'verification object'],
-    '2': ['rule specification', 'verification object'],
-    '3': ['rule specification', 'verification object'],
-    '4': ['rule specification', 'verification object'],
-    '5': ['rule specification', 'verification object'],
+MARKS_COMPARE_ATTRS = {
+    JOB_CLASSES[0][0]: ['rule specification', 'verification object'],
+    JOB_CLASSES[1][0]: ['rule specification', 'verification object'],
+    JOB_CLASSES[2][0]: ['rule specification', 'verification object'],
+    JOB_CLASSES[3][0]: ['rule specification', 'verification object'],
+    JOB_CLASSES[4][0]: ['rule specification', 'verification object'],
+    JOB_CLASSES[5][0]: ['rule specification', 'verification object'],
+}
+
+
+JOBS_COMPARE_ATTRS = {
+    JOB_CLASSES[0][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[1][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[2][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[3][0]: ['Commit', 'verification object', 'rule specification'],
+    JOB_CLASSES[4][0]: ['verification object', 'rule specification'],
+    JOB_CLASSES[5][0]: ['verification object', 'rule specification']
 }
 
 # TODO: keys and values are almost the same and thus can be refactored.

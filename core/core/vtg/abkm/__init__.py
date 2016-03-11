@@ -143,6 +143,7 @@ class ABKM(core.components.Component):
 
         while True:
             task_status = session.get_task_status(task_id)
+            self.logger.info('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
 
             if task_status == 'ERROR':
                 task_error = session.get_task_error(task_id)

@@ -5,21 +5,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 from bridge.utils import print_err
-from bridge.vars import JOB_STATUS, JOB_CLASSES
+from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
 from jobs.utils import JobAccess, CompareFileSet
 from reports.models import *
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
 from marks.tables import UNSAFE_COLOR, SAFE_COLOR
-
-
-COMPARE_ATTRS = {
-    JOB_CLASSES[0][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[1][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[2][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[3][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[4][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[5][0]: ['verification object', 'rule specification']
-}
 
 
 def can_compare(user, job1, job2):
@@ -37,7 +27,7 @@ def can_compare(user, job1, job2):
 class ReportTree(object):
     def __init__(self, job):
         self.job = job
-        self.attrs = COMPARE_ATTRS[job.type]
+        self.attrs = JOBS_COMPARE_ATTRS[job.type]
         self.reports = {}
         self.attr_values = {}
         self.__get_tree()
@@ -226,16 +216,16 @@ class ComparisonTableData(object):
                 self.error = 'Unknown error'
                 print_err(e)
                 return
-            if len(attr_values) != len(COMPARE_ATTRS[info.root1.job.type]):
+            if len(attr_values) != len(JOBS_COMPARE_ATTRS[info.root1.job.type]):
                 self.error = 'Unknown error'
                 return
             for i in range(0, len(attr_values)):
-                if COMPARE_ATTRS[info.root1.job.type][i] not in all_attrs:
-                    all_attrs[COMPARE_ATTRS[info.root1.job.type][i]] = []
-                if attr_values[i] not in all_attrs[COMPARE_ATTRS[info.root1.job.type][i]]:
-                    all_attrs[COMPARE_ATTRS[info.root1.job.type][i]].append(attr_values[i])
+                if JOBS_COMPARE_ATTRS[info.root1.job.type][i] not in all_attrs:
+                    all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]] = []
+                if attr_values[i] not in all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]]:
+                    all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]].append(attr_values[i])
 
-        for a in COMPARE_ATTRS[info.root1.job.type]:
+        for a in JOBS_COMPARE_ATTRS[info.root1.job.type]:
             if a in all_attrs:
                 self.attrs.append({'name': a, 'values': list(sorted(all_attrs[a]))})
 
@@ -472,7 +462,7 @@ class ComparisonData(object):
                 'name': a.attr.name.name,
                 'value': a.attr.value
             }
-            if attr_data['name'] in COMPARE_ATTRS[self.info.root1.job.type]:
+            if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
         block.href = reverse('reports:component', args=[report.root.job_id, report.pk])
@@ -492,7 +482,7 @@ class ComparisonData(object):
                 'name': a.attr.name.name,
                 'value': a.attr.value
             }
-            if attr_data['name'] in COMPARE_ATTRS[self.info.root1.job.type]:
+            if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
         block.href = reverse('reports:leaf', args=['unsafe', report.pk])
@@ -512,7 +502,7 @@ class ComparisonData(object):
                 'name': a.attr.name.name,
                 'value': a.attr.value
             }
-            if attr_data['name'] in COMPARE_ATTRS[self.info.root1.job.type]:
+            if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
         block.href = reverse('reports:leaf', args=['safe', report.pk])
@@ -539,7 +529,7 @@ class ComparisonData(object):
                 'name': a.attr.name.name,
                 'value': a.attr.value
             }
-            if attr_data['name'] in COMPARE_ATTRS[self.info.root1.job.type]:
+            if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
         block.href = reverse('reports:leaf', args=['unknown', report.pk])

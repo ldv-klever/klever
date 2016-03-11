@@ -81,7 +81,7 @@ class DownloadJob(object):
     def __create_tar(self):
 
         files_in_tar = {}
-        self.tarname = 'Job-' + self.job.identifier[:10] + '.tar.gz'
+        self.tarname = 'Job-%s-%s.tar.gz' % (self.job.identifier[:10], self.job.type)
         jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
 
         def write_file_str(file_name, file_content):
@@ -372,7 +372,7 @@ class UploadReports(object):
         curr_func = self.__create_report_component
         for data in self.data:
             if 'identifier' in data:
-                m = re.match('.*?(##.*)', data['identifier'])
+                m = re.match('.*?(/.*)', data['identifier'])
                 if m is None:
                     data['identifier'] = self.job.identifier
                 else:
