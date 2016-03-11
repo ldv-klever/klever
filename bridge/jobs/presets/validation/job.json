@@ -201,7 +201,8 @@
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
       "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "https://forge.ispras.ru/issues/6575"
     },
     {
       "Linux kernel": {
@@ -211,7 +212,8 @@
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
       "rule specifications": ["linux:alloc2"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "https://forge.ispras.ru/issues/6575"
     },
     {
       "Linux kernel": {
