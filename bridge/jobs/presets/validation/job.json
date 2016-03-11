@@ -32,9 +32,7 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "bcb4a75~"
-        },
+        "Git repository": {"commit": "bcb4a75~"},
         "modules": ["drivers/hid/hid.ko"]
       },
       "rule specifications": ["linux:usb:gadget"],
@@ -42,9 +40,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "e4c7f25~"
-        },
+        "Git repository": {"commit": "e4c7f25~"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
       "rule specifications": ["linux:alloc2"],
@@ -52,9 +48,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "bcb4a75"
-        },
+        "Git repository": {"commit": "bcb4a75"},
         "modules": ["drivers/hid/hid.ko"]
       },
       "rule specifications": ["linux:usb:gadget"],
@@ -63,9 +57,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "e4c7f25"
-        },
+        "Git repository": {"commit": "e4c7f25"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
       "rule specifications": ["linux:alloc2"],
@@ -74,9 +66,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "790cc82~"
-        },
+        "Git repository": {"commit": "790cc82~"},
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -85,9 +75,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "511f1df~"
-        },
+        "Git repository": {"commit": "511f1df~"},
         "modules": ["drivers/net/ppp/ppp_generic.ko"]
       },
       "rule specifications": ["linux:alloc2"],
@@ -96,9 +84,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "44f6943~"
-        },
+        "Git repository": {"commit": "44f6943~"},
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
@@ -107,9 +93,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "60b3593~"
-        },
+        "Git repository": {"commit": "60b3593~"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -118,9 +102,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "5c256d21~"
-        },
+        "Git repository": {"commit": "5c256d21~"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -129,9 +111,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "ac4de08~"
-        },
+        "Git repository": {"commit": "ac4de08~"},
         "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -140,9 +120,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "214c97a12"
-        },
+        "Git repository": {"commit": "214c97a12"},
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -151,9 +129,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "063579d~"
-        },
+        "Git repository": {"commit": "063579d~"},
         "modules": ["drivers/w1/wire.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -162,9 +138,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "21a018a~"
-        },
+        "Git repository": {"commit": "21a018a~"},
         "modules": ["net/tipc/tipc.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -173,9 +147,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "ae3f348~"
-        },
+        "Git repository": {"commit": "ae3f348~"},
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -184,9 +156,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "9aaf967~"
-        },
+        "Git repository": {"commit": "9aaf967~"},
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -195,9 +165,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "4483562~"
-        },
+        "Git repository": {"commit": "4483562~"},
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
       "rule specifications": ["linux:alloc2"],
@@ -206,9 +174,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "7ce7751~"
-        },
+        "Git repository": {"commit": "7ce7751~"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
       "rule specifications": ["linux:alloc2"],
@@ -217,9 +183,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "790cc82"
-        },
+        "Git repository": {"commit": "790cc82"},
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -227,9 +191,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "511f1df"
-        },
+        "Git repository": {"commit": "511f1df"},
         "modules": ["drivers/net/ppp/ppp_generic.ko"]
       },
       "rule specifications": ["linux:alloc2"],
@@ -237,9 +199,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "44f6943"
-        },
+        "Git repository": {"commit": "44f6943"},
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
@@ -247,9 +207,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "60b3593"
-        },
+        "Git repository": {"commit": "60b3593"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -257,9 +215,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "5c256d21"
-        },
+        "Git repository": {"commit": "5c256d21"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -267,9 +223,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "ac4de08"
-        },
+        "Git repository": {"commit": "ac4de08"},
         "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -278,9 +232,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "214c97a12~"
-        },
+        "Git repository": {"commit": "214c97a12~"},
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -288,9 +240,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "063579d"
-        },
+        "Git repository": {"commit": "063579d"},
         "modules": ["drivers/w1/wire.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -298,9 +248,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "21a018a"
-        },
+        "Git repository": {"commit": "21a018a"},
         "modules": ["net/tipc/tipc.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -309,9 +257,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "ae3f348"
-        },
+        "Git repository": {"commit": "ae3f348"},
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -320,9 +266,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "9aaf967"
-        },
+        "Git repository": {"commit": "9aaf967"},
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -331,9 +275,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "4483562"
-        },
+        "Git repository": {"commit": "4483562"},
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
       "rule specifications": ["linux:alloc2"],
@@ -341,9 +283,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "7ce7751"
-        },
+        "Git repository": {"commit": "7ce7751"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
       "rule specifications": ["linux:alloc2"],
@@ -353,9 +293,7 @@
   "Source code > 25 KLOC": [
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "058ac41~"
-        },
+        "Git repository": {"commit": "058ac41~"},
         "modules": ["fs/btrfs/btrfs.ko"]
       },
       "rule specifications": ["linux:rwlock"],
@@ -363,9 +301,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "058ac41"
-        },
+        "Git repository": {"commit": "058ac41"},
         "modules": ["fs/btrfs/btrfs.ko"]
       },
       "rule specifications": ["linux:rwlock"],
@@ -373,9 +309,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "80bd602~"
-        },
+        "Git repository": {"commit": "80bd602~"},
         "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -383,9 +317,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "80bd602"
-        },
+        "Git repository": {"commit": "80bd602"},
         "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -393,9 +325,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "3bcf978~"
-        },
+        "Git repository": {"commit": "3bcf978~"},
         "modules": ["drivers/gpu/drm/i915/i915.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -403,9 +333,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "3bcf978"
-        },
+        "Git repository": {"commit": "3bcf978"},
         "modules": ["drivers/gpu/drm/i915/i915.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -413,9 +341,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "d3f0969~"
-        },
+        "Git repository": {"commit": "d3f0969~"},
         "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -423,9 +349,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "d3f0969"
-        },
+        "Git repository": {"commit": "d3f0969"},
         "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -435,9 +359,7 @@
   "Specific configuration (architecture)": [
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "0eff4d6~"
-        },
+        "Git repository": {"commit": "0eff4d6~"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -445,9 +367,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "0eff4d6"
-        },
+        "Git repository": {"commit": "0eff4d6"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -455,9 +375,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "82d16b3~"
-        },
+        "Git repository": {"commit": "82d16b3~"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -465,9 +383,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "82d16b3"
-        },
+        "Git repository": {"commit": "82d16b3"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -475,9 +391,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "44efe16~"
-        },
+        "Git repository": {"commit": "44efe16~"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -485,9 +399,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "44efe16"
-        },
+        "Git repository": {"commit": "44efe16"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:spinlock:as"],
@@ -497,9 +409,7 @@
   "Not a module": [
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "c9bf87d~"
-        },
+        "Git repository": {"commit": "c9bf87d~"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:rwlock"],
@@ -507,9 +417,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "c9bf87d"
-        },
+        "Git repository": {"commit": "c9bf87d"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:rwlock"],
@@ -517,9 +425,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "55a3dfc~"
-        },
+        "Git repository": {"commit": "55a3dfc~"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -527,9 +433,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "55a3dfc"
-        },
+        "Git repository": {"commit": "55a3dfc"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -537,9 +441,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "b716357~"
-        },
+        "Git repository": {"commit": "b716357~"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -547,9 +449,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "b716357"
-        },
+        "Git repository": {"commit": "b716357"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -557,9 +457,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "f673015~"
-        },
+        "Git repository": {"commit": "f673015~"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex:as"],
@@ -567,9 +465,7 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {
-          "commit": "f673015"
-        },
+        "Git repository": {"commit": "f673015"},
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex:as"],
