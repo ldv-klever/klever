@@ -79,9 +79,9 @@
             </div>
             <div class="ui violet segment need-auth" style="width: 35%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
                 <h3>{% trans 'Resource limits for Klever Core' %}</h3>
-                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0</label>
+                <label for="max_ram">{% trans 'Memory size' %}* ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0</label>
                 <div class="ui input fluid">
-                    <input id="max_ram" type="number" value="{{ data.default.2.0 }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                    <input id="max_ram" type="text" value="{{ data.default.2.0 }}">
                 </div>
                 <br>
                 <label for="max_cpus">{% trans 'Number of CPU cores' %}, {% trans 'e.g.' %} 2</label>
@@ -89,9 +89,9 @@
                     <input id="max_cpus" type="number" value="{{ data.default.2.1 }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0</label>
+                <label for="max_disk">{% trans 'Disk memory size' %}* ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0</label>
                 <div class="ui input fluid">
-                    <input id="max_disk" type="number" value="{{ data.default.2.2 }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                    <input id="max_disk" type="text" value="{{ data.default.2.2 }}">
                 </div>
                 <br>
                 <label for="cpu_model">{% trans 'CPU model' %} ({% trans 'empty value means any model' %})</label>
@@ -99,14 +99,14 @@
                     <input id="cpu_model" type="text"{% if data.default.2.3 %} value="{{ data.default.2.3 }}"{% endif %}>
                 </div>
                 <br>
-                <label for="max_cpu_time">{% trans 'CPU time' %} ({% trans 'm' %}), {% trans 'e.g.' %} 16,0 ({% trans 'empty value means unlimited time' %})</label>
+                <label for="max_cpu_time">{% trans 'CPU time' %}* ({% trans 'm' %}), {% trans 'e.g.' %} 16.0 ({% trans 'empty value means unlimited time' %})</label>
                 <div class="ui input fluid">
-                    <input id="max_cpu_time" type="number" pattern="([0-9]+([\.|,][0-9]+)?)?"{% if data.default.2.4 %} value="{{ data.default.2.4 }}"{% endif %}>
+                    <input id="max_cpu_time" type="text"{% if data.default.2.4 %} value="{{ data.default.2.4 }}"{% endif %}>
                 </div>
                 <br>
-                <label for="max_wall_time">{% trans 'Wall time' %} ({% trans 'm' %}), {% trans 'e.g.' %} 15,1 ({% trans 'empty value means unlimited time' %})</label>
+                <label for="max_wall_time">{% trans 'Wall time' %}* ({% trans 'm' %}), {% trans 'e.g.' %} 15.1 ({% trans 'empty value means unlimited time' %})</label>
                 <div class="ui input fluid">
-                    <input id="max_wall_time" type="number" pattern="([0-9]+([\.|,][0-9]+)?)?"{% if data.default.2.5 %} value="{{ data.default.2.5 }}"{% endif %}>
+                    <input id="max_wall_time" type="text"{% if data.default.2.5 %} value="{{ data.default.2.5 }}"{% endif %}>
                 </div>
             </div>
             <div class="ui violet segment need-auth" style="width: 40%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
@@ -118,15 +118,17 @@
                     </span>
                 {% endfor %}
                 <br><br><br>
-                <label for="kernel_build_parallelism__value">{% trans 'Kernel build' %}</label>
+                <label for="kernel_build_parallelism__value">{% trans 'Kernel build' %}*</label>
                 <div class="ui fluid input">
-                    <input id="kernel_build_parallelism__value" type="number" value="{{ data.default.1.0 }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                    <input id="kernel_build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
                 </div>
                 <br>
-                <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}</label>
+                <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}*</label>
                 <div class="ui fluid input">
-                    <input id="tasks_gen_parallelism__value" type="number" value="{{ data.default.1.1 }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                    <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.1 }}">
                 </div>
+                <br><br>
+                <span class="italic bold-text" style="color: #de83c2">*{% trans 'Do not use comma for float numbers, point only' %}</span>
             </div>
         </div>
         <div class="ui horizontal segments need-auth" {% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
@@ -214,4 +216,5 @@
     {% endif %}
     <span id="sch_u_saved" hidden>{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}</span>
     <span id="fields_required" hidden>{% trans 'Field(s) with red background are required' %}</span>
+    <span id="numeric_required" hidden>{% trans 'Field(s) with red background must be numeric' %}</span>
 {% endblock %}

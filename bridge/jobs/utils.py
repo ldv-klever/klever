@@ -667,7 +667,6 @@ def get_default_configurations():
 
 class GetConfiguration(object):
     def __init__(self, conf_name=None, file_conf=None, user_conf=None):
-        self.error = None
         self.configuration = None
         if conf_name is not None:
             self.__get_default_conf(conf_name)
@@ -775,6 +774,13 @@ class GetConfiguration(object):
             conf[1][1] = int_or_float(conf[1][1])
             if len(conf[2][3]) == 0:
                 conf[2][3] = None
+            conf[2][0] = float(conf[2][0])
+            conf[2][1] = int(conf[2][1])
+            conf[2][2] = float(conf[2][2])
+            if conf[2][4] is not None:
+                conf[2][4] = float(conf[2][4])
+            if conf[2][5] is not None:
+                conf[2][5] = float(conf[2][5])
         except Exception as e:
             print_err("Wrong user configuration format: %s" % e)
             return

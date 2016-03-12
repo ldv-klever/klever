@@ -155,7 +155,10 @@ $(document).ready(function () {
             'max_ram', 'max_cpus', 'max_disk',
             'console_log_formatter__value', 'file_log_formatter__value',
             'kernel_build_parallelism__value', 'tasks_gen_parallelism__value'
-        ], err_found = false;
+        ], err_found = false, nummeric_fields = [
+            'kernel_build_parallelism__value', 'tasks_gen_parallelism__value',
+            'max_ram', 'max_cpus', 'max_disk', 'max_cpu_time', 'max_wall_time'
+        ];
         $.each(required_fields, function (i, v) {
             var curr_input = $('#' + v);
             curr_input.parent().removeClass('error');
@@ -166,22 +169,35 @@ $(document).ready(function () {
         });
         if (err_found) {
             err_notify($('#fields_required').text());
+            return false;
         }
-        else {
-            $.ajax({
-                url: job_ajax_url + 'run_decision/',
-                data: collect_data(),
-                type: 'POST',
-                success: function (data) {
-                    if (data.error) {
-                        err_notify(data.error);
-                    }
-                    else {
-                        window.location.replace($('#job_link').attr('href'));
-                    }
+
+        $.each(nummeric_fields, function (i, v) {
+            var curr_input = $('#' + v);
+            curr_input.parent().removeClass('error');
+            if (curr_input.val() && !$.isNumeric(curr_input.val())) {
+                curr_input.parent().addClass('error');
+                err_found = true;
+            }
+        });
+
+        if (err_found) {
+            err_notify($('#numeric_required').text());
+            return false;
+        }
+        $.ajax({
+            url: job_ajax_url + 'run_decision/',
+            data: collect_data(),
+            type: 'POST',
+            success: function (data) {
+                if (data.error) {
+                    err_notify(data.error);
                 }
-            });
-        }
+                else {
+                    window.location.replace($('#job_link').attr('href'));
+                }
+            }
+        });
     });
 
     $('.get-attr-value').click(function () {
