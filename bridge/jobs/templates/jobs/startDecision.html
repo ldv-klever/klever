@@ -26,7 +26,7 @@
                 {% for conf in configurations %}
                     <option value="{{ conf.0 }}"{% if current_conf == conf.0 %} selected{% endif %}>{{ conf.1 }}</option>
                 {% endfor %}
-                <option value="file_conf"{% if current_conf == 'file_conf' %} selected{% endif %}>{% trans 'Upload file configuration' %}</option>
+                <option value="file_conf"{% if current_conf == 'file_conf' %} selected{% endif %}>{% trans 'Use configuration from file' %}</option>
             </select>
         </div>
     </div>
@@ -78,27 +78,29 @@
                 </div>
             </div>
             <div class="ui violet segment need-auth" style="width: 40%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
-                <h3>{% trans 'Parallelism' %}</h3>
+                <h3>{% trans 'Operations parallelism' %}</h3>
                 {% for p in data.parallelism %}
                     <span class="get-attr-value">{{ p.1 }}
-                        <input class="kernel_build_parallelism" name="kernel_build_parallelism" type="hidden" value="{{ p.0 }}">
+                        <input class="build_parallelism" name="build_parallelism" type="hidden" value="{{ p.0 }}">
                         <input class="tasks_gen_parallelism" name="tasks_gen_parallelism" type="hidden" value="{{ p.0 }}">
                     </span>
                 {% endfor %}
                 <br><br><br>
-                <label for="kernel_build_parallelism__value">{% trans 'Kernel build' %}*</label>
+                <label for="build_parallelism__value">{% trans 'Build' %}*</label>
                 <div class="ui fluid input">
-                    <input id="kernel_build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
+                    <input id="build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
                 </div>
                 <br>
                 <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}*</label>
                 <div class="ui fluid input">
                     <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.1 }}">
                 </div>
+                <br><br>
+                <span class="italic bold-text" style="color: #de83c2">*{% trans 'Please, use points rather than commas as the decimal delimeter' %}</span>
             </div>
             <div class="ui violet segment need-auth" style="width: 35%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
                 <h3>{% trans 'Resource limits for Klever Core' %}</h3>
-                <label for="max_ram">{% trans 'Memory size' %}* ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0</label>
+                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0*</label>
                 <div class="ui input fluid">
                     <input id="max_ram" type="text" value="{{ data.default.2.0 }}">
                 </div>
@@ -108,7 +110,7 @@
                     <input id="max_cpus" type="number" value="{{ data.default.2.1 }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Disk memory size' %}* ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0</label>
+                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0*</label>
                 <div class="ui input fluid">
                     <input id="max_disk" type="text" value="{{ data.default.2.2 }}">
                 </div>
@@ -118,17 +120,17 @@
                     <input id="cpu_model" type="text"{% if data.default.2.3 %} value="{{ data.default.2.3 }}"{% endif %}>
                 </div>
                 <br>
-                <label for="max_cpu_time">{% trans 'CPU time' %}* ({% trans 'm' %}), {% trans 'e.g.' %} 16.0 ({% trans 'empty value means unlimited time' %})</label>
+                <label for="max_cpu_time">{% trans 'CPU time' %} ({% trans 'min' %}), {% trans 'e.g.' %} 16.0 ({% trans 'empty value means unlimited time' %})*</label>
                 <div class="ui input fluid">
                     <input id="max_cpu_time" type="text"{% if data.default.2.4 %} value="{{ data.default.2.4 }}"{% endif %}>
                 </div>
                 <br>
-                <label for="max_wall_time">{% trans 'Wall time' %}* ({% trans 'm' %}), {% trans 'e.g.' %} 15.1 ({% trans 'empty value means unlimited time' %})</label>
+                <label for="max_wall_time">{% trans 'Wall time' %} ({% trans 'min' %}), {% trans 'e.g.' %} 15.1 ({% trans 'empty value means unlimited time' %})*</label>
                 <div class="ui input fluid">
                     <input id="max_wall_time" type="text"{% if data.default.2.5 %} value="{{ data.default.2.5 }}"{% endif %}>
                 </div>
                 <br><br>
-                <span class="italic bold-text" style="color: #de83c2">*{% trans 'Do not use comma for float numbers, point only' %}</span>
+                <span class="italic bold-text" style="color: #de83c2">*{% trans 'Please, use points rather than commas as the decimal delimeter' %}</span>
             </div>
         </div>
         <div class="ui horizontal segments need-auth" {% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
@@ -185,7 +187,7 @@
                 <br>
                 <div class="ui toggle checkbox">
                     <input id="keep_files_checkbox" type="checkbox" {% if data.default.4.0 %} checked{% endif %}>
-                    <label for="keep_files_checkbox">{% trans 'Keep intermediate files' %}</label>
+                    <label for="keep_files_checkbox">{% trans 'Keep intermediate files inside the working directory of Klever Core' %}</label>
                 </div>
                 <br><br>
                 <div class="ui toggle checkbox">
@@ -205,7 +207,7 @@
                 <br><br>
                 <div class="ui toggle checkbox">
                     <input id="ignore_core_checkbox" type="checkbox"{% if data.default.4.4 %} checked{% endif %}>
-                    <label for="ignore_core_checkbox">{% trans 'Ignore another instance of Klever Core' %}</label>
+                    <label for="ignore_core_checkbox">{% trans 'Ignore another instances of Klever Core' %}</label>
                 </div>
             </div>
         </div>
@@ -215,6 +217,6 @@
         </div>
     {% endif %}
     <span id="sch_u_saved" hidden>{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}</span>
-    <span id="fields_required" hidden>{% trans 'Field(s) with red background are required' %}</span>
-    <span id="numeric_required" hidden>{% trans 'Field(s) with red background must be numeric' %}</span>
+    <span id="fields_required" hidden>{% trans 'Fields with red background are required' %}</span>
+    <span id="numeric_required" hidden>{% trans 'Fields with red background must be numeric' %}</span>
 {% endblock %}

@@ -925,7 +925,7 @@ def get_def_start_job_val(request):
         return JsonResponse({'error': 'Unknown error'})
     if request.POST['name'] == 'formatter' and request.POST['value'] in KLEVER_CORE_LOG_FORMATTERS:
         return JsonResponse({'value': KLEVER_CORE_LOG_FORMATTERS[request.POST['value']]})
-    if request.POST['name'] == 'kernel_build_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
+    if request.POST['name'] == 'build_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
         return JsonResponse({'value': str(KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][0])})
     if request.POST['name'] == 'tasks_gen_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
         return JsonResponse({'value': str(KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][1])})

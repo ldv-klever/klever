@@ -400,16 +400,16 @@ AVTG_PRIORITY = [
 ]
 
 KLEVER_CORE_PARALLELISM = (
-    ('sequantial', _('Sequantial')),
-    ('slow', _('Slow')),
-    ('fast', _('Fast')),
-    ('very fast', _('Very fast'))
+    ('sequential', _('Sequentially')),
+    ('slow', _('Slowly')),
+    ('quick', _('Quickly')),
+    ('very quick', _('Very quickly'))
 )
 
 KLEVER_CORE_FORMATTERS = (
-    ('brief', _('Brief')),
-    ('detailed', _('Detailed')),
-    ('paranoid', _('Paranoid'))
+    ('brief', _('Briefly')),
+    ('detailed', _('In detail')),
+    ('paranoid', _('Paranoidly'))
 )
 
 START_JOB_DEFAULT_MODES = {

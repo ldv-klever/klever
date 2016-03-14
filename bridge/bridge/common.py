@@ -116,10 +116,10 @@ KLEVER_CORE_LOG_FORMATTERS = {
 #   tasks generation.
 # WARNING!!! Change also KLEVER_CORE_PARALLELISM from bridge.vars when you change these packs
 KLEVER_CORE_PARALLELISM_PACKS = {
-    'sequantial': (1, 1),
+    'sequential': (1, 1),
     'slow': (2, 2),
-    'fast': (1.0, 1.0),
-    'very fast': (2.0, 2.0),
+    'quick': (1.0, 1.0),
+    'very quick': (2.0, 2.0),
 }
 
 LOGGING_LEVELS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
@@ -152,7 +152,7 @@ DEF_KLEVER_CORE_MODES = [
     {
         'production': [
             ['LOW', '0', 'balance'],
-            'slow',
+            'slowly',
             [1.0, 2, 100.0, None, None, None],
             ['WARNING', 'brief', 'INFO', 'brief'],
             False, False, False, False, False
@@ -161,7 +161,7 @@ DEF_KLEVER_CORE_MODES = [
     {
         'development': [
             ['IDLE', '0', 'balance'],
-            'fast',
+            'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
             True, True, False, True, True
@@ -170,7 +170,7 @@ DEF_KLEVER_CORE_MODES = [
     {
         'paranoid development': [
             ['IDLE', '0', 'balance'],
-            'fast',
+            'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
             True, True, True, True, True

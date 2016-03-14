@@ -8,7 +8,7 @@
 {% endif %}
 {% if job.runhistory_set.all|length %}
     <div class="ui orange segment">
-        <div class="ui top left attached orange large label">{% trans 'History of configurations' %}</div>
+        <div class="ui top left attached orange large label">{% trans 'History of decisions' %}</div>
         <div class="ui form">
             <label for="run_history"></label>
             <select id="run_history" class="ui dropdown normal-dropdown">
@@ -16,7 +16,7 @@
                     <option value="{{ rh.pk }}">{{ rh.get_status_display }} ({{ rh.date }})</option>
                 {% endfor %}
             </select>
-            <button id="download_configuration" class="ui violet button">{% trans 'Download configuration' %}</button>
+            <button id="download_configuration" class="ui violet button">{% trans 'Download configuration file' %}</button>
         </div>
     </div>
 {% endif %}

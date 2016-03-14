@@ -92,7 +92,7 @@ $(document).ready(function () {
                     $('input[name="scheduler"]:checked').val(),
                     $('input[name="avtg_priority"]:checked').val()
                 ],
-                [$('#kernel_build_parallelism__value').val(), $('#tasks_gen_parallelism__value').val()],
+                [$('#build_parallelism__value').val(), $('#tasks_gen_parallelism__value').val()],
                 [
                     parseFloat($('#max_ram').val()),
                     parseInt($('#max_cpus').val()),
@@ -154,9 +154,9 @@ $(document).ready(function () {
         var required_fields = [
             'max_ram', 'max_cpus', 'max_disk',
             'console_log_formatter__value', 'file_log_formatter__value',
-            'kernel_build_parallelism__value', 'tasks_gen_parallelism__value'
+            'build_parallelism__value', 'tasks_gen_parallelism__value'
         ], err_found = false, nummeric_fields = [
-            'kernel_build_parallelism__value', 'tasks_gen_parallelism__value',
+            'build_parallelism__value', 'tasks_gen_parallelism__value',
             'max_ram', 'max_cpus', 'max_disk', 'max_cpu_time', 'max_wall_time'
         ];
         $.each(required_fields, function (i, v) {
