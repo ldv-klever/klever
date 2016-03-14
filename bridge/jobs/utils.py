@@ -756,7 +756,7 @@ class GetConfiguration(object):
                     filedata['upload input files of static verifiers'],
                     filedata['upload other intermediate files'],
                     filedata['allow local source directories use'],
-                    filedata['ignore another instance of Klever Core']
+                    filedata['ignore another instances']
                 ]
             ]
         except Exception as e:
