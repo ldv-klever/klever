@@ -77,6 +77,25 @@
                     {% endfor %}
                 </div>
             </div>
+            <div class="ui violet segment need-auth" style="width: 40%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
+                <h3>{% trans 'Parallelism' %}</h3>
+                {% for p in data.parallelism %}
+                    <span class="get-attr-value">{{ p.1 }}
+                        <input class="kernel_build_parallelism" name="kernel_build_parallelism" type="hidden" value="{{ p.0 }}">
+                        <input class="tasks_gen_parallelism" name="tasks_gen_parallelism" type="hidden" value="{{ p.0 }}">
+                    </span>
+                {% endfor %}
+                <br><br><br>
+                <label for="kernel_build_parallelism__value">{% trans 'Kernel build' %}*</label>
+                <div class="ui fluid input">
+                    <input id="kernel_build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
+                </div>
+                <br>
+                <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}*</label>
+                <div class="ui fluid input">
+                    <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.1 }}">
+                </div>
+            </div>
             <div class="ui violet segment need-auth" style="width: 35%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
                 <h3>{% trans 'Resource limits for Klever Core' %}</h3>
                 <label for="max_ram">{% trans 'Memory size' %}* ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0</label>
@@ -107,25 +126,6 @@
                 <label for="max_wall_time">{% trans 'Wall time' %}* ({% trans 'm' %}), {% trans 'e.g.' %} 15.1 ({% trans 'empty value means unlimited time' %})</label>
                 <div class="ui input fluid">
                     <input id="max_wall_time" type="text"{% if data.default.2.5 %} value="{{ data.default.2.5 }}"{% endif %}>
-                </div>
-            </div>
-            <div class="ui violet segment need-auth" style="width: 40%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
-                <h3>{% trans 'Parallelism' %}</h3>
-                {% for p in data.parallelism %}
-                    <span class="get-attr-value">{{ p.1 }}
-                        <input class="kernel_build_parallelism" name="kernel_build_parallelism" type="hidden" value="{{ p.0 }}">
-                        <input class="tasks_gen_parallelism" name="tasks_gen_parallelism" type="hidden" value="{{ p.0 }}">
-                    </span>
-                {% endfor %}
-                <br><br><br>
-                <label for="kernel_build_parallelism__value">{% trans 'Kernel build' %}*</label>
-                <div class="ui fluid input">
-                    <input id="kernel_build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
-                </div>
-                <br>
-                <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}*</label>
-                <div class="ui fluid input">
-                    <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.1 }}">
                 </div>
                 <br><br>
                 <span class="italic bold-text" style="color: #de83c2">*{% trans 'Do not use comma for float numbers, point only' %}</span>
