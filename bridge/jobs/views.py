@@ -825,8 +825,6 @@ def fast_run_decision(request):
         return JsonResponse({'error': 'Unknown error'})
     if 'job_id' not in request.POST:
         return JsonResponse({'error': 'Unknown error'})
-    if DEF_KLEVER_CORE_MODE not in DEF_KLEVER_CORE_MODES:
-        return JsonResponse({'error': 'Unknown error'})
     configuration = GetConfiguration(conf_name=DEF_KLEVER_CORE_MODE).configuration
     if configuration is None:
         return JsonResponse({'error': 'Unknown error'})
