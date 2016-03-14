@@ -39,6 +39,17 @@
                 {% if data.job_sch_err %}
                     <h4 class="ui red header">{{ data.job_sch_err }}</h4>
                 {% endif %}
+                <div class="need-auth"{% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
+                    <h5>{% trans 'Job priority' %}</h5>
+                    {% for p in data.priorities %}
+                        <div class="ui radio checkbox">
+                            <input id="priority__{{ p.0 }}" name="priority" type="radio" value="{{ p.0 }}"{% if data.default.0.0 == p.0 %} checked{% endif %}>
+                            <label for="priority__{{ p.0 }}">{{ p.1 }}</label>
+                        </div>
+                        <br>
+                    {% endfor %}
+                </div>
+                <br><br>
                 <h5>{% trans 'Tasks scheduler' %}</h5>
                 {% for sch in data.schedulers %}
                     <div class="ui radio scheduler-checkbox">
@@ -55,17 +66,6 @@
                         <button id="add_new_sch_u" class="ui green button disabled">{% trans 'Save' %}</button>
                     </div>
                 {% endif %}
-                <div class="need-auth"{% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
-                    <h5>{% trans 'Job priority' %}</h5>
-                    {% for p in data.priorities %}
-                        <div class="ui radio checkbox">
-                            <input id="priority__{{ p.0 }}" name="priority" type="radio" value="{{ p.0 }}"{% if data.default.0.0 == p.0 %} checked{% endif %}>
-                            <label for="priority__{{ p.0 }}">{{ p.1 }}</label>
-                        </div>
-                        <br>
-                    {% endfor %}
-                </div>
-                <br><br>
                 <div class="need-auth"{% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
                     <h5>{% trans 'Abstract tasks generation priority' %}</h5>
                     {% for p in data.avtg_priorities %}
