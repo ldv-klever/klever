@@ -73,7 +73,7 @@ class Weaver(core.components.Component):
                                           '--out', cc_full_desc['out file'],
                                           '--back-end', 'src',
                                           '--debug', 'DEBUG'] +
-                                         (['--keep'] if self.conf['debug'] else []) +
+                                         (['--keep'] if self.conf['keep intermediate files'] else []) +
                                          ['--'] +
                                          cc_full_desc['opts'] +
                                          [

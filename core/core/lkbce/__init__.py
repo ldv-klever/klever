@@ -65,7 +65,7 @@ class LKBCE(core.components.Component):
             pass
         self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
-        if not self.conf['debug']:
+        if not self.conf['keep intermediate files']:
             os.remove(self.linux_kernel['raw build cmds file'])
 
     main = extract_linux_kernel_build_commands
@@ -337,7 +337,7 @@ class LKBCE(core.components.Component):
 
                     prev_line = line
 
-                if self.conf['debug']:
+                if self.conf['keep intermediate files']:
                     # When debugging we keep all file content. So move offset to current end of file to scan just new
                     # lines from file on the next iteration.
                     offset = fp.tell()

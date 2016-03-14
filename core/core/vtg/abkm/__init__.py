@@ -21,7 +21,7 @@ class ABKM(core.components.Component):
         self.prepare_property_file()
         self.prepare_src_files()
 
-        if self.conf['debug']:
+        if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
             with open('task.json', 'w', encoding='ascii') as fp:
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
