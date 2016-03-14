@@ -309,9 +309,9 @@ class Core:
         self.is_solving_file = os.path.join(self.conf['working directory'], 'is solving')
 
         def check_another_instance():
-            if os.path.isfile(self.is_solving_file):
-                raise FileExistsError(
-                    'Another instance occupies working directory "{0}"'.format(self.conf['working directory']))
+            if not self.conf['ignore another instances'] and os.path.isfile(self.is_solving_file):
+                raise FileExistsError('Another instance of Klever Core occupies working directory "{0}"'.format(
+                    self.conf['working directory']))
 
         check_another_instance()
 
