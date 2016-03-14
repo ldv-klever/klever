@@ -860,14 +860,19 @@ class StartJobDecision(object):
                 ],
                 'loggers': [
                     {
-                        'formatter': 'brief',
-                        'level': self.data[3][0],
-                        'name': 'console'
-                    },
-                    {
-                        'formatter': 'detailed',
-                        'level': self.data[3][2],
-                        'name': 'file'
+                        'name': 'default',
+                        'handlers': [
+                            {
+                                'formatter': 'brief',
+                                'level': self.data[3][0],
+                                'name': 'console'
+                            },
+                            {
+                                'formatter': 'detailed',
+                                'level': self.data[3][2],
+                                'name': 'file'
+                            }
+                        ]
                     }
                 ]
             },
