@@ -877,7 +877,7 @@ class StartJobDecision(object):
                 ]
             },
             'parallelism': {
-                'Linux kernel build': self.data[1][0],
+                'Build': self.data[1][0],
                 'Tasks generation': self.data[1][1]
             }
         }

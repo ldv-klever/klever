@@ -742,7 +742,7 @@ class GetConfiguration(object):
         try:
             self.configuration = [
                 [filedata['priority'], scheduler, filedata['abstract task generation priority']],
-                [filedata['parallelism']['Linux kernel build'], filedata['parallelism']['Tasks generation']],
+                [filedata['parallelism']['Build'], filedata['parallelism']['Tasks generation']],
                 [
                     filedata['resource limits']['memory size'] / 10**9,
                     filedata['resource limits']['number of CPU cores'],

@@ -118,7 +118,7 @@ class LKBCE(core.components.Component):
             self.logger.debug('Build following targets:\n{0}'.format(
                 '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
-        jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build')
+        jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
         for build_target in build_targets:
             self.__make(build_target,
                         jobs_num=jobs_num,
@@ -143,8 +143,9 @@ class LKBCE(core.components.Component):
             # fetch_linux_kernel_work_src_tree().
             self.linux_kernel['installed modules dir'] = os.path.join(os.path.pardir, 'linux-modules')
             os.mkdir(self.linux_kernel['installed modules dir'])
+            # TODO: whether parallel execution has some benefits here?
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
-                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
+                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
                         specify_arch=False, collect_build_cmds=False)
 
             with open(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
