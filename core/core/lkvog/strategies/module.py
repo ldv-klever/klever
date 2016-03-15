@@ -6,7 +6,8 @@ class Module:
         self.predecessors = []
         self.successors = []
         self.deep = 0
-        self.size = 1
+        self.size = 0
+        self.export_functions = {}
 
     def add_predecessor(self, predecessor):
         if predecessor:
