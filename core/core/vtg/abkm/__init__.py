@@ -21,7 +21,7 @@ class ABKM(core.components.Component):
         self.prepare_property_file()
         self.prepare_src_files()
 
-        if self.conf['debug']:
+        if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
             with open('task.json', 'w', encoding='ascii') as fp:
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
@@ -143,6 +143,7 @@ class ABKM(core.components.Component):
 
         while True:
             task_status = session.get_task_status(task_id)
+            self.logger.info('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
 
             if task_status == 'ERROR':
                 task_error = session.get_task_error(task_id)

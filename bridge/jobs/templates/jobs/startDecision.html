@@ -5,139 +5,218 @@
 
 {% block jobs_head_block %}
     <script src="/static/jobs/js/startjob.js"></script>
+    <link href="/static/jobs/css/start-job.css" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
-    <h2>{% trans 'Start decision of job' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
-    <div class="ui violet segment">
+    <div class="ui grid">
+        <div class="eight wide column">
+            <h2>{% trans 'Start decision of job' %} <a id="job_link" href="{% url 'jobs:job' job.pk %}">{{ job.name }}</a></h2>
+        </div>
+        <div class="two wide column right aligned">
+            <form role="form" id="upload_file_conf_form" method="post" enctype="multipart/form-data" action="" style="{% if current_conf != 'file_conf' %}display: none{% endif %}">
+                {% csrf_token %}
+                <input name="conf_name" value="file_conf" type="hidden">
+                <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="configuration_file_input" name="file_conf" type="file"></span>
+            </form>
+        </div>
+        <div class="six wide column">
+            <label for="default_configs"></label>
+            <select id="default_configs" class="ui dropdown">
+                {% for conf in configurations %}
+                    <option value="{{ conf.0 }}"{% if current_conf == conf.0 %} selected{% endif %}>{{ conf.1 }}</option>
+                {% endfor %}
+                <option value="file_conf"{% if current_conf == 'file_conf' %} selected{% endif %}>{% trans 'Use configuration from file' %}</option>
+            </select>
+        </div>
+    </div>
     {% if data.error %}
         <h3 class="ui red header">{{ data.error }}</h3>
     {% else %}
-        {% if data.job_sch_err %}
-            <h3 class="ui red header">{{ data.job_sch_err }}</h3>
-        {% endif %}
-        <input type="hidden" id="job_pk" value="{{ job.pk }}">
-        <div class="ui grid">
-            <div class="five wide column">
-                <h5>{% trans 'Tasks scheduler' %}</h5>
-                {% for sch in data.schedulers %}
-                    <div class="ui radio scheduler-checkbox">
-                        <input id="scheduler__{{ sch.0 }}" name="scheduler" type="radio" value="{{ sch.0 }}"{% if sch.0 == '0' %} checked{% endif %}>
-                        <label for="scheduler__{{ sch.0 }}">{{ sch.1 }}</label>
-                    </div>
-                    <br>
-                {% endfor %}
-                <br><br>
-                <div class="need-auth">
+        <div class="ui horizontal segments">
+            <div class="ui violet segment" style="width: 25%;">
+                <h3>{% trans 'Scheduling' %}</h3>
+                {% if data.job_sch_err %}
+                    <h4 class="ui red header">{{ data.job_sch_err }}</h4>
+                {% endif %}
+                <div class="need-auth"{% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
                     <h5>{% trans 'Job priority' %}</h5>
                     {% for p in data.priorities %}
                         <div class="ui radio checkbox">
-                            <input id="priority__{{ p.0 }}" name="priority" type="radio" value="{{ p.0 }}"{% if data.def_config.priority == p.0 %} checked{% endif %}>
+                            <input id="priority__{{ p.0 }}" name="priority" type="radio" value="{{ p.0 }}"{% if data.default.0.0 == p.0 %} checked{% endif %}>
                             <label for="priority__{{ p.0 }}">{{ p.1 }}</label>
                         </div>
                         <br>
                     {% endfor %}
                 </div>
-            </div>
-            {% if data.need_auth %}
-                <div id="new_sch_u" class="five wide column" style="display: none">
-                    <div class="ui green segment">
+                <br><br>
+                <h5>{% trans 'Tasks scheduler' %}</h5>
+                {% for sch in data.schedulers %}
+                    <div class="ui radio scheduler-checkbox">
+                        <input id="scheduler__{{ sch.0 }}" name="scheduler" type="radio" value="{{ sch.0 }}"{% if sch.0 == data.default.0.1 %} checked{% endif %}>
+                        <label for="scheduler__{{ sch.0 }}">{{ sch.1 }}</label>
+                    </div>
+                    <br>
+                {% endfor %}
+                <br><br>
+                {% if data.need_auth %}
+                    <div id="new_sch_u" class="ui green segment" style="width:400px;{% if not data.default.0.1 == '1' %}display: none{% endif %}">
                         {% include 'users/schedulerUser.html' %}
                         <br>
                         <button id="add_new_sch_u" class="ui green button disabled">{% trans 'Save' %}</button>
                     </div>
+                {% endif %}
+                <div class="need-auth"{% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
+                    <h5>{% trans 'Abstract tasks generation priority' %}</h5>
+                    {% for p in data.avtg_priorities %}
+                        <div class="ui radio checkbox">
+                            <input id="avtg_priority__{{ p.0 }}" name="avtg_priority" type="radio" value="{{ p.0 }}"{% if data.default.0.2 == p.0 %} checked{% endif %}>
+                            <label for="avtg_priority__{{ p.0 }}">{{ p.1 }}</label>
+                        </div>
+                        <br>
+                    {% endfor %}
                 </div>
-            {% endif %}
-            <div class="five wide column need-auth">
-                <h4 class="ui header">{% trans 'Resource limits for Klever Core' %}</h4>
-                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0</label>
+            </div>
+            <div class="ui violet segment need-auth" style="width: 40%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
+                <h3>{% trans 'Operations parallelism' %}</h3>
+                {% for p in data.parallelism %}
+                    <span class="get-attr-value">{{ p.1 }}
+                        <input class="build_parallelism" name="build_parallelism" type="hidden" value="{{ p.0 }}">
+                        <input class="tasks_gen_parallelism" name="tasks_gen_parallelism" type="hidden" value="{{ p.0 }}">
+                    </span>
+                {% endfor %}
+                <br><br><br>
+                <label for="build_parallelism__value">{% trans 'Build' %}*</label>
+                <div class="ui fluid input">
+                    <input id="build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
+                </div>
+                <br>
+                <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}*</label>
+                <div class="ui fluid input">
+                    <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.1 }}">
+                </div>
+                <br><br>
+                <span class="italic bold-text" style="color: #de83c2">*{% trans 'Please, use points rather than commas as the decimal delimeter' %}</span>
+            </div>
+            <div class="ui violet segment need-auth" style="width: 35%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
+                <h3>{% trans 'Resource limits for Klever Core' %}</h3>
+                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0*</label>
                 <div class="ui input fluid">
-                    <input id="max_ram" type="number" value="{{ data.restrictions.max_ram }}" pattern="[0-9]+([\.|,][0-9]+)?">
+                    <input id="max_ram" type="text" value="{{ data.default.2.0 }}">
                 </div>
                 <br>
                 <label for="max_cpus">{% trans 'Number of CPU cores' %}, {% trans 'e.g.' %} 2</label>
                 <div class="ui input fluid">
-                    <input id="max_cpus" type="number" value="{{ data.restrictions.max_cpus }}" pattern="[0-9]+">
+                    <input id="max_cpus" type="number" value="{{ data.default.2.1 }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0</label>
+                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0*</label>
                 <div class="ui input fluid">
-                    <input id="max_disk" type="number" value="{{ data.restrictions.max_disk }}" pattern="[0-9]+([\.|,][0-9]+)?">
-                </div>
-            </div>
-            <div class="six wide column need-auth">
-                <br><br>
-                <label for="max_wall_time">{% trans 'Wall time' %} ({% trans 's' %}), {% trans 'e.g.' %} 900 ({% trans 'empty value means unlimited time' %})</label>
-                <div class="ui input fluid">
-                    <input id="max_wall_time" type="number" value="{{ data.restrictions.max_wall_time }}" pattern="[0-9]+">
-                </div>
-                <br>
-                <label for="max_cpu_time">{% trans 'CPU time' %} ({% trans 's' %}), {% trans 'e.g.' %} 1000 ({% trans 'empty value means unlimited time' %})</label>
-                <div class="ui input fluid">
-                    <input id="max_cpu_time" type="number" value="{{ data.restrictions.max_cpu_time }}" pattern="[0-9]+">
+                    <input id="max_disk" type="text" value="{{ data.default.2.2 }}">
                 </div>
                 <br>
                 <label for="cpu_model">{% trans 'CPU model' %} ({% trans 'empty value means any model' %})</label>
                 <div class="ui input fluid">
-                    <input id="cpu_model" type="text" value="{{ data.restrictions.cpu_model }}">
-                </div>
-            </div>
-        </div>
-        <div class="ui divider need-auth"></div>
-        <div class="ui grid need-auth">
-            <div class="five wide column">
-                <h4 class="ui header">{% trans 'Klever Core configuration' %}</h4>
-                <h5>{% trans 'Abstract tasks generation priority' %}</h5>
-                {% for p in data.gen_priorities %}
-                    <div class="ui radio checkbox">
-                        <input id="avtg_priority__{{ p.0 }}" name="avtg_priority" type="radio" value="{{ p.0 }}"{% if data.def_config.avtg_priority == p.0 %} checked{% endif %}>
-                        <label for="avtg_priority__{{ p.0 }}">{{ p.1 }}</label>
-                    </div>
-                    <br>
-                {% endfor %}
-                <h5 class="ui header">{% trans 'Parallelism' %}</h5>
-                <label for="parallelism_linux_kernel_build">{% trans 'Linux kernel build' %}</label>
-                <div class="ui input fluid">
-                    <input id="parallelism_linux_kernel_build" type="text" value="{{ data.parallelism.linux_kernel_build }}" pattern="[0-9]+([\.|,][0-9]+)?">
-                </div>
-                <label for="parallelism_tasks_generation">{% trans 'Tasks generation' %}</label>
-                <div class="ui input fluid">
-                    <input id="parallelism_tasks_generation" type="text" value="{{ data.parallelism.tasks_generation }}" pattern="[0-9]+([\.|,][0-9]+)?">
-                </div>
-            </div>
-            <div class="eleven wide column">
-                <h5 class="ui header">{% trans 'Log Formatters' %}</h5>
-                <label for="console_log_formatter">{% trans 'Console' %}</label>
-                <div class="ui input fluid">
-                    <input id="console_log_formatter" type="text" value="{{ data.logging.console }}">
+                    <input id="cpu_model" type="text"{% if data.default.2.3 %} value="{{ data.default.2.3 }}"{% endif %}>
                 </div>
                 <br>
-                <label for="file_log_formatter">{% trans 'File' %}</label>
+                <label for="max_cpu_time">{% trans 'CPU time' %} ({% trans 'min' %}), {% trans 'e.g.' %} 16.0 ({% trans 'empty value means unlimited time' %})*</label>
                 <div class="ui input fluid">
-                    <input id="file_log_formatter" type="text" value="{{ data.logging.file }}">
+                    <input id="max_cpu_time" type="text"{% if data.default.2.4 %} value="{{ data.default.2.4 }}"{% endif %}>
                 </div>
+                <br>
+                <label for="max_wall_time">{% trans 'Wall time' %} ({% trans 'min' %}), {% trans 'e.g.' %} 15.1 ({% trans 'empty value means unlimited time' %})*</label>
+                <div class="ui input fluid">
+                    <input id="max_wall_time" type="text"{% if data.default.2.5 %} value="{{ data.default.2.5 }}"{% endif %}>
+                </div>
+                <br><br>
+                <span class="italic bold-text" style="color: #de83c2">*{% trans 'Please, use points rather than commas as the decimal delimeter' %}</span>
             </div>
         </div>
-        <div class="ui grid need-auth">
-            <div class="five wide column">
-                <div class="ui toggle checkbox">
-                    <input id="debug_checkbox" type="checkbox" {% if data.def_config.debug %} checked{% endif %}>
-                    <label for="debug_checkbox">{% trans 'Debug' %}</label>
+        <div class="ui horizontal segments need-auth" {% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
+            <div class="ui violet segment">
+                <h3>{% trans 'Logging' %}</h3>
+                <p class="bold-text">{% trans 'Console' %}</p>
+                <div class="ui grid">
+                    <div class="seven wide column">
+                        <label for="console_logging_level">{% trans 'Logging level' %}</label>
+                        <select id="console_logging_level" class="ui dropdown mini fluid normal-dropdown">
+                            {% for ll in data.logging_levels %}
+                                <option value="{{ ll }}"{% if data.default.3.0 == ll %} selected{% endif %} >{{ ll }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="nine wide column">
+                        <br><br>
+                        {% for f in data.formatters %}
+                            <span class="get-attr-value">{{ f.1 }}<input class="console_log_formatter" name="formatter" type="hidden" value="{{ f.0 }}"></span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <br>
+                <label for="console_log_formatter__value">{% trans 'Formatter' %}</label>
+                <div class="ui fluid input">
+                    <input id="console_log_formatter__value" value="{{ data.default.3.1 }}">
+                </div>
+                <div class="ui divider"></div>
+                <p class="bold-text">{% trans 'File' %}</p>
+                <div class="ui grid">
+                    <div class="seven wide column">
+                        <label for="file_logging_level">{% trans 'Logging level' %}</label>
+                        <select id="file_logging_level" class="ui dropdown mini fluid normal-dropdown">
+                            {% for ll in data.logging_levels %}
+                                <option value="{{ ll }}"{% if data.default.3.2 == ll %} selected{% endif %} >{{ ll }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="nine wide column">
+                        <br><br>
+                        {% for f in data.formatters %}
+                            <span class="get-attr-value">{{ f.1 }}<input class="file_log_formatter" name="formatter" type="hidden" value="{{ f.0 }}"></span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <br>
+                <label for="file_log_formatter__value">{% trans 'Formatter' %}</label>
+                <div class="ui fluid input">
+                    <input id="file_log_formatter__value" value="{{ data.default.3.3 }}">
                 </div>
             </div>
-            <div class="eight wide column">
+            <div class="ui violet segment">
+                <h3>{% trans 'Other settings' %}</h3>
+                <br>
                 <div class="ui toggle checkbox">
-                    <input id="allow_localdir_checkbox" type="checkbox"{% if data.def_config.allow_local_dir %} checked{% endif %}>
+                    <input id="keep_files_checkbox" type="checkbox" {% if data.default.4.0 %} checked{% endif %}>
+                    <label for="keep_files_checkbox">{% trans 'Keep intermediate files inside the working directory of Klever Core' %}</label>
+                </div>
+                <br><br>
+                <div class="ui toggle checkbox">
+                    <input id="upload_verifier_checkbox" type="checkbox"{% if data.default.4.1 %} checked{% endif %}>
+                    <label for="upload_verifier_checkbox">{% trans 'Upload input files of static verifiers' %}</label>
+                </div>
+                <br><br>
+                <div class="ui toggle checkbox">
+                    <input id="upload_other_checkbox" type="checkbox"{% if data.default.4.2 %} checked{% endif %}>
+                    <label for="upload_other_checkbox">{% trans 'Upload other intermediate files' %}</label>
+                </div>
+                <br><br>
+                <div class="ui toggle checkbox">
+                    <input id="allow_localdir_checkbox" type="checkbox"{% if data.default.4.3 %} checked{% endif %}>
                     <label for="allow_localdir_checkbox">{% trans 'Allow use of local source directories' %}</label>
                 </div>
-            </div>
-            <div class="three wide column right aligned">
-                <input id="job_pk" type="hidden" value="{{ job.pk }}">
-                <button id="start_job_decision" class="ui violet button">{% trans 'Start' %}</button>
+                <br><br>
+                <div class="ui toggle checkbox">
+                    <input id="ignore_core_checkbox" type="checkbox"{% if data.default.4.4 %} checked{% endif %}>
+                    <label for="ignore_core_checkbox">{% trans 'Ignore another instances of Klever Core' %}</label>
+                </div>
             </div>
         </div>
+        <div style="float: right;margin-bottom: 50px;">
+            <input id="job_pk" type="hidden" value="{{ job.pk }}">
+            <button id="start_job_decision" class="ui violet button">{% trans 'Start' %}</button>
+        </div>
     {% endif %}
-    </div>
     <span id="sch_u_saved" hidden>{% trans 'VerifierCloud credentials were successfully saved (you can change them in your settings)' %}</span>
-    <span id="fields_required" hidden>{% trans 'Field(s) with red background are required' %}</span>
+    <span id="fields_required" hidden>{% trans 'Fields with red background are required' %}</span>
+    <span id="numeric_required" hidden>{% trans 'Fields with red background must be numeric' %}</span>
 {% endblock %}

@@ -6,7 +6,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.timezone import now
-from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, print_err
 from reports.models import *
 from reports.utils import save_attrs
@@ -313,13 +312,10 @@ class UploadReport(object):
         self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            for rep in ReportComponent.objects.filter(root__job=self.job):
-                if len(ReportComponent.objects.filter(parent_id=rep.pk)) == 0:
-                    rep.resources_cache.filter(component=None).delete()
-            if len(ReportComponent.objects.filter(finish_date=None, root=self.root)):
+            if len(ReportComponent.objects.filter(finish_date=None, root=self.root)) > 0:
                 self.__job_failed("There are unfinished reports")
-            elif self.job.status != JOB_STATUS[5][0]:
-                KleverCoreFinishDecision(self.job)
+                return
+            KleverCoreFinishDecision(self.job)
 
     def __create_report_unknown(self, identifier):
         try:
@@ -475,7 +471,8 @@ class UploadReport(object):
                 cpu_time=report.cpu_time,
                 memory=report.memory
             )
-        update_total_resources(report)
+        if len(ReportComponent.objects.filter(parent_id=report.pk)) > 0:
+            update_total_resources(report)
 
         parent = self.parent
         while parent is not None:

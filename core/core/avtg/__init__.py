@@ -328,7 +328,7 @@ class AVTG(core.components.Component):
                 in_file = command['in files'][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})
             del (grp['cc full desc files'])
-        if self.conf['debug']:
+        if self.conf['keep intermediate files']:
             initial_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'initial abstract task.json')
             if os.path.isfile(initial_abstract_task_desc_file):
                 raise FileExistsError('Initial abstract verification task description file "{0}" already exists'.format(
@@ -393,10 +393,10 @@ class AVTG(core.components.Component):
 
             # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
             # anything before.
-            if self.conf['debug']:
+            if self.conf['keep intermediate files']:
                 plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
                 if os.path.isfile(plugin_conf_file):
-                    raise FileExistsError('Clugins configuration file "{0}" already exists'.format(
+                    raise FileExistsError('Plugins configuration file "{0}" already exists'.format(
                         plugin_conf_file))
                 self.logger.debug('Create plugins configuration file "{0}"'.format(plugin_conf_file))
                 with open(plugin_conf_file, 'w', encoding='ascii') as fp:
@@ -420,7 +420,7 @@ class AVTG(core.components.Component):
             # Dump final abstract verification task description that equals to abstract verification task description
             # received from last plugin. But corresponding file will be put not to plugin working directory - it will
             # be put near initial abstract verification task description.
-            if self.conf['debug']:
+            if self.conf['keep intermediate files']:
                 final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
                 if os.path.isfile(final_abstract_task_desc_file):
                     raise FileExistsError(

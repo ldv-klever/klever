@@ -193,7 +193,7 @@ class LKVOG(core.components.Component):
             self.logger.debug(
                 'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
-            if self.conf['debug']:
+            if self.conf['keep intermediate files']:
                 verification_obj_desc_file = os.path.join(
                         self.linux_kernel_build_cmd_out_file_desc[self.module['name']]['linux kernel work src tree'],
                         '{0}.json'.format(self.verification_obj_desc['id']))
@@ -225,7 +225,7 @@ class LKVOG(core.components.Component):
             self.logger.debug(
                 'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
-            if self.conf['debug']:
+            if self.conf['keep intermediate files']:
                 verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
                 if os.path.isfile(verification_obj_desc_file):
                     raise FileExistsError(

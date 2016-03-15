@@ -132,7 +132,7 @@ class Core:
                                           'id': sub_job_id,
                                           'parent id': self.id,
                                           'name': 'Validator',
-                                          'attrs': [{'Commit': commit}],
+                                          'attrs': [{'commit': commit}],
                                       },
                                       self.mqs['report files'],
                                       suffix=' validator {0}'.format(commit))
@@ -309,9 +309,9 @@ class Core:
         self.is_solving_file = os.path.join(self.conf['working directory'], 'is solving')
 
         def check_another_instance():
-            if os.path.isfile(self.is_solving_file):
-                raise FileExistsError(
-                    'Another instance occupies working directory "{0}"'.format(self.conf['working directory']))
+            if not self.conf['ignore another instances'] and os.path.isfile(self.is_solving_file):
+                raise FileExistsError('Another instance of Klever Core occupies working directory "{0}"'.format(
+                    self.conf['working directory']))
 
         check_another_instance()
 
@@ -444,7 +444,7 @@ class Core:
 
         self.components_conf.update({'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')}})
 
-        if self.conf['debug']:
+        if self.conf['keep intermediate files']:
             if os.path.isfile('components conf.json'):
                 raise FileExistsError('Components configuration file "components conf.json" already exists')
             self.logger.debug('Create components configuration file "components conf.json"')
@@ -499,8 +499,8 @@ class Core:
         for commit1, ideal_verdict1, verification_status1, comment1 in validation_results_before_bug_fixes:
             found_validation_res_after_bug_fix = False
             for commit2, ideal_verdict2, verification_status2, comment2 in validation_results_after_bug_fixes:
-                # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash".
-                if commit1.startswith(commit2):
+                # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v.
+                if commit1 == commit2 + '~' or commit2 == commit1 + '~':
                     found_validation_res_after_bug_fix = True
                     break
             validation_res_msg = 'Verification status of bug "{0}" before fix is "{1}"{2}'.format(

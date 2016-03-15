@@ -65,7 +65,7 @@ class LKBCE(core.components.Component):
             pass
         self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
-        if not self.conf['debug']:
+        if not self.conf['keep intermediate files']:
             os.remove(self.linux_kernel['raw build cmds file'])
 
     main = extract_linux_kernel_build_commands
@@ -143,7 +143,7 @@ class LKBCE(core.components.Component):
             self.logger.debug('Build following targets:\n{0}'.format(
                 '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
-        jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build')
+        jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
         for build_target in build_targets:
             self.__make(build_target,
                         jobs_num=jobs_num,
@@ -169,8 +169,9 @@ class LKBCE(core.components.Component):
             # fetch_linux_kernel_work_src_tree().
             self.linux_kernel['installed modules dir'] = os.path.join(os.path.pardir, 'linux-modules')
             os.mkdir(self.linux_kernel['installed modules dir'])
+            # TODO: whether parallel execution has some benefits here?
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
-                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
+                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
                         specify_arch=False, collect_build_cmds=False)
             self.parse_linux_kernel_mod_deps(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
                                                           self.linux_kernel['version'], 'modules.dep'))
@@ -368,7 +369,7 @@ class LKBCE(core.components.Component):
 
                     prev_line = line
 
-                if self.conf['debug']:
+                if self.conf['keep intermediate files']:
                     # When debugging we keep all file content. So move offset to current end of file to scan just new
                     # lines from file on the next iteration.
                     offset = fp.tell()
