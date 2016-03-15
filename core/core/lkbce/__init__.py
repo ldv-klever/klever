@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import hashlib
 import os
 import re
 import shutil
@@ -46,6 +47,7 @@ class LKBCE(core.components.Component):
         self.make_canonical_linux_kernel_work_src_tree()
         core.utils.invoke_callbacks(self.extract_src_tree_root)
         self.clean_linux_kernel_work_src_tree()
+        self.get_linux_kernel_conf()
         core.utils.invoke_callbacks(self.extract_linux_kernel_attrs)
         core.utils.invoke_callbacks(self.extract_hdr_arch)
         core.utils.report(self.logger,
@@ -178,13 +180,30 @@ class LKBCE(core.components.Component):
                     if re.search(r'\.task$', dirname):
                         shutil.rmtree(os.path.join(dirpath, dirname))
 
+    def get_linux_kernel_conf(self):
+        self.logger.info('Get Linux kernel configuration')
+
+        # Linux kernel configuration can be specified by means of configuration file or configuration target.
+        try:
+            self.linux_kernel['conf file'] = core.utils.find_file_or_dir(self.logger,
+                                                                         self.conf['main working directory'],
+                                                                         self.conf['Linux kernel']['configuration'])
+            self.logger.debug('Linux kernel configuration file is "{0}"'.format(self.linux_kernel['conf file']))
+            shutil.copy(self.linux_kernel['conf file'], self.linux_kernel['work src tree'])
+            # Use configuration file SHA1 digest as value of Linux kernel:Configuration attribute.
+            with open(self.linux_kernel['conf file'], 'rb') as fp:
+                self.linux_kernel['conf'] = hashlib.sha1(fp.read()).hexdigest()[:7]
+            self.logger.debug('Linux kernel configuration file SHA1 digest is "{0}"'.format(self.linux_kernel['conf']))
+        except FileNotFoundError:
+            self.logger.debug(
+                'Linux kernel configuration target is "{0}"'.format(self.conf['Linux kernel']['configuration']))
+            # Use configuration target name as value of Linux kernel:Configuration attribute.
+            self.linux_kernel['conf'] = self.conf['Linux kernel']['configuration']
+
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
-        if 'configuration' in self.conf['Linux kernel']:
-            self.__make((self.conf['Linux kernel']['configuration'],), specify_arch=True, collect_build_cmds=False,
-                        collect_all_stdout=True)
-        else:
-            raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
+        self.__make(('oldconfig' if 'conf file' in self.linux_kernel else self.conf['Linux kernel']['configuration'],),
+                    specify_arch=True, collect_build_cmds=False, collect_all_stdout=True)
 
     def extract_linux_kernel_attrs(self):
         self.logger.info('Extract Linux kernel atributes')
@@ -199,14 +218,10 @@ class LKBCE(core.components.Component):
         self.linux_kernel['arch'] = self.conf['Linux kernel'].get('architecture') or self.conf['sys']['arch']
         self.logger.debug('Linux kernel architecture is "{0}"'.format(self.linux_kernel['arch']))
 
-        self.logger.debug('Get Linux kernel configuration shortcut')
-        self.linux_kernel['conf shortcut'] = self.conf['Linux kernel']['configuration']
-        self.logger.debug('Linux kernel configuration shortcut is "{0}"'.format(self.linux_kernel['conf shortcut']))
-
         self.linux_kernel['attrs'] = [
             {'Linux kernel': [{'version': self.linux_kernel['version']},
                               {'architecture': self.linux_kernel['arch']},
-                              {'configuration': self.linux_kernel['conf shortcut']}]}]
+                              {'configuration': self.linux_kernel['conf']}]}]
 
     def extract_hdr_arch(self):
         self.hdr_arch = _arch_hdr_arch[self.linux_kernel['arch']]
