@@ -132,7 +132,7 @@ class Core:
                                           'id': sub_job_id,
                                           'parent id': self.id,
                                           'name': 'Validator',
-                                          'attrs': [{'Commit': commit}],
+                                          'attrs': [{'commit': commit}],
                                       },
                                       self.mqs['report files'],
                                       suffix=' validator {0}'.format(commit))

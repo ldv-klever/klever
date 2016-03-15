@@ -436,6 +436,26 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     # Specify report type.
     report.update({'type': type})
 
+    if 'attrs' in report:
+        # Capitalize first letters of attribute names.
+        def capitalize_attr_names(attrs):
+            capitalized_name_attrs = []
+
+            # Each attribute is dictionary with one element which value is either string or array of subattributes.
+            for attr in attrs:
+                attr_name = list(attr.keys())[0]
+                attr_val = attr[attr_name]
+                # Does capitalize attribute name.
+                attr_name = attr_name[0].upper() + attr_name[1:]
+                if isinstance(attr_val, str):
+                    capitalized_name_attrs.append({attr_name: attr_val})
+                else:
+                    capitalized_name_attrs.append({attr_name: capitalize_attr_names(attr_val)})
+
+            return capitalized_name_attrs
+
+        report['attrs'] = capitalize_attr_names(report['attrs'])
+
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None
     if 'files' in report:

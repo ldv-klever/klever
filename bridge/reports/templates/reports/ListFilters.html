@@ -23,7 +23,7 @@
                 <div class="fluid">
                     <input id="filter__attr__order" type="text"{% if view.order.0 != 'default' %} value="{{ view.order.0 }}"{% endif %}>
                 </div>
-                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i>. {% trans 'Leave empty for order by creation date' %}.</small>
+                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i>. {% trans 'Leave empty for order by creation date' %}.</small>
             </div>
         </div>
         <div class="ui divider"></div>
@@ -32,7 +32,7 @@
         <div class="fluid">
             <input id="filter__attr__attr" type="text" value="{{ view.filters.attr.attr }}">
         </div>
-        <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:version</i></small>
+        <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
         <br><br>
         <div class="ui grid">
             <div class="six wide column">

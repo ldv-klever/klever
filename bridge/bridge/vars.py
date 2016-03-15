@@ -225,7 +225,7 @@ REPORT_ATTRS_DEF_VIEW = {
         #     'value': 'v',
         # },
         # 'attr': {
-        #     'attr': 'Linux kernel verification objs gen strategy:name',
+        #     'attr': 'LKVOG strategy:Name',
         #     'type': 'istartswith',
         #     'value': 'Separate'
         # }
@@ -237,7 +237,7 @@ UNSAFE_LIST_DEF_VIEW = {
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {
-        #     'attr': 'Linux kernel verification objs gen strategy:name',
+        #     'attr': 'LKVOG strategy:Name',
         #     'type': 'istartswith',
         #     'value': 'Separate'
         # }
@@ -248,7 +248,7 @@ SAFE_LIST_DEF_VIEW = {
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {
-        #     'attr': 'Linux kernel verification objs gen strategy:name',
+        #     'attr': 'LKVOG strategy:Name',
         #     'type': 'istartswith',
         #     'value': 'Separate'
         # }
@@ -263,7 +263,7 @@ UNKNOWN_LIST_DEF_VIEW = {
         #     'value': 'v',
         # },
         # 'attr': {
-        #     'attr': 'Linux kernel verification objs gen strategy:name',
+        #     'attr': 'LKVOG strategy:Name',
         #     'type': 'istartswith',
         #     'value': 'Separate'
         # }
@@ -314,7 +314,7 @@ MARKS_UNSAFE_VIEW = {
         #     'value': 1,
         # },
         # 'attr': {
-        #     'attr': 'entry point',
+        #     'attr': 'Entry point',
         #     'type': 'istartswith',
         #     'value': 'ldv_entry_POINT_1'
         # }
@@ -374,22 +374,22 @@ TASK_STATUS = (
 )
 
 MARKS_COMPARE_ATTRS = {
-    JOB_CLASSES[0][0]: ['rule specification', 'verification object'],
-    JOB_CLASSES[1][0]: ['rule specification', 'verification object'],
-    JOB_CLASSES[2][0]: ['rule specification', 'verification object'],
-    JOB_CLASSES[3][0]: ['rule specification', 'verification object'],
-    JOB_CLASSES[4][0]: ['rule specification', 'verification object'],
-    JOB_CLASSES[5][0]: ['rule specification', 'verification object'],
+    JOB_CLASSES[0][0]: ['Rule specification', 'Verification object'],
+    JOB_CLASSES[1][0]: ['Rule specification', 'Verification object'],
+    JOB_CLASSES[2][0]: ['Rule specification', 'Verification object'],
+    JOB_CLASSES[3][0]: ['Rule specification', 'Verification object'],
+    JOB_CLASSES[4][0]: ['Rule specification', 'Verification object'],
+    JOB_CLASSES[5][0]: ['Rule specification', 'Verification object'],
 }
 
 
 JOBS_COMPARE_ATTRS = {
-    JOB_CLASSES[0][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[1][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[2][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[3][0]: ['Commit', 'verification object', 'rule specification'],
-    JOB_CLASSES[4][0]: ['verification object', 'rule specification'],
-    JOB_CLASSES[5][0]: ['verification object', 'rule specification']
+    JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
+    JOB_CLASSES[1][0]: ['Verification object', 'Rule specification'],
+    JOB_CLASSES[2][0]: ['Verification object', 'Rule specification'],
+    JOB_CLASSES[3][0]: ['Commit', 'Verification object', 'Rule specification'],
+    JOB_CLASSES[4][0]: ['Verification object', 'Rule specification'],
+    JOB_CLASSES[5][0]: ['Verification object', 'Rule specification']
 }
 
 # TODO: keys and values are almost the same and thus can be refactored.
