@@ -193,9 +193,9 @@ class ABKM(core.components.Component):
                                       'resources': decision_results['resources'],
                                       'log': 'cil.i.log',
                                       'files': ['cil.i.log'] + (
-                                        ['benchmark.xml', self.task_desc['property file']] + self.task_desc['files']
-                                        if self.conf['upload input files of static verifiers']
-                                        else []
+                                          ['benchmark.xml', self.task_desc['property file']] + self.task_desc['files']
+                                          if self.conf['upload input files of static verifiers']
+                                          else []
                                       )
                                   },
                                   self.mqs['report files'],
