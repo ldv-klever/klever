@@ -146,9 +146,8 @@ def solve_task(conf):
     server = bridge.Server(conf["Klever Bridge"], os.curdir)
     server.register()
     server.pull_task(conf["identifier"], "task files.tar.gz")
-    tar = tarfile.open("task files.tar.gz")
-    tar.extractall()
-    tar.close()
+    with tarfile.open("task files.tar.gz") as tar:
+        tar.extractall()
 
     logging.info("Prepare benchmark")
     benchmark = ElementTree.Element("benchmark", {
@@ -237,6 +236,8 @@ def solve_task(conf):
             tar.add("output/witness.graphml", 'witness.graphml')
         for file in glob.glob(os.path.join("output", "benchmark*logfiles/*")):
             tar.add(file, os.path.basename(file))
+        if conf["upload input files of static verifiers"]:
+            tar.add("benchmark.xml")
 
     server.submit_solution(conf["identifier"], decision_results, "decision result files.tar.gz")
 
