@@ -246,7 +246,7 @@ class LKBCE(core.components.Component):
             if self.conf['allow local source directories use']:
                 os.symlink(os.path.abspath(self.linux_kernel['src']), self.linux_kernel['work src tree'])
             else:
-                shutil.copytree(self.linux_kernel['src'], self.linux_kernel['work src tree'])
+                shutil.copytree(self.linux_kernel['src'], self.linux_kernel['work src tree'], symlinks=True)
 
             # TODO: do not allow to checkout both branch and commit and to checkout branch or commit for source tree.
             if 'Git repository' in self.conf['Linux kernel']:
