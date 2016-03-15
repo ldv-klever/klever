@@ -16,6 +16,10 @@ def solve_job(conf):
     # Initialize execution
     conf = utils.common_initialization("Job executor client", conf)
 
+    logging.debug("Create job configuration file \"conf.json\"")
+    with open("conf.json", "w", encoding="ascii") as fp:
+        json.dump(conf, fp, sort_keys=True, indent=4)
+
     # Check configuration
     logging.info("Check configuration consistency")
     if "benchexec location" not in conf["client"]:
@@ -97,6 +101,10 @@ def solve_job(conf):
 def solve_task(conf):
     # Initialize execution
     conf = utils.common_initialization("Task executor client", conf)
+
+    logging.debug("Create task configuration file \"conf.json\"")
+    with open("conf.json", "w", encoding="ascii") as fp:
+        json.dump(conf, fp, sort_keys=True, indent=4)
 
     # Check configuration
     logging.info("Check configuration consistency")
