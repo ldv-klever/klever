@@ -152,7 +152,7 @@ DEF_KLEVER_CORE_MODES = [
     {
         'production': [
             ['LOW', '0', 'balance'],
-            'slowly',
+            'slow',
             [1.0, 2, 100.0, None, None, None],
             ['WARNING', 'brief', 'INFO', 'brief'],
             False, False, False, False, False
