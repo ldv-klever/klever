@@ -269,8 +269,7 @@ def get_entity_val(logger, name, cmd):
     if val.isdigit():
         val = int(val)
 
-    # TODO: str.capitalize() capilalizes a first symbol and makes all other symbols lower.
-    logger.debug('{0} is "{1}"'.format(name.capitalize(), val))
+    logger.debug('{0} is "{1}"'.format(name[0].upper() + name[1:], val))
 
     return val
 
