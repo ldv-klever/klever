@@ -1,5 +1,9 @@
+from core.avtg.emg.common.interface import import_signature
+
+
 __grammar_tests = [
-    'int a',
+    '%usb.driver% function(int, $, %usb.driver%)',
+    'int int_a',
     'static int a',
     'static const int a',
     'static int const a',
@@ -14,7 +18,6 @@ __grammar_tests = [
     'const struct usb * a',
     'struct usb * const a',
     'union usb * const a',
-    'enum usb * const a',
     'mytypedef * a',
     'int a []',
     'int a [1]',
@@ -71,3 +74,10 @@ __grammar_tests = [
     '$ my_function($, %usb.driver%, int)',
     '%usb.driver% function(int, void *)',
 ]
+
+
+for test in __grammar_tests:
+    print(test)
+    object = import_signature(test)
+    print(object.identifier)
+    print(object.to_string('a'))
