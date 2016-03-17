@@ -1,10 +1,10 @@
 import re
 
-VALUE_SECTION = r"value:"
+WHOLE_INDENT = re.compile('^(\s*)')
 
 INDENT = re.compile('[ ]{2}|\t')
 
-DECLARATION = re.compile('declaration:[ ]([^\n]+)')
+DECLARATION = re.compile('declaration:[ ]([^;]+);[ ]path: ([^\n]+)')
 
 EXPLICIT_VALUE = re.compile('value:[ ]([^\n]+)')
 
@@ -19,11 +19,12 @@ def lexer(line):
     # Remove indent
     token = {'indent': 0}
     if INDENT.match(line):
-        token['indent'] = len(INDENT.findall(line))
+        token['indent'] = len(INDENT.findall(WHOLE_INDENT.match(line).group(1)))
     line = line.strip()
 
     if DECLARATION.match(line):
         token['declaration'] = DECLARATION.match(line).group(1)
+        token['path'] = DECLARATION.match(line).group(2)
     elif EXPLICIT_VALUE.match(line):
         token['value'] = EXPLICIT_VALUE.match(line).group(1)
     elif FIELD_DECLARATION.match(line):
@@ -42,7 +43,7 @@ def parse(tokens):
     ast = []
     while len(tokens) > 0:
         declaration = tokens.pop(0)
-        if type(tokens[0]['value']) is list:
+        if type(tokens[0]['value']) is list and len(tokens) > 1 and tokens[1]['indent'] == declaration['indent'] + 1:
             declaration['value'] = extract_list(tokens, 0, declaration['indent'] + 1)
         else:
             declaration['value'] = tokens[0]['value']
@@ -60,8 +61,9 @@ def extract_list(tokens, index, level):
             token = tokens[index + 1]
             if 'field' in token or 'index' in token:
                 if token['indent'] == level:
-                    if type(tokens[index + 2]['value']) is list:
-                        token['value'] = extract_list(tokens, index + 2, token['indent'])
+                    if type(tokens[index + 2]['value']) is list and len(tokens) > index + 3 and \
+                            tokens[index + 3]['indent'] == token['indent'] + 1:
+                        token['value'] = extract_list(tokens, index + 2, token['indent'] + 1)
                     else:
                         token['value'] = tokens[index + 2]['value']
 
