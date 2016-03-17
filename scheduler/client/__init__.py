@@ -153,7 +153,7 @@ def solve_task(conf):
     benchmark = ElementTree.Element("benchmark", {
         "tool": conf["verifier"]["name"].lower(),
         "timelimit": str(round(conf["resource limits"]["CPU time"] / 1000)),
-        "memlimit": str(round(conf["resource limits"]["memory size"] / (1000 ** 2))),
+        "memlimit": str(conf["resource limits"]["memory size"]) + "B",
     })
     rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
     for opt in conf["verifier"]["options"] + [
