@@ -46,8 +46,11 @@ class LKBCE(core.components.Component):
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
         core.utils.invoke_callbacks(self.extract_src_tree_root)
-        self.clean_linux_kernel_work_src_tree()
+        # Determine Linux kernel configuration just after Linux kernel working source tree is prepared since it affect
+        # value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather than
+        # configuration target.
         self.get_linux_kernel_conf()
+        self.clean_linux_kernel_work_src_tree()
         core.utils.invoke_callbacks(self.extract_linux_kernel_attrs)
         core.utils.invoke_callbacks(self.extract_hdr_arch)
         core.utils.report(self.logger,
@@ -80,8 +83,6 @@ class LKBCE(core.components.Component):
 
         if 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
             build_targets.append(('vmlinux',))
-
-        ext_modules_dir = ''
 
         if 'external modules archive' in self.conf['Linux kernel']:
             # Fetch working source tree of Linux external kernel modules like Linux kernel working source tree.
@@ -509,6 +510,8 @@ class LKBCE(core.components.Component):
         return core.utils.execute(self.logger,
                                   tuple(['make', '-j', str(jobs_num)] +
                                         (['ARCH={0}'.format(self.linux_kernel['arch'])] if specify_arch else []) +
+                                        (['KCONFIG_CONFIG=' + os.path.basename(self.linux_kernel['conf file'])]
+                                         if 'conf file' in self.linux_kernel else []) +
                                         list(build_target)),
                                   env,
                                   cwd=self.linux_kernel['work src tree'],
