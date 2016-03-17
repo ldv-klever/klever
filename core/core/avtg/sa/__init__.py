@@ -1,13 +1,13 @@
-import glob
-import jinja2
-import re
-import os
-import json
 import collections
+import glob
+import json
+import os
+import re
+
+import jinja2
 
 import core.components
 import core.utils
-
 from core.avtg.sa.initparser import parse_initializations
 
 
@@ -91,9 +91,12 @@ class SA(core.components.Component):
             fh.write(env.get_template(os.path.basename(template_aspect_file)).render({
                 "max_args_num": self.conf["max arguments number"],
                 "arg_patterns": {i: ", ".join(["$"] * (i + 1)) for i in range(self.conf["max arguments number"])},
-                "arg_printf_patterns": {i: ' '.join(["arg{}='%s'".format(j + 1) for j in range(i + 1)]) for i in range(self.conf["max arguments number"])},
-                "arg_types": {i: ",".join(["$arg_type_str{}".format(j + 1) for j in range(i + 1)]) for i in range(self.conf["max arguments number"])},
-                "arg_vals": {i: ",".join(["$arg_value{}".format(j + 1) for j in range(i + 1)]) for i in range(self.conf["max arguments number"])}
+                "arg_printf_patterns": {i: ' '.join(["arg{}='%s'".format(j + 1) for j in range(i + 1)])
+                                        for i in range(self.conf["max arguments number"])},
+                "arg_types": {i: ",".join(["$arg_type_str{}".format(j + 1) for j in range(i + 1)])
+                              for i in range(self.conf["max arguments number"])},
+                "arg_vals": {i: ",".join(["$arg_value{}".format(j + 1) for j in range(i + 1)])
+                             for i in range(self.conf["max arguments number"])}
             }))
         self.logger.debug('Rendered template was stored into file {}'.format("requests.aspect"))
 
@@ -122,16 +125,16 @@ class SA(core.components.Component):
                                             collect_all_stdout=True)
                 self.logger.info("Analyze source file {}".format(command['in files'][0]))
                 core.utils.execute(self.logger, tuple(['cif',
-                                                      '--in', command['in files'][0],
-                                                      '--aspect', self.aspect,
-                                                      '--out', command['out file'],
-                                                      '--stage', 'instrumentation',
-                                                      '--back-end', 'src',
-                                                      '--debug', 'DEBUG'] +
-                                                     (['--keep'] if self.conf['debug'] else []) +
-                                                     ['--'] +
-                                                     command["opts"] +
-                                                     ['-isystem{0}'.format(stdout[0])]),
+                                                       '--in', command['in files'][0],
+                                                       '--aspect', self.aspect,
+                                                       '--out', command['out file'],
+                                                       '--stage', 'instrumentation',
+                                                       '--back-end', 'src',
+                                                       '--debug', 'DEBUG'] +
+                                                      (['--keep'] if self.conf['debug'] else []) +
+                                                      ['--'] +
+                                                      command["opts"] +
+                                                      ['-isystem{0}'.format(stdout[0])]),
                                   cwd=self.conf['source tree root'])
 
     def _import_content(self, file):
@@ -315,6 +318,7 @@ class SA(core.components.Component):
 
     def _remove_multi_declarations(self):
         functions = list(self.collection["kernel functions"].keys())
+        # todo: what if several headers have the same function ?
         for function in functions:
             files = list(self.collection["kernel functions"][function]["files"].keys())
             if len(files) > 0:
@@ -323,8 +327,8 @@ class SA(core.components.Component):
                     self.collection["kernel functions"][function][key] = \
                         self.collection["kernel functions"][function]["files"][first_file][key]
 
-                for file in files:
-                    self.collection["kernel functions"][function]["files"][file] = True
+                self.collection["kernel functions"][function]["header"] = first_file
+                del self.collection["kernel functions"][function]["files"]
             else:
                 del self.collection["kernel functions"][function]
 
