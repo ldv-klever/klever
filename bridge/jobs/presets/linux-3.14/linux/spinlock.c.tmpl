@@ -2,7 +2,7 @@
 #include <linux/spinlock.h>
 #include <verifier/rcv.h>
 
-// for arg_sign in arg_signs
+// for arg_sign in spinlock_arg_signs
 static int ldv_spin{{ arg_sign.id }} = 1;
 
 /* MODEL_FUNC_DEF Check that spinlock{{ arg_sign.text }} was not locked and lock it */
@@ -133,7 +133,7 @@ int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void)
 /* MODEL_FUNC_DEF Check that all spinlocks are unlocked at the end */
 void ldv_check_final_state(void)
 {
-	// for arg_sign in arg_signs
+	// for arg_sign in spinlock_arg_signs
 	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked before finishing operation */
 	ldv_assert(ldv_spin{{ arg_sign.id }} == 1);
 	// endfor

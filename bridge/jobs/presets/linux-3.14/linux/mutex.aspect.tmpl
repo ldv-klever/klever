@@ -12,7 +12,7 @@ extern int mutex_lock_interruptible(struct mutex *lock);
 extern int mutex_lock_killable(struct mutex *lock);
 extern void mutex_lock(struct mutex *lock);
 
-// for arg_sign in arg_signs
+// for arg_sign in mutex_arg_signs
 extern int ldv_mutex_lock_interruptible{{ arg_sign.id }}(struct mutex *lock);
 extern int ldv_mutex_lock_killable{{ arg_sign.id }}(struct mutex *lock);
 extern void ldv_mutex_lock_nested{{ arg_sign.id }}(struct mutex *lock, unsigned int subclass);

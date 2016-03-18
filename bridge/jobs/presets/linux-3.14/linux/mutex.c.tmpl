@@ -2,7 +2,7 @@
 #include <linux/errno.h>
 #include <verifier/rcv.h>
 
-// for arg_sign in arg_signs
+// for arg_sign in mutex_arg_signs
 static int ldv_mutex{{ arg_sign.id }} = 1;
 
 /* MODEL_FUNC_DEF Check that mutex{{ arg_sign.text }} was unlocked and nondeterministically lock it. Return the corresponding error code on fails */
@@ -193,7 +193,7 @@ void ldv_usb_unlock_device{{ arg_sign.id }}(void)
 /* MODEL_FUNC_DEF Check that all mutexes are unlocked at the end */
 void ldv_check_final_state(void)
 {
-	// for arg_sign in arg_signs
+	// for arg_sign in mutex_arg_signs
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked at the end */
 	ldv_assert(ldv_mutex{{ arg_sign.id }} == 1);
 	// endfor

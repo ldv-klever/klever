@@ -29,7 +29,9 @@ class ASE(core.components.Component):
         #   signatures at all on the basis of the same templates)
         # * more nice text representation for notes to be shown to users.
         self.abstract_task_desc['template context'] = {
-            'arg_signs': [{'id': '_{0}'.format(arg_sign), 'text': ' "{0}"'.format(arg_sign)} for arg_sign in arg_signs]}
+            self.conf['argument signatures list']:
+                [{'id': '_{0}'.format(arg_sign), 'text': ' "{0}"'.format(arg_sign)} for arg_sign in arg_signs]
+        }
 
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 

@@ -155,7 +155,10 @@
         "one thread:unreleased at exit"
       ],
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {"request aspect": "linux/mutex.request.aspect"},
+      "ASE": {
+        "argument signatures list": "mutex_arg_signs",
+        "request aspect": "linux/mutex.request.aspect"
+      },
       "TR": {
         "templates": [
           "linux/mutex.c.tmpl",
@@ -193,7 +196,10 @@
       "description": "...",
       "bug kinds": [],
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {"request aspect": "linux/spinlock.request.aspect"},
+      "ASE": {
+        "argument signatures list": "spinlock_arg_signs",
+        "request aspect": "linux/spinlock.request.aspect"
+      },
       "TR": {
         "templates": [
           "linux/spinlock.c.tmpl",
