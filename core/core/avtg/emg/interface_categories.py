@@ -6,6 +6,40 @@ from core.avtg.emg.common.signature import BaseType, InterfaceReference, Undefin
 
 
 class CategoriesSpecification:
+
+    def import_specification(self, specification):
+        self.logger.info("Analyze provided interface categories specification")
+        for category in specification["categories"]:
+            self.logger.debug("Found interface category {}".format(category))
+            self.__import_category_interfaces(category, specification["categories"][category])
+
+        if "kernel functions" in specification:
+            self.logger.info("Import kernel functions description")
+            for intf in self.__import_kernel_interfaces("kernel functions", specification):
+                self.kernel_functions[intf.identifier] = intf
+                self.logger.debug("New kernel function {} has been imported".format(intf.identifier))
+        else:
+            self.logger.warning("Kernel functions are not provided within an interface categories specification, "
+                                "expect 'kernel functions' attribute")
+
+        # Add fields to container declaration types
+        for container in self.containers():
+            if type(container.declaration) is Structure:
+                for field in container.field_interfaces:
+                    if container.field_interfaces[field].declaration and \
+                            (type(container.field_interfaces[field].declaration) is Array or
+                             type(container.field_interfaces[field].declaration) is Structure):
+                        if container.declaration.fields[field].pointer:
+                            container.declaration.fields[field] = \
+                                container.field_interfaces[field].declaration.take_pointer
+                        if container.declaration not in container.declaration.fields[field].parents:
+                            container.declaration.fields[field].parents.append(container.declaration)
+
+        # todo: import "kernel macro-functions" (issue #6573)
+
+        # Refine dirty declarations
+        self._refine_interfaces()
+
     def containers(self, category=None):
         return [interface for interface in self.interfaces.values() if type(interface) is Container and
                 (not category or interface.category == category)]
@@ -57,7 +91,7 @@ class CategoriesSpecification:
             intf = self.resolve_interface(signature.take_pointer, category)
         return intf
 
-    def refine_declaration(self, declaration):
+    def _refine_declaration(self, declaration):
         if declaration.clean_declaration:
             raise ValueError('Cannot clean already cleaned declaration')
 
@@ -78,7 +112,7 @@ class CategoriesSpecification:
             cp_declaration = copy.copy(declaration)
             
             if cp_declaration.return_value and not cp_declaration.return_value.clean_declaration:
-                rv = self.refine_declaration(cp_declaration.return_value)
+                rv = self._refine_declaration(cp_declaration.return_value)
                 if rv:
                     cp_declaration.return_value = rv
                     refinement = True
@@ -88,7 +122,7 @@ class CategoriesSpecification:
             for index in range(len(cp_declaration.parameters)):
                 if type(cp_declaration.parameters[index]) is not str and \
                         not cp_declaration.parameters[index].clean_declaration:
-                    pr = self.refine_declaration(cp_declaration.parameters[index])
+                    pr = self._refine_declaration(cp_declaration.parameters[index])
                     if pr:
                         cp_declaration.parameters[index] = pr
                         refinement = True
@@ -108,7 +142,7 @@ class CategoriesSpecification:
             else:
                 return None
         elif type(declaration) is Pointer and type(declaration.points) is Function:
-            func = self.refine_declaration(declaration.points)
+            func = self._refine_declaration(declaration.points)
             if func:
                 return func.take_pointer
             else:
@@ -116,7 +150,7 @@ class CategoriesSpecification:
         else:
             raise ValueError('Cannot clean non-function or interface-reference')
 
-    def refine_interfaces(self):
+    def _refine_interfaces(self):
         # Clean declarations if it is poissible
         self.logger.debug('Clean all interface declarations from InterfaceReferences')
         clean_flag = True
@@ -125,7 +159,7 @@ class CategoriesSpecification:
 
             for interface in self.interfaces.values():
                 if not interface.declaration.clean_declaration:
-                    new_declaration = self.refine_declaration(interface.declaration)
+                    new_declaration = self._refine_declaration(interface.declaration)
 
                     if new_declaration:
                         interface.declaration = new_declaration
@@ -136,7 +170,7 @@ class CategoriesSpecification:
                           type(intf.declaration) is Structure]:
             for field in [field for field in structure.declaration.fields
                           if not structure.declaration.fields[field].clean_declaration]:
-                new_declaration = self.refine_declaration(structure.declaration.fields[field])
+                new_declaration = self._refine_declaration(structure.declaration.fields[field])
                 if new_declaration:
                     structure.declaration.fields[field] = new_declaration
 
@@ -182,36 +216,6 @@ class CategoriesSpecification:
                 interface.param_interfaces[index] = p_interface
             else:
                 interface.param_interfaces.append(p_interface)
-
-    def import_specification(self, specification):
-        self.logger.info("Analyze provided interface categories specification")
-        for category in specification["categories"]:
-            self.logger.debug("Found interface category {}".format(category))
-            self.__import_category_interfaces(category, specification["categories"][category])
-
-        if "kernel functions" in specification:
-            self.logger.info("Import kernel functions description")
-            for intf in self.__import_kernel_interfaces("kernel functions", specification):
-                self.kernel_functions[intf.identifier] = intf
-                self.logger.debug("New kernel function {} has been imported".format(intf.identifier))
-        else:
-            self.logger.warning("Kernel functions are not provided within an interface categories specification, "
-                                "expect 'kernel functions' attribute")
-
-        # Add fields to container declaration types
-        for container in self.containers():
-            if type(container.declaration) is Structure:
-                for field in container.field_interfaces:
-                    if container.field_interfaces[field].declaration and \
-                            (type(container.field_interfaces[field].declaration) is Array or
-                             type(container.field_interfaces[field].declaration) is Structure):
-                        if container.declaration.fields[field].pointer:
-                            container.declaration.fields[field] = \
-                                container.field_interfaces[field].declaration.take_pointer
-                        if container.declaration not in container.declaration.fields[field].parents:
-                            container.declaration.fields[field].parents.append(container.declaration)
-
-                            # todo: import "kernel macro-functions" (issue #6573)
 
     def __import_kernel_interfaces(self, category_name, collection):
         for identifier in collection[category_name]:
