@@ -1,7 +1,9 @@
 import json
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
-from core.avtg.emg.common.interface import Interface, Function, Primitive, Structure, import_signature
+from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
+from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, InterfaceReference, \
+    setup_collection, import_signature, extract_name
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
@@ -15,6 +17,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.modules_functions = None
         self.inits = None
         self.exits = None
+        self.types = {}
+        setup_collection(self.types)
 
     def import_specification(self, specification=None, module_specification=None, analysis=None):
         # Import interface categories
@@ -39,40 +43,6 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #    fh.write(content)
 
     @staticmethod
-    def __add_type(signature, types):
-        new_type = import_signature(signature)
-        if new_type.identifier not in types:
-            types[new_type.identifier] = new_type
-
-            if type(new_type) is Function:
-                if new_type.return_value and new_type.return_value.identifier in types:
-                    new_type.return_value = types[new_type.return_value.identifier]
-                elif new_type.return_value and \
-                                new_type.return_value.identifier not in types:
-                    types[new_type.return_value.identifier] = new_type.return_value
-
-                for index in range(len(new_type.parameters)):
-                    parameter = new_type.parameters[index]
-                    if type(parameter) is not str and parameter.identifier in types:
-                        new_type.parameters[index] = types[parameter.identifier]
-                    elif type(parameter) is not str and parameter.identifier not in types:
-                        types[parameter.identifier] = new_type.parameters[index]
-        else:
-            new_type = types[new_type.identifier]
-
-        return new_type
-
-    @staticmethod
-    def __remove_pointer_aliases(category, main_type, secondary_type):
-        for main in category[main_type]:
-            for alias in list(category[secondary_type]):
-                if main.pointer_alias(alias):
-                    del category[secondary_type][category[secondary_type].index(alias)]
-                    main.add_pointer_implementations(alias)
-                    if main_type != secondary_type:
-                        category[secondary_type].append(main)
-
-    @staticmethod
     def __check_category_relevance(function):
         relevant = []
 
@@ -85,37 +55,45 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         return relevant
 
-    @staticmethod
-    def __container_check(self, tp, category):
-        if tp.suits_for_container and tp not in category['containers']:
-            category['containers'].append(tp)
+    def __set_declaration(self, interface, declaration):
+        if type(interface.declaration) is Function:
+            if interface.rv_interface:
+                if type(interface.declaration.return_value) is InterfaceReference and \
+                        interface.declaration.return_value.pointer:
+                    self.__set_declaration(interface.rv_interface, declaration.return_value.points)
+                else:
+                    self.__set_declaration(interface.rv_interface, declaration.return_value)
 
-    @staticmethod
-    def __resource_check(self, tp, category):
-        if tp not in category['resources']:
-            category['resources'].append(tp)
+            for index in range(len(interface.declaration.parameters)):
+                p_declaration = declaration.parameters[index]
 
-    @staticmethod
-    def __callback_check(self, tp, category):
-        if tp.suits_for_callbacks and tp not in category['callbacks']:
-            category['callbacks'].append(tp)
+                if interface.param_interfaces[index]:
+                    if type(interface.declaration.parameters[index]) is InterfaceReference and \
+                            interface.declaration.parameters[index].pointer:
+                        self.__set_declaration(interface.param_interfaces[index], p_declaration.points)
+                    else:
+                        self.__set_declaration(interface.param_interfaces[index], p_declaration)
+
+        interface.declaration = declaration
 
     def __import_source_analysis(self, analysis):
         self.logger.info("Import modules init and exit functions")
         self.__import_inits_exits(analysis)
 
         self.logger.info("Extract complete types definitions")
-        kernel_functions, module_functions, types = self.__extract_types(analysis)
+        self.__extract_types(analysis)
 
         self.logger.info("Determine categories from extracted types")
-        categories = self.__extract_categories(types)
+        categories = self.__extract_categories()
 
         self.logger.info("Merge interface categories from both interface categories specification and modules "
                          "interface specification")
-        self.__merge_categories(categories, kernel_functions,  module_functions)
+        self.__merge_categories(categories)
 
         self.logger.info("Remove useless interfaces")
         self.__remove_interfaces()
+
+        self.logger.info("Both specifications are imported and categories are merged")
 
     def __import_inits_exits(self, analysis):
         self.logger.debug("Move module initilizations functions to the modules interface specification")
@@ -127,33 +105,46 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             self.exits = analysis["exit"]
 
     def __extract_types(self, analysis):
-        types = {}
         entities = []
         if 'global variable initializations' in analysis:
             self.logger.info("Import types from global variables initializations")
-            for path in analysis["global variable initializations"]:
-                for variable in analysis["global variable initializations"][path]:
-                    analysis["global variable initializations"][path][variable]["value"] = variable
-                    bt = self.__add_type(analysis["global variable initializations"][path][variable]["signature"], types)
+            for variable in analysis["global variable initializations"]:
+                variable_name = extract_name(variable['declaration'])
+                signature = import_signature(variable['declaration'])
+                if type(signature) is Structure or type(signature) is Array or type(signature) is Union:
                     entity = {
-                        "path": path,
-                        "description": analysis["global variable initializations"][path][variable],
+                        "path": variable['path'],
+                        "description": variable,
                         "root value": None,
                         "root type": None,
                         "root sequence": [],
-                        "type": bt
+                        "type": signature
                     }
-                    types[bt.identifier] = bt
+                    signature.add_implementation(
+                        variable_name,
+                        variable['path'],
+                        None,
+                        None,
+                        []
+                    )
                     entities.append(entity)
-            self.__import_entities(entities, types)
+            self.__import_entities(entities)
 
         if 'kernel functions' in analysis:
             self.logger.info("Import types from kernel functions")
-            kernel_functions = {}
             for function in analysis['kernel functions']:
                 self.logger.debug("Parse signature of function {}".format(function))
-                kernel_functions[function] = self.__add_type(analysis['kernel functions'][function]['signature'], types)
-        
+                declaration = import_signature(analysis['kernel functions'][function]['signature'])
+
+                if function in self.kernel_functions:
+                    self.__set_declaration(self.kernel_functions[function], declaration)
+                else:
+                    new_intf = KernelFunction(function, analysis['kernel functions'][function]['header'])
+                    new_intf.declaration = declaration
+
+        # Remove dirty declarations
+        self.refine_interfaces()
+
         modules_functions = {}
         if 'modules functions' in analysis:
             self.logger.info("Import modules functions and implementations from kernel functions calls in it")
@@ -164,25 +155,32 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 for path in module_function["files"]:
                     self.logger.debug("Parse signature of function {} from file {}".format(function, path))
                     modules_functions[function][path] = \
-                        self.__add_type(module_function["files"][path]["signature"], types)
+                        import_signature(module_function["files"][path]["signature"])
 
                     if "calls" in module_function["files"][path]:
                         for kernel_function in [name for name in module_function["files"][path]["calls"]
-                                                if name in kernel_functions]:
+                                                if name in self.kernel_functions]:
                             for call in module_function["files"][path]["calls"][kernel_function]:
-                                for index in range(len(call)):
-                                    if call[index] and call[index] != "0":
-                                        kernel_functions[kernel_function].parameters[index].\
-                                            add_implementation(call[index], path, None, None, [])
+                                self.kernel_functions[kernel_function].add_call(function)
 
-        return kernel_functions, modules_functions, types
+                                for index in [index for index in range(len(call))
+                                              if call[index] and call[index] != "0"]:
+                                    self.kernel_functions[kernel_function].declaration.parameters[index].\
+                                        add_implementation(call[index], path, None, None, [])
 
-    def __import_entities(self, entities, types):
+        self.logger.info("Remove kernel functions which are not called at driver functions")
+        for function in list(self.kernel_functions.keys()):
+            if len(self.kernel_functions[function].called_at) == 0:
+                del self.kernel_functions[function]
+
+        self.modules_functions = modules_functions
+
+    def __import_entities(self, entities):
         while len(entities) > 0:
             entity = entities.pop()
             bt = entity["type"]
 
-            if "value" in entity["description"]:
+            if "value" in entity["description"] and type(entity["description"]['value']) is str:
                 bt.add_implementation(
                     entity["description"]["value"],
                     entity["path"],
@@ -190,115 +188,236 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     entity["root value"],
                     entity["root sequence"]
                 )
+            elif "value" in entity["description"] and type(entity["description"]['value']) is list:
+                for entry in entity["description"]['value']:
+                    if type(entity['type']) is Array:
+                        if not entity["root type"] and not entity["root value"]:
+                            new_root_type = bt
+                            new_root_value = entity["description"]["value"]
+                        else:
+                            new_root_type = entity["root type"]
+                            new_root_value = entity["root value"]
 
-            if 'fields' in entity['description']:
-                if not entity["root type"] and not entity["root value"]:
-                    new_root_type = bt
-                    new_root_value = entity["description"]["value"]
-                else:
-                    new_root_type = entity["root type"]
-                    new_root_value = entity["root value"]
+                        e_bt = bt.element
+                        new_sequence = list(entity["root sequence"])
+                        new_sequence.append(entry['index'])
 
-                for field in entity["description"]['fields']:
-                    f_bt = self.__add_type(entity["description"]['fields'][field]["signature"], types)
-                    new_sequence = list(entity["root sequence"])
-                    new_sequence.append(field)
+                        new_desc = {
+                            "type": e_bt,
+                            "description": entry,
+                            "path": entity["path"],
+                            "root type": new_root_type,
+                            "root value": new_root_value,
+                            "root sequence": new_sequence
+                        }
+                    elif type(entity['type']) is Structure:
+                        if not entity["root type"] and not entity["root value"]:
+                            new_root_type = bt
+                            new_root_value = entity["description"]["value"]
+                        else:
+                            new_root_type = entity["root type"]
+                            new_root_value = entity["root value"]
 
-                    new_desc = {
-                        "type": f_bt,
-                        "description": entity["description"]['fields'][field]["signature"],
-                        "path": entity["path"],
-                        "root type": new_root_type,
-                        "root value": new_root_value,
-                        "root sequence": new_sequence
-                    }
+                        field = extract_name(entry['field'])
+                        e_bt = import_signature(entry['field'], None, bt)
+                        new_sequence = list(entity["root sequence"])
+                        new_sequence.append(field)
+
+                        new_desc = {
+                            "type": e_bt,
+                            "description": entry,
+                            "path": entity["path"],
+                            "root type": new_root_type,
+                            "root value": new_root_value,
+                            "root sequence": new_sequence
+                        }
+
+                        bt.fields[field] = e_bt
+                    else:
+                        raise NotImplementedError
 
                     entities.append(new_desc)
-                    bt.fields[field] = f_bt
-            elif 'elements' in entity['description']:
-                # todo: support arrays (issue #6559)
-                # todo: add element number to sequence number instead of the field
-                raise NotImplementedError("support arrays")
+            else:
+                raise TypeError('Expect list or string')
 
-    def __extract_categories(self, types):
-        callbacks = [cb for cb in types if type(cb) is Function and cb.suits_for_callback]
+    @staticmethod
+    def __add_to_processing(element, process_list, category):
+        if element not in process_list and element not in category['containers']:
+            process_list.append(element)
+        else:
+            return
+
+    @staticmethod
+    def __add_interface_candidate(element, e_type, category):
+        if element in category[e_type]:
+            return
+        else:
+            category[e_type].append(element)
+
+    def __add_callback(self, signature, category, identifier=None):
+        if not identifier:
+            identifier = signature.identifier
+
+        if identifier not in category['callbacks']:
+            category['callbacks'][identifier] = signature
+
+            for parameter in [p for p in signature.points.parameters if type(p) is not str]:
+                self.__add_interface_candidate(parameter, 'resources', category)
+
+    def __extract_categories(self):
+        structures = [struct for struct in self.types.values() if type(struct) is Structure and
+                      len([field for field in struct.fields.values() if field.clean_declaration]) > 0]
         categories = []
 
-        while len(callbacks) > 0:
-            cb = callbacks.pop()
-            del types[cb.identifier]
-
+        while len(structures) > 0:
+            container = structures.pop()
             category = {
-                "callbacks": [cb],
+                "callbacks": {},
                 "containers": [],
                 "resources": []
             }
 
-            number = len(category["callbacks"]) + len(category["containers"]) + len(category["resources"])
-            new_number = 0
-            while new_number != number:
-                number = new_number
+            to_process = [container]
+            while len(to_process) > 0:
+                tp = to_process.pop()
 
-                for tp in list(types.values):
-                    if type(tp) is Structure:
-                        self.__container_check(tp, category)
-                        self.__resource_check(tp, category)
-                    elif type(tp) is Function:
-                        self.__callback_check(tp, category)
-                        self.__resource_check(tp, category)
-                    elif type(tp) is Primitive:
-                        self.__resource_check(tp, category)
-                    else:
-                        # todo: support arrays (issue #6559)
-                        raise NotImplementedError("Unknown type category")
+                # todo: unions?
+                if type(tp) is Structure:
+                    c_flag = False
+                    for field in tp.fields:
+                        if type(tp.fields[field]) is Pointer and \
+                                (type(tp.fields[field].points) is Array or
+                                 type(tp.fields[field].points) is Structure):
+                            self.__add_to_processing(tp.fields[field].points, to_process, category)
+                            c_flag = True
+                        if type(tp.fields[field]) is Pointer and type(tp.fields[field].points) is Function:
+                            self.__add_callback(tp.fields[field], category, field)
+                            c_flag = True
+                        elif type(tp.fields[field]) is Array or type(tp.fields[field]) is Structure:
+                            self.__add_to_processing(tp.fields[field], to_process, category)
+                            c_flag = True
 
-                new_number = len(category["callbacks"]) + len(category["containers"]) + len(category["resources"])
+                    if tp in structures:
+                        del structures[structures.index(tp)]
+                    if c_flag:
+                        self.__add_interface_candidate(tp, 'containers', category)
+                elif type(tp) is Array:
+                    if type(tp.element) is Pointer and \
+                            (type(tp.element.points) is Array or
+                             type(tp.element.points) is Structure):
+                        self.__add_to_processing(tp.element.points, to_process, category)
+                        self.__add_interface_candidate(tp, 'containers', category)
+                    elif type(tp.element) is Pointer and type(tp.element) is Function:
+                        self.__add_callback(tp.element, category)
+                        self.__add_interface_candidate(tp, 'containers', category)
+                    elif type(tp.element) is Array or type(tp.element) is Structure:
+                        self.__add_to_processing(tp.element, to_process, category)
+                        self.__add_interface_candidate(tp, 'containers', category)
+                if (type(tp) is Array or type(tp) is Structure) and len(tp.parents) > 0:
+                    for parent in tp.parents:
+                        if type(parent) is Structure or \
+                           type(parent) is Array:
+                            self.__add_to_processing(parent, to_process, category)
+                        elif type(parent) is Pointer and len(parent.parents) > 0:
+                            for ancestor in parent.parents:
+                                if type(ancestor) is Structure or \
+                                   type(ancestor) is Array:
+                                    self.__add_to_processing(ancestor, to_process, category)
 
-            self.__remove_pointer_aliases(category, "containers", "containers")
-            self.__remove_pointer_aliases(category, "containers", "resources")
-            self.__remove_pointer_aliases(category, "resources", "resources")
+            if len(category['callbacks']) > 0:
+                categories.append(category)
 
+            # todo: default registration and deregistrations may need categories based on function pointers directly
+            #       passed to kernel functions (feature #6568)
         return categories
 
-    def __merge_categories(self, categories, kernel_functions,  module_functions):
+    def __resolve_or_add_interface(self, signature, category, constructor):
+        interface = self.resolve_interface(signature, category)
+        if len(interface) == 0:
+            interface = constructor(category, signature.identifier)
+            interface.declaration = signature
+            self.interfaces[interface.identifier] = interface
+            interface = [interface]
+        elif len(interface) > 1:
+            for intf in interface:
+                intf.declaration = signature
+        else:
+            interface[-1].declaration = signature
+        return interface
+
+    def __new_callback(self, declaration, category, identifier):
+        if identifier in self.interfaces:
+            identifier = declaration.identifier
+
+        interface = Callback(category, identifier)
+        interface.declaration = declaration
+        self.interfaces[interface.identifier] = interface
+        return interface
+
+    def __merge_categories(self, categories):
         self.logger.info("Try to find suitable interface descriptions for found types")
         for category in categories:
             category_identifier = self.__yield_category(category)
 
+            # Add containers and resources
             self.logger.info("Found interfaces for category {}".format(category_identifier))
-            for interface_category in ["callbacks", "containers", "resources"]:
-                for signature in category[interface_category]:
-                    interface = self.resolve_interface(signature)
-                    if not interface:
-                        interface = Interface(category_identifier, signature.identifier)
-                    interface.import_declaration(signature)
+            for signature in category['containers']:
+                interface = self.__resolve_or_add_interface(signature, category_identifier, Container)
+                if len(interface) > 1:
+                    raise TypeError('Cannot match two containers with the same type')
+                else:
+                    interface = interface[-1]
 
-                    if interface_category == "callbacks":
-                        interface.callback = True
-                    if interface_category == "resources":
-                        interface.resource = True
-                    if interface_category == "containers":
-                        interface.container = True
+                # Refine field interfaces
+                for field in list(interface.field_interfaces.keys()):
+                    if not interface.field_interfaces[field].declaration.clean_declaration and \
+                            interface.declaration.fields[field].clean_declaration:
+                        interface.field_interfaces[field].declaration = interface.declaration.fields[field]
+                    elif not interface.field_interfaces[field].declaration.clean_declaration:
+                        del interface.field_interfaces[field]
+            for signature in category['resources']:
+                interface = self.__resolve_or_add_interface(signature, category_identifier, Resource)
+                if len(interface) > 1:
+                    raise TypeError('Cannot match two resources with the same type')
 
-            # Populate fields
-            for container in self.containers(category_identifier):
-                for field in container.declaration.fields:
-                    interface = self.resolve_interface(container.declaration.fields[field])
-                    if interface:
-                        container.field_interfaces[field] = interface
+            # Add callbacks
+            for identifier in category['callbacks']:
+                probe_identifier = "{}.{}".format(category_identifier, identifier)
+                candidates = self.resolve_interface(category['callbacks'][identifier], category_identifier)
+
+                if len(candidates) > 0:
+                    containers = self.select_containers(identifier, category['callbacks'][identifier],
+                                                        category_identifier)
+                    if len(containers) == 1 and identifier in containers[-1].field_interfaces and \
+                            containers[-1].field_interfaces[identifier] in candidates:
+                        containers[-1].field_interfaces[identifier].declaration = category['callbacks'][identifier]
+                    elif len(containers) == 1 and identifier not in containers[-1].field_interfaces:
+                        intf = self.__new_callback(category['callbacks'][identifier], category_identifier, identifier)
+                        containers[-1].field_interfaces[identifier] = intf
+                    else:
+                        self.__new_callback(category['callbacks'][identifier], category_identifier, identifier)
+                else:
+                    self.__new_callback(category['callbacks'][identifier], category_identifier, identifier)
+
+            # Resolve array elements
+            for container in [cnt for cnt in self.containers(category_identifier) if cnt.declaration and
+                              type(cnt.declaration) is Array and not cnt.element_interface]:
+                intf = self.resolve_interface_weakly(container.declaration.element)
+                if len(intf) == 1:
+                    container.element_interface = intf
+                else:
+                    raise NotImplementedError
 
             # Resolve callback parameters
             for callback in self.callbacks(category_identifier):
-                self._resolve_function_interfaces(callback)
+                self._fulfill_function_interfaces(callback, category_identifier)
 
             # Resolve kernel function parameters
             for function in self.kernel_functions.values():
-                self._resolve_function_interfaces(function)
+                self._fulfill_function_interfaces(function)
 
-            # Resolve module function parameters
-            for function_name in self.modules_functions:
-                for function in self.modules_functions[function_name].values():
-                    self._resolve_function_interfaces(function)
+        # Refine dirty declarations
+        self.refine_interfaces()
 
     def __yield_category(self, category):
         category_identifier = None
@@ -307,8 +426,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 break
             for signature in category[interface_category]:
                 interface = self.resolve_interface(signature)
-                if interface:
-                    category_identifier = interface.category
+                if len(interface) > 0:
+                    category_identifier = interface[-1].category
                     break
 
         if not category_identifier:
@@ -344,22 +463,37 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             if len(callback.declaration.implementations) > 0:
                 relevant_interfaces.append(callback)
                 relevant_interfaces.extend(self.__check_category_relevance(callback))
+            else:
+                containers = self.resolve_containers(callback, callback.category)
+                for container in containers:
+                    if self.interfaces[container] in relevant_interfaces and \
+                            len(self.interfaces[container].declaration.implementations) == 0:
+                        relevant_interfaces.append(callback)
+                        relevant_interfaces.extend(self.__check_category_relevance(callback))
+                        break
 
         # Add containers
         add_cnt = 1
         while add_cnt != 0:
             add_cnt = 0
             for container in self.containers():
-                match = False
+                if type(container.declaration) is Array:
+                    match = False
 
-                for f_param in container.param_interfaces:
-                    if f_param and f_param in relevant_interfaces:
-                        match = True
-                        break
+                    for f_intf in container.field_interfaces:
+                        if f_intf and f_intf in relevant_interfaces:
+                            match = True
+                            break
 
-                if match:
-                    relevant_interfaces.append(container)
-                    add_cnt += 1
+                    if match:
+                        relevant_interfaces.append(container)
+                        add_cnt += 1
+                elif type(container.declaration) is Structure:
+                    if container.element_interface in relevant_interfaces:
+                        relevant_interfaces.append(container)
+                        add_cnt += 1
+                else:
+                    raise TypeError('Expect structure or array container')
 
         return relevant_interfaces
 
