@@ -60,7 +60,7 @@ def parse_event_specification(logger, raw):
         logger.info("Import processes from 'environment processes'")
         for name in raw["environment processes"]:
             logger.debug("Import environment process {}".format(name))
-            process = Process(name, raw["environment processes"][name])
+            process = __import_process(name, raw["environment processes"][name])
             env_processes[name] = process
     else:
         raise KeyError("Model cannot be generated without environment processes")
@@ -109,16 +109,18 @@ def __import_process(name, dic):
             label = Label(name)
             process.labels[name] = label
 
-            label.import_json(dic['labels'][name])
             for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer']:
                 if att in dic:
                     setattr(label, att, dic['labels'][name][att])
 
             if 'interface' in dic['labels'][name]:
-                if type(dic['interface']) is str:
-                    label.interfaces = [dic['labels'][name]['interface']]
+                if type(dic['labels'][name]['interface']) is str:
+                    label.set_declaration(dic['labels'][name]['interface'], None)
+                elif type(dic['labels'][name]['interface']) is list:
+                    for string in dic['labels'][name]['interface']:
+                        label.set_declaration(string, None)
                 else:
-                    label.interfaces = dic['labels'][name]['interface']
+                    TypeError('Expect list or string with interface identifier')
             if 'signature' in dic:
                 label.primary_signature = import_signature(dic['labels'][name]['signature'])
 

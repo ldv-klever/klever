@@ -6,7 +6,8 @@ import core.utils
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.module_categories import ModuleCategoriesSpecification
-from core.avtg.emg.event_spec import EventModel
+from core.avtg.emg.process_parser import parse_event_specification
+from core.avtg.emg.intermediate_model import ProcessModel
 
 class EMG(core.components.Component):
 
@@ -45,8 +46,9 @@ class EMG(core.components.Component):
 
         # Generate module interface specification
         self.logger.info("============== An intermediate model preparation stage ==============")
-        #model = EventModel(self.logger, event_categories_spec)
-        #model.prepare(mcs)
+        model_processes, env_processes = parse_event_specification(self.logger, event_categories_spec)
+        model = ProcessModel(self.logger, model_processes, env_processes)
+        model.generate_event_model(mcs)
         self.logger.info("An intermediate environment model has been prepared")
 
         # Generate module interface specification
@@ -82,6 +84,7 @@ class EMG(core.components.Component):
         if "source analysis" in avt:
             analysis_file = os.path.join(self.conf["main working directory"], avt["source analysis"])
             self.logger.info("Read file with results of source analysis from {}".format(analysis_file))
+
             with open(analysis_file, encoding="ascii") as fh:
                 analysis = json.loads(fh.read())
         else:
@@ -150,7 +153,7 @@ class EMG(core.components.Component):
 
         if not interface_spec:
             raise FileNotFoundError("Environment model generator missed an interface categories specification")
-        elif not event_spec:
+        elif not event_categories_spec:
             raise FileNotFoundError("Environment model generator missed an event categories specification")
 
         return interface_spec, module_interface_spec, event_categories_spec
