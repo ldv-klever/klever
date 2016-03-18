@@ -569,7 +569,6 @@ class BaseType:
 
     def common_initialization(self, ast, parent):
         self._ast = ast
-        self._identifier = None
         self.implementations = {}
         self.path = None
         self.parents = []
@@ -601,9 +600,7 @@ class BaseType:
 
     @property
     def identifier(self):
-        if not self._identifier:
-            self._identifier = self.to_string(replacement='')
-        return self._identifier
+        return self.to_string(replacement='')
 
     def to_string(self, replacement='', pointer=False):
         if pointer:
@@ -694,6 +691,13 @@ class Structure(BaseType):
     def name(self):
         return self._ast['specifiers']['type specifier']['name']
 
+    def contains(self, target):
+        return [field for field in self.fields if self.fields[field].compare(target)]
+
+    def weak_contains(self, target):
+        return [field for field in self.fields if self.fields[field].compare(target) or
+                self.fields[field].pointer_alias(target)]
+
     def _to_string(self, replacement):
         if replacement == '':
             return "struct {}".format(self.name)
@@ -739,6 +743,18 @@ class Array(BaseType):
     @property
     def clean_declaration(self):
         return self.element.clean_declaration
+
+    def contains(self, target):
+        if self.element.compare(target):
+            return True
+        else:
+            return False
+
+    def weak_contains(self, target):
+        if self.element.compare(target) or self.element.pointer_alias(target):
+            return True
+        else:
+            return False
 
     def _to_string(self, replacement):
         if self.size:
