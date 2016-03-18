@@ -1,50 +1,22 @@
 import copy
 
-from core.avtg.emg.common.interface import Interface, import_signature
-from core.avtg.emg.common.process import Process, Subprocess, Label, Access, process_parse
+from core.avtg.emg.common.signature import import_signature
+from core.avtg.emg.common.process import Process, Label, Subprocess
 
 
-class EventModel:
+class ProcessModel:
 
-    def __init__(self, logger, raw):
+    def __init__(self, logger, models, processes):
         self.logger = logger
+        self.__abstr_model_processes = models
+        self.__abstr_event_processes = processes
         self.model_processes = {}
         self.event_processes = {}
         self.entry_process = None
-        self.__abstr_model_processes = {}
-        self.__abstr_event_processes = {}
         self.__called_callbacks = []
         self.__uncalled_callbacks = []
 
-        self.logger.info("Import processes from provided event categories specification")
-        if "kernel model" in raw:
-            self.logger.info("Import processes from 'kernel model'")
-            for name_list in raw["kernel model"]:
-                names = name_list.split(", ")
-                for name in names:
-                    self.logger.debug("Import process which models {}".format(name))
-                    process = Process(name, raw["kernel model"][name_list])
-                    self.__abstr_model_processes[name] = process
-        if "kernel model" in raw:
-            self.logger.info("Import processes from 'kernel model'")
-            for name_list in raw["kernel model"]:
-                names = name_list.split(", ")
-                for name in names:
-                    self.logger.debug("Import process which models {}".format(name))
-                    process = Process(name, raw["kernel model"][name_list])
-                    self.__abstr_model_processes[name] = process
-        else:
-            self.logger.warning("Kernel model is not provided")
-        if "environment processes" in raw:
-            self.logger.info("Import processes from 'environment processes'")
-            for name in raw["environment processes"]:
-                self.logger.debug("Import environment process {}".format(name))
-                process = Process(name, raw["environment processes"][name])
-                self.__abstr_model_processes[name] = process
-        else:
-            raise KeyError("Model cannot be generated without environment processes")
-
-    def prepare(self, analysis):
+    def generate_event_model(self, analysis):
         # todo: should work with multi-module analysis (issues #6558, #6563)
         self.logger.info("Generate model processes for Init and Exit module functions")
         self.__generate_entry(analysis)
@@ -156,7 +128,6 @@ class EventModel:
         # Add subprocesses finally
         self.entry_process.process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.({} | <none>).[exit]." \
                                       "<stop>)".format('.'.join(dispatches))
-        self.entry_process.process_ast = process_parse(self.entry_process.process)
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models

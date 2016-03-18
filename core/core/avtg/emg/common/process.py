@@ -1,66 +1,24 @@
-import re
 import copy
-import grako
+import re
 
-process_grammar = \
-"""
-(* Main expression *)
-FinalProcess = (Operators | Bracket)$;
-Operators = Switch | Sequence;
+# todo: rewrite or remove
+def get_common_interface(subprocess, process, position):
+    pl = process.extract_label(subprocess.parameters[position])
+    if not pl.interfaces:
+        return []
+    else:
+        interfaces = pl.interfaces
+        for peer in subprocess.peers:
+            arg = peer['subprocess'].parameters[position]
+            label = peer['process'].extract_label(arg)
+            interfaces = set(interfaces) & set(label.interfaces)
 
-(* Signle process *)
-Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
-Null = null:"0";
-ReceiveProcess = receive:Receive;
-SendProcess = dispatch:Send;
-SubprocessProcess = subprocess:Subprocess;
-ConditionProcess = condition:Condition;
-Receive = "("[replicative:"!"]name:identifier[number:Repetition]")";
-Send = "["[broadcast:"@"]name:identifier[number:Repetition]"]";
-Condition = "<"name:identifier[number:Repetition]">";
-Subprocess = "{"name:identifier"}";
-
-(* Operators *)
-Sequence = sequence:SequenceExpr;
-Switch = options:SwitchExpr;
-SequenceExpr = @+:Process{"."@+:Process}*;
-SwitchExpr = @+:Sequence{"|"@+:Sequence}+;
-
-(* Brackets *)
-Bracket = process:BracketExpr;
-BracketExpr = "("@:Operators")";
-
-(* Basic expressions and terminals *)
-Repetition = "["@:(number | label)"]";
-identifier = /\w+/;
-number = /\d+/;
-label = /%\w+%/;
-"""
-process_model = grako.genmodel('process', process_grammar)
-
-
-def process_parse(string):
-    return process_model.parse(string, ignorecase=True)
-
-
-def generate_regex_set(subprocess_name):
-    dispatch_template = "\[@?{}(?:\[[^)]+\])?\]"
-    receive_template = "\(!?{}(?:\[[^)]+\])?\)"
-    condition_template = "<{}(?:\[[^)]+\])?>"
-    subprocess_template = "{}"
-
-    subprocess_re = re.compile("\{" + subprocess_template.format(subprocess_name) + "\}")
-    receive_re = re.compile(receive_template.format(subprocess_name))
-    dispatch_re = re.compile(dispatch_template.format(subprocess_name))
-    condition_template_re = re.compile(condition_template.format(subprocess_name))
-    regexes = [
-        {"regex": subprocess_re, "type": "subprocess"},
-        {"regex": dispatch_re, "type": "dispatch"},
-        {"regex": receive_re, "type": "receive"},
-        {"regex": condition_template_re, "type": "condition"}
-    ]
-
-    return regexes
+        if len(interfaces) == 0:
+            raise RuntimeError('Need at least one common interface to send signal')
+        elif len(interfaces) > 1:
+            raise NotImplementedError
+        else:
+            return list(interfaces)[0]
 
 
 class Access:
@@ -89,10 +47,11 @@ class Access:
 
         # todo: this is ugly and incorrect
         if variable.signature.pointer:
-            expr = "->".join(access)
+            expr = '->'.join(access)
         else:
-            expr = ".".join(access)
+            expr = '.'.join(access)
         return expr
+
 
 class Label:
 
@@ -105,135 +64,58 @@ class Label:
         self.parameters = []
 
         self.value = None
-        self.interfaces = None
         self.name = name
-        self.__signature = None
+        self.primary_signature = None
         self.__signature_map = {}
 
-    def import_json(self, dic):
-        for att in ["container", "resource", "callback", "parameter", "value", "pointer"]:
-            if att in dic:
-                setattr(self, att, dic[att])
+    @property
+    def interfaces(self):
+        return list(self.__signature_map.keys())
 
-        if "interface" in dic:
-            if type(dic["interface"]) is str:
-                self.interfaces = [dic["interface"]]
-            else:
-                self.interfaces = dic["interface"]
-        if "signature" in dic:
-            self.__signature = Signature(dic["signature"])
-
-    def signature(self, signature=None, interface=None):
-        if not signature and not interface:
-            return self.__signature
-        elif signature and not interface:
-            self.__signature = signature
-            return self.__signature
-        elif not signature and interface and interface in self.__signature_map:
-            return self.__signature_map[interface]
-        elif not signature and interface and interface not in self.__signature_map:
+    def get_decalration(self, identifier):
+        if identifier in self.__signature_map:
+            return self.__signature_map[identifier]
+        else:
             return None
-        elif signature and interface and interface in self.__signature_map:
-            if self.signature(None, interface).compare_signature(signature):
-                return self.__signature_map[interface]
-            else:
-                raise ValueError("Incompatible signature {} with interface {}".
-                                 format(signature.expression, interface))
-        elif signature and interface and interface not in self.__signature_map:
-            self.__signature_map[interface] = signature
+
+    def set_declaration(self, identifier, declaration):
+        self.__signature_map[identifier] = declaration
 
     def compare_with(self, label):
         if self.interfaces and label.interfaces:
             if len(list(set(self.interfaces) & set(label.interfaces))) > 0:
-                return "equal"
+                return 'equal'
             else:
-                return "different"
+                return 'different'
         elif label.interfaces or self.interfaces:
             if (self.container and label.container) or (self.resource and label.resource) or \
                (self.callback and label.callback):
-                return "сompatible"
+                return 'сompatible'
             else:
-                return "different"
+                return 'different'
         elif self.signature() and label.signature():
             my_signature = self.signature()
             ret = my_signature.compare_signature(label.signature())
             if not ret:
-                return "different"
+                return 'different'
             else:
-                return "equal"
+                return 'equal'
         else:
             raise NotImplementedError("Cannot compare label '{}' with label '{}'".format(label.name, label.name))
 
 
 class Process:
-    label_re = re.compile("%(\w+)((?:\.\w*)*)%")
+    label_re = re.compile('%(\w+)((?:\.\w*)*)%')
 
-    def __init__(self, name, dic=None):
-        # Default values
+    def __init__(self, name):
+        self.name = name
+        self.identifier = None
         self.labels = {}
-        self.subprocesses = {}
+        self.actions = {}
         self.category = None
         self.process = None
-        self.identifier = None
+        self.process_ast = None
         self.__accesses = None
-        if not dic:
-            dic = {}
-
-        # Provided values
-        self.name = name
-
-        # Import labels
-        if "labels" in dic:
-            for name in dic["labels"]:
-                label = Label(name)
-                label.import_json(dic["labels"][name])
-                self.labels[name] = label
-
-        # Import process
-        if "process" in dic:
-            self.process = dic["process"]
-
-        # Import subprocesses
-        if "subprocesses" in dic:
-            for name in dic["subprocesses"]:
-                subprocess = Subprocess(name, dic["subprocesses"][name])
-                self.subprocesses[name] = subprocess
-
-        # Check subprocess type
-        self.__determine_subprocess_types()
-
-        # Parse process
-        if self.process:
-            self.process_ast = process_parse(self.process)
-
-    def __determine_subprocess_types(self):
-        processes = [self.subprocesses[process_name].process for process_name in self.subprocesses
-                     if self.subprocesses[process_name].process]
-        processes.append(self.process)
-
-        for subprocess_name in self.subprocesses:
-            regexes = generate_regex_set(subprocess_name)
-
-            match = 0
-            process_type = None
-            for regex in regexes:
-                for process in processes:
-                    if regex["regex"].search(process):
-                        match += 1
-                        process_type = regex["type"]
-                        if process_type == "dispatch":
-                            if "@{}".format(subprocess_name) in process:
-                                self.subprocesses[subprocess_name].broadcast = True
-                        break
-
-            if match == 0:
-                raise KeyError("Subprocess '{}' from process '{}' is not used actually".
-                               format(subprocess_name, self.name))
-            elif match > 1:
-                raise KeyError("Subprocess '{}' from process '{}' was used differently at once".
-                               format(subprocess_name, self.name))
-            else:
-                self.subprocesses[subprocess_name].type = process_type
 
     def __compare_signals(self, process, first, second):
         if first.name == second.name and len(first.parameters) == len(second.parameters):
@@ -249,7 +131,7 @@ class Process:
                                      format(second.name, index, process.name))
 
                 ret = label.compare_with(pair)
-                if ret != "сompatible" and ret != "equal":
+                if ret != 'сompatible' and ret != 'equal':
                     match = False
                     break
             return match
@@ -258,18 +140,18 @@ class Process:
 
     @property
     def unmatched_receives(self):
-        unmatched = [self.subprocesses[subprocess] for subprocess in self.subprocesses
-                     if self.subprocesses[subprocess].type == "receive" and
-                     len(self.subprocesses[subprocess].peers) == 0 and not
-                     self.subprocesses[subprocess].callback]
+        unmatched = [self.actions[subprocess] for subprocess in self.actions
+                     if self.actions[subprocess].type == 'receive' and
+                     len(self.actions[subprocess].peers) == 0 and not
+                     self.actions[subprocess].callback]
         return unmatched
 
     @property
     def unmatched_dispatches(self):
-        unmatched = [self.subprocesses[subprocess] for subprocess in self.subprocesses
-                     if self.subprocesses[subprocess].type == "dispatch" and
-                     len(self.subprocesses[subprocess].peers) == 0 and not
-                     self.subprocesses[subprocess].callback]
+        unmatched = [self.actions[subprocess] for subprocess in self.actions
+                     if self.actions[subprocess].type == 'dispatch' and
+                     len(self.actions[subprocess].peers) == 0 and not
+                     self.actions[subprocess].callback]
         return unmatched
 
     @property
@@ -303,14 +185,14 @@ class Process:
             else:
                 return self.labels[name], tail
         else:
-            raise ValueError("Cannot extract label from access {} in process {}".format(string, format(string)))
+            raise ValueError('Cannot extract label from access {} in process {}'.format(string, format(string)))
 
     def establish_peers(self, process):
         peers = self.get_available_peers(process)
         for signals in peers:
-            for index in range(len(self.subprocesses[signals[0]].parameters)):
-                label1 = self.extract_label(self.subprocesses[signals[0]].parameters[index])
-                label2 = process.extract_label(process.subprocesses[signals[1]].parameters[index])
+            for index in range(len(self.actions[signals[0]].parameters)):
+                label1 = self.extract_label(self.actions[signals[0]].parameters[index])
+                label2 = process.extract_label(process.actions[signals[1]].parameters[index])
 
                 if (not label2.interfaces or len(label2.interfaces) == 0) and \
                         (label1.interfaces and len(label1.interfaces) > 0):
@@ -319,15 +201,15 @@ class Process:
                         (not label1.interfaces or len(label1.interfaces) == 0):
                     label1.interfaces = label2.interfaces
 
-            self.subprocesses[signals[0]].peers.append(
+            self.actions[signals[0]].peers.append(
                     {
-                        "process": process,
-                        "subprocess": process.subprocesses[signals[1]]
+                        'process': process,
+                        'subprocess': process.actions[signals[1]]
                     })
-            process.subprocesses[signals[1]].peers.append(
+            process.actions[signals[1]].peers.append(
                     {
-                        "process": self,
-                        "subprocess": self.subprocesses[signals[0]]
+                        'process': self,
+                        'subprocess': self.actions[signals[0]]
                     })
 
     def get_available_peers(self, process):
@@ -350,28 +232,28 @@ class Process:
         return ret
 
     def rename_subprocess(self, old_name, new_name):
-        if old_name not in self.subprocesses:
-            raise KeyError("Cannot rename subprocess {} in process {} because it does not exist".
+        if old_name not in self.actions:
+            raise KeyError('Cannot rename subprocess {} in process {} because it does not exist'.
                            format(old_name, self.name))
 
-        subprocess = self.subprocesses[old_name]
+        subprocess = self.actions[old_name]
         subprocess.name = new_name
 
         # Delete old subprocess
-        del self.subprocesses[old_name]
+        del self.actions[old_name]
 
         # Set new subprocess
-        self.subprocesses[subprocess.name] = subprocess
+        self.actions[subprocess.name] = subprocess
 
         # Replace subprocess entries
         processes = [self]
-        processes.extend([self.subprocesses[name] for name in self.subprocesses if self.subprocesses[name].process])
+        processes.extend([self.actions[name] for name in self.actions if self.actions[name].process])
         regexes = generate_regex_set(old_name)
         for process in processes:
             for regex in regexes:
-                if regex["regex"].search(process.process):
+                if regex['regex'].search(process.process):
                     # Replace signal entries
-                    old_match = regex["regex"].search(process.process).group()
+                    old_match = regex['regex'].search(process.process).group()
                     new_match = old_match.replace(old_name, new_name)
                     process.process = process.process.replace(old_match, new_match)
 
@@ -384,7 +266,7 @@ class Process:
                 self.__accesses = {}
 
                 # Collect all accesses across process subprocesses
-                for subprocess in [self.subprocesses[name] for name in self.subprocesses]:
+                for subprocess in [self.actions[name] for name in self.actions]:
                     if subprocess.callback:
                         self.__accesses[subprocess.callback] = []
                     if subprocess.parameters:
@@ -403,7 +285,7 @@ class Process:
 
                 # Add labels with interfaces
                 for label in self.labels.values():
-                    access = "%{}%".format(label.name)
+                    access = '%{}%'.format(label.name)
                     if access not in self.__accesses:
                         self.__accesses[access] = []
 
@@ -413,11 +295,11 @@ class Process:
 
     def resolve_access(self, access, interface=None):
         if type(access) is Label:
-            string = "%{}%".format(access.name)
+            string = '%{}%'.format(access.name)
         elif type(access) is str:
             string = access
         else:
-            raise TypeError("Unsupported access token")
+            raise TypeError('Unsupported access token')
 
         if not interface:
             return self.__accesses[string]
@@ -428,65 +310,58 @@ class Process:
 
 class Subprocess:
 
-    def __init__(self, name, dic):
-        # Default values
-        self.type = None
+    def __init__(self, name):
+        self.name = name
         self.process = None
         self.process_ast = None
+        self.condition = None
+
+
+class Dispatch:
+
+    def __init__(self, name):
+        self.name = name
+        self.condition = None
+        self.parameters = []
+        self.broadcast = False
+        self.peers = []
+
+
+class Receive:
+
+    def __init__(self, name):
+        self.name = name
+        self.parameters = []
+        self.condition = None
+        self.replicative = False
+        self.peers = []
+
+
+class Callback:
+
+    def __init__(self, name):
+        self.name = name
+        self.condition = None
+        self.callback = None
+        self.parameters = []
+
+
+class CallbackRetval:
+
+    def __init__(self, name):
+        self.name = name
         self.parameters = []
         self.callback = None
         self.callback_retval = None
-        self.peers = []
+        self.condition = None
+
+
+class Condition:
+
+    def __init__(self, name):
+        self.name = name
         self.condition = None
         self.statements = None
-        self.broadcast = False
 
-        # Provided values
-        self.name = name
-
-        # Values from dictionary
-        if "callback" in dic:
-            self.callback = dic["callback"]
-
-        # Add parameters
-        if "parameters" in dic:
-            self.parameters = dic["parameters"]
-
-        # Add callback return value
-        if "callback return value" in dic:
-            self.callback_retval = dic["callback return value"]
-
-        # Import condition
-        if "condition" in dic:
-            self.condition = dic["condition"]
-
-        # Import statements
-        if "statements" in dic:
-            self.statements = dic["statements"]
-
-        # Import process
-        if "process" in dic:
-            self.process = dic["process"]
-
-            # Parse process
-            self.process_ast = process_parse(self.process)
-
-    def get_common_interface(self, process, position):
-        pl = process.extract_label(self.parameters[position])
-        if not pl.interfaces:
-            return []
-        else:
-            interfaces = pl.interfaces
-            for peer in self.peers:
-                arg = peer["subprocess"].parameters[position]
-                label = peer["process"].extract_label(arg)
-                interfaces = set(interfaces) & set(label.interfaces)
-
-            if len(interfaces) == 0:
-                raise RuntimeError("Need at least one common interface to send signal")
-            elif len(interfaces) > 1:
-                raise NotImplementedError
-            else:
-                return list(interfaces)[0]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
