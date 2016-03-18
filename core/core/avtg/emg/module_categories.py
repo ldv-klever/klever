@@ -74,7 +74,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     else:
                         self.__set_declaration(interface.param_interfaces[index], p_declaration)
 
-        interface.declaration = declaration
+        if not interface.declaration.clean_declaration:
+            interface.declaration = declaration
 
     def __import_source_analysis(self, analysis):
         self.logger.info("Import modules init and exit functions")
@@ -106,6 +107,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
     def __extract_types(self, analysis):
         entities = []
+        # todo: this section below is slow enough
         if 'global variable initializations' in analysis:
             self.logger.info("Import types from global variables initializations")
             for variable in analysis["global variable initializations"]:
@@ -143,7 +145,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     new_intf.declaration = declaration
 
         # Remove dirty declarations
-        self.refine_interfaces()
+        self._refine_interfaces()
 
         modules_functions = {}
         if 'modules functions' in analysis:
@@ -346,13 +348,17 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         return interface
 
     def __new_callback(self, declaration, category, identifier):
-        if identifier in self.interfaces:
-            identifier = declaration.identifier
+        if type(declaration) is Pointer and type(declaration.points) is Function:
+            probe_identifier = "{}.{}".format(category, identifier)
+            if probe_identifier in self.interfaces:
+                identifier = declaration.identifier
 
-        interface = Callback(category, identifier)
-        interface.declaration = declaration
-        self.interfaces[interface.identifier] = interface
-        return interface
+            interface = Callback(category, identifier)
+            interface.declaration = declaration
+            self.interfaces[interface.identifier] = interface
+            return interface
+        else:
+            raise TypeError('Expect function pointer to create callback object')
 
     def __merge_categories(self, categories):
         self.logger.info("Try to find suitable interface descriptions for found types")
@@ -362,6 +368,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             # Add containers and resources
             self.logger.info("Found interfaces for category {}".format(category_identifier))
             for signature in category['containers']:
+                if type(signature) is not Array and type(signature) is not Structure:
+                    raise TypeError('Expect structure or array to create container object')
                 interface = self.__resolve_or_add_interface(signature, category_identifier, Container)
                 if len(interface) > 1:
                     raise TypeError('Cannot match two containers with the same type')
@@ -382,7 +390,6 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
             # Add callbacks
             for identifier in category['callbacks']:
-                probe_identifier = "{}.{}".format(category_identifier, identifier)
                 candidates = self.resolve_interface(category['callbacks'][identifier], category_identifier)
 
                 if len(candidates) > 0:
@@ -417,7 +424,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 self._fulfill_function_interfaces(function)
 
         # Refine dirty declarations
-        self.refine_interfaces()
+        self._refine_interfaces()
 
     def __yield_category(self, category):
         category_identifier = None
