@@ -14,6 +14,18 @@ class Container(Interface):
         self.element_interface = None
         self.field_interfaces = {}
 
+    def contains(self, target):
+        if issubclass(type(target), Interface):
+            target = target.declaration
+
+        return self.declaration.contains(target)
+
+    def weak_contains(self, target):
+        if type(target) is Interface:
+            target = target.declaration
+
+        return self.declaration.weak_contains(target)
+
 
 class Callback(Interface):
     def __init__(self, category, identifier):
