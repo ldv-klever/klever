@@ -1,6 +1,8 @@
-from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
-from core.avtg.emg.common.signature import InterfaceReference, Primitive, Array, Function, Structure, Pointer, \
-    import_signature
+import copy
+
+from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction, Interface
+from core.avtg.emg.common.signature import BaseType, InterfaceReference, UndefinedReference, Primitive, Array, Function,\
+    Structure, Pointer, import_signature
 
 
 class CategoriesSpecification:
@@ -29,6 +31,11 @@ class CategoriesSpecification:
                  (not signature or container.declaration.fields[field].identifier == signature.identifier))) and
                 (not category or container.category == category)]
 
+    def resolve_containers(self, target, category=None):
+        return {container.identifier: container.contains(target) for container in self.containers(category)
+                if (type(container.declaration) is Structure and len(container.contains(target)) > 0) or
+                (type(container.declaration) is Array and container.contains(target))}
+
     def resolve_interface(self, signature, category=None):
         if type(signature) is InterfaceReference and signature.interface in self.interfaces:
             return [self.interfaces[signature.interface]]
@@ -50,7 +57,90 @@ class CategoriesSpecification:
             intf = self.resolve_interface(signature.take_pointer, category)
         return intf
 
-    def _resolve_function_interfaces(self, interface, category=None):
+    def refine_declaration(self, declaration):
+        if declaration.clean_declaration:
+            raise ValueError('Cannot clean already cleaned declaration')
+
+        if type(declaration) is UndefinedReference:
+            return None
+        elif type(declaration) is InterfaceReference:
+            if declaration.interface in self.interfaces and \
+                    self.interfaces[declaration.interface].declaration.clean_declaration:
+                if declaration.pointer:
+                    return self.interfaces[declaration.interface].declaration.take_pointer
+                else:
+                    return self.interfaces[declaration.interface].declaration
+            else:
+                return None
+        elif type(declaration) is Function:
+            refinement = False
+            ret = True
+            cp_declaration = copy.copy(declaration)
+            
+            if cp_declaration.return_value and not cp_declaration.return_value.clean_declaration:
+                rv = self.refine_declaration(cp_declaration.return_value)
+                if rv:
+                    cp_declaration.return_value = rv
+                    refinement = True
+                else:
+                    ret = False
+
+            for index in range(len(cp_declaration.parameters)):
+                if type(cp_declaration.parameters[index]) is not str and \
+                        not cp_declaration.parameters[index].clean_declaration:
+                    pr = self.refine_declaration(cp_declaration.parameters[index])
+                    if pr:
+                        cp_declaration.parameters[index] = pr
+                        refinement = True
+                    else:
+                        ret = False
+
+            if refinement and cp_declaration.identifier in self.types:
+                declaration = self.types[cp_declaration.identifier]
+            elif refinement:
+                declaration.return_value = cp_declaration.return_value
+                declaration.parameters = cp_declaration.parameters
+                # Identifier has been changed!
+                self.types[declaration.identifier] = declaration
+
+            if ret:
+                return declaration
+            else:
+                return None
+        elif type(declaration) is Pointer and type(declaration.points) is Function:
+            func = self.refine_declaration(declaration.points)
+            if func:
+                return func.take_pointer
+            else:
+                return None
+        else:
+            raise ValueError('Cannot clean non-function or interface-reference')
+
+    def refine_interfaces(self):
+        # Clean declarations if it is poissible
+        self.logger.debug('Clean all interface declarations from InterfaceReferences')
+        clean_flag = True
+        while clean_flag:
+            clean_flag = False
+
+            for interface in self.interfaces.values():
+                if not interface.declaration.clean_declaration:
+                    new_declaration = self.refine_declaration(interface.declaration)
+
+                    if new_declaration:
+                        interface.declaration = new_declaration
+                        clean_flag = True
+
+        self.logger.debug("Restore field declarations in structure declarations")
+        for structure in [intf for intf in self.containers() if intf.declaration and
+                          type(intf.declaration) is Structure]:
+            for field in [field for field in structure.declaration.fields
+                          if not structure.declaration.fields[field].clean_declaration]:
+                new_declaration = self.refine_declaration(structure.declaration.fields[field])
+                if new_declaration:
+                    structure.declaration.fields[field] = new_declaration
+
+    def _fulfill_function_interfaces(self, interface, category=None):
         if type(interface.declaration) is Pointer and type(interface.declaration.points) is Function:
             declaration = interface.declaration.points
         elif type(interface.declaration) is Function:
@@ -135,7 +225,7 @@ class CategoriesSpecification:
             interface = KernelFunction(identifier, collection[category_name][identifier]["header"])
             interface.declaration = import_signature(collection[category_name][identifier]["signature"])
             if type(interface.declaration) is Function:
-                self._resolve_function_interfaces(interface)
+                self._fulfill_function_interfaces(interface)
             else:
                 raise TypeError('Expect function declaration in description of kernel function {}'.format(identifier))
 
@@ -188,7 +278,7 @@ class CategoriesSpecification:
                         self.interfaces[fi].declaration.fields[field] = f_signature
 
         for callback in self.callbacks(category_name):
-            self._resolve_function_interfaces(callback)
+            self._fulfill_function_interfaces(callback)
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
