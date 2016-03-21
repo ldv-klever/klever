@@ -153,6 +153,7 @@
       "description": "...",
       "bug kinds": [
         "linux:mutex::one thread:double lock",
+        "linux:mutex::one thread:double lock try",
         "linux:mutex::one thread:double unlock",
         "linux:mutex::one thread:locked at exit"
       ],
