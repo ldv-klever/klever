@@ -154,40 +154,6 @@ void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock)
 	/* CHANGE_STATE Unlock mutex{{ arg_sign.text }} */
 	ldv_set_remove(LDV_MUTEXES{{ arg_sign.id }}, lock);
 }
-
-/* MODEL_FUNC_DEF Acquires the usb lock and checks for double usb lock */
-void ldv_usb_lock_device{{ arg_sign.id }}(void)
-{
-	/* CHANGE_STATE Lock usb_lock{{ arg_sign.text }} */
-	ldv_mutex_lock{{ arg_sign.id }}(NULL);
-}
-
-/* MODEL_FUNC_DEF Tries to acquire the usb lock and returns 1 if successful */
-int ldv_usb_trylock_device{{ arg_sign.id }}(void)
-{
-	return ldv_mutex_trylock{{ arg_sign.id }}(NULL);
-}
-
-/* MODEL_FUNC_DEF Tries to acquire the usb lock and returns 0 if successful */
-int ldv_usb_lock_device_for_reset{{ arg_sign.id }}(void)
-{
-	if(ldv_undef_int())
-	{
-		/* CHANGE_STATE Lock mutex{{ arg_sign.text }} */
-		ldv_mutex_lock{{ arg_sign.id }}(NULL);
-		/* RETURN Finish with success */
-		return 0;
-	} else
-	/* RETURN Usb lock is not acquired*/
-	return ldv_undef_int_negative();
-}
-
-/* MODEL_FUNC_DEF Releases the usb lock and checks that usb lock was acquired before */
-void ldv_usb_unlock_device{{ arg_sign.id }}(void)
-{
-	/* CHANGE_STATE Unlock usb_lock{{ arg_sign.text }} */
-	ldv_mutex_unlock{{ arg_sign.id }}(NULL);
-}
 // endfor
 
 /* MODEL_FUNC_DEF Make all mutexes unlocked at the beginning */

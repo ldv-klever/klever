@@ -2,11 +2,6 @@ before: file ("$this")
 {
 #include <linux/mutex.h>
 
-struct usb_device;
-extern void __ldv_usb_lock_device(struct usb_device *udev);
-extern void __ldv_usb_unlock_device(struct usb_device *udev);
-extern int __ldv_usb_trylock_device(struct usb_device *udev);
-
 extern int mutex_lock_interruptible(struct mutex *lock);
 extern int mutex_lock_killable(struct mutex *lock);
 extern void mutex_lock(struct mutex *lock);
@@ -99,44 +94,4 @@ around: call(static inline int kref_put_mutex(..))
 	{
 		return 0;
 	}
-}
-
-around: call(int usb_lock_device_for_reset(..))
-{
-	return ldv_usb_lock_device_for_reset_$arg_sign1();
-}
-
-around: define(usb_lock_device(udev))
-{
-	__ldv_usb_lock_device(udev)
-}
-
-around: define(usb_unlock_device(udev))
-{
-	__ldv_usb_unlock_device(udev)
-}
-
-around: define(usb_trylock_device(udev))
-{
-	__ldv_usb_trylock_device(udev)
-}
-
-after: call(void __ldv_usb_lock_device(..))
-{
-	ldv_usb_lock_device_$arg_sign1();
-}
-
-after: call(void __ldv_usb_unlock_device(..))
-{
-	ldv_usb_unlock_device_$arg_sign1();
-}
-
-after: call(int __ldv_usb_trylock_device(..))
-{
-	return ldv_usb_trylock_device_$arg_sign1();
-}
-
-around: call(void mutex_unlock(struct mutex *))
-{
-	ldv_mutex_release_$arg_sign1($arg1);
 }
