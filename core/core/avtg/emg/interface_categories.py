@@ -7,6 +7,10 @@ from core.avtg.emg.common.signature import BaseType, InterfaceReference, Undefin
 
 class CategoriesSpecification:
 
+    @property
+    def categories(self):
+        return set([interface.category for interface in self.interfaces.values()])
+
     def import_specification(self, specification):
         self.logger.info("Analyze provided interface categories specification")
         for category in specification["categories"]:
@@ -52,9 +56,8 @@ class CategoriesSpecification:
         return [interface for interface in self.interfaces.values() if type(interface) is Resource and
                 (not category or interface.category == category)]
 
-    @property
-    def categories(self):
-        return set([interface.category for interface in self.interfaces.values()])
+    def uncalled_callbacks(self, category=None):
+        return [cb for cb in self.callbacks(category) if not cb.called]
 
     def select_containers(self, field, signature=None, category=None):
         return [container for container in self.containers(category)

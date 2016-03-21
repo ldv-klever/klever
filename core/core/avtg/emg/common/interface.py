@@ -21,7 +21,7 @@ class Container(Interface):
         return self.declaration.contains(target)
 
     def weak_contains(self, target):
-        if type(target) is Interface:
+        if issubclass(type(target), Interface):
             target = target.declaration
 
         return self.declaration.weak_contains(target)
@@ -32,6 +32,7 @@ class Callback(Interface):
         self._common_declaration(category, identifier)
         self.param_interfaces = []
         self.rv_interface = False
+        self.called = False
 
 
 class Resource(Interface):
