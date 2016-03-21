@@ -100,6 +100,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.logger.debug("Move module initilizations functions to the modules interface specification")
         if "init" in analysis:
             self.inits = analysis["init"]
+        if len(self.inits) == 0:
+            raise ValueError('No module initialization functions provided, abort model generation')
 
         self.logger.debug("Move module exit functions to the modules interface specification")
         if "exit" in analysis:
@@ -384,9 +386,11 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     elif not interface.field_interfaces[field].declaration.clean_declaration:
                         del interface.field_interfaces[field]
             for signature in category['resources']:
-                interface = self.__resolve_or_add_interface(signature, category_identifier, Resource)
-                if len(interface) > 1:
-                    raise TypeError('Cannot match two resources with the same type')
+                intf = self.resolve_interface_weakly(signature, category_identifier)
+                if len(intf) == 0:
+                    interface = self.__resolve_or_add_interface(signature, category_identifier, Resource)
+                    if len(interface) > 1:
+                        raise TypeError('Cannot match two resources with the same type')
 
             # Add callbacks
             for identifier in category['callbacks']:
