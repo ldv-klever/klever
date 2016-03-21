@@ -151,8 +151,9 @@
     "linux:mutex:as": {
       "description": "...",
       "bug kinds": [
-        "one thread:double acquisition",
-        "one thread:unreleased at exit"
+        "linux:mutex::one thread:double lock",
+        "linux:mutex::one thread:double unlock",
+        "linux:mutex::one thread:locked at exit"
       ],
       "template": "Argument signatures for Linux kernel modules",
       "ASE": {

@@ -11,7 +11,7 @@ int ldv_mutex_lock_interruptible{{ arg_sign.id }}(struct mutex *lock)
 	int nondetermined;
 
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
-	ldv_assert(ldv_mutex{{ arg_sign.id }} == 1);
+	ldv_assert("linux:mutex::one thread:double lock", ldv_mutex{{ arg_sign.id }} == 1);
 
 	/* OTHER Construct nondetermined result*/
 	nondetermined = ldv_undef_int();
@@ -37,7 +37,7 @@ int ldv_mutex_lock_killable{{ arg_sign.id }}(struct mutex *lock)
 	int nondetermined;
 
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
-	ldv_assert(ldv_mutex{{ arg_sign.id }} == 1);
+	ldv_assert("linux:mutex::one thread:double lock", ldv_mutex{{ arg_sign.id }} == 1);
 
 	/* OTHER Construct nondetermined result */
 	nondetermined = ldv_undef_int();
@@ -61,7 +61,7 @@ int ldv_mutex_lock_killable{{ arg_sign.id }}(struct mutex *lock)
 void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
-	ldv_assert(ldv_mutex{{ arg_sign.id }} == 1);
+	ldv_assert("linux:mutex::one thread:double lock", ldv_mutex{{ arg_sign.id }} == 1);
 	/* CHANGE_STATE Lock mutex{{ arg_sign.text }} */
 	ldv_mutex{{ arg_sign.id }} = 2;
 }
@@ -72,7 +72,7 @@ int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 	int is_mutex_held_by_another_thread;
 
 	/* ASSERT It may be an error if mutex{{ arg_sign.text }} is locked at this point */
-	ldv_assert(ldv_mutex{{ arg_sign.id }} == 1);
+	ldv_assert("linux:mutex::one thread:double lock", ldv_mutex{{ arg_sign.id }} == 1);
 
 	/* OTHER Construct nondetermined result */
 	is_mutex_held_by_another_thread = ldv_undef_int();
@@ -98,7 +98,7 @@ int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *
 	int atomic_value_after_dec;
 
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked (since we may lock it in this function) */
-	ldv_assert(ldv_mutex{{ arg_sign.id }} == 1);
+	ldv_assert("linux:mutex::one thread:double lock", ldv_mutex{{ arg_sign.id }} == 1);
 
 	/* OTHER Assign the result of atomic decrement */
 	atomic_value_after_dec = ldv_undef_int();
@@ -150,7 +150,7 @@ int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* ASSERT Mutex{{ arg_sign.text }} must be locked */
-	ldv_assert(ldv_mutex{{ arg_sign.id }} == 2);
+	ldv_assert("linux:mutex::one thread:double unlock", ldv_mutex{{ arg_sign.id }} == 2);
 	/* CHANGE_STATE Unlock mutex{{ arg_sign.text }} */
 	ldv_mutex{{ arg_sign.id }} = 1;
 }
@@ -195,6 +195,6 @@ void ldv_check_final_state(void)
 {
 	// for arg_sign in mutex_arg_signs
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked at the end */
-	ldv_assert(ldv_mutex{{ arg_sign.id }} == 1);
+	ldv_assert("linux:mutex::one thread:locked at exit", ldv_mutex{{ arg_sign.id }} == 1);
 	// endfor
 }
