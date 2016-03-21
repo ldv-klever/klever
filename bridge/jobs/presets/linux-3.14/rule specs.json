@@ -41,7 +41,8 @@
               "-include",
               "include/linux/kconfig.h",
               "-D__KERNEL__",
-              "-Os"
+              "-Os",
+              "-DLDV_SETS_MODEL_COUNTER"
             ],
             "common models": ["linux/err.c"],
             "common aspects": ["linux/err.aspect"]
