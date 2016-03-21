@@ -1,8 +1,8 @@
 import re
 
 from core.avtg.emg.common.signature import import_signature
-from core.avtg.emg.common.process import Process, Label, Receive, Dispatch, Callback, CallbackRetval, Condition, \
-    Subprocess
+from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval, Condition, \
+    Subprocess, generate_regex_set
 
 
 __process_grammar = \
@@ -81,26 +81,6 @@ def __check_grammar():
         __process_model = grako.genmodel('process', __process_grammar)
 
 
-def __generate_regex_set(subprocess_name):
-    dispatch_template = '\[@?{}(?:\[[^)]+\])?\]'
-    receive_template = '\(!?{}(?:\[[^)]+\])?\)'
-    condition_template = '<{}(?:\[[^)]+\])?>'
-    subprocess_template = '{}'
-
-    subprocess_re = re.compile('\{' + subprocess_template.format(subprocess_name) + '\}')
-    receive_re = re.compile(receive_template.format(subprocess_name))
-    dispatch_re = re.compile(dispatch_template.format(subprocess_name))
-    condition_template_re = re.compile(condition_template.format(subprocess_name))
-    regexes = [
-        {'regex': subprocess_re, 'type': Subprocess},
-        {'regex': dispatch_re, 'type': Dispatch},
-        {'regex': receive_re, 'type': Receive},
-        {'regex': condition_template_re, 'type': Condition}
-    ]
-
-    return regexes
-
-
 def __import_process(name, dic):
     process = Process(name)
 
@@ -110,7 +90,7 @@ def __import_process(name, dic):
             process.labels[name] = label
 
             for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer']:
-                if att in dic:
+                if att in dic['labels'][name]:
                     setattr(label, att, dic['labels'][name][att])
 
             if 'interface' in dic['labels'][name]:
@@ -122,7 +102,7 @@ def __import_process(name, dic):
                 else:
                     TypeError('Expect list or string with interface identifier')
             if 'signature' in dic:
-                label.primary_signature = import_signature(dic['labels'][name]['signature'])
+                label.prior_signature = import_signature(dic['labels'][name]['signature'])
 
     # Import process
     process_strings = []
@@ -141,47 +121,44 @@ def __import_process(name, dic):
                 process_strings.append(dic['actions'][name]['process'])
 
     for subprocess_name in process.actions:
-        regexes = __generate_regex_set(subprocess_name)
+        regexes = generate_regex_set(subprocess_name)
 
         for regex in regexes:
             for string in process_strings:
                 if regex['regex'].search(string):
                     process_type = regex['type']
                     if process_type is Dispatch and 'callback' in dic['actions'][subprocess_name]:
-                        act = Callback(subprocess_name)
+                        act = Call(subprocess_name)
                     elif process_type is Receive and 'callback' in dic['actions'][subprocess_name]:
-                        act = CallbackRetval(subprocess_name)
+                        act = CallRetval(subprocess_name)
                     else:
                         act = process_type(subprocess_name)
                     process.actions[subprocess_name] = act
                     break
 
         # Values from dictionary
-        if 'callback' in dic:
-            process.actions[subprocess_name].callback = dic['callback']
+        if 'callback' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].callback = dic['actions'][subprocess_name]['callback']
 
         # Add parameters
-        if 'parameters' in dic:
-            process.actions[subprocess_name].parameters = dic['parameters']
+        if 'parameters' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].parameters = dic['actions'][subprocess_name]['parameters']
 
         # Add callback return value
-        if 'callback return value' in dic:
-            process.actions[subprocess_name].callback_retval = dic['callback return value']
+        if 'callback return value' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].callback_retval = dic['actions'][subprocess_name]['callback return value']
 
         # Import condition
-        if 'condition' in dic:
-            process.actions[subprocess_name].condition = dic['condition']
+        if 'condition' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].condition = dic['actions'][subprocess_name]['condition']
 
         # Import statements
-        if 'statements' in dic:
-            process.actions[subprocess_name].statements = dic['statements']
+        if 'statements' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].statements = dic['actions'][subprocess_name]['statements']
 
         # Import process
-        if 'process' in dic:
-            process.actions[subprocess_name].process = dic['process']
-
-            # Parse process
-            process.actions[subprocess_name].process_ast = process_parse(process.actions[subprocess_name].process)
+        if 'process' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].process = dic['actions'][subprocess_name]['process']
 
     return process
 
