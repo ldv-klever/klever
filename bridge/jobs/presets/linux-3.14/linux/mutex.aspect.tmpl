@@ -2,9 +2,10 @@ before: file ("$this")
 {
 #include <linux/mutex.h>
 
+extern void mutex_lock(struct mutex *lock);
+extern void mutex_lock_nested(struct mutex *, unsigned int);
 extern int mutex_lock_interruptible(struct mutex *lock);
 extern int mutex_lock_killable(struct mutex *lock);
-extern void mutex_lock(struct mutex *lock);
 
 // for arg_sign in mutex_arg_signs
 extern int ldv_mutex_lock_interruptible{{ arg_sign.id }}(struct mutex *lock);
@@ -28,6 +29,11 @@ around: define(mutex_lock_interruptible(lock))
 mutex_lock_interruptible(lock)
 }
 
+around: define(mutex_lock_nested(lock, subclass))
+{
+mutex_lock_nested(lock, subclass)
+}
+
 around: define(mutex_lock_killable(lock))
 {
 mutex_lock_killable(lock)
@@ -38,46 +44,32 @@ around: define(mutex_lock(lock))
 mutex_lock(lock)
 }
 
-after: call(int mutex_lock_interruptible(struct mutex *))
-{
-	return ldv_mutex_lock_interruptible_$arg_sign1($arg1);
-}
-
-after: call(int mutex_lock_killable(struct mutex *))
-{
-	return ldv_mutex_lock_killable_$arg_sign1($arg1);
-}
-
-/* mutex_lock_nested() is treated like mutex_lock(). This model is required
- * because of mutex_lock_nested() is a function if CONFIG_DEBUG_LOCK_ALLOC is
- * true (see #3324 and #785 for details).
- */
-before: call(void mutex_lock_nested(struct mutex *, unsigned int))
+around: call(void mutex_lock(struct mutex *)) || call(void mutex_lock_nested(struct mutex *, unsigned int))
 {
 	ldv_mutex_lock_$arg_sign1($arg1);
 }
 
-before: call(void mutex_lock(struct mutex *))
+around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_lock_killable(struct mutex *))
 {
-	ldv_mutex_lock_$arg_sign1($arg1);
+	return ldv_mutex_lock_interruptible_or_killable_$arg_sign1($arg1);
 }
 
-after: call(int mutex_trylock(struct mutex *))
-{
-	return ldv_mutex_trylock_$arg_sign1($arg1);
-}
-
-after: call(int atomic_dec_and_mutex_lock(..))
-{
-	return ldv_atomic_dec_and_mutex_lock_$arg_sign2($arg1, $arg2);
-}
-
-after: call(static inline int mutex_is_locked(struct mutex *))
+around: call(static inline int mutex_is_locked(struct mutex *))
 {
 	return ldv_mutex_is_locked_$arg_sign1($arg1);
 }
 
-before: call(void mutex_unlock(struct mutex *))
+around: call(int mutex_trylock(struct mutex *))
+{
+	return ldv_mutex_trylock_$arg_sign1($arg1);
+}
+
+around: call(int atomic_dec_and_mutex_lock(atomic_t *, struct mutex *))
+{
+	return ldv_atomic_dec_and_mutex_lock_$arg_sign2($arg1, $arg2);
+}
+
+around: call(void mutex_unlock(struct mutex *))
 {
 	ldv_mutex_unlock_$arg_sign1($arg1);
 }

@@ -168,21 +168,6 @@
         ]
       }
     },
-    "linux:mutex:next": {
-      "description": "...",
-      "bug kinds": [
-        "one thread:double acquisition",
-        "one thread:unreleased at exit"
-      ],
-      "template": "Argument signatures for Linux kernel modules",
-      "ASE": {"request aspect": "linux/mutex.next.request.aspect"},
-      "TR": {
-        "templates": [
-          "linux/mutex.next.c.tmpl",
-          "linux/mutex.next.aspect.tmpl"
-        ]
-      }
-    },
     "linux:rwlock": {
       "aliases": ["118"],
       "description": "...",
