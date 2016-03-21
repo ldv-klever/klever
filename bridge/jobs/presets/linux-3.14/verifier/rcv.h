@@ -4,7 +4,7 @@
 /* If expr evaluates to zero, ldv_assert() causes a program to reach the error
  * function call like the standard assert().
  */
-#define ldv_assert(bug_kind, expr) ((expr) ? 0 : __VERIFIER_error())
+#define ldv_assert(bug_kind, expr) ((expr) ?: __VERIFIER_error())
 
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_error(void);
