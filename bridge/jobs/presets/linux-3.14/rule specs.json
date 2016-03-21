@@ -140,13 +140,20 @@
       "aliases": ["32"],
       "description": "...",
       "bug kinds": [
-        "one thread:double acquisition",
-        "one thread:unreleased at exit"
+        "linux:mutex::one thread:double lock",
+        "linux:mutex::one thread:double lock try",
+        "linux:mutex::one thread:double unlock",
+        "linux:mutex::one thread:locked at exit"
       ],
-      "template": "Linux kernel modules",
-      "RSG": {
-        "models": ["linux/mutex.c"],
-        "aspects": ["linux/mutex.aspect"]
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {
+        "argument signatures list": "mutex_arg_signs"
+      },
+      "TR": {
+        "templates": [
+          "linux/mutex.c.tmpl",
+          "linux/mutex.aspect.tmpl"
+        ]
       }
     },
     "linux:mutex:as": {

@@ -31,12 +31,18 @@ class ASE(core.components.Component):
         self.abstract_task_desc['template context'] = {
             self.conf['argument signatures list']:
                 [{'id': '_{0}'.format(arg_sign), 'text': ' "{0}"'.format(arg_sign)} for arg_sign in arg_signs]
+                if arg_signs else [{'id': '', 'text': ''}],
+            'arg_signs': ['_$arg_sign{0}'.format(i) if arg_signs else '' for i in range(10)]
         }
 
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     def request_arg_signs(self):
         self.logger.info('Request argument signatures')
+
+        if 'request aspect' not in self.conf:
+            self.logger.debug('Argument signatures were not requested since request aspect is not specified')
+            return
 
         request_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                      self.conf['request aspect'])
