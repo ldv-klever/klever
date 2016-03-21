@@ -944,7 +944,7 @@ class FSA:
             if number:
                 if type(number) is str:
                     # Expect labe
-                    label = process.extract_label(number)
+                    label = process.__extract_label(number)
                     if label.value:
                         iterations = int(label.value) - 1
                     else:

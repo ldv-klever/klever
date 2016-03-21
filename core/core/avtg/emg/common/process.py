@@ -1,7 +1,54 @@
 import copy
 import re
 
-# todo: rewrite or remove
+
+def generate_regex_set(subprocess_name):
+    dispatch_template = '\[@?{}(?:\[[^)]+\])?\]'
+    receive_template = '\(!?{}(?:\[[^)]+\])?\)'
+    condition_template = '<{}(?:\[[^)]+\])?>'
+    subprocess_template = '{}'
+
+    subprocess_re = re.compile('\{' + subprocess_template.format(subprocess_name) + '\}')
+    receive_re = re.compile(receive_template.format(subprocess_name))
+    dispatch_re = re.compile(dispatch_template.format(subprocess_name))
+    condition_template_re = re.compile(condition_template.format(subprocess_name))
+    regexes = [
+        {'regex': subprocess_re, 'type': Subprocess},
+        {'regex': dispatch_re, 'type': Dispatch},
+        {'regex': receive_re, 'type': Receive},
+        {'regex': condition_template_re, 'type': Condition}
+    ]
+
+    return regexes
+
+
+def rename_subprocess(pr, old_name, new_name):
+    if old_name not in pr.actions:
+        raise KeyError('Cannot rename subprocess {} in process {} because it does not exist'.
+                       format(old_name, pr.name))
+
+    subprocess = pr.actions[old_name]
+    subprocess.name = new_name
+
+    # Delete old subprocess
+    del pr.actions[old_name]
+
+    # Set new subprocess
+    pr.actions[subprocess.name] = subprocess
+
+    # Replace subprocess entries
+    processes = [pr]
+    processes.extend([pr.actions[name] for name in pr.actions if pr.actions[name].process])
+    regexes = generate_regex_set(old_name)
+    for process in processes:
+        for regex in regexes:
+            if regex['regex'].search(process.process):
+                # Replace signal entries
+                old_match = regex['regex'].search(process.process).group()
+                new_match = old_match.replace(old_name, new_name)
+                process.process = process.process.replace(old_match, new_match)
+
+########################################### todo: Remove
 def get_common_interface(subprocess, process, position):
     pl = process.extract_label(subprocess.parameters[position])
     if not pl.interfaces:
@@ -19,7 +66,7 @@ def get_common_interface(subprocess, process, position):
             raise NotImplementedError
         else:
             return list(interfaces)[0]
-
+#############################################
 
 class Access:
     def __init__(self, expression):
@@ -65,7 +112,7 @@ class Label:
 
         self.value = None
         self.name = name
-        self.primary_signature = None
+        self.prior_signature = None
         self.__signature_map = {}
 
     @property
@@ -117,42 +164,15 @@ class Process:
         self.process_ast = None
         self.__accesses = None
 
-    def __compare_signals(self, process, first, second):
-        if first.name == second.name and len(first.parameters) == len(second.parameters):
-            match = True
-            for index in range(len(first.parameters)):
-                label = self.extract_label(first.parameters[index])
-                if not label:
-                    raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
-                                     format(first.name, index, self.name))
-                pair = process.extract_label(second.parameters[index])
-                if not pair:
-                    raise ValueError("Provide label in subprocess '{}' at position '{}'".
-                                     format(second.name, index, process.name))
-
-                ret = label.compare_with(pair)
-                if ret != 'сompatible' and ret != 'equal':
-                    match = False
-                    break
-            return match
-        else:
-            return False
-
     @property
     def unmatched_receives(self):
-        unmatched = [self.actions[subprocess] for subprocess in self.actions
-                     if self.actions[subprocess].type == 'receive' and
-                     len(self.actions[subprocess].peers) == 0 and not
-                     self.actions[subprocess].callback]
-        return unmatched
+        return [self.actions[act] for act in self.actions if type(self.actions[act]) is Receive and
+                len(self.actions[act].peers) == 0]
 
     @property
     def unmatched_dispatches(self):
-        unmatched = [self.actions[subprocess] for subprocess in self.actions
-                     if self.actions[subprocess].type == 'dispatch' and
-                     len(self.actions[subprocess].peers) == 0 and not
-                     self.actions[subprocess].callback]
-        return unmatched
+        return [self.actions[act] for act in self.actions if type(self.actions[act]) is Dispatch and
+                len(self.actions[act].peers) == 0]
 
     @property
     def unmatched_labels(self):
@@ -202,15 +222,15 @@ class Process:
                     label1.interfaces = label2.interfaces
 
             self.actions[signals[0]].peers.append(
-                    {
-                        'process': process,
-                        'subprocess': process.actions[signals[1]]
-                    })
+            {
+                'process': process,
+                'subprocess': process.actions[signals[1]]
+            })
             process.actions[signals[1]].peers.append(
-                    {
-                        'process': self,
-                        'subprocess': self.actions[signals[0]]
-                    })
+            {
+                'process': self,
+                'subprocess': self.actions[signals[0]]
+            })
 
     def get_available_peers(self, process):
         ret = []
@@ -230,35 +250,6 @@ class Process:
                     ret.append([receive.name, dispatch.name])
 
         return ret
-
-    def rename_subprocess(self, old_name, new_name):
-        if old_name not in self.actions:
-            raise KeyError('Cannot rename subprocess {} in process {} because it does not exist'.
-                           format(old_name, self.name))
-
-        subprocess = self.actions[old_name]
-        subprocess.name = new_name
-
-        # Delete old subprocess
-        del self.actions[old_name]
-
-        # Set new subprocess
-        self.actions[subprocess.name] = subprocess
-
-        # Replace subprocess entries
-        processes = [self]
-        processes.extend([self.actions[name] for name in self.actions if self.actions[name].process])
-        regexes = generate_regex_set(old_name)
-        for process in processes:
-            for regex in regexes:
-                if regex['regex'].search(process.process):
-                    # Replace signal entries
-                    old_match = regex['regex'].search(process.process).group()
-                    new_match = old_match.replace(old_name, new_name)
-                    process.process = process.process.replace(old_match, new_match)
-
-                    # Recalculate AST
-                    process.process_ast = process_parse(process.process)
 
     def accesses(self, accesses=None):
         if not accesses:
@@ -337,7 +328,7 @@ class Receive:
         self.peers = []
 
 
-class Callback:
+class Call:
 
     def __init__(self, name):
         self.name = name
@@ -346,13 +337,13 @@ class Callback:
         self.parameters = []
 
 
-class CallbackRetval:
+class CallRetval:
 
     def __init__(self, name):
         self.name = name
         self.parameters = []
         self.callback = None
-        self.callback_retval = None
+        self.retlabel = None
         self.condition = None
 
 
