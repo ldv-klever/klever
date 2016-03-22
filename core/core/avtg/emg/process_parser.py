@@ -101,7 +101,7 @@ def __import_process(name, dic):
                         label.set_declaration(string, None)
                 else:
                     TypeError('Expect list or string with interface identifier')
-            if 'signature' in dic:
+            if 'signature' in dic['labels'][name]:
                 label.prior_signature = import_signature(dic['labels'][name]['signature'])
 
     # Import process

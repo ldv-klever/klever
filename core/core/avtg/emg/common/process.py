@@ -264,20 +264,20 @@ class Process:
                 self.__accesses = {}
 
                 # Collect all accesses across process subprocesses
-                for subprocess in [self.actions[name] for name in self.actions]:
-                    if subprocess.callback:
-                        self.__accesses[subprocess.callback] = []
-                    if subprocess.parameters:
-                        for index in range(len(subprocess.parameters)):
-                            self.__accesses[subprocess.parameters[index]] = []
-                    if subprocess.callback_retval:
-                        self.__accesses[subprocess.callback_retval] = []
-                    if subprocess.condition:
-                        for statement in subprocess.condition:
+                for action in self.actions.values():
+                    if type(action) is Call or type(action) is CallRetval and action.callback:
+                        self.__accesses[action.callback] = []
+                    if type(action) is Receive or type(action) is Dispatch:
+                        for index in range(len(action.parameters)):
+                            self.__accesses[action.parameters[index]] = []
+                    if type(action) is CallRetval and action.retlabel:
+                        self.__accesses[action.retlabel] = []
+                    if type(action) is Condition:
+                        for statement in action.statements:
                             for match in self.label_re.finditer(statement):
                                 self.__accesses[match.group()] = []
-                    if subprocess.statements:
-                        for statement in subprocess.statements:
+                    if action.condition:
+                        for statement in action.condition:
                             for match in self.label_re.finditer(statement):
                                 self.__accesses[match.group()] = []
 
@@ -379,8 +379,8 @@ class Condition:
 
     def __init__(self, name):
         self.name = name
+        self.statements = []
         self.condition = None
-        self.statements = None
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

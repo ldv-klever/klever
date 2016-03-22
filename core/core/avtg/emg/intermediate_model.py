@@ -28,10 +28,6 @@ class ProcessModel:
         # Finish entry point process generation
         self.__finish_entry()
 
-        # Fill all signatures carefully
-        self.logger.info("Assign process signatures")
-        self.__assign_signatures(analysis)
-
         # Convert callback access according to container fields
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
         self.__resolve_accesses(analysis)
@@ -93,7 +89,7 @@ class ProcessModel:
         dispatches = ['[init_success]']
         # All default registrations and then deregistrations
         names = [name for name in self.entry_process.actions if name not in ["init", "exit"] and
-                 self.entry_process.actions[name].type == "dispatch"]
+                 type(self.entry_process.actions[name]) is Dispatch]
         for name in names:
             self.entry_process.actions[name].broadcast = True
         names.sort()
@@ -101,22 +97,19 @@ class ProcessModel:
         dispatches.extend(["[@{}]".format(name) for name in names])
 
         # Generate conditions
-        success = Condition('init_success', {})
-        success.type = "condition"
+        success = Condition('init_success')
         success.condition = ["%ret% == 0"]
         self.entry_process.actions['init_success'] = success
 
-        failed = Condition('init_failed', {})
-        failed.type = "condition"
+        failed = Condition('init_failed')
         failed.condition = ["%ret% != 0"]
         self.entry_process.actions['init_failed'] = failed
 
-        stop = Condition('stop', {})
-        stop.type = "condition"
+        stop = Condition('stop')
         stop.statements = ["ldv_check_final_state();"]
         self.entry_process.actions['stop'] = stop
 
-        none = Condition('none', {})
+        none = Condition('none')
         none.type = "condition"
         self.entry_process.actions['none'] = none
 
@@ -632,96 +625,6 @@ class ProcessModel:
         self.logger.debug("Resolve string '{}' as '{}'".format(string, str(matched)))
         return matched
 
-    def __assign_signatures(self, analysis):
-        for process in self.model_processes + self.event_processes + [self.entry_process]:
-            self.logger.info("Assign signatures of process {} with category {} to labels with given interfaces".
-                             format(process.name, process.category))
-            for label in [process.labels[name] for name in process.labels]:
-                if label.interfaces:
-                    for interface in label.interfaces:
-                        # Assign matched signature
-                        self.logger.debug("Add signature {} to a label {}".
-                                          format(analysis.interfaces[interface].signature.expression, label.name))
-                        label.signature(analysis.interfaces[interface].signature, interface)
-
-        for process in self.model_processes + self.event_processes + [self.entry_process]:
-            self.logger.info("Assign signatures of process {} with category {} to labels according to signal "
-                             "parameters".format(process.name, process.category))
-
-            # Analyze peers
-            for subprocess in [process.actions[name] for name in process.actions
-                               if process.actions[name].type in ["dispatch", "receive"]]:
-                for peer in subprocess.peers:
-                    if peer["process"].name in self.__abstr_model_processes:
-                        for index in range(len(peer["subprocess"].parameters)):
-                            peer_parameter = peer["subprocess"].parameters[index]
-                            peer_label = peer["process"].extract_label(peer_parameter)
-
-                            parameter = subprocess.parameters[index]
-                            label = process.extract_label(parameter)
-
-                            # Set new interfaces from peer signals
-                            if peer_label.interfaces:
-                                for interface in peer_label.interfaces:
-                                    self.logger.debug("Add signature {} to a label {}".
-                                                      format(peer_label.signature(None, interface).expression,
-                                                             label.name))
-                                    label.signature(peer_label.signature(None, interface), interface)
-                            elif peer_label.prior_signature:
-                                peer_signature = peer_label.prior_signature
-                                self.logger.debug("Add signature {} to a label {}".
-                                                  format(peer_signature.expression, label.name))
-                                label.signature(peer_signature)
-                    else:
-                        for index in range(len(peer["subprocess"].parameters)):
-                            peer_parameter = peer["subprocess"].parameters[index]
-                            peer_label = peer["process"].extract_label(peer_parameter)
-
-                            parameter = subprocess.parameters[index]
-                            label = process.extract_label(parameter)
-
-                            # Set new interfaces from peer signals
-                            if peer_label.interfaces:
-                                for interface in peer_label.interfaces:
-                                    self.logger.debug("Add signature {} to a label {}".
-                                                      format(peer_label.signature(None, interface).expression,
-                                                             label.name))
-                                    label.signature(peer_label.signature(None, interface), interface)
-                            elif peer_label.prior_signature:
-                                peer_signature = peer_label.prior_signature
-                                self.logger.debug("Add signature {} to a label {}".
-                                                  format(peer_signature.expression, label.name))
-                                label.signature(peer_signature)
-
-                            # Set new interfaces for peer signals
-                            if label.interfaces:
-                                for interface in label.interfaces:
-                                    self.logger.debug("Add signature {} to a label {} of process {}".
-                                                      format(label.signature(None, interface).expression,
-                                                             peer_label.name, peer["process"].name))
-                                    peer_label.signature(label.signature(None, interface), interface)
-                            elif label.prior_signature:
-                                label_signature = label.prior_signature
-                                self.logger.debug("Add signature {} to a label {} of process {}".
-                                                  format(label_signature.expression, peer_label.name,
-                                                         peer["process"].name))
-                                peer_label.signature(label_signature)
-
-        for process in self.model_processes + self.event_processes + [self.entry_process]:
-            # Assign interface signatures
-            self.logger.debug("Assign pointer flag of process {} with category {} to labels signatures".
-                              format(process.name, process.category))
-            for label in process.labels.values():
-                if label.interfaces:
-                    for interface in label.interfaces:
-                        if label.signature(None, interface).type_class in ["struct", "function"]:
-                            label.signature(None, interface).pointer = True
-
-                if label.prior_signature:
-                    sign = label.prior_signature
-                    if sign.type_class in ["struct", "function"]:
-                        sign.pointer = True
-
     def __resolve_accesses(self, analysis):
         self.logger.info("Convert interfaces access by expressions on base of containers and their fields")
         for process in self.model_processes + self.event_processes + [self.entry_process]:
@@ -731,9 +634,6 @@ class ProcessModel:
             # Get empty keys
             accesses = process.accesses()
 
-            # Additional accesses
-            additional_accesses = accesses
-
             # Fill it out
             original_accesses = list(accesses.keys())
             for access in original_accesses:
@@ -742,7 +642,7 @@ class ProcessModel:
                 if not label:
                     raise ValueError("Expect label in {} in access in process description".format(access, process.name))
                 else:
-                    if label.interfaces:
+                    if len(label.interfaces) > 0:
                         for interface in label.interfaces:
                             new = Access(access)
                             new.label = label
@@ -771,8 +671,8 @@ class ProcessModel:
                                         if index == 0:
                                             list_access.append(label.name)
                                         else:
-                                            field = list(intfs[index - 1].fields.keys()) \
-                                                [list(intfs[index - 1].fields.values()).index(intfs[index].identifier)]
+                                            field = list(intfs[index - 1].field_interfaces.keys())\
+                                                [list(intfs[index - 1].field_interfaces.values()).index(intfs[index])]
                                             list_access.append(field)
                                     new.interface = intfs[-1]
                                     new.list_access = list_access
@@ -793,8 +693,8 @@ class ProcessModel:
                                     interface = to_process.pop()
                                     category = new.interface.category
 
-                                    for container in analysis.categories[category]["containers"].values():
-                                        if interface.identifier in list(container.fields.values()):
+                                    for container in analysis.containers(category):
+                                        if container.weak_contains(interface):
                                             new_tail.append(container)
                                             to_process.append(container)
                                 new_tail.reverse()
