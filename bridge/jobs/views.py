@@ -659,7 +659,7 @@ def upload_job(request, parent_id=None):
             print_err(e)
             failed_jobs.append([_('Archive extracting error') + '', f.name])
             continue
-        zipdata = UploadJob(parent, request.user, str(job_dir))
+        zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
             failed_jobs.append([zipdata.err_message + '', f.name])
     if len(failed_jobs) > 0:

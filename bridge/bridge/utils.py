@@ -104,6 +104,9 @@ def file_get_or_create(fp, filename, check_size=False):
         return db_file, check_sum
 
 
+# archive - django.core.files.File object
+# Example: archive = File(open(<path>, mode='rb'))
+# Note: files from requests are already File objects
 def extract_tar_temp(archive):
     fp = tempfile.NamedTemporaryFile()
     for chunk in archive.chunks():
@@ -111,5 +114,5 @@ def extract_tar_temp(archive):
     fp.seek(0)
     tar = tarfile.open(fileobj=fp, mode='r:gz')
     tmp_dir_name = tempfile.TemporaryDirectory()
-    tar.extractall(str(tmp_dir_name))
+    tar.extractall(tmp_dir_name.name)
     return tmp_dir_name

@@ -5,7 +5,7 @@ from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.timezone import now
-from bridge.utils import print_err, file_get_or_create, extract_tar_temp
+from bridge.utils import print_err, file_get_or_create
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
@@ -547,33 +547,5 @@ class UploadReportFiles(object):
                 elif self.need_other:
                     self.other_files.append({
                         'name': file_name,
-                        'file': file_get_or_create(file_obj, os.path.basename(file_name))[0]
-                    })
-
-
-class UploadReportFilesNew(object):
-    def __init__(self, archive, log=None, file_name=None, need_other=False):
-        self.log = None
-        self.file_content = None
-        self.need_other = need_other
-        self.other_files = []
-        self.__read_archive(archive, log, file_name)
-
-    def __read_archive(self, archive, logname, report_filename):
-        try:
-            tmp_dir = extract_tar_temp(archive)
-        except Exception as e:
-            print_err(e)
-            return
-        for dir_path, dir_names, file_names in os.walk(str(tmp_dir)):
-            for file_name in file_names:
-                file_obj = open(os.path.join(dir_path, file_name), mode='rb')
-                if logname is not None and file_name == logname:
-                    self.log = file_get_or_create(file_obj, os.path.basename(file_name))[0]
-                elif report_filename is not None and file_name == report_filename:
-                    self.file_content = file_obj.read()
-                elif self.need_other:
-                    self.other_files.append({
-                        'name': os.path.relpath(os.path.join(dir_path, file_name), str(tmp_dir)),
                         'file': file_get_or_create(file_obj, os.path.basename(file_name))[0]
                     })
