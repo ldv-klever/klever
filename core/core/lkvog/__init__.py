@@ -290,7 +290,8 @@ class LKVOG(core.components.Component):
                     match = True
                 else:
                     for modules in self.conf['Linux kernel']['modules']:
-                        if re.search(r'^{0}'.format(modules), desc['out file']):
+                        if re.search(r'^{0}|{1}'.format(modules, os.path.join('ext-modules', modules)),
+                                     desc['out file']):
                             match = True
                             break
             else:

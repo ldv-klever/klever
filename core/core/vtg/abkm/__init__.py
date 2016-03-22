@@ -40,9 +40,10 @@ class ABKM(core.components.Component):
             # abstract verification task will correspond to exactly one verificatoin task.
             'id': self.conf['abstract task desc']['id'],
             'format': 1,
-            # Simply use priority of parent job.
-            'priority': self.conf['priority'],
         }
+        # Copy attributes from parent job.
+        for attr_name in ('priority', 'upload input files of static verifiers'):
+            self.task_desc[attr_name] = self.conf[attr_name]
 
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})
@@ -172,9 +173,8 @@ class ABKM(core.components.Component):
 
                 session.download_decision(task_id)
 
-                tar = tarfile.open("decision result files.tar.gz")
-                tar.extractall()
-                tar.close()
+                with tarfile.open("decision result files.tar.gz") as tar:
+                    tar.extractall()
 
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
@@ -192,7 +192,11 @@ class ABKM(core.components.Component):
                                       'name': self.conf['VTG strategy']['verifier']['name'],
                                       'resources': decision_results['resources'],
                                       'log': 'cil.i.log',
-                                      'files': ['cil.i.log']
+                                      'files': ['cil.i.log'] + (
+                                          ['benchmark.xml', self.task_desc['property file']] + self.task_desc['files']
+                                          if self.conf['upload input files of static verifiers']
+                                          else []
+                                      )
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
