@@ -1,6 +1,8 @@
 import os
 import time
 import hashlib
+import tempfile
+import tarfile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.template.defaultfilters import filesizeformat
@@ -100,3 +102,14 @@ def file_get_or_create(fp, filename, check_size=False):
         db_file.hash_sum = check_sum
         db_file.save()
         return db_file, check_sum
+
+
+def extract_tar_temp(archive):
+    fp = tempfile.NamedTemporaryFile()
+    for chunk in archive.chunks():
+        fp.write(chunk)
+    fp.seek(0)
+    tar = tarfile.open(fileobj=fp, mode='r:gz')
+    tmp_dir_name = tempfile.TemporaryDirectory()
+    tar.extractall(str(tmp_dir_name))
+    return tmp_dir_name
