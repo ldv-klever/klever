@@ -77,7 +77,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/alloc1.c"],
+        "models": {"linux/alloc1.c": {}},
         "aspects": ["linux/alloc1.aspect"]
       }
     },
@@ -87,7 +87,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/alloc2.c"],
+        "models": {"linux/alloc2.c": {}},
         "aspects": ["linux/alloc2.aspect"]
       }
     },
@@ -97,7 +97,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/alloc3.c"],
+        "models": {"linux/alloc3.c": {}},
         "aspects": ["linux/alloc3.aspect"]
       }
     },
@@ -112,7 +112,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/mmc/sdio_func.c"],
+        "models": {"linux/mmc/sdio_func.c": {}},
         "aspects": ["linux/mmc/sdio_func.aspect"]
       }
     },
@@ -122,7 +122,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/module.c"],
+        "models": {"linux/module.c": {}},
         "aspects": ["linux/module.aspect"]
       }
     },
@@ -132,7 +132,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/module.next.c"],
+        "models": {"linux/module.next.c": {}},
         "aspects": ["linux/module.next.aspect"]
       }
     },
@@ -183,7 +183,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/rwlock.c"],
+        "models": {"linux/rwlock.c": {}},
         "aspects": ["linux/rwlock.aspect"]
       }
     },
@@ -209,10 +209,10 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "linux/asm/atomic.c",
-          "linux/usb1.c"
-        ],
+        "models": {
+          "linux/asm/atomic.c": {},
+          "linux/usb1.c": {}
+        },
         "aspects": [
           "linux/asm/atomic.aspect",
           "linux/usb1.aspect"
@@ -225,7 +225,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/usb2.c"],
+        "models": {"linux/usb2.c": {}},
         "aspects": ["linux/usb2.aspect"]
       }
     },
@@ -235,7 +235,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/usb/gadget.c"],
+        "models": {"linux/usb/gadget.c": {}},
         "aspects": ["linux/usb/gadget.aspect"]
       }
     }
