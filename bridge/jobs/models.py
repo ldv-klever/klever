@@ -8,6 +8,25 @@ from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
 JOBFILE_DIR = 'Files'
 
 
+# When you add this model to any other, check delete() method for all uses of File
+class File(models.Model):
+    hash_sum = models.CharField(max_length=255)
+    file = models.FileField(upload_to=JOBFILE_DIR, null=False)
+
+    class Meta:
+        db_table = 'file'
+
+    def __str__(self):
+        return self.hash_sum
+
+
+@receiver(pre_delete, sender=File)
+def file_delete(**kwargs):
+    file = kwargs['instance']
+    storage, path = file.file.storage, file.file.path
+    storage.delete(path)
+
+
 class JobBase(models.Model):
     name = models.CharField(max_length=150)
     change_author = models.ForeignKey(User, blank=True, null=True,
@@ -53,25 +72,6 @@ class JobHistory(JobBase):
 
     class Meta:
         db_table = 'jobhistory'
-
-
-# When you add this model to any other, check delete() method for all uses of File
-class File(models.Model):
-    hash_sum = models.CharField(max_length=255)
-    file = models.FileField(upload_to=JOBFILE_DIR, null=False)
-
-    class Meta:
-        db_table = 'file'
-
-    def __str__(self):
-        return self.hash_sum
-
-
-@receiver(pre_delete, sender=File)
-def file_delete(**kwargs):
-    file = kwargs['instance']
-    storage, path = file.file.storage, file.file.path
-    storage.delete(path)
 
 
 class FileSystem(models.Model):
