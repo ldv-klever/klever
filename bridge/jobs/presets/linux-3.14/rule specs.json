@@ -41,10 +41,10 @@
               "-include",
               "include/linux/kconfig.h",
               "-D__KERNEL__",
-              "-Os",
-              "-DLDV_SETS_MODEL_COUNTER"
+              "-Os"
             ],
-            "common models": ["linux/err.c"],
+            "common sets model": "counter",
+            "common models": {"linux/err.c": {}},
             "common aspects": ["linux/err.aspect"]
           }
         },
@@ -174,7 +174,8 @@
           "linux/mutex.c.tmpl",
           "linux/mutex.aspect.tmpl"
         ]
-      }
+      },
+      "RSG": {"models": {"$linux/mutex.c": {"sets model": "flag"}}}
     },
     "linux:rwlock": {
       "aliases": ["118"],
