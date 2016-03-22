@@ -8,6 +8,7 @@ class Module:
         self.deep = 0
         self.size = 0
         self.export_functions = {}
+        self.call_functions = {}
 
     def add_predecessor(self, predecessor):
         if predecessor:
