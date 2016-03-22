@@ -36,7 +36,6 @@ class Core:
         self.is_solving_file = None
         self.is_solving_file_fp = None
         self.logger = None
-        self.bridge = {}
         self.version = None
         self.job = None
         self.comp = []
