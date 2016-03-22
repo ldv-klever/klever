@@ -8,6 +8,7 @@ class Strategy1:
     def __init__(self, logger, deps, user_deps={}, params={}, export_func={}, module_sizes={}):
         self.logger = logger
         self.koef = params.get('koef', 5)
+        self.max_g_for_m = params.get('max_g_for_m', 5)
         self.user_deps = user_deps
         self.group_size_non_const = params.get('group_size_non_const', True)
         self.minimize_groups_for_module = params.get('minimize_groups_for_module', True)
@@ -36,22 +37,24 @@ class Strategy1:
             self.not_checked_export_f[module] = set(self.modules[module].export_functions.keys())
 
         self.checked_clusters = set()
+        self.checked_modules = set()
         self.count_groups_for_m = {}
-        self.max_g_for_m = self.koef + 2
-        self.min_g_for_m = self.koef
 
     def is_fully_checked(self, module):
+        if module not in self.checked_modules:
+            return False
+
         if self.analyze_all_export_function and self.not_checked_export_f.get(module.id, {}):
             return False
-        # TODO: replace 5
-        if not self.analyze_all_export_function and self.count_groups_for_m.get(module, 0) > 5:
+
+        if not self.analyze_all_export_function and self.count_groups_for_m.get(module, 0) > self.max_g_for_m:
             return True
+
         if self.analyze_all_export_function and not self.not_checked_export_f.get(module.id, {}) \
                 and self.minimize_groups_for_module:
             return True
 
         return False
-
 
     def user_weight(self, module1, module2):
         if (module1 in self.user_deps and module2 in self.user_deps[module1]) \
@@ -63,9 +66,13 @@ class Strategy1:
     def export_weight(self, module_pred, module_succ):
         if not self.priority_on_export_function:
             return 0
-        return sum(map(lambda x: 1 if module_succ.id in x else 0, module_pred.export_functions))
+        ret = 0
+        for ex_f in self.not_checked_export_f.get(module_pred.id, set()):
+            if module_succ.id in module_pred.export_functions[ex_f]:
+                ret += 1
+        return 3*ret
 
-    def size_weight(self, module, unused_module):
+    def size_weight(self, unused_module, module):
         if not self.priority_on_module_size:
             return 0
         if module.size < 256 * 1024:
@@ -74,7 +81,7 @@ class Strategy1:
             return 1
         return 0
 
-    def provided_weight(self, module, unused_module):
+    def provided_weight(self, unused, module):
         return len(module.export_functions)
 
     def remoteness_weight(self, module1, module2):
@@ -85,7 +92,7 @@ class Strategy1:
         return 1 if subsystem1.startswith(subsystem2) or subsystem2.startswith(subsystem1) else 0
 
     def count_already_weight(self, unused_module, module):
-        return -self.count_groups_for_m.get(module, 0)
+        return int((self.max_g_for_m-self.count_groups_for_m.get(module, 0))/self.max_g_for_m)
 
     def measure(self, module_pred, module_succ):
         weights = (self.export_weight, self.size_weight,
@@ -106,16 +113,20 @@ class Strategy1:
                 return []
 
             ret = set()
+            if module_name == 'drivers/usb/core/usbcore.ko':
+                pass
+            checked = set()
             while not self.is_fully_checked(main_module):
 
                 process = set()
                 process.add(main_module)
-                self.count_groups_for_m.setdefault(main_module, 1)
                 while len(process) < self.koef:
                     max_measuring = 0
                     best_succ = None
                     for module in process:
-                        for succ in filter(lambda x: x not in process and not self.is_fully_checked(x), module.successors):
+                        for succ in filter(lambda x: x not in process and
+                                not self.count_groups_for_m.get(x.id, 0) > self.max_g_for_m and x not in checked,
+                                           module.successors):
                             cur_measure = self.measure(module, succ)
                             if cur_measure > 0 and cur_measure > max_measuring:
                                 max_measuring = self.measure(module, succ)
@@ -123,12 +134,13 @@ class Strategy1:
 
                     if best_succ:
                         process.add(best_succ)
+                        checked.add(best_succ)
                         for pred in filter(lambda x: x in process, best_succ.predecessors):
-                            self.not_checked_export_f.setdefault(pred.id, set()).difference_update\
-                                ([f for f, m in pred.export_functions.items() if best_succ in m])
+                            self.not_checked_export_f.setdefault(pred.id, set()).difference_update \
+                                ([f for f, m in pred.export_functions.items() if best_succ.id in m])
                         for succ in filter(lambda x: x in process, best_succ.successors):
-                            self.not_checked_export_f.setdefault(best_succ, set()).difference_update\
-                                ([f for f, m in best_succ.export_functions.items() if succ in m])
+                            self.not_checked_export_f.setdefault(best_succ, set()).difference_update \
+                                ([f for f, m in best_succ.export_functions.items() if succ.id in m])
                     else:
                         break
                 else:
@@ -136,9 +148,15 @@ class Strategy1:
                         break
                     ret.add(frozenset(process))
                     for module in process:
+                        self.checked_modules.add(module)
                         self.count_groups_for_m.setdefault(module, 0)
                         self.count_groups_for_m[module] += 1
                     continue
+                ret.add(frozenset(process))
+                for module in process:
+                    self.checked_modules.add(module)
+                    self.count_groups_for_m.setdefault(module, 0)
+                    self.count_groups_for_m[module] += 1
                 break
 
         return ret
