@@ -1,8 +1,8 @@
 import copy
 
 from core.avtg.emg.common.signature import import_signature
-from core.avtg.emg.common.interface import Interface, Callback, Resource, Container
-from core.avtg.emg.common.process import Access, Process, Label, Call, CallRetval, Subprocess, Condition, \
+from core.avtg.emg.common.interface import Interface, Callback, Container
+from core.avtg.emg.common.process import Access, Process, Label, Call, CallRetval, Dispatch, Receive, Condition, \
     rename_subprocess
 
 
@@ -129,7 +129,7 @@ class ProcessModel:
         self.logger.info("First, add relevant models of kernel functions")
         self.__import_kernel_models(analysis)
 
-        for category in analysis.categories:
+        for category in sorted(analysis.categories):
             uncalled_callbacks = analysis.uncalled_callbacks(category)
             self.logger.debug("There are {} callbacks in category {}".format(len(uncalled_callbacks), category))
 
@@ -177,7 +177,7 @@ class ProcessModel:
 
     def __choose_processes(self, analysis, category):
         estimations = {}
-        for process in [self.__abstr_event_processes[name] for name in self.__abstr_event_processes]:
+        for process in [self.__abstr_event_processes[name] for name in sorted(self.__abstr_event_processes)]:
             self.logger.debug("Estimate correspondence between  process {} and category {}".
                               format(process.name, category))
             estimations[process.name] = self.__match_labels(analysis, process, category)
@@ -187,7 +187,7 @@ class ProcessModel:
         best_process = self.__abstr_event_processes[[name for name in estimations if estimations[name]][0]]
         best_map = estimations[best_process.name]
 
-        for process in [self.__abstr_event_processes[name] for name in estimations]:
+        for process in [self.__abstr_event_processes[name] for name in sorted(estimations)]:
             label_map = estimations[process.name]
             if label_map and len(label_map["matched calls"]) > 0 and len(label_map["unmatched labels"]) == 0:
                 self.logger.info("Matching process {} for category {}, it has:".format(process.name, category))
@@ -252,7 +252,8 @@ class ProcessModel:
         if label_map:
             self.logger.debug("Set interfaces for given labels")
             for label in label_map["matched labels"]:
-                for interface in [analysis.interfaces[name] for name in label_map["matched labels"][label]]:
+                for interface in [analysis.interfaces[name] for name in label_map["matched labels"][label]
+                                  if name in analysis.interfaces]:
                     if type(interface) is Container:
                         new.labels[label].set_declaration(interface.identifier, interface.declaration.take_pointer)
                     else:
@@ -261,7 +262,7 @@ class ProcessModel:
         if peer:
             self.logger.debug("Match signals with signals of process {} with identifier {}".
                               format(peer.name, peer.identifier))
-            new.peer_with_process(peer, True)
+            new.establish_peers(peer)
 
         self.logger.info("Check is there exist any dispatches or receives after process addiction to tie".
                          format(process.name))
@@ -275,7 +276,7 @@ class ProcessModel:
             for process in self.event_processes:
                 self.logger.debug("Analyze signals of processes {} and {} in the model with identifiers {} and {}".
                                   format(model.name, process.name, model.identifier, process.identifier))
-                model.peer_with_process(process, True)
+                model.establish_peers(process)
 
         # Peer processes with each other
         for index1 in range(len(self.event_processes)):
@@ -283,35 +284,31 @@ class ProcessModel:
             for index2 in range(index1 + 1, len(self.event_processes)):
                 p2 = self.event_processes[index2]
                 self.logger.debug("Analyze signals of processes {} and {}".format(p1.name, p2.name))
-                p1.peer_with_process(p2, True)
+                p1.establish_peers(p2)
 
         self.logger.info("Check which callbacks can be called in the intermediate environment model")
-        self.__called_callbacks = []
-        self.__uncalled_callbacks = []
         for process in [process for process in self.model_processes] +\
                        [process for process in self.event_processes]:
             self.logger.debug("Check process callback calls at process {} with category {}".
                               format(process.name, process.category))
 
-            for callback_name in set([cb.callback for cb in process.callbacks]):
+            for callback_name in set([cb.callback for cb in process.actions.values() if type(cb) is Call]):
                 # todo: refactoring #6565
                 label, tail = process.extract_label_with_tail(callback_name)
 
                 if len(label.interfaces) > 0:
                     for interface in [analysis.interfaces[name] for name in label.interfaces]:
-                        if interface.container and len(tail) > 0:
-                            intfs = self.__resolve_interface(interface, tail)
-                            if intfs and intfs[-1] not in self.__called_callbacks:
-                                self.logger.debug("Callback {} can be called in the model".
-                                                  format(intfs[-1].identifier))
-                                self.__called_callbacks.append(intfs[-1])
+                        if type(interface) is Container and len(tail) > 0:
+                            intfs = self.__resolve_interface(analysis, interface, tail)
+                            if intfs:
+                                intfs[-1].called = True
                             else:
                                 self.logger.warning("Cannot resolve callback '{}' in description of process '{}'".
                                                     format(callback_name, process.name))
-                        elif interface.callback and interface not in self.__called_callbacks:
+                        elif type(interface) is Callback:
                             self.logger.debug("Callback {} can be called in the model".
                                               format(interface.identifier))
-                            self.__called_callbacks.append(interface)
+                            interface.called = True
                         else:
                             raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
                                              format(callback_name, process.name))
@@ -356,35 +353,30 @@ class ProcessModel:
                               format(process.name, str(nc)))
             return None
 
-        # todo: Code below doesn't choose best match it is a bit greedy
-        # todo: Code below doesb't support arrays in access sequences
+        # todo: Code below is a bit greedy and it doesb't support arrays in access sequences
+        # todo: better to rewrite it totally and implement comparison on the base of signatures
         success_on_iteration = True
         while success_on_iteration:
-            self.logger.debug("Begin comparison iteration")
             success_on_iteration = False
             old_size = len(label_map["matched callbacks"]) + len(label_map["matched labels"])
 
             # Match interfaces and containers
             for action in [act for act in process.actions.values() if type(act) is Call]:
-                self.logger.debug("Match callback call {} with interfaces".format(action.callback))
                 label, tail = process.extract_label_with_tail(action.callback)
 
-                if label.name not in label_map["matched labels"]:
+                # Try to match container
+                if len(label.interfaces) > 0 and label.name not in label_map["matched labels"]:
                     for interface in label.interfaces:
                         if interface in analysis.interfaces and analysis.interfaces[interface].category == category:
                             self.__add_label_match(label_map, label, interface)
                 elif len(label.interfaces) == 0 and not label.prior_signature and tail and label.container and \
-                                label.name not in label_map["matched labels"]:
-                    for container in [analysis.categories[category]["containers"][name] for name
-                                      in analysis.categories[category]["containers"]]:
+                        label.name not in label_map["matched labels"]:
+                    for container in analysis.containers(category):
                         interfaces = self.__resolve_interface(analysis, container, tail)
-                        self.logger.debug("Trying to match label {} with a container {}".
-                                          format(label.name, container.identifier))
                         if interfaces:
                             self.__add_label_match(label_map, label, container.identifier)
 
-                self.logger.debug("Try to match parameters of callback {} in process {} with interfaces of category"
-                                  " {}".format(action.callback, process.name, category))
+                # Try to match callback itself
                 functions = []
                 if label.name in label_map["matched labels"] and label.container:
                     for intf in label_map["matched labels"][label.name]:
@@ -394,14 +386,13 @@ class ProcessModel:
                 elif label.name in label_map["matched labels"] and label.callback:
                     if type(label_map["matched labels"][label.name]) is list:
                         functions.extend([analysis.interfaces[name] for name in
-                                         label_map["matched labels"][label.name]])
-                    else:
+                                         label_map["matched labels"][label.name] if name in analysis.interfaces])
+                    elif label_map["matched labels"][label.name] in analysis.interfaces:
                         functions.append(analysis.interfaces[label_map["matched labels"][label.name]])
 
+                # Match parameters
                 for function in functions:
                     if len(action.parameters) <= len(function.param_interfaces):
-                        self.logger.debug("Try to match parameters of callback {}".
-                                          format(function.identifier))
                         for parameter in action.parameters:
                             pl = process.extract_label(parameter)
 
@@ -416,13 +407,12 @@ class ProcessModel:
 
                     containers = [cn for cn in process.containers
                                   if cn.name not in label_map["matched labels"]]
-                    self.logger.debug("Try to match containers for callback {}".format(function))
                     containers_intfs = [cn for cn in analysis.containers(category) if cn.contains(function)]
                     for intf in containers_intfs:
                         for container in containers:
                             self.__add_label_match(label_map, container, intf.identifier)
 
-            # After containers are matched try to match callbacks
+            # After containers are matched try to match rest callbacks from category
             matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
             unmatched_callbacks = [cl for cl in process.callbacks if cl.name not in label_map["matched labels"]]
             if len(matched_containers) > 0 and len(unmatched_callbacks) > 0:
@@ -430,13 +420,14 @@ class ProcessModel:
                     for container in matched_containers:
                         for container_intf in [analysis.interfaces[intf] for intf in
                                                label_map["matched labels"][container.name]]:
-                            for field in container_intf.fields.values():
-                                name = "{}.{}".format(category, field)
-                                if name in analysis.interfaces and analysis.interfaces[name].callback:
-                                    self.__add_label_match(label_map, callback, name)
+                            for f_intf in [intf for intf in container_intf.field_interfaces.values()
+                                           if type(intf) is Callback  and not intf.called and
+                                           intf.identifier not in label_map['matched callbacks']]:
+                                self.__add_label_match(label_map, callback, f_intf.identifier)
             elif len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
-                    for intf in analysis.callbacks(category):
+                    for intf in [intf for intf in analysis.callbacks(category)
+                                 if not intf.called and intf.identifier not in label_map['matched callbacks']]:
                         self.__add_label_match(label_map, callback, intf.identifier)
 
             # Discard unmatched labels
@@ -449,6 +440,7 @@ class ProcessModel:
             label_map["unmatched callbacks"] = []
             label_map["matched callbacks"] = []
 
+            # Check which callbacks are matched totally
             for action in [act for act in process.actions.values() if type(act) is Call]:
                 label, tail = process.extract_label_with_tail(action.callback)
                 if label.callback and label.name not in label_map["matched labels"] \
@@ -517,11 +509,12 @@ class ProcessModel:
 
     def __establish_signal_peers(self, analysis, process):
         for candidate in [self.__abstr_event_processes[name] for name in self.__abstr_event_processes]:
-            peers = process.peer_with_process(candidate)
+            peers = process.establish_peers(candidate)
 
             # Be sure that process have not been added yet
             peered_processes = []
-            for subprocess in [subp for subp in process.actions.values() if subp.peers and len(subp.peers) > 0]:
+            for subprocess in [subp for subp in process.actions.values()
+                               if (type(subp) is Receive or type(subp) is Dispatch) and len(subp.peers) > 0]:
                 peered_processes.extend([peer["process"] for peer in subprocess.peers
                                          if peer["process"].name == candidate.name])
 
@@ -609,7 +602,7 @@ class ProcessModel:
 
     def __resolve_interface(self, analysis, interface, string):
         tail = string.split(".")
-        # todo: get rid of leading dot
+        # todo: get rid of leading dot and support arrays
         if len(tail) == 1:
             raise RuntimeError("Cannot resolve interface for access '{}'".format(string))
         else:
@@ -626,11 +619,13 @@ class ProcessModel:
 
         for index in range(len(tail)):
             field = tail[index]
-            if field not in matched[-1].field_interfaces:
+            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                    if matched[-1].field_interfaces[name].short_identifier == field or name == field]
+            if len(intf) == 0:
                 return None
             else:
-                if index == (len(tail) - 1) or type(matched[-1].field_interfaces[field]) is Container:
-                    matched.append(matched[-1].field_interfaces[field])
+                if index == (len(tail) - 1) or type(intf[-1]) is Container:
+                    matched.append(intf[-1])
                 else:
                     return None
 
