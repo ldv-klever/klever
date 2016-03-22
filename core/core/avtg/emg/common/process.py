@@ -38,7 +38,7 @@ def rename_subprocess(pr, old_name, new_name):
 
     # Replace subprocess entries
     processes = [pr]
-    processes.extend([pr.actions[name] for name in pr.actions if pr.actions[name].process])
+    processes.extend([pr.actions[name] for name in pr.actions if type(pr.actions[name]) is Subprocess])
     regexes = generate_regex_set(old_name)
     for process in processes:
         for regex in regexes:
@@ -119,7 +119,7 @@ class Label:
     def interfaces(self):
         return list(self.__signature_map.keys())
 
-    def get_decalration(self, identifier):
+    def get_declaration(self, identifier):
         if identifier in self.__signature_map:
             return self.__signature_map[identifier]
         else:
@@ -214,12 +214,19 @@ class Process:
                 label1 = self.extract_label(self.actions[signals[0]].parameters[index])
                 label2 = process.extract_label(process.actions[signals[1]].parameters[index])
 
+
+                empty_label = None
                 if (not label2.interfaces or len(label2.interfaces) == 0) and \
                         (label1.interfaces and len(label1.interfaces) > 0):
-                    label2.interfaces = label1.interfaces
+                    empty_label = label2
+                    donor_label = label1
                 elif (label2.interfaces and len(label2.interfaces) > 0) and \
                         (not label1.interfaces or len(label1.interfaces) == 0):
-                    label1.interfaces = label2.interfaces
+                    donor_label = label2
+                    empty_label = label1
+                if empty_label:
+                    for intf in donor_label.interfaces:
+                        empty_label.set_declaration(intf, donor_label.get_declaration(intf))
 
             self.actions[signals[0]].peers.append(
             {
@@ -297,6 +304,27 @@ class Process:
         else:
             return [acc for acc in self.__accesses[string]
                     if acc.interface and acc.interface.full_identifier == interface][0]
+
+    def __compare_signals(self, process, first, second):
+        if first.name == second.name and len(first.parameters) == len(second.parameters):
+            match = True
+            for index in range(len(first.parameters)):
+                label = self.extract_label(first.parameters[index])
+                if not label:
+                    raise ValueError("Provide label in subprocess '{}' at position '{}' in process '{}'".
+                                     format(first.name, index, self.name))
+                pair = process.extract_label(second.parameters[index])
+                if not pair:
+                    raise ValueError("Provide label in subprocess '{}' at position '{}'".
+                                     format(second.name, index, process.name))
+
+                ret = label.compare_with(pair)
+                if ret != "сompatible" and ret != "equal":
+                    match = False
+                    break
+            return match
+        else:
+            return False
 
 
 class Subprocess:

@@ -419,6 +419,19 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 else:
                     raise NotImplementedError
 
+            # Resolve structure interfaces
+            for container in [cnt for cnt in self.containers(category_identifier) if cnt.declaration and
+                              type(cnt.declaration) is Structure]:
+                for field in [field for field in container.declaration.fields
+                              if field not in container.field_interfaces]:
+                    intf = self.resolve_interface_weakly(container.declaration.fields[field])
+                    if len(intf) == 1:
+                        container.field_interfaces[field] = intf[-1]
+                    elif len(intf) > 0 and field in [i.short_identifier for i in intf]:
+                        container.field_interfaces[field] = [i for i in intf if i.short_identifier == field][-1]
+                    elif len(intf) > 0:
+                        raise NotImplementedError
+
             # Resolve callback parameters
             for callback in self.callbacks(category_identifier):
                 self._fulfill_function_interfaces(callback, category_identifier)
