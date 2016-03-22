@@ -126,7 +126,7 @@ class SA(core.components.Component):
                                                       '--stage', 'instrumentation',
                                                       '--back-end', 'src',
                                                       '--debug', 'DEBUG'] +
-                                                     (['--keep'] if self.conf['debug'] else []) +
+                                                     (['--keep'] if self.conf['keep intermediate files'] else []) +
                                                      ['--'] +
                                                      command["opts"] +
                                                      ['-isystem{0}'.format(stdout[0])]),
@@ -264,7 +264,7 @@ class SA(core.components.Component):
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, exit_file))
 
-        if not self.conf['debug']:
+        if not self.conf['keep intermediate files']:
             self.logger.info("Remove files with raw extracted data")
             for file in glob.glob("*.txt"):
                 self.logger.debug("Remove file {}".format(file))

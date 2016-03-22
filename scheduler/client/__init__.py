@@ -16,6 +16,10 @@ def solve_job(conf):
     # Initialize execution
     conf = utils.common_initialization("Job executor client", conf)
 
+    logging.debug("Create job configuration file \"conf.json\"")
+    with open("conf.json", "w", encoding="ascii") as fp:
+        json.dump(conf, fp, sort_keys=True, indent=4)
+
     # Check configuration
     logging.info("Check configuration consistency")
     if "benchexec location" not in conf["client"]:
@@ -98,6 +102,10 @@ def solve_task(conf):
     # Initialize execution
     conf = utils.common_initialization("Task executor client", conf)
 
+    logging.debug("Create task configuration file \"conf.json\"")
+    with open("conf.json", "w", encoding="ascii") as fp:
+        json.dump(conf, fp, sort_keys=True, indent=4)
+
     # Check configuration
     logging.info("Check configuration consistency")
     if "benchexec location" not in conf["client"]:
@@ -138,15 +146,14 @@ def solve_task(conf):
     server = bridge.Server(conf["Klever Bridge"], os.curdir)
     server.register()
     server.pull_task(conf["identifier"], "task files.tar.gz")
-    tar = tarfile.open("task files.tar.gz")
-    tar.extractall()
-    tar.close()
+    with tarfile.open("task files.tar.gz") as tar:
+        tar.extractall()
 
     logging.info("Prepare benchmark")
     benchmark = ElementTree.Element("benchmark", {
         "tool": conf["verifier"]["name"].lower(),
         "timelimit": str(round(conf["resource limits"]["CPU time"] / 1000)),
-        "memlimit": str(round(conf["resource limits"]["memory size"] / (1000 ** 2))),
+        "memlimit": str(conf["resource limits"]["memory size"]) + "B",
     })
     rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
     for opt in conf["verifier"]["options"] + [
@@ -175,7 +182,7 @@ def solve_task(conf):
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 
-    exit_code = benchexec.start(["--debug", "--outputpath", "output", "benchmark.xml"])
+    exit_code = benchexec.start(["--debug", "--no-compress-results", "--outputpath", "output", "benchmark.xml"])
 
     logging.info("Task solution has finished with exit code {}".format(exit_code))
 
@@ -229,6 +236,8 @@ def solve_task(conf):
             tar.add("output/witness.graphml", 'witness.graphml')
         for file in glob.glob(os.path.join("output", "benchmark*logfiles/*")):
             tar.add(file, os.path.basename(file))
+        if conf["upload input files of static verifiers"]:
+            tar.add("benchmark.xml")
 
     server.submit_solution(conf["identifier"], decision_results, "decision result files.tar.gz")
 

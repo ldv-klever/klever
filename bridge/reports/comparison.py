@@ -4,8 +4,8 @@ from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
 from bridge.utils import print_err
+from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
 from jobs.utils import JobAccess, CompareFileSet
 from reports.models import *
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport

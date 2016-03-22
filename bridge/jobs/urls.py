@@ -8,6 +8,7 @@ urlpatterns = [
     url(r'^downloadfile/(?P<file_id>[0-9]+)/$', views.download_file, name='download_file'),
     url(r'^prepare_run/(?P<job_id>[0-9]+)/$', views.prepare_decision, name='prepare_run'),
     url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_files_comparison, name='comparison'),
+    url(r'^download_configuration/(?P<runhistory_id>[0-9]+)/$', views.download_configuration),
 
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),
@@ -33,6 +34,7 @@ urlpatterns = [
     url(r'^ajax/get_job_data/$', views.get_job_data),
     url(r'^ajax/check_compare_access/$', views.check_compare_access),
     url(r'^ajax/get_file_by_checksum/$', views.get_file_by_checksum),
+    url(r'^ajax/get_def_start_job_val/$', views.get_def_start_job_val),
 
     # For Klever Core
     url(r'^decide_job/$', views.decide_job),

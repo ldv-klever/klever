@@ -67,7 +67,7 @@ class ASE(core.components.Component):
                                           '--out', os.path.relpath('arg signs.c',
                                                                    os.path.realpath(self.conf['source tree root'])),
                                           '--debug', 'DEBUG'] +
-                                         (['--keep'] if self.conf['debug'] else []) +
+                                         (['--keep'] if self.conf['keep intermediate files'] else []) +
                                          ['--'] +
                                          cc_full_desc['opts'] +
                                          [gcc_search_dir]),

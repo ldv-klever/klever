@@ -132,7 +132,7 @@ class Core:
                                           'id': sub_job_id,
                                           'parent id': self.id,
                                           'name': 'Validator',
-                                          'attrs': [{'Commit': commit}],
+                                          'attrs': [{'commit': commit}],
                                       },
                                       self.mqs['report files'],
                                       suffix=' validator {0}'.format(commit))
@@ -309,9 +309,9 @@ class Core:
         self.is_solving_file = os.path.join(self.conf['working directory'], 'is solving')
 
         def check_another_instance():
-            if os.path.isfile(self.is_solving_file):
-                raise FileExistsError(
-                    'Another instance occupies working directory "{0}"'.format(self.conf['working directory']))
+            if not self.conf['ignore another instances'] and os.path.isfile(self.is_solving_file):
+                raise FileExistsError('Another instance of Klever Core occupies working directory "{0}"'.format(
+                    self.conf['working directory']))
 
         check_another_instance()
 
@@ -444,7 +444,7 @@ class Core:
 
         self.components_conf.update({'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')}})
 
-        if self.conf['debug']:
+        if self.conf['keep intermediate files']:
             if os.path.isfile('components conf.json'):
                 raise FileExistsError('Components configuration file "components conf.json" already exists')
             self.logger.debug('Create components configuration file "components conf.json"')

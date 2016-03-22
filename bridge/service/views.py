@@ -282,8 +282,7 @@ def process_job(request):
 
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Job is not PENDING'})
-    job.status = JOB_STATUS[2][0]
-    job.save()
+    change_job_status(job, JOB_STATUS[2][0])
     return JsonResponse({})
 
 

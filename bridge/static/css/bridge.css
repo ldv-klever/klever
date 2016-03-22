@@ -83,3 +83,7 @@ body {
 .klever-active {
     background: #dcfbfe;
 }
+
+.bold-text {
+    font-weight: bold;
+}
