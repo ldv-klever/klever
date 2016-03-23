@@ -1,15 +1,17 @@
 import copy
 import os
 import re
-import graphviz
 
 from core.avtg.emg.translator import AbstractTranslator, Aspect
-from core.avtg.emg.representations import Signature, Function, Variable, ModelMap
+from core.avtg.emg.translator.automaton import FSA
+from core.avtg.emg.common.interface import Container
+from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess
+from core.avtg.emg.common.code import Variable, FunctionDefinition, FunctionModels
 
 
 def text_processor(automaton, statement):
         # Replace model functions
-        mm = ModelMap()
+        mm = FunctionModels()
         accesses = automaton.process.accesses()
         statements = [statement]
 
@@ -19,11 +21,11 @@ def text_processor(automaton, statement):
                 new_statements = []
                 for text in statements:
                     if option.interface:
-                        signature = option.label.signature(None, option.interface.full_identifier)
-                        var = automaton.variable(option.label, option.list_interface[0].full_identifier)
+                        signature = option.label.signature(None, option.interface.identifier)
+                        var = automaton.new_variable(option.label, option.list_interface[0].identifier)
                     else:
                         signature = option.label.signature()
-                        var = automaton.variable(option.label)
+                        var = automaton.new_variable(option.label)
 
                     tmp = mm.replace_models(option.label.name, signature, text)
                     tmp = option.replace_with_variable(tmp, var)
@@ -34,71 +36,74 @@ def text_processor(automaton, statement):
 
 class Translator(AbstractTranslator):
 
-    def _generate_entry_point(self):
+    def _generate_code(self, analysis, model):
         # Initialize additional attributes
-        self.instance_modifier = 2
-        self.callback_fsa = []
-        self.model_fsa = []
-        self.entry_fsa = None
+        self.__callback_fsa = []
+        self.__model_fsa = []
+        self.__entry_fsa = None
+        self.__instance_modifier = 2
         self.__identifier_cnt = -1
 
         # Read translation options
         if "translation options" in self.conf:
             if "instance modifier" in self.conf["translation options"]:
-                self.instance_modifier = self.conf["translation options"]["instance modifier"]
+                self.__instance_modifier = self.conf["translation options"]["instance modifier"]
 
         # Determine how many instances is required for a model
         self.logger.info("Determine how many instances is required to add to an environment model for each process")
-        for process in self.model["processes"]:
+        for process in model.event_processes:
             undefined_labels = []
             # Determine nonimplemented containers
             self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
                               "category {}".format(process.name, process.category))
-            for label in [label for label in process.labels.values() if label.interfaces]:
+            for label in [label for label in process.labels.values() if len(label.interfaces) > 0]:
                 nonimplemented_intrerfaces = [interface for interface in label.interfaces
-                                              if len(self.analysis.interfaces[interface].implementations) == 0]
+                                              if len(analysis.implementations(analysis.interfaces[interface])) == 0]
                 if len(nonimplemented_intrerfaces) > 0:
                     undefined_labels.append(label)
 
             # Determine is it necessary to make several instances
             if len(undefined_labels) > 0:
-                base_list = [copy.deepcopy(process) for i in range(self.instance_modifier)]
+                base_list = [copy.copy(process) for i in range(self.__instance_modifier)]
             else:
                 base_list = [process]
             self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
                              format(len(base_list), len(undefined_labels), process.name, process.category))
 
-            base_list = self.__instanciate_processes(base_list, process)
+            base_list = self.__instanciate_processes(analysis, base_list, process)
 
             self.logger.info("Generate {} FSA instances for process {} with category {}".
                              format(len(base_list), process.name, process.category))
             for instance in base_list:
-                fsa = Automaton(self.logger, instance, self.identifier)
-                self.callback_fsa.append(fsa)
+                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
+                fsa.variables(analysis)
+                self.__callback_fsa.append(fsa)
 
         # Generate automata for models
-        for process in self.model["models"]:
+        for process in model.model_processes:
             self.logger.info("Generate FSA for kernel model process {}".format(process.name))
-            processes = self.__instanciate_processes([process], process)
+            processes = self.__instanciate_processes(analysis, [process], process)
             for instance in processes:
-                fsa = Automaton(self.logger, instance, self.identifier)
-                self.model_fsa.append(fsa)
+                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
+                fsa.variables(analysis)
+                self.__model_fsa.append(fsa)
 
         # Generate state machine for init an exit
         # todo: multimodule automaton (issues #6563, #6571, #6558)
         self.logger.info("Generate FSA for module initialization and exit functions")
-        self.entry_fsa = Automaton(self.logger, self.model["entry"], self.identifier)
+        self.__entry_fsa = Automaton(self.logger, model.entry_process, self.__yeild_identifier())
+        fsa.variables(self.__entry_fsa)
 
         # Save digraphs
         automaton_dir = "automaton"
         self.logger.info("Save automata to directory {}".format(automaton_dir))
         os.mkdir(automaton_dir)
-        for automaton in self.callback_fsa + self.model_fsa + [self.entry_fsa]:
+        for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
             automaton.save_digraph(automaton_dir)
 
         # Generate variables
-        for automaton in self.callback_fsa + self.model_fsa + [self.entry_fsa]:
-            variables = automaton.variables
+        for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
+            variables = automaton.variables(analysis)
             for variable in variables:
                 if not variable.file:
                     variable.file = self.entry_file
@@ -111,16 +116,16 @@ class Translator(AbstractTranslator):
 
         # Generate automata control function
         self.logger.info("Generate control functions for the environment model")
-        for automaton in self.callback_fsa + [self.entry_fsa]:
-            self.generate_control_function(automaton)
+        for automaton in self.__callback_fsa + [self.__entry_fsa]:
+            self.generate_control_function(analysis, automaton)
 
         # Generate model control function
         models = []
-        for name in (pr.name for pr in self.model["models"]):
-            automata = (a for a in self.model_fsa if a.process.name == name)
-            self.generate_model_aspect(automata, name)
+        for name in (pr.name for pr in model.model_processes):
+            automata = (a for a in self.__model_fsa if a.process.name == name)
+            self.generate_model_aspect(analysis, automata, name)
 
-        for automaton in self.callback_fsa + self.model_fsa + [self.entry_fsa]:
+        for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
             for function in automaton.functions:
                 if function.file not in self.files:
                     self.files[function.file] = {"functions": {}, "variables": {}}
@@ -130,12 +135,12 @@ class Translator(AbstractTranslator):
         ep = self.generate_entry_function()
         self.files[self.entry_file]["functions"][ep.name] = ep
 
-    @property
-    def identifier(self):
-        self.__identifier_cnt += 1
-        return self.__identifier_cnt
+    def __yeild_identifier(self):
+        while True:
+            self.__identifier_cnt += 1
+            yield self.__identifier_cnt
 
-    def __instanciate_processes(self, instances, process):
+    def __instanciate_processes(self, analysis, instances, process):
         base_list = instances
 
         # Copy base instances for each known implementation
@@ -143,17 +148,18 @@ class Translator(AbstractTranslator):
         accesses = process.accesses()
         for access in accesses.values():
             for inst_access in [inst for inst in access if inst.interface]:
-                if inst_access.interface.container and len(inst_access.interface.implementations) > 1 and \
-                                inst_access.interface not in relevant_multi_containers:
+                if type(inst_access.interface) is Container and \
+                        len(analysis.implementations(inst_access.interface)) > 1 and \
+                        inst_access.interface not in relevant_multi_containers:
                     relevant_multi_containers.append(inst_access.interface)
                 elif len(inst_access.complete_list_interface) > 1:
-                    for intf in [intf for intf in inst_access.complete_list_interface if intf.container and
-                                 intf.implementations and len(intf.implementations) > 1 and
-                                 intf not in relevant_multi_containers]:
+                    for intf in [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
+                                 len(analysis.implementations(intf)) > 1 and intf not in relevant_multi_containers]:
                         relevant_multi_containers.append(intf)
 
         # Copy instances for each implementation of a container
         if len(relevant_multi_containers) > 0:
+            # todo: refactoring is required
             new_base_list = []
             for interface in relevant_multi_containers:
                 implementations = interface.implementations
@@ -167,9 +173,9 @@ class Translator(AbstractTranslator):
                                 # Replace not even container itself but other collateral interface implementaations
                                 if access.interface and len(access.interface.implementations) > 0 and \
                                     len([impl for impl in access.interface.implementations
-                                         if impl.base_container == interface.full_identifier]) > 0:
+                                         if impl.base_container == interface.identifier]) > 0:
                                     new_values = [impl for impl in access.interface.implementations
-                                                  if impl.base_container == interface.full_identifier and
+                                                  if impl.base_container == interface.identifier and
                                                   impl.base_value == implementation.value]
 
                                     if len(new_values) == 0:
@@ -187,16 +193,17 @@ class Translator(AbstractTranslator):
         relevant_multi_leafs = []
         for access in accesses.values():
             relevant_multi_leafs.extend([inst for inst in access if inst.interface and
-                                         len(inst.interface.implementations) > 1])
+                                         len(analysis.implementations(inst.interface)) > 1])
         if len(relevant_multi_leafs) > 0:
+            # todo: refactoring is expected
             for access in relevant_multi_leafs:
                 new_base_list = []
-                for implementation in access.interface.implementations:
+                for implementation in analysis.implementations(access.interface):
                     for instance in base_list:
-                        newp = copy.deepcopy(instance)
+                        newp = copy.copy(instance)
                         newp_accesses = newp.accesses()
                         modify_acc = [acc for acc in newp_accesses[access.expression]
-                                      if acc.interface.full_identifier == access.interface.full_identifier][0]
+                                      if acc.interface.identifier == access.interface.identifier][0]
                         modify_acc.interface.implementations = [implementation]
                         new_base_list.append(newp)
 
@@ -206,8 +213,8 @@ class Translator(AbstractTranslator):
 
     def generate_entry_function(self):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
-        # Function prototype
-        ep = Function(
+        # FunctionDefinition prototype
+        ep = FunctionDefinition(
             self.entry_point_name,
             self.entry_file,
             Signature("void {}(void)".format(self.entry_point_name)),
@@ -219,7 +226,7 @@ class Translator(AbstractTranslator):
             "\tswitch(ldv_undef_int()) {"
         ]
 
-        automata = self.callback_fsa + [self.entry_fsa]
+        automata = self.__callback_fsa + [self.__entry_fsa]
         for index in range(len(automata)):
             body.extend(
                 [
@@ -239,24 +246,23 @@ class Translator(AbstractTranslator):
 
         return ep
 
-    def generate_control_function(self, automaton):
+    def generate_control_function(self, analysis, automaton):
         self.logger.info("Generate control function for automata {} with process {}".
                          format(automaton.identifier, automaton.process.name))
 
         # Generate case for each transition
         cases = []
         for edge in automaton.fsa.state_transitions:
-            new = self.generate_case(automaton, edge)
+            new = self.generate_case(analysis, automaton, edge)
             cases.extend(new)
         if len(cases) == 0:
             raise RuntimeError("Cannot generate control function for automata {} with process {}".
-                               format(automaton.identifier, automaton.process.name))
+                               format(automaton.__yeild_identifier(), automaton.process.name))
 
-        # Create Function
-        cf = Function(
+        # Create FunctionDefinition
+        cf = FunctionDefinition(
             "emg_{}_{}_control_function".format(automaton.process.name, automaton.identifier),
             self.entry_file,
-            Signature("void %s(void)"),
             export=False
         )
 
@@ -287,7 +293,7 @@ class Translator(AbstractTranslator):
         automaton.functions.append(cf)
         automaton.control_function = cf
 
-    def generate_model_aspect(self, automata, name):
+    def generate_model_aspect(self, analysis, automata, name):
         # Create function
         model_signature = self.analysis.kernel_functions[name]["signature"]
         cf = Aspect(name, model_signature)
@@ -297,11 +303,11 @@ class Translator(AbstractTranslator):
             # Generate case for each transition
             cases = []
             for edge in automaton.fsa.state_transitions:
-                new = self.generate_case(automaton, edge)
+                new = self.generate_case(analysis, automaton, edge)
                 cases.extend(new)
             if len(cases) == 0:
                 raise RuntimeError("Cannot generate model control function for automata {} with process {}".
-                                   format(automaton.identifier, automaton.process.name))
+                                   format(automaton.__yeild_identifier(), automaton.process.name))
 
             # Calculate terminals
             in_states = [transition["in"] for transition in automaton.fsa.state_transitions]
@@ -363,9 +369,9 @@ class Translator(AbstractTranslator):
         else:
             body = bodies[0]
         cf.body.concatenate(body)
-        self.model_aspects.append(cf)
+        model_aspects.append(cf)
 
-    def determine_callback_implementations(self, automaton, subprocess, case):
+    def determine_callback_implementations(self, analysis, automaton, subprocess, case):
         accesses = automaton.process.resolve_access(subprocess.callback)
         callbacks = []
 
@@ -374,32 +380,32 @@ class Translator(AbstractTranslator):
             invoke = None
 
             if access.interface:
-                signature = access.interface.signature
+                signature = access.interface.declaration
+                implementations = automaton.process.get_implementations(analysis, access)
 
-                if len(access.interface.implementations) > 1 and len(set(im.value for im in access.interface.implementations)) > 1:
+                if len(implementations) > 1:
                     raise NotImplementedError("Cannot process fsm with several implementations of a single callback")
-                elif len(access.interface.implementations) == 1 or \
-                        len(set(im.value for im in access.interface.implementations)):
-                    invoke = '(' + access.interface.implementations[0].value + ')'
-                    file = access.interface.implementations[0].file
+                elif len(implementations) == 1:
+                    invoke = '(' + implementations[0].value + ')'
+                    file = implementations[0].file
                     check = False
-
                 else:
                     invoke = '(*' +\
                              access.access_with_variable(
-                                     automaton.variable(access.label, access.list_interface[0].full_identifier)) +\
+                                     automaton.new_variable(analysis, access.label, 
+                                                            access.list_interface[0].identifier)) +\
                              ')'
                     file = self.entry_file
                     check = True
             else:
-                signature = access.label.signature()
+                signature = access.label.prior_signature
 
                 if access.label.value:
                     invoke = '(' + access.label.value + ')'
                     file = self.entry_file
                     check = False
-                elif access.label.signature():
-                    invoke = access.access_with_variable(automaton.variable(access.label))
+                else:
+                    invoke = access.access_with_variable(automaton.new_variable(analysis, access.label))
                     file = self.entry_file
                     check = True
 
@@ -412,7 +418,7 @@ class Translator(AbstractTranslator):
 
         return callbacks
 
-    def generate_case(self, automaton, edge):
+    def generate_case(self, analysis, automaton, edge):
         subprocess = edge["subprocess"]
         cases = []
         base_case = {
@@ -420,13 +426,13 @@ class Translator(AbstractTranslator):
             "body": [],
         }
 
-        if subprocess.type == "dispatch" and subprocess.callback:
-            callbacks = self.determine_callback_implementations(automaton, subprocess, base_case)
+        if type(subprocess) is Call:
+            callbacks = self.determine_callback_implementations(analysis, automaton, subprocess, base_case)
 
             for case, signature, invoke, file, check in callbacks:
                 # Generate function call and corresponding function
                 fname = "emg_{}_{}_{}_{}".\
-                    format(automaton.identifier, automaton.process.name, subprocess.name, len(automaton.functions))
+                    format(automaton.__yeild_identifier(), automaton.process.name, subprocess.name, len(automaton.functions))
 
                 params = []
                 local_vars = []
@@ -441,9 +447,9 @@ class Translator(AbstractTranslator):
                         for candidate in subprocess.parameters:
                             accesses = automaton.process.resolve_access(candidate)
                             suits = [acc for acc in accesses if acc.interface and
-                                     acc.interface.full_identifier == parameter.interface.full_identifier]
+                                     acc.interface.identifier == parameter.interface.identifier]
                             if len(suits) == 1:
-                                var = automaton.variable(suits[0].label, suits[0].list_interface[0].full_identifier)
+                                var = automaton.new_variable(analysis, suits[0].label, suits[0].list_interface[0].identifier)
                                 expression = suits[0].access_with_variable(var)
                                 break
                             elif len(suits) > 1:
@@ -459,7 +465,7 @@ class Translator(AbstractTranslator):
                     params.append(expression)
 
                 # Generate special function with call
-                function = Function(fname, file, Signature("void {}(void)".format(fname)), True)
+                function = FunctionDefinition(fname, file, Signature("void {}(void)".format(fname)), True)
                 for var in local_vars:
                     if var.signature.type_class == "struct" and var.signature.pointer:
                         definition = var.declare_with_init(init=True) + ";"
@@ -477,7 +483,7 @@ class Translator(AbstractTranslator):
                                   automaton.process.subprocesses[name].callback_retval]
                 if ret_subprocess:
                     ret_access = automaton.process.resolve_access(ret_subprocess[0].callback_retval)
-                    retval = ret_access[0].access_with_variable(automaton.variable(ret_access[0].label))
+                    retval = ret_access[0].access_with_variable(automaton.new_variable(ret_access[0].label))
                     retval += " = "
 
                 # Generate callback call
@@ -503,9 +509,9 @@ class Translator(AbstractTranslator):
                 case["body"].append("/* Call callback {} */".format(subprocess.name))
                 case["body"].append("{}();".format(fname))
                 cases.append(case)
-        elif subprocess.type == "dispatch":
+        elif type(subprocess) is Dispatch:
             # Generate dispatch function
-            if subprocess.peers and len(subprocess.peers) > 0:
+            if len(subprocess.peers) > 0:
 
                 # Do call only if model which can be called will not hang
                 automata_peers = {}
@@ -513,8 +519,8 @@ class Translator(AbstractTranslator):
                 checks = self.__generate_state_pair(automata_peers)
                 if len(checks) > 0:
                     # Generate dispatch function
-                    df = Function(
-                        "emg_{}_{}_dispatch_{}".format(automaton.identifier, automaton.process.name, subprocess.name),
+                    df = FunctionDefinition(
+                        "emg_{}_{}_dispatch_{}".format(automaton.__yeild_identifier(), automaton.process.name, subprocess.name),
                         self.entry_file,
                         Signature("void %s(void)"),
                         False
@@ -539,13 +545,13 @@ class Translator(AbstractTranslator):
                             receiver_access = check[1]["automaton"].process.\
                                 resolve_access(check[1]["subprocess"].parameters[index], interface)
                             receiver_expr = receiver_access.\
-                                access_with_variable(check[1]["automaton"].variable(receiver_access.label, interface))
+                                access_with_variable(check[1]["automaton"].new_variable(receiver_access.label, interface))
 
                             # Determine dispatcher parameter
                             dispatcher_access = automaton.process.\
                                 resolve_access(subprocess.parameters[index], interface)
                             dispatcher_expr = dispatcher_access.\
-                                access_with_variable(automaton.variable(dispatcher_access.label, interface))
+                                access_with_variable(automaton.new_variable(dispatcher_access.label, interface))
 
                             # Replace guard
                             receiver_condition = [stm.replace("$ARG{}".format(index + 1), dispatcher_expr) for stm
@@ -602,17 +608,17 @@ class Translator(AbstractTranslator):
                 base_case["body"].append("/* Dispatch {} is not expected by any process, skip it */".
                                          format(subprocess.name))
             cases.append(base_case)
-        elif subprocess.type == "receive" and subprocess.callback:
+        elif type(subprocess) is CallRetval:
             base_case["body"].append("/* Should wait for return value of {} here, "
                                      "but in sequential model it is not necessary */".format(subprocess.name))
             cases.append(base_case)
-        elif subprocess.type == "receive":
+        elif type(subprocess) is Receive:
             # Generate comment
             base_case["body"].append("/* Receive signal {} */".format(subprocess.name))
             cases.append(base_case)
             # Do not chenge state there
             return cases
-        elif subprocess.type == "condition":
+        elif type(subprocess) is Condition:
             # Generate comment
             base_case["body"].append("/* Code or condition insertion {} */".format(subprocess.name))
 
@@ -626,7 +632,7 @@ class Translator(AbstractTranslator):
                 for statement in subprocess.statements:
                     base_case["body"].extend(text_processor(automaton, statement))
             cases.append(base_case)
-        elif subprocess.type == "subprocess":
+        elif type(subprocess) is Subprocess:
             # Generate comment
             base_case["body"].append("/* Start subprocess {} */".format(subprocess.name))
             cases.append(base_case)
@@ -649,7 +655,7 @@ class Translator(AbstractTranslator):
                 relevant_models = self.__collect_relevant_models(name)
 
                 # Get list of models
-                process_models = [model for model in self.model["models"] if model.name in relevant_models]
+                process_models = [model for model in model.model_processes if model.name in relevant_models]
 
                 # Check relevant state machines for each model
                 automata_peers = {}
@@ -694,18 +700,18 @@ class Translator(AbstractTranslator):
 
     def __extract_relevant_automata(self, automata_peers, peers, types):
         for peer in peers:
-            relevant_automata = [automaton for automaton in self.callback_fsa
+            relevant_automata = [automaton for automaton in self.__callback_fsa
                                  if automaton.process.name == peer["process"].name and
-                                 automaton.identifier != self.identifier]
+                                 automaton.__yeild_identifier() != self.__yeild_identifier()]
             for automaton in relevant_automata:
-                if automaton.identifier not in automata_peers:
-                    automata_peers[automaton.identifier] = {
+                if automaton.__yeild_identifier() not in automata_peers:
+                    automata_peers[automaton.__yeild_identifier()] = {
                         "automaton": automaton,
                         "subprocesses": []
                     }
-                if peer["subprocess"] not in automata_peers[automaton.identifier]["subprocesses"]:
+                if peer["subprocess"] not in automata_peers[automaton.__yeild_identifier()]["subprocesses"]:
                     if not types or (types and peer["subprocess"].type in types):
-                        automata_peers[automaton.identifier]["subprocesses"].append(peer["subprocess"])
+                        automata_peers[automaton.__yeild_identifier()]["subprocesses"].append(peer["subprocess"])
 
     @staticmethod
     def __generate_state_pair(automata_peers):
@@ -725,9 +731,9 @@ class Automaton:
         # Set default values
         self.control_function = None
         self.functions = []
+        self.__state_variable = None
         self.__variables = []
         self.__label_variables = {}
-        self.__state_variable = None
 
         # Set given values
         self.logger = logger
@@ -739,13 +745,10 @@ class Automaton:
                          format(self.identifier, self.process.name, self.process.category))
         self.fsa = FSA(self, self.process)
 
-        # Generate variables
-        self.variables
-
     @property
     def state_variable(self):
         if not self.__state_variable:
-            statev = Variable("emgfsa_state_{}".format(self.identifier), None, Signature("int %s"), export=True)
+            statev = Variable("emgfsa_state_{}".format(self.identifier), None, "int a", export=True)
             statev.value = "0"
             statev.use = 1
             self.logger.debug("Add state variable for automata {} with process {}: {}".
@@ -754,8 +757,7 @@ class Automaton:
 
         return self.__state_variable
 
-    @property
-    def variables(self):
+    def variables(self, analysis):
         if len(self.__variables) == 0:
             # Generate state variable
             self.__variables.append(self.state_variable)
@@ -764,22 +766,22 @@ class Automaton:
             for label in self.process.labels.values():
                 if label.interfaces:
                     for interface in label.interfaces:
-                        self.__variables.append(self.variable(label, interface))
+                        self.__variables.append(self.new_variable(analysis, label, interface))
                 else:
-                    var = self.variable(label)
+                    var = self.new_variable(analysis, label)
                     if var:
-                        self.__variables.append(self.variable(label))
+                        self.__variables.append(self.new_variable(analysis, label))
 
         return self.__variables
 
-    def variable(self, label, interface=None):
+    def new_variable(self, analysis, label, interface=None):
         if not interface:
             if label.name in self.__label_variables and "default" in self.__label_variables[label.name]:
                 return self.__label_variables[label.name]["default"]
             else:
-                if label.signature():
+                if label.prior_signature:
                     var = Variable("emgfsa_{}_{}_{}".format(self.identifier, label.name, "default"), None,
-                                   label.signature(), export=True)
+                                   label.prior_signature, export=True)
                     if label.value:
                         var.value = label.value
 
@@ -799,23 +801,17 @@ class Automaton:
                     raise KeyError("Label {} is not matched with interface {}".format(label.name, interface))
                 else:
                     access = self.process.resolve_access(label, interface)
-                    label_signature = label.signature(None, access.interface.full_identifier)
                     category, short_id = interface.split(".")
+                    implementations = self.process.get_implementations(analysis, access)
                     var = Variable("emgfsa_{}_{}_{}".format(self.identifier, label.name, short_id), None,
-                                   label_signature, export=True)
+                                   label.get_declaration(interface), export=True)
 
-                    if len(access.interface.implementations) == 1:
-                        if access.interface.signature.pointer == label_signature.pointer:
-                            var.value = access.interface.implementations[0].value
-                        else:
-                            if label_signature.pointer:
-                                var.value = "& " + access.interface.implementations[0].value
-                            else:
-                                var.value = "* " + access.interface.implementations[0].value
+                    if len(implementations) == 1:
+                        var.value = implementations[0].adjusted_value(var.declaration)
 
                         # Change file according to the value
-                        var.file = access.interface.implementations[0].file
-                    elif len(access.interface.implementations) > 1:
+                        var.file = implementations[0].file
+                    elif len(implementations) > 1:
                         raise ValueError("Cannot initialize label {} with several values".format(label.name))
 
                     if label.name not in self.__label_variables:
@@ -830,208 +826,5 @@ class Automaton:
         dg_file = "{}/{}.dot".format(directory, "{}_{}_{}".
                                      format(self.process.category, self.process.name, self.identifier))
         self.fsa.save_fsa_digraph(dg_file, self.identifier, self.process)
-
-
-class FSA:
-
-    def __init__(self, automaton, process):
-        self.__state_counter = 0
-        self.__checked_ast = {}
-        self.__ast_counter = 0
-        self.__checked_subprocesses = {}
-        self.state_transitions = []
-
-        # Generate AST states
-        self.__generate_states(automaton, process)
-
-    def __generate_states(self, automaton, process):
-        if "identifier" not in process.process_ast:
-            # Enumerate AST
-            nodes = [process.subprocesses[name].process_ast for name in process.subprocesses
-                     if process.subprocesses[name].process_ast] + [process.process_ast]
-            while len(nodes) > 0:
-                ast = nodes.pop()
-                new = self.__enumerate_ast(ast)
-                nodes.extend(new)
-
-        # Generate states
-        transitions = [[process.process_ast, None]]
-        while len(transitions) > 0:
-            ast, predecessor = transitions.pop()
-            new = self.__process_ast(automaton, process, ast, predecessor)
-            transitions.extend(new)
-
-    def __enumerate_ast(self, ast):
-        key = list(ast.keys())[0]
-        to_process = []
-
-        if key in ["sequence", "options"]:
-            for action in reversed(ast[key]):
-                to_process.append(action)
-        elif key in ["process"]:
-            to_process.append(ast[key])
-        elif key not in ["subprocess", "receive", "dispatch", "condition", "null"]:
-            raise RuntimeError("Unknown operator in process AST: {}".format(key))
-
-        ast["identifier"] = int(self.__ast_counter)
-        self.__ast_counter += 1
-        return to_process
-
-    def __process_ast(self, automaton, process, ast, predecessor):
-        key = list(ast.keys())[0]
-        to_process = []
-
-        if key == "sequence":
-            new = []
-            previous = predecessor
-            for action in ast[key]:
-                new.append([action, previous])
-                previous = action["identifier"]
-            self.__checked_ast[ast["identifier"]] = {"sequence": True, "last": new[-1][0]["identifier"]}
-            to_process.extend(reversed(new))
-        elif key == "options":
-            for option in ast[key]:
-                to_process.append([option, predecessor])
-            self.__checked_ast[ast["identifier"]] = {
-                "options": True,
-                "children": [option["identifier"] for option in ast[key]]
-            }
-        elif key == "process":
-            to_process.append([ast[key], predecessor])
-            self.__checked_ast[ast["identifier"]] = {"brackets": True, "follower": ast[key]["identifier"]}
-        elif key == "subprocess":
-            if ast[key]["name"] in self.__checked_subprocesses:
-                state = self.__checked_subprocesses[ast[key]["name"]]
-                for origin in self.__resolve_state(predecessor):
-                    transition = {
-                        "ast": ast[key],
-                        "subprocess": process.subprocesses[ast[key]["name"]],
-                        "in": origin,
-                        "out": state,
-                        "automaton": automaton
-                    }
-                    self.state_transitions.append(transition)
-            else:
-                self.__state_counter += 1
-                for origin in self.__resolve_state(predecessor):
-                    transition = {
-                        "ast": ast[key],
-                        "subprocess": process.subprocesses[ast[key]["name"]],
-                        "in": origin,
-                        "out": self.__state_counter,
-                        "automaton": automaton
-                    }
-                    self.state_transitions.append(transition)
-                self.__checked_subprocesses[ast[key]["name"]] = self.__state_counter
-                self.__checked_ast[ast["identifier"]] = self.__state_counter
-
-                # Add subprocess to process
-                to_process.append([process.subprocesses[ast[key]["name"]].process_ast, ast["identifier"]])
-            self.__checked_ast[ast["identifier"]] = {"process": True, "name": ast[key]["name"]}
-        elif key in ["receive", "dispatch", "condition"]:
-            number = ast[key]["number"]
-            self.__state_counter += 1
-            for origin in self.__resolve_state(predecessor):
-                transition = {
-                    "ast": ast[key],
-                    "subprocess": process.subprocesses[ast[key]["name"]],
-                    "in": origin,
-                    "out": self.__state_counter,
-                    "automaton": automaton
-                }
-                self.state_transitions.append(transition)
-
-            if number:
-                if type(number) is str:
-                    # Expect labe
-                    label = process.__extract_label(number)
-                    if label.value:
-                        iterations = int(label.value) - 1
-                    else:
-                        raise ValueError("Provide exact value for label {} of ptocess {}".
-                                         format(label.name, process.name))
-                else:
-                    iterations = int(number - 1)
-                for index in range(iterations):
-                    transition = {
-                        "ast": ast[key],
-                        "subprocess": process.subprocesses[ast[key]["name"]],
-                        "in": self.__state_counter,
-                        "out": self.__state_counter + 1,
-                        "automaton": automaton
-                    }
-                    self.__state_counter += 1
-                    self.state_transitions.append(transition)
-
-            self.__checked_ast[ast["identifier"]] = {"terminal": True, "state": self.__state_counter}
-        elif key != "null":
-            raise RuntimeError("Unknown operator in process AST: {}".format(key))
-        return to_process
-
-    def __resolve_state(self, identifier):
-        ret = []
-        if not identifier:
-            ret = [0]
-        elif identifier not in self.__checked_ast:
-            raise TypeError("Cannot find state {} in processed automaton states".format(identifier))
-        else:
-            if "sequence" in self.__checked_ast[identifier]:
-                ret = self.__resolve_state(self.__checked_ast[identifier]["last"])
-            elif "options" in self.__checked_ast[identifier]:
-                for child in self.__checked_ast[identifier]["children"]:
-                    ret.extend(self.__resolve_state(child))
-            elif "brackets" in self.__checked_ast[identifier]:
-                ret = self.__resolve_state(self.__checked_ast[identifier]["follower"])
-            elif "terminal" in self.__checked_ast[identifier]:
-                ret = [self.__checked_ast[identifier]["state"]]
-            elif "process" in self.__checked_ast[identifier]:
-                ret = [self.__checked_subprocesses[self.__checked_ast[identifier]["name"]]]
-            else:
-                raise ValueError("Unknown AST type {}".format(str(self.__checked_ast[identifier])))
-        return ret
-
-    def save_fsa_digraph(self, file, identifier, process):
-        graph = graphviz.Digraph(
-            name=str(identifier),
-            comment="Digraph for FSA {} based on process {} with category {}".
-                    format(identifier, process.name, process.category),
-            format="png"
-        )
-
-        # Add process description
-        graph.node(
-            process.name,
-            "Process: {}".format(process.name),
-            {
-                "shape": "rectangle"
-            }
-        )
-
-        # Add subprocess description
-        for subprocess in [process.subprocesses[name] for name in process.subprocesses
-                           if process.subprocesses[name].process]:
-            graph.node(
-                subprocess.name,
-                "Subprocess {}: {}".format(subprocess.name, subprocess.process),
-                {
-                    "shape": "rectangle"
-                }
-            )
-
-        # Addd nodes
-        for index in range(self.__state_counter + 1):
-            graph.node(str(index), "State {}".format(index))
-
-        # Add edges
-        for transition in self.state_transitions:
-            graph.edge(
-                str(transition["in"]),
-                str(transition["out"]),
-                "{}: {}".format(transition["subprocess"].type, transition["subprocess"].name)
-            )
-
-        # Save to file
-        graph.save(file)
-        graph.render()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

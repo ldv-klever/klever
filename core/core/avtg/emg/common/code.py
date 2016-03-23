@@ -1,19 +1,24 @@
 import re
 
-from core.avtg.emg.common.interface import Signature
+from core.avtg.emg.common.signature import BaseType, import_signature
+
 
 class Variable:
     name_re = re.compile("\(?\*?%s\)?")
 
-    def __init__(self, name, file, signature=Signature("void *%s"), export=False):
+    def __init__(self, name, file, signature, export=False):
         self.name = name
         self.file = file
-        if not signature:
-            raise ValueError("Attempt to create variable {} without signature".format(name))
-        self.signature = signature
-        self.value = None
         self.export = export
+        self.value = None
         self.use = 0
+
+        if type(signature) is str:
+            self.declaration = import_signature(signature)
+        elif issubclass(type(signature), BaseType):
+            self.declaration = signature
+        else:
+            raise ValueError("Attempt to create variable {} without signature".format(name))
 
     def declare_with_init(self, init=True):
         # Ger declaration
@@ -21,8 +26,8 @@ class Variable:
 
         # Add memory allocation
         if not self.value and init:
-            if self.signature.pointer and self.signature.type_class == "struct":
-                alloc = ModelMap.init_pointer(self.signature)
+            if self.declaration.pointer and self.declaration.type_class == "struct":
+                alloc = FunctionModels.init_pointer(self.declaration)
                 self.value = alloc
 
         # Set value
@@ -31,22 +36,22 @@ class Variable:
         return declaration
 
     def free_pointer(self):
-        return "{}({})".format(ModelMap.free_function_map["FREE"], self.name)
+        return "{}({})".format(FunctionModels.free_function_map["FREE"], self.name)
 
     def declare(self, extern=False):
         # Generate declaration
-        declaration = self.signature.expression
+        declaration = self.declaration.expression
 
         # todo: investigate deeper why the condition should be so strange
-        if self.signature.type_class == "function" and not (not self.signature.return_value and
-                        None in self.signature.parameters):
-            if self.signature.return_value:
-                declaration = self.signature.return_value.expression.replace("%s", "") + " "
+        if self.declaration.type_class == "function" and not (not self.declaration.return_value and
+                        None in self.declaration.parameters):
+            if self.declaration.return_value:
+                declaration = self.declaration.return_value.expression.replace("%s", "") + " "
             else:
                 declaration = "void "
             declaration += '(*' + self.name + ')'
             params = []
-            for param in self.signature.parameters:
+            for param in self.declaration.parameters:
                 pr = param.expression
                 if param.pointer:
                     pr = pr.replace("*%s", "*")
@@ -59,7 +64,7 @@ class Variable:
                            ", ".join(params) + \
                            ')'
         else:
-            if self.signature.pointer:
+            if self.declaration.pointer:
                 declaration = declaration.replace("*%s", "*{}".format(self.name))
                 declaration = declaration.replace("%s", "*{}".format(self.name))
             else:
@@ -72,14 +77,17 @@ class Variable:
         return declaration
 
 
-class Function:
+class FunctionDefinition:
 
-    def __init__(self, name, file, signature=Signature("void %s(void)"), export=False):
+    def __init__(self, name, file, signature=None, export=False):
         self.name = name
         self.file = file
-        self.signature = signature
         self.export = export
         self.__body = None
+
+        if not signature:
+            signature = 'void f(void)'
+        self.declaration = import_signature(signature)
 
     @property
     def body(self, body=None):
@@ -108,7 +116,7 @@ class Function:
             lines.append("}\n")
             return lines
         else:
-            raise TypeError("Signature '{}' with class '{}' is not a function or it is a function pointer".
+            raise TypeError("BaseType '{}' with class '{}' is not a function or it is a function pointer".
                             format(self.signature.expression, self.signature.type_class))
 
 
@@ -151,7 +159,7 @@ class FunctionBody:
         return lines
 
 
-class ModelMap:
+class FunctionModels:
 
     # todo: implement all models
     mem_function_map = {
@@ -179,7 +187,7 @@ class ModelMap:
     @staticmethod
     def init_pointer(signature):
         if signature.type_class in ["struct", "primitive"] and signature.pointer:
-            return "{}(sizeof(struct {}))".format(ModelMap.mem_function_map["ALLOC"], signature.structure_name)
+            return "{}(sizeof(struct {}))".format(FunctionModels.mem_function_map["ALLOC"], signature.structure_name)
         else:
             raise NotImplementedError("Cannot initialize label {} which is not pointer to structure or primitive".
                                       format(signature.name, signature.type_class))

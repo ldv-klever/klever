@@ -2,17 +2,15 @@ import abc
 import os
 
 
-from core.avtg.emg.representations import Function, FunctionBody
+from core.avtg.emg.common.code import FunctionDefinition, FunctionBody
 
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
 
-    def __init__(self, logger, conf, avt, analysis, model, header_lines=None, aspect_lines=None):
+    def __init__(self, logger, conf, avt, header_lines=None, aspect_lines=None):
         self.logger = logger
         self.conf = conf
         self.task = avt
-        self.analysis = analysis
-        self.model = model
         self.files = {}
         self.aspects = {}
         self.entry_file = None
@@ -27,15 +25,16 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             self.additional_aspects = aspect_lines
 
+    def translate(self, analysis, model):
         # Determine entry point name and file
         self.logger.info("Determine entry point name and file")
-        self.__determine_entry()
+        self.__determine_entry(analysis)
         self.logger.info("Going to generate entry point function {} in file {}".
                          format(self.entry_point_name, self.entry_file))
 
         # Prepare entry point function
         self.logger.info("Generate C code from an intermediate model")
-        self._generate_entry_point()
+        self._generate_code(analysis, model)
 
         # Print aspect text
         self.logger.info("Add individual aspect files to the abstract verification task")
@@ -52,15 +51,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.logger.info("Model translation is finished")
 
     @abc.abstractmethod
-    def _generate_entry_point(self):
-        raise NotImplementedError("Use corresponding translator instead of this abstract one")
+    def _generate_code(self, analysis, model):
+        raise NotImplementedError
 
-    def __determine_entry(self):
-        if len(self.analysis.inits) == 1:
-            file = list(self.analysis.inits.keys())[0]
+    def __determine_entry(self, analysis):
+        if len(analysis.inits) == 1:
+            file = list(analysis.inits.keys())[0]
             self.logger.info("Choose file {} to add an entry point function".format(file))
             self.entry_file = file
-        elif len(self.analysis.inits) < 1:
+        elif len(analysis.inits) < 1:
             raise RuntimeError("Cannot generate entry point without module initialization function")
 
         if "entry point" in self.conf:
@@ -170,7 +169,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.task["entry points"] = [self.entry_point_name]
 
 
-class Aspect(Function):
+class Aspect(FunctionDefinition):
 
     def __init__(self, name, signature, aspect_type="after"):
         self.name = name
@@ -229,7 +228,6 @@ class Entry:
 
             self.marked[selected] = 1
             sorted_list.append(selected)
-
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 
