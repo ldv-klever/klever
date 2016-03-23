@@ -8,17 +8,25 @@ from django.utils.timezone import now
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
+BRIDGE_ERROR_LOG = 'error.log'
 BRIDGE_LOG = 'bridge.log'
 
 
 def print_err(message):
-    with open(os.path.join(settings.MEDIA_ROOT, BRIDGE_LOG), mode='a') as fp:
-        fp.write('=' * 30 + '\n')
+    with open(os.path.join(settings.MEDIA_ROOT, BRIDGE_ERROR_LOG), mode='a') as fp:
+        fp.write('=' * 30 + 'ERROR' + '=' * 30 + '\n')
         traceback.print_stack(file=fp)
         fp.close()
 
     if DEBUG:
         print(message)
+
+
+def print_log():
+    with open(os.path.join(settings.MEDIA_ROOT, BRIDGE_LOG), mode='a') as fp:
+        fp.write('=' * 30 + '\n')
+        traceback.print_stack(file=fp)
+        fp.close()
 
 
 def print_exec_time(f):
