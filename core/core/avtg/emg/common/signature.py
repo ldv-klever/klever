@@ -563,9 +563,21 @@ def setup_collection(collection):
 
 class BaseType:
 
-    def add_parent(self, parent):
-        if parent and parent not in self.parents:
-            self.parents.append(parent)
+    @property
+    def take_pointer(self):
+        pointer_signature = self.to_string('a', True)
+        return import_signature(pointer_signature)
+
+    @property
+    def identifier(self):
+        return self.to_string(replacement='')
+
+    @property
+    def weak_implementations(self):
+        if type(self) is Pointer:
+            return list(self.implementations.values()) + list(self.points.implementations.values())
+        else:
+            return list(self.implementations.values()) + list(self.take_pointer.implementations.values())
 
     def common_initialization(self, ast, parent):
         self._ast = ast
@@ -573,6 +585,10 @@ class BaseType:
         self.path = None
         self.parents = []
         self.add_parent(parent)
+
+    def add_parent(self, parent):
+        if parent and parent not in self.parents:
+            self.parents.append(parent)
 
     def compare(self, target):
         if type(self) is type(target):
@@ -589,18 +605,9 @@ class BaseType:
         return None
 
     def add_implementation(self, value, path, root_type, root_value, root_sequence):
-        new = Implementation(value, path, root_type, root_value, root_sequence)
+        new = Implementation(self, value, path, root_type, root_value, root_sequence)
         if new.identifier not in self.implementations:
             self.implementations[new.identifier] = new
-
-    @property
-    def take_pointer(self):
-        pointer_signature = self.to_string('a', True)
-        return import_signature(pointer_signature)
-
-    @property
-    def identifier(self):
-        return self.to_string(replacement='')
 
     def to_string(self, replacement='', pointer=False):
         if pointer:
@@ -848,12 +855,24 @@ class UndefinedReference(BaseType):
 
 class Implementation:
 
-    def __init__(self, value, file, base_container=None, base_value=None, sequence=None):
+    def __init__(self, declaration, value, file, base_container=None, base_value=None, sequence=None):
         self.base_container = base_container
         self.base_value = base_value
         self.value = value
         self.file = file
         self.sequence = sequence
         self.identifier = str([value, file, base_value])
+        self.__declaration = declaration
+
+    def adjusted_value(self, declaration):
+        if self.__declaration.compare(declaration):
+            return self.value
+        elif self.__declaration.compare(declaration.take_pointer):
+            return '*' + self.value
+        elif self.__declaration.take_pointer.compare(declaration):
+            return '&' + self.value
+        else:
+            raise ValueError("Cannot adjust declaration '{}' to declaration '{}'".
+                             format(self.__declaration.to_string('%s'), declaration.to_string('%s')))
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
