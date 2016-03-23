@@ -5,23 +5,30 @@ from core.lkvog.strategies.module import Graph
 
 
 class Strategy1:
-    def __init__(self, logger, deps, user_deps={}, params={}, export_func={}, module_sizes={}):
+    def __init__(self, logger, deps, user_deps={}, params={}, export_func=[], module_sizes={}):
         self.logger = logger
+
+        # Going to read params
         self.koef = params.get('koef', 5)
         self.max_g_for_m = params.get('max_g_for_m', 5)
-        self.user_deps = user_deps
-        self.group_size_non_const = params.get('group_size_non_const', True)
         self.minimize_groups_for_module = params.get('minimize_groups_for_module', True)
-        self.analyze_all_export_function = params.get('analyze_all_export_function', True) and bool(export_func)
         self.priority_on_module_size = params.get('priority_on_module_size', True) and bool(module_sizes)
-        self.priority_on_export_function = params.get('priority_on_export_function', True) and bool(export_func)
-        self.maximize_subsystems = params.get('maximize_subsystems', True)
         self.division_type = params.get('division_type', 'Library')
-        if self.division_type not in ('Library', 'Module'):
+        if self.division_type not in ('Library', 'Module', 'All'):
             raise ValueError("Division type {} doesn't exist".format(self.division_type))
+        self.analyze_all_export_function = \
+            params.get('analyze_all_export_function', self.division_type != 'Module') and bool(export_func)
+        self.analyze_all_calls = \
+            params.get('analyze_all_calls', self.division_type != 'Library') and bool(export_func)
+        self.priority_on_export_function = \
+            params.get('priority_on_export_function', self.division_type != 'Module') and bool(export_func)
+        self.priority_on_calls = \
+            params.get('priority_on_calls', self.division_type != 'Library') and bool(export_func)
+        self.maximize_subsystems = params.get('maximize_subsystems', True)
+        self.user_deps = user_deps
 
+        # Creating modules dict
         self.modules = {}
-        self.not_checked_export_f = {}
         for module, m_deps in deps.items():
             self.modules.setdefault(module, Module(module))
             for m_dep in m_deps:
@@ -30,11 +37,20 @@ class Strategy1:
 
             self.modules[module].size = module_sizes.get(module, 0)
 
-        for module in export_func:
-            if module not in self.modules:
+        # Creating export/call functions
+        self.not_checked_export_f = {}
+        self.not_checked_call_f = {}
+        for module_pred, func, module_succ in export_func:
+            if module_pred not in self.modules or module_succ not in self.modules:
                 continue
-            self.modules[module].export_functions = export_func[module]
-            self.not_checked_export_f[module] = set(self.modules[module].export_functions.keys())
+            self.modules[module_succ].export_functions.setdefault(func, [])
+            self.modules[module_succ].export_functions[func].append(self.modules[module_pred])
+            self.modules[module_pred].call_functions.setdefault(func, [])
+            self.modules[module_pred].call_functions[func].append(self.modules[module_succ])
+
+        for module in self.modules.values():
+            self.not_checked_export_f[module] = set(module.export_functions.keys())
+            self.not_checked_call_f[module] = set(module.call_functions.keys())
 
         self.checked_clusters = set()
         self.checked_modules = set()
@@ -42,37 +58,61 @@ class Strategy1:
 
     def is_fully_checked(self, module):
         if module not in self.checked_modules:
+            # Not checked even once
             return False
 
-        if self.analyze_all_export_function and self.not_checked_export_f.get(module.id, {}):
+        if self.analyze_all_export_function and self.not_checked_export_f.get(module, {}):
+            # Not checked all export functions, but must
             return False
 
-        if not self.analyze_all_export_function and self.count_groups_for_m.get(module, 0) > self.max_g_for_m:
+        if self.analyze_all_calls and self.not_checked_call_f.get(module, {}):
+            # Not checked all calls, but must
+            return False
+
+        if not self.analyze_all_export_function and not self.analyze_all_calls and\
+                self.count_groups_for_m.get(module, 0) > self.max_g_for_m:
+            # All export functions has checked and the max gropus for the module has reached
             return True
 
-        if self.analyze_all_export_function and not self.not_checked_export_f.get(module.id, {}) \
-                and self.minimize_groups_for_module:
+        if self.analyze_all_export_function and not self.not_checked_export_f.get(module, {}) \
+                and not self.analyze_all_calls and self.minimize_groups_for_module:
+            # Should check all export functions once
+            return True
+
+        if self.analyze_all_calls and not self.not_checked_call_f.get(module, {}) \
+                and not self.analyze_all_export_function and self.minimize_groups_for_module:
+            # All calls has checked and the max gropus for the module has reached
+            return True
+
+        if self.analyze_all_calls and not self.analyze_all_export_function\
+                and not self.not_checked_export_f.get(module, {}) and self.minimize_groups_for_module:
+            # Should check all calls once
             return True
 
         return False
 
-    def user_weight(self, module1, module2):
-        if (module1 in self.user_deps and module2 in self.user_deps[module1]) \
-                or (module2 in self.user_deps and module1 in self.user_deps[module2]):
-            return 1
-        else:
-            return 0
-
     def export_weight(self, module_pred, module_succ):
+        # Count export functions, that successor calls from predecessor (this module)
         if not self.priority_on_export_function:
             return 0
         ret = 0
-        for ex_f in self.not_checked_export_f.get(module_pred.id, set()):
-            if module_succ.id in module_pred.export_functions[ex_f]:
+        for ex_f in self.not_checked_export_f.get(module_pred, set()):
+            if module_succ in module_pred.export_functions[ex_f]:
                 ret += 1
         return 3 * ret
 
-    def size_weight(self, unused_module, module):
+    def call_weight(self, module_succ, module_pred):
+        # Count functions, that successor (this module) calls from predecessor
+        if not self.priority_on_calls:
+            return 0
+        ret = 0
+        for call in self.not_checked_call_f.get(module_succ, set()):
+            if module_pred in module_succ.call_functions[call]:
+                ret += 1
+        return 3*ret
+
+    def size_weight(self, module, unused):
+        # Weight based on module size
         if not self.priority_on_module_size:
             return 0
         if module.size < 256 * 1024:
@@ -81,26 +121,59 @@ class Strategy1:
             return 1
         return 0
 
-    def provided_weight(self, unused, module):
+    def export_provided_weight(self, module, unused):
+        # Count functions, that successor provides
         return len(module.export_functions)
 
+    def call_provided_weight(self, module, unused):
+        # Count functions, that predecessor provides
+        return len(module.call_functions)
+
     def remoteness_weight(self, module1, module2):
+        # Returns non-zero if modules from difference subsystems
         if not self.maximize_subsystems:
             return 0
         subsystem1 = module1.id[:module1.id.rfind('/')]
         subsystem2 = module2.id[:module2.id.rfind('/')]
-        return 1 if subsystem1.startswith(subsystem2) or subsystem2.startswith(subsystem1) else 0
+        return 0 if subsystem1.startswith(subsystem2) or subsystem2.startswith(subsystem1) else 1
 
-    def count_already_weight(self, unused_module, module):
-        return int((self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m)
+    def count_already_weight(self, module, unused):
+        # Returns weight based on counts groups for module
+        return int(10*(self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m)
 
-    def measure(self, module_pred, module_succ):
-        weights = (self.export_weight, self.size_weight,
-                   self.provided_weight, self.remoteness_weight, self.count_already_weight)
-        ret = sum([x(module_pred, module_succ) for x in weights])
-        return ret
+    def all_call_weight(self, module, process):
+        # Returns count of functions, that module can call from process
+        # If process doesn't provide export functions, but is an successor,
+        # assume, he provide 1 export functions
+        checked = set()
+        ret = 0
+        for m in process:
+            for values in m.call_functions.values():
+                if module.id in values:
+                    ret += 1
+                    checked.add(m)
+            for v in module.call_functions.values():
+                if m in v:
+                    checked.add(m)
+                    ret += 1
+        for m in set(process).difference(checked):
+            if m in module.successors or m in module.predecessors:
+                ret += 1
+        return 2*ret
+
+    def measure_successor(self, module_pred, module_succ):
+        weights = (self.export_weight, self.size_weight, self.export_provided_weight,
+                       self.remoteness_weight, self.count_already_weight)
+        return sum([x(module_pred, module_succ) for x in weights])
+
+    def measure_predecessor(self, module_pred, module_succ, process=set()):
+        weights = (self.call_weight, self.size_weight, self.call_provided_weight,
+                   self.remoteness_weight, self.count_already_weight)
+        return sum([x(module_succ, module_pred) for x in weights]) + self.all_call_weight(module_pred, process)
 
     def get_user_deps(self, module):
+        # Returns set of modules, that depends from given module
+        # Depends extracts from user spec.
         ret = set()
         process = [self.user_deps.get(module.id, [])]
         while process:
@@ -113,6 +186,19 @@ class Strategy1:
                     process.append(self.user_deps[c])
         return ret
 
+    def topolog_sort(self, main_module, modules):
+        ret = {}
+        process = [(1, x) for x in main_module.predecessors]
+        while process:
+            i, module = process.pop()
+            if module not in modules:
+                continue
+            ret.setdefault(module, i)
+            ret[module] = max(ret[module], i)
+            process.extend([(i + 1, x) for x in module.predecessors])
+
+        return map(lambda x: x[0], sorted(ret.items(), key=lambda x: x[1]))
+
     def divide(self, module_name):
         if module_name not in self.modules:
             # This module has no dependencies
@@ -120,62 +206,80 @@ class Strategy1:
             return [[Module(module_name)]]
 
         main_module = self.modules[module_name]
-        if self.division_type == 'Library':
-            if self.is_fully_checked(main_module):
-                self.logger.debug('Module {} reachs max group'.format(main_module.id))
-                return []
+        if self.is_fully_checked(main_module):
+            self.logger.debug('Module {} reachs max group'.format(main_module.id))
+            return []
 
-            ret = set()
-            if module_name == 'drivers/usb/core/usbcore.ko':
-                pass
-            checked = set()
-            while not self.is_fully_checked(main_module):
+        ret = set()
+        checked = set()
+        while not self.is_fully_checked(main_module):
+            # Any iteration starts with appending objective module and his user dependencies
+            process = set()
+            process.add(main_module)
+            process.update(self.get_user_deps(main_module))
+            checked.update(self.get_user_deps(main_module))
 
-                process = set()
-                process.add(main_module)
-                process.update(self.get_user_deps(main_module))
-                checked.update(self.get_user_deps(main_module))
-                while len(process) < self.koef:
-                    max_measuring = 0
-                    best_succ = None
-                    for module in process:
+            # Appending while size of group less koef
+            while len(process) < self.koef:
+                max_measuring = 0
+                best_candidate = None
+                for module in process:
+                    if self.division_type != 'Module':
+                        # Search best candidate from successors
                         for succ in filter(lambda x: x not in process and
                                 not self.count_groups_for_m.get(x.id, 0) > self.max_g_for_m and x not in checked and
-                                len(process) + len(self.get_user_deps(x)) < self.koef,
+                                                len(process) + len(self.get_user_deps(x)) < self.koef,
                                            module.successors):
-                            cur_measure = self.measure(module, succ)
+                            cur_measure = self.measure_successor(module, succ)
                             if cur_measure > 0 and cur_measure > max_measuring:
                                 max_measuring = cur_measure
-                                best_succ = succ
+                                best_candidate = succ
+                    if self.division_type != 'Library':
+                        # Search best candidate from predecessors
+                        for pred in self.topolog_sort(main_module, list(filter(lambda x: x not in process and
+                            not self.count_groups_for_m.get(x.id, 0) > self.max_g_for_m and x not in checked,
+                                       module.predecessors))):
+                            cur_measure = self.measure_predecessor(module, pred, process)
+                            if cur_measure > 0 and cur_measure > max_measuring:
+                                max_measuring = cur_measure
+                                best_candidate = pred
 
-                    if best_succ:
-                        process.add(best_succ)
-                        process.update(self.get_user_deps(best_succ))
-                        checked.update(self.get_user_deps(best_succ))
-                        checked.add(best_succ)
-                        for pred in filter(lambda x: x in process, best_succ.predecessors):
-                            self.not_checked_export_f.setdefault(pred.id, set()).difference_update \
-                                ([f for f, m in pred.export_functions.items() if best_succ.id in m])
-                        for succ in filter(lambda x: x in process, best_succ.successors):
-                            self.not_checked_export_f.setdefault(best_succ, set()).difference_update \
-                                ([f for f, m in best_succ.export_functions.items() if succ.id in m])
-                    else:
-                        break
+                if best_candidate:
+                    process.add(best_candidate)
+                    process.update(self.get_user_deps(best_candidate))
+                    checked.update(self.get_user_deps(best_candidate))
+                    checked.add(best_candidate)
+
+                    # Update not checked export functions and not checked call functions
+                    for pred in filter(lambda x: x in process, best_candidate.predecessors):
+                        self.not_checked_export_f.setdefault(pred, set()).difference_update \
+                            ([f for f, m in pred.export_functions.items() if best_candidate in m])
+                    for succ in filter(lambda x: x in process, best_candidate.successors):
+                        self.not_checked_export_f.setdefault(best_candidate, set()).difference_update \
+                            ([f for f, m in best_candidate.export_functions.items() if succ in m])
+
+                    self.not_checked_call_f.setdefault(pred, set()).difference_update \
+                            ([f for f, m in pred.export_functions.items() if best_candidate in m])
+                    for succ in filter(lambda x: x in process, best_candidate.successors):
+                        self.not_checked_call_f.setdefault(best_candidate, set()).difference_update \
+                            ([f for f, m in best_candidate.export_functions.items() if succ in m])
                 else:
-                    if process in ret:
-                        break
-                    ret.add(frozenset(process))
-                    for module in process:
-                        self.checked_modules.add(module)
-                        self.count_groups_for_m.setdefault(module, 0)
-                        self.count_groups_for_m[module] += 1
-                    continue
-                if len(process) > 1:
-                    ret.add(frozenset(process))
+                    break
+            else:
+                if process in ret:
+                    break
+                ret.add(frozenset(process))
                 for module in process:
                     self.checked_modules.add(module)
                     self.count_groups_for_m.setdefault(module, 0)
                     self.count_groups_for_m[module] += 1
-                break
+                continue
+            if len(process) > 1:
+                ret.add(frozenset(process))
+            for module in process:
+                self.checked_modules.add(module)
+                self.count_groups_for_m.setdefault(module, 0)
+                self.count_groups_for_m[module] += 1
+            break
 
         return ret
