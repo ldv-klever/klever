@@ -17,6 +17,7 @@ from reports.models import *
 from reports.utils import AttrData
 
 ET_FILE = 'unsafe-error-trace.graphml'
+REPORT_LOG_FILE = 'report.log'
 
 
 class KleverCoreDownloadJob(object):
@@ -116,7 +117,7 @@ class DownloadJob(object):
         self.__add_safe_files(jobtar_obj)
         self.__add_unsafe_files(jobtar_obj)
         self.__add_unknown_files(jobtar_obj)
-        self.__add_report_logs(jobtar_obj)
+        self.__add_component_files(jobtar_obj)
         common_data = {
             'format': str(self.job.format),
             'type': str(self.job.type),
@@ -155,12 +156,19 @@ class DownloadJob(object):
             tinfo.size = len(unknown.problem_description)
             jobtar.addfile(tinfo, BytesIO(unknown.problem_description))
 
-    def __add_report_logs(self, jobtar):
+    def __add_component_files(self, jobtar):
         for report in ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(log=None)):
-            jobtar.add(
-                os.path.join(settings.MEDIA_ROOT, report.log.file.name),
-                arcname=os.path.join('Logs', str(report.pk))
-            )
+            memory = BytesIO()
+            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
+            for f in report.files.all():
+                tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
+            tarobj.add(os.path.join(settings.MEDIA_ROOT, report.log.file.name), arcname=REPORT_LOG_FILE)
+            tarobj.close()
+            memory.seek(0)
+            tarname = '%s.tar.gz' % report.pk
+            tinfo = tarfile.TarInfo(os.path.join('Components', tarname))
+            tinfo.size = memory.getbuffer().nbytes
+            jobtar.addfile(tinfo, memory)
 
 
 class ReportsData(object):
@@ -269,8 +277,10 @@ class UploadJob(object):
                     report_files[('safe', int(file_name))] = os.path.join(dir_path, file_name)
                 elif dir_path.endswith('Unknowns'):
                     report_files[('unknown', int(file_name))] = os.path.join(dir_path, file_name)
-                elif dir_path.endswith('Logs'):
-                    report_files[('log', int(file_name))] = os.path.join(dir_path, file_name)
+                elif dir_path.endswith('Components'):
+                    m = re.match('(\d+)\.tar\.gz', file_name)
+                    if m is not None:
+                        report_files[('component', int(m.group(1)))] = os.path.join(dir_path, file_name)
 
         if any(x not in jobdata for x in ['format', 'type', 'status', 'filedata', 'reports']):
             return _("The job archive is corrupted")
@@ -401,8 +411,14 @@ class UploadReports(object):
             if data['parent'] in self._pk_map:
                 parent = self._pk_map[data['parent']]
             else:
-                print_err('Report component parent was not found')
-                return
+                raise ValueError('Report component parent was not found')
+        if ('component', data['pk']) not in self.files:
+            raise ValueError('Component report files was not found')
+        with open(self.files[('component', data['pk'])], mode='rb') as fp:
+            uf = UploadReportFiles(fp, log=REPORT_LOG_FILE, need_other=True)
+        if uf.log is None:
+            raise ValueError('Component report without log was found')
+
         self._pk_map[data['pk']] = ReportComponent.objects.create(
             root=self.job.reportroot,
             parent=parent,
@@ -415,16 +431,17 @@ class UploadReports(object):
             start_date=datetime(*data['start_date'], tzinfo=pytz.timezone('UTC')),
             finish_date=datetime(*data['finish_date'], tzinfo=pytz.timezone('UTC'))
             if data['finish_date'] is not None else None,
-            log=self.__get_log(data['pk'], data['component']),
+            log=uf.log,
             data=data['data'].encode('utf8') if data['data'] is not None else None
         )
         for attr in data['attrs']:
             self._attrs.add(self._pk_map[data['pk']].pk, attr[0], attr[1])
+        for rep_f in uf.other_files:
+            ReportFiles.objects.get_or_create(file=rep_f['file'], name=rep_f['name'], report=self._pk_map[data['pk']])
 
     def __create_report_safe(self, data):
         if ('safe', data['pk']) not in self.files:
-            print_err('Safe without proof was found')
-            return
+            raise ValueError('Safe without proof was found')
         parent = None
         if 'parent' in data and data['parent'] in self._pk_map:
             parent = self._pk_map[data['parent']]
@@ -440,8 +457,7 @@ class UploadReports(object):
 
     def __create_report_unknown(self, data):
         if ('unknown', data['pk']) not in self.files:
-            print_err('Unknown without problem description was found')
-            return
+            raise ValueError('Unknown without problem description was found')
         parent = None
         if 'parent' in data and data['parent'] in self._pk_map:
             parent = self._pk_map[data['parent']]
@@ -458,13 +474,11 @@ class UploadReports(object):
 
     def __create_report_unsafe(self, data):
         if ('unsafe', data['pk']) not in self.files:
-            print_err('Unsafe without files was found')
-            return
+            raise ValueError('Unsafe without files was found')
         with open(self.files[('unsafe', data['pk'])], mode='rb') as fp:
             uf = UploadReportFiles(fp, file_name=ET_FILE, need_other=True)
         if uf.file_content is None:
-            print_err('Unsafe without error trace was found')
-            return
+            raise ValueError('Unsafe without error trace was found')
         if 'parent' in data and data['parent'] in self._pk_map:
             parent = self._pk_map[data['parent']]
         else:
