@@ -13,7 +13,7 @@
             <label for="run_history"></label>
             <select id="run_history" class="ui dropdown normal-dropdown">
                 {% for rh in job.runhistory_set.all|dictsortreversed:'date' %}
-                    <option value="{{ rh.pk }}">{{ rh.get_status_display }} ({{ rh.date }})</option>
+                    <option value="{{ rh.pk }}">{{ rh.get_status_display }}{% if rh.operator %} ({{ rh.operator.extended.last_name }} {{ rh.operator.extended.first_name }}){% endif %} - {{ rh.date }}</option>
                 {% endfor %}
             </select>
             <button id="download_configuration" class="ui violet button">{% trans 'Download configuration file' %}</button>
