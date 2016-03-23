@@ -63,9 +63,9 @@ class CategoriesSpecification:
         return [container for container in self.containers(category)
                 if type(container.declaration) is Structure and
                 ((field in container.field_interfaces and
-                 (not signature or container.field_interfaces[field].declaration.identifier == signature.identifier)) or
-                (field in container.declaration.fields and
-                 (not signature or container.declaration.fields[field].identifier == signature.identifier))) and
+                  (not signature or container.field_interfaces[field].declaration.identifier == signature.identifier)) or
+                 (field in container.declaration.fields and
+                  (not signature or container.declaration.fields[field].identifier == signature.identifier))) and
                 (not category or container.category == category)]
 
     def resolve_containers(self, target, category=None):
@@ -93,6 +93,28 @@ class CategoriesSpecification:
         elif not intf and type(signature) is not Pointer and signature.clean_declaration:
             intf = self.resolve_interface(signature.take_pointer, category)
         return intf
+
+    def implementations(self, interface, weakly=True):
+        if weakly:
+            candidates = interface.declaration.weak_implementations
+        else:
+            candidates = list(interface.declaration.implementations.values())
+
+        if len(candidates) == 0:
+            return candidates
+        else:
+            # Filter filter interfaces
+            implementations = []
+            for impl in candidates:
+                if len(impl.sequence) > 0:
+                    cnts = self.resolve_containers(interface)
+                    if impl.sequence[-1] in cnts.values() and \
+                            list(cnts.keys())[list(cnts.values()).index(impl.sequence[-1])] == interface.identifier:
+                        implementations.append(impl)
+                else:
+                    implementations.append(impl)
+
+            return implementations
 
     def _refine_declaration(self, declaration):
         if declaration.clean_declaration:

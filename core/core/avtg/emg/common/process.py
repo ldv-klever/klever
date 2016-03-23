@@ -1,5 +1,56 @@
-import copy
 import re
+
+from core.avtg.emg.common.signature import Array, Function, Structure, Pointer
+
+
+__process_grammar = \
+'''
+(* Main expression *)
+FinalProcess = (Operators | Bracket)$;
+Operators = Switch | Sequence;
+
+(* Signle process *)
+Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
+Null = null:'0';
+ReceiveProcess = receive:Receive;
+SendProcess = dispatch:Send;
+SubprocessProcess = subprocess:Subprocess;
+ConditionProcess = condition:Condition;
+Receive = '('[replicative:'!']name:identifier[number:Repetition]')';
+Send = '['[broadcast:'@']name:identifier[number:Repetition]']';
+Condition = '<'name:identifier[number:Repetition]'>';
+Subprocess = '{'name:identifier'}';
+
+(* Operators *)
+Sequence = sequence:SequenceExpr;
+Switch = options:SwitchExpr;
+SequenceExpr = @+:Process{'.'@+:Process}*;
+SwitchExpr = @+:Sequence{'|'@+:Sequence}+;
+
+(* Brackets *)
+Bracket = process:BracketExpr;
+BracketExpr = '('@:Operators')';
+
+(* Basic expressions and terminals *)
+Repetition = '['@:(number | label)']';
+identifier = /\w+/;
+number = /\d+/;
+label = /%\w+%/;
+'''
+__process_model = None
+
+
+def process_parse(string):
+    __check_grammar()
+    return __process_model.parse(string, ignorecase=True)
+
+
+def __check_grammar():
+    global __process_model
+
+    if not __process_model:
+        import grako
+        __process_model = grako.genmodel('process', __process_grammar)
 
 
 def generate_regex_set(subprocess_name):
@@ -68,6 +119,7 @@ def get_common_interface(subprocess, process, position):
             return list(interfaces)[0]
 #############################################
 
+
 class Access:
     def __init__(self, expression):
         self.expression = expression
@@ -86,18 +138,46 @@ class Access:
             return statement
 
     def access_with_variable(self, variable):
-        access = copy.deepcopy(self.list_access)
-        access[0] = variable.name
-
         # Increase use counter
         variable.use += 1
 
-        # todo: this is ugly and incorrect
-        if variable.signature.pointer:
-            expr = '->'.join(access)
+        if self.label and self.label.prior_signature:
+            target = self.label.prior_signature
+        elif self.label and self.list_interface[-1].identifier in self.label.interfaces:
+            target = self.label.get_declaration(self.list_interface[-1].identifier)
         else:
-            expr = '.'.join(access)
-        return expr
+            target = self.list_interface[-1].declaration
+
+        expression = variable.name
+        candidate = variable.declaration
+        accesses = list(self.list_access)
+        previous = None
+        while candidate:
+            if candidate.compare(target):
+                candidate = None
+                if type(previous) is Pointer:
+                    expression = "*({})".format(expression)
+            elif type(candidate) is Pointer:
+                candidate = candidate.points
+            elif type(candidate) is Array:
+                candidate = candidate.element
+                expression += '[{}]'.format(accesses.pop(0))
+            elif type(candidate) is Structure:
+                field = accesses.pop(0)
+                if field in candidate.fields:
+                    candidate = candidate.fields[field]
+                    if type(previous) is Pointer:
+                        expression += '->{}'.format(field)
+                    else:
+                        expression += '.{}'.format(field)
+                else:
+                    raise ValueError('CAnnot build access from given variable')
+            else:
+                raise ValueError('CAnnot build access from given variable')
+
+            previous = candidate
+
+        return expression
 
 
 class Label:
@@ -161,8 +241,9 @@ class Process:
         self.actions = {}
         self.category = None
         self.process = None
-        self.process_ast = None
+        self.__process_ast = None
         self.__accesses = None
+        self.__forbidded_implementations = {}
 
     @property
     def unmatched_receives(self):
@@ -195,6 +276,12 @@ class Process:
     def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
         return name
+
+    @property
+    def process_ast(self):
+        if not self.__process_ast:
+            self.__process_ast = process_parse(self.process)
+        return self.__process_ast
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
@@ -303,7 +390,7 @@ class Process:
             return self.__accesses[string]
         else:
             return [acc for acc in self.__accesses[string]
-                    if acc.interface and acc.interface.full_identifier == interface][0]
+                    if acc.interface and acc.interface.identifier == interface][0]
 
     def __compare_signals(self, process, first, second):
         if first.name == second.name and len(first.parameters) == len(second.parameters):
@@ -326,14 +413,32 @@ class Process:
         else:
             return False
 
+    def forbid_implementation(self, whatever):
+        # todo: implement method to add filter on implementations resolving acces
+        pass
+
+    def get_implementations(self, analysis, access):
+        if access.label and access.label.prior_signature:
+            return []
+        else:
+            implementations = analysis.implementations(access.list_interface[-1])
+
+            return [impl for impl in implementations if impl.identifier not in self.__forbidded_implementations]
+
 
 class Subprocess:
 
     def __init__(self, name):
         self.name = name
         self.process = None
-        self.process_ast = None
         self.condition = None
+        self.__process_ast = None
+
+    @property
+    def process_ast(self):
+        if not self.__process_ast:
+            self.__process_ast = process_parse(self.process)
+        return self.__process_ast
 
 
 class Dispatch:

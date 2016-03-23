@@ -119,7 +119,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     entity = {
                         "path": variable['path'],
                         "description": variable,
-                        "root value": None,
+                        "root value": variable_name,
                         "root type": None,
                         "root sequence": [],
                         "type": signature
@@ -195,12 +195,10 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             elif "value" in entity["description"] and type(entity["description"]['value']) is list:
                 for entry in entity["description"]['value']:
                     if type(entity['type']) is Array:
-                        if not entity["root type"] and not entity["root value"]:
+                        if not entity["root type"]:
                             new_root_type = bt
-                            new_root_value = entity["description"]["value"]
                         else:
                             new_root_type = entity["root type"]
-                            new_root_value = entity["root value"]
 
                         e_bt = bt.element
                         new_sequence = list(entity["root sequence"])
@@ -211,7 +209,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                             "description": entry,
                             "path": entity["path"],
                             "root type": new_root_type,
-                            "root value": new_root_value,
+                            "root value": entity["root value"],
                             "root sequence": new_sequence
                         }
                     elif type(entity['type']) is Structure:
