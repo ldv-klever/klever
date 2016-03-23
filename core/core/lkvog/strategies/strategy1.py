@@ -70,7 +70,7 @@ class Strategy1:
         for ex_f in self.not_checked_export_f.get(module_pred.id, set()):
             if module_succ.id in module_pred.export_functions[ex_f]:
                 ret += 1
-        return 3*ret
+        return 3 * ret
 
     def size_weight(self, unused_module, module):
         if not self.priority_on_module_size:
@@ -92,12 +92,25 @@ class Strategy1:
         return 1 if subsystem1.startswith(subsystem2) or subsystem2.startswith(subsystem1) else 0
 
     def count_already_weight(self, unused_module, module):
-        return int((self.max_g_for_m-self.count_groups_for_m.get(module, 0))/self.max_g_for_m)
+        return int((self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m)
 
     def measure(self, module_pred, module_succ):
         weights = (self.export_weight, self.size_weight,
                    self.provided_weight, self.remoteness_weight, self.count_already_weight)
         ret = sum([x(module_pred, module_succ) for x in weights])
+        return ret
+
+    def get_user_deps(self, module):
+        ret = set()
+        process = [self.user_deps.get(module.id, [])]
+        while process:
+            curr = process.pop(0)
+            for c in curr:
+                if c not in self.modules:
+                    continue
+                ret.add(self.modules[c])
+                if c in self.user_deps:
+                    process.append(self.user_deps[c])
         return ret
 
     def divide(self, module_name):
@@ -120,20 +133,25 @@ class Strategy1:
 
                 process = set()
                 process.add(main_module)
+                process.update(self.get_user_deps(main_module))
+                checked.update(self.get_user_deps(main_module))
                 while len(process) < self.koef:
                     max_measuring = 0
                     best_succ = None
                     for module in process:
                         for succ in filter(lambda x: x not in process and
-                                not self.count_groups_for_m.get(x.id, 0) > self.max_g_for_m and x not in checked,
+                                not self.count_groups_for_m.get(x.id, 0) > self.max_g_for_m and x not in checked and
+                                len(process) + len(self.get_user_deps(x)) < self.koef,
                                            module.successors):
                             cur_measure = self.measure(module, succ)
                             if cur_measure > 0 and cur_measure > max_measuring:
-                                max_measuring = self.measure(module, succ)
+                                max_measuring = cur_measure
                                 best_succ = succ
 
                     if best_succ:
                         process.add(best_succ)
+                        process.update(self.get_user_deps(best_succ))
+                        checked.update(self.get_user_deps(best_succ))
                         checked.add(best_succ)
                         for pred in filter(lambda x: x in process, best_succ.predecessors):
                             self.not_checked_export_f.setdefault(pred.id, set()).difference_update \
@@ -152,7 +170,8 @@ class Strategy1:
                         self.count_groups_for_m.setdefault(module, 0)
                         self.count_groups_for_m[module] += 1
                     continue
-                ret.add(frozenset(process))
+                if len(process) > 1:
+                    ret.add(frozenset(process))
                 for module in process:
                     self.checked_modules.add(module)
                     self.count_groups_for_m.setdefault(module, 0)
