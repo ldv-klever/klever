@@ -85,22 +85,25 @@
                         <input class="tasks_gen_parallelism" name="tasks_gen_parallelism" type="hidden" value="{{ p.0 }}">
                     </span>
                 {% endfor %}
-                <br><br><br>
-                <label for="build_parallelism__value">{% trans 'Build' %}*</label>
-                <div class="ui fluid input">
-                    <input id="build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
-                </div>
-                <br>
-                <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}*</label>
-                <div class="ui fluid input">
-                    <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.1 }}">
-                </div>
                 <br><br>
-                <span class="italic bold-text" style="color: #de83c2">*{% trans 'Please, use points rather than commas as the decimal delimeter' %}</span>
+                <div class="ui grid">
+                    <div class="eight wide column">
+                        <label for="build_parallelism__value">{% trans 'Build' %}</label>
+                        <div class="ui fluid input">
+                            <input id="build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
+                        </div>
+                    </div>
+                    <div class="eight wide column">
+                        <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}</label>
+                        <div class="ui fluid input">
+                            <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.1 }}">
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="ui violet segment need-auth" style="width: 35%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
                 <h3>{% trans 'Resource limits for Klever Core' %}</h3>
-                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0*</label>
+                <label for="max_ram">{% trans 'Memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 2.0</label>
                 <div class="ui input fluid">
                     <input id="max_ram" type="text" value="{{ data.default.2.0 }}">
                 </div>
@@ -110,7 +113,7 @@
                     <input id="max_cpus" type="number" value="{{ data.default.2.1 }}" pattern="[0-9]+">
                 </div>
                 <br>
-                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0*</label>
+                <label for="max_disk">{% trans 'Disk memory size' %} ({% trans 'GB' %}), {% trans 'e.g.' %} 100.0</label>
                 <div class="ui input fluid">
                     <input id="max_disk" type="text" value="{{ data.default.2.2 }}">
                 </div>
@@ -120,67 +123,51 @@
                     <input id="cpu_model" type="text"{% if data.default.2.3 %} value="{{ data.default.2.3 }}"{% endif %}>
                 </div>
                 <br>
-                <label for="max_cpu_time">{% trans 'CPU time' %} ({% trans 'min' %}), {% trans 'e.g.' %} 16.0 ({% trans 'empty value means unlimited time' %})*</label>
+                <label for="max_cpu_time">{% trans 'CPU time' %} ({% trans 'min' %}), {% trans 'e.g.' %} 16.0 ({% trans 'empty value means unlimited time' %})</label>
                 <div class="ui input fluid">
                     <input id="max_cpu_time" type="text"{% if data.default.2.4 %} value="{{ data.default.2.4 }}"{% endif %}>
                 </div>
                 <br>
-                <label for="max_wall_time">{% trans 'Wall time' %} ({% trans 'min' %}), {% trans 'e.g.' %} 15.1 ({% trans 'empty value means unlimited time' %})*</label>
+                <label for="max_wall_time">{% trans 'Wall time' %} ({% trans 'min' %}), {% trans 'e.g.' %} 15.1 ({% trans 'empty value means unlimited time' %})</label>
                 <div class="ui input fluid">
                     <input id="max_wall_time" type="text"{% if data.default.2.5 %} value="{{ data.default.2.5 }}"{% endif %}>
                 </div>
-                <br><br>
-                <span class="italic bold-text" style="color: #de83c2">*{% trans 'Please, use points rather than commas as the decimal delimeter' %}</span>
             </div>
         </div>
         <div class="ui horizontal segments need-auth" {% if data.default.0.1 == '1' and data.need_auth %} style="display: none"{% endif %}>
             <div class="ui violet segment">
                 <h3>{% trans 'Logging' %}</h3>
                 <p class="bold-text">{% trans 'Console' %}</p>
-                <div class="ui grid">
-                    <div class="seven wide column">
-                        <label for="console_logging_level">{% trans 'Logging level' %}</label>
-                        <select id="console_logging_level" class="ui dropdown mini fluid normal-dropdown">
-                            {% for ll in data.logging_levels %}
-                                <option value="{{ ll }}"{% if data.default.3.0 == ll %} selected{% endif %} >{{ ll }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="nine wide column">
-                        <br><br>
-                        {% for f in data.formatters %}
-                            <span class="get-attr-value">{{ f.1 }}<input class="console_log_formatter" name="formatter" type="hidden" value="{{ f.0 }}"></span>
-                        {% endfor %}
-                    </div>
-                </div>
-                <br>
+                <label for="console_logging_level">{% trans 'Logging level' %}</label><br>
+                <select id="console_logging_level" class="ui dropdown mini normal-dropdown">
+                    {% for ll in data.logging_levels %}
+                        <option value="{{ ll }}"{% if data.default.3.0 == ll %} selected{% endif %} >{{ ll }}</option>
+                    {% endfor %}
+                </select>
+                <br><br>
                 <label for="console_log_formatter__value">{% trans 'Formatter' %}</label>
                 <div class="ui fluid input">
                     <input id="console_log_formatter__value" value="{{ data.default.3.1 }}">
                 </div>
+                {% for f in data.formatters %}
+                    <span class="get-attr-value">{{ f.1 }}<input class="console_log_formatter" name="formatter" type="hidden" value="{{ f.0 }}"></span>
+                {% endfor %}
                 <div class="ui divider"></div>
                 <p class="bold-text">{% trans 'File' %}</p>
-                <div class="ui grid">
-                    <div class="seven wide column">
-                        <label for="file_logging_level">{% trans 'Logging level' %}</label>
-                        <select id="file_logging_level" class="ui dropdown mini fluid normal-dropdown">
-                            {% for ll in data.logging_levels %}
-                                <option value="{{ ll }}"{% if data.default.3.2 == ll %} selected{% endif %} >{{ ll }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="nine wide column">
-                        <br><br>
-                        {% for f in data.formatters %}
-                            <span class="get-attr-value">{{ f.1 }}<input class="file_log_formatter" name="formatter" type="hidden" value="{{ f.0 }}"></span>
-                        {% endfor %}
-                    </div>
-                </div>
-                <br>
+                <label for="file_logging_level">{% trans 'Logging level' %}</label><br>
+                <select id="file_logging_level" class="ui dropdown mini normal-dropdown">
+                    {% for ll in data.logging_levels %}
+                        <option value="{{ ll }}"{% if data.default.3.2 == ll %} selected{% endif %} >{{ ll }}</option>
+                    {% endfor %}
+                </select>
+                <br><br>
                 <label for="file_log_formatter__value">{% trans 'Formatter' %}</label>
                 <div class="ui fluid input">
                     <input id="file_log_formatter__value" value="{{ data.default.3.3 }}">
                 </div>
+                {% for f in data.formatters %}
+                    <span class="get-attr-value">{{ f.1 }}<input class="file_log_formatter" name="formatter" type="hidden" value="{{ f.0 }}"></span>
+                {% endfor %}
             </div>
             <div class="ui violet segment">
                 <h3>{% trans 'Other settings' %}</h3>

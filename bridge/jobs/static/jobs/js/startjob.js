@@ -175,7 +175,7 @@ $(document).ready(function () {
         $.each(nummeric_fields, function (i, v) {
             var curr_input = $('#' + v);
             curr_input.parent().removeClass('error');
-            if (curr_input.val() && !$.isNumeric(curr_input.val())) {
+            if (curr_input.val() && !$.isNumeric(curr_input.val()) && (curr_input.val().match(/^\s*\d+(,|\.)\d+\s*$/i) == null)) {
                 curr_input.parent().addClass('error');
                 err_found = true;
             }
