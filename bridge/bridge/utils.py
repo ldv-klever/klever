@@ -1,13 +1,22 @@
+import os
 import time
 import hashlib
-from django.utils.timezone import now
+import traceback
+from django.conf import settings
 from bridge.settings import DEBUG
+from django.utils.timezone import now
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
+BRIDGE_LOG = 'bridge.log'
 
 
 def print_err(message):
+    with open(os.path.join(settings.MEDIA_ROOT, BRIDGE_LOG), mode='a') as fp:
+        fp.write('=' * 30 + '\n')
+        traceback.print_stack(file=fp)
+        fp.close()
+
     if DEBUG:
         print(message)
 
