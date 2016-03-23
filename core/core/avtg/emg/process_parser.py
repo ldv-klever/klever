@@ -1,45 +1,6 @@
-import re
-
 from core.avtg.emg.common.signature import import_signature
-from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval, Condition, \
-    Subprocess, generate_regex_set
-
-
-__process_grammar = \
-'''
-(* Main expression *)
-FinalProcess = (Operators | Bracket)$;
-Operators = Switch | Sequence;
-
-(* Signle process *)
-Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
-Null = null:'0';
-ReceiveProcess = receive:Receive;
-SendProcess = dispatch:Send;
-SubprocessProcess = subprocess:Subprocess;
-ConditionProcess = condition:Condition;
-Receive = '('[replicative:'!']name:identifier[number:Repetition]')';
-Send = '['[broadcast:'@']name:identifier[number:Repetition]']';
-Condition = '<'name:identifier[number:Repetition]'>';
-Subprocess = '{'name:identifier'}';
-
-(* Operators *)
-Sequence = sequence:SequenceExpr;
-Switch = options:SwitchExpr;
-SequenceExpr = @+:Process{'.'@+:Process}*;
-SwitchExpr = @+:Sequence{'|'@+:Sequence}+;
-
-(* Brackets *)
-Bracket = process:BracketExpr;
-BracketExpr = '('@:Operators')';
-
-(* Basic expressions and terminals *)
-Repetition = '['@:(number | label)']';
-identifier = /\w+/;
-number = /\d+/;
-label = /%\w+%/;
-'''
-__process_model = None
+from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval,\
+    generate_regex_set
 
 
 def parse_event_specification(logger, raw):
@@ -66,19 +27,6 @@ def parse_event_specification(logger, raw):
         raise KeyError("Model cannot be generated without environment processes")
 
     return models, env_processes
-
-
-def process_parse(string):
-    __check_grammar()
-    return __process_model.parse(string, ignorecase=True)
-
-
-def __check_grammar():
-    global __process_model
-
-    if not __process_model:
-        import grako
-        __process_model = grako.genmodel('process', __process_grammar)
 
 
 def __import_process(name, dic):
@@ -108,7 +56,6 @@ def __import_process(name, dic):
     process_strings = []
     if 'process' in dic:
         process.process = dic['process']
-        process.process_ast = process_parse(process.process)
 
         process_strings.append(dic['process'])
 
