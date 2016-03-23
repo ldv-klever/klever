@@ -9,6 +9,7 @@ from core.avtg.emg.module_categories import ModuleCategoriesSpecification
 from core.avtg.emg.process_parser import parse_event_specification
 from core.avtg.emg.intermediate_model import ProcessModel
 
+
 class EMG(core.components.Component):
 
     def generate_environment(self):
@@ -30,7 +31,7 @@ class EMG(core.components.Component):
         analysis = self.__get_analysis(avt)
 
         # Choose translator
-        #tr = self.__get_translator(avt)
+        tr = self.__get_translator(avt)
 
         # Find specifications
         self.logger.info("Determine which specifications are provided")
@@ -53,7 +54,7 @@ class EMG(core.components.Component):
 
         # Generate module interface specification
         self.logger.info("============== An intermediat model translation stage ==============")
-        #tr.translate(mcs, model)
+        tr.translate(mcs, model)
         self.logger.info("An environment model has been generated successfully")
 
         self.logger.info("Add generated environment model to the abstract verification task")
@@ -100,7 +101,9 @@ class EMG(core.components.Component):
             translator_name = "sequential"
         self.logger.info("Translation module {} has been chosen".format(translator_name))
 
-        translator_module = __import__("core.avtg.emg.translator.{}".format(translator_name))
+        translator = getattr(__import__("core.avtg.emg.translator.{}".format(translator_name),
+                                        fromlist=['Translator']),
+                             'Translator')
 
         # Import auxilary files for environment model
         self.logger.info("Check whether additional header files are provided to be included in an environment model")
@@ -110,7 +113,7 @@ class EMG(core.components.Component):
         self.logger.info("Check whether additional aspect files are provided to be included in an environment model")
         aspect_lines = self.__read_additional_content("aspects")
 
-        return translator_module.Translator(self.logger, self.conf, avt, headers_lines, aspect_lines)
+        return translator(self.logger, self.conf, avt, headers_lines, aspect_lines)
 
     def __get_specs(self, logger, directory):
         """
