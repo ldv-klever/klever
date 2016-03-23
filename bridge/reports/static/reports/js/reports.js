@@ -88,7 +88,17 @@ $(document).ready(function () {
     $('#component_name_tr').popup({popup: $('#timeinfo_popup'), position: 'right center'});
     $('#computer_description_tr').popup({popup: $('#computer_info_popup'), position: 'right center'});
 
-    $('.report-data-popup').popup({position: 'right center'});
+    $('.report-data-popup').each(function () {
+        if ($(this).hasClass('hoverable')) {
+            $(this).popup({
+                position: 'right center',
+                hoverable: true
+            });
+        }
+        else {
+            $(this).popup({position: 'right center'});
+        }
+    });
 
     $('.parent-popup').popup({inline:true});
     $('.ui.dropdown').dropdown();
