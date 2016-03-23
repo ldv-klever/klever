@@ -27,28 +27,29 @@ def after_generate_all_verification_tasks(context):
 
 
 class Core:
+    DEFAULT_CONF_FILE = 'core.json'
+    ID = '/'
+    JOB_CLASS_COMPONENTS = {
+        'Verification of Linux kernel modules': [
+            'LKBCE',
+            'LKVOG',
+            'AVTG',
+            'VTG',
+        ],
+        'Validation on commits in Linux kernel Git repositories': [],
+    }
+
     def __init__(self):
         self._exit_code = 0
         self._start_time = 0
-        self._default_conf_file = 'core.json'
         self._conf = {}
         self._is_solving_file = None
         self._is_solving_file_fp = None
         self._logger = None
         self._comp = []
-        self._id = '/'
         self._session = None
         self._mqs = {}
         self._uploading_reports_process = None
-        self._job_class_components = {
-            'Verification of Linux kernel modules': [
-                'LKBCE',
-                'LKVOG',
-                'AVTG',
-                'VTG',
-            ],
-            'Validation on commits in Linux kernel Git repositories': [],
-        }
         self._components = []
         self._components_conf = None
         self._callbacks = {}
@@ -72,7 +73,7 @@ class Core:
             start_report_file = core.utils.report(self._logger,
                                                   'start',
                                                   {
-                                                      'id': self._id,
+                                                      'id': self.ID,
                                                       'attrs': [{'Klever Core version': version}],
                                                       'comp': [
                                                           {attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
@@ -97,7 +98,7 @@ class Core:
                 self._create_components_conf(job)
                 self._callbacks = core.utils.get_component_callbacks(self._logger, [self.__class__] + self._components,
                                                                      self._components_conf)
-                core.utils.invoke_callbacks(self._launch_all_components, (self._id,))
+                core.utils.invoke_callbacks(self._launch_all_components, (self.ID,))
                 self._wait_for_components()
             elif job.type == 'Validation on commits in Linux kernel Git repositories':
                 self._logger.info('Prepare sub-jobs of class "Verification of Linux kernel modules"')
@@ -120,13 +121,13 @@ class Core:
                 self._data = []
                 for sub_job in job.sub_jobs:
                     commit = sub_job.conf['Linux kernel']['Git repository']['commit']
-                    sub_job_id = self._id + str(commit)
+                    sub_job_id = self.ID + str(commit)
                     # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
                     core.utils.report(self._logger,
                                       'start',
                                       {
                                           'id': sub_job_id,
-                                          'parent id': self._id,
+                                          'parent id': self.ID,
                                           'name': 'Validator',
                                           'attrs': [{'commit': commit}],
                                       },
@@ -227,8 +228,8 @@ class Core:
                     core.utils.report(self._logger,
                                       'unknown',
                                       {
-                                          'id': self._id + '/unknown',
-                                          'parent id': self._id,
+                                          'id': self.ID + '/unknown',
+                                          'parent id': self.ID,
                                           'problem desc': 'problem desc.txt',
                                           'files': ['problem desc.txt']
                                       },
@@ -249,7 +250,7 @@ class Core:
 
                 if self._mqs:
                     finish_report = {
-                        'id': self._id,
+                        'id': self.ID,
                         'resources': core.utils.count_consumed_resources(
                             self._logger,
                             self._start_time),
@@ -289,8 +290,8 @@ class Core:
     def _get_conf(self):
         # Get configuration file from command-line options. If it is not specified, then use the default one.
         parser = argparse.ArgumentParser(description='Main script of Klever Core.')
-        parser.add_argument('conf file', nargs='?', default=self._default_conf_file,
-                            help='configuration file (default: {0})'.format(self._default_conf_file))
+        parser.add_argument('conf file', nargs='?', default=self.DEFAULT_CONF_FILE,
+                            help='configuration file (default: {0})'.format(self.DEFAULT_CONF_FILE))
         conf_file = vars(parser.parse_args())['conf file']
 
         # Read configuration from file.
@@ -406,11 +407,11 @@ class Core:
     def _get_components(self, job):
         self._logger.info('Get components necessary to solve job of class "{0}"'.format(job.type))
 
-        if job.type not in self._job_class_components:
+        if job.type not in self.JOB_CLASS_COMPONENTS:
             raise KeyError('Job class "{0}" is not supported'.format(job.type))
 
         self._components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'core'), component) for
-                            component in self._job_class_components[job.type]]
+                            component in self.JOB_CLASS_COMPONENTS[job.type]]
 
         self._logger.debug('Components to be launched: "{0}"'.format(
             ', '.join([component.__name__ for component in self._components])))
