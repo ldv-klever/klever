@@ -84,6 +84,7 @@ function set_actions_for_scheduler_user() {
 
 
 $(document).ready(function () {
+    $('.note-popup').popup();
     function collect_data() {
         return {
             data: JSON.stringify([
