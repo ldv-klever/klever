@@ -19,7 +19,7 @@ def before_launch_all_components(context):
     context.mqs['Linux kernel module deps'] = multiprocessing.Queue()
 
 
-def after_extract_linux_kernel_attrs(context):
+def after_set_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
 
@@ -83,7 +83,7 @@ class LKVOG(core.components.Component):
         self.checked_modules = []
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
-        core.utils.invoke_callbacks(self.extract_common_prj_attrs)
+        self.set_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -92,13 +92,13 @@ class LKVOG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.launch_subcomponents((self.process_all_linux_kernel_build_cmd_descs,
-                                   self.generate_all_verification_obj_descs))
+        self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
+                                  ('AVODG', self.generate_all_verification_obj_descs))
 
     main = generate_linux_kernel_verification_objects
 
-    def extract_common_prj_attrs(self):
-        self.logger.info('Extract common project atributes')
+    def set_common_prj_attrs(self):
+        self.logger.info('Set common project atributes')
         self.common_prj_attrs = self.linux_kernel_verification_objs_gen['attrs']
 
     def extract_linux_kernel_verification_objs_gen_attrs(self):
@@ -161,12 +161,12 @@ class LKVOG(core.components.Component):
                 if not self.module['name'] in self.all_modules:
                     self.all_modules[self.module['name']] = True
                     # TODO: specification requires to do this in parallel...
-                    core.utils.invoke_callbacks(self.generate_verification_obj_desc)
+                    self.generate_verification_obj_desc()
             if strategy_name in strategies_list:
                 clusters = strategy.divide(self.module['name'])
                 for cluster in clusters:
                     self.cluster = cluster
-                    core.utils.invoke_callbacks(self.generate_verification_obj_desc)
+                    self.generate_verification_obj_desc()
 
     def generate_verification_obj_desc(self):
         self.logger.info(

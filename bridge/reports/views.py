@@ -454,6 +454,7 @@ def get_compare_jobs_data(request):
         }
     )
 
+
 @login_required
 @unparallel_group(['report'])
 def download_report_files(request, report_id):

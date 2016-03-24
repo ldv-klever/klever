@@ -3,10 +3,9 @@ import json
 import tarfile
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.timezone import now
-from bridge.utils import file_checksum, print_err
+from bridge.utils import print_err, file_get_or_create
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
@@ -248,7 +247,12 @@ class UploadReport(object):
             report.wall_time = int(self.data['resources']['wall time'])
         uf = None
         if 'log' in self.data:
-            uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
+            try:
+                uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
+            except Exception as e:
+                print_err(e)
+                self.error = 'Files uploading failed'
+                return
             if uf.log is None:
                 self.error = 'The report log was not found in archive'
                 return
@@ -294,7 +298,12 @@ class UploadReport(object):
         report.wall_time = int(self.data['resources']['wall time'])
         uf = None
         if 'log' in self.data:
-            uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
+            try:
+                uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
+            except Exception as e:
+                print_err(e)
+                self.error = 'Files uploading failed'
+                return
             if uf.log is None:
                 self.error = 'The report log was not found in archive'
                 return
@@ -330,7 +339,12 @@ class UploadReport(object):
                 component=self.parent.component
             )
 
-        uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
+        try:
+            uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
+        except Exception as e:
+            print_err(e)
+            self.error = 'Files uploading failed'
+            return
         if uf.file_content is None:
             self.error = 'The unknown report problem description was not found in the archive'
             return
@@ -364,7 +378,12 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
 
-        uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
+        try:
+            uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
+        except Exception as e:
+            print_err(e)
+            self.error = 'Files uploading failed'
+            return
         if uf.file_content is None:
             self.error = 'The safe report proof was not found in teh archive'
             return
@@ -400,7 +419,12 @@ class UploadReport(object):
                 root=self.root
             )
 
-        uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
+        try:
+            uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
+        except Exception as e:
+            print_err(e)
+            self.error = 'Files uploading failed'
+            return
         if uf.file_content is None:
             self.error = 'The unsafe error trace was not found in the archive'
             return
@@ -517,24 +541,11 @@ class UploadReportFiles(object):
             if f.isreg():
                 file_obj = zipfile.extractfile(f)
                 if logname is not None and file_name == logname:
-                    check_sum = file_checksum(file_obj)
-                    try:
-                        db_file = File.objects.get(hash_sum=check_sum)
-                    except ObjectDoesNotExist:
-                        db_file = File()
-                        db_file.file.save(os.path.basename(file_name), NewFile(file_obj))
-                        db_file.hash_sum = check_sum
-                        db_file.save()
-                    self.log = db_file
+                    self.log = file_get_or_create(file_obj, os.path.basename(file_name))[0]
                 elif report_filename is not None and file_name == report_filename:
                     self.file_content = file_obj.read()
                 elif self.need_other:
-                    check_sum = file_checksum(file_obj)
-                    try:
-                        db_file = File.objects.get(hash_sum=check_sum)
-                    except ObjectDoesNotExist:
-                        db_file = File()
-                        db_file.file.save(os.path.basename(file_name), NewFile(file_obj))
-                        db_file.hash_sum = check_sum
-                        db_file.save()
-                    self.other_files.append({'name': file_name, 'file': db_file})
+                    self.other_files.append({
+                        'name': file_name,
+                        'file': file_get_or_create(file_obj, os.path.basename(file_name))[0]
+                    })

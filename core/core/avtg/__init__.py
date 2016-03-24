@@ -18,15 +18,15 @@ def before_launch_all_components(context):
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
-def after_extract_common_prj_attrs(context):
+def after_set_common_prj_attrs(context):
     context.mqs['AVTG common prj attrs'].put(context.common_prj_attrs)
 
 
-def after_extract_src_tree_root(context):
+def after_set_src_tree_root(context):
     context.mqs['AVTG src tree root'].put(context.src_tree_root)
 
 
-def after_extract_hdr_arch(context):
+def after_set_hdr_arch(context):
     context.mqs['hdr arch'].put(context.hdr_arch)
 
 
@@ -231,7 +231,7 @@ class AVTG(core.components.Component):
         self.abstract_task_desc_num = 0
 
         # TODO: combine extracting and reporting of attributes.
-        self.extract_common_prj_attrs()
+        self.get_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -240,22 +240,22 @@ class AVTG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.extract_src_tree_root()
-        self.extract_hdr_arch()
+        self.get_src_tree_root()
+        self.get_hdr_arch()
         self.rule_spec_descs = _rule_spec_descs
-        core.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
+        self.generate_all_abstract_verification_task_descs()
 
     main = generate_abstract_verification_tasks
 
-    def extract_common_prj_attrs(self):
-        self.logger.info('Extract common project atributes')
+    def get_common_prj_attrs(self):
+        self.logger.info('Get common project atributes')
 
         self.common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
 
         self.mqs['AVTG common prj attrs'].close()
 
-    def extract_hdr_arch(self):
-        self.logger.info('Extract architecture name to search for architecture specific header files')
+    def get_hdr_arch(self):
+        self.logger.info('Get architecture name to search for architecture specific header files')
 
         self.conf['sys']['hdr arch'] = self.mqs['hdr arch'].get()
 
@@ -264,8 +264,8 @@ class AVTG(core.components.Component):
         self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
             self.conf['sys']['hdr arch']))
 
-    def extract_src_tree_root(self):
-        self.logger.info('Extract source tree root')
+    def get_src_tree_root(self):
+        self.logger.info('Get source tree root')
 
         self.conf['source tree root'] = self.mqs['AVTG src tree root'].get()
 
@@ -295,8 +295,7 @@ class AVTG(core.components.Component):
 
             # TODO: specification requires to do this in parallel...
             for rule_spec_desc in self.rule_spec_descs:
-                core.utils.invoke_callbacks(self.generate_abstact_verification_task_desc,
-                                            (verification_obj_desc, rule_spec_desc))
+                self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         initial_attrs = (
