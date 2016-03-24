@@ -45,14 +45,14 @@ class LKBCE(core.components.Component):
         self.linux_kernel = {}
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
-        core.utils.invoke_callbacks(self.extract_src_tree_root)
+        self.set_src_tree_root()
         # Determine Linux kernel configuration just after Linux kernel working source tree is prepared since it affect
         # value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather than
         # configuration target.
         self.get_linux_kernel_conf()
         self.clean_linux_kernel_work_src_tree()
-        core.utils.invoke_callbacks(self.extract_linux_kernel_attrs)
-        core.utils.invoke_callbacks(self.extract_hdr_arch)
+        self.set_linux_kernel_attrs()
+        self.set_hdr_arch()
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -68,7 +68,8 @@ class LKBCE(core.components.Component):
         # self.process_all_linux_kernel_raw_build_cmds().
         with open(self.linux_kernel['raw build cmds file'], 'w'):
             pass
-        self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
+        self.launch_subcomponents(('LKB', self.build_linux_kernel),
+                                  ('ALKRBCP', self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
         if not self.conf['keep intermediate files']:
             os.remove(self.linux_kernel['raw build cmds file'])
@@ -267,8 +268,8 @@ class LKBCE(core.components.Component):
         self.__make(('oldconfig' if 'conf file' in self.linux_kernel else self.conf['Linux kernel']['configuration'],),
                     specify_arch=True, collect_build_cmds=False, collect_all_stdout=True)
 
-    def extract_linux_kernel_attrs(self):
-        self.logger.info('Extract Linux kernel atributes')
+    def set_linux_kernel_attrs(self):
+        self.logger.info('Set Linux kernel atributes')
 
         self.logger.debug('Get Linux kernel version')
         stdout = self.__make(('-s', 'kernelversion'), specify_arch=False, collect_all_stdout=True)
@@ -285,10 +286,12 @@ class LKBCE(core.components.Component):
                               {'architecture': self.linux_kernel['arch']},
                               {'configuration': self.linux_kernel['conf']}]}]
 
-    def extract_hdr_arch(self):
+    def set_hdr_arch(self):
+        self.logger.info('Set architecture name to search for architecture specific header files')
         self.hdr_arch = _arch_hdr_arch[self.linux_kernel['arch']]
 
-    def extract_src_tree_root(self):
+    def set_src_tree_root(self):
+        self.logger.info('Set source tree root')
         self.src_tree_root = os.path.abspath(self.linux_kernel['work src tree'])
 
     def fetch_linux_kernel_work_src_tree(self):
@@ -379,7 +382,7 @@ class LKBCE(core.components.Component):
                             self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
                             return
                         else:
-                            core.utils.invoke_callbacks(self.process_linux_kernel_raw_build_cmd, (opts,))
+                            self.process_linux_kernel_raw_build_cmd(opts)
 
                             # Go to the next command or finish operation.
                             self.linux_kernel['build cmd']['type'] = None

@@ -26,33 +26,30 @@ def after_generate_all_verification_tasks(context):
     context.mqs['verification statuses'].put(None)
 
 
-class Core:
+class Core(core.utils.CallbacksCaller):
+    DEFAULT_CONF_FILE = 'core.json'
+    ID = '/'
+    JOB_CLASS_COMPONENTS = {
+        'Verification of Linux kernel modules': [
+            'LKBCE',
+            'LKVOG',
+            'AVTG',
+            'VTG',
+        ],
+        'Validation on commits in Linux kernel Git repositories': [],
+    }
+
     def __init__(self):
         self.exit_code = 0
         self.start_time = 0
-        self.default_conf_file = 'core.json'
-        self.conf_file = None
         self.conf = {}
         self.is_solving_file = None
         self.is_solving_file_fp = None
         self.logger = None
-        self.bridge = {}
-        self.version = None
-        self.job = None
         self.comp = []
-        self.id = '/'
         self.session = None
         self.mqs = {}
         self.uploading_reports_process = None
-        self.job_class_components = {
-            'Verification of Linux kernel modules': [
-                'LKBCE',
-                'LKVOG',
-                'AVTG',
-                'VTG',
-            ],
-            'Validation on commits in Linux kernel Git repositories': [],
-        }
         self.components = []
         self.components_conf = None
         self.callbacks = {}
@@ -69,49 +66,49 @@ class Core:
             self.get_conf()
             self.prepare_work_dir()
             self.change_work_dir()
-            self.logger = core.utils.get_logger(self.__class__.__name__, self.conf['logging'])
-            self.get_version()
-            self.job = core.job.Job(self.logger, self.conf['identifier'])
-            self.get_comp_desc()
+            self.logger = core.utils.get_logger(type(self).__name__, self.conf['logging'])
+            version = self.get_version()
+            job = core.job.Job(self.logger, self.conf['identifier'])
+            self.comp = self.get_comp_desc()
             start_report_file = core.utils.report(self.logger,
                                                   'start',
                                                   {
-                                                      'id': self.id,
-                                                      'attrs': [{'Klever Core version': self.version}],
+                                                      'id': self.ID,
+                                                      'attrs': [{'Klever Core version': version}],
                                                       'comp': [
                                                           {attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
                                                           for attr in self.comp for attr_shortcut in attr
                                                       ]
                                                   })
-            self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.job.id)
-            self.session.decide_job(self.job, start_report_file)
+            self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], job.id)
+            self.session.decide_job(job, start_report_file)
             # TODO: create parallel process to send requests about successful operation to Klever Bridge.
             self.mqs['report files'] = multiprocessing.Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
-            self.job.extract_archive()
-            self.job.get_class()
-            self.get_components(self.job)
+            job.extract_archive()
+            job.get_class()
+            self.get_components(job)
             # Do not read anything from job directory untill job class will be examined (it might be unsupported). This
             # differs from specification that doesn't treat unsupported job classes at all.
             with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='ascii') as fp:
-                self.job.conf = json.load(fp)
+                job.conf = json.load(fp)
             # TODO: think about implementation in form of classes derived from class Job.
-            if self.job.type == 'Verification of Linux kernel modules':
-                self.create_components_conf(self.job)
-                self.callbacks = core.utils.get_component_callbacks(self.logger, [self.__class__] + self.components,
+            if job.type == 'Verification of Linux kernel modules':
+                self.create_components_conf(job)
+                self.callbacks = core.utils.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                     self.components_conf)
-                core.utils.invoke_callbacks(self.launch_all_components, (self.id,))
+                self.launch_all_components(self.ID)
                 self.wait_for_components()
-            elif self.job.type == 'Validation on commits in Linux kernel Git repositories':
+            elif job.type == 'Validation on commits in Linux kernel Git repositories':
                 self.logger.info('Prepare sub-jobs of class "Verification of Linux kernel modules"')
                 sub_jobs_common_conf = {}
-                if 'Common' in self.job.conf:
-                    sub_jobs_common_conf = self.job.conf['Common']
-                if 'Sub-jobs' in self.job.conf:
-                    for i, sub_job_concrete_conf in enumerate(self.job.conf['Sub-jobs']):
+                if 'Common' in job.conf:
+                    sub_jobs_common_conf = job.conf['Common']
+                if 'Sub-jobs' in job.conf:
+                    for i, sub_job_concrete_conf in enumerate(job.conf['Sub-jobs']):
                         sub_job = core.job.Job(self.logger, i)
-                        self.job.sub_jobs.append(sub_job)
+                        job.sub_jobs.append(sub_job)
                         sub_job.type = 'Verification of Linux kernel modules'
                         # Sub-job configuration is based on common sub-jobs configuration.
                         sub_job.conf = copy.deepcopy(sub_jobs_common_conf)
@@ -119,18 +116,18 @@ class Core:
                 self.logger.info('Decide prepared sub-jobs')
                 # TODO: looks very like the code above.
                 # TODO: create artificial log file for Validator.
-                with open('__log', 'w', encoding='ascii') as fp:
+                with open('__log', 'w', encoding='ascii'):
                     pass
                 self.data = []
-                for sub_job in self.job.sub_jobs:
+                for sub_job in job.sub_jobs:
                     commit = sub_job.conf['Linux kernel']['Git repository']['commit']
-                    sub_job_id = self.id + str(commit)
+                    sub_job_id = self.ID + str(commit)
                     # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
                     core.utils.report(self.logger,
                                       'start',
                                       {
                                           'id': sub_job_id,
-                                          'parent id': self.id,
+                                          'parent id': self.ID,
                                           'name': 'Validator',
                                           'attrs': [{'commit': commit}],
                                       },
@@ -142,9 +139,9 @@ class Core:
                             self.get_components(sub_job)
                             self.create_components_conf(sub_job)
                             self.callbacks = core.utils.get_component_callbacks(self.logger,
-                                                                                [self.__class__] + self.components,
+                                                                                [type(self)] + self.components,
                                                                                 self.components_conf)
-                            core.utils.invoke_callbacks(self.launch_all_components, (sub_job_id,))
+                            self.launch_all_components(sub_job_id)
                             self.wait_for_components()
                             # TODO: dirty hack to wait for all reports to be uploaded since they may be accidently removed when local source directories use is allowed and next sub-job is decided.
                             while True:
@@ -231,8 +228,8 @@ class Core:
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': self.id + '/unknown',
-                                          'parent id': self.id,
+                                          'id': self.ID + '/unknown',
+                                          'parent id': self.ID,
                                           'problem desc': 'problem desc.txt',
                                           'files': ['problem desc.txt']
                                       },
@@ -253,7 +250,7 @@ class Core:
 
                 if self.mqs:
                     finish_report = {
-                        'id': self.id,
+                        'id': self.ID,
                         'resources': core.utils.count_consumed_resources(
                             self.logger,
                             self.start_time),
@@ -293,12 +290,12 @@ class Core:
     def get_conf(self):
         # Get configuration file from command-line options. If it is not specified, then use the default one.
         parser = argparse.ArgumentParser(description='Main script of Klever Core.')
-        parser.add_argument('conf file', nargs='?', default=self.default_conf_file,
-                            help='configuration file (default: {0})'.format(self.default_conf_file))
-        self.conf_file = vars(parser.parse_args())['conf file']
+        parser.add_argument('conf file', nargs='?', default=self.DEFAULT_CONF_FILE,
+                            help='configuration file (default: {0})'.format(self.DEFAULT_CONF_FILE))
+        conf_file = vars(parser.parse_args())['conf file']
 
         # Read configuration from file.
-        with open(self.conf_file, encoding='ascii') as fp:
+        with open(conf_file, encoding='ascii') as fp:
             self.conf = json.load(fp)
 
     def prepare_work_dir(self):
@@ -332,9 +329,6 @@ class Core:
         self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='ascii')
 
     def change_work_dir(self):
-        # Remember path to configuration file relative to future working directory before changing to it.
-        self.conf_file = os.path.relpath(self.conf_file, self.conf['working directory'])
-
         # Change working directory forever.
         # We can use path for "is solving" file relative to future working directory since exceptions aren't raised when
         # we have relative path but don't change working directory yet.
@@ -350,17 +344,17 @@ class Core:
         # Git repository directory may be located in parent directory of parent directory.
         git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
         if os.path.isdir(git_repo_dir):
-            self.version = core.utils.get_entity_val(self.logger, 'version',
-                                                     'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(
-                                                         git_repo_dir))
+            return core.utils.get_entity_val(self.logger, 'version',
+                                             'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(
+                                                 git_repo_dir))
         else:
             # TODO: get version of installed Klever.
-            self.version = ''
+            return ''
 
     def get_comp_desc(self):
         self.logger.info('Get computer description')
 
-        self.comp = [
+        return [
             {
                 entity_name_cmd[0]: {
                     'name': entity_name_cmd[1] if entity_name_cmd[1] else entity_name_cmd[0],
@@ -400,11 +394,9 @@ class Core:
                 report_file = report_and_report_files_archive['report file']
                 report_files_archive = report_and_report_files_archive.get('report files archive')
 
-                self.logger.debug('Upload report file "{0}"{1}'
-                                  .format(report_file,
-                                          ' with report files archive "{0}"'.format(report_files_archive)
-                                          if report_files_archive
-                                          else ''))
+                self.logger.debug('Upload report file "{0}"{1}'.format(
+                    report_file,
+                    ' with report files archive "{0}"'.format(report_files_archive) if report_files_archive else ''))
 
                 self.session.upload_report(report_file, report_files_archive)
         except Exception as e:
@@ -415,14 +407,14 @@ class Core:
     def get_components(self, job):
         self.logger.info('Get components necessary to solve job of class "{0}"'.format(job.type))
 
-        if job.type not in self.job_class_components:
+        if job.type not in self.JOB_CLASS_COMPONENTS:
             raise KeyError('Job class "{0}" is not supported'.format(job.type))
 
         self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'core'), component) for
-                           component in self.job_class_components[job.type]]
+                           component in self.JOB_CLASS_COMPONENTS[job.type]]
 
-        self.logger.debug(
-            'Components to be launched: "{0}"'.format(', '.join([component.__name__ for component in self.components])))
+        self.logger.debug('Components to be launched: "{0}"'.format(
+            ', '.join([component.__name__ for component in self.components])))
 
     def create_components_conf(self, job):
         """
@@ -518,7 +510,7 @@ class Core:
         core.utils.report(self.logger,
                           'data',
                           {
-                              'id': self.id,
+                              'id': self.ID,
                               'data': json.dumps(validation_results)
                           },
                           self.mqs['report files'],

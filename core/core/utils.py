@@ -11,7 +11,38 @@ import threading
 import time
 import queue
 
-_callback_kinds = ('before', 'instead', 'after')
+CALLBACK_KINDS = ('before', 'instead', 'after')
+
+
+class CallbacksCaller:
+    def __getattribute__(self, name):
+        attr = object.__getattribute__(self, name)
+        if callable(attr) and not attr.__name__.startswith('_'):
+            def callbacks_caller(*args, **kwargs):
+                ret = None
+
+                for kind in CALLBACK_KINDS:
+                    # Invoke callbacks if so.
+                    if kind in self.callbacks and name in self.callbacks[kind]:
+                        for component, callback in self.callbacks[kind][name]:
+                            self.logger.debug(
+                                'Invoke {0} callback of component "{1}" for "{2}"'.format(kind, component, name))
+                            ret = callback(self)
+                    # Invoke event itself.
+                    elif kind == 'instead':
+                        # Do not pass auxiliary objects created for subcomponents to methods that implement them and
+                        # that are actually component object methods.
+                        if args and type(args[0]).__name__.startswith('KleverSubcomponent'):
+                            ret = attr(*args[1:], **kwargs)
+                        else:
+                            ret = attr(*args, **kwargs)
+
+                # Return what event or instead/after callbacks returned.
+                return ret
+
+            return callbacks_caller
+        else:
+            return attr
 
 
 class Cd:
@@ -222,12 +253,12 @@ def get_component_callbacks(logger, components, components_conf):
     logger.info('Get callbacks for components "{0}"'.format([component.__name__ for component in components]))
 
     # At the beginning there is no callbacks of any kind.
-    callbacks = {kind: {} for kind in _callback_kinds}
+    callbacks = {kind: {} for kind in CALLBACK_KINDS}
 
     for component in components:
         module = sys.modules[component.__module__]
         for attr in dir(module):
-            for kind in _callback_kinds:
+            for kind in CALLBACK_KINDS:
                 match = re.search(r'^{0}_(.+)$'.format(kind), attr)
                 if match:
                     event = match.groups()[0]
@@ -241,7 +272,7 @@ def get_component_callbacks(logger, components, components_conf):
                 subcomponents_callbacks = getattr(module, attr)(components_conf, logger)
 
                 # Merge subcomponent callbacks into component ones.
-                for kind in _callback_kinds:
+                for kind in CALLBACK_KINDS:
                     for event in subcomponents_callbacks[kind]:
                         if event not in callbacks[kind]:
                             callbacks[kind][event] = []
@@ -381,30 +412,6 @@ def get_parallel_threads_num(logger, conf, action):
     logger.debug('The number of parallel threads for "{0}" is "{1}"'.format(action, parallel_threads_num))
 
     return parallel_threads_num
-
-
-def invoke_callbacks(event, args=None):
-    name = event.__name__
-    logger = event.__self__.logger
-    callbacks = event.__self__.callbacks
-    context = event.__self__
-    ret = None
-
-    for kind in _callback_kinds:
-        # Invoke callbacks if so.
-        if name in callbacks[kind]:
-            for component, callback in callbacks[kind][name]:
-                logger.debug('Invoke {0} callback of component "{1}" for "{2}"'.format(kind, component, name))
-                ret = callback(context)
-        # Invoke event itself.
-        elif kind == 'instead':
-            if args:
-                ret = event(*args)
-            else:
-                ret = event()
-
-    # Return what event or instead/after callbacks returned.
-    return ret
 
 
 def merge_confs(a, b):
