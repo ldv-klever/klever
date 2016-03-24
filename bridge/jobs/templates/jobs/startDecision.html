@@ -103,14 +103,14 @@
             </div>
             <div class="ui violet segment need-auth" style="width: 35%;{% if data.default.0.1 == '1' and data.need_auth %}display:none{% endif %}">
                 <h3>{% trans 'Resource limits for Klever Core' %}</h3>
-                <label for="max_ram" style="margin-right: 20px;">{% trans 'Memory size' %}</label>
+                <label for="max_ram" style="margin-right: 20px;">{% trans 'Memory size' %}, {% trans 'GB' %}</label>
                 <div>
                     <div class="ui input">
                         <input id="max_ram" type="text" value="{{ data.default.2.0 }}">
                     </div>
                     <i class="ui blue icon help note-popup"></i>
                     <div class="ui popup">
-                        {% trans 'GB' %}, {% trans 'e.g.' %} 2.0
+                        {% trans 'For instance,' %} 2.4.
                     </div>
                 </div>
                 <br>
@@ -121,18 +121,18 @@
                     </div>
                     <i class="ui blue icon help note-popup"></i>
                     <div class="ui popup">
-                        {% trans 'Integer' %}, {% trans 'e.g.' %} 2
+                        {% trans 'For instance,' %} 2.
                     </div>
                 </div>
                 <br>
-                <label for="max_disk" style="margin-right: 20px;">{% trans 'Disk memory size' %}</label>
+                <label for="max_disk" style="margin-right: 20px;">{% trans 'Disk memory size' %}, {% trans 'GB' %}</label>
                 <div>
                     <div class="ui input">
                         <input id="max_disk" type="text" value="{{ data.default.2.2 }}">
                     </div>
                     <i class="ui blue icon help note-popup"></i>
                     <div class="ui popup">
-                        {% trans 'GB' %}, {% trans 'e.g.' %} 100.0
+                        {% trans 'For instance,' %} 100.0.
                     </div>
                 </div>
                 <br>
@@ -143,31 +143,29 @@
                     </div>
                     <i class="ui blue icon help note-popup"></i>
                     <div class="ui popup">
-                        {% trans 'Empty value means any model' %}
+                        {% trans 'You can specify any substring of the target CPU model. The empty value means any model.' %}
                     </div>
                 </div>
                 <br>
-                <label for="max_cpu_time" style="margin-right: 20px;">{% trans 'CPU time' %}</label>
+                <label for="max_cpu_time" style="margin-right: 20px;">{% trans 'CPU time' %}, {% trans 'min' %}</label>
                 <div>
                     <div class="ui input">
                         <input id="max_cpu_time" type="text"{% if data.default.2.4 %} value="{{ data.default.2.4 }}"{% endif %}>
                     </div>
                     <i class="ui blue icon help note-popup"></i>
                     <div class="ui popup">
-                        {% trans 'Min' %}, {% trans 'e.g.' %} 16.0<br>
-                        {% trans 'Empty value means unlimited time' %}
+                        {% trans 'For instance,' %} 15.0. {% trans 'The empty value means unlimited time.' %}
                     </div>
                 </div>
                 <br>
-                <label for="max_wall_time" style="margin-right: 20px;">{% trans 'Wall time' %}</label>
+                <label for="max_wall_time" style="margin-right: 20px;">{% trans 'Wall time' %}, {% trans 'min' %}</label>
                 <div>
                     <div class="ui input">
                         <input id="max_wall_time" type="text"{% if data.default.2.5 %} value="{{ data.default.2.5 }}"{% endif %}>
                     </div>
                     <i class="ui blue icon help note-popup"></i>
                     <div class="ui popup">
-                        {% trans 'Min' %}, {% trans 'e.g.' %} 15.1<br>
-                        {% trans 'Empty value means unlimited time' %}
+                        {% trans 'For instance,' %} 15.5. {% trans 'The empty value means unlimited time.' %}
                     </div>
                 </div>
             </div>
