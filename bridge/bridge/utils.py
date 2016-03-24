@@ -1,10 +1,17 @@
 import os
 import time
 import hashlib
+import tarfile
+import tempfile
 import traceback
 from django.conf import settings
-from bridge.settings import DEBUG
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File as NewFile
+from django.template.defaultfilters import filesizeformat
 from django.utils.timezone import now
+from django.utils.translation import ugettext_lazy as _
+from bridge.settings import DEBUG, MAX_FILE_SIZE
+from jobs.models import File
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
@@ -89,3 +96,39 @@ def file_checksum(f, block_size=2**20):
         md5.update(data)
     f.seek(0)
     return md5.hexdigest()
+
+
+def file_get_or_create(fp, filename, check_size=False):
+    if check_size:
+        file_size = fp.seek(0, os.SEEK_END)
+        if file_size > MAX_FILE_SIZE:
+            raise ValueError(
+                _('Please keep the file size under {0} (the current file size is {1})'.format(
+                    filesizeformat(MAX_FILE_SIZE),
+                    filesizeformat(file_size)
+                ))
+            )
+    fp.seek(0)
+    check_sum = file_checksum(fp)
+    try:
+        return File.objects.get(hash_sum=check_sum), check_sum
+    except ObjectDoesNotExist:
+        db_file = File()
+        db_file.file.save(filename, NewFile(fp))
+        db_file.hash_sum = check_sum
+        db_file.save()
+        return db_file, check_sum
+
+
+# archive - django.core.files.File object
+# Example: archive = File(open(<path>, mode='rb'))
+# Note: files from requests are already File objects
+def extract_tar_temp(archive):
+    fp = tempfile.NamedTemporaryFile()
+    for chunk in archive.chunks():
+        fp.write(chunk)
+    fp.seek(0)
+    tar = tarfile.open(fileobj=fp, mode='r:gz')
+    tmp_dir_name = tempfile.TemporaryDirectory()
+    tar.extractall(tmp_dir_name.name)
+    return tmp_dir_name

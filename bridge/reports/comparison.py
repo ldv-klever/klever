@@ -213,8 +213,8 @@ class ComparisonTableData(object):
             try:
                 attr_values = json.loads(compare.attr_values)
             except Exception as e:
-                self.error = 'Unknown error'
                 print_err(e)
+                self.error = 'Unknown error'
                 return
             if len(attr_values) != len(JOBS_COMPARE_ATTRS[info.root1.job.type]):
                 self.error = 'Unknown error'

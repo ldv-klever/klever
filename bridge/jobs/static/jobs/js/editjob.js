@@ -255,22 +255,19 @@ function load_new_files() {
                 mimeType: 'multipart/form-data',
                 async: false,
                 success: function (data) {
-                    if (data.status === 0) {
+                    if (data.error) {
+                        err_notify(data.error, 15000);
+                        success = false;
+                    }
+                    else {
                         var file_hashsum = $('#file_hash_sum__1__' + curr_id);
                         if (file_hashsum.length) {
-                            file_hashsum.text(data.hash_sum);
+                            file_hashsum.text(data['checksum']);
                             current_input.remove();
                         }
                         else {
                             success = false;
                         }
-                    }
-                    else {
-                        var file_names = data['errors'].file;
-                        for (var i = 0; i < file_names.length; i++) {
-                            err_notify(current_input.val() + ': ' + file_names[i], 10000);
-                        }
-                        success = false;
                     }
                 }
             });

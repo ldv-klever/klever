@@ -20,11 +20,11 @@ def before_launch_all_components(context):
     context.mqs['VTG src tree root'] = multiprocessing.Queue()
 
 
-def after_extract_common_prj_attrs(context):
+def after_set_common_prj_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
 
 
-def after_extract_src_tree_root(context):
+def after_set_src_tree_root(context):
     context.mqs['VTG src tree root'].put(context.src_tree_root)
 
 
@@ -53,7 +53,7 @@ class VTG(core.components.Component):
         # Get strategy as early as possible to terminate without any delays if strategy isn't supported.
         self.get_strategy()
 
-        self.extract_common_prj_attrs()
+        self.get_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -63,9 +63,8 @@ class VTG(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
-        self.extract_src_tree_root()
-
-        core.utils.invoke_callbacks(self.generate_all_verification_tasks)
+        self.get_src_tree_root()
+        self.generate_all_verification_tasks()
 
     main = generate_verification_tasks
 
@@ -79,15 +78,15 @@ class VTG(core.components.Component):
         if not self.strategy:
             NotImplementedError('Strategy {0} is not supported'.format(self.conf['VTG strategy']['name']))
 
-    def extract_common_prj_attrs(self):
-        self.logger.info('Extract common project atributes')
+    def get_common_prj_attrs(self):
+        self.logger.info('Get common project atributes')
 
         self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
 
         self.mqs['VTG common prj attrs'].close()
 
-    def extract_src_tree_root(self):
-        self.logger.info('Extract source tree root')
+    def get_src_tree_root(self):
+        self.logger.info('Get source tree root')
 
         self.conf['source tree root'] = self.mqs['VTG src tree root'].get()
 
@@ -98,11 +97,11 @@ class VTG(core.components.Component):
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')
 
-        self.launch_subcomponents(
-                [self.get_abstract_verification_task_descs_num] +
-                [self._generate_verification_tasks for i in
-                 range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation'))]
-        )
+        subcomponents = [('AVTDNG', self.get_abstract_verification_task_descs_num)]
+        for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
+            subcomponents.append(('Worker {0}'.format(i), self._generate_verification_tasks))
+
+        self.launch_subcomponents(*subcomponents)
 
         self.mqs['abstract task descs and nums'].close()
 

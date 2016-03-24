@@ -10,8 +10,7 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES
-from bridge.utils import unparallel, unparallel_group, print_exec_time, file_checksum
-from jobs.forms import FileForm
+from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get_or_create, extract_tar_temp
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
@@ -527,30 +526,18 @@ def upload_file(request):
 
     if request.method != 'POST':
         return HttpResponse('')
-    form = FileForm(request.POST, request.FILES)
-    if form.is_valid():
-        new_file = form.save(commit=False)
-        hash_sum = file_checksum(new_file.file)
-        if len(File.objects.filter(hash_sum=hash_sum)) > 0:
-            return JsonResponse({
-                'hash_sum': hash_sum,
-                'status': 0
-            })
-        new_file.hash_sum = hash_sum
-        if not all(ord(c) < 128 for c in new_file.file.name):
-            title_size = len(new_file.file.name)
+    for f in request.FILES:
+        fname = request.FILES[f].name
+        if not all(ord(c) < 128 for c in fname):
+            title_size = len(fname)
             if title_size > 30:
-                new_file.file.name = new_file.file.name[(title_size - 30):]
-        new_file.save()
-        return JsonResponse({
-            'hash_sum': hash_sum,
-            'status': 0
-        })
-    return JsonResponse({
-        'message': _('File uploading failed'),
-        'errors': form.errors,
-        'status': 1
-    })
+                fname = fname[(title_size - 30):]
+        try:
+            check_sum = file_get_or_create(request.FILES[f], fname, True)[1]
+        except Exception as e:
+            return JsonResponse({'error': str(string_concat(_('File uploading failed'), ' (%s): ' % fname, e))})
+        return JsonResponse({'checksum': check_sum})
+    return JsonResponse({'error': 'Unknown error'})
 
 
 @login_required
@@ -667,7 +654,13 @@ def upload_job(request, parent_id=None):
     parent = parents[0]
     failed_jobs = []
     for f in request.FILES.getlist('file'):
-        zipdata = UploadJob(parent, request.user, f)
+        try:
+            job_dir = extract_tar_temp(f)
+        except Exception as e:
+            print_err(e)
+            failed_jobs.append([_('Archive extracting error') + '', f.name])
+            continue
+        zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
             failed_jobs.append([zipdata.err_message + '', f.name])
     if len(failed_jobs) > 0:
