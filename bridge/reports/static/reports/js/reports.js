@@ -105,15 +105,11 @@ $(document).ready(function () {
     });
 
     $('.report-data-popup').each(function () {
-        if ($(this).hasClass('hoverable')) {
-            $(this).popup({
-                position: 'right center',
-                hoverable: true
-            });
-        }
-        else {
-            $(this).popup({position: 'right center'});
-        }
+        $(this).popup({
+            html: $(this).attr('data-content'),
+            position: 'right center',
+            hoverable: $(this).hasClass('hoverable')
+        });
     });
 
     $('.parent-popup').popup({inline:true});
