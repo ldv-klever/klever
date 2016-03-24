@@ -133,6 +133,5 @@ class RSG(core.components.Component):
                 grp['cc extra full desc files'].append({
                     'cc full desc file': os.path.relpath(full_desc_file,
                                                          os.path.realpath(self.conf['source tree root'])),
-                    'rule spec id': self.conf['rule spec id'],
                     'bug kinds': self.conf['bug kinds']
                 })
