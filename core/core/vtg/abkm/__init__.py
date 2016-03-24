@@ -27,8 +27,7 @@ class ABKM(core.components.Component):
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
 
         self.prepare_verification_task_files_archive()
-
-        core.utils.invoke_callbacks(self.decide_verification_task)
+        self.decide_verification_task()
 
     main = generate_verification_tasks
 

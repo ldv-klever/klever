@@ -26,7 +26,7 @@ def after_generate_all_verification_tasks(context):
     context.mqs['verification statuses'].put(None)
 
 
-class Core:
+class Core(core.utils.CallbacksCaller):
     DEFAULT_CONF_FILE = 'core.json'
     ID = '/'
     JOB_CLASS_COMPONENTS = {
@@ -96,9 +96,9 @@ class Core:
             # TODO: think about implementation in form of classes derived from class Job.
             if job.type == 'Verification of Linux kernel modules':
                 self.create_components_conf(job)
-                self.callbacks = core.utils.get_component_callbacks(self.logger, [self.__class__] + self.components,
+                self.callbacks = core.utils.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                                     self.components_conf)
-                core.utils.invoke_callbacks(self.launch_all_components, (self.ID,))
+                self.launch_all_components(self.ID)
                 self.wait_for_components()
             elif job.type == 'Validation on commits in Linux kernel Git repositories':
                 self.logger.info('Prepare sub-jobs of class "Verification of Linux kernel modules"')
@@ -139,9 +139,9 @@ class Core:
                             self.get_components(sub_job)
                             self.create_components_conf(sub_job)
                             self.callbacks = core.utils.get_component_callbacks(self.logger,
-                                                                                [self.__class__] + self.components,
+                                                                                [type(self)] + self.components,
                                                                                 self.components_conf)
-                            core.utils.invoke_callbacks(self.launch_all_components, (sub_job_id,))
+                            self.launch_all_components(sub_job_id)
                             self.wait_for_components()
                             # TODO: dirty hack to wait for all reports to be uploaded since they may be accidently removed when local source directories use is allowed and next sub-job is decided.
                             while True:
