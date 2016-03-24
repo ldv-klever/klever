@@ -119,7 +119,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         for variable in [self.files[file]["variables"][name] for name in self.files[file]["variables"]
                                          if self.files[file]["variables"][name].use > 0]:
                             if cc_extra_full_desc_file["in file"] == file and variable.value:
-                                lines.extend([variable.declare_with_init(init=False) + ";\n"])
+                                lines.extend([variable.declare_with_init({}, init=False) + ";\n"])
 
                 lines.append("\n")
                 lines.append("/* EMG function definitions */\n")
@@ -171,9 +171,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
 class Aspect(FunctionDefinition):
 
-    def __init__(self, name, signature, aspect_type="after"):
+    def __init__(self, name, declaration, aspect_type="after"):
         self.name = name
-        self.signature = signature
+        self.declaration = declaration
         self.aspect_type = aspect_type
         self.__body = None
 
@@ -190,7 +190,7 @@ class Aspect(FunctionDefinition):
 
     def get_aspect(self):
         lines = list()
-        lines.append("{}: call({}) ".format(self.aspect_type, self.signature.expression.replace("%s", self.name)) +
+        lines.append("{}: call({}) ".format(self.aspect_type, self.declaration.to_string(self.name)) +
                      " {\n")
         lines.extend(self.body.get_lines(1))
         lines.append("}\n")

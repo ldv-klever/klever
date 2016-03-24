@@ -5,31 +5,36 @@ import re
 from core.avtg.emg.translator import AbstractTranslator, Aspect
 from core.avtg.emg.translator.automaton import FSA
 from core.avtg.emg.common.interface import Container
-from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess
+from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
+    get_common_parameter
 from core.avtg.emg.common.code import Variable, FunctionDefinition, FunctionModels
 
 
-def text_processor(automaton, statement):
+def text_processor(analysis, automaton, statement):
         # Replace model functions
         mm = FunctionModels()
         accesses = automaton.process.accesses()
         statements = [statement]
 
         for access in accesses:
-            options = accesses[access]
-            for option in options:
+            for option in accesses[access]:
                 new_statements = []
                 for text in statements:
                     if option.interface:
-                        signature = option.label.signature(None, option.interface.identifier)
-                        var = automaton.new_variable(option.label, option.list_interface[0].identifier)
+                        signature = option.label.get_declaration(option.interface.identifier)
                     else:
-                        signature = option.label.signature()
-                        var = automaton.new_variable(option.label)
+                        signature = option.label.prior_signature
 
-                    tmp = mm.replace_models(option.label.name, signature, text)
-                    tmp = option.replace_with_variable(tmp, var)
-                    new_statements.append(tmp)
+                    if signature:
+                        if option.interface:
+                            var = automaton.determine_variable(analysis, option.label,
+                                                               option.list_interface[0].identifier)
+                        else:
+                            var = automaton.determine_variable(analysis, option.label)
+
+                        tmp = mm.replace_models(option.label.name, signature, text)
+                        tmp = option.replace_with_variable(tmp, var)
+                        new_statements.append(tmp)
                 statements = new_statements
         return statements
 
@@ -45,9 +50,20 @@ class Translator(AbstractTranslator):
         self.__identifier_cnt = -1
 
         # Read translation options
-        if "translation options" in self.conf:
-            if "instance modifier" in self.conf["translation options"]:
-                self.__instance_modifier = self.conf["translation options"]["instance modifier"]
+        if "translation options" not in self.conf:
+            self.conf["translation options"] = {}
+        if "instance modifier" in self.conf["translation options"]:
+            self.__instance_modifier = self.conf["translation options"]["instance modifier"]
+        if "pointer initialization" not in self.conf["translation options"]:
+            self.conf["translation options"]["pointer initialization"] = {}
+        if "pointer free" not in self.conf["translation options"]:
+            self.conf["translation options"]["pointer free"] = {}
+        for tag in ['structures', 'arrays', 'unions', 'primitives', 'enums', 'functions']:
+            if tag not in self.conf["translation options"]["pointer initialization"]:
+                self.conf["translation options"]["pointer initialization"][tag] = False
+            if tag not in self.conf["translation options"]["pointer free"]:
+                self.conf["translation options"]["pointer free"][tag] = \
+                    self.conf["translation options"]["pointer initialization"][tag]
 
         # Determine how many instances is required for a model
         self.logger.info("Determine how many instances is required to add to an environment model for each process")
@@ -117,13 +133,13 @@ class Translator(AbstractTranslator):
         # Generate automata control function
         self.logger.info("Generate control functions for the environment model")
         for automaton in self.__callback_fsa + [self.__entry_fsa]:
-            self.generate_control_function(analysis, automaton)
+            self.generate_control_function(analysis, model, automaton)
 
         # Generate model control function
         models = []
         for name in (pr.name for pr in model.model_processes):
             automata = (a for a in self.__model_fsa if a.process.name == name)
-            self.generate_model_aspect(analysis, automata, name)
+            self.generate_model_aspect(analysis, model, automata, name)
 
         for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
             for function in automaton.functions:
@@ -136,9 +152,8 @@ class Translator(AbstractTranslator):
         self.files[self.entry_file]["functions"][ep.name] = ep
 
     def __yeild_identifier(self):
-        while True:
-            self.__identifier_cnt += 1
-            yield self.__identifier_cnt
+        self.__identifier_cnt += 1
+        return self.__identifier_cnt
 
     def __instanciate_processes(self, analysis, instances, process):
         base_list = instances
@@ -217,7 +232,7 @@ class Translator(AbstractTranslator):
         ep = FunctionDefinition(
             self.entry_point_name,
             self.entry_file,
-            Signature("void {}(void)".format(self.entry_point_name)),
+            "void {}(void)".format(self.entry_point_name),
             False
         )
 
@@ -246,18 +261,18 @@ class Translator(AbstractTranslator):
 
         return ep
 
-    def generate_control_function(self, analysis, automaton):
+    def generate_control_function(self, analysis, model, automaton):
         self.logger.info("Generate control function for automata {} with process {}".
                          format(automaton.identifier, automaton.process.name))
 
         # Generate case for each transition
         cases = []
         for edge in automaton.fsa.state_transitions:
-            new = self.generate_case(analysis, automaton, edge)
+            new = self.generate_case(analysis, model, automaton, edge)
             cases.extend(new)
         if len(cases) == 0:
             raise RuntimeError("Cannot generate control function for automata {} with process {}".
-                               format(automaton.__yeild_identifier(), automaton.process.name))
+                               format(automaton.identifier, automaton.process.name))
 
         # Create FunctionDefinition
         cf = FunctionDefinition(
@@ -293,9 +308,9 @@ class Translator(AbstractTranslator):
         automaton.functions.append(cf)
         automaton.control_function = cf
 
-    def generate_model_aspect(self, analysis, automata, name):
+    def generate_model_aspect(self, analysis, model, automata, name):
         # Create function
-        model_signature = self.analysis.kernel_functions[name]["signature"]
+        model_signature = analysis.kernel_functions[name].declaration
         cf = Aspect(name, model_signature)
 
         bodies = []
@@ -303,11 +318,11 @@ class Translator(AbstractTranslator):
             # Generate case for each transition
             cases = []
             for edge in automaton.fsa.state_transitions:
-                new = self.generate_case(analysis, automaton, edge)
+                new = self.generate_case(analysis, model, automaton, edge)
                 cases.extend(new)
             if len(cases) == 0:
                 raise RuntimeError("Cannot generate model control function for automata {} with process {}".
-                                   format(automaton.__yeild_identifier(), automaton.process.name))
+                                   format(automaton.identifier, automaton.process.name))
 
             # Calculate terminals
             in_states = [transition["in"] for transition in automaton.fsa.state_transitions]
@@ -369,15 +384,14 @@ class Translator(AbstractTranslator):
         else:
             body = bodies[0]
         cf.body.concatenate(body)
-        model_aspects.append(cf)
+        self.model_aspects.append(cf)
 
-    def determine_callback_implementations(self, analysis, automaton, subprocess, case):
+    def determine_callback_implementations(self, analysis, model, automaton, subprocess, case):
         accesses = automaton.process.resolve_access(subprocess.callback)
         callbacks = []
 
         for access in accesses:
             new_case = copy.deepcopy(case)
-            invoke = None
 
             if access.interface:
                 signature = access.interface.declaration
@@ -389,14 +403,15 @@ class Translator(AbstractTranslator):
                     invoke = '(' + implementations[0].value + ')'
                     file = implementations[0].file
                     check = False
-                else:
-                    invoke = '(*' +\
-                             access.access_with_variable(
-                                     automaton.new_variable(analysis, access.label, 
-                                                            access.list_interface[0].identifier)) +\
-                             ')'
+                elif signature.clean_declaration:
+                    invoke = '(' + \
+                              access.access_with_variable(automaton.determine_variable(analysis, access.label,
+                                                          access.list_interface[0].identifier)) +\
+                              ')'
                     file = self.entry_file
                     check = True
+                else:
+                    invoke = None
             else:
                 signature = access.label.prior_signature
 
@@ -405,12 +420,12 @@ class Translator(AbstractTranslator):
                     file = self.entry_file
                     check = False
                 else:
-                    invoke = access.access_with_variable(automaton.new_variable(analysis, access.label))
+                    invoke = access.access_with_variable(automaton.determine_variable(analysis, access.label))
                     file = self.entry_file
                     check = True
 
             if invoke:
-                additional_check = self.registration_intf_check(invoke)
+                additional_check = self.registration_intf_check(analysis, model, invoke)
                 if additional_check:
                     new_case["guard"] += " && {}".format(additional_check)
 
@@ -418,38 +433,41 @@ class Translator(AbstractTranslator):
 
         return callbacks
 
-    def generate_case(self, analysis, automaton, edge):
-        subprocess = edge["subprocess"]
+    def generate_case(self, analysis, model, automaton, edge):
+        action = edge["subprocess"]
         cases = []
         base_case = {
             "guard": "{} == {}".format(automaton.state_variable.name, edge["in"]),
             "body": [],
         }
 
-        if type(subprocess) is Call:
-            callbacks = self.determine_callback_implementations(analysis, automaton, subprocess, base_case)
+        if type(action) is Call:
+            callbacks = self.determine_callback_implementations(analysis, model, automaton, action, base_case)
 
             for case, signature, invoke, file, check in callbacks:
                 # Generate function call and corresponding function
                 fname = "emg_{}_{}_{}_{}".\
-                    format(automaton.__yeild_identifier(), automaton.process.name, subprocess.name, len(automaton.functions))
+                    format(automaton.identifier, automaton.process.name, action.name, len(automaton.functions))
 
                 params = []
                 local_vars = []
 
                 # Determine parameters
-                for index in range(len(signature.parameters)):
-                    parameter = signature.parameters[index]
+                for index in range(len(signature.points.parameters)):
+                    parameter = signature.points.parameters[index]
                     expression = None
 
                     # Try to find existing variable
-                    if parameter.interface:
-                        for candidate in subprocess.parameters:
+                    ids = [intf.identifier for intf in
+                                  analysis.resolve_interface(parameter, edge['automaton'].process.category)]
+                    if len(ids) > 0:
+                        for candidate in action.parameters:
                             accesses = automaton.process.resolve_access(candidate)
                             suits = [acc for acc in accesses if acc.interface and
-                                     acc.interface.identifier == parameter.interface.identifier]
+                                     acc.interface.identifier in ids]
                             if len(suits) == 1:
-                                var = automaton.new_variable(analysis, suits[0].label, suits[0].list_interface[0].identifier)
+                                var = automaton.determine_variable(analysis, suits[0].label,
+                                                                   suits[0].list_interface[0].identifier)
                                 expression = suits[0].access_with_variable(var)
                                 break
                             elif len(suits) > 1:
@@ -457,7 +475,7 @@ class Translator(AbstractTranslator):
 
                     # Generate new variable
                     if not expression:
-                        tmp = Variable("emg_param_{}".format(index), None, signature.parameters[index], False)
+                        tmp = Variable("emg_param_{}".format(index), None, signature.points.parameters[index], False)
                         local_vars.append(tmp)
                         expression = tmp.name
 
@@ -465,25 +483,22 @@ class Translator(AbstractTranslator):
                     params.append(expression)
 
                 # Generate special function with call
-                function = FunctionDefinition(fname, file, Signature("void {}(void)".format(fname)), True)
+                function = FunctionDefinition(fname, file, "void {}(void)".format(fname), True)
                 for var in local_vars:
-                    if var.signature.type_class == "struct" and var.signature.pointer:
-                        definition = var.declare_with_init(init=True) + ";"
-                    else:
-                        var.signature.type_class = "primitive"
-                        definition = var.declare(False) + ";"
+                    definition = var.declare_with_init(self.conf["translation options"]["pointer initialization"],
+                                                       init=True) + ";"
                     function.body.concatenate(definition)
 
                 # Generate return value assignment
                 retval = ""
-                ret_subprocess = [automaton.process.subprocesses[name] for name in automaton.process.subprocesses
-                                  if automaton.process.subprocesses[name].callback and
-                                  automaton.process.subprocesses[name].callback == subprocess.callback and
-                                  automaton.process.subprocesses[name].type == "receive" and
-                                  automaton.process.subprocesses[name].callback_retval]
+                ret_subprocess = [automaton.process.actions[name] for name in automaton.process.actions
+                                  if type(automaton.process.actions[name]) is CallRetval and
+                                  automaton.process.actions[name].callback == action.callback and
+                                  automaton.process.actions[name].retlabel]
                 if ret_subprocess:
-                    ret_access = automaton.process.resolve_access(ret_subprocess[0].callback_retval)
-                    retval = ret_access[0].access_with_variable(automaton.new_variable(ret_access[0].label))
+                    ret_access = automaton.process.resolve_access(ret_subprocess[0].retlabel)
+                    retval = ret_access[0].access_with_variable(
+                            automaton.determine_variable(analysis, ret_access[0].label))
                     retval += " = "
 
                 # Generate callback call
@@ -500,29 +515,30 @@ class Translator(AbstractTranslator):
                     )
 
                 # Free allocated memory
-                for var in [var for var in local_vars if var.signature.type_class in ["struct", "primitive"] and
-                            var.signature.pointer]:
-                    function.body.concatenate(var.free_pointer() + ";")
+                for var in local_vars:
+                    expr = var.free_pointer(self.conf["translation options"]["pointer free"])
+                    if expr:
+                        function.body.concatenate(expr + ";")
                 automaton.functions.append(function)
 
                 # Generate comment
-                case["body"].append("/* Call callback {} */".format(subprocess.name))
+                case["body"].append("/* Call callback {} */".format(action.name))
                 case["body"].append("{}();".format(fname))
                 cases.append(case)
-        elif type(subprocess) is Dispatch:
+        elif type(action) is Dispatch:
             # Generate dispatch function
-            if len(subprocess.peers) > 0:
+            if len(action.peers) > 0:
 
                 # Do call only if model which can be called will not hang
                 automata_peers = {}
-                self.__extract_relevant_automata(automata_peers, subprocess.peers, ["receive"])
+                self.__extract_relevant_automata(automata_peers, action.peers, Receive)
                 checks = self.__generate_state_pair(automata_peers)
                 if len(checks) > 0:
                     # Generate dispatch function
                     df = FunctionDefinition(
-                        "emg_{}_{}_dispatch_{}".format(automaton.__yeild_identifier(), automaton.process.name, subprocess.name),
+                        "emg_{}_{}_dispatch_{}".format(automaton.identifier, automaton.process.name, action.name),
                         self.entry_file,
-                        Signature("void %s(void)"),
+                        "void f(void)",
                         False
                     )
 
@@ -537,21 +553,24 @@ class Translator(AbstractTranslator):
                             receiver_condition = check[1]["subprocess"].condition
 
                         # Add parameters
-                        for index in range(len(subprocess.parameters)):
+                        for index in range(len(action.parameters)):
                             # Determine dispatcher parameter
-                            interface = subprocess.get_common_interface(automaton.process, index)
+                            interface = get_common_parameter(action, automaton.process, index)
 
                             # Determine receiver parameter
                             receiver_access = check[1]["automaton"].process.\
-                                resolve_access(check[1]["subprocess"].parameters[index], interface)
+                                resolve_access(check[1]["subprocess"].parameters[index], interface.identifier)
                             receiver_expr = receiver_access.\
-                                access_with_variable(check[1]["automaton"].new_variable(receiver_access.label, interface))
+                                access_with_variable(check[1]["automaton"].
+                                                     determine_variable(analysis, receiver_access.label,
+                                                                        interface.identifier))
 
                             # Determine dispatcher parameter
                             dispatcher_access = automaton.process.\
-                                resolve_access(subprocess.parameters[index], interface)
+                                resolve_access(action.parameters[index], interface.identifier)
                             dispatcher_expr = dispatcher_access.\
-                                access_with_variable(automaton.new_variable(dispatcher_access.label, interface))
+                                access_with_variable(automaton.determine_variable(analysis, dispatcher_access.label,
+                                                                                  interface.identifier))
 
                             # Replace guard
                             receiver_condition = [stm.replace("$ARG{}".format(index + 1), dispatcher_expr) for stm
@@ -560,7 +579,7 @@ class Translator(AbstractTranslator):
                             # Generate assignment
                             tmp_body.append("\t{} = {};".format(receiver_expr, dispatcher_expr))
 
-                        if subprocess.broadcast:
+                        if action.broadcast:
                             tmp_body.extend(
                                 [
                                     "}"
@@ -577,7 +596,7 @@ class Translator(AbstractTranslator):
                         if len(receiver_condition) > 0:
                             new_receiver_condition = []
                             for stm in receiver_condition:
-                                new_receiver_condition.extend(text_processor(check[1]["automaton"], stm))
+                                new_receiver_condition.extend(text_processor(analysis, check[1]["automaton"], stm))
                             receiver_condition = new_receiver_condition
                             dispatcher_condition = [dispatch_condition] + receiver_condition
                         else:
@@ -594,7 +613,7 @@ class Translator(AbstractTranslator):
                     automaton.functions.append(df)
 
                     # Add dispatch expression
-                    base_case["body"].append("/* Dispatch {} */".format(subprocess.name))
+                    base_case["body"].append("/* Dispatch {} */".format(action.name))
                     base_case["body"].append("{}();".format(df.name))
 
                     # Generate guard
@@ -602,48 +621,48 @@ class Translator(AbstractTranslator):
                                                                  for var, tr in checks]) + ')'
                 elif len(list(automata_peers.keys())) > 0:
                     raise RuntimeError("No dispatches are generated for dispatch {} but it can be received".
-                                       format(subprocess.name))
+                                       format(action.name))
             else:
                 # Generate comment
                 base_case["body"].append("/* Dispatch {} is not expected by any process, skip it */".
-                                         format(subprocess.name))
+                                         format(action.name))
             cases.append(base_case)
-        elif type(subprocess) is CallRetval:
+        elif type(action) is CallRetval:
             base_case["body"].append("/* Should wait for return value of {} here, "
-                                     "but in sequential model it is not necessary */".format(subprocess.name))
+                                     "but in sequential model it is not necessary */".format(action.name))
             cases.append(base_case)
-        elif type(subprocess) is Receive:
+        elif type(action) is Receive:
             # Generate comment
-            base_case["body"].append("/* Receive signal {} */".format(subprocess.name))
+            base_case["body"].append("/* Receive signal {} */".format(action.name))
             cases.append(base_case)
             # Do not chenge state there
             return cases
-        elif type(subprocess) is Condition:
+        elif type(action) is Condition:
             # Generate comment
-            base_case["body"].append("/* Code or condition insertion {} */".format(subprocess.name))
+            base_case["body"].append("/* Code or condition insertion {} */".format(action.name))
 
             # Add additional condition
-            if subprocess.condition and len(subprocess.condition) > 0:
-                for statement in subprocess.condition:
-                    cn = text_processor(automaton, statement)
+            if action.condition and len(action.condition) > 0:
+                for statement in action.condition:
+                    cn = text_processor(analysis, automaton, statement)
                     base_case["guard"] = " && ".join([base_case["guard"]] + cn)
 
-            if subprocess.statements:
-                for statement in subprocess.statements:
-                    base_case["body"].extend(text_processor(automaton, statement))
+            if action.statements:
+                for statement in action.statements:
+                    base_case["body"].extend(text_processor(analysis, automaton, statement))
             cases.append(base_case)
-        elif type(subprocess) is Subprocess:
+        elif type(action) is Subprocess:
             # Generate comment
-            base_case["body"].append("/* Start subprocess {} */".format(subprocess.name))
+            base_case["body"].append("/* Start subprocess {} */".format(action.name))
             cases.append(base_case)
         else:
-            raise ValueError("Unexpected state machine edge type: {}".format(subprocess.type))
+            raise ValueError("Unexpected state machine edge type: {}".format(action.type))
 
         for case in cases:
             case["body"].append("{} = {};".format(automaton.state_variable.name, edge["out"]))
         return cases
 
-    def registration_intf_check(self, function_call):
+    def registration_intf_check(self, analysis, model, function_call):
         name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
         check = []
 
@@ -651,8 +670,8 @@ class Translator(AbstractTranslator):
             name = name_re.match(function_call).group(1)
 
             # Caclulate relevant models
-            if name in self.analysis.modules_functions:
-                relevant_models = self.__collect_relevant_models(name)
+            if name in analysis.modules_functions:
+                relevant_models = analysis.collect_relevant_models(name)
 
                 # Get list of models
                 process_models = [model for model in model.model_processes if model.name in relevant_models]
@@ -660,9 +679,10 @@ class Translator(AbstractTranslator):
                 # Check relevant state machines for each model
                 automata_peers = {}
                 for model in process_models:
-                    signals = [model.subprocesses[name] for name in model.subprocesses
-                               if len(model.subprocesses[name].peers) > 0 and model.subprocesses[name].type
-                               in ["dispatch", "receive"]]
+                    signals = [model.actions[name] for name in model.actions
+                               if (type(model.actions[name]) is Receive or
+                                   type(model.actions[name]) is Dispatch) and
+                               len(model.actions[name].peers) > 0]
 
                     # Get all peers in total
                     peers = []
@@ -670,7 +690,7 @@ class Translator(AbstractTranslator):
                         peers.extend(signal.peers)
 
                     # Add relevant state machines
-                    self.__extract_relevant_automata(automata_peers, peers, None)
+                    self.__extract_relevant_automata(automata_peers, peers)
 
                 check.extend(["({} == {} || {} == 0)".format(var, tr["in"], var) for var, tr
                               in self.__generate_state_pair(automata_peers)])
@@ -679,39 +699,19 @@ class Translator(AbstractTranslator):
 
         return " && ".join(check)
 
-    def __collect_relevant_models(self, function):
-        process_names = [function]
-        processed_names = []
-        relevant = []
-        while len(process_names) > 0:
-            name = process_names.pop()
-
-            if name in self.analysis.modules_functions:
-                for file in self.analysis.modules_functions[name]["files"]:
-                    for called in self.analysis.modules_functions[name]["files"][file]["calls"]:
-                        if called in self.analysis.modules_functions and called not in processed_names and \
-                                called not in process_names:
-                            process_names.append(called)
-                        elif called in self.analysis.kernel_functions:
-                            relevant.append(called)
-
-            processed_names.append(name)
-        return relevant
-
-    def __extract_relevant_automata(self, automata_peers, peers, types):
+    def __extract_relevant_automata(self, automata_peers, peers, type=None):
         for peer in peers:
             relevant_automata = [automaton for automaton in self.__callback_fsa
-                                 if automaton.process.name == peer["process"].name and
-                                 automaton.__yeild_identifier() != self.__yeild_identifier()]
+                                 if automaton.process.name == peer["process"].name]
             for automaton in relevant_automata:
-                if automaton.__yeild_identifier() not in automata_peers:
-                    automata_peers[automaton.__yeild_identifier()] = {
+                if automaton.identifier not in automata_peers:
+                    automata_peers[automaton.identifier] = {
                         "automaton": automaton,
                         "subprocesses": []
                     }
-                if peer["subprocess"] not in automata_peers[automaton.__yeild_identifier()]["subprocesses"]:
-                    if not types or (types and peer["subprocess"].type in types):
-                        automata_peers[automaton.__yeild_identifier()]["subprocesses"].append(peer["subprocess"])
+                if peer["subprocess"] not in automata_peers[automaton.identifier]["subprocesses"]:
+                    if not type or isinstance(peer["subprocess"], type):
+                        automata_peers[automaton.identifier]["subprocesses"].append(peer["subprocess"])
 
     @staticmethod
     def __generate_state_pair(automata_peers):
@@ -766,15 +766,15 @@ class Automaton:
             for label in self.process.labels.values():
                 if label.interfaces:
                     for interface in label.interfaces:
-                        self.__variables.append(self.new_variable(analysis, label, interface))
+                        self.__variables.append(self.determine_variable(analysis, label, interface))
                 else:
-                    var = self.new_variable(analysis, label)
+                    var = self.determine_variable(analysis, label)
                     if var:
-                        self.__variables.append(self.new_variable(analysis, label))
+                        self.__variables.append(self.determine_variable(analysis, label))
 
         return self.__variables
 
-    def new_variable(self, analysis, label, interface=None):
+    def determine_variable(self, analysis, label, interface=None):
         if not interface:
             if label.name in self.__label_variables and "default" in self.__label_variables[label.name]:
                 return self.__label_variables[label.name]["default"]

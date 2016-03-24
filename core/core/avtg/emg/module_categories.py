@@ -42,6 +42,25 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #with open(file, "w", encoding="ascii") as fh:
         #    fh.write(content)
 
+    def collect_relevant_models(self, function):
+        process_names = [function]
+        processed_names = []
+        relevant = []
+        while len(process_names) > 0:
+            name = process_names.pop()
+
+            if name in self.modules_functions:
+                for file in self.modules_functions[name]:
+                    for called in self.modules_functions[name][file]['calls']:
+                        if called in self.modules_functions and called not in processed_names and \
+                                called not in process_names:
+                            process_names.append(called)
+                        elif called in self.kernel_functions:
+                            relevant.append(called)
+
+            processed_names.append(name)
+        return relevant
+
     @staticmethod
     def __check_category_relevance(function):
         relevant = []
@@ -149,6 +168,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         # Remove dirty declarations
         self._refine_interfaces()
 
+        # Import modules functions
         modules_functions = {}
         if 'modules functions' in analysis:
             self.logger.info("Import modules functions and implementations from kernel functions calls in it")
@@ -159,9 +179,10 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 for path in module_function["files"]:
                     self.logger.debug("Parse signature of function {} from file {}".format(function, path))
                     modules_functions[function][path] = \
-                        import_signature(module_function["files"][path]["signature"])
+                        {'declaration': import_signature(module_function["files"][path]["signature"])}
 
                     if "calls" in module_function["files"][path]:
+                        modules_functions[function][path]['calls'] = module_function["files"][path]['calls']
                         for kernel_function in [name for name in module_function["files"][path]["calls"]
                                                 if name in self.kernel_functions]:
                             for call in module_function["files"][path]["calls"][kernel_function]:

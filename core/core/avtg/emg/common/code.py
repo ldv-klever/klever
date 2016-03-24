@@ -1,6 +1,7 @@
 import re
 
-from core.avtg.emg.common.signature import BaseType, import_signature
+from core.avtg.emg.common.signature import BaseType, Pointer, Structure, Array, Union, Function, Primitive, \
+    import_signature
 
 
 class Variable:
@@ -20,61 +21,43 @@ class Variable:
         else:
             raise ValueError("Attempt to create variable {} without signature".format(name))
 
-    def declare_with_init(self, init=True):
+    def declare_with_init(self, conf, init=True):
         # Ger declaration
         declaration = self.declare(extern=False)
 
         # Add memory allocation
-        if not self.value and init:
-            if self.declaration.pointer and self.declaration.type_class == "struct":
-                alloc = FunctionModels.init_pointer(self.declaration)
-                self.value = alloc
-
-        # Set value
-        if self.value:
+        if self.value and init:
             declaration += " = {}".format(self.value)
+        elif init and type(self.declaration) is Pointer and\
+                ((type(self.declaration.points) is Structure and conf['structures']) or
+                 (type(self.declaration.points) is Array and conf['arrays']) or
+                 (type(self.declaration.points) is Union and conf['unions']) or
+                 (type(self.declaration.points) is Function and conf['functions']) or
+                 (type(self.declaration.points) is Primitive and conf['primitives'])):
+            declaration += " = {}".format(FunctionModels.init_pointer(self.declaration))
+
         return declaration
 
-    def free_pointer(self):
-        return "{}({})".format(FunctionModels.free_function_map["FREE"], self.name)
+    def free_pointer(self, conf):
+        expr = None
+        if type(self.declaration) is Pointer and\
+                ((type(self.declaration.points) is Structure and conf['structures']) or
+                 (type(self.declaration.points) is Array and conf['arrays']) or
+                 (type(self.declaration.points) is Union and conf['unions']) or
+                 (type(self.declaration.points) is Function and conf['functions']) or
+                 (type(self.declaration.points) is Primitive and conf['primitives'])):
+            expr = "{}({})".format(FunctionModels.free_function_map["FREE"], self.name)
+        return expr
 
     def declare(self, extern=False):
         # Generate declaration
-        declaration = self.declaration.expression
-
-        # todo: investigate deeper why the condition should be so strange
-        if self.declaration.type_class == "function" and not (not self.declaration.return_value and
-                        None in self.declaration.parameters):
-            if self.declaration.return_value:
-                declaration = self.declaration.return_value.expression.replace("%s", "") + " "
-            else:
-                declaration = "void "
-            declaration += '(*' + self.name + ')'
-            params = []
-            for param in self.declaration.parameters:
-                pr = param.expression
-                if param.pointer:
-                    pr = pr.replace("*%s", "*")
-                    pr = pr.replace("%s", "*")
-                else:
-                    pr = pr.replace("*%s", "")
-                    pr = pr.replace("%s", "")
-                params.append(pr)
-            declaration += '(' + \
-                           ", ".join(params) + \
-                           ')'
-        else:
-            if self.declaration.pointer:
-                declaration = declaration.replace("*%s", "*{}".format(self.name))
-                declaration = declaration.replace("%s", "*{}".format(self.name))
-            else:
-                declaration = declaration.replace("%s", self.name)
+        expr = self.declaration.to_string(self.name)
 
         # Add extern prefix
         if extern:
-            declaration = "extern " + declaration
+            expr = "extern " + expr
 
-        return declaration
+        return expr
 
 
 class FunctionDefinition:
@@ -101,7 +84,7 @@ class FunctionDefinition:
         return self.__body
 
     def get_declaration(self, extern=False):
-        declaration = self.signature.expression.replace("%s", self.name)
+        declaration = self.declaration.to_string(self.name)
         declaration += ';'
 
         if extern:
@@ -109,15 +92,11 @@ class FunctionDefinition:
         return [declaration + "\n"]
 
     def get_definition(self):
-        if self.signature.type_class == "function" and not self.signature.pointer:
-            lines = list()
-            lines.append(self.signature.expression.replace("%s", self.name) + "{\n")
-            lines.extend(self.body.get_lines(1))
-            lines.append("}\n")
-            return lines
-        else:
-            raise TypeError("BaseType '{}' with class '{}' is not a function or it is a function pointer".
-                            format(self.signature.expression, self.signature.type_class))
+        lines = list()
+        lines.append(self.declaration.to_string(self.name) + "{\n")
+        lines.extend(self.body.get_lines(1))
+        lines.append("}\n")
+        return lines
 
 
 class FunctionBody:
@@ -163,9 +142,9 @@ class FunctionModels:
 
     # todo: implement all models
     mem_function_map = {
-        "ALLOC": "ldv_successful_malloc",
-        "ALLOC_RECURSIVELY": "ldv_successful_malloc",
-        "ZINIT": "ldv_init_zalloc",
+        "ALLOC": "ldv_undef_ptr",
+        "ALLOC_RECURSIVELY": "ldv_undef_ptr",
+        "ZINIT": "ldv_undef_ptr",
         "ZINIT_STRUCT": None,
         "INIT_STRUCT": None,
         "INIT_RECURSIVELY": None,
@@ -186,11 +165,7 @@ class FunctionModels:
 
     @staticmethod
     def init_pointer(signature):
-        if signature.type_class in ["struct", "primitive"] and signature.pointer:
-            return "{}(sizeof(struct {}))".format(FunctionModels.mem_function_map["ALLOC"], signature.structure_name)
-        else:
-            raise NotImplementedError("Cannot initialize label {} which is not pointer to structure or primitive".
-                                      format(signature.name, signature.type_class))
+        return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], signature.to_string(''))
 
     def __replace_mem_call(self, match):
         function, label_name, flag = match.groups()
@@ -199,11 +174,7 @@ class FunctionModels:
         elif not self.mem_function_map[function]:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
-        if self.signature.type_class in ["struct", "primitive"] and self.signature.pointer:
-            return "{}(sizeof(struct {}))".format(self.mem_function_map[function], self.signature.structure_name)
-        else:
-            raise NotImplementedError("Cannot initialize signature {} which is not pointer to structure or primitive".
-                                      format(self.signature.expression, self.signature.type_class))
+        return "{}(sizeof({}))".format(self.mem_function_map[function], self.signature.to_string(''))
 
     def __replace_free_call(self, match):
         function, label_name, flag = match.groups()

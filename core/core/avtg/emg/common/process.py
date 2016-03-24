@@ -99,25 +99,25 @@ def rename_subprocess(pr, old_name, new_name):
                 new_match = old_match.replace(old_name, new_name)
                 process.process = process.process.replace(old_match, new_match)
 
-########################################### todo: Remove
-def get_common_interface(subprocess, process, position):
-    pl = process.extract_label(subprocess.parameters[position])
-    if not pl.interfaces:
-        return []
-    else:
-        interfaces = pl.interfaces
-        for peer in subprocess.peers:
-            arg = peer['subprocess'].parameters[position]
-            label = peer['process'].extract_label(arg)
-            interfaces = set(interfaces) & set(label.interfaces)
 
-        if len(interfaces) == 0:
-            raise RuntimeError('Need at least one common interface to send signal')
-        elif len(interfaces) > 1:
-            raise NotImplementedError
-        else:
-            return list(interfaces)[0]
-#############################################
+def get_common_parameter(action, process, position):
+    interfaces = [access.interface for access in process.resolve_access(action.parameters[position])
+                  if access.interface]
+
+    for peer in action.peers:
+        candidates = [access.interface for access
+                      in peer['process'].resolve_access(peer['subprocess'].parameters[position])
+                      if access.interface]
+        interfaces = set(interfaces) & set(candidates)
+
+    if len(interfaces) == 0:
+        raise RuntimeError('Need at least one common interface to send a signal')
+    elif len(interfaces) > 1:
+        raise NotImplementedError('Cannot have several common interfaces for signal transmission')
+    else:
+        return list(interfaces)[0]
+
+    return interfaces
 
 
 class Access:
@@ -150,9 +150,11 @@ class Access:
 
         expression = variable.name
         candidate = variable.declaration
-        accesses = list(self.list_access)
+        accesses = self.list_access[1:]
         previous = None
         while candidate:
+            previous = candidate
+
             if candidate.compare(target):
                 candidate = None
                 if type(previous) is Pointer:
@@ -171,11 +173,9 @@ class Access:
                     else:
                         expression += '.{}'.format(field)
                 else:
-                    raise ValueError('CAnnot build access from given variable')
+                    raise ValueError('Cannot build access from given variable')
             else:
                 raise ValueError('CAnnot build access from given variable')
-
-            previous = candidate
 
         return expression
 

@@ -55,5 +55,4 @@ class KernelFunction(Interface):
         else:
             self.called_at[caller] += 1
 
-
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
