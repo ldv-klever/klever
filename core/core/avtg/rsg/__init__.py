@@ -130,8 +130,8 @@ class RSG(core.components.Component):
                                                     else self.conf['common sets model']).upper()]
                     }, fp, sort_keys=True, indent=4)
 
-                grp['cc extra full desc files'].append({
-                    'cc full desc file': os.path.relpath(full_desc_file,
-                                                         os.path.realpath(self.conf['source tree root'])),
-                    'bug kinds': self.conf['bug kinds']
-                })
+                cc_extra_full_desc_file = {'cc full desc file': os.path.relpath(full_desc_file, os.path.realpath(
+                    self.conf['source tree root']))}
+                if 'bug kinds' in models[model_c_file]:
+                    cc_extra_full_desc_file['bug kinds'] = models[model_c_file]['bug kinds']
+                grp['cc extra full desc files'].append(cc_extra_full_desc_file)

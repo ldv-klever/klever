@@ -114,8 +114,6 @@ def _extract_rule_spec_descs(conf, logger):
         else:
             rule_spec_desc = descs['rule specifications'][rule_spec_id]
 
-        rule_spec_desc['id'] = rule_spec_id
-
         # Get rid of useless information.
         for attr in ('aliases', 'description'):
             if attr in rule_spec_desc:
@@ -161,34 +159,37 @@ def _extract_rule_spec_descs(conf, logger):
 
         # Add plugin options specific for rule specification.
         rule_spec_plugin_names = []
+        # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
         for attr in rule_spec_desc:
-            # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-            if attr not in ('id', 'bug kinds'):
-                plugin_name = attr
-                rule_spec_plugin_names.append(plugin_name)
-                is_plugin_specified = False
+            plugin_name = attr
+            rule_spec_plugin_names.append(plugin_name)
+            is_plugin_specified = False
 
-                for plugin_desc in plugin_descs:
-                    if plugin_name == plugin_desc['name']:
-                        is_plugin_specified = True
-                        if 'options' not in plugin_desc:
-                            plugin_desc['options'] = {}
-                        plugin_desc['options'].update(rule_spec_desc[plugin_name])
-                        logger.debug(
-                            'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(plugin_name,
-                                                                                                          rule_spec_id,
-                                                                                                          rule_spec_desc[
-                                                                                                              plugin_name]))
-                        break
+            for plugin_desc in plugin_descs:
+                if plugin_name == plugin_desc['name']:
+                    is_plugin_specified = True
+                    if 'options' not in plugin_desc:
+                        plugin_desc['options'] = {}
+                    plugin_desc['options'].update(rule_spec_desc[plugin_name])
+                    logger.debug(
+                        'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(plugin_name,
+                                                                                                      rule_spec_id,
+                                                                                                      rule_spec_desc[
+                                                                                                          plugin_name]))
+                    break
 
-                if not is_plugin_specified:
-                    raise ValueError(
-                        'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
-                            rule_spec_id, plugin_name, tmpl_id))
+            if not is_plugin_specified:
+                raise ValueError(
+                    'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
+                        rule_spec_id, plugin_name, tmpl_id))
         # We don't need to keep plugin options specific for rule specification in such the form any more.
         for plugin_name in rule_spec_plugin_names:
             del (rule_spec_desc[plugin_name])
         rule_spec_desc['plugins'] = plugin_descs
+
+        # Add rule specification identifier to its description after all. Do this so late to avoid treating of "id" as
+        # plugin name above.
+        rule_spec_desc['id'] = rule_spec_id
 
         rule_spec_descs.append(rule_spec_desc)
 
@@ -351,9 +352,6 @@ class AVTG(core.components.Component):
             plugin_conf = copy.deepcopy(self.conf)
             if 'options' in plugin_desc:
                 plugin_conf.update(plugin_desc['options'])
-            plugin_conf.update({'rule spec id': rule_spec_desc['id']})
-            if 'bug kinds' in rule_spec_desc:
-                plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
 
             p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
                                       '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),

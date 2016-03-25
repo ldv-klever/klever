@@ -158,12 +158,6 @@
     },
     "linux:mutex:as": {
       "description": "...",
-      "bug kinds": [
-        "linux:mutex::one thread:double lock",
-        "linux:mutex::one thread:double lock try",
-        "linux:mutex::one thread:double unlock",
-        "linux:mutex::one thread:locked at exit"
-      ],
       "template": "Argument signatures for Linux kernel modules",
       "ASE": {
         "argument signatures list": "mutex_arg_signs",
@@ -175,7 +169,15 @@
           "linux/mutex.aspect.tmpl"
         ]
       },
-      "RSG": {"models": {"$linux/mutex.c": {"sets model": "flag"}}}
+      "RSG": {"models": {"$linux/mutex.c": {
+        "bug kinds": [
+          "linux:mutex::one thread:double lock",
+          "linux:mutex::one thread:double lock try",
+          "linux:mutex::one thread:double unlock",
+          "linux:mutex::one thread:locked at exit"
+        ],
+        "sets model": "flag"
+      }}}
     },
     "linux:rwlock": {
       "aliases": ["118"],
