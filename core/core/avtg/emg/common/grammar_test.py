@@ -2,6 +2,9 @@ from core.avtg.emg.common.signature import import_signature, setup_collection
 
 
 __grammar_tests = [
+    'union {   void *arg;   struct kparam_string const *str;   struct kparam_array const *arr; }',
+    'union {   s64 lock;    } arch_rwlock_t',
+    'union {   s64 lock;   struct   {     u32 read;     s32 write;   }; } arch_rwlock_t',
     'struct { short unsigned int size; short unsigned int byte_cnt; short unsigned int threshold; } SR9800_BULKIN_SIZE[8U]',
     'unsigned char disable_hub_initiated_lpm : 1',
     'int a',
@@ -86,5 +89,6 @@ setup_collection({}, {})
 for test in __grammar_tests:
     print(test)
     object = import_signature(test)
+    #print(object.pretty_name)
     print(object.identifier)
     print(object.to_string('a'))

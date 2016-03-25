@@ -121,23 +121,23 @@ def p_error(t):
 
 def p_full_declaration(p):
     """
-    full_declaration : declaration BIT_SIZE_DELEMITER NUMBER END
-                     | declaration BIT_SIZE_DELEMITER NUMBER
-                     | declaration END
-                     | declaration
+    full_declaration : parameter_declaration BIT_SIZE_DELEMITER NUMBER END
+                     | parameter_declaration BIT_SIZE_DELEMITER NUMBER
+                     | parameter_declaration END
+                     | parameter_declaration
     """
     p[0] = p[1]
 
-
-def p_declaration(p):
-    """
-    declaration : declaration_specifiers_list declarator
-                | UNKNOWN declarator
-                | INTERFACE declarator
-                | UNKNOWN
-                | INTERFACE
-    """
-    declaration_processing(p)
+# todo: this is declaration with declarator but an input sometimes does not contain it
+#def p_declaration(p):
+#    """
+#    declaration : declaration_specifiers_list declarator
+#                | UNKNOWN declarator
+#                | INTERFACE declarator
+#                | UNKNOWN
+#                | INTERFACE
+#    """
+#    declaration_processing(p)
 
 
 def p_declaration_specifiers_list(p):
@@ -258,7 +258,7 @@ def p_struct_declaration_list(p):
 
 def p_struct_declaration(p):
     """
-    struct_declaration : declaration END
+    struct_declaration : parameter_declaration END
     """
     p[0] = p[1]
 
@@ -266,11 +266,19 @@ def p_struct_declaration(p):
 def p_union_specifier(p):
     """
     union_specifier : UNION IDENTIFIER
+                    | UNION BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
     """
-    p[0] = {
-        'class': 'union',
-        'name': p[2]
-    }
+    if len(p) == 3:
+        p[0] = {
+            'class': 'union',
+            'name': p[2]
+        }
+    else:
+        p[0] = {
+            'class': 'union',
+            'name': None,
+            'fields': p[3]
+        }
 
 
 def p_enum_specifier(p):
@@ -798,7 +806,8 @@ class Structure(BaseType):
         if 'fields' in self._ast['specifiers']['type specifier']:
             for declaration in self._ast['specifiers']['type specifier']['fields']:
                 name = declaration['declarator'][-1]['identifier']
-                self.fields[name] = import_signature(None, declaration)
+                if name:
+                    self.fields[name] = import_signature(None, declaration)
 
     @property
     def clean_declaration(self):
@@ -846,6 +855,12 @@ class Union(BaseType):
         self.common_initialization(ast, parent)
         self.fields = {}
 
+        if 'fields' in self._ast['specifiers']['type specifier']:
+            for declaration in self._ast['specifiers']['type specifier']['fields']:
+                name = declaration['declarator'][-1]['identifier']
+                if name:
+                    self.fields[name] = import_signature(None, declaration)
+
     @property
     def clean_declaration(self):
         #for field in self.fields.values():
@@ -859,13 +874,31 @@ class Union(BaseType):
 
     @property
     def pretty_name(self):
-        return 'union_{}'.format(self.name)
+        if self._ast['specifiers']['type specifier']['name']:
+            return 'union_{}'.format(self.name)
+        else:
+            global typedef_collection
+
+            key = list(typedef_collection.keys()).index(self.identifier)
+            return 'union_noname_{}'.format(key)
+
+    def contains(self, target):
+        return [field for field in self.fields if self.fields[field].compare(target)]
+
+    def weak_contains(self, target):
+        return [field for field in self.fields if self.fields[field].compare(target) or
+                self.fields[field].pointer_alias(target)]
 
     def _to_string(self, replacement):
-        if replacement == '':
-            return "union {}".format(self.name)
+        if not self.name:
+            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in self.fields]) + ' }'
         else:
-            return "union {} {}".format(self.name, replacement)
+            name = self.name
+
+        if replacement == '':
+            return "union {}".format(name)
+        else:
+            return "union {} {}".format(name, replacement)
 
 
 class Array(BaseType):
