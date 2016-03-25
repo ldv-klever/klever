@@ -142,9 +142,9 @@ class FunctionModels:
 
     # todo: implement all models
     mem_function_map = {
-        "ALLOC": "ldv_undef_ptr",
-        "ALLOC_RECURSIVELY": "ldv_undef_ptr",
-        "ZINIT": "ldv_undef_ptr",
+        "ALLOC": "ldvemg_undef_ptr",
+        "ALLOC_RECURSIVELY": "ldvemg_undef_ptr",
+        "ZINIT": "ldvemg_undef_ptr",
         "ZINIT_STRUCT": None,
         "INIT_STRUCT": None,
         "INIT_RECURSIVELY": None,
