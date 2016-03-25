@@ -18,10 +18,9 @@
             <div class="ui grid form">
                 <div class="six wide column">
                     <div class="field">
-                        <label>{{ user_form.username.label }}</label>
+                        <label>{{ user_form.username.label }}<i class="ui help blue icon note-popup" data-content="{{ user_form.username.help_text }}"></i></label>
                         {{ user_form.username }}
                         <small>{{ user_form.username.errors }}</small>
-                        <small style="color: #afafaf">{{ user_form.username.help_text }}</small>
                     </div>
                     <div class="field">
                         <label>{{ user_form.password.label }}</label>
