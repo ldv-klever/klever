@@ -4,7 +4,7 @@ from django.db.models import ProtectedError
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
-from bridge.utils import print_err
+from bridge.utils import logger
 from reports.models import *
 from marks.models import *
 from marks.utils import ConnectReportWithMarks, update_unknowns_cache
@@ -24,7 +24,7 @@ def clear_job_files():
             file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))
             files_in_the_system.append(file_path)
             if not(os.path.exists(file_path) and os.path.isfile(file_path)):
-                print_err('Deleted from DB (file not exists): %s' % f.file.name)
+                logger.error('Deleted from DB (file not exists): %s' % f.file.name, stack_info=True)
                 f.delete()
     files_directory = os.path.join(MEDIA_ROOT, JOBFILE_DIR)
     if os.path.exists(files_directory):
@@ -307,7 +307,7 @@ class ResourceData(object):
         d = newdata
         while d is not None:
             if d['parent'] is not None and d['parent'] not in self._data:
-                print_err('ERROR_1')
+                logger.error('Updating resources failed', stack_info=True)
                 return
             self._resources.update(d['id'], newdata)
             if d['parent'] is not None:

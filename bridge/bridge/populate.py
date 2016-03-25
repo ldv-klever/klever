@@ -267,7 +267,7 @@ class Population(object):
                         or len(data['function']) == 0 \
                         or not 0 < len(data['pattern']) <= 15 \
                         or not isinstance(data['is_modifiable'], bool):
-                    logger.error('Wrong unknown mark data: %s' % mark_settings)
+                    logger.error('Wrong unknown mark data: %s' % mark_settings, stack_info=True)
                     continue
                 try:
                     MarkUnknown.objects.get(
@@ -292,7 +292,7 @@ class Population(object):
                     try:
                         mark = MarkUnknown.objects.create(**create_args)
                     except Exception as e:
-                        logger.error("Can't save mark to DB: %s" % e)
+                        logger.exception("Can't save mark '%s' to DB: %s" % (mark_settings, e), stack_info=True)
                         continue
                     MarkUnknownHistory.objects.create(
                         mark=mark, version=mark.version, author=mark.author, status=mark.status,

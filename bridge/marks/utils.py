@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import print_err
+from bridge.utils import logger
 from marks.models import *
 from reports.models import ReportComponent, Attr, AttrName, Verdict
 from marks.ConvertTrace import ConvertTrace
@@ -335,9 +335,10 @@ class ConnectReportWithMarks(object):
                 compare = CompareTrace(
                     mark.function.name,
                     mark.error_trace.decode('utf8'),
-                    self.report.error_trace.decode('utf8'))
+                    self.report.error_trace.decode('utf8')
+                )
                 if compare.error is not None:
-                    print_err(compare.error)
+                    logger.error("Comparing traces failed: %s" % compare.error, stack_info=True)
                     compare_failed = True
                 if compare.result > 0 or compare_failed:
                     MarkUnsafeReport.objects.create(
@@ -370,7 +371,10 @@ class ConnectReportWithMarks(object):
                 continue
             elif len(problem) > 15:
                 problem = 'Too long!'
-                print_err("Generated problem '%s' for mark %s is too long" % (problem, mark.identifier))
+                logger.error(
+                    "Generated problem '%s' for mark %s is too long" % (problem, mark.identifier),
+                    stack_info=True
+                )
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(mark=mark, report=self.report, problem=problem)
             if self.report not in changes:
@@ -418,7 +422,7 @@ class ConnectMarkWithReports(object):
                     self.mark.error_trace.decode('utf8'),
                     unsafe.error_trace.decode('utf8'))
                 if compare.error is not None:
-                    print_err(compare.error)
+                    logger.error("Comparing traces failed: %s" % compare.error)
                     compare_failed = True
                 if compare.result > 0 or compare_failed:
                     MarkUnsafeReport.objects.create(
@@ -471,7 +475,10 @@ class ConnectMarkWithReports(object):
                 continue
             elif len(problem) > 15:
                 problem = 'Too long!'
-                print_err("Generated problem '%s' for mark %s is too long" % (problem, self.mark.identifier))
+                logger.error(
+                    "Generated problem '%s' for mark %s is too long" % (problem, self.mark.identifier),
+                    stack_info=True
+                )
             problem = UnknownProblem.objects.get_or_create(name=problem)[0]
             MarkUnknownReport.objects.create(
                 mark=self.mark, report=unknown, problem=problem)
@@ -797,7 +804,7 @@ class ReadTarMark(object):
             try:
                 mark.save()
             except Exception as e:
-                print_err(e)
+                logger.exception("Saving mark to DB failed: %s" % e, stack_info=True)
                 return _("Unknown error")
 
             self.__update_mark(mark, tags=tags)

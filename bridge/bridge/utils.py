@@ -4,46 +4,38 @@ import logging
 import hashlib
 import tarfile
 import tempfile
-import traceback
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.template.defaultfilters import filesizeformat
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
-from bridge.settings import DEBUG, MAX_FILE_SIZE
+from bridge.settings import MAX_FILE_SIZE
 from jobs.models import File
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
-BRIDGE_ERROR_LOG = 'error.log'
-BRIDGE_LOG = 'bridge.log'
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('bridge')
 
 
-def print_err(message):
-    with open(os.path.join(settings.MEDIA_ROOT, BRIDGE_ERROR_LOG), mode='a') as fp:
-        fp.write('=' * 30 + 'ERROR' + '=' * 30 + '\n')
-        traceback.print_stack(file=fp)
-        fp.close()
+class InfoFilter(object):
+    def __init__(self, level):
+        self.__level = level
 
-    if DEBUG:
-        print(message)
+    def filter(self, log_record):
+        return log_record.levelno == self.__level
 
 
-def print_log():
-    with open(os.path.join(settings.MEDIA_ROOT, BRIDGE_LOG), mode='a') as fp:
-        fp.write('=' * 30 + '\n')
-        traceback.print_stack(file=fp)
-        fp.close()
+for h in logger.handlers:
+    if h.name == 'other':
+        h.addFilter(InfoFilter(logging.INFO))
 
 
 def print_exec_time(f):
     def wrapper(*args, **kwargs):
         start = now()
         res = f(*args, **kwargs)
-        print_err('%s: %s' % (f.__name__, now() - start))
+        logger.info('%s: %s' % (f.__name__, now() - start))
         return res
     return wrapper
 

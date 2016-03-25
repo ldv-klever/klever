@@ -171,9 +171,13 @@ DEF_USER = {
 LOGGING = {
     'version': 1,
     'formatters': {
+        'with_separator': {
+            'format': '=' * 50 + '\n[%(asctime)s] %(message)s',
+            'datefmt': "%d.%b.%Y %H:%M:%S"
+        },
         'simple': {
-            'format': '=' * 30 + '\n%(asctime)s [%(levelname)s] %(message)s',
-            'datefmt': "<%d.%b.%Y %H:%M:%S>"
+            'format': '[%(asctime)s] %(message)s',
+            'datefmt': "%d.%b.%Y %H:%M:%S"
         },
     },
     'handlers': {
@@ -185,27 +189,33 @@ LOGGING = {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
             'filename': os.path.join(MEDIA_ROOT, 'internal-server-error.log'),
-            'formatter': 'simple'
+            'formatter': 'with_separator'
         },
         'errors': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(MEDIA_ROOT, 'error.log'),
+            'filename': os.path.join(MEDIA_ROOT, 'bridge-error.log'),
+            'formatter': 'with_separator'
+        },
+        'other': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(MEDIA_ROOT, 'bridge-info.log'),
             'formatter': 'simple'
         },
     },
     'loggers': {
         'django.request': {
             'handlers': ['console', 'file'],
-            'propagate': True,
             'level': 'DEBUG',
+            'propagate': True
         },
         'bridge': {
-            'handlers': ['errors'],
-            'propagate': False,
-            'level': 'ERROR',
+            'handlers': ['errors', 'console', 'other'],
+            'level': 'INFO',
+            'propagate': True
         },
-    },
+    }
 }
 
 MAX_FILE_SIZE = 104857600  # 100MB
