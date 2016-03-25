@@ -780,6 +780,12 @@ function set_actions_for_versions_delete() {
 }
 
 $(document).ready(function () {
+    function set_actions_for_run_history() {
+        $('#run_history').dropdown();
+        $('#download_configuration').click(function () {
+            window.location.replace('/jobs/download_configuration/' + $('#run_history').val() + '/');
+        });
+    }
     $('.for_popup').popup();
     $('#job_scheduler').dropdown();
     var view_job_1st_part = $('#view_job_1st_part');
@@ -823,10 +829,7 @@ $(document).ready(function () {
                 $('#edit_job_div').html(data);
                 inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
                 set_action_on_file_click();
-                $('.normal-dropdown').dropdown();
-                $('#download_configuration').click(function () {
-                    window.location.replace('/jobs/download_configuration/' + $('#run_history').val() + '/');
-                });
+                set_actions_for_run_history();
             }
         });
     }
@@ -926,7 +929,8 @@ $(document).ready(function () {
                 job_ajax_url + 'get_job_data/',
                 {
                     job_id: $('#job_pk').val(),
-                    view: collect_jobview_data()
+                    view: collect_jobview_data(),
+                    checked_run_history: $('#run_history').val()
                 },
                 function (data) {
                     if (data.error) {
@@ -935,6 +939,12 @@ $(document).ready(function () {
                     }
                     if ('jobdata' in data) {
                         $('#job_data_div').html(data['jobdata']);
+                    }
+                    var is_jh_active = ($('#run_history').dropdown('is active')[0] == true && $('#run_history').dropdown('is active')[1] == true);
+                    $('#job_run_history_block').html(data['job_history']);
+                    set_actions_for_run_history();
+                    if (is_jh_active) {
+                        $('#run_history').dropdown('show');
                     }
                     if (data['can_create']) {
                         $('#copy_job_btn').removeClass('disabled');

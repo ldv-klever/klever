@@ -257,7 +257,11 @@ def get_job_data(request):
         'can_download': job_access.can_download(),
         'can_stop': job_access.can_stop(),
         'jobstatus': job.status,
-        'jobstatus_text': job.get_status_display() + ''
+        'jobstatus_text': job.get_status_display() + '',
+        'job_history': get_template('jobs/jobRunHistory.html').render({
+            'job': job,
+            'checked_option': request.POST.get('checked_run_history', 0)
+        })
     }
     if report is not None:
         data['jobstatus_href'] = reverse('reports:component', args=[job.pk, report.pk])
