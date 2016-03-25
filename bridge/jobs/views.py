@@ -1,26 +1,26 @@
-import os
-import json
 import mimetypes
 from io import BytesIO
 from urllib.parse import quote
+from difflib import unified_diff
+from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
-from django.core.servers.basehttp import FileWrapper
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
-from bridge.vars import VIEW_TYPES, PRIORITY
-from bridge.utils import unparallel, unparallel_group, print_exec_time, file_checksum
-from jobs.forms import FileForm
+from bridge.vars import VIEW_TYPES
+from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get_or_create, extract_tar_temp
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
 from reports.models import ReportComponent
+from reports.comparison import can_compare
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
-from service.utils import StartJobDecision, StartDecisionData, StopDecision, get_default_data
+from jobs.models import RunHistory
+from service.utils import StartJobDecision, StopDecision
 
 
 @login_required
@@ -526,30 +526,18 @@ def upload_file(request):
 
     if request.method != 'POST':
         return HttpResponse('')
-    form = FileForm(request.POST, request.FILES)
-    if form.is_valid():
-        new_file = form.save(commit=False)
-        hash_sum = file_checksum(new_file.file)
-        if len(File.objects.filter(hash_sum=hash_sum)) > 0:
-            return JsonResponse({
-                'hash_sum': hash_sum,
-                'status': 0
-            })
-        new_file.hash_sum = hash_sum
-        if not all(ord(c) < 128 for c in new_file.file.name):
-            title_size = len(new_file.file.name)
+    for f in request.FILES:
+        fname = request.FILES[f].name
+        if not all(ord(c) < 128 for c in fname):
+            title_size = len(fname)
             if title_size > 30:
-                new_file.file.name = new_file.file.name[(title_size - 30):]
-        new_file.save()
-        return JsonResponse({
-            'hash_sum': hash_sum,
-            'status': 0
-        })
-    return JsonResponse({
-        'message': _('File uploading failed'),
-        'errors': form.errors,
-        'status': 1
-    })
+                fname = fname[(title_size - 30):]
+        try:
+            check_sum = file_get_or_create(request.FILES[f], fname, True)[1]
+        except Exception as e:
+            return JsonResponse({'error': str(string_concat(_('File uploading failed'), ' (%s): ' % fname, e))})
+        return JsonResponse({'checksum': check_sum})
+    return JsonResponse({'error': 'Unknown error'})
 
 
 @login_required
@@ -666,7 +654,13 @@ def upload_job(request, parent_id=None):
     parent = parents[0]
     failed_jobs = []
     for f in request.FILES.getlist('file'):
-        zipdata = UploadJob(parent, request.user, f)
+        try:
+            job_dir = extract_tar_temp(f)
+        except Exception as e:
+            print_err(e)
+            failed_jobs.append([_('Archive extracting error') + '', f.name])
+            continue
+        zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
             failed_jobs.append([zipdata.err_message + '', f.name])
     if len(failed_jobs) > 0:
@@ -712,8 +706,7 @@ def decide_job(request):
         return JsonResponse({
             'error': "Couldn't prepare archive for the job '%s'" % job.identifier
         })
-    job.status = JOB_STATUS[2][0]
-    job.save()
+    change_job_status(job, JOB_STATUS[2][0])
 
     jobtar.memory.seek(0)
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
@@ -768,10 +761,16 @@ def stop_decision(request):
 def run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'status': False, 'error': 'Unknown error'})
-    if 'data' not in request.POST:
-        return JsonResponse({'status': False, 'error': 'Unknown error'})
-    result = StartJobDecision(request.user, request.POST['data'])
+        return JsonResponse({'error': 'Unknown error'})
+    if any(x not in request.POST for x in ['data', 'job_id']):
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        configuration = GetConfiguration(user_conf=json.loads(request.POST['data'])).configuration
+    except ValueError:
+        return JsonResponse({'error': 'Unknown error'})
+    if configuration is None:
+        return JsonResponse({'error': 'Unknown error'})
+    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
@@ -784,9 +783,30 @@ def prepare_decision(request, job_id):
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[404]))
+    if request.method == 'POST' and 'conf_name' in request.POST:
+        current_conf = request.POST['conf_name']
+        if request.POST['conf_name'] == 'file_conf':
+            if 'file_conf' not in request.FILES:
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            try:
+                configuration = GetConfiguration(
+                    file_conf=json.loads(request.FILES['file_conf'].read().decode('utf8'))
+                ).configuration
+            except Exception as e:
+                print_err(e)
+                return HttpResponseRedirect(reverse('error', args=[500]))
+        else:
+            configuration = GetConfiguration(conf_name=request.POST['conf_name']).configuration
+    else:
+        configuration = GetConfiguration(conf_name=DEF_KLEVER_CORE_MODE).configuration
+        current_conf = DEF_KLEVER_CORE_MODE
+    if configuration is None:
+        return HttpResponseRedirect(reverse('error', args=[500]))
     return render(request, 'jobs/startDecision.html', {
         'job': job,
-        'data': StartDecisionData(request.user)
+        'data': StartDecisionData(request.user, configuration),
+        'configurations': get_default_configurations(),
+        'current_conf': current_conf
     })
 
 
@@ -796,13 +816,108 @@ def fast_run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
-    try:
-        job_id = Job.objects.get(pk=int(request.POST.get('job_id', 0))).pk
-    except ObjectDoesNotExist:
+    if 'job_id' not in request.POST:
         return JsonResponse({'error': 'Unknown error'})
-    data = {'job_id': job_id}
-    data.update(get_default_data())
-    result = StartJobDecision(request.user, json.dumps(data))
+    configuration = GetConfiguration(conf_name=DEF_KLEVER_CORE_MODE).configuration
+    if configuration is None:
+        return JsonResponse({'error': 'Unknown error'})
+    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
+
+
+@login_required
+def check_compare_access(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        j1 = Job.objects.get(pk=request.POST.get('job1', 0))
+        j2 = Job.objects.get(pk=request.POST.get('job2', 0))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+    if not can_compare(request.user, j1, j2):
+        return JsonResponse({'error': _("You can't compare the selected jobs")})
+    return JsonResponse({})
+
+
+@login_required
+def jobs_files_comparison(request, job1_id, job2_id):
+    activate(request.user.extended.language)
+    try:
+        job1 = Job.objects.get(pk=job1_id)
+        job2 = Job.objects.get(pk=job2_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[405]))
+    if not can_compare(request.user, job1, job2):
+        return HttpResponseRedirect(reverse('error', args=[507]))
+    res = GetFilesComparison(request.user, job1, job2)
+    return render(request, 'jobs/comparison.html', {
+        'job1': job1,
+        'job2': job2,
+        'data': res.data
+    })
+
+
+@login_required
+def get_file_by_checksum(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        check_sums = json.loads(request.POST['check_sums'])
+    except Exception as e:
+        print_err(e)
+        return JsonResponse({'error': 'Unknown error'})
+    if len(check_sums) == 1:
+        try:
+            f = File.objects.get(hash_sum=check_sums[0])
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The file was not found') + ''})
+        return HttpResponse(f.file.read())
+    elif len(check_sums) == 2:
+        try:
+            f1 = File.objects.get(hash_sum=check_sums[0])
+            f2 = File.objects.get(hash_sum=check_sums[1])
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The file was not found') + ''})
+        diff_result = []
+        for line in unified_diff(
+                f1.file.read().decode('utf8').split('\n'),
+                f2.file.read().decode('utf8').split('\n'),
+                fromfile=request.POST.get('job1_name', ''),
+                tofile=request.POST.get('job2_name', '')
+        ):
+            diff_result.append(line)
+        return HttpResponse('\n'.join(diff_result))
+
+    return JsonResponse({'error': 'Unknown error'})
+
+
+def download_configuration(request, runhistory_id):
+    try:
+        run_history = RunHistory.objects.get(id=runhistory_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[500]))
+
+    file_name = "job-%s.conf" % run_history.job.identifier[:5]
+    mimetype = mimetypes.guess_type(file_name)[0]
+    response = StreamingHttpResponse(FileWrapper(run_history.configuration.file, 8192), content_type=mimetype)
+    response['Content-Length'] = len(run_history.configuration.file)
+    response['Content-Disposition'] = "attachment; filename=%s" % quote(file_name)
+    return response
+
+
+def get_def_start_job_val(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'name' not in request.POST or 'value' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    if request.POST['name'] == 'formatter' and request.POST['value'] in KLEVER_CORE_LOG_FORMATTERS:
+        return JsonResponse({'value': KLEVER_CORE_LOG_FORMATTERS[request.POST['value']]})
+    if request.POST['name'] == 'build_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
+        return JsonResponse({'value': str(KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][0])})
+    if request.POST['name'] == 'tasks_gen_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
+        return JsonResponse({'value': str(KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][1])})
+    return JsonResponse({'error': 'Unknown error'})

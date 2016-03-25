@@ -1,4 +1,4 @@
-var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i'];
+var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'];
 
 function isFileReadable(name) {
     var found = name.lastIndexOf('.') + 1,
@@ -255,22 +255,19 @@ function load_new_files() {
                 mimeType: 'multipart/form-data',
                 async: false,
                 success: function (data) {
-                    if (data.status === 0) {
+                    if (data.error) {
+                        err_notify(data.error, 15000);
+                        success = false;
+                    }
+                    else {
                         var file_hashsum = $('#file_hash_sum__1__' + curr_id);
                         if (file_hashsum.length) {
-                            file_hashsum.text(data.hash_sum);
+                            file_hashsum.text(data['checksum']);
                             current_input.remove();
                         }
                         else {
                             success = false;
                         }
-                    }
-                    else {
-                        var file_names = data.errors.file;
-                        for (var i = 0; i < file_names.length; i++) {
-                            err_notify(current_input.val() + ': ' + file_names[i], 10000);
-                        }
-                        success = false;
                     }
                 }
             });
@@ -826,6 +823,10 @@ $(document).ready(function () {
                 $('#edit_job_div').html(data);
                 inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
                 set_action_on_file_click();
+                $('.normal-dropdown').dropdown();
+                $('#download_configuration').click(function () {
+                    window.location.replace('/jobs/download_configuration/' + $('#run_history').val() + '/');
+                });
             }
         });
     }
@@ -977,29 +978,31 @@ $(document).ready(function () {
                     }
                     if ('jobstatus' in data) {
                         if ('jobstatus_href' in data) {
-                            if ($('#job_status_p').length) {
-                                $('#job_status_p').parent().append($('<a>', {id: 'job_status_link'}));
-                                $('#job_status_p').remove();
+                            var job_status_p = $('#job_status_p');
+                            if (job_status_p.length) {
+                                job_status_p.parent().append($('<a>', {id: 'job_status_link'}));
+                                job_status_p.remove();
                             }
-                            $('#job_status_link').attr('href', data['jobstatus_href']);
-                            $('#job_status_link').attr('class', 'status-link status' + data['jobstatus'] + '-link');
-                            $('#job_status_link').text(data['jobstatus_text']);
+                            var job_status_link = $('#job_status_link');
+                            job_status_link.attr('href', data['jobstatus_href']);
+                            job_status_link.attr('class', 'status-link status' + data['jobstatus'] + '-link');
+                            job_status_link.text(data['jobstatus_text']);
                         }
                         else {
-                            if ($('#job_status_link').length) {
-                                $('#job_status_link').parent().append($('<p>', {
+                            var job_status_a = $('#job_status_link');
+                            if (job_status_a.length) {
+                                job_status_a.parent().append($('<p>', {
                                     id: 'job_status_p',
                                     style: 'color:#f1ffff;'
                                 }));
-                                $('#job_status_link').remove();
+                                job_status_a.remove();
                             }
                             $('#job_status_p').text(data['jobstatus_text']);
                         }
                     }
                 }
-            ).fail(function (x) {
-                console.log(x.responseText);
-                    clearInterval(interval);
+            ).fail(function () {
+                clearInterval(interval);
             });
         }, 3000);
     }

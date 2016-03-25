@@ -84,6 +84,55 @@ function set_actions_for_scheduler_user() {
 
 
 $(document).ready(function () {
+    function collect_data() {
+        return {
+            data: JSON.stringify([
+                [
+                    $('input[name="priority"]:checked').val(),
+                    $('input[name="scheduler"]:checked').val(),
+                    $('input[name="avtg_priority"]:checked').val()
+                ],
+                [$('#build_parallelism__value').val(), $('#tasks_gen_parallelism__value').val()],
+                [
+                    parseFloat($('#max_ram').val()),
+                    parseInt($('#max_cpus').val()),
+                    parseFloat($('#max_disk').val()),
+                    $('#cpu_model').val(),
+                    parseFloat($('#max_cpu_time').val()),
+                    parseFloat($('#max_wall_time').val())
+                ],
+                [
+                    $('#console_logging_level').val(),
+                    $('#console_log_formatter__value').val(),
+                    $('#file_logging_level').val(),
+                    $('#file_log_formatter__value').val()
+                ],
+                [
+                    $('#keep_files_checkbox').is(':checked'),
+                    $('#upload_verifier_checkbox').is(':checked'),
+                    $('#upload_other_checkbox').is(':checked'),
+                    $('#allow_localdir_checkbox').is(':checked'),
+                    $('#ignore_core_checkbox').is(':checked')
+                ]
+            ]),
+            job_id: $('#job_pk').val()
+        }
+    }
+    $('#default_configs').dropdown({
+        onChange: function () {
+            var conf_name = $('#default_configs').val();
+            if (conf_name == 'file_conf') {
+                $('#upload_file_conf_form').show();
+            }
+            else {
+                $.redirectPost('', {conf_name: conf_name});
+            }
+        }
+    });
+    $('#configuration_file_input').on('fileselect', function () {
+        $('#upload_file_conf_form').submit();
+    });
+
     $('.normal-dropdown').dropdown();
     $('.ui.scheduler-checkbox').addClass('checkbox');
     $('.scheduler-checkbox').checkbox({onChecked: function () {
@@ -101,11 +150,15 @@ $(document).ready(function () {
     }});
     set_actions_for_scheduler_user();
     $('#start_job_decision').click(function () {
+
         var required_fields = [
             'max_ram', 'max_cpus', 'max_disk',
-            'parallelism_linux_kernel_build', 'parallelism_tasks_generation',
-            'console_log_formatter', 'file_log_formatter'
-        ], err_found = false;
+            'console_log_formatter__value', 'file_log_formatter__value',
+            'build_parallelism__value', 'tasks_gen_parallelism__value'
+        ], err_found = false, nummeric_fields = [
+            'build_parallelism__value', 'tasks_gen_parallelism__value',
+            'max_ram', 'max_cpus', 'max_disk', 'max_cpu_time', 'max_wall_time'
+        ];
         $.each(required_fields, function (i, v) {
             var curr_input = $('#' + v);
             curr_input.parent().removeClass('error');
@@ -116,38 +169,56 @@ $(document).ready(function () {
         });
         if (err_found) {
             err_notify($('#fields_required').text());
+            return false;
         }
-        else {
-            var data = {
-                scheduler: $('input[name="scheduler"]:checked').val(),
-                priority: $('input[name="priority"]:checked').val(),
-                avtg_priority: $('input[name="avtg_priority"]:checked').val(),
-                job_id: $('#job_pk').val(),
-                cpu_model: $('#cpu_model').val(),
-                max_wall_time: $('#max_wall_time').val(),
-                max_cpu_time: $('#max_cpu_time').val(),
-                debug: $('#debug_checkbox').is(':checked'),
-                allow_local_dir: $('#allow_localdir_checkbox').is(':checked')
-            };
-            $.each(required_fields, function (i, v) {
-                data[v] = $('#' + v).val();
-            });
+
+        $.each(nummeric_fields, function (i, v) {
+            var curr_input = $('#' + v);
+            curr_input.parent().removeClass('error');
+            if (curr_input.val() && !$.isNumeric(curr_input.val())) {
+                curr_input.parent().addClass('error');
+                err_found = true;
+            }
+        });
+
+        if (err_found) {
+            err_notify($('#numeric_required').text());
+            return false;
+        }
+        $.ajax({
+            url: job_ajax_url + 'run_decision/',
+            data: collect_data(),
+            type: 'POST',
+            success: function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace($('#job_link').attr('href'));
+                }
+            }
+        });
+    });
+
+    $('.get-attr-value').click(function () {
+        $(this).find('input').each(function () {
+            var attr_input = $(this);
             $.ajax({
-                url: job_ajax_url + 'run_decision/',
-                data: {data: JSON.stringify(data)},
+                url: job_ajax_url + 'get_def_start_job_val/',
+                data: {
+                    name: attr_input.attr('name'),
+                    value: attr_input.val()
+                },
                 type: 'POST',
                 success: function (data) {
                     if (data.error) {
                         err_notify(data.error);
                     }
                     else {
-                        window.location.replace($('#job_link').attr('href'));
+                        $('#' + attr_input.attr('class') + '__value').val(data.value);
                     }
-                },
-                error: function(x) {
-                    console.log(x.responseText);
                 }
             });
-        }
+        });
     });
 });

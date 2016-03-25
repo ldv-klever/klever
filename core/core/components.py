@@ -18,10 +18,9 @@ class ComponentStopped(ChildProcessError):
     pass
 
 
-class Component(multiprocessing.Process):
+class Component(multiprocessing.Process, core.utils.CallbacksCaller):
     def __init__(self, conf, logger, parent_id, callbacks, mqs, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False,
-                 include_child_resources=False):
+                 separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -39,7 +38,7 @@ class Component(multiprocessing.Process):
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
 
-        self.name = self.__class__.__name__
+        self.name = type(self).__name__.replace('KleverSubcomponent', '')
         # Include parent identifier into the child one. This is required to distinguish reports for different sub-jobs.
         self.id = '{0}/{1}'.format(parent_id, id if id else self.name)
         self.work_dir = work_dir if work_dir else self.name.lower()
@@ -92,7 +91,7 @@ class Component(multiprocessing.Process):
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
 
-            core.utils.invoke_callbacks(self.main)
+            self.main()
         finally:
             # Print information on exception to logs and as problem description. Do not consider component stopping.
             if sys.exc_info()[0] and sys.exc_info()[0] != ComponentStopped:
@@ -109,7 +108,7 @@ class Component(multiprocessing.Process):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
-                                          'id': 'unknown',
+                                          'id': self.id + '/unknown',
                                           'parent id': self.id,
                                           'problem desc': 'problem desc.txt',
                                           'files': ['problem desc.txt']
@@ -199,14 +198,12 @@ class Component(multiprocessing.Process):
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
     # TODO: very close to code in core/__init__.py. Maybe join them.
-    def launch_subcomponents(self, subcomponents):
+    def launch_subcomponents(self, *subcomponents):
         subcomponent_processes = []
         try:
             for subcomponent in subcomponents:
-                subcomponent_class = types.new_class(
-                    ''.join(re.findall(r'_(.)', subcomponent.__name__)).upper() + subcomponent.__name__[0].upper(),
-                    (self.__class__,))
-                setattr(subcomponent_class, 'main', subcomponent)
+                subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0], (type(self),))
+                setattr(subcomponent_class, 'main', subcomponent[1])
                 # Do not try to separate these subcomponents from their parents - it is a true headache.
                 # We always include child resources into resources of these components since otherwise they will
                 # disappear from resources statistics.

@@ -16,9 +16,7 @@ $(document).ready(function () {
                     success_notify(data.message);
                 }
             }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
+        );
     });
     $('button[id^="delete_component_btn__"]').click(function () {
         var component_id = $(this).attr('id').replace('delete_component_btn__', '');
@@ -37,9 +35,7 @@ $(document).ready(function () {
                     $('#component__' + component_id).remove();
                 }
             }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
+        );
     });
     $('#clear_all_components').click(function () {
         $.post(
@@ -53,9 +49,7 @@ $(document).ready(function () {
                     success_notify(data.message);
                 }
             }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
+        );
     });
     $('#clear_all_problems').click(function () {
         $.post(
@@ -69,9 +63,7 @@ $(document).ready(function () {
                     success_notify(data.message);
                 }
             }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
+        );
     });
     $('button[id^="delete_problem_btn__"]').click(function () {
         var problem_id = $(this).attr('id').replace('delete_problem_btn__', '');
@@ -89,9 +81,7 @@ $(document).ready(function () {
                     $('#problem__' + problem_id).remove();
                 }
             }
-        ).fail(function (x) {
-                console.log(x.responseText);
-            });
+        );
     });
 
     $('#clear_system').click(function () {
@@ -108,9 +98,7 @@ $(document).ready(function () {
                     success_notify(data.message);
                 }
             }
-        ).fail(function (x) {
-            console.log(x.responseText);
-        });
+        );
     });
     $('#recalc_for_all_jobs_checkbox').checkbox({
         onChecked: function () {
@@ -157,8 +145,6 @@ $(document).ready(function () {
                     success_notify(data.message);
                 }
             }
-        ).fail(function (x) {
-            console.log(x.responseText);
-        });
+        );
     });
 });

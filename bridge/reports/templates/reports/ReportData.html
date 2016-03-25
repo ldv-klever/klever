@@ -1,5 +1,6 @@
 {% load i18n %}
 
+{% block reports_head_block %}<link href="/static/reports/css/reports.css" rel="stylesheet">{% endblock %}
 
 {% if component == 'Core' and type == '0' %}
     <p>{{ data }}</p>
@@ -8,17 +9,21 @@
     <table class="ui compact brown table">
         <thead>
             <tr>
-                <th>{% trans 'Commit' %}</th>
-                <th>{% trans 'Ideal verdict' %}</th>
-                <th>{% trans 'Verification status' %}</th>
+                <th>{% trans 'Bug' %}</th>
+                <th>{% trans 'Before fix' %}</th>
+                <th>{% trans 'After fix' %}</th>
             </tr>
         </thead>
         <tbody>
-            {% for d in data %}
+            {% for validation_res in data %}
                 <tr>
-                    <td>{{ d.0 }}</td>
-                    <td>{{ d.1 }}</td>
-                    <td>{{ d.2 }}</td>
+                    <td>{{ validation_res.0 }}</td>
+                    <td>
+                        <span style="color: {% if validation_res.1 != 'unsafe' %}#ff3463{% else %}#20d467{% endif %};"{% if validation_res.2 %} class="report-data-popup hoverable" data-content="{{ validation_res.2 }}" data-variation="very wide"{% endif %}>{{ validation_res.1 }}</span>{% if validation_res.2 %}*{% endif %}
+                    </td>
+                    <td>
+                        {% if validation_res.3 %}<span style="color: {% if validation_res.3 != 'safe' %}#ff3463{% else %}#20d467{% endif %};"{% if validation_res.4 %} class="report-data-popup hoverable" data-content="{{ validation_res.4 }}" data-variation="very wide"{% endif %}>{{ validation_res.3 }}</span>{% if validation_res.4 %}*{% endif %}{% else %}-{% endif %}
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>

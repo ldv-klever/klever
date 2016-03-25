@@ -19,7 +19,7 @@ def before_launch_all_components(context):
     context.mqs['Linux kernel module deps'] = multiprocessing.Queue()
 
 
-def after_extract_linux_kernel_attrs(context):
+def after_set_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
 
@@ -32,7 +32,7 @@ def after_process_linux_kernel_raw_build_cmd(context):
         # Filter out CC commands if input file is absent or '/dev/null' or STDIN ('-') or 'init/version.c' or output
         # file is absent. They won't be used when building verification object descriptions.
         if not context.linux_kernel['build cmd']['in files'] \
-           or re.search(r'^/', context.linux_kernel['build cmd']['in files'][0]) \
+           or context.linux_kernel['build cmd']['in files'][0] == '/dev/null' \
            or context.linux_kernel['build cmd']['in files'][0] == '-' \
            or context.linux_kernel['build cmd']['in files'][0] == 'init/version.c' \
            or not context.linux_kernel['build cmd']['out file']:
@@ -83,7 +83,7 @@ class LKVOG(core.components.Component):
         self.checked_modules = []
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
-        core.utils.invoke_callbacks(self.extract_common_prj_attrs)
+        self.set_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -92,13 +92,13 @@ class LKVOG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.launch_subcomponents((self.process_all_linux_kernel_build_cmd_descs,
-                                   self.generate_all_verification_obj_descs))
+        self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
+                                  ('AVODG', self.generate_all_verification_obj_descs))
 
     main = generate_linux_kernel_verification_objects
 
-    def extract_common_prj_attrs(self):
-        self.logger.info('Extract common project atributes')
+    def set_common_prj_attrs(self):
+        self.logger.info('Set common project atributes')
         self.common_prj_attrs = self.linux_kernel_verification_objs_gen['attrs']
 
     def extract_linux_kernel_verification_objs_gen_attrs(self):
@@ -161,12 +161,12 @@ class LKVOG(core.components.Component):
                 if not self.module['name'] in self.all_modules:
                     self.all_modules[self.module['name']] = True
                     # TODO: specification requires to do this in parallel...
-                    core.utils.invoke_callbacks(self.generate_verification_obj_desc)
+                    self.generate_verification_obj_desc()
             if strategy_name in strategies_list:
                 clusters = strategy.divide(self.module['name'])
                 for cluster in clusters:
                     self.cluster = cluster
-                    core.utils.invoke_callbacks(self.generate_verification_obj_desc)
+                    self.generate_verification_obj_desc()
 
     def generate_verification_obj_desc(self):
         self.logger.info(
@@ -188,7 +188,7 @@ class LKVOG(core.components.Component):
             self.logger.debug(
                 'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
-            if self.conf['debug']:
+            if self.conf['keep intermediate files']:
                 verification_obj_desc_file = os.path.join(
                         self.linux_kernel_build_cmd_out_file_desc[self.module['name']]['linux kernel work src tree'],
                         '{0}.json'.format(self.verification_obj_desc['id']))
@@ -220,7 +220,7 @@ class LKVOG(core.components.Component):
             self.logger.debug(
                 'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
-            if self.conf['debug']:
+            if self.conf['keep intermediate files']:
                 verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
                 if os.path.isfile(verification_obj_desc_file):
                     raise FileExistsError(
@@ -273,7 +273,10 @@ class LKVOG(core.components.Component):
                                                       len(self.linux_kernel_build_cmd_out_file_desc[desc['out file']]),
                                                       out_file_ext)
 
-            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = desc
+            # Do not include assembler files into verification objects since we have no means to instrument and to
+            # analyse them.
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = None if desc['type'] == 'CC' and re.search(
+                r'\.S$', desc['in files'][0], re.IGNORECASE) else desc
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             match = False
@@ -282,7 +285,8 @@ class LKVOG(core.components.Component):
                     match = True
                 else:
                     for modules in self.conf['Linux kernel']['modules']:
-                        if re.search(r'^{0}'.format(modules), desc['out file']):
+                        if re.search(r'^{0}|{1}'.format(modules, os.path.join('ext-modules', modules)),
+                                     desc['out file']):
                             match = True
                             break
             else:
@@ -300,11 +304,12 @@ class LKVOG(core.components.Component):
 
         out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file]
 
-        if out_file_desc['type'] == 'CC':
-            cc_full_desc_files.append(out_file_desc['full desc file'])
-        else:
-            for in_file in out_file_desc['in files']:
-                if not re.search(r'\.mod\.o$', in_file):
-                    cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
+        if out_file_desc:
+            if out_file_desc['type'] == 'CC':
+                cc_full_desc_files.append(out_file_desc['full desc file'])
+            else:
+                for in_file in out_file_desc['in files']:
+                    if not re.search(r'\.mod\.o$', in_file):
+                        cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
         return cc_full_desc_files

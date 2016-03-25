@@ -2,12 +2,10 @@ import os
 import json
 import tarfile
 from io import BytesIO
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from django.core.files import File as NewFile
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.timezone import now
-from bridge.vars import JOB_STATUS
-from bridge.utils import file_checksum, print_err
+from bridge.utils import print_err, file_get_or_create
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
@@ -45,7 +43,8 @@ class UploadReport(object):
     def __check_data(self, data):
         if not isinstance(data, dict):
             return 'Data is not a dictionary'
-        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0:
+        if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0 \
+                or not data['id'].startswith('/'):
             return 'Type and id are required or have wrong format'
         if 'parent id' in data and not isinstance(data['parent id'], str):
             return 'Parent id has wrong format'
@@ -151,6 +150,13 @@ class UploadReport(object):
                 })
             except KeyError as e:
                 return "Property '%s' is required." % e
+        elif data['type'] == 'data':
+            try:
+                self.data.update({
+                    'data': data['data']
+                })
+            except KeyError as e:
+                return "Property '%s' is required." % e
         else:
             return "Report type is not supported"
         return None
@@ -177,29 +183,18 @@ class UploadReport(object):
 
     def __get_parent(self):
         if 'parent id' in self.data:
-            if self.data['parent id'] == '/':
-                try:
-                    return ReportComponent.objects.get(root=self.job.reportroot, identifier=self.job.identifier)
-                except ObjectDoesNotExist:
-                    self.error = 'Report parent was not found'
-            else:
-                try:
-                    return ReportComponent.objects.get(
-                        root=self.job.reportroot,
-                        identifier__endswith=('##' + self.data['parent id'])
-                    )
-                except ObjectDoesNotExist:
-                    self.error = 'Report parent was not found'
-                except MultipleObjectsReturned:
-                    self.error = 'Identifiers are not unique'
+            try:
+                return ReportComponent.objects.get(
+                    root=self.job.reportroot,
+                    identifier=self.job.identifier + self.data['parent id']
+                )
+            except ObjectDoesNotExist:
+                self.error = 'Report parent was not found'
         elif self.data['id'] == '/':
             return None
         else:
             try:
-                curr_report = ReportComponent.objects.get(
-                    identifier__startswith=self.job.identifier,
-                    identifier__endswith=("##%s" % self.data['id'])
-                )
+                curr_report = ReportComponent.objects.get(identifier=self.job.identifier + self.data['id'])
                 return ReportComponent.objects.get(pk=curr_report.parent_id)
             except ObjectDoesNotExist:
                 self.error = 'Report parent was not found'
@@ -213,12 +208,10 @@ class UploadReport(object):
             'verification': self.__create_report_component,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
-            'unknown': self.__create_report_unknown
+            'unknown': self.__create_report_unknown,
+            'data': self.__update_report_data
         }
-        if self.parent is None:
-            identifier = self.job.identifier
-        else:
-            identifier = "%s##%s" % (self.parent.identifier, self.data['id'])
+        identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
         if self.error is None:
             if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
@@ -254,7 +247,12 @@ class UploadReport(object):
             report.wall_time = int(self.data['resources']['wall time'])
         uf = None
         if 'log' in self.data:
-            uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
+            try:
+                uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
+            except Exception as e:
+                print_err(e)
+                self.error = 'Files uploading failed'
+                return
             if uf.log is None:
                 self.error = 'The report log was not found in archive'
                 return
@@ -278,6 +276,14 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             self.error = 'Updated report does not exist'
 
+    def __update_report_data(self, identifier):
+        try:
+            report = ReportComponent.objects.get(identifier=identifier)
+            report.data = self.data['data'].encode('utf8')
+            report.save()
+        except ObjectDoesNotExist:
+            self.error = 'Updated report does not exist'
+
     def __finish_report_component(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
@@ -292,7 +298,12 @@ class UploadReport(object):
         report.wall_time = int(self.data['resources']['wall time'])
         uf = None
         if 'log' in self.data:
-            uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
+            try:
+                uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
+            except Exception as e:
+                print_err(e)
+                self.error = 'Files uploading failed'
+                return
             if uf.log is None:
                 self.error = 'The report log was not found in archive'
                 return
@@ -310,13 +321,10 @@ class UploadReport(object):
         self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            for rep in ReportComponent.objects.filter(root__job=self.job):
-                if len(ReportComponent.objects.filter(parent_id=rep.pk)) == 0:
-                    rep.resources_cache.filter(component=None).delete()
-            if len(ReportComponent.objects.filter(finish_date=None, root=self.root)):
+            if len(ReportComponent.objects.filter(finish_date=None, root=self.root)) > 0:
                 self.__job_failed("There are unfinished reports")
-            elif self.job.status != JOB_STATUS[5][0]:
-                KleverCoreFinishDecision(self.job)
+                return
+            KleverCoreFinishDecision(self.job)
 
     def __create_report_unknown(self, identifier):
         try:
@@ -331,7 +339,12 @@ class UploadReport(object):
                 component=self.parent.component
             )
 
-        uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
+        try:
+            uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
+        except Exception as e:
+            print_err(e)
+            self.error = 'Files uploading failed'
+            return
         if uf.file_content is None:
             self.error = 'The unknown report problem description was not found in the archive'
             return
@@ -363,13 +376,14 @@ class UploadReport(object):
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
-            report = ReportSafe(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root,
-            )
+            report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
 
-        uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
+        try:
+            uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
+        except Exception as e:
+            print_err(e)
+            self.error = 'Files uploading failed'
+            return
         if uf.file_content is None:
             self.error = 'The safe report proof was not found in teh archive'
             return
@@ -405,7 +419,12 @@ class UploadReport(object):
                 root=self.root
             )
 
-        uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
+        try:
+            uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
+        except Exception as e:
+            print_err(e)
+            self.error = 'Files uploading failed'
+            return
         if uf.file_content is None:
             self.error = 'The unsafe error trace was not found in the archive'
             return
@@ -476,7 +495,8 @@ class UploadReport(object):
                 cpu_time=report.cpu_time,
                 memory=report.memory
             )
-        update_total_resources(report)
+        if len(ReportComponent.objects.filter(parent_id=report.pk)) > 0:
+            update_total_resources(report)
 
         parent = self.parent
         while parent is not None:
@@ -521,24 +541,11 @@ class UploadReportFiles(object):
             if f.isreg():
                 file_obj = zipfile.extractfile(f)
                 if logname is not None and file_name == logname:
-                    check_sum = file_checksum(file_obj)
-                    try:
-                        db_file = File.objects.get(hash_sum=check_sum)
-                    except ObjectDoesNotExist:
-                        db_file = File()
-                        db_file.file.save(os.path.basename(file_name), NewFile(file_obj))
-                        db_file.hash_sum = check_sum
-                        db_file.save()
-                    self.log = db_file
+                    self.log = file_get_or_create(file_obj, os.path.basename(file_name))[0]
                 elif report_filename is not None and file_name == report_filename:
                     self.file_content = file_obj.read()
                 elif self.need_other:
-                    check_sum = file_checksum(file_obj)
-                    try:
-                        db_file = File.objects.get(hash_sum=check_sum)
-                    except ObjectDoesNotExist:
-                        db_file = File()
-                        db_file.file.save(os.path.basename(file_name), NewFile(file_obj))
-                        db_file.hash_sum = check_sum
-                        db_file.save()
-                    self.other_files.append({'name': file_name, 'file': db_file})
+                    self.other_files.append({
+                        'name': file_name,
+                        'file': file_get_or_create(file_obj, os.path.basename(file_name))[0]
+                    })

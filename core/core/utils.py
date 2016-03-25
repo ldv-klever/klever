@@ -11,7 +11,38 @@ import threading
 import time
 import queue
 
-_callback_kinds = ('before', 'instead', 'after')
+CALLBACK_KINDS = ('before', 'instead', 'after')
+
+
+class CallbacksCaller:
+    def __getattribute__(self, name):
+        attr = object.__getattribute__(self, name)
+        if callable(attr) and not attr.__name__.startswith('_'):
+            def callbacks_caller(*args, **kwargs):
+                ret = None
+
+                for kind in CALLBACK_KINDS:
+                    # Invoke callbacks if so.
+                    if kind in self.callbacks and name in self.callbacks[kind]:
+                        for component, callback in self.callbacks[kind][name]:
+                            self.logger.debug(
+                                'Invoke {0} callback of component "{1}" for "{2}"'.format(kind, component, name))
+                            ret = callback(self)
+                    # Invoke event itself.
+                    elif kind == 'instead':
+                        # Do not pass auxiliary objects created for subcomponents to methods that implement them and
+                        # that are actually component object methods.
+                        if args and type(args[0]).__name__.startswith('KleverSubcomponent'):
+                            ret = attr(*args[1:], **kwargs)
+                        else:
+                            ret = attr(*args, **kwargs)
+
+                # Return what event or instead/after callbacks returned.
+                return ret
+
+            return callbacks_caller
+        else:
+            return attr
 
 
 class Cd:
@@ -222,12 +253,12 @@ def get_component_callbacks(logger, components, components_conf):
     logger.info('Get callbacks for components "{0}"'.format([component.__name__ for component in components]))
 
     # At the beginning there is no callbacks of any kind.
-    callbacks = {kind: {} for kind in _callback_kinds}
+    callbacks = {kind: {} for kind in CALLBACK_KINDS}
 
     for component in components:
         module = sys.modules[component.__module__]
         for attr in dir(module):
-            for kind in _callback_kinds:
+            for kind in CALLBACK_KINDS:
                 match = re.search(r'^{0}_(.+)$'.format(kind), attr)
                 if match:
                     event = match.groups()[0]
@@ -241,7 +272,7 @@ def get_component_callbacks(logger, components, components_conf):
                 subcomponents_callbacks = getattr(module, attr)(components_conf, logger)
 
                 # Merge subcomponent callbacks into component ones.
-                for kind in _callback_kinds:
+                for kind in CALLBACK_KINDS:
                     for event in subcomponents_callbacks[kind]:
                         if event not in callbacks[kind]:
                             callbacks[kind][event] = []
@@ -269,8 +300,7 @@ def get_entity_val(logger, name, cmd):
     if val.isdigit():
         val = int(val)
 
-    # TODO: str.capitalize() capilalizes a first symbol and makes all other symbols lower.
-    logger.debug('{0} is "{1}"'.format(name.capitalize(), val))
+    logger.debug('{0} is "{1}"'.format(name[0].upper() + name[1:], val))
 
     return val
 
@@ -296,10 +326,11 @@ def get_logger(name, conf):
             pref_logger_conf = pref_logger_conf
 
     if not pref_logger_conf:
-        raise KeyError(
-            'Neither "default" nor tool specific logger "{0}" is specified'.format(name))
+        raise KeyError('Neither "default" nor tool specific logger "{0}" is specified'.format(name))
 
     # Set up logger handlers.
+    if 'handlers' not in pref_logger_conf:
+        raise KeyError('Handlers are not specified for logger "{0}"'.format(pref_logger_conf['name']))
     for handler_conf in pref_logger_conf['handlers']:
         if handler_conf['name'] == 'console':
             # Always print log to STDOUT.
@@ -315,11 +346,15 @@ def get_logger(name, conf):
         # Set up handler logging level.
         log_levels = {'NOTSET': logging.NOTSET, 'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
                       'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
-        if not handler_conf['level'] in log_levels:
+        if 'level' not in handler_conf:
+            raise KeyError(
+                'Logging level of logger "{0}" and handler "{1}" is not specified'.format(pref_logger_conf['name'],
+                                                                                           handler_conf['name']))
+        if handler_conf['level'] not in log_levels:
             raise KeyError(
                 'Logging level "{0}" {1} is not supported{2}'.format(
                     handler_conf['level'],
-                    '(logger "{0}", handler "{1}")'.format(pref_logger_conf['name'], handler_conf['name']),
+                    'of logger "{0}" and handler "{1}"'.format(pref_logger_conf['name'], handler_conf['name']),
                     ', please use one of the following logging levels: "{0}"'.format(
                         '", "'.join(log_levels.keys()))))
 
@@ -327,13 +362,18 @@ def get_logger(name, conf):
 
         # Find and set up handler formatter.
         formatter = None
+        if 'formatter' not in handler_conf:
+            raise KeyError('Formatter (logger "{0}", handler "{1}") is not specified'.format(pref_logger_conf['name'],
+                                                                                             handler_conf['name']))
         for formatter_conf in conf['formatters']:
             if formatter_conf['name'] == handler_conf['formatter']:
                 formatter = logging.Formatter(formatter_conf['value'], "%Y-%m-%d %H:%M:%S")
                 break
         if not formatter:
-            raise KeyError('Handler "{0}" references undefined formatter "{1}"'.format(handler_conf['name'],
-                                                                                       handler_conf['formatter']))
+            raise KeyError(
+                'Handler "{0}" of logger "{1}" references undefined formatter "{2}"'.format(handler_conf['name'],
+                                                                                            pref_logger_conf['name'],
+                                                                                            handler_conf['formatter']))
         handler.setFormatter(formatter)
 
         logger.addHandler(handler)
@@ -374,30 +414,6 @@ def get_parallel_threads_num(logger, conf, action):
     return parallel_threads_num
 
 
-def invoke_callbacks(event, args=None):
-    name = event.__name__
-    logger = event.__self__.logger
-    callbacks = event.__self__.callbacks
-    context = event.__self__
-    ret = None
-
-    for kind in _callback_kinds:
-        # Invoke callbacks if so.
-        if name in callbacks[kind]:
-            for component, callback in callbacks[kind][name]:
-                logger.debug('Invoke {0} callback of component "{1}" for "{2}"'.format(kind, component, name))
-                ret = callback(context)
-        # Invoke event itself.
-        elif kind == 'instead':
-            if args:
-                ret = event(*args)
-            else:
-                ret = event()
-
-    # Return what event or instead/after callbacks returned.
-    return ret
-
-
 def merge_confs(a, b):
     for key in b:
         if key in a:
@@ -426,6 +442,26 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
     # Specify report type.
     report.update({'type': type})
+
+    if 'attrs' in report:
+        # Capitalize first letters of attribute names.
+        def capitalize_attr_names(attrs):
+            capitalized_name_attrs = []
+
+            # Each attribute is dictionary with one element which value is either string or array of subattributes.
+            for attr in attrs:
+                attr_name = list(attr.keys())[0]
+                attr_val = attr[attr_name]
+                # Does capitalize attribute name.
+                attr_name = attr_name[0].upper() + attr_name[1:]
+                if isinstance(attr_val, str):
+                    capitalized_name_attrs.append({attr_name: attr_val})
+                else:
+                    capitalized_name_attrs.append({attr_name: capitalize_attr_names(attr_val)})
+
+            return capitalized_name_attrs
+
+        report['attrs'] = capitalize_attr_names(report['attrs'])
 
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None

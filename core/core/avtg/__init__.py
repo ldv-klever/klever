@@ -18,15 +18,15 @@ def before_launch_all_components(context):
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
-def after_extract_common_prj_attrs(context):
+def after_set_common_prj_attrs(context):
     context.mqs['AVTG common prj attrs'].put(context.common_prj_attrs)
 
 
-def after_extract_src_tree_root(context):
+def after_set_src_tree_root(context):
     context.mqs['AVTG src tree root'].put(context.src_tree_root)
 
 
-def after_extract_hdr_arch(context):
+def after_set_hdr_arch(context):
     context.mqs['hdr arch'].put(context.hdr_arch)
 
 
@@ -231,7 +231,7 @@ class AVTG(core.components.Component):
         self.abstract_task_desc_num = 0
 
         # TODO: combine extracting and reporting of attributes.
-        self.extract_common_prj_attrs()
+        self.get_common_prj_attrs()
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -240,22 +240,22 @@ class AVTG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.extract_src_tree_root()
-        self.extract_hdr_arch()
+        self.get_src_tree_root()
+        self.get_hdr_arch()
         self.rule_spec_descs = _rule_spec_descs
-        core.utils.invoke_callbacks(self.generate_all_abstract_verification_task_descs)
+        self.generate_all_abstract_verification_task_descs()
 
     main = generate_abstract_verification_tasks
 
-    def extract_common_prj_attrs(self):
-        self.logger.info('Extract common project atributes')
+    def get_common_prj_attrs(self):
+        self.logger.info('Get common project atributes')
 
         self.common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
 
         self.mqs['AVTG common prj attrs'].close()
 
-    def extract_hdr_arch(self):
-        self.logger.info('Extract architecture name to search for architecture specific header files')
+    def get_hdr_arch(self):
+        self.logger.info('Get architecture name to search for architecture specific header files')
 
         self.conf['sys']['hdr arch'] = self.mqs['hdr arch'].get()
 
@@ -264,8 +264,8 @@ class AVTG(core.components.Component):
         self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
             self.conf['sys']['hdr arch']))
 
-    def extract_src_tree_root(self):
-        self.logger.info('Extract source tree root')
+    def get_src_tree_root(self):
+        self.logger.info('Get source tree root')
 
         self.conf['source tree root'] = self.mqs['AVTG src tree root'].get()
 
@@ -295,8 +295,7 @@ class AVTG(core.components.Component):
 
             # TODO: specification requires to do this in parallel...
             for rule_spec_desc in self.rule_spec_descs:
-                core.utils.invoke_callbacks(self.generate_abstact_verification_task_desc,
-                                            (verification_obj_desc, rule_spec_desc))
+                self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         initial_attrs = (
@@ -328,7 +327,7 @@ class AVTG(core.components.Component):
                 in_file = command['in files'][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})
             del (grp['cc full desc files'])
-        if self.conf['debug']:
+        if self.conf['keep intermediate files']:
             initial_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'initial abstract task.json')
             if os.path.isfile(initial_abstract_task_desc_file):
                 raise FileExistsError('Initial abstract verification task description file "{0}" already exists'.format(
@@ -393,10 +392,10 @@ class AVTG(core.components.Component):
 
             # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
             # anything before.
-            if self.conf['debug']:
+            if self.conf['keep intermediate files']:
                 plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
                 if os.path.isfile(plugin_conf_file):
-                    raise FileExistsError('Clugins configuration file "{0}" already exists'.format(
+                    raise FileExistsError('Plugins configuration file "{0}" already exists'.format(
                         plugin_conf_file))
                 self.logger.debug('Create plugins configuration file "{0}"'.format(plugin_conf_file))
                 with open(plugin_conf_file, 'w', encoding='ascii') as fp:
@@ -420,7 +419,7 @@ class AVTG(core.components.Component):
             # Dump final abstract verification task description that equals to abstract verification task description
             # received from last plugin. But corresponding file will be put not to plugin working directory - it will
             # be put near initial abstract verification task description.
-            if self.conf['debug']:
+            if self.conf['keep intermediate files']:
                 final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
                 if os.path.isfile(final_abstract_task_desc_file):
                     raise FileExistsError(

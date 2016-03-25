@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models.signals import post_init
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
 from jobs.models import File, Job
 
 LOG_DIR = 'ReportLogs'
@@ -199,3 +199,25 @@ class ComponentUnknown(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_unknown'
+
+
+class CompareJobsInfo(models.Model):
+    user = models.OneToOneField(User)
+    root1 = models.ForeignKey(ReportRoot, related_name='+')
+    root2 = models.ForeignKey(ReportRoot, related_name='+')
+    files_diff = models.TextField()
+
+    class Meta:
+        db_table = 'cache_report_jobs_compare_info'
+
+
+class CompareJobsCache(models.Model):
+    info = models.ForeignKey(CompareJobsInfo)
+    attr_values = models.TextField()
+    verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
+    verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
+    reports1 = models.CharField(max_length=1000)
+    reports2 = models.CharField(max_length=1000)
+
+    class Meta:
+        db_table = 'cache_report_jobs_compare'

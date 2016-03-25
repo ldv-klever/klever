@@ -5,22 +5,29 @@ from time import sleep
 from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import override
 from django.utils.timezone import now
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
-from bridge.utils import print_err, file_checksum
+from bridge.utils import print_err, file_get_or_create
 from users.models import Extended
 from jobs.utils import create_job
-from jobs.models import Job, File
+from jobs.models import Job
 from marks.models import MarkUnsafeCompare, MarkUnsafeConvert
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
 from service.models import Scheduler
 
 JOB_SETTINGS_FILE = 'settings.json'
+
+
+def extend_user(user, role=USER_ROLES[1][0]):
+    try:
+        user.extended.role = role
+        user.extended.save()
+    except ObjectDoesNotExist:
+        Extended.objects.create(first_name='Firstname', last_name='Lastname', role=role, user=user)
 
 
 class Population(object):
@@ -38,7 +45,7 @@ class Population(object):
             try:
                 Extended.objects.get(user=self.user)
             except ObjectDoesNotExist:
-                self.__extend_user(self.user)
+                extend_user(self.user)
         self.__populate_functions()
         if len(Job.objects.filter(parent=None)) < 3:
             self.__populate_jobs()
@@ -81,14 +88,6 @@ class Population(object):
                 new_descr_strs.append(s)
         return '\n'.join(new_descr_strs)
 
-    def __extend_user(self, user, role=USER_ROLES[1][0]):
-        self.ccc = 0
-        try:
-            user.extended.role = role
-            user.extended.save()
-        except ObjectDoesNotExist:
-            Extended.objects.create(first_name='Firstname', last_name='Lastname', role=role, user=user)
-
     def __get_manager(self, manager_username):
         if manager_username is None:
             try:
@@ -103,17 +102,17 @@ class Population(object):
                 'username': manager.username,
                 'password': self.__add_password(manager)
             }
-        self.__extend_user(manager, USER_ROLES[2][0])
+        extend_user(manager, USER_ROLES[2][0])
         return manager
 
     def __add_service_user(self, service_username):
         if service_username is None:
             return
         try:
-            self.__extend_user(User.objects.get(username=service_username), USER_ROLES[4][0])
+            extend_user(User.objects.get(username=service_username), USER_ROLES[4][0])
         except ObjectDoesNotExist:
             service = User.objects.create(username=service_username)
-            self.__extend_user(service, USER_ROLES[4][0])
+            extend_user(service, USER_ROLES[4][0])
             self.changes['service'] = {
                 'username': service.username,
                 'password': self.__add_password(service)
@@ -202,15 +201,11 @@ class Population(object):
                     continue
                 self.cnt += 1
                 if os.path.isfile(f):
-                    fobj = open(f, 'rb')
-                    check_sum = file_checksum(fobj)
                     try:
-                        File.objects.get(hash_sum=check_sum)
-                    except ObjectDoesNotExist:
-                        db_file = File()
-                        db_file.file.save(base_f, NewFile(fobj))
-                        db_file.hash_sum = check_sum
-                        db_file.save()
+                        check_sum = file_get_or_create(open(f, 'rb'), base_f, True)[1]
+                    except Exception as e:
+                        print_err('One of the job files was not uploaded: %s' % e)
+                        continue
                     fdata.append({
                         'id': self.cnt,
                         'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,

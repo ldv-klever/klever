@@ -1,18 +1,18 @@
 from django.db import models
 from django.contrib.auth.models import User
 from bridge.vars import LANGUAGES, USER_ROLES, VIEW_TYPES, DATAFORMAT
-from bridge.settings import DEF_USER_DATAFORMAT, DEF_USER_LANGUAGE, DEF_USER_TIMEZONE, DEF_USER_ACCURACY
+from bridge.settings import DEF_USER
 
 
 class Extended(models.Model):
     user = models.OneToOneField(User)
     first_name = models.CharField(max_length=255)
     last_name = models.CharField(max_length=255)
-    accuracy = models.SmallIntegerField(default=DEF_USER_ACCURACY)
-    data_format = models.CharField(max_length=3, choices=DATAFORMAT, default=DEF_USER_DATAFORMAT)
-    language = models.CharField(max_length=2, choices=LANGUAGES, default=DEF_USER_LANGUAGE)
+    accuracy = models.SmallIntegerField(default=DEF_USER['accuracy'])
+    data_format = models.CharField(max_length=3, choices=DATAFORMAT, default=DEF_USER['dataformat'])
+    language = models.CharField(max_length=2, choices=LANGUAGES, default=DEF_USER['language'])
     role = models.CharField(max_length=1, choices=USER_ROLES, default='0')
-    timezone = models.CharField(max_length=255, default=DEF_USER_TIMEZONE)
+    timezone = models.CharField(max_length=255, default=DEF_USER['timezone'])
 
     def __str__(self):
         return self.user.username

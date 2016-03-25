@@ -1,0 +1,10 @@
+.get-attr-value {
+    cursor: pointer;
+    color: #763598;
+    margin: 10px;
+    font-weight: bold;
+}
+
+.get-attr-value:hover {
+    color: #cf7be1;
+}

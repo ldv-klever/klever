@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import hashlib
 import os
 import re
 import shutil
@@ -44,10 +45,14 @@ class LKBCE(core.components.Component):
         self.linux_kernel = {}
         self.fetch_linux_kernel_work_src_tree()
         self.make_canonical_linux_kernel_work_src_tree()
-        core.utils.invoke_callbacks(self.extract_src_tree_root)
+        self.set_src_tree_root()
+        # Determine Linux kernel configuration just after Linux kernel working source tree is prepared since it affect
+        # value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather than
+        # configuration target.
+        self.get_linux_kernel_conf()
         self.clean_linux_kernel_work_src_tree()
-        core.utils.invoke_callbacks(self.extract_linux_kernel_attrs)
-        core.utils.invoke_callbacks(self.extract_hdr_arch)
+        self.set_linux_kernel_attrs()
+        self.set_hdr_arch()
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -63,9 +68,10 @@ class LKBCE(core.components.Component):
         # self.process_all_linux_kernel_raw_build_cmds().
         with open(self.linux_kernel['raw build cmds file'], 'w'):
             pass
-        self.launch_subcomponents((self.build_linux_kernel, self.process_all_linux_kernel_raw_build_cmds))
+        self.launch_subcomponents(('LKB', self.build_linux_kernel),
+                                  ('ALKRBCP', self.process_all_linux_kernel_raw_build_cmds))
         # Linux kernel raw build commands file should be kept just in debugging.
-        if not self.conf['debug']:
+        if not self.conf['keep intermediate files']:
             os.remove(self.linux_kernel['raw build cmds file'])
 
     main = extract_linux_kernel_build_commands
@@ -79,13 +85,36 @@ class LKBCE(core.components.Component):
         if 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
             build_targets.append(('vmlinux',))
 
+        if 'external modules archive' in self.conf['Linux kernel']:
+            # Fetch working source tree of Linux external kernel modules like Linux kernel working source tree.
+            self.linux_kernel['ext modules work src tree'] = os.path.join(os.path.pardir, 'linux', 'ext-modules')
+
+            self.logger.info('Fetch working source tree of external Linux kernel modules to "{0}"'.format(
+                self.linux_kernel['ext modules work src tree']))
+
+            self.linux_kernel['ext modules src'] = core.utils.find_file_or_dir(self.logger,
+                                                                               self.conf['main working directory'],
+                                                                               self.conf['Linux kernel'][
+                                                                                   'external modules archive'])
+
+            with tarfile.open(self.linux_kernel['ext modules src']) as TarFile:
+                TarFile.extractall(self.linux_kernel['ext modules work src tree'])
+
+            self.logger.info('Make canonical working source tree of external Linux kernel modules')
+            self.__make_canonical_work_src_tree(self.linux_kernel['ext modules work src tree'])
+
+            # Linux kernel external modules always require this preparation.
+            build_targets.append(('modules_prepare',))
+
         if 'modules' in self.conf['Linux kernel']:
             # Specially process building of all modules.
             if 'all' in self.conf['Linux kernel']['modules']:
                 if not len(self.conf['Linux kernel']['modules']) == 1:
                     raise ValueError('You can not specify "all" modules together with some other modules')
 
-                build_targets.append(('modules',))
+                build_targets.append(('M=ext-modules', 'modules')
+                                     if 'external modules archive' in self.conf['Linux kernel']
+                                     else ('modules',))
             else:
                 # Check that module sets aren't intersect explicitly.
                 for i, modules1 in enumerate(self.conf['Linux kernel']['modules']):
@@ -98,19 +127,24 @@ class LKBCE(core.components.Component):
                 for modules_set in self.conf['Linux kernel']['modules']:
                     # Module sets ending with .ko imply individual modules.
                     if re.search(r'\.ko$', modules_set):
-                        build_targets.append((modules_set,))
+                        build_targets.append(('M=ext-modules', modules_set)
+                                             if 'external modules archive' in self.conf['Linux kernel']
+                                             else (modules_set,))
                     # Otherwise it is directory that can contain modules.
                     else:
                         # Add "modules_prepare" target once.
                         if not build_targets or build_targets[0] != ('modules_prepare',):
                             build_targets.insert(0, ('modules_prepare',))
 
-                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules_set)):
-                            raise ValueError('There is not directory "{0}" inside "{1}"'.format(modules_set,
-                                                                                                self.linux_kernel[
-                                                                                                    'work src tree']))
+                        modules_dir = os.path.join('ext-modules', modules_set) \
+                            if 'external modules archive' in self.conf['Linux kernel'] else modules_set
 
-                        build_targets.append(('M={0}'.format(modules_set), 'modules'))
+                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules_dir)):
+                            raise ValueError(
+                                'There is not directory "{0}" inside "{1}"'.format(modules_dir,
+                                                                                   self.linux_kernel['work src tree']))
+
+                        build_targets.append(('M=' + modules_dir, 'modules'))
         else:
             self.logger.warning('Nothing will be verified since modules are not specified')
 
@@ -118,7 +152,7 @@ class LKBCE(core.components.Component):
             self.logger.debug('Build following targets:\n{0}'.format(
                 '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
-        jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build')
+        jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
         for build_target in build_targets:
             self.__make(build_target,
                         jobs_num=jobs_num,
@@ -143,8 +177,9 @@ class LKBCE(core.components.Component):
             # fetch_linux_kernel_work_src_tree().
             self.linux_kernel['installed modules dir'] = os.path.join(os.path.pardir, 'linux-modules')
             os.mkdir(self.linux_kernel['installed modules dir'])
+            # TODO: whether parallel execution has some benefits here?
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
-                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Linux kernel build'),
+                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
                         specify_arch=False, collect_build_cmds=False)
 
             with open(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
@@ -174,19 +209,36 @@ class LKBCE(core.components.Component):
                     if re.search(r'\.json$', filename):
                         os.remove(os.path.join(dirpath, filename))
                 for dirname in dirnames:
-                    if re.search(r'\.task$', dirname):
+                    if re.search(r'\.task$', dirname) or dirname == 'ext-modules':
                         shutil.rmtree(os.path.join(dirpath, dirname))
+
+    def get_linux_kernel_conf(self):
+        self.logger.info('Get Linux kernel configuration')
+
+        # Linux kernel configuration can be specified by means of configuration file or configuration target.
+        try:
+            self.linux_kernel['conf file'] = core.utils.find_file_or_dir(self.logger,
+                                                                         self.conf['main working directory'],
+                                                                         self.conf['Linux kernel']['configuration'])
+            self.logger.debug('Linux kernel configuration file is "{0}"'.format(self.linux_kernel['conf file']))
+            shutil.copy(self.linux_kernel['conf file'], self.linux_kernel['work src tree'])
+            # Use configuration file SHA1 digest as value of Linux kernel:Configuration attribute.
+            with open(self.linux_kernel['conf file'], 'rb') as fp:
+                self.linux_kernel['conf'] = hashlib.sha1(fp.read()).hexdigest()[:7]
+            self.logger.debug('Linux kernel configuration file SHA1 digest is "{0}"'.format(self.linux_kernel['conf']))
+        except FileNotFoundError:
+            self.logger.debug(
+                'Linux kernel configuration target is "{0}"'.format(self.conf['Linux kernel']['configuration']))
+            # Use configuration target name as value of Linux kernel:Configuration attribute.
+            self.linux_kernel['conf'] = self.conf['Linux kernel']['configuration']
 
     def configure_linux_kernel(self):
         self.logger.info('Configure Linux kernel')
-        if 'configuration' in self.conf['Linux kernel']:
-            self.__make((self.conf['Linux kernel']['configuration'],), specify_arch=True, collect_build_cmds=False,
-                        collect_all_stdout=True)
-        else:
-            raise NotImplementedError('Linux kernel configuration is provided in unsupported form')
+        self.__make(('oldconfig' if 'conf file' in self.linux_kernel else self.conf['Linux kernel']['configuration'],),
+                    specify_arch=True, collect_build_cmds=False, collect_all_stdout=True)
 
-    def extract_linux_kernel_attrs(self):
-        self.logger.info('Extract Linux kernel atributes')
+    def set_linux_kernel_attrs(self):
+        self.logger.info('Set Linux kernel atributes')
 
         self.logger.debug('Get Linux kernel version')
         stdout = self.__make(('-s', 'kernelversion'), specify_arch=False, collect_all_stdout=True)
@@ -198,19 +250,17 @@ class LKBCE(core.components.Component):
         self.linux_kernel['arch'] = self.conf['Linux kernel'].get('architecture') or self.conf['sys']['arch']
         self.logger.debug('Linux kernel architecture is "{0}"'.format(self.linux_kernel['arch']))
 
-        self.logger.debug('Get Linux kernel configuration shortcut')
-        self.linux_kernel['conf shortcut'] = self.conf['Linux kernel']['configuration']
-        self.logger.debug('Linux kernel configuration shortcut is "{0}"'.format(self.linux_kernel['conf shortcut']))
-
         self.linux_kernel['attrs'] = [
             {'Linux kernel': [{'version': self.linux_kernel['version']},
                               {'architecture': self.linux_kernel['arch']},
-                              {'configuration': self.linux_kernel['conf shortcut']}]}]
+                              {'configuration': self.linux_kernel['conf']}]}]
 
-    def extract_hdr_arch(self):
+    def set_hdr_arch(self):
+        self.logger.info('Set architecture name to search for architecture specific header files')
         self.hdr_arch = _arch_hdr_arch[self.linux_kernel['arch']]
 
-    def extract_src_tree_root(self):
+    def set_src_tree_root(self):
+        self.logger.info('Set source tree root')
         self.src_tree_root = os.path.abspath(self.linux_kernel['work src tree'])
 
     def fetch_linux_kernel_work_src_tree(self):
@@ -245,7 +295,7 @@ class LKBCE(core.components.Component):
             if self.conf['allow local source directories use']:
                 os.symlink(os.path.abspath(self.linux_kernel['src']), self.linux_kernel['work src tree'])
             else:
-                shutil.copytree(self.linux_kernel['src'], self.linux_kernel['work src tree'])
+                shutil.copytree(self.linux_kernel['src'], self.linux_kernel['work src tree'], symlinks=True)
 
             # TODO: do not allow to checkout both branch and commit and to checkout branch or commit for source tree.
             if 'Git repository' in self.conf['Linux kernel']:
@@ -272,30 +322,7 @@ class LKBCE(core.components.Component):
 
     def make_canonical_linux_kernel_work_src_tree(self):
         self.logger.info('Make canonical Linux kernel working source tree')
-
-        linux_kernel_work_src_tree_root = None
-
-        for dirpath, dirnames, filenames in os.walk(self.linux_kernel['work src tree']):
-            if core.utils.is_src_tree_root(filenames):
-                linux_kernel_work_src_tree_root = dirpath
-                break
-
-        if not linux_kernel_work_src_tree_root:
-            raise ValueError('Could not find Makefile in Linux kernel source code')
-
-        if not os.path.samefile(linux_kernel_work_src_tree_root, self.linux_kernel['work src tree']):
-            self.logger.debug('Move contents of "{0}" to "{1}"'.format(linux_kernel_work_src_tree_root,
-                                                                       self.linux_kernel['work src tree']))
-            for path in os.listdir(linux_kernel_work_src_tree_root):
-                shutil.move(os.path.join(linux_kernel_work_src_tree_root, path), self.linux_kernel['work src tree'])
-            trash_dir = linux_kernel_work_src_tree_root
-            while True:
-                parent_dir = os.path.join(trash_dir, os.path.pardir)
-                if os.path.samefile(parent_dir, self.linux_kernel['work src tree']):
-                    break
-                trash_dir = parent_dir
-            self.logger.debug('Remove "{0}"'.format(trash_dir))
-            os.rmdir(trash_dir)
+        self.__make_canonical_work_src_tree(self.linux_kernel['work src tree'])
 
     def process_all_linux_kernel_raw_build_cmds(self):
         self.logger.info('Process all Linux kernel raw build commands')
@@ -324,7 +351,7 @@ class LKBCE(core.components.Component):
                             self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
                             return
                         else:
-                            core.utils.invoke_callbacks(self.process_linux_kernel_raw_build_cmd, (opts,))
+                            self.process_linux_kernel_raw_build_cmd(opts)
 
                             # Go to the next command or finish operation.
                             self.linux_kernel['build cmd']['type'] = None
@@ -337,7 +364,7 @@ class LKBCE(core.components.Component):
 
                     prev_line = line
 
-                if self.conf['debug']:
+                if self.conf['keep intermediate files']:
                     # When debugging we keep all file content. So move offset to current end of file to scan just new
                     # lines from file on the next iteration.
                     offset = fp.tell()
@@ -451,6 +478,30 @@ class LKBCE(core.components.Component):
         self.logger.debug('Output file is "{0}"'.format(self.linux_kernel['build cmd']['out file']))
         self.logger.debug('Options are "{0}"'.format(self.linux_kernel['build cmd']['opts']))
 
+    def __make_canonical_work_src_tree(self, work_src_tree):
+        work_src_tree_root = None
+
+        for dirpath, dirnames, filenames in os.walk(work_src_tree):
+            if core.utils.is_src_tree_root(filenames):
+                work_src_tree_root = dirpath
+                break
+
+        if not work_src_tree_root:
+            raise ValueError('Could not find Makefile in working source tree "{0}"'.format(work_src_tree))
+
+        if not os.path.samefile(work_src_tree_root, work_src_tree):
+            self.logger.debug('Move contents of "{0}" to "{1}"'.format(work_src_tree_root, work_src_tree))
+            for path in os.listdir(work_src_tree_root):
+                shutil.move(os.path.join(work_src_tree_root, path), work_src_tree)
+            trash_dir = work_src_tree_root
+            while True:
+                parent_dir = os.path.join(trash_dir, os.path.pardir)
+                if os.path.samefile(parent_dir, work_src_tree):
+                    break
+                trash_dir = parent_dir
+            self.logger.debug('Remove "{0}"'.format(trash_dir))
+            shutil.rmtree(os.path.realpath(trash_dir))
+
     def __make(self, build_target, jobs_num=1, specify_arch=False, collect_build_cmds=False, collect_all_stdout=False):
         # Update environment variables so that invoke build command wrappers and optionally collect build commands.
         env = dict(os.environ)
@@ -462,6 +513,8 @@ class LKBCE(core.components.Component):
         return core.utils.execute(self.logger,
                                   tuple(['make', '-j', str(jobs_num)] +
                                         (['ARCH={0}'.format(self.linux_kernel['arch'])] if specify_arch else []) +
+                                        (['KCONFIG_CONFIG=' + os.path.basename(self.linux_kernel['conf file'])]
+                                         if 'conf file' in self.linux_kernel else []) +
                                         list(build_target)),
                                   env,
                                   cwd=self.linux_kernel['work src tree'],
