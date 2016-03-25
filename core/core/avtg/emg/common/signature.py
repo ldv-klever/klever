@@ -2,7 +2,7 @@ import ply.lex as lex
 import ply.yacc as yacc
 import re
 
-__collection = {}
+typedef_collection = {}
 
 __typedefs = {}
 
@@ -21,6 +21,8 @@ tokens = (
     'SQUARE_BCLOSE_SIGN',
     'PARENTH_OPEN',
     'PARENTH_CLOSE',
+    'BLOCK_OPEN',
+    'BLOCK_CLOSE',
     'COMMA',
     'DOTS',
     'BIT_SIZE_DELEMITER',
@@ -40,6 +42,10 @@ t_SQUARE_BCLOSE_SIGN = r"\]"
 t_PARENTH_OPEN = r"\("
 
 t_PARENTH_CLOSE = r"\)"
+
+t_BLOCK_OPEN = r'[{]'
+
+t_BLOCK_CLOSE = r'[}]'
 
 t_COMMA = r","
 
@@ -224,11 +230,37 @@ def p_type_specifier_list(p):
 def p_struct_specifier(p):
     """
     struct_specifier : STRUCT IDENTIFIER
+                     | STRUCT BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
     """
-    p[0] = {
-        'class': 'structure',
-        'name': p[2]
-    }
+    if len(p) == 3:
+        p[0] = {
+            'class': 'structure',
+            'name': p[2]
+        }
+    else:
+        p[0] = {
+            'class': 'structure',
+            'name': None,
+            'fields': p[3]
+        }
+
+
+def p_struct_declaration_list(p):
+    """
+    struct_declaration_list : struct_declaration struct_declaration_list
+                            | struct_declaration
+    """
+    if len(p) == 2:
+        p[0] = [p[1]]
+    else:
+        p[0] = [p[1]] + p[2]
+
+
+def p_struct_declaration(p):
+    """
+    struct_declaration : declaration END
+    """
+    p[0] = p[1]
 
 
 def p_union_specifier(p):
@@ -512,7 +544,7 @@ def import_typedefs(tds):
 
 
 def import_signature(signature, ast=None, parent=None):
-    global __collection
+    global typedef_collection
     global __typedefs
 
     if not ast:
@@ -557,12 +589,12 @@ def import_signature(signature, ast=None, parent=None):
         else:
             raise NotImplementedError
 
-    if ret.identifier not in __collection:
-        __collection[ret.identifier] = ret
+    if ret.identifier not in typedef_collection:
+        typedef_collection[ret.identifier] = ret
     else:
-        if parent and parent not in __collection[ret.identifier].parents:
-            __collection[ret.identifier].parents.append(parent)
-        ret = __collection[ret.identifier]
+        if parent and parent not in typedef_collection[ret.identifier].parents:
+            typedef_collection[ret.identifier].parents.append(parent)
+        ret = typedef_collection[ret.identifier]
     return ret
 
 
@@ -584,13 +616,13 @@ def _take_pointer(exp, tp):
 
 
 def setup_collection(collection, typedefs):
-    global __collection
+    global typedef_collection
     global __typedefs
 
     lex.lex()
     yacc.yacc(debug=0, write_tables=0)
 
-    __collection = collection
+    typedef_collection = collection
     __typedefs = typedefs
 
 
@@ -733,9 +765,9 @@ class Function(BaseType):
 
     @property
     def pretty_name(self):
-        global __collection
+        global typedef_collection
 
-        key = list(__collection.keys()).index(self.identifier)
+        key = list(typedef_collection.keys()).index(self.identifier)
         return 'func_{}'.format(key)
 
     def _to_string(self, replacement):
@@ -763,6 +795,11 @@ class Structure(BaseType):
         self.common_initialization(ast, parent)
         self.fields = {}
 
+        if 'fields' in self._ast['specifiers']['type specifier']:
+            for declaration in self._ast['specifiers']['type specifier']['fields']:
+                name = declaration['declarator'][-1]['identifier']
+                self.fields[name] = import_signature(None, declaration)
+
     @property
     def clean_declaration(self):
         #for field in self.fields.values():
@@ -776,7 +813,13 @@ class Structure(BaseType):
 
     @property
     def pretty_name(self):
-        return 'struct_{}'.format(self.name)
+        if self._ast['specifiers']['type specifier']['name']:
+            return 'struct_{}'.format(self.name)
+        else:
+            global typedef_collection
+
+            key = list(typedef_collection.keys()).index(self.identifier)
+            return 'struct_noname_{}'.format(key)
 
     def contains(self, target):
         return [field for field in self.fields if self.fields[field].compare(target)]
@@ -786,10 +829,15 @@ class Structure(BaseType):
                 self.fields[field].pointer_alias(target)]
 
     def _to_string(self, replacement):
-        if replacement == '':
-            return "struct {}".format(self.name)
+        if not self.name:
+            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in self.fields]) + ' }'
         else:
-            return "struct {} {}".format(self.name, replacement)
+            name = self.name
+
+        if replacement == '':
+            return "struct {}".format(name)
+        else:
+            return "struct {} {}".format(name, replacement)
 
 
 class Union(BaseType):

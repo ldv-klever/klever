@@ -1,7 +1,8 @@
-from core.avtg.emg.common.signature import import_signature
+from core.avtg.emg.common.signature import import_signature, setup_collection
 
 
 __grammar_tests = [
+    'struct { short unsigned int size; short unsigned int byte_cnt; short unsigned int threshold; } SR9800_BULKIN_SIZE[8U]',
     'unsigned char disable_hub_initiated_lpm : 1',
     'int a',
     'int a;',
@@ -81,7 +82,7 @@ __grammar_tests = [
     '%usb.driver% function(int, $, %usb.driver%)'
 ]
 
-
+setup_collection({}, {})
 for test in __grammar_tests:
     print(test)
     object = import_signature(test)
