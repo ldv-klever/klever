@@ -184,3 +184,5 @@ DEF_USER = {
     'timezone': 'Europe/Moscow',  # See pytz.common_timezones for options
     'accuracy': 2,  # 0 - 10
 }
+
+MAX_FILE_SIZE = 104857600  # 100MB
