@@ -389,21 +389,13 @@ class ProcessModel:
                         for parameter in action.parameters:
                             pl = process.extract_label(parameter)
 
-                            for pr in [pr for pr in function.param_interfaces if pr]:
-                                if pl.resource and (not pl.callback or (type(pr) is Callback and pl.callback))\
-                                        and (not pl.container or (type(pr) is Container and pl.container)):
-                                    unmatched_resources = [re for re in process.resources
-                                                           if re.name not in label_map["matched labels"]]
+                            if pl.resource:
+                                for pr in [pr for pr in function.param_interfaces if pr]:
+                                    unmatched_resources = [res for res in process.resources
+                                                           if res.name not in label_map["matched labels"]]
                                     if len(unmatched_resources) == 0 or \
                                             (len(unmatched_resources) > 0 and pl in unmatched_resources):
                                         self.__add_label_match(label_map, pl, pr.identifier)
-
-                    containers = [cn for cn in process.containers
-                                  if cn.name not in label_map["matched labels"]]
-                    containers_intfs = [cn for cn in analysis.containers(category) if cn.contains(function)]
-                    for intf in containers_intfs:
-                        for container in containers:
-                            self.__add_label_match(label_map, container, intf.identifier)
 
             # After containers are matched try to match rest callbacks from category
             matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
