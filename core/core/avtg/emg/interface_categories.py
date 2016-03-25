@@ -108,9 +108,14 @@ class CategoriesSpecification:
             for impl in candidates:
                 if len(impl.sequence) > 0:
                     cnts = self.resolve_containers(interface)
-                    if impl.sequence[-1] in cnts.values() and \
-                            list(cnts.keys())[list(cnts.values()).index(impl.sequence[-1])] == interface.identifier:
-                        implementations.append(impl)
+                    for cnt in cnts:
+                        cnt_intf = self.interfaces[cnt]
+                        if impl.sequence[-1] in cnts[cnt] and \
+                                (impl.sequence[-1] in cnt_intf.field_interfaces and
+                                 cnt_intf.field_interfaces[impl.sequence[-1]] and
+                                 cnt_intf.field_interfaces[impl.sequence[-1]].identifier == interface.identifier):
+                            implementations.append(impl)
+                            break
                 else:
                     implementations.append(impl)
 

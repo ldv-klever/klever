@@ -153,7 +153,7 @@ class Access:
         accesses = self.list_access[1:]
         previous = None
         while candidate:
-            previous = candidate
+            tmp = candidate
 
             if candidate.compare(target):
                 candidate = None
@@ -176,6 +176,8 @@ class Access:
                     raise ValueError('Cannot build access from given variable')
             else:
                 raise ValueError('CAnnot build access from given variable')
+
+            previous = tmp
 
         return expression
 
@@ -418,12 +420,13 @@ class Process:
         pass
 
     def get_implementations(self, analysis, access):
-        if access.label and access.label.prior_signature:
+        if access.interface:
+            implementations = analysis.implementations(access.interface)
+            return [impl for impl in implementations if impl.identifier not in self.__forbidded_implementations]
+        elif access.label and len(access.list_access) == 1:
             return []
         else:
-            implementations = analysis.implementations(access.list_interface[-1])
-
-            return [impl for impl in implementations if impl.identifier not in self.__forbidded_implementations]
+            raise ValueError("Cannot resolve access '{}'".format(access.expression))
 
 
 class Subprocess:
