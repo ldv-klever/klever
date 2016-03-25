@@ -786,6 +786,7 @@ $(document).ready(function () {
             window.location.replace('/jobs/download_configuration/' + $('#run_history').val() + '/');
         });
     }
+    $('#resources-note').popup();
     $('.for_popup').popup();
     $('#job_scheduler').dropdown();
     var view_job_1st_part = $('#view_job_1st_part');
@@ -938,7 +939,13 @@ $(document).ready(function () {
                         return false;
                     }
                     if ('jobdata' in data) {
+                        var is_hidden = $('#resources-note').popup('is hidden');
+                        $('#resources-note').popup('hide');
                         $('#job_data_div').html(data['jobdata']);
+                        $('#resources-note').popup();
+                        if (!is_hidden) {
+                            $('#resources-note').popup('show');
+                        }
                     }
                     var is_jh_active = ($('#run_history').dropdown('is active')[0] == true && $('#run_history').dropdown('is active')[1] == true);
                     $('#job_run_history_block').html(data['job_history']);
