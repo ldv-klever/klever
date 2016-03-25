@@ -168,7 +168,6 @@ DEF_USER = {
     'accuracy': 2,  # 0 - 10
 }
 
-
 LOGGING = {
     'version': 1,
     'handlers': {
@@ -190,3 +189,5 @@ LOGGING = {
         },
     },
 }
+
+MAX_FILE_SIZE = 104857600  # 100MB
