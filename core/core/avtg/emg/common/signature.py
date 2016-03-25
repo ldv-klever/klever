@@ -490,8 +490,6 @@ def direct_declarator_processing(p):
 
 
 def extract_name(signature):
-    __check_grammar()
-
     try:
         ast = yacc.parse(signature)
     except:
@@ -505,13 +503,19 @@ def extract_name(signature):
 
 
 def import_typedefs(tds):
-    pass
+    global __typedefs
+
+    for td in tds:
+        ast = yacc.parse(td)
+        name = ast['declarator'][-1]['identifier']
+        __typedefs[name] = ast
 
 
 def import_signature(signature, ast=None, parent=None):
-    if not ast:
-        __check_grammar()
+    global __collection
+    global __typedefs
 
+    if not ast:
         try:
             ast = yacc.parse(signature)
         except:
@@ -522,6 +526,10 @@ def import_signature(signature, ast=None, parent=None):
             ret = InterfaceReference(ast, parent)
         elif 'specifiers' in ast and ast['specifiers'] == '$':
             ret = UndefinedReference(ast, parent)
+        elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
+                ast['specifiers']['type specifier']['class'] == 'typedef' and \
+                ast['specifiers']['type specifier']['name'] in __typedefs:
+            ret = import_signature(None, __typedefs[ast['specifiers']['type specifier']['name']])
         else:
             ret = Primitive(ast, parent)
     else:
@@ -534,9 +542,12 @@ def import_signature(signature, ast=None, parent=None):
                 if ast['specifiers']['type specifier']['class'] == 'structure':
                     ret = Structure(ast, parent)
                 elif ast['specifiers']['type specifier']['class'] == 'enum':
-                    raise NotImplementedError
+                    ret = Enum(ast, parent)
                 elif ast['specifiers']['type specifier']['class'] == 'union':
                     ret = Union(ast, parent)
+                elif ast['specifiers']['type specifier']['class'] == 'typedef' and \
+                        ast['specifiers']['type specifier']['name'] in __typedefs:
+                    ret = import_signature(None, __typedefs[ast['specifiers']['type specifier']['name']])
                 else:
                     ret = Primitive(ast, parent)
         elif 'arrays' in ast['declarator'][-1] and len(ast['declarator'][-1]['arrays']) > 0:
@@ -553,11 +564,6 @@ def import_signature(signature, ast=None, parent=None):
             __collection[ret.identifier].parents.append(parent)
         ret = __collection[ret.identifier]
     return ret
-
-
-def __check_grammar():
-    lex.lex()
-    yacc.yacc(debug=0, write_tables=0)
 
 
 def _reduce_level(ast):
@@ -580,6 +586,9 @@ def _take_pointer(exp, tp):
 def setup_collection(collection, typedefs):
     global __collection
     global __typedefs
+
+    lex.lex()
+    yacc.yacc(debug=0, write_tables=0)
 
     __collection = collection
     __typedefs = typedefs
@@ -662,6 +671,30 @@ class Primitive(BaseType):
             return self._ast['specifiers']['type specifier']['name']
         else:
             return "{} {}".format(self._ast['specifiers']['type specifier']['name'], replacement)
+
+
+class Enum(BaseType):
+
+    def __init__(self, ast, parent):
+        self.common_initialization(ast, parent)
+
+    @property
+    def name(self):
+        return self._ast['specifiers']['type specifier']['name']
+
+    @property
+    def clean_declaration(self):
+        return True
+
+    @property
+    def pretty_name(self):
+        return 'enum_{}'.format(self.name)
+
+    def _to_string(self, replacement):
+        if replacement == '':
+            return "enum {}".format(self.name)
+        else:
+            return "enum {} {}".format(self.name, replacement)
 
 
 class Function(BaseType):
