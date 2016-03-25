@@ -579,6 +579,10 @@ class BaseType:
         else:
             return list(self.implementations.values()) + list(self.take_pointer.implementations.values())
 
+    @property
+    def pretty_name(self):
+        raise NotImplementedError
+
     def common_initialization(self, ast, parent):
         self._ast = ast
         self.implementations = {}
@@ -625,6 +629,10 @@ class Primitive(BaseType):
     def clean_declaration(self):
         return True
 
+    @property
+    def pretty_name(self):
+        return self._ast['specifiers']['type specifier']['name']
+
     def _to_string(self, replacement):
         if replacement == '':
             return self._ast['specifiers']['type specifier']['name']
@@ -653,6 +661,10 @@ class Function(BaseType):
             else:
                 self.parameters.append(import_signature(None, parameter))
 
+        if len(self.parameters) == 1 and type(self.parameters[0]) is Primitive and \
+                self.parameters[0].pretty_name == 'void':
+            self.parameters = []
+
     @property
     def clean_declaration(self):
         if not self.return_value.clean_declaration:
@@ -662,9 +674,16 @@ class Function(BaseType):
                 return False
         return True
 
+    @property
+    def pretty_name(self):
+        global __collection
+
+        key = list(__collection.keys()).index(self.identifier)
+        return 'func_{}'.format(key)
+
     def _to_string(self, replacement):
         if len(self.parameters) == 0:
-            replacement += + '(void)'
+            replacement += '(void)'
         else:
             parameter_declarations = []
             for param in self.parameters:
@@ -698,6 +717,10 @@ class Structure(BaseType):
     def name(self):
         return self._ast['specifiers']['type specifier']['name']
 
+    @property
+    def pretty_name(self):
+        return 'struct_{}'.format(self.name)
+
     def contains(self, target):
         return [field for field in self.fields if self.fields[field].compare(target)]
 
@@ -729,6 +752,10 @@ class Union(BaseType):
     def name(self):
         return self._ast['specifiers']['type specifier']['name']
 
+    @property
+    def pretty_name(self):
+        return 'union_{}'.format(self.name)
+
     def _to_string(self, replacement):
         if replacement == '':
             return "union {}".format(self.name)
@@ -750,6 +777,10 @@ class Array(BaseType):
     @property
     def clean_declaration(self):
         return self.element.clean_declaration
+
+    @property
+    def pretty_name(self):
+        return '{}_array'.format(self.element.pretty_name)
 
     def contains(self, target):
         if self.element.compare(target):
@@ -789,6 +820,10 @@ class Pointer(BaseType):
         replacement = _take_pointer(replacement, type(self.points))
 
         return self.points.to_string(replacement)
+
+    @property
+    def pretty_name(self):
+        return '{}_ptr'.format(self.points.pretty_name)
 
 
 class InterfaceReference(BaseType):

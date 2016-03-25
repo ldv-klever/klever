@@ -357,7 +357,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
     def __resolve_or_add_interface(self, signature, category, constructor):
         interface = self.resolve_interface(signature, category)
         if len(interface) == 0:
-            interface = constructor(category, signature.identifier)
+            interface = constructor(category, signature.pretty_name)
             interface.declaration = signature
             self.interfaces[interface.identifier] = interface
             interface = [interface]
@@ -372,7 +372,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         if type(declaration) is Pointer and type(declaration.points) is Function:
             probe_identifier = "{}.{}".format(category, identifier)
             if probe_identifier in self.interfaces:
-                identifier = declaration.identifier
+                identifier = declaration.pretty_name
 
             interface = Callback(category, identifier)
             interface.declaration = declaration
@@ -519,11 +519,11 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         add_cnt = 1
         while add_cnt != 0:
             add_cnt = 0
-            for container in self.containers():
-                if type(container.declaration) is Array:
+            for container in [cnt for cnt in self.containers() if cnt not in relevant_interfaces]:
+                if type(container.declaration) is Structure:
                     match = False
 
-                    for f_intf in container.field_interfaces:
+                    for f_intf in container.field_interfaces.values():
                         if f_intf and f_intf in relevant_interfaces:
                             match = True
                             break
@@ -531,7 +531,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     if match:
                         relevant_interfaces.append(container)
                         add_cnt += 1
-                elif type(container.declaration) is Structure:
+                elif type(container.declaration) is Array:
                     if container.element_interface in relevant_interfaces:
                         relevant_interfaces.append(container)
                         add_cnt += 1
