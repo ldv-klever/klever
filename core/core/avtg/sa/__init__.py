@@ -125,16 +125,16 @@ class SA(core.components.Component):
                                             collect_all_stdout=True)
                 self.logger.info("Analyze source file {}".format(command['in files'][0]))
                 core.utils.execute(self.logger, tuple(['cif',
-                                                       '--in', command['in files'][0],
-                                                       '--aspect', self.aspect,
-                                                       '--out', command['out file'],
-                                                       '--stage', 'instrumentation',
-                                                       '--back-end', 'src',
-                                                       '--debug', 'DEBUG'] +
-                                                      (['--keep'] if self.conf['debug'] else []) +
-                                                      ['--'] +
-                                                      command["opts"] +
-                                                      ['-isystem{0}'.format(stdout[0])]),
+                                                      '--in', command['in files'][0],
+                                                      '--aspect', self.aspect,
+                                                      '--out', command['out file'],
+                                                      '--stage', 'instrumentation',
+                                                      '--back-end', 'src',
+                                                      '--debug', 'DEBUG'] +
+                                                     (['--keep'] if self.conf['keep intermediate files'] else []) +
+                                                     ['--'] +
+                                                     command["opts"] +
+                                                     ['-isystem{0}'.format(stdout[0])]),
                                   cwd=self.conf['source tree root'])
 
     def _import_content(self, file):
@@ -277,7 +277,7 @@ class SA(core.components.Component):
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, exit_file))
 
-        if not self.conf['debug']:
+        if not self.conf['keep intermediate files']:
             self.logger.info("Remove files with raw extracted data")
             for file in glob.glob("*.txt"):
                 self.logger.debug("Remove file {}".format(file))
