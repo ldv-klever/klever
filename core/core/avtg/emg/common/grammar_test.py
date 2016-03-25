@@ -1,8 +1,13 @@
-from core.avtg.emg.common.interface import import_signature
+from core.avtg.emg.common.signature import import_signature
 
 
 __grammar_tests = [
-    '%usb.driver% function(int, $, %usb.driver%)',
+    'unsigned char disable_hub_initiated_lpm : 1',
+    'int a',
+    'int a;',
+    'int a:1',
+    'int a:1;',
+    'int a[6U]',
     'int int_a',
     'static int a',
     'static const int a',
@@ -73,6 +78,7 @@ __grammar_tests = [
     '%usb.driver%',
     '$ my_function($, %usb.driver%, int)',
     '%usb.driver% function(int, void *)',
+    '%usb.driver% function(int, $, %usb.driver%)'
 ]
 
 

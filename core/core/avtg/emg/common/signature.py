@@ -21,7 +21,9 @@ tokens = (
     'PARENTH_CLOSE',
     'COMMA',
     'DOTS',
+    'BIT_SIZE_DELEMITER',
     'NUMBER',
+    'END',
     'IDENTIFIER'
 )
 
@@ -42,6 +44,10 @@ t_COMMA = r","
 t_DOTS = r"\.\.\."
 
 t_UNKNOWN = r"\$"
+
+t_BIT_SIZE_DELEMITER = r'[:]'
+
+t_END = r'[;]'
 
 t_ignore = ' \t'
 
@@ -67,8 +73,8 @@ def keyword_lookup(string):
 
 
 def t_NUMBER(t):
-    r'\d+'
-    t.value = int(t.value)
+    r'\d+[\w+]?'
+    t.value = int(re.compile('(\d+)').match(t.value).group(1))
     return t
 
 
@@ -103,6 +109,16 @@ def t_error(t):
 
 def p_error(t):
     raise TypeError("Unknown text '%s'" % (t.value,))
+
+
+def p_full_declaration(p):
+    """
+    full_declaration : declaration BIT_SIZE_DELEMITER NUMBER END
+                     | declaration BIT_SIZE_DELEMITER NUMBER
+                     | declaration END
+                     | declaration
+    """
+    p[0] = p[1]
 
 
 def p_declaration(p):
