@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 import hashlib
 import tarfile
 import tempfile
@@ -17,6 +18,8 @@ BLOCKER = {}
 GROUP_BLOCKER = {}
 BRIDGE_ERROR_LOG = 'error.log'
 BRIDGE_LOG = 'bridge.log'
+
+logger = logging.getLogger(__name__)
 
 
 def print_err(message):

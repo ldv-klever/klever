@@ -170,6 +170,12 @@ DEF_USER = {
 
 LOGGING = {
     'version': 1,
+    'formatters': {
+        'simple': {
+            'format': '=' * 30 + '\n%(asctime)s [%(levelname)s] %(message)s',
+            'datefmt': "<%d.%b.%Y %H:%M:%S>"
+        },
+    },
     'handlers': {
         'console': {
             'level': 'DEBUG',
@@ -178,7 +184,14 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(MEDIA_ROOT, 'internal-server-error.log')
+            'filename': os.path.join(MEDIA_ROOT, 'internal-server-error.log'),
+            'formatter': 'simple'
+        },
+        'errors': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(MEDIA_ROOT, 'error.log'),
+            'formatter': 'simple'
         },
     },
     'loggers': {
@@ -186,6 +199,11 @@ LOGGING = {
             'handlers': ['console', 'file'],
             'propagate': True,
             'level': 'DEBUG',
+        },
+        'bridge': {
+            'handlers': ['errors'],
+            'propagate': False,
+            'level': 'ERROR',
         },
     },
 }
