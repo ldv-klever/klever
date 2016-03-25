@@ -12,7 +12,7 @@ LIST_VALUE = re.compile('value:')
 
 ARRAY_ELEMENT_INDEX = re.compile('array[ ]element[ ]index:[ ]([^\n]+)')
 
-FIELD_DECLARATION = re.compile('field[ ]declaration:[ ]([^\n]+)')
+FIELD_DECLARATION = re.compile('field[ ]declaration:[ ]([^;]+);')
 
 
 def lexer(line):

@@ -162,6 +162,8 @@ class SA(core.components.Component):
         call_re = re.compile("^([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
         arg_re = re.compile("\sarg(\d+)='([^']*)'")
         short_pair_re = re.compile("^([^\s]*)\s(\w*)\n")
+        typedef_struct_re = re.compile("{[^}]+}")
+        typedef_declaration = re.compile("^declaration: typedef ([^;]+);")
 
         func_definition_files = [
             {"file": "execution.txt", "static": False},
@@ -210,6 +212,15 @@ class SA(core.components.Component):
                                      format(caller_name, path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, func_calls_file))
+
+        typedef_file = "typedefs.txt"
+        content = self._import_content(typedef_file)
+        self.collection['typedefs'] = []
+        for line in content:
+            # todo: structures without names are not supported in EMG declaration parser
+            if not typedef_struct_re.search(line) and typedef_declaration.match(line):
+                declaration = typedef_declaration.match(line).group(1)
+                self.collection['typedefs'].append(declaration)
 
         global_file = "global.txt"
         self.logger.debug("Extract global variables from {}".format(global_file))
