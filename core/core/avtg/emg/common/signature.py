@@ -4,6 +4,8 @@ import re
 
 __collection = {}
 
+__typedefs = {}
+
 tokens = (
     'INTERFACE',
     'UNKNOWN',
@@ -502,6 +504,10 @@ def extract_name(signature):
         raise ValueError('Cannot extract name from declaration without declarator')
 
 
+def import_typedefs(tds):
+    pass
+
+
 def import_signature(signature, ast=None, parent=None):
     if not ast:
         __check_grammar()
@@ -571,10 +577,12 @@ def _take_pointer(exp, tp):
     return exp
 
 
-def setup_collection(collection):
+def setup_collection(collection, typedefs):
     global __collection
+    global __typedefs
 
     __collection = collection
+    __typedefs = typedefs
 
 
 class BaseType:

@@ -3,7 +3,7 @@ import json
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, InterfaceReference, \
-    setup_collection, import_signature, extract_name
+    setup_collection, import_signature, import_typedefs, extract_name
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
@@ -18,9 +18,14 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.inits = None
         self.exits = None
         self.types = {}
-        setup_collection(self.types)
+        self.typedefs = {}
+        setup_collection(self.types, self.typedefs)
 
     def import_specification(self, specification=None, module_specification=None, analysis=None):
+        # Import typedefs if there are provided
+        if analysis and 'typedefs' in analysis:
+            import_typedefs(analysis['typedefs'])
+
         # Import interface categories
         if specification:
             super().import_specification(specification)
