@@ -33,7 +33,7 @@ def extract_list(tokens, index, level):
     value = []
     stop = False
     while not stop:
-        if len(tokens) > 2:
+        if len(tokens) > index + 1:
             token = tokens[index + 1]
             if 'field' in token or 'index' in token:
                 if token['indent'] == level:
@@ -59,19 +59,20 @@ def extract_list(tokens, index, level):
 def parse_initializations(file):
     with open(file) as fd:
         text = fd.read()
-    multi_line_struct_re = re.compile('[\s]*[{][^}]+[}][\s]*')
-    for match in multi_line_struct_re.findall(text):
-        rep = match
-        new = rep.replace('\n', ' ')
-        text = text.replace(rep, new)
+    string_tokens = re.sub('\n([ |\t]*(?:declaration|value|(?:field[ ]declaration)|(?:array[ ]element[ ]index))[:])',
+                           '%\g<1>',
+                           text).split('%')
 
     tokens = []
-    for string in text.split('\n'):
+    for string in string_tokens:
+        # Remove new line characters
+        line = string.replace('\n', ' ')
+
         # Remove indent
         token = {'indent': 0}
-        if INDENT.match(string):
-            token['indent'] = len(INDENT.findall(WHOLE_INDENT.match(string).group(1)))
-        line = string.strip()
+        if INDENT.match(line):
+            token['indent'] = len(INDENT.findall(WHOLE_INDENT.match(line).group(1)))
+        line = line.strip()
 
         if DECLARATION.match(line):
             token['declaration'] = DECLARATION.match(line).group(1)
