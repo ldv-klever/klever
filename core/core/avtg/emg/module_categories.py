@@ -138,6 +138,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             self.logger.info("Import types from global variables initializations")
             for variable in analysis["global variable initializations"]:
                 variable_name = extract_name(variable['declaration'])
+                if not variable_name:
+                    raise ValueError('Global variable without a name')
+
                 signature = import_signature(variable['declaration'])
                 if type(signature) is Structure or type(signature) is Array or type(signature) is Union:
                     entity = {
@@ -247,20 +250,22 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                             new_root_value = entity["root value"]
 
                         field = extract_name(entry['field'])
-                        e_bt = import_signature(entry['field'], None, bt)
-                        new_sequence = list(entity["root sequence"])
-                        new_sequence.append(field)
+                        # Ignore actually unions and structures without a name
+                        if field:
+                            e_bt = import_signature(entry['field'], None, bt)
+                            new_sequence = list(entity["root sequence"])
+                            new_sequence.append(field)
 
-                        new_desc = {
-                            "type": e_bt,
-                            "description": entry,
-                            "path": entity["path"],
-                            "root type": new_root_type,
-                            "root value": new_root_value,
-                            "root sequence": new_sequence
-                        }
+                            new_desc = {
+                                "type": e_bt,
+                                "description": entry,
+                                "path": entity["path"],
+                                "root type": new_root_type,
+                                "root value": new_root_value,
+                                "root sequence": new_sequence
+                            }
 
-                        bt.fields[field] = e_bt
+                            bt.fields[field] = e_bt
                     else:
                         raise NotImplementedError
 
@@ -469,7 +474,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
     def __yield_category(self, category):
         category_identifier = None
-        for interface_category in ["callbacks", "containers", "resources"]:
+        for interface_category in ["containers", "callbacks"]:
             if category_identifier:
                 break
             for signature in category[interface_category]:
@@ -480,11 +485,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         if not category_identifier:
             if len(category["containers"]) > 0:
-                category_identifier = list(category["containers"].values())[0].identifier
-            elif len(category["resources"]) > 0:
-                category_identifier = list(category["resources"].values())[0].identifier
+                category_identifier = list(category["containers"])[0].pretty_name
             else:
-                category_identifier = list(category["callbacks"].values())[0].identifier
+                category_identifier = list(category["resources"])[0].pretty_name
 
         return category_identifier
 
@@ -505,6 +508,13 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         # Add kernel functionrelevant interfaces
         for name in self.kernel_functions:
             relevant_interfaces.extend(self.__check_category_relevance(self.kernel_functions[name]))
+
+        # Add all interfaces for non-container categories
+        for interface in list(relevant_interfaces):
+            containers = self.containers(interface.category)
+            if len(containers) == 0:
+                relevant_interfaces.extend([self.interfaces[name] for name in self.interfaces
+                                            if self.interfaces[name].category == interface.category])
 
         # Add callbacks and their resources
         for callback in self.callbacks():

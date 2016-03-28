@@ -160,13 +160,16 @@ class ProcessModel:
                         for index in range(len(analysis.kernel_functions[function].param_interfaces)):
                             parameter = analysis.kernel_functions[function].param_interfaces[index]
                             signature = analysis.kernel_functions[function].declaration.parameters[index]
+
                             if parameter and parameter.identifier in new_process.labels[label].interfaces:
                                 self.logger.debug("Set label {} signature according to interface {}".
                                                   format(label, parameter.identifier))
                                 new_process.labels[label].set_declaration(parameter.identifier, signature)
-                            else:
-                                raise ValueError("Cannot find suitable signature for label '{}' at function model '{}'".
-                                                 format(label, function))
+                                break
+
+                    if new_process.labels[label].parameter and len(new_process.labels[label].interfaces) == 0:
+                        raise ValueError("Cannot find a suitable signature for a label '{}' at function model '{}'".
+                                         format(label, function))
 
     def __choose_processes(self, analysis, category):
         estimations = {}
@@ -290,7 +293,8 @@ class ProcessModel:
                 label, tail = process.extract_label_with_tail(callback_name)
 
                 if len(label.interfaces) > 0:
-                    for interface in [analysis.interfaces[name] for name in label.interfaces]:
+                    for interface in [analysis.interfaces[name] for name in label.interfaces
+                                      if name in analysis.interfaces]:
                         if type(interface) is Container and len(tail) > 0:
                             intfs = self.__resolve_interface(analysis, interface, tail)
                             if intfs:

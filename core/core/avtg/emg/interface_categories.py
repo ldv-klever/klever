@@ -213,39 +213,47 @@ class CategoriesSpecification:
             raise TypeError('Expect pointer to function or function declaration but got {}'.
                             format(str(type(interface.declaration))))
 
-        if declaration.return_value and type(declaration.return_value) is not Primitive and not \
-                (type(declaration.return_value) is Pointer and type(declaration.return_value.points) is Primitive):
-            rv_interface = self.resolve_interface(declaration.return_value, category)
-            if len(rv_interface) == 0:
-                rv_interface = self.resolve_interface_weakly(declaration.return_value, category)
+        if not interface.rv_interface:
+            if declaration.return_value and type(declaration.return_value) is InterfaceReference and \
+                    declaration.return_value.interface in self.interfaces:
+                interface.rv_interface = self.interfaces[declaration.return_value.interface]
+            elif declaration.return_value and type(declaration.return_value) is not Primitive and not \
+                    (type(declaration.return_value) is Pointer and type(declaration.return_value.points) is Primitive):
+                rv_interface = self.resolve_interface(declaration.return_value, category)
+                if len(rv_interface) == 0:
+                    rv_interface = self.resolve_interface_weakly(declaration.return_value, category)
 
-            if len(rv_interface) == 1:
-                interface.rv_interface = rv_interface[-1]
-            elif len(rv_interface) > 1:
-                raise ValueError('Cannot match two return values')
+                if len(rv_interface) == 1:
+                    interface.rv_interface = rv_interface[-1]
+                elif len(rv_interface) > 1:
+                    raise ValueError('Cannot match two return values')
 
         for index in range(len(declaration.parameters)):
-            if type(declaration.parameters[index]) is not str and \
-                    type(declaration.parameters[index]) is not Primitive and not \
-                    (type(declaration.parameters[index]) is Pointer and
-                     type(declaration.parameters[index].points) is Primitive):
-                p_interface = self.resolve_interface(declaration.parameters[index], category)
-                if len(p_interface) == 0:
-                    p_interface = self.resolve_interface_weakly(declaration.parameters[index], category)
+            if not (len(interface.param_interfaces) > index and interface.param_interfaces[index]):
+                if type(declaration.parameters[index]) is InterfaceReference and \
+                        declaration.parameters[index].interface in self.interfaces:
+                    p_interface = self.interfaces[declaration.parameters[index].interface]
+                elif type(declaration.parameters[index]) is not str and \
+                        type(declaration.parameters[index]) is not Primitive and not \
+                        (type(declaration.parameters[index]) is Pointer and
+                         type(declaration.parameters[index].points) is Primitive):
+                    p_interface = self.resolve_interface(declaration.parameters[index], category)
+                    if len(p_interface) == 0:
+                        p_interface = self.resolve_interface_weakly(declaration.parameters[index], category)
 
-                if len(p_interface) == 1:
-                    p_interface = p_interface[-1]
-                elif len(p_interface) == 0:
-                    p_interface = None
+                    if len(p_interface) == 1:
+                        p_interface = p_interface[-1]
+                    elif len(p_interface) == 0:
+                        p_interface = None
+                    else:
+                        raise ValueError('Cannot match parameter with two or more interfaces')
                 else:
-                    raise ValueError('Cannot match parameter with two or more interfaces')
-            else:
-                p_interface = None
+                    p_interface = None
 
-            if len(interface.param_interfaces) > index:
-                interface.param_interfaces[index] = p_interface
-            else:
-                interface.param_interfaces.append(p_interface)
+                if len(interface.param_interfaces) > index:
+                    interface.param_interfaces[index] = p_interface
+                else:
+                    interface.param_interfaces.append(p_interface)
 
     def __import_kernel_interfaces(self, category_name, collection):
         for identifier in collection[category_name]:

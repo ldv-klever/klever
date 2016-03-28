@@ -539,7 +539,7 @@ def extract_name(signature):
             ast['declarator'][-1]['identifier']:
         return ast['declarator'][-1]['identifier']
     else:
-        raise ValueError('Cannot extract name from declaration without declarator')
+        return None
 
 
 def import_typedefs(tds):
@@ -570,6 +570,15 @@ def import_signature(signature, ast=None, parent=None):
                 ast['specifiers']['type specifier']['class'] == 'typedef' and \
                 ast['specifiers']['type specifier']['name'] in __typedefs:
             ret = import_signature(None, __typedefs[ast['specifiers']['type specifier']['name']])
+        elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
+                ast['specifiers']['type specifier']['class'] == 'structure':
+            ret = Structure(ast, parent)
+        elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
+                ast['specifiers']['type specifier']['class'] == 'enum':
+            ret = Enum(ast, parent)
+        elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
+                ast['specifiers']['type specifier']['class'] == 'union':
+            ret = Union(ast, parent)
         else:
             ret = Primitive(ast, parent)
     else:
