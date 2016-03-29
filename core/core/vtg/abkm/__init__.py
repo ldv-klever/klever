@@ -85,19 +85,11 @@ class ABKM(core.components.Component):
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
                 extra_c_file['C file'] = trimmed_c_file
 
-            # TODO: CIL can't proces files with spaces in their names. Try to screen spaces.
-            with open('cil input files.txt', 'w', encoding='ascii') as fp:
-                for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                    fp.write('{0}\n'.format(extra_c_file['C file']))
-
             cil_out_file = os.path.relpath('cil.i', os.path.realpath(self.conf['source tree root']))
 
             core.utils.execute(self.logger,
                                (
                                    'cilly.asm.exe',
-                                   '--extrafiles', os.path.relpath('cil input files.txt',
-                                                                   os.path.realpath(self.conf['source tree root'])),
-                                   '--out', cil_out_file,
                                    '--printCilAsIs',
                                    '--domakeCFG',
                                    '--decil',
@@ -111,8 +103,11 @@ class ABKM(core.components.Component):
                                    '--no-convert-field-offsets',
                                    # Don't transform structure fields into variables or arrays.
                                    '--no-split-structs',
-                                   '--rmUnusedInlines'
-                               ),
+                                   '--rmUnusedInlines',
+                                   '--out', cil_out_file,
+                               ) +
+                               tuple(extra_c_file['C file']
+                                     for extra_c_file in self.conf['abstract task desc']['extra C files']),
                                cwd=self.conf['source tree root'])
 
             self.task_desc['files'].append(cil_out_file)
