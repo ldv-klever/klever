@@ -33,7 +33,7 @@ class FSA:
             transitions.extend(new)
 
     def __enumerate_ast(self, ast):
-        key = sorted(ast.keys())[0]
+        key = list(set(ast.keys()) - set(['identifier']))[0]
         to_process = []
 
         if key in ["sequence", "options"]:
@@ -49,7 +49,7 @@ class FSA:
         return to_process
 
     def __process_ast(self, automaton, process, ast, predecessor):
-        key = list(ast.keys())[0]
+        key = list(set(ast.keys()) - set(['identifier']))[0]
         to_process = []
 
         if key == "sequence":

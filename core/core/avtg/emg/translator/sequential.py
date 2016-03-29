@@ -178,30 +178,14 @@ class Translator(AbstractTranslator):
             # todo: refactoring is required
             new_base_list = []
             for interface in relevant_multi_containers:
-                implementations = interface.implementations
+                implementations = analysis.implementations(interface)
 
                 for implementation in implementations:
                     for instance in base_list:
-                        newp = copy.deepcopy(instance)
-                        accs = newp.accesses()
-                        for access_list in [accs[name] for name in sorted(accs.keys())]:
-                            for access in access_list:
-                                # Replace not even container itself but other collateral interface implementaations
-                                if access.interface and len(access.interface.implementations) > 0 and \
-                                    len([impl for impl in access.interface.implementations
-                                         if impl.base_container == interface.identifier]) > 0:
-                                    new_values = [impl for impl in access.interface.implementations
-                                                  if impl.base_container == interface.identifier and
-                                                  impl.base_value == implementation.value]
-
-                                    if len(new_values) == 0:
-                                        access.interface.implementations = []
-                                    elif len(new_values) == 1:
-                                        access.interface.implementations = new_values
-                                    else:
-                                        raise RuntimeError("Seems two values spring from one variable")
-
+                        newp = copy.copy(instance)
+                        newp.forbide_except(analysis, interface, implementation)
                         new_base_list.append(newp)
+
                 base_list = new_base_list
 
         # Copy callbacks or resources which are not tied to a container
@@ -217,10 +201,7 @@ class Translator(AbstractTranslator):
                 for implementation in analysis.implementations(access.interface):
                     for instance in base_list:
                         newp = copy.copy(instance)
-                        newp_accesses = newp.accesses()
-                        modify_acc = [acc for acc in newp_accesses[access.expression]
-                                      if acc.interface.identifier == access.interface.identifier][0]
-                        modify_acc.interface.implementations = [implementation]
+                        newp.forbide_except(analysis, access.interface, implementation)
                         new_base_list.append(newp)
 
                 base_list = new_base_list

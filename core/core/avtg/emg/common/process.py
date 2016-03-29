@@ -40,9 +40,21 @@ label = /%\w+%/;
 __process_model = None
 
 
+def __undefaulted(x, tp):
+    if isinstance(x, list):
+        return [__undefaulted(element, tp) for element in x]
+    elif isinstance(x, tp):
+        return dict((k, __undefaulted(v, tp)) for (k, v) in x.iteritems())
+    else:
+        return x
+
+
 def process_parse(string):
     __check_grammar()
-    return __process_model.parse(string, ignorecase=True)
+    ast = __process_model.parse(string, ignorecase=True)
+    ast = __undefaulted(ast, type(ast))
+
+    return ast
 
 
 def __check_grammar():
@@ -245,7 +257,7 @@ class Process:
         self.process = None
         self.__process_ast = None
         self.__accesses = None
-        self.__forbidded_implementations = {}
+        self.__forbidded_implementations = set()
 
     @property
     def unmatched_receives(self):
@@ -419,9 +431,21 @@ class Process:
         else:
             return False
 
-    def forbid_implementation(self, whatever):
+    def forbide_except(self, analysis, interface, implementation):
         # todo: implement method to add filter on implementations resolving acces
-        pass
+        accesses = self.accesses()
+        for access_list in [accesses[name] for name in sorted(accesses.keys())]:
+            for access in access_list:
+                if interface.identifier == access.interface.identifier:
+                    implementations = analysis.implementations(access.interface)
+                    for impl in implementations:
+                        if impl.identifier != implementation.identifier:
+                            self.__forbidded_implementations.add(impl.identifier)
+                elif interface.identifier in [intf.identifier for intf in access.list_interface]:
+                    implementations = analysis.implementations(access.interface)
+                    for impl in implementations:
+                        raise NotImplementedError
+
 
     def get_implementations(self, analysis, access):
         if access.interface:
