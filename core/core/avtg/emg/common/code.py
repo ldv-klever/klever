@@ -201,17 +201,17 @@ class FunctionModels:
 
         ret = string
         # Memory functions
-        for function in self.mem_function_map:
+        for function in sorted(self.mem_function_map.keys()):
             regex = re.compile(self.mem_function_re.format(function, label))
             ret = regex.sub(self.__replace_mem_call, ret)
 
         # Free functions
-        for function in self.free_function_map:
+        for function in sorted(self.free_function_map.keys()):
             regex = re.compile(self.mem_function_re.format(function, label))
             ret = regex.sub(self.__replace_free_call, ret)
 
         # IRQ functions
-        for function in self.irq_function_map:
+        for function in sorted(self.irq_function_map.keys()):
             regex = re.compile(self.irq_function_re.format(function))
             ret = regex.sub(self.__replace_irq_call, ret)
         return ret

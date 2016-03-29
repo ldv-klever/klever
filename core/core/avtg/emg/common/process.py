@@ -89,7 +89,7 @@ def rename_subprocess(pr, old_name, new_name):
 
     # Replace subprocess entries
     processes = [pr]
-    processes.extend([pr.actions[name] for name in pr.actions if type(pr.actions[name]) is Subprocess])
+    processes.extend([pr.actions[name] for name in sorted(pr.actions.keys()) if type(pr.actions[name]) is Subprocess])
     regexes = generate_regex_set(old_name)
     for process in processes:
         for regex in regexes:
@@ -199,7 +199,7 @@ class Label:
 
     @property
     def interfaces(self):
-        return list(self.__signature_map.keys())
+        return sorted(self.__signature_map.keys())
 
     def get_declaration(self, identifier):
         if identifier in self.__signature_map:
@@ -249,31 +249,31 @@ class Process:
 
     @property
     def unmatched_receives(self):
-        return [self.actions[act] for act in self.actions if type(self.actions[act]) is Receive and
+        return [self.actions[act] for act in sorted(self.actions.keys()) if type(self.actions[act]) is Receive and
                 len(self.actions[act].peers) == 0]
 
     @property
     def unmatched_dispatches(self):
-        return [self.actions[act] for act in self.actions if type(self.actions[act]) is Dispatch and
+        return [self.actions[act] for act in sorted(self.actions.keys()) if type(self.actions[act]) is Dispatch and
                 len(self.actions[act].peers) == 0]
 
     @property
     def unmatched_labels(self):
-        unmatched = [self.labels[label] for label in self.labels
+        unmatched = [self.labels[label] for label in sorted(self.labels.keys())
                      if not self.labels[label].interface and not self.labels[label].signature]
         return unmatched
 
     @property
     def containers(self):
-        return [container for container in self.labels.values() if container.container]
+        return [self.labels[name] for name in sorted(self.labels.keys()) if self.labels[name].container]
 
     @property
     def callbacks(self):
-        return [callback for callback in self.labels.values() if callback.callback]
+        return [self.labels[name] for name in sorted(self.labels.keys()) if self.labels[name].callback]
 
     @property
     def resources(self):
-        return [resource for resource in self.labels.values() if resource.resource]
+        return [self.labels[name] for name in sorted(self.labels.keys()) if self.labels[name].resource]
 
     def extract_label(self, string):
         name, tail = self.extract_label_with_tail(string)
@@ -284,6 +284,10 @@ class Process:
         if not self.__process_ast:
             self.__process_ast = process_parse(self.process)
         return self.__process_ast
+
+    @property
+    def calls(self):
+        return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
@@ -353,7 +357,7 @@ class Process:
                 self.__accesses = {}
 
                 # Collect all accesses across process subprocesses
-                for action in self.actions.values():
+                for action in [self.actions[name] for name in sorted(self.actions.keys())]:
                     if type(action) is Call or type(action) is CallRetval and action.callback:
                         self.__accesses[action.callback] = []
                     if type(action) is Receive or type(action) is Dispatch:
@@ -371,7 +375,7 @@ class Process:
                                 self.__accesses[match.group()] = []
 
                 # Add labels with interfaces
-                for label in self.labels.values():
+                for label in [self.labels[name] for name in sorted(self.labels.keys())]:
                     access = '%{}%'.format(label.name)
                     if access not in self.__accesses:
                         self.__accesses[access] = []
@@ -391,7 +395,7 @@ class Process:
         if not interface:
             return self.__accesses[string]
         else:
-            return [acc for acc in self.__accesses[string]
+            return [acc for acc in sorted(self.__accesses[string], key=lambda acc: acc.expression)
                     if acc.interface and acc.interface.identifier == interface][0]
 
     def __compare_signals(self, process, first, second):

@@ -65,7 +65,7 @@ class EMG(core.components.Component):
     def __read_additional_content(self, file_type):
         lines = []
         if "additional {}".format(file_type) in self.conf:
-            files = self.conf["additional {}".format(file_type)]
+            files = sorted(self.conf["additional {}".format(file_type)])
             if len(files) > 0:
                 for file in files:
                     self.logger.info("Search for {} file {}".format(file, file_type))
@@ -127,7 +127,7 @@ class EMG(core.components.Component):
         module_interface_spec = None
         event_categories_spec = None
 
-        files = [os.path.join(directory, name) for name in os.listdir(directory)]
+        files = [os.path.join(directory, name) for name in sorted(os.listdir(directory))]
         if len(files) < 2:
             FileNotFoundError("Environment model generator expects no less than 2 specifications but found only {}".
                               format(len(files)))

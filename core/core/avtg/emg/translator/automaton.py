@@ -18,7 +18,7 @@ class FSA:
     def __generate_states(self, automaton, process):
         if "identifier" not in process.process_ast:
             # Enumerate AST
-            nodes = [process.actions[name].process_ast for name in process.actions
+            nodes = [process.actions[name].process_ast for name in sorted(process.actions.keys())
                      if type(process.actions[name]) is Subprocess] + [process.process_ast]
             while len(nodes) > 0:
                 ast = nodes.pop()
@@ -33,7 +33,7 @@ class FSA:
             transitions.extend(new)
 
     def __enumerate_ast(self, ast):
-        key = list(ast.keys())[0]
+        key = sorted(ast.keys())[0]
         to_process = []
 
         if key in ["sequence", "options"]:
@@ -179,7 +179,7 @@ class FSA:
         )
 
         # Add subprocess description
-        for subprocess in [process.actions[name] for name in process.actions
+        for subprocess in [process.actions[name] for name in sorted(process.actions.keys())
                            if type(process.actions[name]) is Subprocess]:
             graph.node(
                 subprocess.name,

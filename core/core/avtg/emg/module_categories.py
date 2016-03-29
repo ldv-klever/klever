@@ -55,7 +55,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             name = process_names.pop()
 
             if name in self.modules_functions:
-                for file in self.modules_functions[name]:
+                for file in sorted(self.modules_functions[name].keys()):
                     for called in self.modules_functions[name][file]['calls']:
                         if called in self.modules_functions and called not in processed_names and \
                                 called not in process_names:
@@ -163,7 +163,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         if 'kernel functions' in analysis:
             self.logger.info("Import types from kernel functions")
-            for function in analysis['kernel functions']:
+            for function in sorted(analysis['kernel functions'].keys()):
                 self.logger.debug("Parse signature of function {}".format(function))
                 declaration = import_signature(analysis['kernel functions'][function]['signature'])
 
@@ -180,18 +180,18 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         modules_functions = {}
         if 'modules functions' in analysis:
             self.logger.info("Import modules functions and implementations from kernel functions calls in it")
-            for function in [name for name in analysis["modules functions"]
+            for function in [name for name in sorted(analysis["modules functions"].keys())
                              if 'files' in analysis["modules functions"][name]]:
                 modules_functions[function] = {}
                 module_function = analysis["modules functions"][function]
-                for path in module_function["files"]:
+                for path in sorted(module_function["files"].keys()):
                     self.logger.debug("Parse signature of function {} from file {}".format(function, path))
                     modules_functions[function][path] = \
                         {'declaration': import_signature(module_function["files"][path]["signature"])}
 
                     if "calls" in module_function["files"][path]:
                         modules_functions[function][path]['calls'] = module_function["files"][path]['calls']
-                        for kernel_function in [name for name in module_function["files"][path]["calls"]
+                        for kernel_function in [name for name in sorted(module_function["files"][path]["calls"].keys())
                                                 if name in self.kernel_functions]:
                             for call in module_function["files"][path]["calls"][kernel_function]:
                                 self.kernel_functions[kernel_function].add_call(function)
@@ -202,7 +202,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                                         add_implementation(call[index], path, None, None, [])
 
         self.logger.info("Remove kernel functions which are not called at driver functions")
-        for function in list(self.kernel_functions.keys()):
+        for function in sorted(self.kernel_functions.keys()):
             if len(self.kernel_functions[function].called_at) == 0:
                 del self.kernel_functions[function]
 
@@ -298,8 +298,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 self.__add_interface_candidate(parameter, 'resources', category)
 
     def __extract_categories(self):
-        structures = [struct for struct in self.types.values() if type(struct) is Structure and
-                      len([field for field in struct.fields.values() if field.clean_declaration]) > 0]
+        structures = [self.types[name] for name in sorted(self.types.keys()) if type(self.types[name]) is Structure and
+                      len([self.types[name].fields[nm] for nm in sorted(self.types[name].fields.keys())
+                           if self.types[name].fields[nm].clean_declaration]) > 0]
         categories = []
 
         while len(structures) > 0:
@@ -317,7 +318,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 # todo: unions?
                 if type(tp) is Structure:
                     c_flag = False
-                    for field in tp.fields:
+                    for field in sorted(tp.fields.keys()):
                         if type(tp.fields[field]) is Pointer and \
                                 (type(tp.fields[field].points) is Array or
                                  type(tp.fields[field].points) is Structure):
@@ -408,7 +409,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     interface = interface[-1]
 
                 # Refine field interfaces
-                for field in list(interface.field_interfaces.keys()):
+                for field in sorted(interface.field_interfaces.keys()):
                     if not interface.field_interfaces[field].declaration.clean_declaration and \
                             interface.declaration.fields[field].clean_declaration:
                         interface.field_interfaces[field].declaration = interface.declaration.fields[field]
@@ -422,7 +423,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                         raise TypeError('Cannot match two resources with the same type')
 
             # Add callbacks
-            for identifier in category['callbacks']:
+            for identifier in sorted(category['callbacks'].keys()):
                 candidates = self.resolve_interface(category['callbacks'][identifier], category_identifier)
 
                 if len(candidates) > 0:
@@ -444,14 +445,14 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                               type(cnt.declaration) is Array and not cnt.element_interface]:
                 intf = self.resolve_interface_weakly(container.declaration.element)
                 if len(intf) == 1:
-                    container.element_interface = intf
+                    container.element_interface = intf[0]
                 else:
                     raise NotImplementedError
 
             # Resolve structure interfaces
             for container in [cnt for cnt in self.containers(category_identifier) if cnt.declaration and
                               type(cnt.declaration) is Structure]:
-                for field in [field for field in container.declaration.fields
+                for field in [field for field in sorted(container.declaration.fields.keys())
                               if field not in container.field_interfaces]:
                     intf = self.resolve_interface_weakly(container.declaration.fields[field])
                     if len(intf) == 1:
@@ -466,7 +467,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 self._fulfill_function_interfaces(callback, category_identifier)
 
             # Resolve kernel function parameters
-            for function in self.kernel_functions.values():
+            for function in [self.kernel_functions[name] for name in sorted(self.kernel_functions.keys())]:
                 self._fulfill_function_interfaces(function)
 
         # Refine dirty declarations
@@ -496,38 +497,38 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.logger.info("Calculate relevant interfaces")
         relevant_interfaces = self.__calculate_relevant_interfaces()
 
-        for interface in list(self.interfaces.values()):
+        for interface in [self.interfaces[name] for name in sorted(self.interfaces.keys())]:
             if interface not in relevant_interfaces:
                 del self.interfaces[interface.identifier]
 
     def __calculate_relevant_interfaces(self):
-        relevant_interfaces = []
+        relevant_interfaces = set()
 
         # If category interfaces are not used in kernel functions it means that this structure is not transferred to
         # the kernel or just source analysis cannot find all containers
         # Add kernel functionrelevant interfaces
-        for name in self.kernel_functions:
-            relevant_interfaces.extend(self.__check_category_relevance(self.kernel_functions[name]))
+        for name in sorted(self.kernel_functions):
+            relevant_interfaces.update(self.__check_category_relevance(self.kernel_functions[name]))
 
         # Add all interfaces for non-container categories
-        for interface in list(relevant_interfaces):
+        for interface in set(relevant_interfaces):
             containers = self.containers(interface.category)
             if len(containers) == 0:
-                relevant_interfaces.extend([self.interfaces[name] for name in self.interfaces
+                relevant_interfaces.update([self.interfaces[name] for name in sorted(self.interfaces)
                                             if self.interfaces[name].category == interface.category])
 
         # Add callbacks and their resources
         for callback in self.callbacks():
             if len(callback.declaration.implementations) > 0:
-                relevant_interfaces.append(callback)
-                relevant_interfaces.extend(self.__check_category_relevance(callback))
+                relevant_interfaces.add(callback)
+                relevant_interfaces.update(self.__check_category_relevance(callback))
             else:
                 containers = self.resolve_containers(callback, callback.category)
                 for container in containers:
                     if self.interfaces[container] in relevant_interfaces and \
                             len(self.interfaces[container].declaration.implementations) == 0:
-                        relevant_interfaces.append(callback)
-                        relevant_interfaces.extend(self.__check_category_relevance(callback))
+                        relevant_interfaces.add(callback)
+                        relevant_interfaces.update(self.__check_category_relevance(callback))
                         break
 
         # Add containers
@@ -538,17 +539,18 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 if type(container.declaration) is Structure:
                     match = False
 
-                    for f_intf in container.field_interfaces.values():
+                    for f_intf in [container.field_interfaces[name] for name
+                                   in sorted(container.field_interfaces.keys())]:
                         if f_intf and f_intf in relevant_interfaces:
                             match = True
                             break
 
                     if match:
-                        relevant_interfaces.append(container)
+                        relevant_interfaces.add(container)
                         add_cnt += 1
                 elif type(container.declaration) is Array:
                     if container.element_interface in relevant_interfaces:
-                        relevant_interfaces.append(container)
+                        relevant_interfaces.add(container)
                         add_cnt += 1
                 else:
                     raise TypeError('Expect structure or array container')

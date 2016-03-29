@@ -17,7 +17,7 @@ def text_processor(analysis, automaton, statement):
         statements = [statement]
 
         for access in accesses:
-            for option in accesses[access]:
+            for option in sorted(accesses[access], key=lambda ac: ac.expression):
                 new_statements = []
                 for text in statements:
                     if option.interface:
@@ -72,7 +72,8 @@ class Translator(AbstractTranslator):
             # Determine nonimplemented containers
             self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
                               "category {}".format(process.name, process.category))
-            for label in [label for label in process.labels.values() if len(label.interfaces) > 0]:
+            for label in [process.labels[name] for name in sorted(process.labels.keys())
+                          if len(process.labels[name].interfaces) > 0]:
                 nonimplemented_intrerfaces = [interface for interface in label.interfaces
                                               if len(analysis.implementations(analysis.interfaces[interface])) == 0]
                 if len(nonimplemented_intrerfaces) > 0:
@@ -161,8 +162,8 @@ class Translator(AbstractTranslator):
         # Copy base instances for each known implementation
         relevant_multi_containers = []
         accesses = process.accesses()
-        for access in accesses.values():
-            for inst_access in [inst for inst in access if inst.interface]:
+        for access in [accesses[name] for name in sorted(accesses.keys())]:
+            for inst_access in [inst for inst in sorted(access, key=lambda i: i.expression) if inst.interface]:
                 if type(inst_access.interface) is Container and \
                         len(analysis.implementations(inst_access.interface)) > 1 and \
                         inst_access.interface not in relevant_multi_containers:
@@ -183,7 +184,7 @@ class Translator(AbstractTranslator):
                     for instance in base_list:
                         newp = copy.deepcopy(instance)
                         accs = newp.accesses()
-                        for access_list in accs.values():
+                        for access_list in [accs[name] for name in sorted(accs.keys())]:
                             for access in access_list:
                                 # Replace not even container itself but other collateral interface implementaations
                                 if access.interface and len(access.interface.implementations) > 0 and \
@@ -206,7 +207,7 @@ class Translator(AbstractTranslator):
         # Copy callbacks or resources which are not tied to a container
         accesses = base_list[0].accesses()
         relevant_multi_leafs = []
-        for access in accesses.values():
+        for access in [accesses[name] for name in sorted(accesses.keys())]:
             relevant_multi_leafs.extend([inst for inst in access if inst.interface and
                                          len(analysis.implementations(inst.interface)) > 1])
         if len(relevant_multi_leafs) > 0:
@@ -491,7 +492,7 @@ class Translator(AbstractTranslator):
 
                 # Generate return value assignment
                 retval = ""
-                ret_subprocess = [automaton.process.actions[name] for name in automaton.process.actions
+                ret_subprocess = [automaton.process.actions[name] for name in sorted(automaton.process.actions.keys())
                                   if type(automaton.process.actions[name]) is CallRetval and
                                   automaton.process.actions[name].callback == action.callback and
                                   automaton.process.actions[name].retlabel]
@@ -679,7 +680,7 @@ class Translator(AbstractTranslator):
                 # Check relevant state machines for each model
                 automata_peers = {}
                 for model in process_models:
-                    signals = [model.actions[name] for name in model.actions
+                    signals = [model.actions[name] for name in sorted(model.actions.keys())
                                if (type(model.actions[name]) is Receive or
                                    type(model.actions[name]) is Dispatch) and
                                len(model.actions[name].peers) > 0]
@@ -699,7 +700,7 @@ class Translator(AbstractTranslator):
 
         return " && ".join(check)
 
-    def __extract_relevant_automata(self, automata_peers, peers, type=None):
+    def __extract_relevant_automata(self, automata_peers, peers, sb_type=None):
         for peer in peers:
             relevant_automata = [automaton for automaton in self.__callback_fsa
                                  if automaton.process.name == peer["process"].name]
@@ -710,14 +711,14 @@ class Translator(AbstractTranslator):
                         "subprocesses": []
                     }
                 if peer["subprocess"] not in automata_peers[automaton.identifier]["subprocesses"]:
-                    if not type or isinstance(peer["subprocess"], type):
+                    if not sb_type or isinstance(peer["subprocess"], sb_type):
                         automata_peers[automaton.identifier]["subprocesses"].append(peer["subprocess"])
 
     @staticmethod
     def __generate_state_pair(automata_peers):
         check = []
         # Add state checks
-        for ap in automata_peers.values():
+        for ap in [automata_peers[name] for name in sorted(automata_peers.keys())]:
             for transition in ap["automaton"].fsa.state_transitions:
                 if transition["subprocess"].name in [subp.name for subp in ap["subprocesses"]]:
                     check.append([ap["automaton"].state_variable.name, transition])
@@ -763,7 +764,7 @@ class Automaton:
             self.__variables.append(self.state_variable)
 
             # Generate variable for each label
-            for label in self.process.labels.values():
+            for label in [self.process.labels[name] for name in sorted(self.process.labels.keys())]:
                 if label.interfaces:
                     for interface in label.interfaces:
                         self.__variables.append(self.determine_variable(analysis, label, interface))

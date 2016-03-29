@@ -74,7 +74,7 @@ def keyword_lookup(string):
             'ENUM': re.compile('enum')
         }
 
-    for keyword_type in keyword_map:
+    for keyword_type in sorted(keyword_map.keys()):
         if keyword_map[keyword_type].fullmatch(string):
             return keyword_type
     return None
@@ -545,7 +545,7 @@ def extract_name(signature):
 def import_typedefs(tds):
     global __typedefs
 
-    for td in tds:
+    for td in sorted(tds):
         ast = yacc.parse(td)
         name = ast['declarator'][-1]['identifier']
         __typedefs[name] = ast
@@ -813,16 +813,14 @@ class Structure(BaseType):
         self.fields = {}
 
         if 'fields' in self._ast['specifiers']['type specifier']:
-            for declaration in self._ast['specifiers']['type specifier']['fields']:
+            for declaration in sorted(self._ast['specifiers']['type specifier']['fields'],
+                                      key=lambda decl: decl['declarator'][-1]['identifier']):
                 name = declaration['declarator'][-1]['identifier']
                 if name:
                     self.fields[name] = import_signature(None, declaration)
 
     @property
     def clean_declaration(self):
-        #for field in self.fields.values():
-        #    if not field.clean_declaration:
-        #        return False
         return True
 
     @property
@@ -840,15 +838,15 @@ class Structure(BaseType):
             return 'struct_noname_{}'.format(key)
 
     def contains(self, target):
-        return [field for field in self.fields if self.fields[field].compare(target)]
+        return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target)]
 
     def weak_contains(self, target):
-        return [field for field in self.fields if self.fields[field].compare(target) or
+        return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
     def _to_string(self, replacement):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in self.fields]) + ' }'
+            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in sorted(self.fields.keys())]) + ' }'
         else:
             name = self.name
 
@@ -865,7 +863,8 @@ class Union(BaseType):
         self.fields = {}
 
         if 'fields' in self._ast['specifiers']['type specifier']:
-            for declaration in self._ast['specifiers']['type specifier']['fields']:
+            for declaration in sorted(self._ast['specifiers']['type specifier']['fields'],
+                                      key=lambda decl: decl['declarator'][-1]['identifier']):
                 name = declaration['declarator'][-1]['identifier']
                 if name:
                     self.fields[name] = import_signature(None, declaration)
@@ -892,15 +891,15 @@ class Union(BaseType):
             return 'union_noname_{}'.format(key)
 
     def contains(self, target):
-        return [field for field in self.fields if self.fields[field].compare(target)]
+        return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target)]
 
     def weak_contains(self, target):
-        return [field for field in self.fields if self.fields[field].compare(target) or
+        return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
     def _to_string(self, replacement):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in self.fields]) + ' }'
+            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in sorted(self.fields.keys())]) + ' }'
         else:
             name = self.name
 
