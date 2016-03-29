@@ -78,6 +78,8 @@ class ABKM(core.components.Component):
                 with open(os.path.join(self.conf['source tree root'], extra_c_file['C file']),
                           encoding='ascii') as fp_in, open(os.path.join(self.conf['source tree root'], trimmed_c_file),
                                                            'w', encoding='ascii') as fp_out:
+                    # Specify original location to avoid references to *.trimmed.i files in error traces.
+                    fp_out.write('# 1 "{0}"\n'.format(extra_c_file['C file']))
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
