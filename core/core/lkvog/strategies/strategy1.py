@@ -1,5 +1,6 @@
 from core.lkvog.strategies.module import Module
 from core.lkvog.strategies.module import Graph
+from operator import itemgetter
 
 
 class Strategy1:
@@ -35,7 +36,7 @@ class Strategy1:
 
         # Creating modules dict
         self.modules = {}
-        for module, m_deps in deps.items():
+        for module, m_deps in deps:
             self.modules.setdefault(module, Module(module))
             for m_dep in m_deps:
                 self.modules.setdefault(m_dep, Module(m_dep))
@@ -129,7 +130,7 @@ class Strategy1:
 
     def export_provided_weight(self, module, unused):
         # Count functions, that successor provides
-        return 3 * len(module.export_functions)
+        return len(module.export_functions)
 
     def call_provided_weight(self, module, unused):
         # Count functions, that predecessor provides
@@ -145,7 +146,12 @@ class Strategy1:
 
     def count_already_weight(self, module, unused):
         # Returns weight based on counts groups for module
-        return int(10 * (self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m)
+        return (self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m
+
+    def more_difference(self, ret, process, module):
+        if not ret or not process:
+            return self.koef
+        return self.koef - max(map(lambda group: len(set(process).union([module]).intersection(group)), ret))
 
     def all_call_weight(self, module, process):
         # Returns count of functions, that module can call from process
@@ -167,17 +173,19 @@ class Strategy1:
                 ret += 1
         return 2 * ret
 
-    def measure_successor(self, module_pred, module_succ, process):
-        weights = (self.export_weight, self.size_weight, self.export_provided_weight,
-                   self.remoteness_weight, self.count_already_weight)
-        return sum([weight_function(module_pred, module_succ) for weight_function in weights]) \
-               + self.all_call_weight(module_succ, process)
+    def measure_successor(self, module_pred, module_succ, process, ret):
+        weight_funcs = (self.count_already_weight, self.export_weight, self.size_weight, self.export_provided_weight,
+                   self.remoteness_weight)
+        weights = [weight(module_pred, module_succ) for weight in weight_funcs]
+        weights.insert(1, self.more_difference(ret, process, module_succ))
+        return weights
 
-    def measure_predecessor(self, module_pred, module_succ, process=set()):
-        weights = (self.call_weight, self.size_weight, self.call_provided_weight,
-                   self.remoteness_weight, self.count_already_weight)
-        return sum([weight_function(module_succ, module_pred) for weight_function in weights]) \
-               + self.all_call_weight(module_pred, process)
+    def measure_predecessor(self, module_pred, module_succ, process, ret):
+        weight_funcs = (self.count_already_weight, self.call_weight, self.size_weight, self.call_provided_weight,
+                   self.remoteness_weight)
+        weights = [weight(module_succ, module_pred) for weight in weight_funcs]
+        weights.insert(1, self.more_difference(ret, process, module_pred))
+        return weights
 
     def get_user_deps(self, module):
         # Returns set of modules, that depends from given module
@@ -207,6 +215,17 @@ class Strategy1:
 
         return map(lambda item2: item2[0], sorted(ret.items(), key=lambda item1: item1[1]))
 
+    def get_best_candidate(self, modules):
+        process = modules[:]
+        for i in range(len(modules[0][1])):
+            max_value = max(process, key=lambda module: module[1][i])[1][i]
+            if max_value < 0:
+                return None
+            elif max_value == 0:
+                continue
+            process = list(filter(lambda module: 1 - module[1][i]/max_value < 0.1, process))
+        return list(sorted(process, key=itemgetter(1), reverse=True))[0][0]
+
     def divide(self, module_name):
         if module_name not in self.modules:
             # This module has no dependencies
@@ -231,31 +250,26 @@ class Strategy1:
             while len(process) < self.koef:
                 max_measuring = 0
                 best_candidate = None
+                candidate_list = []
                 for module in process:
                     if self.division_type != 'Module':
                         # Search best candidate from successors
-                        for succ in filter(lambda module: module not in process and module not in checked and
-                                not self.count_groups_for_m.get(module.id, 0) > self.max_g_for_m
-                                and len(process) + len(self.get_user_deps(module)) < self.koef, module.successors):
-                            cur_measure = self.measure_successor(module, succ, process)
-                            if cur_measure > 0 and cur_measure > max_measuring:
-                                max_measuring = cur_measure
-                                best_candidate = succ
+                        candidate_list += list(map(lambda module_succ: (module_succ, self.measure_successor(module_succ, module, process, clusters)),
+                            module.successors))
+
                     if self.division_type != 'Library':
                         # Search best candidate from predecessors
-                        for pred in self.topolog_sort(main_module, list(filter(lambda module: module not in process and
-                                not self.count_groups_for_m.get(module.id, 0) > self.max_g_for_m and
-                                module not in checked, module.predecessors))):
-                            cur_measure = self.measure_predecessor(module, pred, process)
-                            if cur_measure > 0 and cur_measure > max_measuring:
-                                max_measuring = cur_measure
-                                best_candidate = pred
-
+                        candidate_list += list(map(lambda module_pred: (module_pred, self.measure_predecessor(module, module_pred, process, clusters)),
+                                                   module.predecessors))
+                best_candidate = self.get_best_candidate(candidate_list)
                 if best_candidate:
                     process.add(best_candidate)
                     process.update(self.get_user_deps(best_candidate))
                     checked.update(self.get_user_deps(best_candidate))
                     checked.add(best_candidate)
+                    self.count_groups_for_m.setdefault(best_candidate, 0)
+                    self.count_groups_for_m[best_candidate] += 1
+
 
                     # Update not checked export functions and not checked call functions
                     for pred in filter(lambda module: module in process, best_candidate.predecessors):
@@ -279,7 +293,7 @@ class Strategy1:
                     break
             else:
                 if process in clusters:
-                    pass#break
+                    break
                 clusters.add(frozenset(process))
                 for module in process:
                     self.checked_modules.add(module)
@@ -290,8 +304,6 @@ class Strategy1:
                 clusters.add(frozenset(process))
             for module in process:
                 self.checked_modules.add(module)
-                self.count_groups_for_m.setdefault(module, 0)
-                self.count_groups_for_m[module] += 1
             break
 
         ret = set()
