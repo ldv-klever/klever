@@ -123,8 +123,7 @@ class RSG(core.components.Component):
                             bug_kinds.add(bug_kind)
                             # Include bug kinds in names of ldv_assert().
                             lines.append(re.sub(r'ldv_assert\("([^"]+)", ?',
-                                                r'ldv_assert_{0}('.format(bug_kind.replace(':', '_').replace(' ', '_')),
-                                                line))
+                                                r'ldv_assert_{0}('.format(re.sub(r'\W', '_', bug_kind)), line))
                         else:
                             lines.append(line)
                 for bug_kind in models[model_c_file]['bug kinds']:
@@ -138,8 +137,7 @@ class RSG(core.components.Component):
                     # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will be
                     # defined later somehow by VTG.
                     for bug_kind in bug_kinds:
-                        fp.write(
-                            'extern void ldv_assert_{0}(int);\n'.format(bug_kind.replace(':', '_').replace(' ', '_')))
+                        fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
                     # Specify original location to avoid references to *.bk.c files in error traces.
                     fp.write('# 1 "{0}"\n'.format(model_c_file))
                     for line in lines:
