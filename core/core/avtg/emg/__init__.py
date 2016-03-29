@@ -48,7 +48,10 @@ class EMG(core.components.Component):
         # Generate module interface specification
         self.logger.info("============== An intermediate model preparation stage ==============")
         model_processes, env_processes = parse_event_specification(self.logger, event_categories_spec)
-        model = ProcessModel(self.logger, model_processes, env_processes)
+
+        if 'intermediate model options' not in self.conf:
+            self.conf['intermediate model options'] = {}
+        model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes)
         model.generate_event_model(mcs)
         self.logger.info("An intermediate environment model has been prepared")
 

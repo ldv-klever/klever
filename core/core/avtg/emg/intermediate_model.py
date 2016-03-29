@@ -8,8 +8,9 @@ from core.avtg.emg.common.process import Access, Process, Label, Call, CallRetva
 
 class ProcessModel:
 
-    def __init__(self, logger, models, processes):
+    def __init__(self, logger, conf, models, processes):
         self.logger = logger
+        self.conf = conf
         self.__abstr_model_processes = models
         self.__abstr_event_processes = processes
         self.model_processes = []
@@ -134,10 +135,17 @@ class ProcessModel:
                 # Sanity check
                 self.logger.info("Check again how many callbacks are not called still in category {}".format(category))
                 uncalled_callbacks = analysis.uncalled_callbacks(category)
-                if uncalled_callbacks:
+                if uncalled_callbacks and not ('ignore missed callbacks' in self.conf and
+                                               self.conf['ignore missed callbacks']):
                     names = str([callback.identifier for callback in uncalled_callbacks])
                     raise RuntimeError("There are callbacks from category {} which are not called at all in the "
                                        "model: {}".format(category, names))
+                elif uncalled_callbacks:
+                    names = str([callback.identifier for callback in uncalled_callbacks])
+                    self.logger.warning("There are callbacks from category {} which are not called at all in the "
+                                        "model: {}. Disable option 'ignore missed callbacks' in intermediate model "
+                                        "configuration properties if you would like to terminate.".
+                                        format(category, names))
 
                 if len(new.unmatched_dispatches) > 0 or len(new.unmatched_receives) > 0:
                     self.logger.info("Added process {} have unmatched signals, need to find factory or registration "
