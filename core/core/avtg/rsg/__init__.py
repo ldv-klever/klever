@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import string
 
 import core.components
@@ -101,8 +102,53 @@ class RSG(core.components.Component):
             self.logger.warning('No models are specified')
             return
 
-        # CC extra full description files will be put to this directory as well as corresponding output files.
+        # CC extra full description files will be put to this directory as well as corresponding input (after bug kinds
+        # preprocessing) and output files.
         os.makedirs('models')
+
+        for model_c_file in models.keys():
+            if 'bug kinds' in models[model_c_file]:
+                self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
+                # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
+                # specification model description.
+                bug_kinds = set()
+                lines = []
+                with open(os.path.join(self.conf['source tree root'], model_c_file), encoding='ascii') as fp:
+                    for line in fp:
+                        # Bug kinds are specified in form of strings like in rule specifications DB as first actual
+                        # parameters of ldv_assert().
+                        match = re.search(r'ldv_assert\("([^"]+)"', line)
+                        if match:
+                            bug_kind, = match.groups()
+                            bug_kinds.add(bug_kind)
+                            # Include bug kinds in names of ldv_assert().
+                            lines.append(re.sub(r'ldv_assert\("([^"]+)", ?',
+                                                r'ldv_assert_{0}('.format(bug_kind.replace(':', '_').replace(' ', '_')),
+                                                line))
+                        else:
+                            lines.append(line)
+                for bug_kind in models[model_c_file]['bug kinds']:
+                    if bug_kind not in bug_kinds:
+                        raise KeyError(
+                            'Invalid bug kind "{0}" is specified in rule specification model description'.format(
+                                bug_kind))
+                preprocessed_model_c_file = os.path.join('models', '{}.bk.c'.format(
+                    os.path.splitext(os.path.basename(model_c_file))[0]))
+                with open(preprocessed_model_c_file, 'w', encoding='ascii') as fp:
+                    # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will be
+                    # defined later somehow by VTG.
+                    for bug_kind in bug_kinds:
+                        fp.write(
+                            'extern void ldv_assert_{0}(int);\n'.format(bug_kind.replace(':', '_').replace(' ', '_')))
+                    # Specify original location to avoid references to *.bk.c files in error traces.
+                    fp.write('# 1 "{0}"\n'.format(model_c_file))
+                    for line in lines:
+                        fp.write(line)
+                models[model_c_file]['preprocessed C file'] = os.path.relpath(preprocessed_model_c_file,
+                                                                              os.path.realpath(
+                                                                                  self.conf['source tree root']))
+                self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
+                                  format(model_c_file, preprocessed_model_c_file))
 
         # TODO: at the moment it is assumed that there is the only group in each verification object. Actually we need
         # to create a separate group and make all other to depend on it.
@@ -119,7 +165,9 @@ class RSG(core.components.Component):
                     json.dump({
                         # Input file path should be relative to source tree root since compilation options are relative
                         # to this directory and we will change directory to that one before invoking preprocessor.
-                        "in files": [model_c_file],
+                        "in files": [models[model_c_file]['preprocessed C file']
+                                     if 'preprocessed C file' in models[model_c_file]
+                                     else model_c_file],
                         # Otput file should be located somewhere inside RSG working directory to avoid races.
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
                         "opts":
