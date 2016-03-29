@@ -2,7 +2,7 @@ import json
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
-from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, InterfaceReference, \
+from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, Primitive, InterfaceReference, \
     setup_collection, import_signature, import_typedefs, extract_name
 
 
@@ -453,7 +453,10 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             for container in [cnt for cnt in self.containers(category_identifier) if cnt.declaration and
                               type(cnt.declaration) is Structure]:
                 for field in [field for field in sorted(container.declaration.fields.keys())
-                              if field not in container.field_interfaces]:
+                              if field not in container.field_interfaces and
+                              type(container.declaration.fields[field]) is not Primitive and
+                              (type(container.declaration.fields[field] is not Pointer or
+                               type(container.declaration.fields[field].points) is not Primitive))]:
                     intf = self.resolve_interface_weakly(container.declaration.fields[field])
                     if len(intf) == 1:
                         container.field_interfaces[field] = intf[-1]
