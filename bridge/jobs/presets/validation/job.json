@@ -84,7 +84,7 @@
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6560"
+      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
     },
     {
       "Linux kernel": {
@@ -93,7 +93,7 @@
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6560"
+      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
     },
     {
       "Linux kernel": {
@@ -102,7 +102,7 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6773"
+      "comment": "<a href='https://forge.ispras.ru/issues/6773'>Bug #6773</a>"
     },
     {
       "Linux kernel": {
@@ -111,7 +111,7 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6560"
+      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
     },
     {
       "Linux kernel": {
@@ -120,7 +120,7 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6560"
+      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
     },
     {
       "Linux kernel": {
@@ -129,7 +129,7 @@
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6822"
+      "comment": "<a href='https://forge.ispras.ru/issues/6822'>Feature #6822</a>"
     },
     {
       "Linux kernel": {
@@ -138,7 +138,7 @@
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6575"
+      "comment": "<a href='https://forge.ispras.ru/issues/6575'>Feature #6575</a>"
     },
     {
       "Linux kernel": {
@@ -147,7 +147,7 @@
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe",
-      "comment": "https://forge.ispras.ru/issues/6575"
+      "comment": "<a href='https://forge.ispras.ru/issues/6575'>Feature #6575</a>"
     },
     {
       "Linux kernel": {

@@ -2,7 +2,6 @@ from django.db import models
 from django.db.models.signals import pre_delete, post_init
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
-from bridge.formatChecker import RestrictedFileField
 from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
 from jobs.models import Job
 
@@ -108,7 +107,7 @@ class Task(models.Model):
     error = models.CharField(max_length=1024, null=True)
     description = models.BinaryField()
     archname = models.CharField(max_length=256)  # Original name of the archive
-    archive = RestrictedFileField(upload_to=FILE_DIR, null=False, max_upload_size=104857600)
+    archive = models.FileField(upload_to=FILE_DIR, null=False)
 
     class Meta:
         db_table = 'task'
@@ -132,7 +131,7 @@ class Solution(models.Model):
     task = models.OneToOneField(Task)
     description = models.BinaryField()
     archname = models.CharField(max_length=256)  # Original name of the archive
-    archive = RestrictedFileField(upload_to=FILE_DIR, null=False, max_upload_size=104857600)
+    archive = models.FileField(upload_to=FILE_DIR, null=False)
 
     class Meta:
         db_table = 'solution'
