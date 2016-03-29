@@ -26,7 +26,7 @@ void ldv_usb_put_dev(struct usb_device *dev)
     /* OTHER Whether USB device is not NULL */
     if (dev) {
         /* ASSERT USB device reference counter must be incremented */
-        ldv_assert("linux:usb:resource:ref:non-incremented counter decrement", ldv_map_contains_key(LDV_USB_DEV_REF_COUNTS, dev));
+        ldv_assert("linux:usb:resource:ref:unincremented counter decrement", ldv_map_contains_key(LDV_USB_DEV_REF_COUNTS, dev));
         /* ASSERT USB device reference counter must be incremented */
         ldv_assert("linux:usb:resource:ref:less initial decrement", ldv_map_get(LDV_USB_DEV_REF_COUNTS, dev) > 0);
         /* CHANGE_STATE Decrement USB device reference counter */
