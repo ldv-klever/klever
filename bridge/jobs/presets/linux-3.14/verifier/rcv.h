@@ -1,18 +1,16 @@
 #ifndef _LDV_RCV_H_
 #define _LDV_RCV_H_
 
-/* If expr evaluates to zero, ldv_assert() causes a program to reach the error
- * function call like the standard assert().
+/* First actual parameter indicates bug kind. Verifiers will find potential
+ * bug of corresponding kind if they will be able to prove that second actual
+ * parameter can be zero.
  */
-#define ldv_assert(bug_kind, expr) ((expr) ?: __VERIFIER_error())
+void ldv_assert(const char *, int);
 
-/* http://sv-comp.sosy-lab.org/2015/rules.php */
-void __VERIFIER_error(void);
-
-#define ldv_assume(expr) __VERIFIER_assume(expr)
-
-/* http://sv-comp.sosy-lab.org/2015/rules.php */
-void __VERIFIER_assume(int expr);
+/* Verifiers can stop further exploring if they will be able to prove that
+ * actual parameter is always zero.
+ */
+void ldv_assume(int);
 
 /* Check that error has not been found until there. */
 void ldv_check_final_state(void);
