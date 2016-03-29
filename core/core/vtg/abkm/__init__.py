@@ -18,6 +18,7 @@ class ABKM(core.components.Component):
         self.logger.info('Generate one verification task by merging all bug kinds')
 
         self.prepare_common_verification_task_desc()
+        self.prepare_bug_kind_functions_file()
         self.prepare_property_file()
         self.prepare_src_files()
 
@@ -46,6 +47,27 @@ class ABKM(core.components.Component):
 
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})
+
+    def prepare_bug_kind_functions_file(self):
+        self.logger.info('Prepare bug kind functions file "bug kind funcs.c"')
+
+        # Get all bug kinds.
+        bug_kinds = []
+        for extra_c_file in self.conf['abstract task desc']['extra C files']:
+            if 'bug kinds' in extra_c_file:
+                bug_kinds.extend(extra_c_file['bug kinds'])
+
+        # Create bug kind function definitions that all call __VERIFIER_error() since this strategy doesn't distinguish
+        # different bug kinds.
+        with open('bug kind funcs.c', 'w') as fp:
+            fp.write('/* http://sv-comp.sosy-lab.org/2015/rules.php */\nvoid __VERIFIER_error(void);\n')
+            for bug_kind in bug_kinds:
+                fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t__VERIFIER_error();\n}}\n'.format(
+                    bug_kind.replace(':', '_').replace(' ', '_')))
+
+        # Add bug kind functions file to other abstract verification task files.
+        self.conf['abstract task desc']['extra C files'].append(
+            {'C file': os.path.relpath('bug kind funcs.c', os.path.realpath(self.conf['source tree root']))})
 
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
@@ -411,9 +433,9 @@ class ABKM(core.components.Component):
             time.sleep(1)
 
     def __normalize_path(self, path):
-        # Each file is specified either via absolute path or path relative to source tree root.
-        # Make all paths relative to source tree root.
-        if os.path.isabs(path.data):
+        # Each file is specified via absolute path or path relative to source tree root or it is placed to current
+        # working directory. Make all paths relative to source tree root.
+        if os.path.isabs(path.data) or os.path.isfile(path.data):
             path.data = os.path.relpath(path.data, os.path.realpath(self.conf['source tree root']))
 
         if not os.path.isfile(os.path.join(self.conf['source tree root'], path.data)):
