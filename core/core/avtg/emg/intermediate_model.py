@@ -510,14 +510,14 @@ class ProcessModel:
 
     def __establish_signal_peers(self, analysis, process):
         for candidate in [self.__abstr_event_processes[name] for name in sorted(self.__abstr_event_processes.keys())]:
-            peers = process.establish_peers(candidate)
+            peers = process.get_available_peers(candidate)
 
             # Be sure that process have not been added yet
-            peered_processes = []
+            peered_processes = set()
             for subprocess in [process.actions[name] for name in sorted(process.actions.keys())
                                if (type(process.actions[name]) is Receive or type(process.actions[name]) is Dispatch)
                                and len(process.actions[name].peers) > 0]:
-                peered_processes.extend([peer["process"] for peer in subprocess.peers
+                peered_processes.update([peer["process"] for peer in subprocess.peers
                                          if peer["process"].name == candidate.name])
 
             # Try to add process

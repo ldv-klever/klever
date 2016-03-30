@@ -114,12 +114,12 @@ class FSA:
 
             if number:
                 if type(number) is str:
-                    # Expect labe
-                    label = process.__extract_label(number)
+                    # Expect label
+                    label = process.extract_label(number)
                     if label.value:
                         iterations = int(label.value) - 1
                     else:
-                        raise ValueError("Provide exact value for label {} of ptocess {}".
+                        raise ValueError("Provide exact value for label {} of process {}".
                                          format(label.name, process.name))
                 else:
                     iterations = int(number - 1)
