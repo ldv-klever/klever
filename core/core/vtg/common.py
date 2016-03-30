@@ -8,13 +8,13 @@ import tarfile
 import time
 from abc import abstractclassmethod
 from xml.dom import minidom
-import glob
 
 import core.components
 import core.session
 import core.utils
 
 
+# This is an abstract class for VTG strategy. It includes common actions.
 class CommonStrategy(core.components.Component):
     @abstractclassmethod
     def generate_verification_tasks(self):
@@ -89,6 +89,13 @@ class CommonStrategy(core.components.Component):
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
                 self.task_desc['files'].append(extra_c_file['C file'])
 
+    def get_all_bug_kinds(self):
+        bug_kinds = []
+        for extra_c_file in self.conf['abstract task desc']['extra C files']:
+            if 'bug kinds' in extra_c_file:
+                bug_kinds.extend(extra_c_file['bug kinds'])
+        return bug_kinds
+
     def process_single_verdict(self, decision_results, suffix=None, specified_witness=None):
         verification_report_id = '{0}/verification{1}'.format(self.id, suffix)
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
@@ -115,13 +122,18 @@ class CommonStrategy(core.components.Component):
 
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
+        # Add bug kind if it was specified.
+        added_attrs = []
+        if suffix:
+            added_attrs.append({"Bug kind": suffix})
+
         if decision_results['status'] == 'safe':
             core.utils.report(self.logger,
                               'safe',
                               {
                                   'id': verification_report_id + '/safe',
                                   'parent id': verification_report_id,
-                                  'attrs': [],
+                                  'attrs': added_attrs,
                                   # TODO: just the same file as parent log, looks strange.
                                   'proof': 'cil.i.log',
                                   'files': ['cil.i.log']
@@ -304,7 +316,7 @@ class CommonStrategy(core.components.Component):
                               {
                                   'id': verification_report_id + '/unsafe',
                                   'parent id': verification_report_id,
-                                  'attrs': [],
+                                  'attrs': added_attrs,
                                   'error trace': path_to_processed_witness,
                                   'files': [path_to_processed_witness] + list(src_files)
                               },
@@ -321,6 +333,7 @@ class CommonStrategy(core.components.Component):
                               {
                                   'id': verification_report_id + '/unknown',
                                   'parent id': verification_report_id,
+                                  'attrs': added_attrs,
                                   # TODO: just the same file as parent log, looks strange.
                                   'problem desc': 'cil.i.log' if decision_results['status'] not in (
                                       'CPU time exhausted', 'memory exhausted') else 'error.txt',
@@ -343,3 +356,107 @@ class CommonStrategy(core.components.Component):
             raise FileNotFoundError('File "{0}" referred by error trace does not exist'.format(path.data))
 
         return path.data
+
+
+# This class represent sequential VTG strategies.
+class SequentialStrategy(CommonStrategy):
+    @abstractclassmethod
+    def generate_verification_tasks(self):
+        None
+
+    def prepare_property_file(self):
+        self.logger.info('Prepare verifier property file')
+
+        if 'entry points' in self.conf['abstract task desc']:
+            if len(self.conf['abstract task desc']['entry points']) > 1:
+                raise NotImplementedError('Several entry points are not supported')
+
+            with open('unreach-call.prp', 'w', encoding='ascii') as fp:
+                fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
+                    self.conf['abstract task desc']['entry points'][0]))
+
+            self.task_desc['property file'] = 'unreach-call.prp'
+
+            self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
+        else:
+            self.logger.warning('Verifier property file was not prepared since entry points were not specified')
+
+    def prepare_verification_task_files_archive(self):
+        self.logger.info('Prepare archive with verification task files')
+
+        with tarfile.open('task files.tar.gz', 'w:gz') as tar:
+            if os.path.isfile('unreach-call.prp'):
+                tar.add('unreach-call.prp')
+            for file in self.task_desc['files']:
+                tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
+            self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
+
+    def process_sequential_verification_task(self, bug_kind=None):
+        self.prepare_common_verification_task_desc()
+        if bug_kind:
+            self.prepare_bug_kind_functions_file(bug_kind)
+        else:
+            self.prepare_bug_kind_functions_file()
+        self.prepare_property_file()
+        self.prepare_src_files()
+
+        if self.conf['keep intermediate files']:
+            self.logger.debug('Create verification task description file "task.json"')
+            with open('task.json', 'w', encoding='ascii') as fp:
+                json.dump(self.task_desc, fp, sort_keys=True, indent=4)
+
+        self.prepare_verification_task_files_archive()
+        self.decide_verification_task(bug_kind)
+
+    def decide_verification_task(self, bug_kind=None):
+        self.logger.info('Decide verification task')
+        self.verification_status = None
+
+        if not os.path.isfile('unreach-call.prp'):
+            self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
+            return
+
+        session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+        task_id = session.schedule_task(self.task_desc)
+
+        while True:
+            task_status = session.get_task_status(task_id)
+            self.logger.info('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
+
+            if task_status == 'ERROR':
+                task_error = session.get_task_error(task_id)
+
+                self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
+
+                with open('task error.txt', 'w', encoding='ascii') as fp:
+                    fp.write(task_error)
+
+                core.utils.report(self.logger,
+                                  'unknown',
+                                  {
+                                      'id': self.id + '/unknown',
+                                      'parent id': self.id,
+                                      'problem desc': 'task error.txt',
+                                      'files': ['task error.txt']
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'])
+
+                self.verification_status = 'unknown'
+                break
+
+            if task_status == 'FINISHED':
+                self.logger.info('Verification task was successfully decided')
+
+                session.download_decision(task_id)
+
+                with tarfile.open("decision result files.tar.gz") as tar:
+                    tar.extractall()
+
+                with open('decision results.json', encoding='ascii') as fp:
+                    decision_results = json.load(fp)
+
+                self.process_single_verdict(decision_results, suffix=bug_kind)
+                break
+
+            time.sleep(1)

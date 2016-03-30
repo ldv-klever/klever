@@ -9,8 +9,9 @@ import core.utils
 
 # VTG strategies.
 from core.vtg.abkm import ABKM
+from core.vtg.abks import ABKS
 
-_strategies = (ABKM,)
+_strategies = (ABKM, ABKS)
 
 
 def before_launch_all_components(context):
