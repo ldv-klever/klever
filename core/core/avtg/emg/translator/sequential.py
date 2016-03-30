@@ -401,9 +401,13 @@ class Translator(AbstractTranslator):
                     file = self.entry_file
                     check = False
                 else:
-                    invoke = access.access_with_variable(automaton.determine_variable(analysis, access.label))
-                    file = self.entry_file
-                    check = True
+                    variable = automaton.determine_variable(analysis, access.label)
+                    if variable:
+                        invoke = access.access_with_variable()
+                        file = self.entry_file
+                        check = True
+                    else:
+                        invoke = None
 
             if invoke:
                 additional_check = self.registration_intf_check(analysis, model, invoke)
