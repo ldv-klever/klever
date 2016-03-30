@@ -1,5 +1,6 @@
 $(document).ready(function () {
     $('.ui.dropdown').dropdown();
+    $('.note-popup').popup();
 
     $('#save_notifications').click(function () {
         var notifications = [], self_ntf = false;
