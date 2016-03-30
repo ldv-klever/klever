@@ -58,6 +58,7 @@ class Run:
         # TODO: like in scheduler/client/__init__.py
         options.append({"-setprop": "parser.readLineDirectives=true"})
         options.append({"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"})
+        options.append({"-heap": '{0}m'.format(round(3 * description["resource limits"]["memory size"] / (4 * 1000 ** 2)))})
         for option in options:
             for name in option:
                 self.options.append(name)
