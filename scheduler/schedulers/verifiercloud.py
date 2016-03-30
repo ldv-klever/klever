@@ -256,8 +256,10 @@ class Scheduler(schedulers.SchedulerExchange):
                                                                                                      identifier))
         self.server.submit_solution(identifier, solution_description, solution_archive)
 
-        # Remove task directory
-        shutil.rmtree(task_work_dir)
+        if "keep working directory" not in self.conf["scheduler"] or \
+                not self.conf["scheduler"]["keep working directory"]:
+            logging.debug("Clean task working directory {} for {}".format(task_work_dir, identifier))
+            shutil.rmtree(task_work_dir)
 
         logging.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
