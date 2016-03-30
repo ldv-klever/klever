@@ -78,14 +78,57 @@ class RSG(core.components.Component):
             self.logger.warning('No models are specified')
             return
 
+        # CC extra full description files will be put to this directory as well as corresponding intermediate and final
+        # output files.
+        os.makedirs('models')
+
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
         for model_c_file in models:
+            model = models[model_c_file]
+
             aspect = '{}.aspect'.format(os.path.splitext(model_c_file)[0])
-            if not os.path.isfile(os.path.join(os.path.realpath(self.conf['source tree root']), aspect)):
+            if not os.path.isfile(os.path.join(self.conf['source tree root'], aspect)):
                 raise FileNotFoundError('Aspect "{0}" does not exist'.format(os.path.relpath(aspect)))
             self.logger.debug('Get aspect "{0}"'.format(os.path.relpath(aspect)))
-            aspects.append(aspect)
+
+            if 'rule specification identifier' in model:
+                rule_spec_prefix = 'ldv_' + re.sub(r'\W', '_', model['rule specification identifier']) + '_'
+                self.logger.info(
+                    'Replace prefix "ldv" with rule specification specific one "{0}" for model with C file "{1}"'
+                    .format(rule_spec_prefix, model_c_file))
+
+                preprocessed_c_file = os.path.join('models', '{0}.{1}.c'.format(
+                    os.path.splitext(os.path.basename(model_c_file))[0],
+                    re.sub(r'\W', '_', model['rule specification identifier'])))
+                with open(os.path.join(self.conf['source tree root'], model_c_file), encoding='ascii') as fp_in, \
+                        open(preprocessed_c_file, 'w', encoding='ascii') as fp_out:
+                    # Specify original location to avoid references to generated C files in error traces.
+                    fp_out.write('# 1 "{0}"\n'.format(model_c_file))
+                    for line in fp_in:
+                        fp_out.write(re.sub(r'LDV_(?!PTR)', rule_spec_prefix.upper(),
+                                            re.sub(r'ldv_(?!assert|assume|undef|set|map)', rule_spec_prefix, line)))
+                model['preprocessed C file'] = os.path.relpath(preprocessed_c_file,
+                                                               os.path.realpath(self.conf['source tree root']))
+                self.logger.debug(
+                    'Preprocessed C file with rule specification specific prefix was placed to "{0}"'.
+                    format(preprocessed_c_file))
+
+                preprocessed_aspect = os.path.join('models', '{0}.{1}.aspect'.format(
+                    os.path.splitext(os.path.basename(aspect))[0],
+                    re.sub(r'\W', '_', model['rule specification identifier'])))
+                with open(os.path.join(self.conf['source tree root'], aspect), encoding='ascii') as fp_in, \
+                        open(preprocessed_aspect, 'w', encoding='ascii') as fp_out:
+                    # Specify original location to avoid references to generated aspects in error traces.
+                    fp_out.write('# 1 "{0}"\n'.format(aspect))
+                    for line in fp_in:
+                        fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(), re.sub(r'ldv_', rule_spec_prefix, line)))
+                self.logger.debug(
+                    'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.
+                    format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))
+                aspects.append(os.path.relpath(preprocessed_aspect, os.path.realpath(self.conf['source tree root'])))
+            else:
+                aspects.append(aspect)
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
@@ -93,18 +136,20 @@ class RSG(core.components.Component):
                     cc_extra_full_desc_file['plugin aspects'] = []
                 cc_extra_full_desc_file['plugin aspects'].append({"plugin": self.name, "aspects": aspects})
 
-        # CC extra full description files will be put to this directory as well as corresponding input (after bug kinds
-        # preprocessing) and output files.
-        os.makedirs('models')
-
         for model_c_file in models:
-            if 'bug kinds' in models[model_c_file]:
+            model = models[model_c_file]
+
+            if 'bug kinds' in model:
                 self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
                 # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
                 # specification model description.
                 bug_kinds = set()
                 lines = []
-                with open(os.path.join(self.conf['source tree root'], model_c_file), encoding='ascii') as fp:
+                with open(os.path.join(self.conf['source tree root'],
+                                       model['preprocessed C file']
+                                       if 'preprocessed C file' in model
+                                       else model_c_file),
+                          encoding='ascii') as fp:
                     for line in fp:
                         # Bug kinds are specified in form of strings like in rule specifications DB as first actual
                         # parameters of ldv_assert().
@@ -117,12 +162,12 @@ class RSG(core.components.Component):
                                                 r'ldv_assert_{0}('.format(re.sub(r'\W', '_', bug_kind)), line))
                         else:
                             lines.append(line)
-                for bug_kind in models[model_c_file]['bug kinds']:
+                for bug_kind in model['bug kinds']:
                     if bug_kind not in bug_kinds:
                         raise KeyError(
                             'Invalid bug kind "{0}" is specified in rule specification model description'.format(
                                 bug_kind))
-                preprocessed_model_c_file = os.path.join('models', '{}.bk.c'.format(
+                preprocessed_model_c_file = os.path.join('models', '{0}.bk.c'.format(
                     os.path.splitext(os.path.basename(model_c_file))[0]))
                 with open(preprocessed_model_c_file, 'w', encoding='ascii') as fp:
                     # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will be
@@ -133,9 +178,8 @@ class RSG(core.components.Component):
                     fp.write('# 1 "{0}"\n'.format(model_c_file))
                     for line in lines:
                         fp.write(line)
-                models[model_c_file]['preprocessed C file'] = os.path.relpath(preprocessed_model_c_file,
-                                                                              os.path.realpath(
-                                                                                  self.conf['source tree root']))
+                model['preprocessed C file'] = os.path.relpath(preprocessed_model_c_file,
+                                                               os.path.realpath(self.conf['source tree root']))
                 self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
                                   format(model_c_file, preprocessed_model_c_file))
 
@@ -145,6 +189,8 @@ class RSG(core.components.Component):
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add models to group "{0}"'.format(grp['id']))
             for model_c_file in models:
+                model = models[model_c_file]
+
                 out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model_c_file))[0]))
                 full_desc_file = '{0}.json'.format(out_file)
                 if os.path.isfile(full_desc_file):
@@ -154,21 +200,21 @@ class RSG(core.components.Component):
                     json.dump({
                         # Input file path should be relative to source tree root since compilation options are relative
                         # to this directory and we will change directory to that one before invoking preprocessor.
-                        "in files": [models[model_c_file]['preprocessed C file']
-                                     if 'preprocessed C file' in models[model_c_file]
+                        "in files": [model['preprocessed C file']
+                                     if 'preprocessed C file' in model
                                      else model_c_file],
                         # Otput file should be located somewhere inside RSG working directory to avoid races.
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
                         "opts":
                             [string.Template(opt).substitute(hdr_arch=self.conf['sys']['hdr arch']) for opt in
                              self.conf['model CC options']] +
-                            ['-DLDV_SETS_MODEL_' + (models[model_c_file]['sets model']
-                                                    if 'sets model' in models[model_c_file]
+                            ['-DLDV_SETS_MODEL_' + (model['sets model']
+                                                    if 'sets model' in model
                                                     else self.conf['common sets model']).upper()]
                     }, fp, sort_keys=True, indent=4)
 
                 cc_extra_full_desc_file = {'cc full desc file': os.path.relpath(full_desc_file, os.path.realpath(
                     self.conf['source tree root']))}
-                if 'bug kinds' in models[model_c_file]:
-                    cc_extra_full_desc_file['bug kinds'] = models[model_c_file]['bug kinds']
+                if 'bug kinds' in model:
+                    cc_extra_full_desc_file['bug kinds'] = model['bug kinds']
                 grp['cc extra full desc files'].append(cc_extra_full_desc_file)
