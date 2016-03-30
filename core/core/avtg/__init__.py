@@ -145,6 +145,37 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
                         else:
                             plugin_desc['options'] = base_tmpl_plugin_desc['options']
 
+    # Add plugin options specific for rule specification.
+    rule_spec_plugin_names = []
+    for attr in rule_spec_desc:
+        # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
+        if attr == 'rule specifications':
+            continue
+
+        plugin_name = attr
+        rule_spec_plugin_names.append(plugin_name)
+        is_plugin_specified = False
+
+        for plugin_desc in plugin_descs:
+            if plugin_name == plugin_desc['name']:
+                is_plugin_specified = True
+                if 'options' not in plugin_desc:
+                    plugin_desc['options'] = {}
+                plugin_desc['options'].update(rule_spec_desc[plugin_name])
+                logger.debug(
+                    'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(
+                        plugin_name, rule_spec_id, rule_spec_desc[plugin_name]))
+                break
+
+        if not is_plugin_specified:
+            raise ValueError(
+                'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
+                    rule_spec_id, plugin_name, tmpl_id))
+
+    # We don't need to keep plugin options specific for rule specification in such the form any more.
+    for plugin_name in rule_spec_plugin_names:
+        del (rule_spec_desc[plugin_name])
+
     if 'rule specifications' in rule_spec_desc:
         # Merge plugin options specific for constituent rule specifications.
         for constituent_rule_spec_id in rule_spec_desc['rule specifications']:
@@ -165,33 +196,7 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
                             plugin_desc['options'] = constituent_rule_spec_plugin_desc['options']
                         break
         del (rule_spec_desc['rule specifications'])
-    else:
-        # Add plugin options specific for rule specification.
-        rule_spec_plugin_names = []
-        # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-        for attr in rule_spec_desc:
-            plugin_name = attr
-            rule_spec_plugin_names.append(plugin_name)
-            is_plugin_specified = False
 
-            for plugin_desc in plugin_descs:
-                if plugin_name == plugin_desc['name']:
-                    is_plugin_specified = True
-                    if 'options' not in plugin_desc:
-                        plugin_desc['options'] = {}
-                    plugin_desc['options'].update(rule_spec_desc[plugin_name])
-                    logger.debug(
-                        'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(
-                            plugin_name, rule_spec_id, rule_spec_desc[plugin_name]))
-                    break
-
-            if not is_plugin_specified:
-                raise ValueError(
-                    'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
-                        rule_spec_id, plugin_name, tmpl_id))
-        # We don't need to keep plugin options specific for rule specification in such the form any more.
-        for plugin_name in rule_spec_plugin_names:
-            del (rule_spec_desc[plugin_name])
     rule_spec_desc['plugins'] = plugin_descs
 
     # Add rule specification identifier to its description after all. Do this so late to avoid treating of "id" as
