@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import print_err, file_checksum
+from bridge.utils import logger, file_checksum
 from jobs.models import RunHistory
 from jobs.utils import JobAccess, File, change_job_status
 from reports.models import ReportRoot, ReportUnknown, ReportComponent
@@ -23,7 +23,7 @@ class ScheduleTask(object):
         try:
             priority = json.loads(description)['priority']
         except Exception as e:
-            print_err(e)
+            logger.exception("Json parsing error: %s" % e, stack_info=True)
             self.error = 'Wrong description format'
             return
         if priority not in list(x[0] for x in PRIORITY):
@@ -151,7 +151,7 @@ class RemoveTask(object):
         try:
             self.task.delete()
         except Exception as e:
-            print_err(e)
+            logger.exception(e, stack_info=True)
             self.error = 'Task was not deleted, error occured'
 
 
@@ -184,7 +184,7 @@ class CancelTask(object):
             self.task.progress.tasks_cancelled += 1
             self.task.progress.save()
         except Exception as e:
-            print_err(e)
+            logger.exception(e, stack_info=True)
             self.error = 'Task was not deleted, error occured'
 
 
@@ -265,7 +265,7 @@ class StopDecision(object):
             try:
                 task.delete()
             except Exception as e:
-                print_err(e)
+                logger.exception(e, stack_info=True)
         self.progress.finish_date = now()
         self.progress.error = "The job was cancelled"
         self.progress.save()
@@ -283,11 +283,11 @@ class GetTasks(object):
             self.data = self.__get_tasks(tasks)
             if self.error is not None:
                 # TODO: notify admin with email
-                print_err(self.error)
+                logger.error(self.error, stack_info=True)
         except KeyError or IndexError:
             self.error = 'Wrong task data format'
         except Exception as e:
-            print_err(e)
+            logger.exception(e, stack_info=True)
             self.error = "Unknown error"
 
     def __get_scheduler(self, sch_type):
@@ -361,7 +361,10 @@ class GetTasks(object):
                     task.solution
                 except ObjectDoesNotExist:
                     # TODO: notify admin with email
-                    print_err("Solution was not found for the pending->finished task with id '%s'" % task.pk)
+                    logger.exception(
+                        "Solution was not found for the pending->finished task with id '%s'" % task.pk,
+                        stack_info=True
+                    )
                 if task.progress.tasks_pending > 0:
                     task.progress.tasks_pending -= 1
                 task.progress.tasks_finished += 1
@@ -401,7 +404,10 @@ class GetTasks(object):
                     task.solution
                 except ObjectDoesNotExist:
                     # TODO: notify admin with email
-                    print_err("Solution was not found for the processing->finished task with id '%s'" % task.pk)
+                    logger.exception(
+                        "Solution was not found for the processing->finished task with id '%s'" % task.pk,
+                        stack_info=True
+                    )
                 if task.progress.tasks_processing > 0:
                     task.progress.tasks_processing -= 1
                 task.progress.tasks_finished += 1
@@ -592,7 +598,7 @@ class SetNodes(object):
             self.error = "Wrong nodes data format"
             NodesConfiguration.objects.all().delete()
         except Exception as e:
-            print_err("SetNodes failed: %s" % e)
+            logger.exception("SetNodes failed: %s" % e, stack_info=True)
             NodesConfiguration.objects.all().delete()
             self.error = "Unknown error"
 
@@ -638,7 +644,7 @@ class UpdateTools(object):
         except ValueError or KeyError:
             self.error = "Wrong tools data format"
         except Exception as e:
-            print_err(e)
+            logger.exception(e, stack_info=True)
             self.error = "Unknown error"
 
     def __read_tools_data(self, data):

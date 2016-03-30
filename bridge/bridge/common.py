@@ -9,23 +9,6 @@ LOGIN_URL = '/users/signin/'
 
 SECRET_KEY = '-u7-e699vgy%8uu_ng%%h68v7k8txs&=(ki+6eh88y-yb9mspw'
 
-LOGGING = {
-    'version': 1,
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django.request': {
-            'handlers': ['console'],
-            'propagate': True,
-            'level': 'DEBUG',
-        },
-    },
-}
-
 INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.auth',
@@ -183,6 +166,56 @@ DEF_USER = {
     'language': 'en',  # See bridge.vars.LANGUAGES for options
     'timezone': 'Europe/Moscow',  # See pytz.common_timezones for options
     'accuracy': 2,  # 0 - 10
+}
+
+LOGGING = {
+    'version': 1,
+    'formatters': {
+        'with_separator': {
+            'format': '=' * 50 + '\n[%(asctime)s] %(message)s',
+            'datefmt': "%d.%b.%Y %H:%M:%S"
+        },
+        'simple': {
+            'format': '[%(asctime)s] %(message)s',
+            'datefmt': "%d.%b.%Y %H:%M:%S"
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(MEDIA_ROOT, 'internal-server-error.log'),
+            'formatter': 'with_separator'
+        },
+        'errors': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(MEDIA_ROOT, 'bridge-error.log'),
+            'formatter': 'with_separator'
+        },
+        'other': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(MEDIA_ROOT, 'bridge-info.log'),
+            'formatter': 'simple'
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': True
+        },
+        'bridge': {
+            'handlers': ['errors', 'console', 'other'],
+            'level': 'INFO',
+            'propagate': True
+        },
+    }
 }
 
 MAX_FILE_SIZE = 104857600  # 100MB

@@ -10,7 +10,7 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
-from bridge.utils import print_err, unparallel_group, unparallel
+from bridge.utils import logger, unparallel_group, unparallel
 from users.models import View
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, TagsInfo, DeleteMark
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList
@@ -161,7 +161,7 @@ def save_mark(request):
 
     res = NewMark(inst, request.user, savedata['data_type'], savedata)
     if res.error is not None:
-        print_err(res.error)
+        logger.error(res.error, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[650]))
     return render(request, 'marks/SaveMarkResult.html', {
         'mark_type': res.type,
@@ -367,7 +367,7 @@ def delete_marks(request):
     try:
         mark_ids = json.loads(request.POST['ids'])
     except Exception as e:
-        print_err(e)
+        logger.exception("Json parsing error: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Unknown error'})
     if request.POST['type'] == 'unsafe':
         marks = MarkUnsafe.objects.filter(id__in=mark_ids)
