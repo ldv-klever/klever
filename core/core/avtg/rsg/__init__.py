@@ -84,6 +84,13 @@ class RSG(core.components.Component):
 
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
+        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects.
+        if 'common aspect' in self.conf:
+            common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                        self.conf['common aspect'])
+            self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
+            aspects.append(os.path.relpath(common_aspect, os.path.realpath(self.conf['source tree root'])))
+
         for model_c_file in models:
             model = models[model_c_file]
 
