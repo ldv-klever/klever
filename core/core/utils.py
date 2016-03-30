@@ -419,7 +419,8 @@ def merge_confs(a, b):
         if key in a:
             # Perform sanity checks.
             if not isinstance(key, str):
-                raise KeyError('Key is not string (its type is {"0"})'.format(type(key)))
+                print(a[key])
+                raise KeyError('Key is not string (its type is "{0}")'.format(type(key).__name__))
             elif not isinstance(a[key], type(b[key])):
                 raise ValueError(
                     'Values of key "{0}" have different types ("{1}" and "{2}" respectively)'.format(key, type(a[key]),
