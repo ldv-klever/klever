@@ -194,13 +194,13 @@ LOGGING = {
         'errors': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(MEDIA_ROOT, 'bridge-error.log'),
+            'filename': os.path.join(MEDIA_ROOT, 'error.log'),
             'formatter': 'with_separator'
         },
         'other': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(MEDIA_ROOT, 'bridge-info.log'),
+            'filename': os.path.join(MEDIA_ROOT, 'info.log'),
             'formatter': 'simple'
         },
     },
