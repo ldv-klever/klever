@@ -3,7 +3,7 @@ import json
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, Primitive, InterfaceReference, \
-    setup_collection, import_signature, import_typedefs, extract_name
+    setup_collection, import_signature, import_typedefs, extract_name, check_null
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
@@ -193,12 +193,14 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                         modules_functions[function][path]['calls'] = module_function["files"][path]['calls']
                         for kernel_function in [name for name in sorted(module_function["files"][path]["calls"].keys())
                                                 if name in self.kernel_functions]:
+                            kf = self.kernel_functions[kernel_function]
                             for call in module_function["files"][path]["calls"][kernel_function]:
-                                self.kernel_functions[kernel_function].add_call(function)
+                                kf.add_call(function)
 
                                 for index in [index for index in range(len(call))
-                                              if call[index] and call[index] != "0"]:
-                                    self.kernel_functions[kernel_function].declaration.parameters[index].\
+                                              if call[index] and
+                                              check_null(kf.declaration, call[index])]:
+                                    kf.declaration.parameters[index].\
                                         add_implementation(call[index], path, None, None, [])
 
         self.logger.info("Remove kernel functions which are not called at driver functions")
@@ -214,13 +216,16 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             bt = entity["type"]
 
             if "value" in entity["description"] and type(entity["description"]['value']) is str:
-                bt.add_implementation(
-                    entity["description"]["value"],
-                    entity["path"],
-                    entity["root type"],
-                    entity["root value"],
-                    entity["root sequence"]
-                )
+                if check_null(bt, entity["description"]["value"]):
+                    bt.add_implementation(
+                        entity["description"]["value"],
+                        entity["path"],
+                        entity["root type"],
+                        entity["root value"],
+                        entity["root sequence"]
+                    )
+                else:
+                    self.logger.debug('Skip null pointer value for function pointer {}'.format(bt.to_string('%s')))
             elif "value" in entity["description"] and type(entity["description"]['value']) is list:
                 for entry in entity["description"]['value']:
                     if type(entity['type']) is Array:

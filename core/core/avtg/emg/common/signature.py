@@ -529,6 +529,15 @@ def direct_declarator_processing(p):
                 p[0] = p[2]
 
 
+def check_null(declaration, value):
+    check = re.compile('[\s]*[(]?[\s]*0[\s]*[)]?[\s]*')
+    if (type(declaration) is Function or (type(declaration) is Pointer and type(declaration.points) is Function)) and \
+            check.fullmatch(value):
+        return False
+    else:
+        return True
+
+
 def extract_name(signature):
     try:
         ast = yacc.parse(signature)

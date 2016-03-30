@@ -109,7 +109,7 @@ class Translator(AbstractTranslator):
         # todo: multimodule automaton (issues #6563, #6571, #6558)
         self.logger.info("Generate FSA for module initialization and exit functions")
         self.__entry_fsa = Automaton(self.logger, model.entry_process, self.__yeild_identifier())
-        fsa.variables(self.__entry_fsa)
+        self.__entry_fsa.variables(analysis)
 
         # Save digraphs
         automaton_dir = "automaton"
@@ -137,7 +137,6 @@ class Translator(AbstractTranslator):
             self.generate_control_function(analysis, model, automaton)
 
         # Generate model control function
-        models = []
         for name in (pr.name for pr in model.model_processes):
             automata = (a for a in self.__model_fsa if a.process.name == name)
             self.generate_model_aspect(analysis, model, automata, name)
@@ -160,51 +159,51 @@ class Translator(AbstractTranslator):
         base_list = instances
 
         # Copy base instances for each known implementation
-        relevant_multi_containers = []
+        relevant_multi_containers = set()
         accesses = process.accesses()
         for access in [accesses[name] for name in sorted(accesses.keys())]:
             for inst_access in [inst for inst in sorted(access, key=lambda i: i.expression) if inst.interface]:
                 if type(inst_access.interface) is Container and \
                         len(analysis.implementations(inst_access.interface)) > 1 and \
                         inst_access.interface not in relevant_multi_containers:
-                    relevant_multi_containers.append(inst_access.interface)
+                    relevant_multi_containers.add(inst_access.interface)
                 elif len(inst_access.complete_list_interface) > 1:
                     for intf in [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
                                  len(analysis.implementations(intf)) > 1 and intf not in relevant_multi_containers]:
-                        relevant_multi_containers.append(intf)
+                        relevant_multi_containers.add(intf)
 
         # Copy instances for each implementation of a container
         if len(relevant_multi_containers) > 0:
-            # todo: refactoring is required
-            new_base_list = []
             for interface in relevant_multi_containers:
+                new_base_list = []
                 implementations = analysis.implementations(interface)
 
                 for implementation in implementations:
                     for instance in base_list:
                         newp = copy.copy(instance)
-                        newp.forbide_except(analysis, interface, implementation)
+                        newp.forbide_except(analysis, implementation)
                         new_base_list.append(newp)
 
-                base_list = new_base_list
+                base_list = list(new_base_list)
 
-        # Copy callbacks or resources which are not tied to a container
-        accesses = base_list[0].accesses()
-        relevant_multi_leafs = []
-        for access in [accesses[name] for name in sorted(accesses.keys())]:
-            relevant_multi_leafs.extend([inst for inst in access if inst.interface and
-                                         len(analysis.implementations(inst.interface)) > 1])
-        if len(relevant_multi_leafs) > 0:
-            # todo: refactoring is expected
-            for access in relevant_multi_leafs:
-                new_base_list = []
-                for implementation in analysis.implementations(access.interface):
-                    for instance in base_list:
+        new_base_list= []
+        for instance in base_list:
+            # Copy callbacks or resources which are not tied to a container
+            accesses = instance.accesses()
+            relevant_multi_leafs = set()
+            for access in [accesses[name] for name in sorted(accesses.keys())]:
+                relevant_multi_leafs.update([inst for inst in access if inst.interface and
+                                             len(instance.get_implementations(analysis, inst)) > 1])
+            if len(relevant_multi_leafs) > 0:
+                for access in relevant_multi_leafs:
+                    for implementation in analysis.implementations(access.interface):
                         newp = copy.copy(instance)
-                        newp.forbide_except(analysis, access.interface, implementation)
+                        newp.forbide_except(analysis, implementation)
                         new_base_list.append(newp)
+            else:
+                new_base_list.append(instance)
 
-                base_list = new_base_list
+        base_list = new_base_list
 
         return base_list
 

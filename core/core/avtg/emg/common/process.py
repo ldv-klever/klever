@@ -431,21 +431,20 @@ class Process:
         else:
             return False
 
-    def forbide_except(self, analysis, interface, implementation):
-        # todo: implement method to add filter on implementations resolving acces
+    def forbide_except(self, analysis, implementation):
         accesses = self.accesses()
         for access_list in [accesses[name] for name in sorted(accesses.keys())]:
             for access in access_list:
-                if interface.identifier == access.interface.identifier:
-                    implementations = analysis.implementations(access.interface)
-                    for impl in implementations:
-                        if impl.identifier != implementation.identifier:
-                            self.__forbidded_implementations.add(impl.identifier)
-                elif interface.identifier in [intf.identifier for intf in access.list_interface]:
-                    implementations = analysis.implementations(access.interface)
-                    for impl in implementations:
-                        raise NotImplementedError
+                implementations = self.get_implementations(analysis, access)
+                base_values = set([i.base_value for i in implementations])
+                identifiers = set([i.identifier for i in implementations])
 
+                if implementation.value in base_values:
+                    for candidate in [i for i in implementations if i.base_value != implementation.value]:
+                        self.__forbidded_implementations.add(candidate.identifier)
+                elif implementation.identifier in identifiers:
+                    for candidate in [i for i in implementations if i.identifier != implementation.identifier]:
+                        self.__forbidded_implementations.add(candidate.identifier)
 
     def get_implementations(self, analysis, access):
         if access.interface:
