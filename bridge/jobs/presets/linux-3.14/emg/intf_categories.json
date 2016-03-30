@@ -4,8 +4,8 @@
       "signature": "int usb_reset_device(struct usb_device)",
       "header": "include/linux/usb.h"
     },
-    "usb_register": {
-      "signature": "$ usb_register(*%usb.usb_driver%)",
+    "usb_register_driver": {
+      "signature": "int usb_register_driver(*%usb.usb_driver%, $, $)",
       "header": "include/linux/usb.h"
     },
     "usb_deregister": {
