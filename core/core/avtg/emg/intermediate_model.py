@@ -704,9 +704,10 @@ class ProcessModel:
                                     category = new.interface.category
 
                                     for container in analysis.containers(category):
-                                        if container.weak_contains(interface):
+                                        if container.weak_contains(interface) and container not in new_tail:
                                             new_tail.append(container)
                                             to_process.append(container)
+                                            break
                                 new_tail.reverse()
                                 new.complete_list_interface = new_tail
 
