@@ -4,9 +4,9 @@
 /* At the moment maps are represented just as counters, but this won't be the
  * case in future. */
 
-typedef int Map;
-typedef void *Key;
-typedef void *Value;
+typedef int ldv_map;
+typedef void *ldv_map_key;
+typedef void *ldv_map_value;
 
 #define ldv_map_init(map) (map = 0)
 #define ldv_map_put(map, key, value) (map = value)
