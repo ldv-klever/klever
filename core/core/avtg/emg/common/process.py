@@ -223,20 +223,20 @@ class Label:
         self.__signature_map[identifier] = declaration
 
     def compare_with(self, label):
-        if self.interfaces and label.interfaces:
+        if len(self.interfaces) > 0 and len(label.interfaces) > 0:
             if len(list(set(self.interfaces) & set(label.interfaces))) > 0:
                 return 'equal'
             else:
                 return 'different'
-        elif label.interfaces or self.interfaces:
+        elif len(label.interfaces) > 0 or len(self.interfaces) > 0:
             if (self.container and label.container) or (self.resource and label.resource) or \
                (self.callback and label.callback):
                 return 'сompatible'
             else:
                 return 'different'
-        elif self.signature() and label.signature():
-            my_signature = self.signature()
-            ret = my_signature.compare_signature(label.signature())
+        elif self.prior_signature and label.prior_signature:
+            my_signature = self.prior_signature
+            ret = my_signature.compare_signature(label.prior_signature)
             if not ret:
                 return 'different'
             else:
