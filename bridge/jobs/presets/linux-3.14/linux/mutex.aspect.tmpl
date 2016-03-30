@@ -1,6 +1,8 @@
 before: file ("$this")
 {
-#include <linux/mutex.h>
+#include <linux/types.h>
+
+struct mutex;
 
 extern void mutex_lock(struct mutex *lock);
 extern void mutex_lock_nested(struct mutex *, unsigned int);

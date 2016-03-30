@@ -1,6 +1,7 @@
-#include <linux/usb.h>
 #include <verifier/rcv.h>
 #include <verifier/map.h>
+
+struct usb_device;
 
 Map LDV_USB_DEV_REF_COUNTS;
 
