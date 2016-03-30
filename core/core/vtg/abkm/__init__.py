@@ -214,7 +214,8 @@ class ABKM(core.components.Component):
                 elif decision_results['status'] == 'unsafe':
                     self.logger.info('Get source files referred by error trace')
                     src_files = set()
-                    with open('witness.graphml', encoding='ascii') as fp:
+                    # since this strategy supports only 1 witness
+                    with open('output/witness.0.graphml', encoding='ascii') as fp:
                         # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
                         dom = minidom.parse(fp)
                     graphml = dom.getElementsByTagName('graphml')[0]
