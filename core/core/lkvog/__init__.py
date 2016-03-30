@@ -8,7 +8,9 @@ import re
 
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
+from core.lkvog.strategies import strategy1
 from core.lkvog.strategies import strategies_list
+from core.lkvog.strategies import module
 import core.components
 import core.utils
 
@@ -17,6 +19,7 @@ def before_launch_all_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
     context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
     context.mqs['Linux kernel module deps'] = multiprocessing.Queue()
+    context.mqs['Linux kernel modules'] = multiprocessing.Queue()
 
 
 def after_set_linux_kernel_attrs(context):
@@ -24,7 +27,10 @@ def after_set_linux_kernel_attrs(context):
 
 
 def after_build_linux_kernel(context):
-    context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
+    if 'modules' in context.conf['Linux kernel'] and 'all' in context.conf['Linux kernel']['modules'] \
+            and context.conf['Linux kernel'].get('build kernel', False) \
+            and 'modules dep file' not in context.conf['Linux kernel']:
+        context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
 
 
 def after_process_linux_kernel_raw_build_cmd(context):
@@ -81,6 +87,8 @@ class LKVOG(core.components.Component):
         self.all_modules = {}
         self.verification_obj_desc = {}
         self.checked_clusters = {}
+        self.clusters = []
+        self.checked_modules = set()
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -93,7 +101,8 @@ class LKVOG(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
         self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
-                                  ('AVODG', self.generate_all_verification_obj_descs))
+                                  ('AVODG', self.generate_all_verification_obj_descs),
+                                  ('DBS', self.divide_by_strategy))
 
     main = generate_linux_kernel_verification_objects
 
@@ -109,22 +118,21 @@ class LKVOG(core.components.Component):
         self.linux_kernel_verification_objs_gen['attrs'].extend(
             [{'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}])
 
-    def generate_all_verification_obj_descs(self):
-        self.logger.info('Generate all Linux kernel verification object decriptions')
-
+    def divide_by_strategy(self):
         strategy_name = self.conf['LKVOG strategy']['name']
+        if strategy_name == 'separate modules':
+            return
+
+        module_deps = self.mqs['Linux kernel module deps'].get()
+
+        # Use strategy
         strategy = None
 
         if strategy_name == 'closure':
-            self.module_deps = self.mqs['Linux kernel module deps'].get()
-            if 'cluster size' in self.conf["LKVOG strategy"]:
-                cluster_size = self.conf['LKVOG strategy']['cluster size']
-            else:
-                cluster_size = 0
-            strategy = closure.Closure(self.logger, self.module_deps, cluster_size)
-        elif strategy_name == 'scotch':
-            self.module_deps = self.mqs['Linux kernel module deps'].get()
+            cluster_size = self.conf["LKVOG strategy"].get('cluster size', 0)
+            strategy = closure.Closure(self.logger, module_deps, cluster_size)
 
+        elif strategy_name == 'scotch':
             scotch_dir_path = os.path.join(self.conf['main working directory'], 'scotch')
             if not os.path.isdir(scotch_dir_path):
                 os.mkdir(scotch_dir_path)
@@ -137,15 +145,70 @@ class LKVOG(core.components.Component):
             task_size = self.conf['LKVOG strategy']['cluster size']
             balance_tolerance = self.conf['LKVOG strategy'].get('balance tolerance', 0.05)
             scotch_bin_path = self.conf['LKVOG strategy']['scotch path']
-            strategy = scotch.Scotch(self.logger, self.module_deps, task_size, balance_tolerance, scotch_bin_path,
-                                    os.path.join(scotch_dir_path, 'graph_file'),
-                                    os.path.join(scotch_dir_path, 'scotch_log'),
-                                    os.path.join(scotch_dir_path, 'scotch_out'))
+            strategy = scotch.Scotch(self.logger, module_deps, task_size, balance_tolerance, scotch_bin_path,
+                                     os.path.join(scotch_dir_path, 'graph_file'),
+                                     os.path.join(scotch_dir_path, 'scotch_log'),
+                                     os.path.join(scotch_dir_path, 'scotch_out'))
+        elif strategy_name == 'strategy1':
+            strategy = strategy1.Strategy1(self.logger, module_deps, params=self.conf['LKVOG strategy'],
+                                           user_deps=self.conf['LKVOG strategy']['user_deps'])
         elif strategy_name == 'separate modules':
             pass
 
         else:
-            raise NotImplementedError("Strategy not implemented {0}".format(strategy_name))
+            raise NotImplementedError("Strategy {} not implemented".format(strategy_name))
+
+        build_modules = set()
+        self.logger.debug("Initial build modules: {}".format(self.conf['Linux kernel']['modules']))
+        for module in self.conf['Linux kernel']['modules']:
+            if re.search(r'\.ko$', module):
+                # Invidiual module just use strategy
+                self.logger.debug('Use strategy for {} module'.format(module))
+                clusters = strategy.divide(module)
+                self.clusters.extend(clusters)
+                for cluster in clusters:
+                    for module in cluster.modules:
+                        build_modules.add(module)
+                        self.checked_modules.add(module)
+            else:
+                # Module is subsystem
+                build_modules.add(module)
+                subsystem_modules = self.get_modules_from_deps(module, module_deps)
+                for module2 in subsystem_modules:
+                    clusters = strategy.divide(module2)
+                    self.clusters.extend(clusters)
+                    for cluster in clusters:
+                        # Need update build_modules and checked_modules
+                        for module3 in cluster.modules:
+                            self.checked_modules.add(module3)
+                            if not self.is_part_of_subsystem(module3, build_modules):
+                                build_modules.add(module3)
+
+        self.logger.debug('After dividing build modules: {}'.format(build_modules))
+        if 'all' not in self.conf['Linux kernel']['modules']:
+            self.mqs['Linux kernel modules'].put(build_modules)
+
+    def get_modules_from_deps(self, subsystem, deps):
+        # Extract all modules in subsystem from dependencies
+        ret = set()
+        for module in deps:
+            if module.startswith(subsystem):
+                ret.add(module)
+            for dep in deps[module]:
+                if dep.startswith(subsystem):
+                    ret.add(dep)
+        return ret
+
+    def is_part_of_subsystem(self, module, modules):
+        # Returns true if module is a part of subsystem that contains in modules
+        for module2 in modules:
+            if module.startswith(module2):
+                return True
+        else:
+            return False
+
+    def generate_all_verification_obj_descs(self):
+        self.logger.info('Generate all Linux kernel verification object decriptions')
 
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
@@ -155,6 +218,19 @@ class LKVOG(core.components.Component):
                 self.linux_kernel_module_names_mq.close()
                 break
 
+            clusters = []
+            if self.module['name'] in self.checked_modules:
+                # Find clusters
+                for cluster in self.clusters:
+                    if self.module['name'] in [module.id for module in cluster.modules]:
+                        clusters.append(cluster)
+            else:
+                clusters.append(module.Graph([module.Module(self.module['name'])]))
+
+            for cluster in clusters:
+                self.cluster = cluster
+                self.generate_verification_obj_desc()
+                """
             # Collect all modules for what we generate verification objects to avoid generation of the same verification
             # object.
             if strategy_name == 'separate modules':
@@ -167,13 +243,14 @@ class LKVOG(core.components.Component):
                 for cluster in clusters:
                     self.cluster = cluster
                     self.generate_verification_obj_desc()
+                    """
 
     def generate_verification_obj_desc(self):
         self.logger.info(
             'Generate Linux kernel verification object description for module "{0}"'.format(self.module['name']))
 
         strategy = self.conf['LKVOG strategy']['name']
-
+        """
         if strategy == 'separate modules':
             self.verification_obj_desc['id'] = self.module['name']
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
@@ -201,7 +278,8 @@ class LKVOG(core.components.Component):
                         self.module['name'], verification_obj_desc_file))
                 with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
-        elif strategy in strategies_list:
+        elif strategy in strategies_list:"""
+        if True:
             self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id + str(hash(self.cluster)))
             self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 

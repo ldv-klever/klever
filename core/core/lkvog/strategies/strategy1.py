@@ -36,7 +36,7 @@ class Strategy1:
 
         # Creating modules dict
         self.modules = {}
-        for module, m_deps in deps:
+        for module, m_deps in deps.items():
             self.modules.setdefault(module, Module(module))
             for m_dep in m_deps:
                 self.modules.setdefault(m_dep, Module(m_dep))
@@ -216,6 +216,8 @@ class Strategy1:
         return map(lambda item2: item2[0], sorted(ret.items(), key=lambda item1: item1[1]))
 
     def get_best_candidate(self, modules):
+        if not modules:
+            return None
         process = modules[:]
         for i in range(len(modules[0][1])):
             max_value = max(process, key=lambda module: module[1][i])[1][i]
@@ -294,6 +296,7 @@ class Strategy1:
             else:
                 if process in clusters:
                     break
+                self.logger.debug('Append cluster: {}'.format([module.id for module in process]))
                 clusters.add(frozenset(process))
                 for module in process:
                     self.checked_modules.add(module)
@@ -301,6 +304,7 @@ class Strategy1:
                     self.count_groups_for_m[module] += 1
                 continue
             if len(process) > 1:
+                self.logger.debug('Append cluster: {}'.format([module.id for module in process]))
                 clusters.add(frozenset(process))
             for module in process:
                 self.checked_modules.add(module)
