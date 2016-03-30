@@ -60,8 +60,8 @@ def parse_initializations(file):
     with open(file) as fd:
         text = fd.read()
     string_tokens = re.sub('\n([ |\t]*(?:declaration|value|(?:field[ ]declaration)|(?:array[ ]element[ ]index))[:])',
-                           '%\g<1>',
-                           text).split('%')
+                           '%klever_sep%\g<1>',
+                           text).split('%klever_sep%')
 
     tokens = []
     for string in string_tokens:
