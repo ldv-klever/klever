@@ -413,6 +413,10 @@ class ABKM(core.components.Component):
 
             time.sleep(1)
 
+        self.logger.info('Remove verification task "{0}"'.format(task_id))
+        session.remove_task(task_id)
+
+
     def __normalize_path(self, path):
         # Each file is specified either via absolute path or path relative to source tree root.
         # Make all paths relative to source tree root.
