@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import hashlib
 from django.contrib.auth.models import User
@@ -764,6 +765,9 @@ class GetConfiguration(object):
 
     def __get_user_conf(self, conf):
         def int_or_float(val):
+            m = re.match('^\s*(\d+),(\d+)\s*$', val)
+            if m is not None:
+                val = '%s.%s' % (m.group(1), m.group(2))
             try:
                 return int(val)
             except ValueError:
