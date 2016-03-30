@@ -13,24 +13,21 @@ class RSG(core.components.Component):
     def generate_rule_specification(self):
         self.abstract_task_desc = self.mqs['abstract task description'].get()
 
-        aspects = []
         models = {}
 
         if 'files' in self.abstract_task_desc:
-            self.logger.info('Get additional aspects and models specified in abstract task description')
+            self.logger.info('Get generated aspects and models specified in abstract task description')
 
             for file in self.abstract_task_desc['files']:
                 ext = os.path.splitext(file)[1]
                 if ext == '.c':
                     models[file] = {}
-                    self.logger.debug('Get additional model with C file "{0}'.format(file))
+                    self.logger.debug('Get generated model with C file "{0}'.format(file))
                 elif ext == '.aspect':
-                    aspects.append(file)
-                    self.logger.debug('Get additional aspect "{0}'.format(file))
+                    self.logger.debug('Get generated aspect "{0}'.format(file))
                 else:
                     raise ValueError('Files with extension "{0}" are not supported'.format(ext))
 
-        self.add_aspects(aspects)
         self.add_models(models)
 
         if 'files' in self.abstract_task_desc:
@@ -40,46 +37,25 @@ class RSG(core.components.Component):
 
     main = generate_rule_specification
 
-    def add_aspects(self, aspects):
-        self.logger.info('Add aspects to abstract task description')
-
-        # Get common and rule specific aspects.
-        for aspect in (self.conf.get('common aspects') or []) + (self.conf.get('aspects') or []):
-            aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], aspect)
-            self.logger.debug('Get aspect "{0}"'.format(aspect))
-            aspects.append(os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])))
-
-        if not aspects:
-            self.logger.warning('No aspects ase specified')
-            return
-
-        for grp in self.abstract_task_desc['grps']:
-            self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
-            for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                if 'plugin aspects' not in cc_extra_full_desc_file:
-                    cc_extra_full_desc_file['plugin aspects'] = []
-                cc_extra_full_desc_file['plugin aspects'].append({"plugin": self.name, "aspects": aspects}
-                                                                 )
-
     def add_models(self, models):
-        self.logger.info('Add models to abstract task description')
+        self.logger.info('Add models to abstract verification task description')
 
         # Get common and rule specific models.
         if 'common models' in self.conf and 'models' in self.conf:
-            for common_model_c_file in self.conf['common models'].keys():
-                if common_model_c_file in self.conf['models'].keys():
+            for common_model_c_file in self.conf['common models']:
+                if common_model_c_file in self.conf['models']:
                     raise KeyError('C file "{0}" is specified in both common and rule specific models')
         if 'models' in self.conf:
-            for model_c_file in self.conf['models'].keys():
+            for model_c_file in self.conf['models']:
                 # Specify additional settings for generated models that have not any settings.
                 if model_c_file.startswith('$'):
-                    for generated_model_c_file in models.keys():
+                    for generated_model_c_file in models:
                         if generated_model_c_file.endswith(model_c_file[1:]):
                             models[generated_model_c_file] = self.conf['models'][model_c_file]
                         else:
                             raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
             # Like common models processed below.
-            for model_c_file in self.conf['models'].keys():
+            for model_c_file in self.conf['models']:
                 if not model_c_file.startswith('$'):
                     model_c_file_realpath = core.utils.find_file_or_dir(self.logger,
                                                                         self.conf['main working directory'],
@@ -89,7 +65,7 @@ class RSG(core.components.Component):
                                            os.path.realpath(self.conf['source tree root']))] = \
                         self.conf['models'][model_c_file]
         if 'common models' in self.conf:
-            for common_model_c_file in self.conf['common models'].keys():
+            for common_model_c_file in self.conf['common models']:
                 common_model_c_file_realpath = core.utils.find_file_or_dir(self.logger,
                                                                            self.conf['main working directory'],
                                                                            common_model_c_file)
@@ -102,11 +78,26 @@ class RSG(core.components.Component):
             self.logger.warning('No models are specified')
             return
 
+        self.logger.info('Add aspects to abstract verification task description')
+        aspects = []
+        for model_c_file in models:
+            aspect = '{}.aspect'.format(os.path.splitext(model_c_file)[0])
+            if not os.path.isfile(os.path.join(os.path.realpath(self.conf['source tree root']), aspect)):
+                raise FileNotFoundError('Aspect "{0}" does not exist'.format(os.path.relpath(aspect)))
+            self.logger.debug('Get aspect "{0}"'.format(os.path.relpath(aspect)))
+            aspects.append(aspect)
+        for grp in self.abstract_task_desc['grps']:
+            self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
+            for cc_extra_full_desc_file in grp['cc extra full desc files']:
+                if 'plugin aspects' not in cc_extra_full_desc_file:
+                    cc_extra_full_desc_file['plugin aspects'] = []
+                cc_extra_full_desc_file['plugin aspects'].append({"plugin": self.name, "aspects": aspects})
+
         # CC extra full description files will be put to this directory as well as corresponding input (after bug kinds
         # preprocessing) and output files.
         os.makedirs('models')
 
-        for model_c_file in models.keys():
+        for model_c_file in models:
             if 'bug kinds' in models[model_c_file]:
                 self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
                 # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
@@ -153,7 +144,7 @@ class RSG(core.components.Component):
         # Generate CC extra full description file per each model and add it to abstract task description.
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add models to group "{0}"'.format(grp['id']))
-            for model_c_file in models.keys():
+            for model_c_file in models:
                 out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model_c_file))[0]))
                 full_desc_file = '{0}.json'.format(out_file)
                 if os.path.isfile(full_desc_file):

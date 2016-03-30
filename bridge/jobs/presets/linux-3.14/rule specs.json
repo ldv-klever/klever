@@ -44,8 +44,7 @@
               "-Os"
             ],
             "common sets model": "counter",
-            "common models": {"linux/err.c": {}},
-            "common aspects": ["linux/err.aspect"]
+            "common models": {"linux/err.c": {}}
           }
         },
         "Weaver"
@@ -212,16 +211,12 @@
       "RSG": {
         "models": {
           "linux/asm/atomic.c": {},
-          "linux/usb1.c": { "bug kinds": [
+          "linux/usb1.c": {"bug kinds": [
             "linux:usb:resource:ref:unincremented counter decrement",
             "linux:usb:resource:ref:less initial decrement",
             "linux:usb:resource:ref:more initial at exit"
           ]}
-        },
-        "aspects": [
-          "linux/asm/atomic.aspect",
-          "linux/usb1.aspect"
-        ]
+        }
       }
     },
     "linux:usb2": {
