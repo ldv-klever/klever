@@ -3,9 +3,9 @@ from core.lkvog.strategies.module import Cluster
 
 
 class Closure:
-    def __init__(self, logger, module_deps, cluster_size):
+    def __init__(self, logger, module_deps, params={}):
         self.logger = logger
-        self.cluster_size = cluster_size
+        self.cluster_size = params.get('cluster size', 0)
         self.logger.info('Calculate graph of all dependencies between modules')
         self.modules = {}
         self.checked_clusters = set()

@@ -10,6 +10,7 @@ class Module:
         self.export_functions = {}
         self.call_functions = {}
 
+
     def add_predecessor(self, predecessor):
         if predecessor:
             self.predecessors.append(predecessor)

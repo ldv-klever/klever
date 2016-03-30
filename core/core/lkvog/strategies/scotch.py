@@ -6,17 +6,18 @@ from core.lkvog.strategies.module import Graph
 
 class Scotch:
     # TODO: graph_file, scotch_out, scotch_log from parameters
-    def __init__(self, logger, module_deps, task_size, balance_tolerance, scotch_path, graph_file, scotch_log,
-                 scotch_out):
+    def __init__(self, logger, module_deps, graph_file, scotch_log,
+                 scotch_out, params={}):
+
         self.logger = logger
-        self.scotch_path = scotch_path
+        self.scotch_path = params['scotch path']
         self.graph_file = graph_file
         self.scotch_log = scotch_log
         self.scotch_out = scotch_out
         self.module_deps = module_deps
-        self.task_size = task_size
+        self.task_size = params['cluster size']
         self.logger.debug('Going to get verification verification objects of size less than ' + str(self.task_size))
-        self.balance_tolerance = balance_tolerance
+        self.balance_tolerance = params.get('balance tolerance', 0.05)
         self.logger.debug('Going to keep balance tolerance equal to ' + str(self.balance_tolerance))
         self.logger.debug('Calculate graph of all dependencies between modules')
         self.checked_clusters = set()

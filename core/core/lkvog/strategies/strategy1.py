@@ -4,15 +4,13 @@ from operator import itemgetter
 
 
 class Strategy1:
-    def __init__(self, logger, deps, user_deps=None, params=None, export_func=None, module_sizes=None):
+    def __init__(self, logger, deps, params=None, export_func=None, module_sizes=None):
         if module_sizes is None:
             module_sizes = {}
         if export_func is None:
             export_func = []
         if params is None:
             params = {}
-        if user_deps is None:
-            user_deps = {}
         self.logger = logger
 
         # Going to read params
@@ -20,6 +18,7 @@ class Strategy1:
         self.max_g_for_m = params.get('max_g_for_m', 5)
         self.minimize_groups_for_module = params.get('minimize_groups_for_module', True)
         self.priority_on_module_size = params.get('priority_on_module_size', True) and bool(module_sizes)
+        self.user_deps = params.get('user_deps', {})
         self.division_type = params.get('division_type', 'Library')
         if self.division_type not in ('Library', 'Module', 'All'):
             raise ValueError("Division type {} doesn't exist".format(self.division_type))
@@ -32,7 +31,6 @@ class Strategy1:
         self.priority_on_calls = \
             params.get('priority_on_calls', self.division_type != 'Library') and bool(export_func)
         self.maximize_subsystems = params.get('maximize_subsystems', True)
-        self.user_deps = user_deps
 
         # Creating modules dict
         self.modules = {}
@@ -312,6 +310,13 @@ class Strategy1:
 
         ret = set()
         for cluster in clusters:
-            modules = [x.id for x in cluster]
-            ret.add(Graph(modules))
+            modules = {}
+            for module in cluster:
+                modules.setdefault(module.id, Module(module.id))
+            for module in modules.values():
+                if module.id in self.modules:
+                    for dep in self.modules[module.id].predecessors:
+                        if dep.id in modules:
+                            module.add_predecessor(modules[dep.id])
+            ret.add(Graph(list(modules.values())))
         return ret
