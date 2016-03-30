@@ -823,7 +823,7 @@ class Structure(BaseType):
 
         if 'fields' in self._ast['specifiers']['type specifier']:
             for declaration in sorted(self._ast['specifiers']['type specifier']['fields'],
-                                      key=lambda decl: decl['declarator'][-1]['identifier']):
+                                      key=lambda decl: str(decl['declarator'][-1]['identifier'])):
                 name = declaration['declarator'][-1]['identifier']
                 if name:
                     self.fields[name] = import_signature(None, declaration)
@@ -855,7 +855,8 @@ class Structure(BaseType):
 
     def _to_string(self, replacement):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in sorted(self.fields.keys())]) + ' }'
+            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in sorted(self.fields.keys())]) + \
+                   '; ' + ' }'
         else:
             name = self.name
 
@@ -873,7 +874,7 @@ class Union(BaseType):
 
         if 'fields' in self._ast['specifiers']['type specifier']:
             for declaration in sorted(self._ast['specifiers']['type specifier']['fields'],
-                                      key=lambda decl: decl['declarator'][-1]['identifier']):
+                                      key=lambda decl: str(decl['declarator'][-1]['identifier'])):
                 name = declaration['declarator'][-1]['identifier']
                 if name:
                     self.fields[name] = import_signature(None, declaration)
@@ -908,7 +909,8 @@ class Union(BaseType):
 
     def _to_string(self, replacement):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in sorted(self.fields.keys())]) + ' }'
+            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in sorted(self.fields.keys())]) + \
+                   '; ' + ' }'
         else:
             name = self.name
 
