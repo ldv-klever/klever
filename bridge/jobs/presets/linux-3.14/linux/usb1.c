@@ -6,7 +6,7 @@ struct usb_device;
 ldv_map LDV_USB_DEV_REF_COUNTS;
 
 /* MODEL_FUNC_DEF Increment USB device reference counter */
-void ldv_usb_get_dev(struct usb_device *dev)
+struct usb_device *ldv_usb_get_dev(struct usb_device *dev)
 {
     /* OTHER Whether USB device is not NULL */
     if (dev) {

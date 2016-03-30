@@ -2,7 +2,7 @@ before: file ("$this")
 {
 struct usb_device;
 
-void ldv_usb_get_dev(struct usb_device *dev);
+struct usb_device *ldv_usb_get_dev(struct usb_device *dev);
 void ldv_usb_put_dev(struct usb_device *dev);
 }
 
