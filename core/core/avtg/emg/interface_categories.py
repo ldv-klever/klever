@@ -1,8 +1,8 @@
 import copy
 
-from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction, Interface
+from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import BaseType, InterfaceReference, UndefinedReference, Primitive, Array, Function,\
-    Structure, Pointer, import_signature
+    Structure, Pointer, Union, import_signature
 
 
 class CategoriesSpecification:
@@ -114,7 +114,11 @@ class CategoriesSpecification:
                     cnts = self.resolve_containers(interface)
                     for cnt in cnts:
                         cnt_intf = self.interfaces[cnt]
-                        if impl.sequence[-1] in cnts[cnt] and \
+                        if type(cnt_intf.declaration) is Array:
+                            implementations.append(impl)
+                            break
+                        elif type(cnt_intf.declaration) is Structure or type(cnt_intf.declaration) is Union and \
+                                impl.sequence[-1] in cnts[cnt] and \
                                 (impl.sequence[-1] in cnt_intf.field_interfaces and
                                  cnt_intf.field_interfaces[impl.sequence[-1]] and
                                  cnt_intf.field_interfaces[impl.sequence[-1]].identifier == interface.identifier):

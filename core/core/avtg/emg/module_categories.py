@@ -228,7 +228,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     self.logger.debug('Skip null pointer value for function pointer {}'.format(bt.to_string('%s')))
             elif "value" in entity["description"] and type(entity["description"]['value']) is list:
                 for entry in entity["description"]['value']:
-                    if type(entity['type']) is Array:
+                    if type(bt) is Array:
                         if not entity["root type"]:
                             new_root_type = bt
                         else:
@@ -246,7 +246,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                             "root value": entity["root value"],
                             "root sequence": new_sequence
                         }
-                    elif type(entity['type']) is Structure:
+                    elif type(bt) is Structure or type(bt) is Union:
                         if not entity["root type"] and not entity["root value"]:
                             new_root_type = bt
                             new_root_value = entity["description"]["value"]
@@ -451,6 +451,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 intf = self.resolve_interface_weakly(container.declaration.element)
                 if len(intf) == 1:
                     container.element_interface = intf[0]
+                elif len(intf) == 0:
+                    container.element_interface = None
                 else:
                     raise NotImplementedError
 
@@ -462,7 +464,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                               type(container.declaration.fields[field]) is not Primitive and
                               (type(container.declaration.fields[field] is not Pointer or
                                type(container.declaration.fields[field].points) is not Primitive))]:
-                    intf = self.resolve_interface_weakly(container.declaration.fields[field])
+                    intf = self.resolve_interface_weakly(container.declaration.fields[field], container.category)
                     if len(intf) == 1:
                         container.field_interfaces[field] = intf[-1]
                     elif len(intf) > 0 and field in [i.short_identifier for i in intf]:
