@@ -372,6 +372,9 @@ class Process:
                 for action in [self.actions[name] for name in sorted(self.actions.keys())]:
                     if type(action) is Call or type(action) is CallRetval and action.callback:
                         self.__accesses[action.callback] = []
+                    if type(action) is Call:
+                        for index in range(len(action.parameters)):
+                            self.__accesses[action.parameters[index]] = []
                     if type(action) is Receive or type(action) is Dispatch:
                         for index in range(len(action.parameters)):
                             self.__accesses[action.parameters[index]] = []
