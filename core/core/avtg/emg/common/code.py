@@ -165,7 +165,7 @@ class FunctionModels:
 
     @staticmethod
     def init_pointer(signature):
-        return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], signature.to_string(''))
+        return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], signature.points.to_string(''))
 
     def __replace_mem_call(self, match):
         function, label_name, flag = match.groups()
@@ -174,7 +174,10 @@ class FunctionModels:
         elif not self.mem_function_map[function]:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
-        return "{}(sizeof({}))".format(self.mem_function_map[function], self.signature.to_string(''))
+        if type(self.signature) is Pointer:
+            return "{}(sizeof({}))".format(self.mem_function_map[function], self.signature.points.to_string(''))
+        else:
+            raise ValueError('This is not a pointer')
 
     def __replace_free_call(self, match):
         function, label_name, flag = match.groups()
@@ -184,7 +187,10 @@ class FunctionModels:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
         # Create function call
-        return "{}(%{}%)".format(self.free_function_map[function], label_name)
+        if type(self.signature) is Pointer:
+            return "{}(%{}%)".format(self.free_function_map[function], label_name)
+        else:
+            raise ValueError('This is not a pointer')
 
     def __replace_irq_call(self, match):
         function = match.groups()

@@ -93,7 +93,7 @@ def __import_process(name, dic):
 
         # Add callback return value
         if 'callback return value' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].callback_retval = dic['actions'][subprocess_name]['callback return value']
+            process.actions[subprocess_name].retlabel = dic['actions'][subprocess_name]['callback return value']
 
         # Import condition
         if 'condition' in dic['actions'][subprocess_name]:

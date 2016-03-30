@@ -14,12 +14,13 @@ def text_processor(analysis, automaton, statement):
         # Replace model functions
         mm = FunctionModels()
         accesses = automaton.process.accesses()
-        statements = [statement]
 
+        statements = [statement]
         for access in accesses:
-            for option in sorted(accesses[access], key=lambda ac: ac.expression):
-                new_statements = []
-                for text in statements:
+            new_statements = []
+            for text in list(statements):
+                processed = False
+                for option in sorted(accesses[access], key=lambda ac: ac.expression):
                     if option.interface:
                         signature = option.label.get_declaration(option.interface.identifier)
                     else:
@@ -32,10 +33,17 @@ def text_processor(analysis, automaton, statement):
                         else:
                             var = automaton.determine_variable(analysis, option.label)
 
-                        tmp = mm.replace_models(option.label.name, signature, text)
-                        tmp = option.replace_with_variable(tmp, var)
-                        new_statements.append(tmp)
-                statements = new_statements
+                        try:
+                            tmp = mm.replace_models(option.label.name, signature, text)
+                            tmp = option.replace_with_variable(tmp, var)
+                            new_statements.append(tmp)
+                            processed = True
+                        except ValueError:
+                            processed = True
+
+                if not processed:
+                    new_statements.append(text)
+            statements = new_statements
         return statements
 
 
