@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-03-24 12:59+0000\n"
+"POT-Creation-Date: 2016-03-30 10:41+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,12 +33,12 @@ msgstr "Без обработки"
 msgid "Human-readable"
 msgstr "Удобочитаемый"
 
-#: bridge/vars.py:12 jobs/views.py:338 jobs/views.py:360 jobs/views.py:435
-#: jobs/views.py:495 jobs/views.py:750 service/utils.py:896
+#: bridge/vars.py:12 jobs/views.py:342 jobs/views.py:364 jobs/views.py:439
+#: jobs/views.py:499 jobs/views.py:754 service/utils.py:896
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
-#: bridge/vars.py:13 jobs/views.py:496 jobs/views.py:625 tools/utils.py:200
+#: bridge/vars.py:13 jobs/views.py:500 jobs/views.py:629 tools/utils.py:200
 msgid "One of the selected jobs was not found"
 msgstr "Одно из отмеченных заданий не было найдено"
 
@@ -545,7 +545,7 @@ msgid "Parent identifier"
 msgstr "Идентификатор родителя"
 
 #: jobs/templates/jobs/editJob.html:35 jobs/templates/jobs/editJob.html:36
-#: jobs/templates/jobs/showJob.html:25
+#: jobs/templates/jobs/showJob.html:15
 #: marks/templates/marks/CreateMark.html:39
 #: marks/templates/marks/CreateMark.html:171
 #: marks/templates/marks/CreateMark.html:228
@@ -667,7 +667,7 @@ msgstr "Заменить файл"
 msgid "Delete"
 msgstr "Удалить"
 
-#: jobs/templates/jobs/filesTree.html:30 jobs/templates/jobs/showJob.html:31
+#: jobs/templates/jobs/filesTree.html:30 jobs/templates/jobs/showJob.html:21
 msgid "Files"
 msgstr "Файлы"
 
@@ -773,7 +773,7 @@ msgstr ""
 "Названия, в которых используются не ASCII символы, должны быть меньше 30 "
 "символов"
 
-#: jobs/templates/jobs/jobData.html:46
+#: jobs/templates/jobs/jobData.html:31
 msgid "Wall time, CPU time and maximum memory size"
 msgstr ""
 "Астрономическое время, процессорное время и максимальный объем оперативной "
@@ -813,11 +813,11 @@ msgstr "Предупреждение об ошибке"
 msgid "Safe"
 msgstr "Доказательство корректности"
 
-#: jobs/templates/jobs/showJob.html:11
+#: jobs/templates/jobs/jobRunHistory.html:5
 msgid "History of decisions"
 msgstr "История решений"
 
-#: jobs/templates/jobs/showJob.html:19
+#: jobs/templates/jobs/jobRunHistory.html:13
 msgid "Download configuration file"
 msgstr "Загрузить конфигурационный файл"
 
@@ -1523,31 +1523,31 @@ msgstr "Вы не можете удалить представление, кот
 msgid "The view was successfully removed"
 msgstr "Представление было успешно удалено"
 
-#: jobs/views.py:295 marks/views.py:70
+#: jobs/views.py:299 marks/views.py:70
 msgid "Current version"
 msgstr "Текущая версия"
 
-#: jobs/views.py:340
+#: jobs/views.py:344
 msgid "You don't have access to delete versions"
 msgstr "У Вас нет прав удалить версии"
 
-#: jobs/views.py:346 marks/views.py:425
+#: jobs/views.py:350 marks/views.py:425
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
-#: jobs/views.py:347 marks/views.py:427
+#: jobs/views.py:351 marks/views.py:427
 msgid "Nothing to delete"
 msgstr "Нечего удалять"
 
-#: jobs/views.py:437
+#: jobs/views.py:441
 msgid "You don't have an access to edit this job"
 msgstr "У Вас нет прав редактировать данное задание"
 
-#: jobs/views.py:443 jobs/views.py:472
+#: jobs/views.py:447 jobs/views.py:476
 msgid "The job parent was not found"
 msgstr "Родитель задания не был найден"
 
-#: jobs/views.py:446
+#: jobs/views.py:450
 msgid ""
 "Several parents match the specified identifier, please increase the length "
 "of the parent identifier"
@@ -1555,72 +1555,72 @@ msgstr ""
 "Указанному идентификатору соответствуют несколько родителей, пожалуйста, "
 "увеличьте длину идентификатора родителя"
 
-#: jobs/views.py:451
+#: jobs/views.py:455
 msgid "Parent can't be specified for root jobs"
 msgstr "Нельзя указывать родителя для корневых заданий"
 
-#: jobs/views.py:453
+#: jobs/views.py:457
 msgid "The specified parent can't be set for this job"
 msgstr "Для этого задания не может быть установлен указанный родитель"
 
-#: jobs/views.py:456
+#: jobs/views.py:460
 msgid "The parent identifier is required for this job"
 msgstr "Для этого задания требуется идентификатор родителя"
 
-#: jobs/views.py:458 marks/views.py:228
+#: jobs/views.py:462 marks/views.py:228
 msgid "Your version is expired, please reload the page"
 msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
-#: jobs/views.py:474
+#: jobs/views.py:478
 msgid "You don't have an access to create new jobs"
 msgstr "У Вас нет прав создавать новые задания"
 
-#: jobs/views.py:499
+#: jobs/views.py:503
 msgid "You don't have an access to remove this job"
 msgstr "У Вас нет прав удалить данное задание"
 
-#: jobs/views.py:500
+#: jobs/views.py:504
 msgid "You don't have an access to remove one of the selected jobs"
 msgstr "У Вас нет прав удалить одно из отмеченных заданий"
 
-#: jobs/views.py:538
+#: jobs/views.py:542
 msgid "File uploading failed"
 msgstr "Загрузка файла на сервер провалилась"
 
-#: jobs/views.py:627
+#: jobs/views.py:631
 msgid "You don't have an access to download one of the selected jobs"
 msgstr "У Вас нет прав загрузить одно из отмеченных заданий"
 
-#: jobs/views.py:640
+#: jobs/views.py:644
 msgid "The parent identifier was not got"
 msgstr "Не был получен идентификатор родителя"
 
-#: jobs/views.py:646
+#: jobs/views.py:650
 msgid "The parent with the specified identifier was not found"
 msgstr "Родитель с указанным идентификатором не был найден"
 
-#: jobs/views.py:652
+#: jobs/views.py:656
 msgid "Too many jobs starts with the specified identifier"
 msgstr "Слишком много заданий начинаются с указанного идентификатора"
 
-#: jobs/views.py:661
+#: jobs/views.py:665
 msgid "Archive extracting error"
 msgstr ""
 
-#: jobs/views.py:736 jobs/views.py:877 jobs/views.py:884
+#: jobs/views.py:740 jobs/views.py:881 jobs/views.py:888
 msgid "The file was not found"
 msgstr "Файл не был найден"
 
-#: jobs/views.py:752
+#: jobs/views.py:756
 msgid "You don't have an access to stop decision of this job"
 msgstr "У Вас нет прав остановить решение данного задания"
 
-#: jobs/views.py:839 reports/views.py:383
+#: jobs/views.py:843 reports/views.py:383
 msgid "One of the selected jobs was not found, please reload page"
 msgstr ""
 "Одно из отмеченных заданий не было найдено, пожалуйста, обновите страницу"
 
-#: jobs/views.py:841
+#: jobs/views.py:845
 msgid "You can't compare the selected jobs"
 msgstr "Вы не можете сравнить отмеченные задания"
 
@@ -2399,7 +2399,7 @@ msgstr "Настройки"
 msgid "Sign Out"
 msgstr "Выйти"
 
-#: templates/base.html:69 users/templates/users/register.html:81
+#: templates/base.html:69 users/templates/users/register.html:80
 msgid "Register"
 msgstr "Регистрация"
 
@@ -2733,7 +2733,7 @@ msgid "Notify about my changes"
 msgstr "Уведомлять о моих изменениях"
 
 #: users/templates/users/edit-profile.html:64
-#: users/templates/users/register.html:71
+#: users/templates/users/register.html:70
 #: users/templates/users/showProfile.html:18
 msgid "Time zone"
 msgstr "Часовой пояс"
@@ -2819,9 +2819,3 @@ msgstr "Изменение"
 #: users/views.py:316
 msgid "Saved"
 msgstr "Сохранено"
-
-#~ msgid "Empty value means any model"
-#~ msgstr "Пустое значение означает любую модель"
-
-#~ msgid "The file type is not supported"
-#~ msgstr "Тип файла не поддерживается"
