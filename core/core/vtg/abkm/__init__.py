@@ -11,8 +11,10 @@ import core.session
 import core.utils
 from core.vtg import common
 
+
 # This strategy is aimed at merging all bug kinds inside each rule scpecification
-# and checking each rule specification separately until finding the first bug.
+# and at checking each rule specification as a separated verification run
+# until finding the first bug.
 class ABKM(common.CommonStrategy):
     def generate_verification_tasks(self):
         self.logger.info('Generate one verification task by merging all bug kinds')
