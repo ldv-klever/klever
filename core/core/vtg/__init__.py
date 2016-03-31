@@ -11,8 +11,9 @@ import core.utils
 from core.vtg.abkm import ABKM
 from core.vtg.abks import ABKS
 from core.vtg.mav import MAV
+from core.vtg.mav.mav_abkm import MAVBKM
 
-_strategies = (ABKM, ABKS, MAV)
+_strategies = (ABKM, ABKS, MAV, MAVBKM)
 
 
 def before_launch_all_components(context):
