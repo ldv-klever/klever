@@ -136,7 +136,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         # todo: this section below is slow enough
         if 'global variable initializations' in analysis:
             self.logger.info("Import types from global variables initializations")
-            for variable in analysis["global variable initializations"]:
+            for variable in sorted(analysis["global variable initializations"],
+                                   key=lambda var: str(var['declaration'])):
                 variable_name = extract_name(variable['declaration'])
                 if not variable_name:
                     raise ValueError('Global variable without a name')
@@ -227,8 +228,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 else:
                     self.logger.debug('Skip null pointer value for function pointer {}'.format(bt.to_string('%s')))
             elif "value" in entity["description"] and type(entity["description"]['value']) is list:
-                for entry in entity["description"]['value']:
-                    if type(bt) is Array:
+                if type(bt) is Array:
+                    for entry in entity["description"]['value']:
                         if not entity["root type"]:
                             new_root_type = bt
                         else:
@@ -246,7 +247,10 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                             "root value": entity["root value"],
                             "root sequence": new_sequence
                         }
-                    elif type(bt) is Structure or type(bt) is Union:
+
+                        entities.append(new_desc)
+                elif type(bt) is Structure or type(bt) is Union:
+                    for entry in sorted(entity["description"]['value'], key=lambda key: str(key['field'])):
                         if not entity["root type"] and not entity["root value"]:
                             new_root_type = bt
                             new_root_value = entity["description"]["value"]
@@ -271,10 +275,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                             }
 
                             bt.fields[field] = e_bt
-                    else:
-                        raise NotImplementedError
-
-                    entities.append(new_desc)
+                            entities.append(new_desc)
+                else:
+                    raise NotImplementedError
             else:
                 raise TypeError('Expect list or string')
 

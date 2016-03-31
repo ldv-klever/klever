@@ -6,6 +6,8 @@ typedef_collection = {}
 
 __typedefs = {}
 
+__noname_identifier = 0
+
 tokens = (
     'INTERFACE',
     'UNKNOWN',
@@ -652,6 +654,13 @@ def setup_collection(collection, typedefs):
     __typedefs = typedefs
 
 
+def new_identifier():
+    global __noname_identifier
+
+    __noname_identifier += 1
+    return __noname_identifier
+
+
 class BaseType:
 
     @property
@@ -793,7 +802,7 @@ class Function(BaseType):
     def pretty_name(self):
         global typedef_collection
 
-        key = list(typedef_collection.keys()).index(self.identifier)
+        key = new_identifier()
         return 'func_{}'.format(key)
 
     def _to_string(self, replacement):
@@ -843,7 +852,7 @@ class Structure(BaseType):
         else:
             global typedef_collection
 
-            key = list(typedef_collection.keys()).index(self.identifier)
+            key = new_identifier()
             return 'struct_noname_{}'.format(key)
 
     def contains(self, target):
@@ -897,7 +906,7 @@ class Union(BaseType):
         else:
             global typedef_collection
 
-            key = list(typedef_collection.keys()).index(self.identifier)
+            key = new_identifier()
             return 'union_noname_{}'.format(key)
 
     def contains(self, target):
@@ -956,7 +965,7 @@ class Array(BaseType):
             size = self.size
         else:
             size = ''
-        replacement = replacement + '[{}]'.format(size)
+        replacement += '[{}]'.format(size)
         return self.element.to_string(replacement)
 
 
