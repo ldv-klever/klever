@@ -88,7 +88,7 @@ class LKVOG(core.components.Component):
         self.module = {}
         self.all_modules = {}
         self.verification_obj_desc = {}
-        self.clusters = set()
+        self.all_clusters = set()
         self.checked_modules = set()
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
@@ -102,8 +102,7 @@ class LKVOG(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
         self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
-                                  ('AVODG', self.generate_all_verification_obj_descs),
-                                  ('DBS', self.divide_by_strategy))
+                                  ('AVODG', self.generate_all_verification_obj_descs))
 
     main = generate_linux_kernel_verification_objects
 
@@ -118,82 +117,6 @@ class LKVOG(core.components.Component):
         self.mqs['Linux kernel attrs'].close()
         self.linux_kernel_verification_objs_gen['attrs'].extend(
             [{'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}])
-
-    def divide_by_strategy(self):
-        strategy_name = self.conf['LKVOG strategy']['name']
-        if strategy_name == 'separate modules':
-            return
-
-        self.logger.debug('Wait for dependencies')
-        module_deps = self.mqs['Linux kernel module deps'].get()
-        self.logger.debug('Dependencies was received')
-
-        # Use strategy
-        strategy = None
-
-        if strategy_name == 'closure':
-            strategy = closure.Closure(self.logger, module_deps, self.conf['LKVOG strategy'])
-
-        elif strategy_name == 'scotch':
-            scotch_dir_path = os.path.join(self.conf['main working directory'], 'scotch')
-            if not os.path.isdir(scotch_dir_path):
-                os.mkdir(scotch_dir_path)
-            else:
-                # Clear scotch directory
-                file_list = os.listdir(scotch_dir_path)
-                for file_name in file_list:
-                    os.remove(os.path.join(scotch_dir_path, file_name))
-
-            strategy = scotch.Scotch(self.logger, module_deps,
-                                     os.path.join(scotch_dir_path, 'graph_file'),
-                                     os.path.join(scotch_dir_path, 'scotch_log'),
-                                     os.path.join(scotch_dir_path, 'scotch_out'), params=self.conf['LKVOG strategy'])
-        elif strategy_name == 'strategy1':
-            strategy = strategy1.Strategy1(self.logger, module_deps, params=self.conf['LKVOG strategy'])
-        elif strategy_name == 'separate modules':
-            pass
-
-        else:
-            raise NotImplementedError("Strategy {} not implemented".format(strategy_name))
-
-        build_modules = set()
-        checked_modules = set()
-        all_clusters = set()
-        self.logger.debug("Initial build modules: {}".format(self.conf['Linux kernel']['modules']))
-        for module in self.conf['Linux kernel']['modules']:
-            if re.search(r'\.ko$', module):
-                # Invidiual module just use strategy
-                self.logger.debug('Use strategy for {} module'.format(module))
-                clusters = strategy.divide(module)
-                all_clusters.update(clusters)
-                for cluster in clusters:
-                    for module in cluster.modules:
-                        build_modules.add(module.id)
-                        checked_modules.add(module.id)
-            else:
-                # Module is subsystem
-                build_modules.add(module)
-                subsystem_modules = self.get_modules_from_deps(module, module_deps)
-                for module2 in subsystem_modules:
-                    clusters = strategy.divide(module2)
-                    all_clusters.update(clusters)
-                    for cluster in clusters:
-                        # Need update build_modules and checked_modules
-                        for module3 in cluster.modules:
-                            checked_modules.add(module3.id)
-                            if not self.is_part_of_subsystem(module3, build_modules):
-                                build_modules.add(module3.id)
-
-        self.logger.debug('After dividing build modules: {}'.format(build_modules))
-        for module in checked_modules:
-            self.linux_kernel_clusters_mq.put(module)
-        self.linux_kernel_clusters_mq.put(None)
-        for cluster in all_clusters:
-            self.linux_kernel_clusters_mq.put(cluster)
-        self.linux_kernel_clusters_mq.put(None)
-        if 'all' not in self.conf['Linux kernel']['modules']:
-            self.mqs['Linux kernel modules'].put(build_modules)
-            self.mqs['Additional modules'].put(build_modules)
 
     def get_modules_from_deps(self, subsystem, deps):
         # Extract all modules in subsystem from dependencies
@@ -215,24 +138,74 @@ class LKVOG(core.components.Component):
             return False
 
     def generate_all_verification_obj_descs(self):
-        self.logger.info('Generate all Linux kernel verification object decriptions')
+        strategy_name = self.conf['LKVOG strategy']['name']
 
-        clusters = set()
-        checked_modules = set()
-        if self.conf['LKVOG strategy']['name'] != 'separate modules':
-            self.logger.debug('Wait for clusters')
-            while True:
-                get_module = self.linux_kernel_clusters_mq.get()
-                if not get_module:
-                    break
-                checked_modules.add(get_module)
-            while True:
-                cluster = self.linux_kernel_clusters_mq.get()
-                if not cluster:
-                    break
-                clusters.add(cluster)
-            self.linux_kernel_clusters_mq.close()
-            self.logger.debug('Clusters was recieved')
+        if strategy_name != 'separate modules':
+            self.logger.debug('Wait for dependencies')
+            module_deps = self.mqs['Linux kernel module deps'].get()
+            self.logger.debug('Dependencies was received')
+
+            # Use strategy
+            strategy = None
+
+            if strategy_name == 'closure':
+                strategy = closure.Closure(self.logger, module_deps, self.conf['LKVOG strategy'])
+
+            elif strategy_name == 'scotch':
+                scotch_dir_path = os.path.join(self.conf['main working directory'], 'scotch')
+                if not os.path.isdir(scotch_dir_path):
+                    os.mkdir(scotch_dir_path)
+                else:
+                    # Clear scotch directory
+                    file_list = os.listdir(scotch_dir_path)
+                    for file_name in file_list:
+                        os.remove(os.path.join(scotch_dir_path, file_name))
+
+                strategy = scotch.Scotch(self.logger, module_deps,
+                                         os.path.join(scotch_dir_path, 'graph_file'),
+                                         os.path.join(scotch_dir_path, 'scotch_log'),
+                                         os.path.join(scotch_dir_path, 'scotch_out'), params=self.conf['LKVOG strategy'])
+            elif strategy_name == 'strategy1':
+                strategy = strategy1.Strategy1(self.logger, module_deps, params=self.conf['LKVOG strategy'])
+            elif strategy_name == 'separate modules':
+                pass
+
+            else:
+                raise NotImplementedError("Strategy {} not implemented".format(strategy_name))
+
+            build_modules = set()
+            self.logger.debug("Initial build modules: {}".format(self.conf['Linux kernel']['modules']))
+            for kernel_module in self.conf['Linux kernel']['modules']:
+                if re.search(r'\.ko$', kernel_module):
+                    # Invidiual module just use strategy
+                    self.logger.debug('Use strategy for {} module'.format(kernel_module))
+                    clusters = strategy.divide(kernel_module)
+                    self.all_clusters.update(clusters)
+                    for cluster in clusters:
+                        for cluster_module in cluster.modules:
+                            build_modules.add(cluster_module.id)
+                            self.checked_modules.add(cluster_module.id)
+                else:
+                    # Module is subsystem
+                    build_modules.add(kernel_module)
+                    subsystem_modules = self.get_modules_from_deps(kernel_module, module_deps)
+                    for module2 in subsystem_modules:
+                        clusters = strategy.divide(module2)
+                        self.all_clusters.update(clusters)
+                        for cluster in clusters:
+                            # Need update build_modules and checked_modules
+                            for module3 in cluster.modules:
+                                self.checked_modules.add(module3.id)
+                                if not self.is_part_of_subsystem(module3, build_modules):
+                                    build_modules.add(module3.id)
+
+            self.logger.debug('After dividing build modules: {}'.format(build_modules))
+
+            if 'all' not in self.conf['Linux kernel']['modules']:
+                self.mqs['Linux kernel modules'].put(build_modules)
+                self.mqs['Additional modules'].put(build_modules)
+
+        self.logger.info('Generate all Linux kernel verification object decriptions')
 
         cc_ready = set()
         while True:
@@ -248,9 +221,9 @@ class LKVOG(core.components.Component):
             if not self.module['name'] in self.all_modules:
                 self.all_modules[self.module['name']] = True
                 module_clusters = []
-                if self.module['name'] in checked_modules:
+                if self.module['name'] in self.checked_modules:
                     # Find clusters
-                    for cluster in clusters:
+                    for cluster in self.all_clusters:
                         if self.module['name'] in [module.id for module in cluster.modules]:
                             for cluster_module in cluster.modules:
                                 if cluster_module.id not in cc_ready:
@@ -258,11 +231,10 @@ class LKVOG(core.components.Component):
                             else:
                                 module_clusters.append(cluster)
                     # Remove appended clusters
-                    clusters = set(filter(
-                        lambda cluster: cluster not in module_clusters,
-                        clusters))
+                    self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
+                        self.all_clusters))
                 else:
-                    checked_modules.add(module.Module(self.module['name']))
+                    self.checked_modules.add(module.Module(self.module['name']))
                     module_clusters.append(module.Graph([module.Module(self.module['name'])]))
 
                 for cluster in module_clusters:
