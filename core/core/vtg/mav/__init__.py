@@ -27,7 +27,6 @@ class MAV(common.CommonStrategy):
     error_function_prefix = '__VERIFIER_error_'
     # Relevant for revision 20410.
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
-    path_to_witnesses = 'output/witness.*.graphml'
 
     def generate_verification_tasks(self):
         self.logger.info('Starting Multi-Aspect Verification')
@@ -131,6 +130,13 @@ class MAV(common.CommonStrategy):
             {'-setprop': 'analysis.mav.specificationComparator=VIOLATED_PROPERTY'})
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'cpa.arg.errorPath.file='})
+
+        # Option for MEA.
+        if 'mea' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['mea']:
+            self.activate_mea()
+        if self.is_mea_active():
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'analysis.mav.stopAfterError=false'})
 
         self.add_specific_options()
 

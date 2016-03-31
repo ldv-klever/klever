@@ -8,6 +8,7 @@ import tarfile
 import time
 from abc import abstractclassmethod
 from xml.dom import minidom
+import glob
 
 import core.components
 import core.session
@@ -16,6 +17,9 @@ import core.utils
 
 # This is an abstract class for VTG strategy. It includes common actions.
 class CommonStrategy(core.components.Component):
+
+    path_to_witnesses = 'output/witness.*.graphml'
+
     @abstractclassmethod
     def generate_verification_tasks(self):
         None
@@ -102,14 +106,33 @@ class CommonStrategy(core.components.Component):
 
     def process_single_verdict(self, decision_results, suffix=None, specified_witness=None):
         verification_report_id = '{0}/verification{1}'.format(self.id, suffix)
-        self.create_verification_report(verification_report_id, decision_results, suffix)
-
-        self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
-
         # Add bug kind if it was specified.
         added_attrs = []
         if suffix:
             added_attrs.append({"Bug kind": suffix})
+        path_to_witness = None
+        if decision_results['status'] == 'unsafe':
+            # Default place for witness, if we consider only 1 possible witness for verification task.
+            # Is strategy may produce more than 1 witness, it should be specified in 'specified_witness'.
+            path_to_witness = 'output/witness.0.graphml'
+            if specified_witness:
+                path_to_witness = specified_witness
+            if self.is_mea_active():
+                if self.basic_error_trace_filter(path_to_witness, suffix):
+                    self.logger.info('Processing error trace "{0}"'.format(path_to_witness, suffix))
+                    new_errro_trace_number = self.get_current_error_trace_number(suffix)
+                    verification_report_id += "{0}".format(new_errro_trace_number)
+                    if not suffix:
+                        suffix = ''
+                    suffix += "{0}".format(new_errro_trace_number)
+                    added_attrs.append({"Error trace number": "{0}".format(new_errro_trace_number)})
+                else:
+                    self.logger.info('Error trace "{0}" is equivalent to one of the already processed'.
+                                     format(path_to_witness))
+                    return
+
+        self.create_verification_report(verification_report_id, decision_results, suffix)
+        self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
         if decision_results['status'] == 'safe':
             core.utils.report(self.logger,
@@ -128,12 +151,6 @@ class CommonStrategy(core.components.Component):
         elif decision_results['status'] == 'unsafe':
             self.logger.info('Get source files referred by error trace')
             src_files = set()
-
-            # Default place for witness, if we consider only 1 possible witness for verification task.
-            # Is strategy may produce more than 1 witness, it should be specified in 'specified_witness'.
-            path_to_witness = 'output/witness.0.graphml'
-            if specified_witness:
-                path_to_witness = specified_witness
             path_to_processed_witness = path_to_witness + ".processed"
             with open(path_to_witness, encoding='ascii') as fp:
                 # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
@@ -341,6 +358,36 @@ class CommonStrategy(core.components.Component):
 
         return path.data
 
+    # Multiple Error Analysis.
+    # Implements external filtering by full equivalence.
+    # TODO: add more external filters.
+    stored_error_traces = {}
+    mea = False
+
+    def activate_mea(self):
+        self.mea = True
+        self.stored_error_traces.clear()
+
+    def is_mea_active(self):
+        return self.mea
+
+    def get_current_error_trace_number(self, bug_kind=None):
+        return self.stored_error_traces[bug_kind].__len__()
+
+    # Returns true if new_error_trace does not equivalent to any of the stored error traces.
+    # Also stores new traces in this case.
+    def basic_error_trace_filter(self, new_error_trace, bug_kind=None):
+        if bug_kind in self.stored_error_traces:
+            stored_error_traces_for_bug_kind = self.stored_error_traces[bug_kind]
+        else:
+            stored_error_traces_for_bug_kind = []
+
+        if not stored_error_traces_for_bug_kind.__contains__(new_error_trace):
+            stored_error_traces_for_bug_kind.append(new_error_trace)
+            self.stored_error_traces[bug_kind] = stored_error_traces_for_bug_kind
+            return True
+        return False
+
 
 # This class represent sequential VTG strategies.
 class SequentialStrategy(CommonStrategy):
@@ -387,6 +434,13 @@ class SequentialStrategy(CommonStrategy):
             self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
         else:
             self.logger.warning('Verifier property file was not prepared since entry points were not specified')
+
+    def set_option_for_mea(self):
+        if 'mea' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['mea']:
+            self.activate_mea()
+        if self.is_mea_active():
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'analysis.stopAfterError=false'})
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
@@ -463,7 +517,18 @@ class SequentialStrategy(CommonStrategy):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
-                self.process_single_verdict(decision_results, suffix=bug_kind)
+                if self.is_mea_active():
+                    all_found_error_traces = glob.glob(self.path_to_witnesses)
+                    if all_found_error_traces:
+                        decision_results['status'] = 'unsafe'
+                    if decision_results['status'] == 'unsafe':
+                        for error_trace in all_found_error_traces:
+                            self.process_single_verdict(decision_results, suffix=bug_kind,
+                                                        specified_witness=error_trace)
+                    else:
+                        self.process_single_verdict(decision_results, suffix=bug_kind)
+                else:
+                    self.process_single_verdict(decision_results, suffix=bug_kind)
                 break
 
             time.sleep(1)

@@ -12,6 +12,7 @@ from core.vtg import common
 class ABKM(common.SequentialStrategy):
     def generate_verification_tasks(self):
         self.logger.info('Generate one verification task by merging all bug kinds')
+        self.set_option_for_mea()
         self.process_sequential_verification_task()
 
     main = generate_verification_tasks

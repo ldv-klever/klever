@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 
 from core.vtg import common
 
@@ -19,9 +20,12 @@ class ABKS(common.SequentialStrategy):
         self.logger.info('Verification tasks contains {0} bug kinds'.format(bug_kinds.__len__()))
 
         self.src_files = self.conf['abstract task desc']['extra C files'].copy()
+        self.set_option_for_mea()
 
         for bug_kind in bug_kinds:
             self.process_sequential_verification_task(bug_kind)
+            # Clear output directory since it is the same for all runs.
+            shutil.rmtree('output')
 
     main = generate_verification_tasks
 
