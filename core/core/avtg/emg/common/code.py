@@ -175,7 +175,10 @@ class FunctionModels:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
         if type(self.signature) is Pointer:
-            return "{}(sizeof({}))".format(self.mem_function_map[function], self.signature.points.to_string(''))
+            # todo: Implement proper paratmeters initialization (avoid providing sizeof until problem with incomplete
+            #       types is solved)
+            #return "{}(sizeof({}))".format(self.mem_function_map[function], self.signature.points.to_string(''))
+            return "{}(sizeof({}))".format(self.mem_function_map[function], '0')
         else:
             raise ValueError('This is not a pointer')
 
