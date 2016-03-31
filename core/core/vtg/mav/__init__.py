@@ -17,15 +17,17 @@ from core.vtg import common
 # This group of strategies is meant to check several rule specifications
 # (or bug kinds) at once. Several verification runs may be required.
 # Several bugs can be reported for each rule specification (or bug kind).
-# TODO: add sanity checks (CPAchecker version, specific options, ...).
+# TODO: Add presets.
 class MAV(common.CommonStrategy):
 
     path_to_file_with_results = 'output/mav_results_file'
-    number_of_iterations = 0
     number_of_asserts = 0
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
     path_to_property_automata = 'property_automata.spc'
     error_function_prefix = '__VERIFIER_error_'
+    # Relevant for revision 20410.
+    verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
+    path_to_witnesses = 'output/witness.*.graphml'
 
     def generate_verification_tasks(self):
         self.logger.info('Starting Multi-Aspect Verification')
@@ -44,9 +46,37 @@ class MAV(common.CommonStrategy):
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
 
         self.prepare_verification_task_files_archive()
-        self.decide_verification_task()
+        self.start_mav_cycle()
 
     main = generate_verification_tasks
+
+    def start_mav_cycle(self):
+        self.logger.info('Multi-Aspect Verification with a single iteration')
+        self.decide_verification_task()
+        self.logger.info('Multi-Aspect Verification has been completed')
+
+    def create_verification_report(self, verification_report_id, decision_results, suffix):
+        # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
+        core.utils.report(self.logger,
+                          'verification',
+                          {
+                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                              'id': verification_report_id,
+                              'parent id': self.id,
+                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                              'attrs': [],
+                              'name': self.conf['VTG strategy']['verifier']['name'],
+                              'resources': decision_results['resources'],
+                              'log': 'cil.i.log',
+                              'files': ['cil.i.log'] + (
+                                  ['benchmark.xml', self.path_to_property_automata] + self.task_desc['files']
+                                  if self.conf['upload input files of static verifiers']
+                                  else []
+                              )
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'],
+                          suffix)
 
     def create_asserts(self):
         # Bug kind is assert.
@@ -55,7 +85,7 @@ class MAV(common.CommonStrategy):
             self.number_of_asserts +=1
             function = "{0}".format(re.sub(r'\W', '_', bug_kind))
             self.assert_function[bug_kind] = function
-        self.logger.info('MAV will check {0} asserts'.format(self.number_of_asserts))
+        self.logger.debug('Multi-Aspect Verification will check "{0}" asserts'.format(self.number_of_asserts))
 
     def create_property_automata(self):
         with open(self.path_to_property_automata, 'w') as fp:
@@ -67,8 +97,6 @@ class MAV(common.CommonStrategy):
                 fp.write('  MATCH {{{0}{1}()}} -> ERROR("{2}");\n'.format(self.error_function_prefix,
                                                                       function, bug_kind))
             fp.write('END AUTOMATON\n')
-        #TODO: dispose of this
-        self.task_desc['property file'] = 'None'
 
     def add_verifier_options(self):
         self.logger.debug('Add common verifier options for MAV')
@@ -87,7 +115,27 @@ class MAV(common.CommonStrategy):
         # Specify specification file.
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-spec': self.path_to_property_automata})
-        # TODO: sanity checks, more options, new version.
+
+        # Multi-Aspect Verification specific options.
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'analysis.stopAfterError=false'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'analysis.multiAspectVerification=true'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'analysis.mav.precisionCleanStrategy=BY_SPECIFICATION'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'analysis.mav.precisionCleanSet=WAITLIST'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'analysis.mav.specificationComparator=VIOLATED_PROPERTY'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'cpa.arg.errorPath.file='})
+
+        self.add_specific_options()
+
+    def add_specific_options(self):
+        None
 
     def prepare_verification_task_files_archive(self):
         self.logger.debug('Prepare archive with verification task files')
@@ -114,8 +162,14 @@ class MAV(common.CommonStrategy):
         self.conf['abstract task desc']['extra C files'].append(
             {'C file': os.path.relpath('bug kind funcs.c', os.path.realpath(self.conf['source tree root']))})
 
+    def get_violated_property(self, file):
+        for line in reversed(list(open(file))):
+            result = re.search(r"<data key=\"violatedProperty\">(.*)</data>", line)
+            if result:
+                return result.group(1)
+        return None
+
     def decide_verification_task(self):
-        self.logger.info('Decide verification task')
         self.verification_status = None
 
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -148,7 +202,7 @@ class MAV(common.CommonStrategy):
                 break
 
             if task_status == 'FINISHED':
-                self.logger.info('Verification task was successfully decided')
+                self.logger.info('Iteration of Multi-Aspect Verification has been successfully completed')
 
                 session.download_decision(task_id)
 
@@ -158,41 +212,30 @@ class MAV(common.CommonStrategy):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
-                # TODO: new CPAchecker version
                 with open(self.path_to_file_with_results, encoding='ascii') as fp:
                     content = fp.readlines()
-                unsafe_trace = {}
+
+                witness_assert = {}  # Witnss (error trace) <-> assert (bug kind).
+                all_found_error_traces = glob.glob(self.path_to_witnesses)
+                for error_trace in all_found_error_traces:
+                    found_bug_kind = self.get_violated_property(error_trace)
+                    witness_assert[error_trace] = found_bug_kind
+
                 for line in content:
-                    result = re.search(r"\[specification=\[(.+)\], time=(\d+), status=(\w+)\]", line)
+                    result = re.search(self.verifier_results_regexp, line)
                     if result:
                         bug_kind = result.group(1)
                         verdict = result.group(3).lower()
-                        self.logger.info('Processing bug kind "{0}" with verdict "{1}"'.format(bug_kind, verdict))
+                        self.logger.info('Processing assert "{0}" with verdict "{1}"'.format(bug_kind, verdict))
+                        # Ignore verdicts 'checking'.
                         if verdict != 'unsafe' and verdict != 'safe':
                             verdict = 'unknown'
                         decision_results['status'] = verdict
                         if verdict == 'unsafe':
-                            unsafes = []
-                            # TODO: this.
-                            error_traces = glob.glob('output/ErrorPath.*.txt')
-                            for error_trace in error_traces:
-                                with open(error_trace) as fh:
-                                    for line in fh:
-                                        pass
-                                    last = line
-                                    error_function = self.assert_function[bug_kind]
-                                    result = re.search(error_function, last)
-                                    if result:
-                                        result = re.search(r"ErrorPath\.(\d+)\.txt", error_trace)
-                                        if result:
-                                            key = result.group(1)
-                                            unsafes.append(key)
-                            unsafe_trace[bug_kind] = unsafes
-                            for key in unsafe_trace[bug_kind]:
-                                # TODO: place name outside
-                                error_trace = "output/witness.{0}.graphml".format(key)
-                                self.process_single_verdict(decision_results, suffix=bug_kind,
-                                                            specified_witness=error_trace)
+                            for error_trace in all_found_error_traces:
+                                if witness_assert[error_trace] == bug_kind:
+                                    self.process_single_verdict(decision_results, suffix=bug_kind,
+                                                                specified_witness=error_trace)
                         else:
                             self.process_single_verdict(decision_results, suffix=bug_kind)
                 break

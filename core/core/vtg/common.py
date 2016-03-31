@@ -96,29 +96,13 @@ class CommonStrategy(core.components.Component):
                 bug_kinds.extend(extra_c_file['bug kinds'])
         return bug_kinds
 
+    @abstractclassmethod
+    def create_verification_report(self, verification_report_id, decision_results, suffix):
+        None
+
     def process_single_verdict(self, decision_results, suffix=None, specified_witness=None):
         verification_report_id = '{0}/verification{1}'.format(self.id, suffix)
-        # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
-        core.utils.report(self.logger,
-                          'verification',
-                          {
-                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                              'id': verification_report_id,
-                              'parent id': self.id,
-                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                              'attrs': [],
-                              'name': self.conf['VTG strategy']['verifier']['name'],
-                              'resources': decision_results['resources'],
-                              'log': 'cil.i.log',
-                              'files': ['cil.i.log'] + (
-                                  ['benchmark.xml', self.task_desc['property file']] + self.task_desc['files']
-                                  if self.conf['upload input files of static verifiers']
-                                  else []
-                              )
-                          },
-                          self.mqs['report files'],
-                          self.conf['main working directory'],
-                          suffix)
+        self.create_verification_report(verification_report_id, decision_results, suffix)
 
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
@@ -363,6 +347,29 @@ class SequentialStrategy(CommonStrategy):
     @abstractclassmethod
     def generate_verification_tasks(self):
         None
+
+    def create_verification_report(self, verification_report_id, decision_results, suffix):
+        # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
+        core.utils.report(self.logger,
+                          'verification',
+                          {
+                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                              'id': verification_report_id,
+                              'parent id': self.id,
+                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                              'attrs': [],
+                              'name': self.conf['VTG strategy']['verifier']['name'],
+                              'resources': decision_results['resources'],
+                              'log': 'cil.i.log',
+                              'files': ['cil.i.log'] + (
+                                  ['benchmark.xml', self.task_desc['property file']] + self.task_desc['files']
+                                  if self.conf['upload input files of static verifiers']
+                                  else []
+                              )
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'],
+                          suffix)
 
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
