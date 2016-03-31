@@ -166,7 +166,9 @@ def solve_task(conf):
     ]):
         for name in opt:
             ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
-    ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
+    # Property file may not be specified.
+    if "property file" in conf:
+        ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
     tasks = ElementTree.SubElement(benchmark, "tasks")
     # TODO: in this case verifier is invoked per each such file rather than per all of them.
     for file in conf["files"]:
