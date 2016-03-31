@@ -44,7 +44,14 @@ def text_processor(analysis, automaton, statement):
                 if not processed:
                     new_statements.append(text)
             statements = new_statements
-        return statements
+
+        # Filter out statements without processes expressions
+        final = set()
+        for stm in list(statements):
+            if '%' not in stm and '$' not in statements:
+                final.add(stm)
+
+        return list(final)
 
 
 class Translator(AbstractTranslator):
