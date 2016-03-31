@@ -260,7 +260,9 @@ def p_struct_declaration_list(p):
 
 def p_struct_declaration(p):
     """
-    struct_declaration : parameter_declaration END
+    struct_declaration : parameter_declaration BIT_SIZE_DELEMITER NUMBER END
+                       | parameter_declaration BIT_SIZE_DELEMITER NUMBER
+                       | parameter_declaration END
     """
     p[0] = p[1]
 
