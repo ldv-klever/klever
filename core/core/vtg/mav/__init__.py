@@ -138,6 +138,12 @@ class MAV(common.CommonStrategy):
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.mav.stopAfterError=false'})
 
+        # Option for Conditional Multi-Aspect Verification (CMAV) in one verification run.
+        if 'cmav' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['cmav']:
+            self.logger.info('Launching Conditional Multi-Aspect Verification in one verification run')
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'analysis.mav.relaunchInOneRun=true'})
+
         self.add_specific_options()
 
     def add_specific_options(self):
