@@ -104,21 +104,21 @@ class SA(core.components.Component):
 
     def _perform_info_requests(self, abstract_task):
         self.logger.info("Import source build commands")
+        b_cmds = {}
         for group in abstract_task["grps"]:
-            # TODO: do not extend abstract verification task description in such the way! This information isn't required for other AVTG plugins.
-            group["build commands"] = []
+            b_cmds[group['id']] = []
             for section in group["cc extra full desc files"]:
                 file = os.path.join(self.conf["source tree root"],
                                     section["cc full desc file"])
                 self.logger.info("Import build commands from {}".format(file))
                 with open(file, encoding="ascii") as fh:
                     command = json.loads(fh.read())
-                    group["build commands"].append(command)
+                    b_cmds[group['id']].append(command)
                     self.files.append(command['in files'][0])
 
         for group in abstract_task["grps"]:
             self.logger.info("Analyze source files from group {}".format(group["id"]))
-            for command in group["build commands"]:
+            for command in b_cmds[group['id']]:
                 os.environ["CWD"] = os.path.realpath(os.getcwd())
                 os.environ["CC_IN_FILE"] = command['in files'][0]
                 stdout = core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'),
