@@ -189,7 +189,8 @@ class ProcessModel:
 
         self.logger.info("Choose process to call callbacks from category {}".format(category))
         # First random
-        best_process = self.__abstr_event_processes[[name for name in estimations if estimations[name]][0]]
+        best_process = self.__abstr_event_processes[[name for name in sorted(estimations) if estimations[name] and
+                                                     len(estimations[name]["matched calls"]) > 0][0]]
         best_map = estimations[best_process.name]
 
         for process in [self.__abstr_event_processes[name] for name in sorted(estimations)]:
@@ -341,21 +342,20 @@ class ProcessModel:
         }
 
         # Collect native categories and interfaces
-        nc = []
-        ni = []
+        nc = set()
+        ni = set()
         for label in [process.labels[name] for name in sorted(process.labels.keys())]:
             for intf in label.interfaces:
                 intf_category, short_identifier = intf.split(".")
-                if intf_category not in nc:
-                    nc.append(intf_category)
+                nc.add(intf_category)
 
-                if intf in analysis.interfaces and intf not in ni and intf_category == category:
-                    ni.append(intf)
+                if intf in analysis.interfaces and intf_category == category:
+                    ni.add(intf)
                     self.__add_label_match(label_map, label, intf)
-            label_map["native interfaces"] = len(ni)
+        label_map["native interfaces"] = len(ni)
 
         # Stop analysis if process tied with another category
-        if len(nc) > 0 and category not in nc:
+        if len(nc) > 0 and len(ni) == 0:
             self.logger.debug("Process {} is intended to be matched with a category from the list: {}".
                               format(process.name, str(nc)))
             return None
