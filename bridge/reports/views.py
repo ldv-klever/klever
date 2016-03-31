@@ -5,7 +5,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, Stream
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, print_err
+from bridge.utils import unparallel_group, logger
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -65,7 +65,7 @@ def report_component(request, job_id, report_id):
         try:
             report_data = json.loads(report.data.decode('utf8'))
         except Exception as e:
-            print_err(e)
+            logger.exception("Json parsing error: %s" % e, stack_info=True)
 
     return render(
         request,
@@ -233,7 +233,7 @@ def report_leaf(request, leaf_type, report_id):
         template = 'reports/report_unsafe.html'
         etv = GetETV(report.error_trace)
         if etv.error is not None:
-            print_err(etv.error)
+            logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     return render(
         request, template,
@@ -263,7 +263,7 @@ def report_etv_full(request, report_id):
 
     etv = GetETV(report.error_trace)
     if etv.error is not None:
-        print_err(etv.error)
+        logger.error(etv.error, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[505]))
     return render(
         request, 'reports/etv_fullscreen.html',
@@ -298,7 +298,7 @@ def upload_report(request):
     try:
         data = json.loads(request.POST.get('report', '{}'))
     except Exception as e:
-        print_err(e)
+        logger.exception("Json parsing error: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Can not parse json data'})
     archive = None
     for f in request.FILES.getlist('file'):
@@ -384,7 +384,7 @@ def fill_compare_cache(request):
     try:
         CompareTree(request.user, j1, j2)
     except Exception as e:
-        print_err(e)
+        logger.exception("Comparison of reports' trees failed: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Unknown error while filling comparison cache'})
     return JsonResponse({})
 

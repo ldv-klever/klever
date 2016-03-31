@@ -5,7 +5,7 @@ from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.timezone import now
-from bridge.utils import print_err, file_get_or_create
+from bridge.utils import logger, file_get_or_create
 from reports.models import *
 from reports.utils import save_attrs
 from marks.utils import ConnectReportWithMarks
@@ -65,7 +65,7 @@ class UploadReport(object):
             try:
                 json.loads(data['data'])
             except Exception as e:
-                print_err(e)
+                logger.exception("Json parsing error: %s" % e, stack_info=True)
                 return "Component data must be represented in JSON"
 
         if data['type'] == 'start':
@@ -250,7 +250,7 @@ class UploadReport(object):
             try:
                 uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
             except Exception as e:
-                print_err(e)
+                logger.exception("Files uploading failed: %s" % e, stack_info=True)
                 self.error = 'Files uploading failed'
                 return
             if uf.log is None:
@@ -301,7 +301,7 @@ class UploadReport(object):
             try:
                 uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
             except Exception as e:
-                print_err(e)
+                logger.exception("Files uploading failed: %s" % e, stack_info=True)
                 self.error = 'Files uploading failed'
                 return
             if uf.log is None:
@@ -342,7 +342,7 @@ class UploadReport(object):
         try:
             uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
         except Exception as e:
-            print_err(e)
+            logger.exception("Files uploading failed: %s" % e, stack_info=True)
             self.error = 'Files uploading failed'
             return
         if uf.file_content is None:
@@ -381,7 +381,7 @@ class UploadReport(object):
         try:
             uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
         except Exception as e:
-            print_err(e)
+            logger.exception("Files uploading failed: %s" % e, stack_info=True)
             self.error = 'Files uploading failed'
             return
         if uf.file_content is None:
@@ -422,7 +422,7 @@ class UploadReport(object):
         try:
             uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
         except Exception as e:
-            print_err(e)
+            logger.exception("Files uploading failed: %s" % e, stack_info=True)
             self.error = 'Files uploading failed'
             return
         if uf.file_content is None:

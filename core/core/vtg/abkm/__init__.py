@@ -192,7 +192,8 @@ class ABKM(core.components.Component):
                                       'resources': decision_results['resources'],
                                       'log': 'cil.i.log',
                                       'files': ['cil.i.log'] + (
-                                          ['benchmark.xml', self.task_desc['property file']] + self.task_desc['files']
+                                          (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
+                                          [self.task_desc['property file']] + self.task_desc['files']
                                           if self.conf['upload input files of static verifiers']
                                           else []
                                       )
@@ -412,6 +413,10 @@ class ABKM(core.components.Component):
                 break
 
             time.sleep(1)
+
+        self.logger.info('Remove verification task "{0}"'.format(task_id))
+        session.remove_task(task_id)
+
 
     def __normalize_path(self, path):
         # Each file is specified either via absolute path or path relative to source tree root.
