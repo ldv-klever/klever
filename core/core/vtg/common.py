@@ -118,7 +118,7 @@ class CommonStrategy(core.components.Component):
             if specified_witness:
                 path_to_witness = specified_witness
             if self.is_mea_active():
-                if self.basic_error_trace_filter(path_to_witness, suffix):
+                if self.error_trace_filter(path_to_witness, suffix):
                     self.logger.info('Processing error trace "{0}"'.format(path_to_witness, suffix))
                     new_errro_trace_number = self.get_current_error_trace_number(suffix)
                     verification_report_id += "{0}".format(new_errro_trace_number)
@@ -358,11 +358,28 @@ class CommonStrategy(core.components.Component):
 
         return path.data
 
+    def set_mea_filters(self):
+        if self.is_mea_active():
+            self.logger.info('Checking for all violations of bug kinds by '
+                             'means of Multiple Error Analysis')
+            # Internal Filter.
+            if 'mea internal filter' in self.conf['VTG strategy']['verifier']:
+                internal_filter = self.conf['VTG strategy']['verifier']['mea internal filter']
+                self.logger.info('Using internal filter "{0}" for Multiple Error Analysis'.
+                                 format(internal_filter))
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'cpa.arg.errorPath.filters={0}'.format(internal_filter)})
+            # External Filter.
+            if 'mea external filter' in self.conf['VTG strategy']['verifier']:
+                external_filter = self.conf['VTG strategy']['verifier']['mea external filter']
+                self.logger.info('Using external filter "{0}" for Multiple Error Analysis'.
+                                 format(external_filter))
+                self.mea_external_filter = external_filter
+
     # Multiple Error Analysis.
-    # Implements external filtering by full equivalence.
-    # TODO: add more external filters.
     stored_error_traces = {}
     mea = False
+    mea_external_filter = None
 
     def activate_mea(self):
         self.mea = True
@@ -373,6 +390,24 @@ class CommonStrategy(core.components.Component):
 
     def get_current_error_trace_number(self, bug_kind=None):
         return self.stored_error_traces[bug_kind].__len__()
+
+    def error_trace_filter(self, new_error_trace, bug_kind=None):
+        if not self.mea_external_filter:
+            return self.without_filter(new_error_trace, bug_kind)
+        elif self.mea_external_filter == 'full_equivalence':
+            return self.basic_error_trace_filter(new_error_trace, bug_kind)
+        elif self.mea_external_filter == 'model_functions':
+            # Should be used for 'Sequential' strategies
+            # TODO implement this method
+            raise NotImplementedError('Filter is not implemented yet')
+        elif self.mea_external_filter == 'model_functions_for_violated_bug_kind':
+            # Should be used for 'MAV' strategies
+            # TODO implement this method
+            raise NotImplementedError('Filter is not implemented yet')
+        else:
+            self.logger.warning('External filter "{0}" does not exist, do not perform filtering'.
+                                format(self.mea_external_filter))
+            return self.without_filter(new_error_trace, bug_kind)
 
     # Returns true if new_error_trace does not equivalent to any of the stored error traces.
     # Also stores new traces in this case.
@@ -387,6 +422,17 @@ class CommonStrategy(core.components.Component):
             self.stored_error_traces[bug_kind] = stored_error_traces_for_bug_kind
             return True
         return False
+
+    # Do not perform filtering.
+    def without_filter(self, new_error_trace, bug_kind=None):
+        if bug_kind in self.stored_error_traces:
+            stored_error_traces_for_bug_kind = self.stored_error_traces[bug_kind]
+        else:
+            stored_error_traces_for_bug_kind = []
+
+        stored_error_traces_for_bug_kind.append(new_error_trace)
+        self.stored_error_traces[bug_kind] = stored_error_traces_for_bug_kind
+        return True
 
 
 # This class represent sequential VTG strategies.
@@ -441,6 +487,7 @@ class SequentialStrategy(CommonStrategy):
         if self.is_mea_active():
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.stopAfterError=false'})
+        self.set_mea_filters()
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')

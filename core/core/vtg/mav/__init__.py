@@ -155,6 +155,7 @@ class MAV(common.CommonStrategy):
         if self.is_mea_active():
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.mav.stopAfterError=false'})
+        self.set_mea_filters()
 
         # Option for Conditional Multi-Aspect Verification (CMAV) in one verification run.
         if 'cmav' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['cmav']:
