@@ -27,6 +27,7 @@ class MAV(common.CommonStrategy):
     error_function_prefix = '__VERIFIER_error_'
     # Relevant for revision 20410.
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
+    resources_written = False
 
     def generate_verification_tasks(self):
         self.logger.info('Starting Multi-Aspect Verification')
@@ -56,6 +57,12 @@ class MAV(common.CommonStrategy):
 
     def create_verification_report(self, verification_report_id, decision_results, suffix):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
+        if self.resources_written:
+            # In MAV we write resource statistics only for 1 verdict.
+            decision_results['resources'] = {
+                "CPU time": 0,
+                "memory size": 0,
+                "wall time": 0}
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -76,6 +83,7 @@ class MAV(common.CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           suffix)
+        self.resources_written = True
 
     def create_asserts(self):
         # Bug kind is assert.
