@@ -52,7 +52,7 @@ class UploadReport(object):
         if 'resources' in data:
             if not isinstance(data['resources'], dict) \
                     or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'memory size']):
-                return 'Resources has wrong format: %s' % json.dumps(data['resources'])
+                return 'Resources have wrong format: %s' % json.dumps(data['resources'])
 
         self.data = {'type': data['type'], 'id': data['id']}
         if 'comp' in data:
