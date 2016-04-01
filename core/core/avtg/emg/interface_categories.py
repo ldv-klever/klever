@@ -94,14 +94,14 @@ class CategoriesSpecification:
             self.logger.debug("Cache hit")
             return self._containers_cache[target.identifier]['default']
 
-    def resolve_interface(self, signature, category=None):
+    def resolve_interface(self, signature, category=None, use_cache=True):
         if type(signature) is InterfaceReference and signature.interface in self.interfaces:
             return [self.interfaces[signature.interface]]
         elif type(signature) is InterfaceReference and signature.interface not in self.interfaces:
             raise KeyError('Cannot find description of interface {}'.format(signature.interface))
         else:
             self.logger.debug("Resolve an interface for signature '{}'".format(signature.identifier))
-            if signature.identifier in self._interface_cache:
+            if signature.identifier in self._interface_cache and use_cache:
                 self.logger.debug('Cache hit')
             else:
                 self.logger.debug('Cache miss')
@@ -113,13 +113,13 @@ class CategoriesSpecification:
 
             return self._interface_cache[signature.identifier]
 
-    def resolve_interface_weakly(self, signature, category=None):
+    def resolve_interface_weakly(self, signature, category=None, use_cache=True):
         self.logger.debug("Resolve weakly an interface for signature '{}'".format(signature.identifier))
-        intf = self.resolve_interface(signature, category)
+        intf = self.resolve_interface(signature, category, use_cache)
         if not intf and type(signature) is Pointer:
-            intf = self.resolve_interface(signature.points, category)
+            intf = self.resolve_interface(signature.points, category, use_cache)
         elif not intf and type(signature) is not Pointer and signature.clean_declaration:
-            intf = self.resolve_interface(signature.take_pointer, category)
+            intf = self.resolve_interface(signature.take_pointer, category, use_cache)
         return intf
 
     def implementations(self, interface, weakly=True):
@@ -281,9 +281,9 @@ class CategoriesSpecification:
                 interface.rv_interface = self.interfaces[declaration.return_value.interface]
             elif declaration.return_value and type(declaration.return_value) is not Primitive and not \
                     (type(declaration.return_value) is Pointer and type(declaration.return_value.points) is Primitive):
-                rv_interface = self.resolve_interface(declaration.return_value, category)
+                rv_interface = self.resolve_interface(declaration.return_value, category, False)
                 if len(rv_interface) == 0:
-                    rv_interface = self.resolve_interface_weakly(declaration.return_value, category)
+                    rv_interface = self.resolve_interface_weakly(declaration.return_value, category, False)
 
                 if len(rv_interface) == 1:
                     interface.rv_interface = rv_interface[-1]
@@ -299,9 +299,9 @@ class CategoriesSpecification:
                         type(declaration.parameters[index]) is not Primitive and not \
                         (type(declaration.parameters[index]) is Pointer and
                          type(declaration.parameters[index].points) is Primitive):
-                    p_interface = self.resolve_interface(declaration.parameters[index], category)
+                    p_interface = self.resolve_interface(declaration.parameters[index], category, False)
                     if len(p_interface) == 0:
-                        p_interface = self.resolve_interface_weakly(declaration.parameters[index], category)
+                        p_interface = self.resolve_interface_weakly(declaration.parameters[index], category, False)
 
                     if len(p_interface) == 1:
                         p_interface = p_interface[-1]

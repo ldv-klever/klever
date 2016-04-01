@@ -378,7 +378,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         return categories
 
     def __resolve_or_add_interface(self, signature, category, constructor):
-        interface = self.resolve_interface(signature, category)
+        interface = self.resolve_interface(signature, category, False)
         if len(interface) == 0:
             interface = constructor(category, signature.pretty_name)
             self.logger.debug("Create new interface '{}' with signature '{}'".
@@ -432,7 +432,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     elif not interface.field_interfaces[field].declaration.clean_declaration:
                         del interface.field_interfaces[field]
             for signature in category['resources']:
-                intf = self.resolve_interface_weakly(signature, category_identifier)
+                intf = self.resolve_interface_weakly(signature, category_identifier, False)
                 if len(intf) == 0:
                     interface = self.__resolve_or_add_interface(signature, category_identifier, Resource)
                     if len(interface) > 1:
@@ -440,7 +440,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
             # Add callbacks
             for identifier in sorted(category['callbacks'].keys()):
-                candidates = self.resolve_interface(category['callbacks'][identifier], category_identifier)
+                candidates = self.resolve_interface(category['callbacks'][identifier], category_identifier, False)
 
                 if len(candidates) > 0:
                     containers = self.select_containers(identifier, category['callbacks'][identifier],
@@ -459,7 +459,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             # Resolve array elements
             for container in [cnt for cnt in self.containers(category_identifier) if cnt.declaration and
                               type(cnt.declaration) is Array and not cnt.element_interface]:
-                intf = self.resolve_interface_weakly(container.declaration.element)
+                intf = self.resolve_interface_weakly(container.declaration.element, False)
                 if len(intf) == 1:
                     container.element_interface = intf[0]
                 elif len(intf) == 0:
@@ -475,7 +475,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                               type(container.declaration.fields[field]) is not Primitive and
                               (type(container.declaration.fields[field] is not Pointer or
                                type(container.declaration.fields[field].points) is not Primitive))]:
-                    intf = self.resolve_interface_weakly(container.declaration.fields[field], container.category)
+                    intf = self.resolve_interface_weakly(container.declaration.fields[field], container.category, False)
                     if len(intf) == 1:
                         container.field_interfaces[field] = intf[-1]
                     elif len(intf) > 0 and field in [i.short_identifier for i in intf]:
@@ -500,7 +500,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             if category_identifier:
                 break
             for signature in category[interface_category]:
-                interface = self.resolve_interface(signature)
+                interface = self.resolve_interface(signature, False)
                 if len(interface) > 0:
                     category_identifier = interface[-1].category
                     break
@@ -508,7 +508,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             if category_identifier:
                 break
             for signature in sorted(list(category[interface_category].values()), key=lambda y: y.identifier):
-                interface = self.resolve_interface(signature)
+                interface = self.resolve_interface(signature, False)
                 if len(interface) > 0:
                     category_identifier = interface[-1].category
                     break
