@@ -196,7 +196,7 @@ class Aspect(FunctionDefinition):
 
     def get_aspect(self):
         lines = list()
-        lines.append("{}: call({}) ".format(self.aspect_type, self.declaration.to_string(self.name)) +
+        lines.append("{}: call({}) ".format(self.aspect_type, "$ {}(..)".format(self.name)) +
                      " {\n")
         lines.extend(self.body.get_lines(1))
         lines.append("}\n")
