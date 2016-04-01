@@ -78,18 +78,20 @@ class CategoriesSpecification:
             self._containers_cache[target.identifier] = {}
 
         if category and category not in self._containers_cache[target.identifier]:
-            self.logger.debug("Miss cache")
+            self.logger.debug("Cache miss")
             cnts = self.__resolve_containers(target, category)
             self._containers_cache[target.identifier][category] = cnts
             return cnts
         elif not category and 'default' not in self._containers_cache[target.identifier]:
-            self.logger.debug("Miss cache")
+            self.logger.debug("Cache miss")
             cnts = self.__resolve_containers(target, category)
             self._containers_cache[target.identifier]['default'] = cnts
             return cnts
         elif category and category in self._containers_cache[target.identifier]:
+            self.logger.debug("Cache hit")
             return self._containers_cache[target.identifier][category]
         else:
+            self.logger.debug("Cache hit")
             return self._containers_cache[target.identifier]['default']
 
     def resolve_interface(self, signature, category=None):
@@ -99,12 +101,17 @@ class CategoriesSpecification:
             raise KeyError('Cannot find description of interface {}'.format(signature.interface))
         else:
             self.logger.debug("Resolve an interface for signature '{}'".format(signature.identifier))
-            interfaces = [self.interfaces[name] for name in sorted(self.interfaces.keys())
-                          if type(self.interfaces[name].declaration) is type(signature) and
-                          (self.interfaces[name].declaration.identifier == signature.identifier) and
-                          (not category or self.interfaces[name].category == category)]
+            if signature.identifier in self._interface_cache:
+                self.logger.debug('Cache hit')
+            else:
+                self.logger.debug('Cache miss')
+                interfaces = [self.interfaces[name] for name in sorted(self.interfaces.keys())
+                              if type(self.interfaces[name].declaration) is type(signature) and
+                              (self.interfaces[name].declaration.identifier == signature.identifier) and
+                              (not category or self.interfaces[name].category == category)]
+                self._interface_cache[signature.identifier] = interfaces
 
-            return interfaces
+            return self._interface_cache[signature.identifier]
 
     def resolve_interface_weakly(self, signature, category=None):
         self.logger.debug("Resolve weakly an interface for signature '{}'".format(signature.identifier))
@@ -119,13 +126,13 @@ class CategoriesSpecification:
         self.logger.debug("Calculate inplementations for interface '{}'".format(interface.identifier))
         if weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['weak']) is list:
-            self.logger.debug('Found value in cache')
+            self.logger.debug("Cache hit")
             return self._implementations_cache[interface.identifier]['weak']
         elif not weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['strict']) is list:
-            self.logger.debug('Found value in cache')
+            self.logger.debug("Cache hit")
             return self._implementations_cache[interface.identifier]['strict']
-        self.logger.debug('Miss value in the cache')
+        self.logger.debug("Cache miss")
 
         if weakly:
             candidates = interface.declaration.weak_implementations

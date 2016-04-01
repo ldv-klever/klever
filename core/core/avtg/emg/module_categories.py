@@ -22,6 +22,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         setup_collection(self.types, self.typedefs)
         self._implementations_cache = {}
         self._containers_cache = {}
+        self._interface_cache = {}
 
     def import_specification(self, specification=None, module_specification=None, analysis=None):
         # Import typedefs if there are provided
