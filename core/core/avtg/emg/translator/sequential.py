@@ -176,6 +176,8 @@ class Translator(AbstractTranslator):
         # Copy base instances for each known implementation
         relevant_multi_containers = set()
         accesses = process.accesses()
+        self.logger.debug("Calculate relevant containers with several implementations for process {} for category {}".
+                          format(process.name, process.category))
         for access in [accesses[name] for name in sorted(accesses.keys())]:
             for inst_access in [inst for inst in sorted(access, key=lambda i: i.expression) if inst.interface]:
                 if type(inst_access.interface) is Container and \
@@ -189,6 +191,8 @@ class Translator(AbstractTranslator):
 
         # Copy instances for each implementation of a container
         if len(relevant_multi_containers) > 0:
+            self.logger.info("Found {} relevant containers with several implementations for process {} for category {}".
+                             format(str(len(relevant_multi_containers)), process.name, process.category))
             for interface in relevant_multi_containers:
                 new_base_list = []
                 implementations = analysis.implementations(interface)
@@ -196,27 +200,43 @@ class Translator(AbstractTranslator):
                 for implementation in implementations:
                     for instance in base_list:
                         newp = copy.copy(instance)
+                        self.logger.debug("Forbiding implementations")
                         newp.forbide_except(analysis, implementation)
                         new_base_list.append(newp)
 
                 base_list = list(new_base_list)
+        else:
+            self.logger.info("Have not found any relevant containers with several implementations for process {} "
+                             "for category {}".
+                             format(str(len(relevant_multi_containers)), process.name, process.category))
 
         new_base_list= []
         for instance in base_list:
             # Copy callbacks or resources which are not tied to a container
             accesses = instance.accesses()
             relevant_multi_leafs = set()
+            self.logger.debug("Calculate relevant non-containers with several implementations for an instance of "
+                              "process {} for category {}".
+                              format(process.name, process.category))
             for access in [accesses[name] for name in sorted(accesses.keys())]:
                 relevant_multi_leafs.update([inst for inst in access if inst.interface and
                                              type(inst.interface) is Callback and
                                              len(instance.get_implementations(analysis, inst)) > 1])
+
             if len(relevant_multi_leafs) > 0:
+                self.logger.info("Found {} relevant non-containers with several implementations for an instance of "
+                                 "process {} for category {}".
+                                 format(str(len(relevant_multi_leafs)), process.name, process.category))
                 for access in relevant_multi_leafs:
                     for implementation in analysis.implementations(access.interface):
                         newp = copy.copy(instance)
+                        self.logger.debug("Forbiding implementations")
                         newp.forbide_except(analysis, implementation)
                         new_base_list.append(newp)
             else:
+                self.logger.info("Have not found {} relevant non-containers with several implementations for "
+                                 "an instance of process {} for category {}".
+                                 format(str(len(relevant_multi_leafs)), process.name, process.category))
                 new_base_list.append(instance)
 
         base_list = new_base_list

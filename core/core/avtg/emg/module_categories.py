@@ -20,6 +20,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.types = {}
         self.typedefs = {}
         setup_collection(self.types, self.typedefs)
+        self._implementations_cache = {}
+        self._containers_cache = {}
 
     def import_specification(self, specification=None, module_specification=None, analysis=None):
         # Import typedefs if there are provided
@@ -48,6 +50,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #    fh.write(content)
 
     def collect_relevant_models(self, function):
+        self.logger.debug("Collect relevant kernel functions called in a call stack of function ''".format(function))
         process_names = [function]
         processed_names = []
         relevant = []
@@ -377,6 +380,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         interface = self.resolve_interface(signature, category)
         if len(interface) == 0:
             interface = constructor(category, signature.pretty_name)
+            self.logger.debug("Create new interface '{}' with signature '{}'".
+                              format(interface.identifier, signature.identifier))
             interface.declaration = signature
             self.interfaces[interface.identifier] = interface
             interface = [interface]
@@ -394,6 +399,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 identifier = declaration.pretty_name
 
             interface = Callback(category, identifier)
+            self.logger.debug("Create new interface '{}' with signature '{}'".
+                              format(interface.identifier, declaration.identifier))
             interface.declaration = declaration
             self.interfaces[interface.identifier] = interface
             return interface
@@ -488,10 +495,18 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
     def __yield_category(self, category):
         category_identifier = None
-        for interface_category in ["containers", "callbacks"]:
+        for interface_category in ["containers"]:
             if category_identifier:
                 break
             for signature in category[interface_category]:
+                interface = self.resolve_interface(signature)
+                if len(interface) > 0:
+                    category_identifier = interface[-1].category
+                    break
+        for interface_category in ["callbacks"]:
+            if category_identifier:
+                break
+            for signature in sorted(list(category[interface_category].values()), key=lambda y: y.identifier):
                 interface = self.resolve_interface(signature)
                 if len(interface) > 0:
                     category_identifier = interface[-1].category
@@ -512,6 +527,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         for interface in [self.interfaces[name] for name in sorted(self.interfaces.keys())]:
             if interface not in relevant_interfaces:
+                self.logger.debug("Delete interface description {} as unrelevant".format(interface.identifier))
                 del self.interfaces[interface.identifier]
 
     def __calculate_relevant_interfaces(self):
