@@ -319,19 +319,20 @@ class Process:
                 label1 = self.extract_label(self.actions[signals[0]].parameters[index])
                 label2 = process.extract_label(process.actions[signals[1]].parameters[index])
 
-
-                empty_label = None
-                if (not label2.interfaces or len(label2.interfaces) == 0) and \
-                        (label1.interfaces and len(label1.interfaces) > 0):
-                    empty_label = label2
-                    donor_label = label1
-                elif (label2.interfaces and len(label2.interfaces) > 0) and \
-                        (not label1.interfaces or len(label1.interfaces) == 0):
-                    donor_label = label2
-                    empty_label = label1
-                if empty_label:
-                    for intf in donor_label.interfaces:
-                        empty_label.set_declaration(intf, donor_label.get_declaration(intf))
+                if len(label1.interfaces) > 0 and not label2.prior_signature:
+                    for intf in label1.interfaces:
+                        if label1.get_declaration(intf) and (intf not in label2.interfaces or
+                                                             not label2.get_declaration(intf)):
+                            label2.set_declaration(intf, label1.get_declaration(intf))
+                if len(label2.interfaces) > 0 and not label1.prior_signature:
+                    for intf in label2.interfaces:
+                        if label2.get_declaration(intf) and (intf not in label1.interfaces or
+                                                             not label1.get_declaration(intf)):
+                            label1.set_declaration(intf, label2.get_declaration(intf))
+                if label1.prior_signature and not label2.prior_signature and len(label2.interfaces) == 0:
+                    label2.prior_signature = label1.prior_signature
+                if label2.prior_signature and not label1.prior_signature and len(label1.interfaces) == 0:
+                    label1.prior_signature = label2.prior_signature
 
             self.actions[signals[0]].peers.append(
             {
