@@ -114,16 +114,17 @@ class CategoriesSpecification:
                     cnts = self.resolve_containers(interface)
                     for cnt in cnts:
                         cnt_intf = self.interfaces[cnt]
-                        if type(cnt_intf.declaration) is Array:
+                        if type(cnt_intf.declaration) is Array and cnt_intf.element_interface and \
+                                interface.identifier == cnt_intf.element_interface.identifier:
                             implementations.append(impl)
                             break
-                        elif type(cnt_intf.declaration) is Structure or type(cnt_intf.declaration) is Union and \
-                                impl.sequence[-1] in cnts[cnt] and \
-                                (impl.sequence[-1] in cnt_intf.field_interfaces and
-                                 cnt_intf.field_interfaces[impl.sequence[-1]] and
-                                 cnt_intf.field_interfaces[impl.sequence[-1]].identifier == interface.identifier):
-                            implementations.append(impl)
-                            break
+                        elif (type(cnt_intf.declaration) is Structure or type(cnt_intf.declaration) is Union) and \
+                                interface in cnt_intf.field_interfaces.values():
+                            field = list(cnt_intf.field_interfaces.keys())[list(cnt_intf.field_interfaces.values()).
+                                                                           index(interface)]
+                            if field == impl.sequence[-1]:
+                                implementations.append(impl)
+                                break
                 else:
                     implementations.append(impl)
 

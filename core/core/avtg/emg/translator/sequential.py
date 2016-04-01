@@ -4,7 +4,7 @@ import re
 
 from core.avtg.emg.translator import AbstractTranslator, Aspect
 from core.avtg.emg.translator.automaton import FSA
-from core.avtg.emg.common.interface import Container
+from core.avtg.emg.common.interface import Container, Callback
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
 from core.avtg.emg.common.code import Variable, FunctionDefinition, FunctionModels
@@ -61,7 +61,7 @@ class Translator(AbstractTranslator):
         self.__callback_fsa = []
         self.__model_fsa = []
         self.__entry_fsa = None
-        self.__instance_modifier = 2
+        self.__instance_modifier = 1
         self.__identifier_cnt = -1
 
         # Read translation options
@@ -184,7 +184,7 @@ class Translator(AbstractTranslator):
                     relevant_multi_containers.add(inst_access.interface)
                 elif len(inst_access.complete_list_interface) > 1:
                     for intf in [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
-                                 len(analysis.implementations(intf)) > 1 and intf not in relevant_multi_containers]:
+                                 len(analysis.implementations(intf)) > 1]:
                         relevant_multi_containers.add(intf)
 
         # Copy instances for each implementation of a container
@@ -208,6 +208,7 @@ class Translator(AbstractTranslator):
             relevant_multi_leafs = set()
             for access in [accesses[name] for name in sorted(accesses.keys())]:
                 relevant_multi_leafs.update([inst for inst in access if inst.interface and
+                                             type(inst.interface) is Callback and
                                              len(instance.get_implementations(analysis, inst)) > 1])
             if len(relevant_multi_leafs) > 0:
                 for access in relevant_multi_leafs:
@@ -811,8 +812,6 @@ class Automaton:
 
                         # Change file according to the value
                         var.file = implementations[0].file
-                    elif len(implementations) > 1:
-                        raise ValueError("Cannot initialize label {} with several values".format(label.name))
 
                     if label.name not in self.__label_variables:
                         self.__label_variables[label.name] = {}
