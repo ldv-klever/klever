@@ -576,8 +576,7 @@ class ProcessModel:
 
         # Deregister dispatch
         self.logger.debug("Generate copy of receive {} and make dispatch from it".format(receive.name))
-        new_dispatch = copy.deepcopy(receive)
-        new_dispatch.type = "dispatch"
+        new_dispatch = Dispatch(receive.name)
 
         # Peer these subprocesses
         new_dispatch.peers.append(
