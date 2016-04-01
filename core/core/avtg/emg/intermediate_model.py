@@ -1,7 +1,7 @@
 import copy
 
 from core.avtg.emg.common.signature import import_signature
-from core.avtg.emg.common.interface import Interface, Callback, Container
+from core.avtg.emg.common.interface import Interface, Callback, Container, Resource
 from core.avtg.emg.common.process import Access, Process, Label, Call, CallRetval, Dispatch, Receive, Condition, \
     rename_subprocess
 
@@ -304,12 +304,15 @@ class ProcessModel:
                 label, tail = process.extract_label_with_tail(callback_name)
 
                 if len(label.interfaces) > 0:
+                    resolved = False
                     for interface in [analysis.interfaces[name] for name in label.interfaces
-                                      if name in analysis.interfaces]:
+                                      if name in analysis.interfaces and
+                                      type(analysis.interfaces[name]) is not Resource]:
                         if type(interface) is Container and len(tail) > 0:
                             intfs = self.__resolve_interface(analysis, interface, tail)
                             if intfs:
                                 intfs[-1].called = True
+                                resolved = True
                             else:
                                 self.logger.warning("Cannot resolve callback '{}' in description of process '{}'".
                                                     format(callback_name, process.name))
@@ -317,17 +320,17 @@ class ProcessModel:
                             self.logger.debug("Callback {} can be called in the model".
                                               format(interface.identifier))
                             interface.called = True
-                        else:
-                            raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
-                                             format(callback_name, process.name))
+                            resolved = True
+                    if not resolved:
+                        raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
+                                         format(callback_name, process.name))
 
     def __add_label_match(self, label_map, label, interface):
         if label.name not in label_map["matched labels"]:
             self.logger.debug("Match label '{}' with interface '{}'".format(label.name, interface))
-            label_map["matched labels"][label.name] = [interface]
+            label_map["matched labels"][label.name] = set([interface])
         else:
-            if interface not in label_map["matched labels"][label.name]:
-                label_map["matched labels"][label.name].append(interface)
+            label_map["matched labels"][label.name].add(interface)
 
     def __match_labels(self, analysis, process, category):
         self.logger.info("Try match process {} with interfaces of category {}".format(process.name, category))
@@ -391,7 +394,7 @@ class ProcessModel:
                         if intfs:
                             functions.append(intfs[-1])
                 elif label.name in label_map["matched labels"] and label.callback:
-                    if type(label_map["matched labels"][label.name]) is list:
+                    if type(label_map["matched labels"][label.name]) is set:
                         functions.extend([analysis.interfaces[name] for name in
                                           sorted(label_map["matched labels"][label.name])
                                           if name in analysis.interfaces])
@@ -400,17 +403,37 @@ class ProcessModel:
 
                 # Match parameters
                 for function in functions:
-                    if len(action.parameters) <= len(function.param_interfaces):
-                        for parameter in action.parameters:
-                            pl = process.extract_label(parameter)
+                    labels = []
+                    pre_matched = set()
+                    for index in range(len(action.parameters)):
+                        label, tail = process.extract_label_with_tail(action.parameters[index])
+                        if tail:
+                            for container in analysis.containers(category):
+                                interfaces = self.__resolve_interface(analysis, container, tail)
+                                if interfaces:
+                                    self.__add_label_match(label_map, label, container.identifier)
+                                    pre_matched.add(interfaces[-1].identifier)
 
-                            if pl.resource:
-                                for pr in [pr for pr in function.param_interfaces if pr]:
-                                    unmatched_resources = [res for res in process.resources
-                                                           if res.name not in label_map["matched labels"]]
-                                    if len(unmatched_resources) == 0 or \
-                                            (len(unmatched_resources) > 0 and pl in unmatched_resources):
-                                        self.__add_label_match(label_map, pl, pr.identifier)
+                        labels.append([label, tail])
+
+                    f_intfs = [pr for pr in function.param_interfaces if pr]
+                    for pr in range(len(f_intfs)):
+                        matched = set([label[0] for label in labels
+                                       if label[0].name in label_map['matched labels'] and
+                                       f_intfs[pr].identifier in label_map['matched labels'][label[0].name]]) & \
+                                  set([label[0] for label in labels])
+                        if len(matched) == 0 and f_intfs[pr].identifier not in pre_matched:
+                            if len(labels) == len(f_intfs):
+                                self.__add_label_match(label_map, labels[pr][0], f_intfs[pr].identifier)
+                            else:
+                                unmatched = [label[0] for label in labels
+                                             if label[0].name not in label_map['matched labels'] and len(label[1]) == 0]
+                                if len(unmatched) > 0:
+                                    self.__add_label_match(label_map, unmatched[0], f_intfs[pr].identifier)
+                                else:
+                                    rsrs = [label[0] for label in labels if label[0].resource]
+                                    if len(rsrs) > 0:
+                                        self.__add_label_match(label_map, rsrs[-1], f_intfs[pr].identifier)
 
             # After containers are matched try to match rest callbacks from category
             matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
@@ -487,8 +510,7 @@ class ProcessModel:
                                                if process.labels[name].callback and
                                                process.labels[name].name in label_map["matched labels"]]:
                             if intfs[-1].identifier in label_map["matched labels"][callback_label]:
-                                index = label_map["matched labels"][callback_label].index(intfs[-1].identifier)
-                                del label_map["matched labels"][callback_label][index]
+                                label_map["matched labels"][callback_label].remove(intfs[-1].identifier)
 
         self.logger.info("Matched labels and interfaces:")
         self.logger.info("Number of native interfaces: {}".format(label_map["native interfaces"]))
@@ -619,6 +641,11 @@ class ProcessModel:
         else:
             raise TypeError("Expect Interface object but not {}".format(str(type(interface))))
 
+        # Be sure the first interface is a container
+        if type(matched[-1]) is not Container and len(tail) > 0:
+            return None
+
+        # Collect interface list
         for index in range(len(tail)):
             field = tail[index]
             intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
@@ -687,9 +714,6 @@ class ProcessModel:
                                     new.interface = intfs[-1]
                                     new.list_access = list_access
                                     new.list_interface = intfs
-                                else:
-                                    raise ValueError("Cannot resolve access {} with a base interface {} in process {}".
-                                                     format(access, interface, process.name))
                             else:
                                 new.interface = analysis.interfaces[interface]
                                 new.list_access = [label.name]
