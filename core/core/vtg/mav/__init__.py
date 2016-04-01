@@ -5,6 +5,7 @@ import os
 import tarfile
 import re
 import glob
+from enum import Enum
 
 import core.components
 import core.session
@@ -14,10 +15,19 @@ import time
 from core.vtg import common
 
 
+# Existed presets for MAV, which are specify the level of resources-quality balance.
+# Can be overwritten with verifier options.
+class MAVPreset(Enum):
+    L1 = {'ATL': 900, 'IITL': 20, 'BITL': 100, 'FITL': 100}
+    L2 = {'ATL': 900, 'IITL': 20, 'BITL': 100, 'FITL': 1200}
+    L3 = {'ATL': 900, 'IITL': 20, 'BITL': 200, 'FITL': 1200}
+    L4 = {'ATL': 900, 'IITL': 20, 'BITL': 900, 'FITL': 1200}
+    L5 = {'ATL': 1200, 'IITL': 50, 'BITL': 900, 'FITL': 1200}
+
+
 # This group of strategies is meant to check several rule specifications
 # (or bug kinds) at once. Several verification runs may be required.
 # Several bugs can be reported for each rule specification (or bug kind).
-# TODO: Add presets.
 class MAV(common.CommonStrategy):
 
     path_to_file_with_results = 'output/mav_results_file'
@@ -152,10 +162,42 @@ class MAV(common.CommonStrategy):
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.mav.relaunchInOneRun=true'})
 
+        self.parse_preset()
+
         self.add_specific_options()
 
     def add_specific_options(self):
         None
+
+    def parse_preset(self):
+        # By default no preset is specified. In this case it is expected, that the user
+        # will specify required limitation with verifier options.
+        selected_preset = None
+        if 'mav_preset' in self.conf['VTG strategy']['verifier']:
+            specified_preset = self.conf['VTG strategy']['verifier']['mav_preset']
+            for preset in MAVPreset:
+                if preset.name == specified_preset:
+                    selected_preset = preset
+            if not selected_preset:
+                self.logger.warning('Specified MAV preset "{0}" is not supported, no limitations will be used'.
+                                    format(specified_preset))
+            else:
+                # Existed preset was specified.
+                self.logger.info('Using MAV preset "{0}" for limitations'.format(selected_preset.name))
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'analysis.mav.assertTimeLimit={0}'.
+                        format(selected_preset.value['ATL'])})
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'analysis.mav.idleIntervalTimeLimit={0}'.
+                        format(selected_preset.value['IITL'])})
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'analysis.mav.basicIntervalTimeLimit={0}'.
+                        format(selected_preset.value['BITL'])})
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'analysis.mav.firstIntervalTimeLimit={0}'.
+                        format(selected_preset.value['FITL'])})
+        else:
+            self.logger.debug('No MAV preset was specified, no limitations will be used')
 
     def prepare_verification_task_files_archive(self):
         self.logger.debug('Prepare archive with verification task files')
