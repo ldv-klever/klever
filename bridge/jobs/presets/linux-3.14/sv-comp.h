@@ -74,8 +74,13 @@ int ldv_undef_int(void) {
   return __VERIFIER_nondet_int();
 }
 
-void *ldv_undef_ptr(void) {
-  return __VERIFIER_nondet_pointer();
+void *ldvemg_undef_ptr(size_t size) {
+  void *ret = 0;
+
+  while (ret == 0) {
+     ret = __VERIFIER_nondet_pointer();
+  }
+  return ret;
 }
 
 unsigned long ldv_undef_ulong(void) {
