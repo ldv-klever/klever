@@ -123,7 +123,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                          sorted(self.files[file]["variables"].keys())
                                          if self.files[file]["variables"][name].use > 0]:
                             if cc_extra_full_desc_file["in file"] == file and variable.value:
-                                lines.extend([variable.declare_with_init({}, init=False) + ";\n"])
+                                lines.extend([variable.declare_with_init({}) + ";\n"])
 
                 lines.append("\n")
                 lines.append("/* EMG function definitions */\n")

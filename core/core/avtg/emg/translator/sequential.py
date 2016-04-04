@@ -506,8 +506,7 @@ class Translator(AbstractTranslator):
                 # Generate special function with call
                 function = FunctionDefinition(fname, file, "void {}(void)".format(fname), True)
                 for var in local_vars:
-                    definition = var.declare_with_init(self.conf["translation options"]["pointer initialization"],
-                                                       init=True) + ";"
+                    definition = var.declare_with_init(self.conf["translation options"]["pointer initialization"]) + ";"
                     function.body.concatenate(definition)
 
                 # Generate return value assignment

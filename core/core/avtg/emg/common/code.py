@@ -21,14 +21,14 @@ class Variable:
         else:
             raise ValueError("Attempt to create variable {} without signature".format(name))
 
-    def declare_with_init(self, conf, init=True):
+    def declare_with_init(self, conf):
         # Ger declaration
         declaration = self.declare(extern=False)
 
         # Add memory allocation
-        if self.value and init:
+        if self.value:
             declaration += " = {}".format(self.value)
-        elif init and type(self.declaration) is Pointer and\
+        elif type(self.declaration) is Pointer and\
                 ((type(self.declaration.points) is Structure and conf['structures']) or
                  (type(self.declaration.points) is Array and conf['arrays']) or
                  (type(self.declaration.points) is Union and conf['unions']) or
