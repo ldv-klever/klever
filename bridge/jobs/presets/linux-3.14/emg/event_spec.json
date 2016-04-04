@@ -663,7 +663,7 @@
         },
         "ret_suspend": {
           "callback": "%container.suspend%",
-          "callback return value": "auspended%"
+          "callback return value": "%suspended%"
         },
         "resume": {
           "callback": "%container.resume%",
@@ -696,10 +696,10 @@
           "condition": ["%probed% != 0"]
         },
         "suspended": {
-          "condition": ["auspended% == 0"]
+          "condition": ["%suspended% == 0"]
         },
         "not_suspended": {
-          "condition": ["auspended% != 0"]
+          "condition": ["%suspended% != 0"]
         }
       }
     },
