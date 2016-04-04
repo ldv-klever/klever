@@ -15,7 +15,9 @@ import time
 from core.vtg import common
 
 
-# Existed presets for MAV, which are specify the level of resources-quality balance.
+# Existed presets for MAV, which are specify the level of accuracy:
+# more higher level will provide more accurate results,
+# but also will require more resources.
 # Can be overwritten with verifier options.
 class MAVPreset(Enum):
     L1 = {'ATL': 900, 'IITL': 20, 'BITL': 100, 'FITL': 100}
