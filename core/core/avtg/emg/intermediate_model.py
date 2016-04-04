@@ -619,9 +619,8 @@ class ProcessModel:
 
         # Replace condition
         # todo: do this according to parameters (relevant to issue #6566)
-        if new_dispatch.condition:
-            new_dispatch.condition = None
-            process.actions[new_dispatch.name].condition = None
+        new_dispatch.condition = None
+        receive.condition = None
 
     def __resolve_interface(self, analysis, interface, string):
         tail = string.split(".")
