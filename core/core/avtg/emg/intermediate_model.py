@@ -391,7 +391,7 @@ class ProcessModel:
                 if label.name in label_map["matched labels"] and label.container:
                     for intf in sorted(label_map["matched labels"][label.name]):
                         intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail)
-                        if intfs:
+                        if intfs and type(intfs[-1]) is Callback:
                             functions.append(intfs[-1])
                 elif label.name in label_map["matched labels"] and label.callback:
                     if type(label_map["matched labels"][label.name]) is set:
@@ -406,15 +406,15 @@ class ProcessModel:
                     labels = []
                     pre_matched = set()
                     for index in range(len(action.parameters)):
-                        label, tail = process.extract_label_with_tail(action.parameters[index])
-                        if tail:
+                        p_label, p_tail = process.extract_label_with_tail(action.parameters[index])
+                        if p_tail:
                             for container in analysis.containers(category):
-                                interfaces = self.__resolve_interface(analysis, container, tail)
+                                interfaces = self.__resolve_interface(analysis, container, p_tail)
                                 if interfaces:
-                                    self.__add_label_match(label_map, label, container.identifier)
+                                    self.__add_label_match(label_map, p_label, container.identifier)
                                     pre_matched.add(interfaces[-1].identifier)
 
-                        labels.append([label, tail])
+                        labels.append([p_label, p_tail])
 
                     f_intfs = [pr for pr in function.param_interfaces if pr]
                     for pr in range(len(f_intfs)):
