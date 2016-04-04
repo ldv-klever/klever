@@ -38,7 +38,7 @@ class Run:
 
         # Set limits
         self.limits = {
-            "memlimit": int(description["resource limits"]["memory size"] / 1000 ** 2),  # MB
+            "memlimit": int(description["resource limits"]["memory size"]),  # In bytes.
             "timelimit": int(description["resource limits"]["CPU time"] / 1000)
         }
 
