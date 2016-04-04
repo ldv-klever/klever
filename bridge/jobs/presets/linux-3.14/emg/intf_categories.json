@@ -17,11 +17,11 @@
       "header": "include/linux/platform_device.h"
     },
     "platform_driver_probe": {
-      "signature": "$ platform_driver_probe(*%platform.platform_driver%, %platform.probe%, ...)",
+      "signature": "$ platform_driver_probe(*%platform.platform_driver%, %platform.probe%)",
       "header": "include/linux/platform_device.h"
     },
     "platform_driver_register": {
-      "signature": "$ platform_driver_register(*%platform.platform_driver%, ...)",
+      "signature": "$ platform_driver_register(*%platform.platform_driver%)",
       "header": "include/linux/platform_device.h"
     },
     "alloc_netdev": {
