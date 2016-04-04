@@ -6,7 +6,7 @@ from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
-from django.template.loader import get_template
+from django.template import loader, Template, Context
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES
@@ -258,14 +258,14 @@ def get_job_data(request):
         'can_stop': job_access.can_stop(),
         'jobstatus': job.status,
         'jobstatus_text': job.get_status_display() + '',
-        'job_history': get_template('jobs/jobRunHistory.html').render({
+        'job_history': loader.get_template('jobs/jobRunHistory.html').render({
             'job': job,
             'checked_option': request.POST.get('checked_run_history', 0)
         })
     }
     if report is not None:
         data['jobstatus_href'] = reverse('reports:component', args=[job.pk, report.pk])
-        data['jobdata'] = get_template('jobs/jobData.html').render({
+        data['jobdata'] = loader.get_template('jobs/jobData.html').render({
             'reportdata': ViewJobData(request.user, report, view=request.POST.get('view', None))
         })
     return JsonResponse(data)
@@ -914,6 +914,7 @@ def download_configuration(request, runhistory_id):
 
 
 def get_def_start_job_val(request):
+    activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     if 'name' not in request.POST or 'value' not in request.POST:
@@ -921,7 +922,15 @@ def get_def_start_job_val(request):
     if request.POST['name'] == 'formatter' and request.POST['value'] in KLEVER_CORE_LOG_FORMATTERS:
         return JsonResponse({'value': KLEVER_CORE_LOG_FORMATTERS[request.POST['value']]})
     if request.POST['name'] == 'build_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
-        return JsonResponse({'value': str(KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][0])})
+        return JsonResponse({
+            'value': Template('{% load l10n %}{{ val|localize }}').render(Context({
+                'val': KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][0]
+            }))
+        })
     if request.POST['name'] == 'tasks_gen_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
-        return JsonResponse({'value': str(KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][1])})
+        return JsonResponse({
+            'value': Template('{% load l10n %}{{ val|localize }}').render(Context({
+                'val': KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][1]
+            }))
+        })
     return JsonResponse({'error': 'Unknown error'})
