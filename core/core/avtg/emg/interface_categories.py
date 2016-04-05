@@ -17,6 +17,10 @@ class CategoriesSpecification:
             self.logger.debug("Found interface category {}".format(category))
             self.__import_category_interfaces(category, specification["categories"][category])
 
+            if 'extensible' in specification["categories"][category] and \
+                    not specification["categories"][category]['extensible']:
+                self._locked_categories.add(category)
+
         if "kernel functions" in specification:
             self.logger.info("Import kernel functions description")
             for intf in self.__import_kernel_interfaces("kernel functions", specification):
