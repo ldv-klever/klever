@@ -2,7 +2,7 @@ import re
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from bridge.utils import print_err
+from bridge.utils import logger
 from reports.models import ReportUnsafe
 from reports.graphml_parser import GraphMLParser
 
@@ -74,7 +74,7 @@ class GetETV(object):
         try:
             return GraphMLParser().parse(graphml_file)
         except Exception as e:
-            print_err(e)
+            logger.exception(e, stack_info=True)
             self.error = 'The error trace has incorrect format'
         return None
 
@@ -515,7 +515,7 @@ def error_trace_callstack(error_trace):
     try:
         graph = GraphMLParser().parse(error_trace.encode('utf8'))
     except Exception as e:
-        print_err(e)
+        logger.exception(e, stack_info=True)
         raise ValueError('The error trace has incorrect format')
     traces = []
     if graph.set_root_by_attribute('true', 'isEntryNode') is None:

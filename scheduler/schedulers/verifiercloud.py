@@ -38,7 +38,7 @@ class Run:
 
         # Set limits
         self.limits = {
-            "memlimit": int(description["resource limits"]["memory size"] / 1000 ** 2),  # MB
+            "memlimit": int(description["resource limits"]["memory size"]),  # In bytes.
             "timelimit": int(description["resource limits"]["CPU time"] / 1000)
         }
 
@@ -58,6 +58,7 @@ class Run:
         # TODO: like in scheduler/client/__init__.py
         options.append({"-setprop": "parser.readLineDirectives=true"})
         options.append({"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"})
+        options.append({"-heap": '{0}m'.format(round(3 * description["resource limits"]["memory size"] / (4 * 1000 ** 2)))})
         for option in options:
             for name in option:
                 self.options.append(name)
@@ -255,8 +256,10 @@ class Scheduler(schedulers.SchedulerExchange):
                                                                                                      identifier))
         self.server.submit_solution(identifier, solution_description, solution_archive)
 
-        # Remove task directory
-        shutil.rmtree(task_work_dir)
+        if "keep working directory" not in self.conf["scheduler"] or \
+                not self.conf["scheduler"]["keep working directory"]:
+            logging.debug("Clean task working directory {} for {}".format(task_work_dir, identifier))
+            shutil.rmtree(task_work_dir)
 
         logging.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"

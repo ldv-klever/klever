@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
-from bridge.utils import print_err, file_get_or_create
+from bridge.utils import logger, file_get_or_create
 from jobs.models import JOBFILE_DIR
 from jobs.utils import create_job, update_job, change_job_status
 from reports.UploadReport import UploadReportFiles
@@ -254,7 +254,7 @@ class UploadJob(object):
                         with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                             jobdata = json.load(fp)
                     except Exception as e:
-                        print_err(e)
+                        logger.exception("Can't parse jobdata: %s" % e, stack_info=True)
                         return _("The job archive is corrupted")
                 elif dir_path.endswith(JOBFILE_DIR):
                     try:
@@ -263,7 +263,7 @@ class UploadJob(object):
                             file_name, True
                         )[1]
                     except Exception as e:
-                        print_err(e)
+                        logger.exception("Can't save job files to DB: %s" % e, stack_info=True)
                         return _("Creating job's file failed")
                 elif file_name.startswith('version-'):
                     version_id = int(file_name.replace('version-', ''))
@@ -352,7 +352,7 @@ class UploadJob(object):
         try:
             UploadReports(self.job, json.loads(jobdata['reports']), report_files)
         except Exception as e:
-            print_err("ERROR: %s" % e)
+            logger.exception("Uploading report failed: %s" % e, stack_info=True)
             self.job.delete()
             self.job = None
             return _("One of the reports was not uploaded")

@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import hashlib
 from django.contrib.auth.models import User
@@ -9,7 +10,7 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
     DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES
-from bridge.utils import print_err
+from bridge.utils import logger
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
@@ -453,12 +454,12 @@ def create_job(kwargs):
                 'absurl': kwargs['absolute_url'] + newjob_url
             })
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
     else:
         try:
             Notify(newjob, 0)
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
     return newjob
 
 
@@ -493,12 +494,12 @@ def update_job(kwargs):
         try:
             Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
     else:
         try:
             Notify(kwargs['job'], 1)
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
     return kwargs['job']
 
 
@@ -516,7 +517,7 @@ def remove_jobs_by_id(user, job_ids):
         try:
             Notify(job, 2)
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
         job.delete()
     return 0
 
@@ -701,7 +702,7 @@ class GetConfiguration(object):
                 list(conf_template[4:])
             ]
         except Exception as e:
-            print_err(e)
+            logger.exception("Wrong default configuration format: %s" % e, stack_info=True)
 
     def __get_file_conf(self, filedata):
         scheduler = None
@@ -709,7 +710,7 @@ class GetConfiguration(object):
             if sch[1] == filedata['task scheduler']:
                 scheduler = sch[0]
         if scheduler is None:
-            print_err('Scheduler %s is not supported' % filedata['task scheduler'])
+            logger.error('Scheduler %s is not supported' % filedata['task scheduler'], stack_info=True)
             return
 
         cpu_time = filedata['resource limits']['CPU time']
@@ -736,7 +737,7 @@ class GetConfiguration(object):
                 loggers['file']['formatter']
             ]
         except Exception as e:
-            print_err("Wrong logging format: %s" % e)
+            logger.exception("Wrong logging format: %s" % e)
             return
 
         try:
@@ -760,10 +761,13 @@ class GetConfiguration(object):
                 ]
             ]
         except Exception as e:
-            print_err("Wrong core configuration format: %s" % e)
+            logger.exception("Wrong core configuration format: %s" % e, stack_info=True)
 
     def __get_user_conf(self, conf):
         def int_or_float(val):
+            m = re.match('^\s*(\d+),(\d+)\s*$', val)
+            if m is not None:
+                val = '%s.%s' % (m.group(1), m.group(2))
             try:
                 return int(val)
             except ValueError:
@@ -782,7 +786,7 @@ class GetConfiguration(object):
             if conf[2][5] is not None:
                 conf[2][5] = float(conf[2][5])
         except Exception as e:
-            print_err("Wrong user configuration format: %s" % e)
+            logger.exception("Wrong user configuration format: %s" % e, stack_info=True)
             return
         self.configuration = conf
 

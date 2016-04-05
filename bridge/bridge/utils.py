@@ -1,30 +1,41 @@
 import os
 import time
+import logging
 import hashlib
-import tempfile
 import tarfile
+import tempfile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.template.defaultfilters import filesizeformat
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
-from bridge.settings import DEBUG, MAX_FILE_SIZE
+from bridge.settings import MAX_FILE_SIZE
 from jobs.models import File
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
 
+logger = logging.getLogger('bridge')
 
-def print_err(message):
-    if DEBUG:
-        print(message)
+
+class InfoFilter(object):
+    def __init__(self, level):
+        self.__level = level
+
+    def filter(self, log_record):
+        return log_record.levelno == self.__level
+
+
+for h in logger.handlers:
+    if h.name == 'other':
+        h.addFilter(InfoFilter(logging.INFO))
 
 
 def print_exec_time(f):
     def wrapper(*args, **kwargs):
         start = now()
         res = f(*args, **kwargs)
-        print_err('%s: %s' % (f.__name__, now() - start))
+        logger.info('%s: %s' % (f.__name__, now() - start))
         return res
     return wrapper
 

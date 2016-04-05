@@ -257,7 +257,11 @@ def get_job_data(request):
         'can_download': job_access.can_download(),
         'can_stop': job_access.can_stop(),
         'jobstatus': job.status,
-        'jobstatus_text': job.get_status_display() + ''
+        'jobstatus_text': job.get_status_display() + '',
+        'job_history': get_template('jobs/jobRunHistory.html').render({
+            'job': job,
+            'checked_option': request.POST.get('checked_run_history', 0)
+        })
     }
     if report is not None:
         data['jobstatus_href'] = reverse('reports:component', args=[job.pk, report.pk])
@@ -657,7 +661,7 @@ def upload_job(request, parent_id=None):
         try:
             job_dir = extract_tar_temp(f)
         except Exception as e:
-            print_err(e)
+            logger.exception("Archive extraction failed" % e, stack_info=True)
             failed_jobs.append([_('Archive extracting error') + '', f.name])
             continue
         zipdata = UploadJob(parent, request.user, job_dir.name)
@@ -793,7 +797,7 @@ def prepare_decision(request, job_id):
                     file_conf=json.loads(request.FILES['file_conf'].read().decode('utf8'))
                 ).configuration
             except Exception as e:
-                print_err(e)
+                logger.exception(e, stack_info=True)
                 return HttpResponseRedirect(reverse('error', args=[500]))
         else:
             configuration = GetConfiguration(conf_name=request.POST['conf_name']).configuration
@@ -868,7 +872,7 @@ def get_file_by_checksum(request):
     try:
         check_sums = json.loads(request.POST['check_sums'])
     except Exception as e:
-        print_err(e)
+        logger.exception("Json parsing failed: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Unknown error'})
     if len(check_sums) == 1:
         try:
