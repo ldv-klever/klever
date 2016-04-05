@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
@@ -321,13 +322,11 @@ class SaveFileData(object):
         return new_level
 
 
-def convert_time(lang, val, acc):
+def convert_time(val, acc):
     def final_value(time, postfix):
-        time_format = "%%1.%df %%s" % int(acc)
-        res = time_format % (time, postfix)
-        if lang == 'ru':
-            return res.replace('.', ',')
-        return res
+        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
+            'val': round(time, int(acc)), 'postfix': postfix
+        }))
 
     new_time = int(val)
     try_div = new_time / 1000
@@ -344,13 +343,11 @@ def convert_time(lang, val, acc):
     return final_value(try_div, _('h'))
 
 
-def convert_memory(lang, val, acc):
+def convert_memory(val, acc):
     def final_value(memory, postfix):
-        mem_format = "%%1.%df %%s" % int(acc)
-        res = mem_format % (memory, postfix)
-        if lang == 'ru':
-            return res.replace('.', ',')
-        return res
+        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
+            'val': round(memory, int(acc)), 'postfix': postfix
+        }))
 
     new_mem = int(val)
     try_div = new_mem / 10**3
@@ -564,9 +561,9 @@ def get_resource_data(user, resource):
     wall = resource.wall_time
     mem = resource.memory
     if user.extended.data_format == 'hum':
-        wall = convert_time(user.extended.language, wall, accuracy)
-        cpu = convert_time(user.extended.language, cpu, accuracy)
-        mem = convert_memory(user.extended.language, mem, accuracy)
+        wall = convert_time(wall, accuracy)
+        cpu = convert_time(cpu, accuracy)
+        mem = convert_memory(mem, accuracy)
     return [wall, cpu, mem]
 
 
@@ -574,7 +571,7 @@ def get_user_time(user, milliseconds):
     accuracy = user.extended.accuracy
     converted = int(milliseconds)
     if user.extended.data_format == 'hum':
-        converted = convert_time(user.extended.language, converted, accuracy)
+        converted = convert_time(converted, accuracy)
     return converted
 
 
