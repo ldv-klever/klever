@@ -410,6 +410,46 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         else:
             raise TypeError('Expect function pointer to create callback object')
 
+    def __get_field_candidates(self, container):
+        changes = True
+        while changes:
+            changes = False
+            for field in [field for field in container.declaration.fields if field not in container.field_interfaces]:
+                intf = self.__match_interface_for_container(container.declaration.fields[field], container.category,
+                                                            field)
+                if intf:
+                    container.field_interfaces[field] = intf
+                    changes = True
+
+    def __match_interface_for_container(self, signature, category, id_match):
+        candidates = self.resolve_interface_weakly(signature, category, False)
+
+        if len(candidates) == 1:
+            return candidates[0]
+        elif len(candidates) == 0:
+            return None
+        else:
+            strict_candidates = self.resolve_interface(signature, category, False)
+            if len(strict_candidates) == 1:
+                return strict_candidates[0]
+            elif len(strict_candidates) > 1 and id_match:
+                id_candidates = [intf for intf in strict_candidates if intf.short_identifier == id_match]
+                if len(id_candidates) == 1:
+                    return id_candidates[0]
+                else:
+                    return None
+
+            if len(strict_candidates) > 1:
+                raise RuntimeError('There are several interfaces with the same declaration {}'.
+                                   format(signature.to_string('a')))
+
+            # Filter of resources
+            candidates = [intf for intf in candidates if type(intf) is not Resource]
+            if len(candidates) == 1:
+                return candidates[0]
+            else:
+                return None
+
     def __merge_categories(self, categories):
         self.logger.info("Try to find suitable interface descriptions for found types")
         for category in categories:
@@ -461,29 +501,14 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             # Resolve array elements
             for container in [cnt for cnt in self.containers(category_identifier) if cnt.declaration and
                               type(cnt.declaration) is Array and not cnt.element_interface]:
-                intf = self.resolve_interface_weakly(container.declaration.element, False)
-                if len(intf) == 1:
-                    container.element_interface = intf[0]
-                elif len(intf) == 0:
-                    container.element_interface = None
-                else:
-                    raise NotImplementedError
+                intf = self.__match_interface_for_container(container.declaration.element, container.category, None)
+                if intf:
+                    container.element_interface = intf
 
             # Resolve structure interfaces
             for container in [cnt for cnt in self.containers(category_identifier) if cnt.declaration and
                               type(cnt.declaration) is Structure]:
-                for field in [field for field in sorted(container.declaration.fields.keys())
-                              if field not in container.field_interfaces and
-                              type(container.declaration.fields[field]) is not Primitive and
-                              (type(container.declaration.fields[field] is not Pointer or
-                               type(container.declaration.fields[field].points) is not Primitive))]:
-                    intf = self.resolve_interface_weakly(container.declaration.fields[field], container.category, False)
-                    if len(intf) == 1:
-                        container.field_interfaces[field] = intf[-1]
-                    elif len(intf) > 0 and field in [i.short_identifier for i in intf]:
-                        container.field_interfaces[field] = [i for i in intf if i.short_identifier == field][-1]
-                    elif len(intf) > 0:
-                        raise NotImplementedError
+                self.__get_field_candidates(container)
 
             # Resolve callback parameters
             for callback in self.callbacks(category_identifier):
