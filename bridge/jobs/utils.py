@@ -324,8 +324,16 @@ class SaveFileData(object):
 
 def convert_time(val, acc):
     def final_value(time, postfix):
-        return Template('{% load l10n %}{% load humanize %}{{ val|floatformat:fnum }} {{ postfix }}').render(Context({
-            'val': round(time, int(acc)), 'postfix': postfix, 'fnum': int(acc)
+        fpart_len = len(str(round(time)))
+        if fpart_len > int(acc):
+            tmp_div = 10**(fpart_len - int(acc))
+            rounded_value = round(time/tmp_div) * tmp_div
+        elif fpart_len == int(acc):
+            rounded_value = round(time)
+        else:
+            rounded_value = round(time, int(acc) - fpart_len)
+        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
+            'val': rounded_value, 'postfix': postfix
         }))
 
     new_time = int(val)
@@ -345,8 +353,16 @@ def convert_time(val, acc):
 
 def convert_memory(val, acc):
     def final_value(memory, postfix):
-        return Template('{% load l10n %}{% load humanize %}{{ val|floatformat:fnum }} {{ postfix }}').render(Context({
-            'val': round(memory, int(acc)), 'postfix': postfix, 'fnum': int(acc)
+        fpart_len = len(str(round(memory)))
+        if fpart_len > int(acc):
+            tmp_div = 10 ** (fpart_len - int(acc))
+            rounded_value = round(memory / tmp_div) * tmp_div
+        elif fpart_len == int(acc):
+            rounded_value = round(memory)
+        else:
+            rounded_value = round(memory, int(acc) - fpart_len)
+        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
+            'val': rounded_value, 'postfix': postfix
         }))
 
     new_mem = int(val)
