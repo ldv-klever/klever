@@ -88,7 +88,16 @@
     {
       "Linux kernel": {
         "Git repository": {"commit": "ac4de081312a~"},
-        "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
+        "modules": ["drivers/leds/leds-lp5521.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ac4de081312a~"},
+        "modules": ["drivers/leds/leds-lp5523.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
@@ -196,7 +205,16 @@
     {
       "Linux kernel": {
         "Git repository": {"commit": "ac4de081312a"},
-        "modules": ["drivers/leds/leds-lp5521.ko", "drivers/leds/leds-lp5523.ko"]
+        "modules": ["drivers/leds/leds-lp5521.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe",
+      "comment": "See comment for unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ac4de081312a"},
+        "modules": ["drivers/leds/leds-lp5523.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "safe",
