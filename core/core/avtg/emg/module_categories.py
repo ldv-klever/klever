@@ -19,10 +19,12 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.exits = []
         self.types = {}
         self.typedefs = {}
-        setup_collection(self.types, self.typedefs)
+        self._locked_categories = set()
         self._implementations_cache = {}
         self._containers_cache = {}
         self._interface_cache = {}
+
+        setup_collection(self.types, self.typedefs)
 
     def import_specification(self, specification=None, module_specification=None, analysis=None):
         # Import typedefs if there are provided
@@ -329,8 +331,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             while len(to_process) > 0:
                 tp = to_process.pop()
 
-                # todo: unions?
-                if type(tp) is Structure:
+                if type(tp) is Structure or type(tp) is Union:
                     c_flag = False
                     for field in sorted(tp.fields.keys()):
                         if type(tp.fields[field]) is Pointer and \
@@ -453,7 +454,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
     def __merge_categories(self, categories):
         self.logger.info("Try to find suitable interface descriptions for found types")
         for category in categories:
-            category_identifier = self.__yield_category(category)
+            category_identifier = self.__yield_existing_category(category)
+            if not category_identifier:
+                category_identifier = self.__yield_new_category(category)
 
             # Add containers and resources
             self.logger.info("Found interfaces for category {}".format(category_identifier))
@@ -521,14 +524,14 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         # Refine dirty declarations
         self._refine_interfaces()
 
-    def __yield_category(self, category):
+    def __yield_existing_category(self, category):
         category_identifier = None
         for interface_category in ["containers"]:
             if category_identifier:
                 break
             for signature in category[interface_category]:
                 interface = self.resolve_interface(signature, False)
-                if len(interface) > 0:
+                if len(interface) > 0 and interface[-1].category not in self._locked_categories:
                     category_identifier = interface[-1].category
                     break
         for interface_category in ["callbacks"]:
@@ -536,17 +539,26 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 break
             for signature in sorted(list(category[interface_category].values()), key=lambda y: y.identifier):
                 interface = self.resolve_interface(signature, False)
-                if len(interface) > 0:
+                if len(interface) > 0 and interface[-1].category not in self._locked_categories:
                     category_identifier = interface[-1].category
                     break
 
-        if not category_identifier:
-            if len(category["containers"]) > 0:
-                category_identifier = list(category["containers"])[0].pretty_name
-            else:
-                category_identifier = list(category["resources"])[0].pretty_name
-
         return category_identifier
+
+    def __yield_new_category(self, category):
+        category_identifier = None
+        for interface_category in ["containers", "resources"]:
+            if category_identifier:
+                break
+            for signature in category[interface_category]:
+                if signature.pretty_name not in self.categories:
+                    category_identifier = signature.pretty_name
+                    break
+
+        if category_identifier:
+            return category_identifier
+        else:
+            raise ValueError('Cannot find a suitable category identifier')
 
     def __remove_interfaces(self):
         # Remove categories without implementations
@@ -576,7 +588,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         # Add callbacks and their resources
         for callback in self.callbacks():
-            if len(callback.declaration.implementations) > 0:
+            if len(self.implementations(callback)) > 0:
                 relevant_interfaces.add(callback)
                 relevant_interfaces.update(self.__check_category_relevance(callback))
             else:
