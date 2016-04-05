@@ -324,8 +324,8 @@ class SaveFileData(object):
 
 def convert_time(val, acc):
     def final_value(time, postfix):
-        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
-            'val': round(time, int(acc)), 'postfix': postfix
+        return Template('{% load l10n %}{% load humanize %}{{ val|floatformat:fnum }} {{ postfix }}').render(Context({
+            'val': round(time, int(acc)), 'postfix': postfix, 'fnum': int(acc)
         }))
 
     new_time = int(val)
@@ -345,8 +345,8 @@ def convert_time(val, acc):
 
 def convert_memory(val, acc):
     def final_value(memory, postfix):
-        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
-            'val': round(memory, int(acc)), 'postfix': postfix
+        return Template('{% load l10n %}{% load humanize %}{{ val|floatformat:fnum }} {{ postfix }}').render(Context({
+            'val': round(memory, int(acc)), 'postfix': postfix, 'fnum': int(acc)
         }))
 
     new_mem = int(val)
