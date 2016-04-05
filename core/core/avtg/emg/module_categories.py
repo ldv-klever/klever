@@ -15,8 +15,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.kernel_macro_functions = {}
         self.kernel_macros = {}
         self.modules_functions = None
-        self.inits = None
-        self.exits = None
+        self.inits = []
+        self.exits = []
         self.types = {}
         self.typedefs = {}
         setup_collection(self.types, self.typedefs)
@@ -129,11 +129,13 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         if "init" in analysis:
             self.inits = analysis["init"]
         if len(self.inits) == 0:
-            raise ValueError('No module initialization functions provided, abort model generation')
+            raise ValueError('There is no module initialization function provided')
 
         self.logger.debug("Move module exit functions to the modules interface specification")
         if "exit" in analysis:
             self.exits = analysis["exit"]
+        if len(self.exits) == 0:
+            self.logger.warning('There is no module exit function provided')
 
     def __extract_types(self, analysis):
         entities = []
