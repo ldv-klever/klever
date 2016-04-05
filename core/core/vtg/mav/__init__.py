@@ -65,9 +65,17 @@ class MAV(CommonStrategy):
     main = generate_verification_tasks
 
     def start_mav_cycle(self):
-        self.logger.info('Multi-Aspect Verification with a single iteration')
+        self.logger.info('Multi-Aspect Verification with a single verification run')
+        iterations = 1
         self.decide_verification_task()
-        self.logger.info('Multi-Aspect Verification has been completed')
+        with open('cil.i.log', encoding='ascii') as fp:
+            for line in fp:
+                res = re.search(r'Iteration (\d+) \(ConditionalMAVListener\.onRestartInOneRun, INFO\)', line)
+                if res:
+                    iterations = res.group(1)
+        self.logger.info('Multi-Aspect Verification has been completed in {0} iterations'.
+                         format(iterations))
+
 
     def create_verification_report(self, verification_report_id, decision_results, suffix):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
