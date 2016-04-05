@@ -321,38 +321,50 @@ class SaveFileData(object):
         return new_level
 
 
-def convert_time(val, acc):
+def convert_time(lang, val, acc):
+    def final_value(time, postfix):
+        time_format = "%%1.%df %%s" % int(acc)
+        res = time_format % (time, postfix)
+        if lang == 'ru':
+            return res.replace('.', ',')
+        return res
+
     new_time = int(val)
-    time_format = "%%1.%df %%s" % int(acc)
     try_div = new_time / 1000
     if try_div < 1:
-        return time_format % (new_time, _('ms'))
+        return final_value(new_time, _('ms'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('s'))
+        return final_value(new_time, _('s'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('min'))
-    return time_format % (try_div, _('h'))
+        return final_value(new_time, _('min'))
+    return final_value(try_div, _('h'))
 
 
-def convert_memory(val, acc):
+def convert_memory(lang, val, acc):
+    def final_value(memory, postfix):
+        mem_format = "%%1.%df %%s" % int(acc)
+        res = mem_format % (memory, postfix)
+        if lang == 'ru':
+            return res.replace('.', ',')
+        return res
+
     new_mem = int(val)
-    mem_format = "%%1.%df %%s" % int(acc)
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('B'))
+        return final_value(new_mem, _('B'))
     new_mem = try_div
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('KB'))
+        return final_value(new_mem, _('KB'))
     new_mem = try_div
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('MB'))
-    return mem_format % (try_div, _('GB'))
+        return final_value(new_mem, _('MB'))
+    return final_value(try_div, _('GB'))
 
 
 def role_info(job, user):
@@ -552,9 +564,9 @@ def get_resource_data(user, resource):
     wall = resource.wall_time
     mem = resource.memory
     if user.extended.data_format == 'hum':
-        wall = convert_time(wall, accuracy)
-        cpu = convert_time(cpu, accuracy)
-        mem = convert_memory(mem, accuracy)
+        wall = convert_time(user.extended.language, wall, accuracy)
+        cpu = convert_time(user.extended.language, cpu, accuracy)
+        mem = convert_memory(user.extended.language, mem, accuracy)
     return [wall, cpu, mem]
 
 
@@ -562,7 +574,7 @@ def get_user_time(user, milliseconds):
     accuracy = user.extended.accuracy
     converted = int(milliseconds)
     if user.extended.data_format == 'hum':
-        converted = convert_time(converted, accuracy)
+        converted = convert_time(user.extended.language, converted, accuracy)
     return converted
 
 
