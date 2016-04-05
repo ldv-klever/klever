@@ -92,7 +92,6 @@
   "kernel macro-functions": {},
   "categories": {
     "usb": {
-      "extensible": false,
       "containers": {
         "usb_driver": {
           "header": "include/linux/usb.h",
