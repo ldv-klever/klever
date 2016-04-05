@@ -167,11 +167,6 @@ class MAV(CommonStrategy):
 
         self.parse_preset()
 
-        self.add_specific_options()
-
-    def add_specific_options(self):
-        None
-
     def parse_preset(self):
         # By default no preset is specified. In this case it is expected, that the user
         # will specify required limitation with verifier options.
