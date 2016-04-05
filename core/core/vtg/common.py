@@ -14,9 +14,13 @@ import core.components
 import core.session
 import core.utils
 
+from core.vtg.mea import MEA
+
 
 # This is an abstract class for VTG strategy. It includes common actions.
 class CommonStrategy(core.components.Component):
+
+    mea = None
 
     path_to_witnesses = 'output/witness.*.graphml'
 
@@ -117,10 +121,10 @@ class CommonStrategy(core.components.Component):
             path_to_witness = 'output/witness.0.graphml'
             if specified_witness:
                 path_to_witness = specified_witness
-            if self.is_mea_active():
-                if self.error_trace_filter(path_to_witness, suffix):
+            if self.mea:
+                if self.mea.error_trace_filter(path_to_witness, suffix):
                     self.logger.info('Processing error trace "{0}"'.format(path_to_witness, suffix))
-                    new_errro_trace_number = self.get_current_error_trace_number(suffix)
+                    new_errro_trace_number = self.mea.get_current_error_trace_number(suffix)
                     verification_report_id += "{0}".format(new_errro_trace_number)
                     if not suffix:
                         suffix = ''
@@ -358,192 +362,6 @@ class CommonStrategy(core.components.Component):
 
         return path.data
 
-    def set_mea_filters(self):
-        if self.is_mea_active():
-            self.logger.info('Checking for all violations of bug kinds by '
-                             'means of Multiple Error Analysis')
-            # Internal Filter.
-            if 'mea internal filter' in self.conf['VTG strategy']['verifier']:
-                internal_filter = self.conf['VTG strategy']['verifier']['mea internal filter']
-                self.logger.info('Using internal filter "{0}" for Multiple Error Analysis'.
-                                 format(internal_filter))
-                self.conf['VTG strategy']['verifier']['options'].append(
-                    {'-setprop': 'cpa.arg.errorPath.filters={0}'.format(internal_filter)})
-            # External Filter.
-            if 'mea external filter' in self.conf['VTG strategy']['verifier']:
-                external_filter = self.conf['VTG strategy']['verifier']['mea external filter']
-                self.logger.info('Using external filter "{0}" for Multiple Error Analysis'.
-                                 format(external_filter))
-                self.mea_external_filter = external_filter
-
-    # Multiple Error Analysis.
-    stored_error_traces = {}  # Internal representation of stored error traces.
-    mea = False
-    mea_external_filter = None
-    mea_model_functions = []
-
-    def add_model_function(self, mf):
-        self.mea_model_functions.add(mf.replace("ldv_", ""))
-
-    def activate_mea(self):
-        self.mea = True
-        self.stored_error_traces.clear()
-
-    def is_mea_active(self):
-        return self.mea
-
-    def get_current_error_trace_number(self, bug_kind=None):
-        return self.stored_error_traces[bug_kind].__len__()
-
-    def error_trace_filter(self, new_error_trace, bug_kind=None):
-        if not self.mea_external_filter:
-            return self.without_filter(new_error_trace, bug_kind)
-        elif self.mea_external_filter == 'full_equivalence':
-            # This filter does not make much sense, since basic Internal filter should do this.
-            return self.basic_error_trace_filter(new_error_trace, bug_kind)
-        elif self.mea_external_filter == 'model_functions':
-            # Default strategy, always should work.
-            return self.model_functions_filter(new_error_trace, bug_kind)
-        else:
-            self.logger.warning('External filter "{0}" does not exist, do not perform filtering'.
-                                format(self.mea_external_filter))
-            return self.without_filter(new_error_trace, bug_kind)
-
-    # Returns true if new_error_trace does not equivalent to any of the stored error traces.
-    # Also stores new traces in this case.
-    def basic_error_trace_filter(self, new_error_trace, bug_kind=None):
-        if bug_kind in self.stored_error_traces:
-            stored_error_traces_for_bug_kind = self.stored_error_traces[bug_kind]
-        else:
-            stored_error_traces_for_bug_kind = []
-
-        if not stored_error_traces_for_bug_kind.__contains__(new_error_trace):
-            stored_error_traces_for_bug_kind.append(new_error_trace)
-            self.stored_error_traces[bug_kind] = stored_error_traces_for_bug_kind
-            return True
-        return False
-
-    # This function finds all model function names in source files.
-    # If bug_kind is specified, it will filter model functions by corresponding bug kind.
-    def get_model_functions(self, graphml, bug_kind=None):
-        self.mea_model_functions = set()
-        src_files = set()
-        graph = graphml.getElementsByTagName('graph')[0]
-        for key in graphml.getElementsByTagName('key'):
-            if key.getAttribute('id') == 'originfile':
-                default = key.getElementsByTagName('default')[0]
-                default_src_file = self.__normalize_path(default.firstChild)
-                src_files.add(default_src_file)
-        for edge in graph.getElementsByTagName('edge'):
-            for data in edge.getElementsByTagName('data'):
-                if data.getAttribute('key') == 'originfile':
-                    src_files.add(self.__normalize_path(data.firstChild))
-
-        for src_file in src_files:
-            with open(os.path.join(self.conf['source tree root'], src_file), encoding='utf8') as fp:
-                i = 0
-                last_seen_model_function = None
-                for line in fp:
-                    i += 1
-                    match = re.search(
-                        r'/\*\s+(MODEL_FUNC_DEF)\s+(.*)\s+\*/',
-                        line)
-                    if match:
-                        kind, comment = match.groups()
-
-                        if kind == 'MODEL_FUNC_DEF':
-                            # Get necessary function name located on following line.
-                            try:
-                                line = next(fp)
-                                # Don't forget to increase counter.
-                                i += 1
-                                match = re.search(r'(ldv_\w+)', line)
-                                if match:
-                                    func_name = match.groups()[0]
-                                    if not bug_kind:
-                                        self.add_model_function(func_name)
-                                    else:
-                                        last_seen_model_function = func_name
-                            except StopIteration:
-                                raise ValueError('Model function definition does not exist')
-                    if bug_kind:
-                        match = re.search(r'ldv_assert\(\"(.*)\",', line)
-                        if match:
-                            assertion = match.group(1)
-                            if assertion.__contains__(bug_kind):
-                                if last_seen_model_function:
-                                    self.add_model_function(func_name)
-                                else:
-                                    raise ValueError('Model function definition does not exist')
-                            else:
-                                self.logger.debug('MF {0} is not considered for our bug kind'.
-                                                 format(last_seen_model_function))
-        self.logger.debug('Model functions "{0}" has been extracted'.format(self.mea_model_functions))
-
-    # Filter by model functions.
-    def model_functions_filter(self, new_error_trace, bug_kind=None):
-        if bug_kind in self.stored_error_traces:
-            stored_error_traces_for_bug_kind = self.stored_error_traces[bug_kind]
-        else:
-            stored_error_traces_for_bug_kind = []
-
-        # Prepare internal representation of model functions call tree for the selected error trace.
-        with open(new_error_trace, encoding='ascii') as fp:
-            dom = minidom.parse(fp)
-        graphml = dom.getElementsByTagName('graphml')[0]
-        graph = graphml.getElementsByTagName('graph')[0]
-
-        # Find model functions. It is done only for the first error trace.
-        if not self.mea_model_functions:
-            self.get_model_functions(graphml, bug_kind)
-
-        call_tree = [{"entry_point": "CALL"}]
-        for edge in graph.getElementsByTagName('edge'):
-            for data in edge.getElementsByTagName('data'):
-                if data.getAttribute('key') == 'enterFunction':
-                    function_call = data.firstChild.data
-                    call_tree.append({function_call: "CALL"})
-                if data.getAttribute('key') == 'returnFrom':
-                    function_return = data.firstChild.data
-                    if self.mea_model_functions.__contains__(function_return):
-                        # That is a model function return, add it to call tree.
-                        call_tree.append({function_return: "RET"})
-                    else:
-                        # Check from the last call of that function.
-                        is_save = False
-                        sublist = []
-                        for elem in reversed(call_tree):
-                            sublist.append(elem)
-                            func_name = list(elem.keys()).__getitem__(0)
-                            for mf in self.mea_model_functions:
-                                if func_name.__contains__(mf):
-                                    is_save = True
-                            if elem == {function_return: "CALL"}:
-                                sublist.reverse()
-                                break
-                        if is_save:
-                            call_tree.append({function_return: "RET"})
-                        else:
-                            call_tree = call_tree[:-sublist.__len__()]
-        self.logger.debug('Model function call tree "{0}" has been extracted'.format(call_tree))
-
-        if not stored_error_traces_for_bug_kind.__contains__(call_tree):
-            stored_error_traces_for_bug_kind.append(call_tree)
-            self.stored_error_traces[bug_kind] = stored_error_traces_for_bug_kind
-            return True
-        return False
-
-    # Do not perform filtering.
-    def without_filter(self, new_error_trace, bug_kind=None):
-        if bug_kind in self.stored_error_traces:
-            stored_error_traces_for_bug_kind = self.stored_error_traces[bug_kind]
-        else:
-            stored_error_traces_for_bug_kind = []
-
-        stored_error_traces_for_bug_kind.append(new_error_trace)
-        self.stored_error_traces[bug_kind] = stored_error_traces_for_bug_kind
-        return True
-
 
 # This class represent sequential VTG strategies.
 class SequentialStrategy(CommonStrategy):
@@ -593,11 +411,9 @@ class SequentialStrategy(CommonStrategy):
 
     def set_option_for_mea(self):
         if 'mea' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['mea']:
-            self.activate_mea()
-        if self.is_mea_active():
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.stopAfterError=false'})
-        self.set_mea_filters()
+            self.mea = MEA(self.conf, self.logger)
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
@@ -674,7 +490,7 @@ class SequentialStrategy(CommonStrategy):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
-                if self.is_mea_active():
+                if self.mea:
                     all_found_error_traces = glob.glob(self.path_to_witnesses)
                     if all_found_error_traces:
                         decision_results['status'] = 'unsafe'

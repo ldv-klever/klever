@@ -12,7 +12,8 @@ import core.session
 import core.utils
 import time
 
-from core.vtg import common
+from core.vtg.common import CommonStrategy
+from core.vtg.mea import MEA
 
 
 # Existed presets for MAV, which are specify the level of accuracy:
@@ -30,7 +31,7 @@ class MAVPreset(Enum):
 # This group of strategies is meant to check several rule specifications
 # (or bug kinds) at once. Several verification runs may be required.
 # Several bugs can be reported for each rule specification (or bug kind).
-class MAV(common.CommonStrategy):
+class MAV(CommonStrategy):
 
     path_to_file_with_results = 'output/mav_results_file'
     number_of_asserts = 0
@@ -153,11 +154,9 @@ class MAV(common.CommonStrategy):
 
         # Option for MEA.
         if 'mea' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['mea']:
-            self.activate_mea()
-        if self.is_mea_active():
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.mav.stopAfterError=false'})
-        self.set_mea_filters()
+            self.mea = MEA(self.conf, self.logger)
 
         # Option for Conditional Multi-Aspect Verification (CMAV) in one verification run.
         if 'cmav' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['cmav']:
