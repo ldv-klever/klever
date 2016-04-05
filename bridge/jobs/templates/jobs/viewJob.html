@@ -2,7 +2,7 @@
 
 {% load i18n %}
 
-{% load tz %}
+{% load humanize %}
 
 {% block jobs_head_block %}<script src="/static/jobs/js/editjob.js"></script>{% endblock %}
 
@@ -25,7 +25,7 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
                 </div>
-                <button id="show_fast_job_start_popup" class="ui pink button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
+                <button id="show_fast_job_start_popup" data-variation="very wide" class="ui pink button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision with default values' %}</p>
                 </div>
@@ -113,9 +113,9 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            {% timezone user.extended.timezone %}
-                                {{ last_version.change_date|date:"d.m.y H:i:s" }}
-                            {% endtimezone %}
+                            <span id="last_change_date">
+                                {{ last_version.change_date|naturaltime }}
+                            </span>
                             {% if last_version.change_author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)
                             {% endif %}

@@ -261,7 +261,10 @@ def get_job_data(request):
         'job_history': loader.get_template('jobs/jobRunHistory.html').render({
             'job': job,
             'checked_option': request.POST.get('checked_run_history', 0)
-        })
+        }),
+        'last_change_date': Template('{% load humanize %}{{ last_version.change_date|naturaltime }}').render(Context({
+            'last_version': job.versions.order_by('version').last()
+        }))
     }
     if report is not None:
         data['jobstatus_href'] = reverse('reports:component', args=[job.pk, report.pk])
