@@ -60,6 +60,7 @@ class MAV(CommonStrategy):
 
         self.prepare_verification_task_files_archive()
         self.start_mav_cycle()
+        self.print_mea_stats()
 
     main = generate_verification_tasks
 

@@ -2,6 +2,7 @@
 
 import os
 import re
+import time
 from xml.dom import minidom
 
 
@@ -29,6 +30,8 @@ class MEA:
     external_filter = None
     logger = None
     conf = None
+    consumed_wall_time = 0
+    error_traces_before_external_filter = 0
 
     def __init__(self, conf, logger):
         self.logger = logger
@@ -58,6 +61,18 @@ class MEA:
                                  format(external_filter))
                 self.external_filter = external_filter
 
+    def get_consuimed_wall_time(self):
+        return self.consumed_wall_time
+
+    def get_number_of_error_traces_before_external_filter(self):
+        return self.error_traces_before_external_filter
+
+    def get_number_of_error_traces_after_external_filter(self):
+        result = 0
+        for bug_kind, error_traces in self.stored_error_traces.items():
+            result += error_traces.__len__()
+        return result
+
     # Model functions in source files and in error traces should be the same.
     def add_model_function(self, mf):
         self.model_functions.add(mf.replace("ldv_", ""))
@@ -68,18 +83,22 @@ class MEA:
 
     # Applies external filter and returns if this error trace should be added or not.
     def error_trace_filter(self, new_error_trace, bug_kind=None):
+        start_time = time.time()
+        self.error_traces_before_external_filter += 1
         if not self.external_filter or self.external_filter == 'no_filter':
-            return self.without_filter(new_error_trace, bug_kind)
+            result = self.without_filter(new_error_trace, bug_kind)
         elif self.external_filter == 'full_equivalence':
             # This filter does not make much sense, since basic Internal filter should do this.
-            return self.basic_error_trace_filter(new_error_trace, bug_kind)
+            result = self.basic_error_trace_filter(new_error_trace, bug_kind)
         elif self.external_filter == 'model_functions':
             # Default strategy, always should work.
-            return self.model_functions_filter(new_error_trace, bug_kind)
+            result = self.model_functions_filter(new_error_trace, bug_kind)
         else:
             # Something was wrong with config if we are here.
             raise AttributeError('Wrong configuration: "{0}" is impossible value for '
                                  'external error trace filter')
+        self.consumed_wall_time += (time.time() - start_time)
+        return result
 
     # Returns true if new_error_trace does not equivalent to any of the stored error traces.
     # Also stores new traces in this case.

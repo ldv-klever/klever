@@ -362,6 +362,39 @@ class CommonStrategy(core.components.Component):
 
         return path.data
 
+    def print_mea_stats(self):
+        if self.mea:
+            # We treat MEA as a pseudo-component: it does not have a "main" function,
+            # but it consumes resources and has some attributes.
+            wall_time = self.mea.get_consuimed_wall_time()
+            internal_filter = self.mea.get_number_of_error_traces_before_external_filter()
+            external_filter = self.mea.get_number_of_error_traces_after_external_filter()
+            self.logger.info('MEA external filtering was taken "{0}s"'.
+                             format(wall_time))
+            self.logger.info('The number of error traces before external filtering is "{0}"'.
+                             format(internal_filter))
+            self.logger.info('The number of error traces after external filtering is "{0}"'.
+                             format(external_filter))
+            resources = {
+                "CPU time": round(1000 * wall_time),
+                "memory size": 0,
+                "wall time": round(1000 * wall_time)}
+            core.utils.report(self.logger,
+                              'verification',
+                              {
+                                  'id': self.id + "MEA",
+                                  'parent id': self.id,
+                                  'attrs': [{"Internal filter": "{0}".format(internal_filter)},
+                                            {"External filter": "{0}".format(external_filter)}],
+                                  'name': "MEA",
+                                  'resources': resources,
+                                  'log': "log",
+                                  'files': ['log']
+                              },
+                              self.mqs['report files'],
+                              self.conf['main working directory'],
+                              "MEA")
+
 
 # This class represent sequential VTG strategies.
 class SequentialStrategy(CommonStrategy):
@@ -441,6 +474,7 @@ class SequentialStrategy(CommonStrategy):
 
         self.prepare_verification_task_files_archive()
         self.decide_verification_task(bug_kind)
+        self.print_mea_stats()
 
     def decide_verification_task(self, bug_kind=None):
         self.logger.info('Decide verification task')
