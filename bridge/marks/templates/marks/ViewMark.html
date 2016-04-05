@@ -2,6 +2,8 @@
 
 {% load i18n %}
 
+{% load tz %}
+
 {% load humanize %}
 
 {% block title %}
@@ -37,7 +39,13 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            {{ version.change_date|naturaltime }}
+                            {% if user.extended.data_format == 'hum' %}
+                                {{ version.change_date|naturaltime }}
+                            {% else %}
+                                {% timezone user.extended.timezone %}
+                                    {{ version.change_date }}
+                                {% endtimezone %}
+                            {% endif %}
                             {% if version.author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.extended.last_name }} {{ version.author.extended.first_name }}</a>)
                             {% endif %}

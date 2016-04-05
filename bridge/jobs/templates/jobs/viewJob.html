@@ -3,6 +3,7 @@
 {% load i18n %}
 
 {% load humanize %}
+{% load tz %}
 
 {% block jobs_head_block %}<script src="/static/jobs/js/editjob.js"></script>{% endblock %}
 
@@ -114,7 +115,13 @@
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
                             <span id="last_change_date">
-                                {{ last_version.change_date|naturaltime }}
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ last_version.change_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ last_version.change_date }}
+                                    {% endtimezone %}
+                                {% endif %}
                             </span>
                             {% if last_version.change_author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)

@@ -6,7 +6,7 @@ from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
-from django.template import loader, Template, Context
+from django.template import loader
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES
@@ -249,6 +249,13 @@ def get_job_data(request):
     except ValueError:
         return JsonResponse({'error': 'Unknown error'})
 
+    if request.user.extended.data_format == 'hum':
+        change_date = Template('{% load humanize %}{{ change_date|naturaltime }}').render(Context({
+            'change_date': job.versions.order_by('version').last().change_date
+        }))
+    else:
+        change_date = None
+
     data = {
         'can_delete': job_access.can_delete(),
         'can_edit': job_access.can_edit(),
@@ -259,13 +266,13 @@ def get_job_data(request):
         'jobstatus': job.status,
         'jobstatus_text': job.get_status_display() + '',
         'job_history': loader.get_template('jobs/jobRunHistory.html').render({
+            'user': request.user,
             'job': job,
             'checked_option': request.POST.get('checked_run_history', 0)
-        }),
-        'last_change_date': Template('{% load humanize %}{{ last_version.change_date|naturaltime }}').render(Context({
-            'last_version': job.versions.order_by('version').last()
-        }))
+        })
     }
+    if change_date is not None:
+        data['last_change_date'] = change_date
     if report is not None:
         data['jobstatus_href'] = reverse('reports:component', args=[job.pk, report.pk])
         data['jobdata'] = loader.get_template('jobs/jobData.html').render({

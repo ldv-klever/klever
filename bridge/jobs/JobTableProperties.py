@@ -714,14 +714,17 @@ class TableTree(object):
         def collect_jobs_data():
             for j in self.jobdata:
                 if j['pk'] in values_data:
+                    date = j['job'].change_date
+                    if self.user.extended.data_format == 'hum':
+                        date = Template('{% load humanize %}{{ date|naturaltime }}').render(Context({
+                            'date': date
+                        }))
                     values_data[j['pk']].update({
                         'identifier': j['job'].identifier,
                         'format': j['job'].format,
                         'version': j['job'].version,
                         'type': j['job'].get_type_display(),
-                        'date': Template('{% load humanize %}{{ date|naturaltime }}').render(Context({
-                            'date': j['job'].change_date
-                        }))
+                        'date': date
                     })
                     try:
                         report = ReportComponent.objects.get(

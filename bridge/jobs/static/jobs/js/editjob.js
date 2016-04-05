@@ -1017,7 +1017,9 @@ $(document).ready(function () {
                             $('#job_status_p').text(data['jobstatus_text']);
                         }
                     }
-                    $('#last_change_date').text(data['last_change_date']);
+                    if ('last_change_date' in data) {
+                        $('#last_change_date').text(data['last_change_date']);
+                    }
                 }
             ).fail(function () {
                 clearInterval(interval);
