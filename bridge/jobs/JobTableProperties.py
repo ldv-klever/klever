@@ -2,6 +2,7 @@ import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
@@ -470,20 +471,16 @@ class TableTree(object):
                         return {'solvingprogress__priority__in': priorities}
             return {}
 
-        format_filter = lambda fdata: {
-            'format': fdata['value']
-        } if fdata['type'] == 'is' else {}
-
-        status_filter = lambda fdata: {
-            'status__in': fdata['value']
-        }
-
         action = {
             'name': name_filter,
             'change_author': author_filter,
             'change_date': date_filter,
-            'status': status_filter,
-            'format': format_filter,
+            'status': lambda fdata: {
+                'status__in': fdata['value']
+            },
+            'format': lambda fdata: {
+                'format': fdata['value']
+            } if fdata['type'] == 'is' else {},
             'priority': priority_filter
         }
 
@@ -722,7 +719,9 @@ class TableTree(object):
                         'format': j['job'].format,
                         'version': j['job'].version,
                         'type': j['job'].get_type_display(),
-                        'date': j['job'].change_date
+                        'date': Template('{% load humanize %}{{ date|naturaltime }}').render(Context({
+                            'date': j['job'].change_date
+                        }))
                     })
                     try:
                         report = ReportComponent.objects.get(

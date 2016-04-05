@@ -46,7 +46,7 @@ UNSAFES = [
 TITLES = {
     'name': _('Title'),
     'author': _('Author'),
-    'date': _('Last change date'),
+    'date': _('Last change'),
     'status': _('Decision status'),
     'safe': _('Safes'),
     'safe:missed_bug': _('Missed target bugs'),
