@@ -1,5 +1,5 @@
 from types import MethodType
-from reports.etv import error_trace_callstack
+from reports.etv import error_trace_callstack, error_trace_model_functions
 
 # To create new funciton:
 # 1) Add created function to the class ConvertTrace;
@@ -65,3 +65,9 @@ This function is extracting the error trace call stack to first warning.
 Return list of lists of function names in json format.
         """
         return error_trace_callstack(self.error_trace)
+
+    def model_functions(self):
+        """
+This function is extracting model functions tree in specific format.
+        """
+        return error_trace_model_functions(self.error_trace)
