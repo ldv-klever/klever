@@ -10,10 +10,10 @@ class Closure:
         self.modules = {}
         self.checked_clusters = set()
 
-        for module in module_deps:
+        for module in sorted(module_deps.keys()):
             if module not in self.modules:
                 self.modules[module] = Module(module)
-            for pred in module_deps[module]:
+            for pred in sorted(module_deps[module]):
                 if pred not in self.modules:
                     self.modules[pred] = Module(pred)
                 self.modules[module].add_predecessor(self.modules[pred])
@@ -25,6 +25,11 @@ class Closure:
 
         # Calculation
         clusters = []
+        if module_name == 'all':
+            for module in [module for module in self.modules.values() if not module.successors]:
+                clusters.extend(self.divide(module.id))
+            return clusters
+
         self.logger.info("Start verificaton multimodule task extraction based on closure partitioning")
         self.logger.debug('Calculate dependencies for these "top" modules')
         root = self.modules.get(module_name, Module(module_name))
@@ -87,9 +92,9 @@ class Closure:
                 # Reach limit, rebuild graph without selected edges
                 new_hash = {}
                 exclude = {module: 1 for module in task['modules']}
-                for module in task['task_hash'].keys():
+                for module in sorted(task['task_hash'].keys()):
                     if module == task['root']:
-                        for child in task['task_hash'][module]:
+                        for child in sorted(task['task_hash'][module]):
                             if child not in exclude:
                                 new_hash.setdefault(module, {})
                                 new_hash[module][child] = 1
@@ -110,7 +115,7 @@ class Closure:
                 else:
 
                     # Limit wasn't reached ? Find new root
-                    for module in task['modules']:
+                    for module in sorted(task['modules']):
                         if module != task['root'] and module in task['task_hash'] and task['task_hash'][module].keys():
                             new_task = {'root': module,
                                         'task_hash': new_hash,
@@ -127,16 +132,16 @@ class Closure:
 
         # Prepare Cluster objects
         ret = []
-        for task in task_list.values():
+        for _, task in sorted(task_list.items()):
 
             # Initialize module objects
             modules = {}
-            for module in task['modules']:
+            for module in sorted(task['modules']):
                 modules[module] = Module(module)
 
             # Add edges
-            for obj in modules.values():
-                for predecessor in task_hash.get(obj.id, {}).keys():
+            for obj in sorted(modules.values()):
+                for predecessor in sorted(task_hash.get(obj.id, {}).keys()):
                     if predecessor in modules:
                         obj.add_predecessor(modules[predecessor])
             # If root was shifted down during calculation - use original one

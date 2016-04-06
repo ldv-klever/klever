@@ -10,6 +10,8 @@ class Module:
         self.export_functions = {}
         self.call_functions = {}
 
+    def __lt__(self, other):
+        return self.id < other.id
 
     def add_predecessor(self, predecessor):
         if predecessor:
