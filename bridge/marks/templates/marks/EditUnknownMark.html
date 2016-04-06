@@ -44,6 +44,10 @@
                             <td>{{ mark.format }}</td>
                         </tr>
                         <tr>
+                            <th class="right aligned">{% trans 'Source' %}</th>
+                            <td>{{ mark.get_type_display }}</td>
+                        </tr>
+                        <tr>
                             <th class="right aligned">{% trans 'Component' %}</th>
                             <td>{{ mark.component.name }}</td>
                         </tr>

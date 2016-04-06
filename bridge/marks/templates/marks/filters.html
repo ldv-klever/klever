@@ -48,6 +48,11 @@
                 </div>
                 <br>
             {% endif %}
+                <div class="ui checkbox">
+                    <input type="checkbox" id="marks_filter_checkbox__type"{% if 'type' in tabledata.view.columns %} checked{% endif %}>
+                    <label for="marks_filter_checkbox__type">{% trans 'Type' %}</label>
+                </div>
+                <br>
                 <h4 class="header">{% trans 'Order' %}</h4>
                 {% if tabledata.type != 'unknown' %}
                     <div class="ui radio checkbox">
@@ -181,6 +186,29 @@
                     </div>
                 </div>
             {% endif %}
+                <div class="ui grid">
+                    <div class="five wide column">
+                        <div class="ui checkbox">
+                            <input type="checkbox" id="filter__enable__type"{% if 'type' in tabledata.view.filters %} checked{% endif %}>
+                            <label for="filter__enable__type">{% trans 'Type' %}</label>
+                        </div>
+                    </div>
+                    <div class="four wide column">
+                        <label for="filter__type__type"></label>
+                        <select id="filter__type__type" class="ui dropdown fluid">
+                            <option value="is"{% if tabledata.view.filters.type.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="isnot"{% if tabledata.view.filters.type.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
+                        </select>
+                    </div>
+                    <div class="seven wide column">
+                        <label for="filter__value__type"></label>
+                        <select id="filter__value__type" class="ui dropdown fluid">
+                            {% for mtype in mark_types %}
+                                <option value="{{ mtype.0 }}"{% if tabledata.view.filters.type.value == mtype.0 %} selected{% endif %}>{{ mtype.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="ui divider"></div>

@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override
 from django.utils.timezone import now
-from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS
+from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
 from bridge.utils import file_get_or_create, logger
 from users.models import Extended
@@ -285,7 +285,8 @@ class Population(object):
                         'is_modifiable': data['is_modifiable'],
                         'function': data['function'],
                         'problem_pattern': data['pattern'],
-                        'description': data['description']
+                        'description': data['description'],
+                        'type': MARK_TYPE[1][0]
                     }
                     if len(data['link']) > 0:
                         create_args['link'] = data['link']

@@ -28,7 +28,8 @@ MARK_TITLES = {
     'problem': _("Problem"),
     'component': _('Component'),
     'pattern': _('Problem pattern'),
-    'checkbox': ''
+    'checkbox': '',
+    'type': _('Type')
 }
 
 STATUS_COLOR = {
@@ -429,11 +430,11 @@ class MarksList(object):
     def __get_columns(self):
         columns = ['checkbox', 'mark_num']
         if self.type == 'unknown':
-            for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern']:
+            for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern', 'type']:
                 if col in self.view['columns']:
                     columns.append(col)
         else:
-            for col in ['num_of_links', 'verdict', 'status', 'author', 'format']:
+            for col in ['num_of_links', 'verdict', 'status', 'author', 'format', 'type']:
                 if col in self.view['columns']:
                     columns.append(col)
         return columns
@@ -459,6 +460,11 @@ class MarksList(object):
                     filters['component__name__istartswith'] = self.view['filters']['component']['value']
             if 'author' in self.view['filters']:
                 filters['author_id'] = self.view['filters']['author']['value']
+            if 'type' in self.view['filters']:
+                if self.view['filters']['type']['type'] == 'is':
+                    filters['type'] = self.view['filters']['type']['value']
+                else:
+                    unfilter['type'] = self.view['filters']['type']['value']
 
         if self.type == 'unsafe':
             return MarkUnsafe.objects.filter(Q(**filters) & ~Q(**unfilter))
@@ -545,6 +551,8 @@ class MarksList(object):
                     val = mark.component.name
                 elif col == 'pattern':
                     val = mark.problem_pattern
+                elif col == 'type':
+                    val = mark.get_type_display()
                 if col == 'checkbox':
                     values_str.append({'checkbox': mark.pk})
                 else:

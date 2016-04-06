@@ -24,6 +24,10 @@
                         <th class="right aligned">{% trans 'Format' %}</th>
                         <td>{{ mark.format }}</td>
                     </tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Source' %}</th>
+                        <td>{{ mark.get_type_display }}</td>
+                    </tr>
                     {% if markdata.type == 'unknown' %}
                         <tr>
                             <th class="right aligned">{% trans 'Component' %}</th>

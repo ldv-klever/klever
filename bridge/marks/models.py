@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_init
 from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
+from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent,\
     Component, ReportUnknown, AttrName
 from jobs.models import Job
@@ -52,6 +52,7 @@ class Mark(models.Model):
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
     description = models.TextField(default='')
+    type = models.CharField(max_length=1, choices=MARK_TYPE, default=MARK_TYPE[0][0])
 
     def __str__(self):
         return self.identifier
