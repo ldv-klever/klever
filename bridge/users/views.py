@@ -27,6 +27,7 @@ def user_signin(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
+        next_url = request.POST.get('next_url', None)
         user = authenticate(username=username, password=password)
         if user is not None:
             if user.is_active:
@@ -36,6 +37,8 @@ def user_signin(request):
                 except ObjectDoesNotExist:
                     extend_user(user)
                 if len(Job.objects.all()) > 0:
+                    if next_url is not None:
+                        return HttpResponseRedirect(next_url)
                     return HttpResponseRedirect(reverse('jobs:tree'))
                 return HttpResponseRedirect(reverse('population'))
             else:
