@@ -340,8 +340,8 @@ $(document).ready(function () {
         }
     });
 
-    var max_table_height = $(window).height() - 100,
-        small_table_height = $(window).height() - 300;
+    var max_table_height = $(window).height() - 150,
+        small_table_height = $(window).height() - 400;
     inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon');
     $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;');
     check_order_form();
