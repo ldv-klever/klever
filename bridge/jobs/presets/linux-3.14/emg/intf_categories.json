@@ -97,6 +97,7 @@
           "header": "include/linux/usb.h",
           "signature": "struct usb_driver driver",
           "fields": {
+            "probe": "%usb.probe%",
             "pre_reset": "%usb.pre%",
             "post_reset": "%usb.post%",
             "disconnect": "%usb.release%",
@@ -106,6 +107,9 @@
         }
       },
       "callbacks": {
+        "probe": {
+          "signature": "int (*probe) (%usb.usb_interface%, const struct usb_device_id *id)"
+        },
         "pre": {
           "signature": "int (*pre) (%usb.usb_interface%)"
         },
