@@ -248,7 +248,7 @@ class LKVOG(core.components.Component):
 
         strategy = self.conf['LKVOG strategy']['name']
 
-        self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id + str(hash(self.cluster)))
+        self.verification_obj_desc['id'] = self.cluster.root.id + str(hash(self.cluster))
         self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
         self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
@@ -268,7 +268,9 @@ class LKVOG(core.components.Component):
             'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
         if self.conf['keep intermediate files']:
-            verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+            verification_obj_desc_file = os.path.join(
+                        self.linux_kernel_build_cmd_out_file_desc[self.module['name']]['linux kernel work src tree'],
+                        '{0}.json'.format(self.verification_obj_desc['id']))
             if os.path.isfile(verification_obj_desc_file):
                 raise FileExistsError(
                     'Linux kernel verification object description file "{0}" already exists'.format(
@@ -276,9 +278,8 @@ class LKVOG(core.components.Component):
             self.logger.debug(
                 'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                     self.module['name'], verification_obj_desc_file))
-            with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file), 'w',
-                      encoding='ascii') as fp:
-                json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+            with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
+                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
         else:
             raise NotImplementedError(
