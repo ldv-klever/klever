@@ -4,7 +4,7 @@ import hashlib
 from time import sleep
 from types import FunctionType
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from django.utils.translation import override
 from django.utils.timezone import now
@@ -301,6 +301,9 @@ class Population(object):
                     )
                     ConnectMarkWithReports(mark)
                     self.changes['marks'] = True
+                except MultipleObjectsReturned:
+                    logger.exception('There are two unknown marks in the system '
+                                     'with the same functions, patterns and components', stack_info=True)
 
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
