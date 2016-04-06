@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-04-06 08:11+0000\n"
+"POT-Creation-Date: 2016-04-06 12:51+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,12 +33,12 @@ msgstr "Без обработки"
 msgid "Human-readable"
 msgstr "Удобочитаемый"
 
-#: bridge/vars.py:12 jobs/views.py:352 jobs/views.py:374 jobs/views.py:449
-#: jobs/views.py:509 jobs/views.py:764 service/utils.py:902
+#: bridge/vars.py:12 jobs/views.py:351 jobs/views.py:373 jobs/views.py:448
+#: jobs/views.py:508 jobs/views.py:763 service/utils.py:905
 msgid "The job was not found"
 msgstr "Задание не было найдено"
 
-#: bridge/vars.py:13 jobs/views.py:510 jobs/views.py:639 tools/utils.py:200
+#: bridge/vars.py:13 jobs/views.py:509 jobs/views.py:638 tools/utils.py:200
 msgid "One of the selected jobs was not found"
 msgstr "Одно из отмеченных заданий не было найдено"
 
@@ -366,11 +366,11 @@ msgstr "Разработка"
 msgid "Paranoid development"
 msgstr "Параноидальная разработка"
 
-#: bridge/views.py:34 jobs/utils.py:286 jobs/utils.py:493 marks/utils.py:751
-#: marks/utils.py:808 marks/utils.py:941 marks/views.py:209 marks/views.py:435
-#: marks/views.py:446 reports/etv.py:381 service/utils.py:939
+#: bridge/views.py:34 jobs/utils.py:286 jobs/utils.py:493 marks/utils.py:761
+#: marks/utils.py:818 marks/utils.py:951 marks/views.py:209 marks/views.py:435
+#: marks/views.py:446 reports/etv.py:381 service/utils.py:942
 #: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
-#: tools/views.py:120 tools/views.py:140 users/views.py:317
+#: tools/views.py:120 tools/views.py:140 users/views.py:320
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
@@ -447,7 +447,7 @@ msgstr "Дата завершения работы"
 msgid "Last change date"
 msgstr "Дата последнего изменения"
 
-#: jobs/JobTableProperties.py:45 jobs/templates/jobs/jobData.html:30
+#: jobs/JobTableProperties.py:45 jobs/templates/jobs/jobData.html:74
 #: jobs/templates/jobs/viewJobFilters.html:28
 #: jobs/templates/jobs/viewJobFilters.html:95 jobs/utils.py:69
 msgid "Consumed resources"
@@ -773,27 +773,27 @@ msgstr ""
 "Названия, в которых используются не ASCII символы, должны быть меньше 30 "
 "символов"
 
-#: jobs/templates/jobs/jobData.html:31
-msgid "Wall time, CPU time and maximum memory size"
-msgstr ""
-"Астрономическое время, процессорное время и максимальный объем оперативной "
-"памяти"
-
-#: jobs/templates/jobs/jobData.html:53
+#: jobs/templates/jobs/jobData.html:33
 #: jobs/templates/jobs/viewJobFilters.html:12 jobs/utils.py:59
 #: jobs/utils.py:73 reports/views.py:121 reports/views.py:125
 #: templates/base.html:48
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
-#: jobs/templates/jobs/jobData.html:71
+#: jobs/templates/jobs/jobData.html:51
 #: jobs/templates/jobs/viewJobFilters.html:17 jobs/utils.py:52
 #: jobs/utils.py:72 reports/views.py:110 reports/views.py:114
 #: templates/base.html:50
 msgid "Safes"
 msgstr "Доказательства корректности"
 
-#: jobs/templates/jobs/jobData.html:89
+#: jobs/templates/jobs/jobData.html:75
+msgid "Wall time, CPU time and maximum memory size"
+msgstr ""
+"Астрономическое время, процессорное время и максимальный объем оперативной "
+"памяти"
+
+#: jobs/templates/jobs/jobData.html:94
 #: jobs/templates/jobs/viewJobFilters.html:33
 #: jobs/templates/jobs/viewJobFilters.html:38
 #: jobs/templates/jobs/viewJobFilters.html:119 jobs/utils.py:71
@@ -801,13 +801,13 @@ msgstr "Доказательства корректности"
 msgid "Tags"
 msgstr "Теги"
 
-#: jobs/templates/jobs/jobData.html:91
+#: jobs/templates/jobs/jobData.html:98
 #: jobs/templates/jobs/viewJobFilters.html:38 reports/comparison.py:477
 #: reports/templates/reports/report_unsafe.html:5
 msgid "Unsafe"
 msgstr "Предупреждение об ошибке"
 
-#: jobs/templates/jobs/jobData.html:104
+#: jobs/templates/jobs/jobData.html:113
 #: jobs/templates/jobs/viewJobFilters.html:33 reports/comparison.py:497
 #: reports/templates/reports/report_leaf.html:5
 msgid "Safe"
@@ -1132,7 +1132,7 @@ msgid "New view name"
 msgstr "Название нового представления"
 
 #: jobs/templates/jobs/tree.html:356 jobs/templates/jobs/tree.html.py:389
-#: jobs/templates/jobs/viewJobFilters.html:5 jobs/views.py:90
+#: jobs/templates/jobs/viewJobFilters.html:5 jobs/views.py:89
 #: marks/templates/marks/filters.html:5
 #: reports/templates/reports/AttrsFilters.html:5
 #: reports/templates/reports/ListFilters.html:5
@@ -1222,7 +1222,7 @@ msgstr ""
 #: reports/templates/reports/ReportMain.html:26
 #: reports/templates/reports/report_leaf.html:12
 #: reports/templates/reports/report_list.html:12
-#: reports/templates/reports/report_unsafe.html:10 users/views.py:182
+#: reports/templates/reports/report_unsafe.html:10 users/views.py:185
 msgid "Job"
 msgstr "Задание"
 
@@ -1429,7 +1429,7 @@ msgstr "Вы не можете указать пустое имя"
 msgid "You can't use the same names in one folder"
 msgstr "Вы не можете использовать одни и те же имена в одной папке"
 
-#: jobs/utils.py:342
+#: jobs/utils.py:342 jobs/utils.py:580 jobs/utils.py:581 jobs/utils.py:590
 msgid "ms"
 msgstr "мс"
 
@@ -1441,7 +1441,7 @@ msgstr "с"
 msgid "h"
 msgstr "ч"
 
-#: jobs/utils.py:371
+#: jobs/utils.py:371 jobs/utils.py:582
 msgid "B"
 msgstr "Б"
 
@@ -1473,82 +1473,82 @@ msgstr "Требуется автор изменения"
 msgid "The comparison cache was not found"
 msgstr "Кэш сравнения не был найден"
 
-#: jobs/utils.py:899
+#: jobs/utils.py:903
 msgid "The Klever scheduler is ailing"
 msgstr "Планировщик Klever нездоров"
 
-#: jobs/utils.py:901 service/utils.py:942
+#: jobs/utils.py:905 service/utils.py:945
 msgid "The Klever scheduler is disconnected"
 msgstr "Планировщик Klever отключен"
 
-#: jobs/views.py:63
+#: jobs/views.py:62
 msgid "The default view was made preferred"
 msgstr ""
 "Представление, которое используется по умолчанию, было сделано предпочитаемым"
 
-#: jobs/views.py:64
+#: jobs/views.py:63
 msgid "The default view is already preferred"
 msgstr ""
 "Представление, которое используется по умолчанию, уже является предпочитаемым"
 
-#: jobs/views.py:69 jobs/views.py:122 jobs/views.py:157
+#: jobs/views.py:68 jobs/views.py:121 jobs/views.py:156
 msgid "The view was not found"
 msgstr "Представление не было найдено"
 
-#: jobs/views.py:75
+#: jobs/views.py:74
 msgid "The preferred view was successfully changed"
 msgstr "Предпочитаемое представление было успешно изменено"
 
-#: jobs/views.py:91 jobs/views.py:97
+#: jobs/views.py:90 jobs/views.py:96
 msgid "Please choose another view name"
 msgstr "Пожалуйста, выберете другое название представления"
 
-#: jobs/views.py:94 jobs/views.py:129
+#: jobs/views.py:93 jobs/views.py:128
 msgid "The view name is required"
 msgstr "Требуется указать название представления"
 
-#: jobs/views.py:117
+#: jobs/views.py:116
 msgid "You can't edit the default view"
 msgstr ""
 "Вы не можете редактировать представление, которое используется по умолчанию"
 
-#: jobs/views.py:135
+#: jobs/views.py:134
 msgid "The view was successfully saved"
 msgstr "Представление было успешно сохранено"
 
-#: jobs/views.py:151
+#: jobs/views.py:150
 msgid "You can't remove the default view"
 msgstr "Вы не можете удалить представление, которое используется по умолчанию"
 
-#: jobs/views.py:158
+#: jobs/views.py:157
 msgid "The view was successfully removed"
 msgstr "Представление было успешно удалено"
 
-#: jobs/views.py:309 marks/views.py:70
+#: jobs/views.py:308 marks/views.py:70
 msgid "Current version"
 msgstr "Текущая версия"
 
-#: jobs/views.py:354
+#: jobs/views.py:353
 msgid "You don't have access to delete versions"
 msgstr "У Вас нет прав удалить версии"
 
-#: jobs/views.py:360 marks/views.py:425
+#: jobs/views.py:359 marks/views.py:425
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
-#: jobs/views.py:361 marks/views.py:427
+#: jobs/views.py:360 marks/views.py:427
 msgid "Nothing to delete"
 msgstr "Нечего удалять"
 
-#: jobs/views.py:451
+#: jobs/views.py:450
 msgid "You don't have an access to edit this job"
 msgstr "У Вас нет прав редактировать данное задание"
 
-#: jobs/views.py:457 jobs/views.py:486
+#: jobs/views.py:456 jobs/views.py:485
 msgid "The job parent was not found"
 msgstr "Родитель задания не был найден"
 
-#: jobs/views.py:460
+#: jobs/views.py:459
 msgid ""
 "Several parents match the specified identifier, please increase the length "
 "of the parent identifier"
@@ -1556,72 +1556,72 @@ msgstr ""
 "Указанному идентификатору соответствуют несколько родителей, пожалуйста, "
 "увеличьте длину идентификатора родителя"
 
-#: jobs/views.py:465
+#: jobs/views.py:464
 msgid "Parent can't be specified for root jobs"
 msgstr "Нельзя указывать родителя для корневых заданий"
 
-#: jobs/views.py:467
+#: jobs/views.py:466
 msgid "The specified parent can't be set for this job"
 msgstr "Для этого задания не может быть установлен указанный родитель"
 
-#: jobs/views.py:470
+#: jobs/views.py:469
 msgid "The parent identifier is required for this job"
 msgstr "Для этого задания требуется идентификатор родителя"
 
-#: jobs/views.py:472 marks/views.py:228
+#: jobs/views.py:471 marks/views.py:228
 msgid "Your version is expired, please reload the page"
 msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
-#: jobs/views.py:488
+#: jobs/views.py:487
 msgid "You don't have an access to create new jobs"
 msgstr "У Вас нет прав создавать новые задания"
 
-#: jobs/views.py:513
+#: jobs/views.py:512
 msgid "You don't have an access to remove this job"
 msgstr "У Вас нет прав удалить данное задание"
 
-#: jobs/views.py:514
+#: jobs/views.py:513
 msgid "You don't have an access to remove one of the selected jobs"
 msgstr "У Вас нет прав удалить одно из отмеченных заданий"
 
-#: jobs/views.py:552
+#: jobs/views.py:551
 msgid "File uploading failed"
 msgstr "Загрузка файла на сервер провалилась"
 
-#: jobs/views.py:641
+#: jobs/views.py:640
 msgid "You don't have an access to download one of the selected jobs"
 msgstr "У Вас нет прав загрузить одно из отмеченных заданий"
 
-#: jobs/views.py:654
+#: jobs/views.py:653
 msgid "The parent identifier was not got"
 msgstr "Не был получен идентификатор родителя"
 
-#: jobs/views.py:660
+#: jobs/views.py:659
 msgid "The parent with the specified identifier was not found"
 msgstr "Родитель с указанным идентификатором не был найден"
 
-#: jobs/views.py:666
+#: jobs/views.py:665
 msgid "Too many jobs starts with the specified identifier"
 msgstr "Слишком много заданий начинаются с указанного идентификатора"
 
-#: jobs/views.py:675
+#: jobs/views.py:674
 msgid "Archive extracting error"
 msgstr ""
 
-#: jobs/views.py:750 jobs/views.py:891 jobs/views.py:898
+#: jobs/views.py:749 jobs/views.py:890 jobs/views.py:897
 msgid "The file was not found"
 msgstr "Файл не был найден"
 
-#: jobs/views.py:766
+#: jobs/views.py:765
 msgid "You don't have an access to stop decision of this job"
 msgstr "У Вас нет прав остановить решение данного задания"
 
-#: jobs/views.py:853 reports/views.py:383
+#: jobs/views.py:852 reports/views.py:383
 msgid "One of the selected jobs was not found, please reload page"
 msgstr ""
 "Одно из отмеченных заданий не было найдено, пожалуйста, обновите страницу"
 
-#: jobs/views.py:855
+#: jobs/views.py:854
 msgid "You can't compare the selected jobs"
 msgstr "Вы не можете сравнить отмеченные задания"
 
@@ -1768,14 +1768,14 @@ msgstr "Требуется проблема"
 #: marks/templates/marks/EditMark.html:9
 #: marks/templates/marks/EditMark.html:36
 #: marks/templates/marks/ViewMark.html:10 reports/comparison.py:543
-#: users/views.py:226
+#: users/views.py:229
 msgid "Unsafes mark"
 msgstr "Оценка предупреждений об ошибках"
 
 #: marks/templates/marks/EditMark.html:9
 #: marks/templates/marks/EditMark.html:38
 #: marks/templates/marks/ViewMark.html:10 reports/comparison.py:557
-#: users/views.py:205
+#: users/views.py:208
 msgid "Safes mark"
 msgstr "Оценка доказательств корректности"
 
@@ -1798,7 +1798,7 @@ msgstr "Все версии и все данные оценки будут уд�
 #: marks/templates/marks/EditUnknownMark.html:9
 #: marks/templates/marks/EditUnknownMark.html:34
 #: marks/templates/marks/ViewMark.html:10 reports/comparison.py:569
-#: users/views.py:247
+#: users/views.py:250
 msgid "Unknowns mark"
 msgstr "Оценка проблем в компонентах"
 
@@ -1919,25 +1919,25 @@ msgstr "не совпадает с"
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:770 marks/views.py:186
+#: marks/utils.py:780 marks/views.py:186
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: marks/utils.py:774
+#: marks/utils.py:784
 msgid "The mark format is not supported"
 msgstr "Формат оценки не поддерживается"
 
-#: marks/utils.py:857 marks/utils.py:860
+#: marks/utils.py:867 marks/utils.py:870
 msgid "The attributes have wrong format"
 msgstr "Формат атрибутов некорректный"
 
-#: marks/utils.py:896 marks/utils.py:904 marks/utils.py:907 marks/utils.py:910
-#: marks/utils.py:915 marks/utils.py:920 marks/utils.py:922 marks/utils.py:924
-#: marks/utils.py:926
+#: marks/utils.py:906 marks/utils.py:914 marks/utils.py:917 marks/utils.py:920
+#: marks/utils.py:925 marks/utils.py:930 marks/utils.py:932 marks/utils.py:934
+#: marks/utils.py:936
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
-#: marks/utils.py:912
+#: marks/utils.py:922
 msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
@@ -2254,19 +2254,19 @@ msgstr "Прогресс решения задания не существует
 msgid "Only pending and processing jobs can be stopped"
 msgstr "Только ожидающие и решающиеся задания могут быть остановлены"
 
-#: service/utils.py:895
+#: service/utils.py:898
 msgid "The scheduler was not found"
 msgstr "Планировщик не был найден"
 
-#: service/utils.py:905
+#: service/utils.py:908
 msgid "You don't have an access to start decision of this job"
 msgstr "У Вас нет прав начать решение данного задания"
 
-#: service/utils.py:946
+#: service/utils.py:949
 msgid "The VerifierCloud scheduler is disconnected"
 msgstr "Планировщик VerifierCloud отключен"
 
-#: service/utils.py:951
+#: service/utils.py:954
 msgid "You didn't specify credentials for VerifierCloud"
 msgstr "Вы не указали идентификационную информацию для VerifierCloud"
 
@@ -2279,13 +2279,13 @@ msgid "A new Manager was created"
 msgstr "Был создан новый Руководитель"
 
 #: templates/Population.html:17 templates/Population.html.py:27
-#: users/templates/users/login.html:18
+#: users/templates/users/login.html:19
 #: users/templates/users/schedulerUser.html:6
 msgid "Username"
 msgstr "Имя пользователя"
 
 #: templates/Population.html:18 templates/Population.html.py:28
-#: users/forms.py:20 users/templates/users/login.html:20
+#: users/forms.py:20 users/templates/users/login.html:21
 #: users/templates/users/schedulerUser.html:24
 msgid "Password"
 msgstr "Пароль"
@@ -2362,7 +2362,7 @@ msgid "Populate"
 msgstr "Наполнить базу данных"
 
 #: templates/base.html:15 users/templates/users/login.html:4
-#: users/templates/users/login.html:22
+#: users/templates/users/login.html:24
 msgid "Sign in"
 msgstr "Войти"
 
@@ -2733,6 +2733,11 @@ msgstr "Я"
 msgid "Notify about my changes"
 msgstr "Уведомлять о моих изменениях"
 
+#: users/templates/users/edit-profile.html:47
+#: users/templates/users/register.html:53
+msgid "This setting is used just for the human-readable data format"
+msgstr "Данная опция используется только для удобочитаемого формата данных"
+
 #: users/templates/users/edit-profile.html:60
 #: users/templates/users/register.html:68
 #: users/templates/users/showProfile.html:18
@@ -2801,23 +2806,23 @@ msgstr "Ссылка на объект"
 msgid "Change Comment"
 msgstr "Комментарий к изменению"
 
-#: users/views.py:42
+#: users/views.py:45
 msgid "Account has been disabled"
 msgstr "Учетная запись заблокирована"
 
-#: users/views.py:44
+#: users/views.py:47
 msgid "Incorrect username or password"
 msgstr "Неправильное имя пользователя или пароль"
 
-#: users/views.py:171 users/views.py:194 users/views.py:215 users/views.py:236
+#: users/views.py:174 users/views.py:197 users/views.py:218 users/views.py:239
 msgid "Creation"
 msgstr "Создание"
 
-#: users/views.py:174 users/views.py:197 users/views.py:218 users/views.py:239
+#: users/views.py:177 users/views.py:200 users/views.py:221 users/views.py:242
 msgid "Modification"
 msgstr "Изменение"
 
-#: users/views.py:316
+#: users/views.py:319
 msgid "Saved"
 msgstr "Сохранено"
 
