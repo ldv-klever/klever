@@ -176,7 +176,7 @@ class Translator(AbstractTranslator):
         inst = copy.copy(process)
         if self.__max_instances == 0:
             raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration ({})'.
-                               format(self.__max_instances))
+                               format(int(self.conf["translation options"]["max instances number"])))
         elif self.__max_instances:
             self.__max_instances -= 1
         return inst
