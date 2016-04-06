@@ -1,4 +1,5 @@
 import copy
+import re
 
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import BaseType, InterfaceReference, UndefinedReference, Primitive, Array, Function,\
@@ -384,5 +385,12 @@ class CategoriesSpecification:
         for callback in self.callbacks(category_name):
             self._fulfill_function_interfaces(callback)
 
+    def get_name_from_value(self, value):
+        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
+
+        if name_re.match(value):
+            return name_re.match(value).group(1)
+        else:
+            return None
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

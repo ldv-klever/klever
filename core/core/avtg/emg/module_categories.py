@@ -4,6 +4,7 @@ from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, Primitive, InterfaceReference, \
     setup_collection, import_signature, import_typedefs, extract_name, check_null
+from core.avtg.emg import tarjan
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
@@ -24,7 +25,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self._containers_cache = {}
         self._interface_cache = {}
 
-    def import_specification(self, specification=None, module_specification=None, analysis=None):
+    def import_specification(self, avt, specification=None, module_specification=None, analysis=None):
         # Import typedefs if there are provided
         if analysis and 'typedefs' in analysis:
             import_typedefs(analysis['typedefs'])
@@ -39,7 +40,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         # Import source analysis
         self.logger.info("Import results of source code analysis")
-        self.__import_source_analysis(analysis)
+        self.__import_source_analysis(analysis, avt)
 
     def save_to_file(self, file):
         raise NotImplementedError
@@ -105,9 +106,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         if not interface.declaration.clean_declaration:
             interface.declaration = declaration
 
-    def __import_source_analysis(self, analysis):
+    def __import_source_analysis(self, analysis, avt):
         self.logger.info("Import modules init and exit functions")
-        self.__import_inits_exits(analysis)
+        self.__import_inits_exits(analysis, avt)
 
         self.logger.info("Extract complete types definitions")
         self.__extract_types(analysis)
@@ -124,16 +125,27 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         self.logger.info("Both specifications are imported and categories are merged")
 
-    def __import_inits_exits(self, analysis):
+    def __import_inits_exits(self, analysis, avt):
         self.logger.debug("Move module initilizations functions to the modules interface specification")
+        deps = {}
+        for module, dep in avt['deps'].items():
+            deps[module] = list(sorted(dep))
+        order = tarjan.calculate_load_order(self.logger, deps)
+        order_c_files = []
+        for module in order:
+            for module2 in avt['grps']:
+                if module2['id'] != module:
+                    continue
+                order_c_files.extend([file['in file'] for file in module2['cc extra full desc files']])
         if "init" in analysis:
-            self.inits = analysis["init"]
+            self.inits = [(module, analysis['init'][module]) for module in order_c_files if module in analysis["init"]]
         if len(self.inits) == 0:
             raise ValueError('No module initialization functions provided, abort model generation')
 
         self.logger.debug("Move module exit functions to the modules interface specification")
         if "exit" in analysis:
-            self.exits = analysis["exit"]
+            self.exits = list(reversed([(module, analysis['init'][module]) for module in order_c_files if module in analysis['exit']]))
+            #self.exits = analysis["exit"]
 
     def __extract_types(self, analysis):
         entities = []

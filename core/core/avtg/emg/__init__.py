@@ -41,7 +41,7 @@ class EMG(core.components.Component):
         # Generate module interface specification
         self.logger.info("============== Modules interface categories selection stage ==============")
         mcs = ModuleCategoriesSpecification(self.logger)
-        mcs.import_specification(interface_spec, module_interface_spec, analysis)
+        mcs.import_specification(avt, interface_spec, module_interface_spec, analysis)
         # todo: export specification (issue 6561)
         #mcs.save_to_file("module_specification.json")
 

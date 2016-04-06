@@ -403,6 +403,13 @@ class Translator(AbstractTranslator):
         cf.body.concatenate(body)
         self.model_aspects.append(cf)
 
+    def get_file_from_label_value(self, analysis, label_value):
+        label_name = analysis.get_name_from_value(label_value)
+        if label_name:
+            if label_name in analysis.modules_functions:
+                return list(analysis.modules_functions[label_name])[0]
+        raise RuntimeError("Can't find file for {} label".format(label_value))
+
     def determine_callback_implementations(self, analysis, model, automaton, subprocess, case):
         accesses = automaton.process.resolve_access(subprocess.callback)
         callbacks = []
@@ -434,7 +441,8 @@ class Translator(AbstractTranslator):
 
                 if access.label.value:
                     invoke = '(' + access.label.value + ')'
-                    file = self.entry_file
+
+                    file = self.get_file_from_label_value(analysis, access.label.value)
                     check = False
                 else:
                     variable = automaton.determine_variable(analysis, access.label)
@@ -683,11 +691,9 @@ class Translator(AbstractTranslator):
         return cases
 
     def registration_intf_check(self, analysis, model, function_call):
-        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
         check = []
-
-        if name_re.match(function_call):
-            name = name_re.match(function_call).group(1)
+        name = analysis.get_name_from_value(function_call)
+        if name:
 
             # Caclulate relevant models
             if name in analysis.modules_functions:
