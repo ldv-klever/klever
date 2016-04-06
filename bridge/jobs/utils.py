@@ -572,22 +572,22 @@ def check_new_parent(job, parent):
 
 
 def get_resource_data(user, resource):
-    accuracy = user.extended.accuracy
-    cpu = resource.cpu_time
-    wall = resource.wall_time
-    mem = resource.memory
     if user.extended.data_format == 'hum':
-        wall = convert_time(wall, accuracy)
-        cpu = convert_time(cpu, accuracy)
-        mem = convert_memory(mem, accuracy)
+        wall = convert_time(resource.wall_time, user.extended.accuracy)
+        cpu = convert_time(resource.cpu_time, user.extended.accuracy)
+        mem = convert_memory(resource.memory, user.extended.accuracy)
+    else:
+        wall = "%s %s" % (resource.wall_time, _('ms'))
+        cpu = "%s %s" % (resource.cpu_time, _('ms'))
+        mem = "%s %s" % (resource.memory, _('B'))
     return [wall, cpu, mem]
 
 
 def get_user_time(user, milliseconds):
-    accuracy = user.extended.accuracy
-    converted = int(milliseconds)
     if user.extended.data_format == 'hum':
-        converted = convert_time(converted, accuracy)
+        converted = convert_time(int(milliseconds), user.extended.accuracy)
+    else:
+        converted = "%s %s" % (int(milliseconds), _('ms'))
     return converted
 
 
