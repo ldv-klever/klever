@@ -24,6 +24,7 @@
             },
             "translation options": {
               "instance modifier": 1,
+              "max instances number": 300,
               "pointer initialization": {
                 "structures": true,
                 "arrays": true,
