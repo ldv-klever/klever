@@ -81,7 +81,7 @@ class UserExtendedForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(UserExtendedForm, self).__init__(*args, **kwargs)
-        self.fields['accuracy'].label = _("Accuracy")
+        self.fields['accuracy'].label = _("The number of significant figures")
         self.fields['last_name'].label = _("Last name")
         self.fields['first_name'].label = _("First name")
         self.fields['language'].label = _("Language")

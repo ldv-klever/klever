@@ -6,6 +6,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
@@ -46,7 +47,7 @@ UNSAFES = [
 TITLES = {
     'name': _('Title'),
     'author': _('Author'),
-    'date': _('Last change date'),
+    'date': _('Last change'),
     'status': _('Decision status'),
     'safe': _('Safes'),
     'safe:missed_bug': _('Missed target bugs'),
@@ -322,37 +323,61 @@ class SaveFileData(object):
 
 
 def convert_time(val, acc):
+    def final_value(time, postfix):
+        fpart_len = len(str(round(time)))
+        if fpart_len > int(acc):
+            tmp_div = 10**(fpart_len - int(acc))
+            rounded_value = round(time/tmp_div) * tmp_div
+        elif fpart_len == int(acc):
+            rounded_value = round(time)
+        else:
+            rounded_value = round(time, int(acc) - fpart_len)
+        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
+            'val': rounded_value, 'postfix': postfix
+        }))
+
     new_time = int(val)
-    time_format = "%%1.%df %%s" % int(acc)
     try_div = new_time / 1000
     if try_div < 1:
-        return time_format % (new_time, _('ms'))
+        return final_value(new_time, _('ms'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('s'))
+        return final_value(new_time, _('s'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('min'))
-    return time_format % (try_div, _('h'))
+        return final_value(new_time, _('min'))
+    return final_value(try_div, _('h'))
 
 
 def convert_memory(val, acc):
+    def final_value(memory, postfix):
+        fpart_len = len(str(round(memory)))
+        if fpart_len > int(acc):
+            tmp_div = 10 ** (fpart_len - int(acc))
+            rounded_value = round(memory / tmp_div) * tmp_div
+        elif fpart_len == int(acc):
+            rounded_value = round(memory)
+        else:
+            rounded_value = round(memory, int(acc) - fpart_len)
+        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
+            'val': rounded_value, 'postfix': postfix
+        }))
+
     new_mem = int(val)
-    mem_format = "%%1.%df %%s" % int(acc)
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('B'))
+        return final_value(new_mem, _('B'))
     new_mem = try_div
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('KB'))
+        return final_value(new_mem, _('KB'))
     new_mem = try_div
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('MB'))
-    return mem_format % (try_div, _('GB'))
+        return final_value(new_mem, _('MB'))
+    return final_value(try_div, _('GB'))
 
 
 def role_info(job, user):
