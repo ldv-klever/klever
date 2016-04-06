@@ -16,7 +16,7 @@ from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEV
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
-from reports.models import CompareJobsInfo
+from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
@@ -670,6 +670,13 @@ class GetFilesComparison(object):
 def change_job_status(job, status):
     if not isinstance(job, Job) or status not in list(x[0] for x in JOB_STATUS):
         return
+    if status in [JOB_STATUS[3], JOB_STATUS[4]]:
+        for comp in ReportComponent.objects.filter(root=job.reportroot, finish_date=None):
+            comp.finish_date = now()
+            comp.wall_time = 0
+            comp.cpu_time = 0
+            comp.memory = 0
+            comp.save()
     job.status = status
     job.save()
     try:

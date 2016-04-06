@@ -15,7 +15,6 @@ from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport
-from reports.models import ReportComponent
 from reports.comparison import can_compare
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *

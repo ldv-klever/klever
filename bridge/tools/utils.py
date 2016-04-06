@@ -298,9 +298,9 @@ class ResourceData(object):
             'id': report.pk,
             'parent': report.parent_id,
             'component': report.component_id,
-            'wt': report.wall_time,
-            'ct': report.cpu_time,
-            'm': report.memory
+            'wt': report.wall_time if report.wall_time is not None else 0,
+            'ct': report.cpu_time if report.wall_time is not None else 0,
+            'm': report.memory if report.wall_time is not None else 0
         })
 
     def __update_resources(self, newdata):
