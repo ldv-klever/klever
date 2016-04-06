@@ -95,6 +95,11 @@ class NewMark(object):
         elif self.type == 'unknown':
             if 'function' in args and len(args['function']) > 0:
                 mark.function = args['function']
+                try:
+                    re.search(mark.function, '')
+                except Exception as e:
+                    logger.error(e)
+                    return 'Mark function is wrong. See python regular expression documentation'
             else:
                 return "Function is required"
             if 'problem' in args and len(args['problem']) > 0:
@@ -175,6 +180,11 @@ class NewMark(object):
                 if args['function'] != mark.function:
                     self.do_recalk = True
                     mark.function = args['function']
+                    try:
+                        re.search(mark.function, '')
+                    except Exception as e:
+                        logger.error(e)
+                        return 'Mark function is wrong. See python regular expression documentation'
             if 'problem' in args and 0 < len(args['problem']) < 15:
                 if args['problem'] != mark.problem_pattern:
                     self.do_recalk = True
@@ -1253,7 +1263,11 @@ class MatchUnknown(object):
 
     def __match_description(self):
         for l in self.description.split('\n'):
-            m = re.search(self.function, l)
+            try:
+                m = re.search(self.function, l)
+            except Exception as e:
+                logger.exception("Regexp error: %s" % e, stack_info=True)
+                return None
             if m is not None:
                 if self.max_pn is not None and len(self.numbers) > 0:
                     group_elements = []
