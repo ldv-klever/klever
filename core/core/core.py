@@ -13,19 +13,6 @@ import core.session
 import core.utils
 
 
-def before_launch_all_components(context):
-    context.mqs['verification statuses'] = multiprocessing.Queue()
-
-
-def after_decide_verification_task(context):
-    context.mqs['verification statuses'].put(context.verification_status)
-
-
-def after_generate_all_verification_tasks(context):
-    context.logger.info('Terminate verification statuses message queue')
-    context.mqs['verification statuses'].put(None)
-
-
 class Core(core.utils.CallbacksCaller):
     DEFAULT_CONF_FILE = 'core.json'
     ID = '/'
@@ -101,6 +88,24 @@ class Core(core.utils.CallbacksCaller):
                 self.launch_all_components(self.ID)
                 self.wait_for_components()
             elif job.type == 'Validation on commits in Linux kernel Git repositories':
+                # Specify callbacks to collect verification statuses from VTG. They will be used to
+                # calculate validation results.
+                def before_launch_all_components(context):
+                    context.mqs['verification statuses'] = multiprocessing.Queue()
+
+                def after_decide_verification_task(context):
+                    context.mqs['verification statuses'].put(context.verification_status)
+
+                def after_generate_all_verification_tasks(context):
+                    context.logger.info('Terminate verification statuses message queue')
+                    context.mqs['verification statuses'].put(None)
+
+                core.utils.set_component_callbacks(self.logger, type(self),
+                                                   (
+                                                       before_launch_all_components,
+                                                       after_decide_verification_task,
+                                                       after_generate_all_verification_tasks
+                                                   ))
                 self.logger.info('Prepare sub-jobs of class "Verification of Linux kernel modules"')
                 sub_jobs_common_conf = {}
                 if 'Common' in job.conf:
