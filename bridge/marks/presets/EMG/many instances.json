@@ -1,0 +1,4 @@
+{
+  "function": "EMG tries to generate more instances than it is allowed by configuration",
+  "pattern": "Many insts"
+}

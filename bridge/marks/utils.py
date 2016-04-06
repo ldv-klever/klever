@@ -95,6 +95,11 @@ class NewMark(object):
         elif self.type == 'unknown':
             if 'function' in args and len(args['function']) > 0:
                 mark.function = args['function']
+                try:
+                    re.search(mark.function, '')
+                except Exception as e:
+                    logger.error("Wrong mark function: %s" % e)
+                    return 'Mark function is wrong. See python regular expression documentation'
             else:
                 return "Function is required"
             if 'problem' in args and len(args['problem']) > 0:
@@ -175,6 +180,11 @@ class NewMark(object):
                 if args['function'] != mark.function:
                     self.do_recalk = True
                     mark.function = args['function']
+                    try:
+                        re.search(mark.function, '')
+                    except Exception as e:
+                        logger.error("Wrong mark function: %s" % e)
+                        return 'Mark function is wrong. See python regular expression documentation'
             if 'problem' in args and 0 < len(args['problem']) < 15:
                 if args['problem'] != mark.problem_pattern:
                     self.do_recalk = True
@@ -764,8 +774,7 @@ class ReadTarMark(object):
             if self.type == 'unsafe':
                 mark.error_trace = args['error_trace'].encode('utf8')
                 try:
-                    mark.function = \
-                        MarkUnsafeCompare.objects.get(pk=args['compare_id'])
+                    mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:
                     return _("The error traces comparison "
                              "function was not found")
@@ -779,11 +788,9 @@ class ReadTarMark(object):
             if isinstance(args['is_modifiable'], bool):
                 mark.is_modifiable = args['is_modifiable']
 
-            if self.type == 'unsafe' and \
-                    args['verdict'] in list(x[0] for x in MARK_UNSAFE):
+            if self.type == 'unsafe' and args['verdict'] in list(x[0] for x in MARK_UNSAFE):
                 mark.verdict = args['verdict']
-            elif self.type == 'safe' and \
-                    args['verdict'] in list(x[0] for x in MARK_SAFE):
+            elif self.type == 'safe' and args['verdict'] in list(x[0] for x in MARK_SAFE):
                 mark.verdict = args['verdict']
             elif self.type == 'unknown':
                 mark.component = Component.objects.get_or_create(name=args['component'])[0]
@@ -800,6 +807,7 @@ class ReadTarMark(object):
                 tags = args['tags']
             if 'description' in args:
                 mark.description = args['description']
+            mark.type = MARK_TYPE[2][0]
 
             try:
                 mark.save()
@@ -1253,7 +1261,11 @@ class MatchUnknown(object):
 
     def __match_description(self):
         for l in self.description.split('\n'):
-            m = re.search(self.function, l)
+            try:
+                m = re.search(self.function, l)
+            except Exception as e:
+                logger.exception("Regexp error: %s" % e, stack_info=True)
+                return None
             if m is not None:
                 if self.max_pn is not None and len(self.numbers) > 0:
                     group_elements = []

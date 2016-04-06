@@ -63,10 +63,13 @@ class Translator(AbstractTranslator):
         self.__entry_fsa = None
         self.__instance_modifier = 1
         self.__identifier_cnt = -1
+        self.__max_instances = None
 
         # Read translation options
         if "translation options" not in self.conf:
             self.conf["translation options"] = {}
+        if "max instances number" in self.conf["translation options"]:
+            self.__max_instances = int(self.conf["translation options"]["max instances number"])
         if "instance modifier" in self.conf["translation options"]:
             self.__instance_modifier = self.conf["translation options"]["instance modifier"]
         if "pointer initialization" not in self.conf["translation options"]:
@@ -95,10 +98,13 @@ class Translator(AbstractTranslator):
                     undefined_labels.append(label)
 
             # Determine is it necessary to make several instances
+            base_list = []
             if len(undefined_labels) > 0:
-                base_list = [copy.copy(process) for i in range(self.__instance_modifier)]
+                for i in range(self.__instance_modifier):
+                    base_list.append(self.__copy_process(process))
             else:
-                base_list = [process]
+                base_list.append(self.__copy_process(process))
+
             self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
                              format(len(base_list), len(undefined_labels), process.name, process.category))
 
@@ -153,7 +159,7 @@ class Translator(AbstractTranslator):
 
         # Generate model control function
         for name in (pr.name for pr in model.model_processes):
-            automata = (a for a in self.__model_fsa if a.process.name == name)
+            automata = [a for a in self.__model_fsa if a.process.name == name]
             self.generate_model_aspect(analysis, model, automata, name)
 
         for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
@@ -165,6 +171,15 @@ class Translator(AbstractTranslator):
         # Generate entry point function
         ep = self.generate_entry_function()
         self.files[self.entry_file]["functions"][ep.name] = ep
+
+    def __copy_process(self, process):
+        inst = copy.copy(process)
+        if self.__max_instances == 0:
+            raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration ({})'.
+                               format(int(self.conf["translation options"]["max instances number"])))
+        elif self.__max_instances:
+            self.__max_instances -= 1
+        return inst
 
     def __yeild_identifier(self):
         self.__identifier_cnt += 1
@@ -185,13 +200,14 @@ class Translator(AbstractTranslator):
                         inst_access.interface not in relevant_multi_containers:
                     relevant_multi_containers.add(inst_access.interface)
                 elif len(inst_access.complete_list_interface) > 1:
-                    for intf in [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
-                                 len(analysis.implementations(intf)) > 1]:
-                        relevant_multi_containers.add(intf)
+                    impl_cnt = [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
+                                len(analysis.implementations(intf)) > 1]
+                    if len(impl_cnt) > 0:
+                        relevant_multi_containers.add(impl_cnt[0])
 
         # Copy instances for each implementation of a container
         if len(relevant_multi_containers) > 0:
-            self.logger.info("Found {} relevant containers with several implementations for process {} for category {}".
+            self.logger.debug("Found {} relevant containers with several implementations for process {} for category {}".
                              format(str(len(relevant_multi_containers)), process.name, process.category))
             for interface in relevant_multi_containers:
                 new_base_list = []
@@ -199,48 +215,34 @@ class Translator(AbstractTranslator):
 
                 for implementation in implementations:
                     for instance in base_list:
-                        newp = copy.copy(instance)
-                        self.logger.debug("Forbiding implementations")
+                        newp = self.__copy_process(instance)
                         newp.forbide_except(analysis, implementation)
                         new_base_list.append(newp)
 
                 base_list = list(new_base_list)
-        else:
-            self.logger.info("Have not found any relevant containers with several implementations for process {} "
-                             "for category {}".
-                             format(str(len(relevant_multi_containers)), process.name, process.category))
 
         new_base_list= []
         for instance in base_list:
             # Copy callbacks or resources which are not tied to a container
             accesses = instance.accesses()
             relevant_multi_leafs = set()
-            self.logger.debug("Calculate relevant non-containers with several implementations for an instance of "
-                              "process {} for category {}".
-                              format(process.name, process.category))
             for access in [accesses[name] for name in sorted(accesses.keys())]:
                 relevant_multi_leafs.update([inst for inst in access if inst.interface and
                                              type(inst.interface) is Callback and
                                              len(instance.get_implementations(analysis, inst)) > 1])
 
             if len(relevant_multi_leafs) > 0:
-                self.logger.info("Found {} relevant non-containers with several implementations for an instance of "
-                                 "process {} for category {}".
-                                 format(str(len(relevant_multi_leafs)), process.name, process.category))
+                self.logger.debug("Found {} accesses with several implementations for process {} for category {}".
+                                  format(len(relevant_multi_leafs), process.name, process.category))
                 for access in relevant_multi_leafs:
                     for implementation in analysis.implementations(access.interface):
-                        newp = copy.copy(instance)
-                        self.logger.debug("Forbiding implementations")
+                        newp = self.__copy_process(instance)
                         newp.forbide_except(analysis, implementation)
                         new_base_list.append(newp)
             else:
-                self.logger.info("Have not found {} relevant non-containers with several implementations for "
-                                 "an instance of process {} for category {}".
-                                 format(str(len(relevant_multi_leafs)), process.name, process.category))
                 new_base_list.append(instance)
 
         base_list = new_base_list
-
         return base_list
 
     def generate_entry_function(self):

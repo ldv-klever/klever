@@ -1,5 +1,5 @@
 {
-  "function": "KeyError: 'init'",
+  "function": "There is no module initialization function provided",
   "pattern": "No init",
   "link": "http://forge.ispras.ru/issues/6571"
 }

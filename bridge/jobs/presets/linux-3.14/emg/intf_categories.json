@@ -307,6 +307,7 @@
       }
     },
     "timer": {
+      "extensible": false,
       "containers": {
         "timer_list": {
           "signature": "struct timer_list list",
@@ -330,6 +331,7 @@
       }
     },
     "interrupt": {
+      "extensible": false,
       "containers": {},
       "resources": {
         "line": {

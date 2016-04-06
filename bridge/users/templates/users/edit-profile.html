@@ -1,10 +1,6 @@
 {% extends 'base.html' %}
 
-{% load staticfiles %}
-{% load tz %}
 {% load i18n %}
-
-{% get_current_timezone as TIME_ZONE %}
 
 {% block title %}{% trans 'Settings' %}{% endblock %}
 
@@ -48,7 +44,7 @@
                 </div>
                 <div class="five wide column">
                     <div class="field">
-                        <label>{{ profile_form.accuracy.label }}</label>
+                        <label>{{ profile_form.accuracy.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting is used just for the human-readable data format' %}"></i></label>
                         {{ profile_form.accuracy }}
                         <br>{{ profile_form.errors.accuracy }}
                     </div>

@@ -689,10 +689,13 @@ class SetSchedulersStatus(object):
         for progress in scheduler.solvingprogress_set.filter(job__status=JOB_STATUS[2][0], finish_date=None):
             for task in progress.task_set.filter(status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]]):
                 if task.status == TASK_STATUS[0][0]:
-                    progress.tasks_pending -= 1
+                    if progress.tasks_pending > 0:
+                        progress.tasks_pending -= 1
+                        progress.tasks_error += 1
                 else:
-                    progress.tasks_processing -= 1
-                progress.tasks_error += 1
+                    if progress.tasks_processing > 0:
+                        progress.tasks_processing -= 1
+                        progress.tasks_error += 1
                 task.error = "Task was finished with error due to scheduler is disconnected"
                 task.save()
             if scheduler.type == SCHEDULER_TYPE[0][0]:

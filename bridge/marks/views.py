@@ -275,6 +275,7 @@ def mark_list(request, marks_type):
         'type': marks_type,
         'title': titles[marks_type],
         'statuses': MARK_STATUS,
+        'mark_types': MARK_TYPE,
         'verdicts': verdicts[marks_type],
         'authors': User.objects.all(),
         'view_type': view_type[marks_type],

@@ -132,6 +132,12 @@ VIEW_TYPES = {
     ('9', 'unknown marks')
 }
 
+MARK_TYPE = (
+    ('0', _('Created')),
+    ('1', _('Preset')),
+    ('2', _('Uploaded')),
+)
+
 MARK_STATUS = (
     ('0', _('Unreported')),
     ('1', _('Reported')),

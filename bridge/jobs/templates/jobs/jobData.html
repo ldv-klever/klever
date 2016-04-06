@@ -1,93 +1,100 @@
 {% load i18n %}
 
-<div class="ui grid">
-{% if reportdata.view_data.unknowns|length or reportdata.view_data.resources|length %}
-    <div class="eight wide column">
+{% if reportdata.view_data.unsafes|length or reportdata.unsafes_total or reportdata.view_data.safes|length or reportdata.safes_total or reportdata.view_data.unknowns|length %}
+    <div class="ui grid">
         {% if reportdata.view_data.unknowns|length %}
-            <h4 class="header ui violet">{% trans 'Unknowns' %}{% if reportdata.unknowns_total %} (<a href="{{ reportdata.unknowns_total.href }}">{{ reportdata.unknowns_total.num }}</a>){% endif %}</h4>
-            <div class="ui small list">
-                {% for comp in reportdata.view_data.unknowns %}
-                    <div class="item">
-                        <i class="cube mini icon"></i>
-                        <div class="content">{{ comp.component }}{% for probl in comp.problems %}{% if probl.problem == 'total' %} (<a href="{{ probl.href }}">{{ probl.num }}</a>){% endif %}{% endfor %}</div>
-                    </div>
-                    <div class="item">
-                        <div class="ui list">
-                            {% for probl in comp.problems %}
-                                {% if probl.problem != 'total' %}
-                                <div class="item" style="margin-left: 20px;">
-                                    <i class="pointing right mini icon"></i>
-                                    <div class="content">{{ probl.problem }}: <a href="{{ probl.href }}">{{ probl.num }}</a></div>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
+            <div class="eight wide column">
+                <h4 class="header ui violet">{% trans 'Unknowns' %}{% if reportdata.unknowns_total %} (<a href="{{ reportdata.unknowns_total.href }}">{{ reportdata.unknowns_total.num }}</a>){% endif %}</h4>
+                <div class="ui small list">
+                    {% for comp in reportdata.view_data.unknowns %}
+                        <div class="item">
+                            <i class="cube mini icon"></i>
+                            <div class="content">{{ comp.component }}{% for probl in comp.problems %}{% if probl.problem == 'total' %} (<a href="{{ probl.href }}">{{ probl.num }}</a>){% endif %}{% endfor %}</div>
                         </div>
-                    </div>
-                {% endfor %}
+                        <div class="item">
+                            <div class="ui list">
+                                {% for probl in comp.problems %}
+                                    {% if probl.problem != 'total' %}
+                                    <div class="item" style="margin-left: 20px;">
+                                        <i class="pointing right mini icon"></i>
+                                        <div class="content">{{ probl.problem }}: <a href="{{ probl.href }}">{{ probl.num }}</a></div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
         {% endif %}
-        {% if reportdata.view_data.resources|length %}
-            <h4 class="header ui violet">{% trans 'Consumed resources' %}
-                <i id="resources-note" class="ui blue help icon" data-content="{% trans "Wall time, CPU time and maximum memory size" %}"></i>
-            </h4>
-            <div class="ui list">
-                {% for res_data in reportdata.view_data.resources %}
-                    <div class="item">
-                        <i class="laptop mini icon"></i>
-                        <div class="content">
-                            {% if reportdata.report.component.name == res_data.component %}
-                                <strong style="color: #86188c;">{{ res_data.component }}:</strong>
-                            {% else %}
-                                {{ res_data.component }}:
-                            {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
-                        </div>
+        {% if reportdata.view_data.unsafes|length or reportdata.unsafes_total or reportdata.view_data.safes|length or reportdata.safes_total %}
+            <div class="eight wide column">
+                {% if reportdata.view_data.unsafes|length or reportdata.unsafes_total %}
+                    <h4 class="header ui violet">{% trans 'Unsafes' %}{% if reportdata.unsafes_total %} (<a href="{{ reportdata.unsafes_total.1 }}">{{ reportdata.unsafes_total.0 }}</a>){% endif %}</h4>
+                    <div class="ui list">
+                        {% for v in reportdata.view_data.unsafes %}
+                            <div class="item">
+                                <i class="pointing right mini icon"></i>
+                                <div class="content">
+                                    <span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
+                                    {% if v.href %}
+                                        <a href="{{ v.href }}">{{ v.value }}</a>
+                                    {% else %}
+                                        <a href="#">{{ v.value }}</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
-                {% endfor %}
+                {% endif %}
+                {% if reportdata.view_data.safes|length or reportdata.safes_total %}
+                    <h4 class="header ui violet">{% trans 'Safes' %}{% if reportdata.safes_total %} (<a href="{{ reportdata.safes_total.1 }}">{{ reportdata.safes_total.0 }}</a>){% endif %}</h4>
+                    <div class="ui list">
+                        {% for v in reportdata.view_data.safes %}
+                            <div class="item">
+                                <i class="pointing right mini icon"></i>
+                                <div class="content">
+                                    <span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
+                                    {% if v.href %}
+                                        <a href="{{ v.href }}">{{ v.value }}</a>
+                                    {% else %}
+                                        <a href="#">{{ v.value }}</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
         {% endif %}
     </div>
 {% endif %}
-{% if reportdata.view_data.unsafes|length or reportdata.unsafes_total or reportdata.view_data.safes|length or reportdata.safes_total %}
-    <div class="eight wide column">
-        {% if reportdata.view_data.unsafes|length or reportdata.unsafes_total %}
-            <h4 class="header ui violet">{% trans 'Unsafes' %}{% if reportdata.unsafes_total %} (<a href="{{ reportdata.unsafes_total.1 }}">{{ reportdata.unsafes_total.0 }}</a>){% endif %}</h4>
-            <div class="ui list">
-                {% for v in reportdata.view_data.unsafes %}
-                    <div class="item">
-                        <i class="pointing right mini icon"></i>
-                        <div class="content">
-                            <span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
-                            {% if v.href %}
-                                <a href="{{ v.href }}">{{ v.value }}</a>
-                            {% else %}
-                                <a href="#">{{ v.value }}</a>
-                            {% endif %}
-                        </div>
+{% if reportdata.view_data.resources|length %}
+    {% if reportdata.view_data.resources|length %}
+        <h4 class="header ui violet">{% trans 'Consumed resources' %}
+            <i id="resources-note" class="ui blue help icon" data-content="{% trans "Wall time, CPU time and maximum memory size" %}"></i>
+        </h4>
+        <div class="ui list">
+            {% for res_data in reportdata.view_data.resources %}
+                <div class="item">
+                    <i class="laptop mini icon"></i>
+                    <div class="content">
+                        {% if reportdata.report.component.name == res_data.component %}
+                            <strong style="color: #86188c;">{{ res_data.component }}:</strong>
+                        {% else %}
+                            {{ res_data.component }}:
+                        {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
                     </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-        {% if reportdata.view_data.safes|length or reportdata.safes_total %}
-            <h4 class="header ui violet">{% trans 'Safes' %}{% if reportdata.safes_total %} (<a href="{{ reportdata.safes_total.1 }}">{{ reportdata.safes_total.0 }}</a>){% endif %}</h4>
-            <div class="ui list">
-                {% for v in reportdata.view_data.safes %}
-                    <div class="item">
-                        <i class="pointing right mini icon"></i>
-                        <div class="content">
-                            <span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
-                            {% if v.href %}
-                                <a href="{{ v.href }}">{{ v.value }}</a>
-                            {% else %}
-                                <a href="#">{{ v.value }}</a>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-        {% if reportdata.view_data.tags_unsafe|length or reportdata.view_data.tags_safe|length %}
-            <br><h3 class="header ui violet">{% trans 'Tags' %}</h3>
-            {% if reportdata.view_data.tags_unsafe|length %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endif %}
+{% if reportdata.view_data.tags_unsafe|length or reportdata.view_data.tags_safe|length %}
+    <h3 class="header ui violet">{% trans 'Tags' %}</h3>
+    <div class="ui grid">
+        {% if reportdata.view_data.tags_unsafe|length %}
+            <div class="eight wide column">
                 <h5 class="header ui orange">{% trans 'Unsafe' %}</h5>
                 <div class="ui list">
                     {% for t in reportdata.view_data.tags_unsafe %}
@@ -99,8 +106,10 @@
                         </div>
                     {% endfor %}
                 </div>
-            {% endif %}
-            {% if reportdata.view_data.tags_safe|length %}
+            </div>
+        {% endif %}
+        {% if reportdata.view_data.tags_safe|length %}
+            <div class="eight wide column">
                 <h5 class="header ui green">{% trans 'Safe' %}</h5>
                 <div class="ui list">
                     {% for t in reportdata.view_data.tags_safe %}
@@ -112,8 +121,7 @@
                         </div>
                     {% endfor %}
                 </div>
-            {% endif %}
+            </div>
         {% endif %}
     </div>
 {% endif %}
-</div>

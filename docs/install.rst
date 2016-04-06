@@ -99,9 +99,8 @@ Adapt them for your Linux distribution by yourself.
 
     $ python3.4 /var/www/bridge/manage.py collectstatic
 
-#. Create directory :file:`/var/www/bridge/media` and make www-data:www-data its owner::
+#. Make *www-data:www-data* owner of directory :file:`/var/www/bridge/media`::
 
-    $ mkdir -p /var/www/bridge/media
     $ chown -R www-data:www-data /var/www/bridge/media
 
 #. Restart service apache2::
