@@ -673,9 +673,6 @@ def change_job_status(job, status):
     if status in [JOB_STATUS[3], JOB_STATUS[4]]:
         for comp in ReportComponent.objects.filter(root=job.reportroot, finish_date=None):
             comp.finish_date = now()
-            comp.wall_time = 0
-            comp.cpu_time = 0
-            comp.memory = 0
             comp.save()
     job.status = status
     job.save()
