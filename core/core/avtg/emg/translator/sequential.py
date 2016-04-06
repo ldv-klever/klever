@@ -478,29 +478,29 @@ class Translator(AbstractTranslator):
                 # Determine parameters
                 for index in range(len(signature.points.parameters)):
                     parameter = signature.points.parameters[index]
-                    expression = None
+                    if type(parameter) is not str:
+                        expression = None
+                        # Try to find existing variable
+                        ids = [intf.identifier for intf in
+                               analysis.resolve_interface(parameter, edge['automaton'].process.category)]
+                        if len(ids) > 0:
+                            for candidate in action.parameters:
+                                accesses = automaton.process.resolve_access(candidate)
+                                suits = [acc for acc in accesses if acc.interface and
+                                         acc.interface.identifier in ids]
+                                if len(suits) == 1:
+                                    var = automaton.determine_variable(analysis, suits[0].label,
+                                                                       suits[0].list_interface[0].identifier)
+                                    expression = suits[0].access_with_variable(var)
+                                    break
+                                elif len(suits) > 1:
+                                    raise NotImplementedError("Cannot set two different parameters")
 
-                    # Try to find existing variable
-                    ids = [intf.identifier for intf in
-                                  analysis.resolve_interface(parameter, edge['automaton'].process.category)]
-                    if len(ids) > 0:
-                        for candidate in action.parameters:
-                            accesses = automaton.process.resolve_access(candidate)
-                            suits = [acc for acc in accesses if acc.interface and
-                                     acc.interface.identifier in ids]
-                            if len(suits) == 1:
-                                var = automaton.determine_variable(analysis, suits[0].label,
-                                                                   suits[0].list_interface[0].identifier)
-                                expression = suits[0].access_with_variable(var)
-                                break
-                            elif len(suits) > 1:
-                                raise NotImplementedError("Cannot set two different parameters")
-
-                    # Generate new variable
-                    if not expression:
-                        tmp = Variable("emg_param_{}".format(index), None, signature.points.parameters[index], False)
-                        local_vars.append(tmp)
-                        expression = tmp.name
+                        # Generate new variable
+                        if not expression:
+                            tmp = Variable("emg_param_{}".format(index), None, signature.points.parameters[index], False)
+                            local_vars.append(tmp)
+                            expression = tmp.name
 
                     # Add string
                     params.append(expression)
