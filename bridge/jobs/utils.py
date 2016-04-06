@@ -671,8 +671,12 @@ def change_job_status(job, status):
     if not isinstance(job, Job) or status not in list(x[0] for x in JOB_STATUS):
         return
     if status in [JOB_STATUS[3], JOB_STATUS[4]]:
-        if len(ReportComponent.objects.filter(root=job.reportroot, finish_date=None)) > 0:
-            status = JOB_STATUS[5][0]
+        for comp in ReportComponent.objects.filter(root=job.reportroot, finish_date=None):
+            comp.finish_date = now()
+            comp.wall_time = 0
+            comp.cpu_time = 0
+            comp.memory = 0
+            comp.save()
     job.status = status
     job.save()
     try:
