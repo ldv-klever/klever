@@ -49,6 +49,10 @@
                             <th class="right aligned">{% trans 'Format' %}</th>
                             <td>{{ mark.format }}</td>
                         </tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Source' %}</th>
+                            <td>{{ mark.get_type_display }}</td>
+                        </tr>
                         {% if first_version.author %}
                             <tr>
                                 <th class="right aligned">{% trans 'Author' %}</th>
