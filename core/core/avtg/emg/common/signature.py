@@ -797,7 +797,7 @@ class Function(BaseType):
         if not self.return_value.clean_declaration:
             return False
         for param in self.parameters:
-            if not param.clean_declaration:
+            if type(param) is not str and not param.clean_declaration:
                 return False
         return True
 
