@@ -1,6 +1,7 @@
 import ply.lex as lex
 import ply.yacc as yacc
 import re
+import copy
 
 typedef_collection = {}
 
@@ -582,7 +583,7 @@ def import_signature(signature, ast=None, parent=None):
         elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
                 ast['specifiers']['type specifier']['class'] == 'typedef' and \
                 ast['specifiers']['type specifier']['name'] in __typedefs:
-            ret = import_signature(None, __typedefs[ast['specifiers']['type specifier']['name']])
+            ret = import_signature(None, copy.deepcopy(__typedefs[ast['specifiers']['type specifier']['name']]))
         elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
                 ast['specifiers']['type specifier']['class'] == 'structure':
             ret = Structure(ast, parent)
@@ -609,7 +610,7 @@ def import_signature(signature, ast=None, parent=None):
                     ret = Union(ast, parent)
                 elif ast['specifiers']['type specifier']['class'] == 'typedef' and \
                         ast['specifiers']['type specifier']['name'] in __typedefs:
-                    ret = import_signature(None, __typedefs[ast['specifiers']['type specifier']['name']])
+                    ret = import_signature(None, copy.deepcopy(__typedefs[ast['specifiers']['type specifier']['name']]))
                 else:
                     ret = Primitive(ast, parent)
         elif 'arrays' in ast['declarator'][-1] and len(ast['declarator'][-1]['arrays']) > 0:
