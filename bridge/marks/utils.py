@@ -98,7 +98,7 @@ class NewMark(object):
                 try:
                     re.search(mark.function, '')
                 except Exception as e:
-                    logger.error(e)
+                    logger.error("Wrong mark function: %s" % e)
                     return 'Mark function is wrong. See python regular expression documentation'
             else:
                 return "Function is required"
@@ -183,7 +183,7 @@ class NewMark(object):
                     try:
                         re.search(mark.function, '')
                     except Exception as e:
-                        logger.error(e)
+                        logger.error("Wrong mark function: %s" % e)
                         return 'Mark function is wrong. See python regular expression documentation'
             if 'problem' in args and 0 < len(args['problem']) < 15:
                 if args['problem'] != mark.problem_pattern:
