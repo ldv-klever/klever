@@ -57,7 +57,6 @@ class ProcessModel:
             ep.labels[init_label.name] = init_label
             ep.actions[init_label.name] = init_subprocess
 
-        #if True:
             ret_init = CallRetval('ret_init_{}'.format(init_name))
             ret_init.retlabel = "%ret%"
             ret_init.callback = init_subprocess.callback
@@ -132,7 +131,10 @@ class ProcessModel:
         self.entry_process.process = ""
         for i, pair in enumerate(analysis.inits):
             self.entry_process.process += "[init_{0}].(ret_init_{0}).(<init_failed>.".format(pair[1])
-            for _, exit_name in analysis.exits[:i-1:-1]:
+            for j, pair2 in enumerate(analysis.exits[::-1]):
+                if pair2[0] == pair[0]:
+                    break
+            for _, exit_name in analysis.exits[:j-1:-1]:
                 self.entry_process.process += "[exit_{}].".format(exit_name)
             self.entry_process.process += "<stop>|<init_success>."
         self.entry_process.process += "({}|<none>).".format(".".join(dispatches))
@@ -140,8 +142,6 @@ class ProcessModel:
             self.entry_process.process += "[exit_{}].".format(exit_name)
         self.entry_process.process += "<stop>"
         self.entry_process.process += ")" * len(analysis.inits)
-        # self.entry_process.process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.({} | <none>).[exit]." \
-        #                              "<stop>)".format('.'.join(dispatches))
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models

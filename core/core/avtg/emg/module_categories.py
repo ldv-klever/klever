@@ -144,8 +144,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         self.logger.debug("Move module exit functions to the modules interface specification")
         if "exit" in analysis:
-            self.exits = list(reversed([(module, analysis['init'][module]) for module in order_c_files if module in analysis['exit']]))
-            #self.exits = analysis["exit"]
+            self.exits = list(reversed([(module, analysis['exit'][module]) for module in order_c_files if module in analysis['exit']]))
 
     def __extract_types(self, analysis):
         entities = []
