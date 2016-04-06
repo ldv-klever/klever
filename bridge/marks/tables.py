@@ -29,7 +29,7 @@ MARK_TITLES = {
     'component': _('Component'),
     'pattern': _('Problem pattern'),
     'checkbox': '',
-    'type': _('Type')
+    'type': _('Source')
 }
 
 STATUS_COLOR = {

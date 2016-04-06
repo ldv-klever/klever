@@ -50,7 +50,7 @@
             {% endif %}
                 <div class="ui checkbox">
                     <input type="checkbox" id="marks_filter_checkbox__type"{% if 'type' in tabledata.view.columns %} checked{% endif %}>
-                    <label for="marks_filter_checkbox__type">{% trans 'Type' %}</label>
+                    <label for="marks_filter_checkbox__type">{% trans 'Source' %}</label>
                 </div>
                 <br>
                 <h4 class="header">{% trans 'Order' %}</h4>
@@ -190,7 +190,7 @@
                     <div class="five wide column">
                         <div class="ui checkbox">
                             <input type="checkbox" id="filter__enable__type"{% if 'type' in tabledata.view.filters %} checked{% endif %}>
-                            <label for="filter__enable__type">{% trans 'Type' %}</label>
+                            <label for="filter__enable__type">{% trans 'Source' %}</label>
                         </div>
                     </div>
                     <div class="four wide column">
