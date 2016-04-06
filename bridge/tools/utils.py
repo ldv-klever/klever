@@ -285,9 +285,19 @@ class ResourceData(object):
             if cache_id not in self._data:
                 self._data[cache_id] = [data['ct'], data['wt'], data['m'], True]
             else:
-                self._data[cache_id][0] += data['ct']
-                self._data[cache_id][1] += data['wt']
-                self._data[cache_id][2] = max(data['m'], self._data[cache_id][2])
+                if self._data[cache_id][0] is None:
+                    self._data[cache_id][0] = data['ct']
+                else:
+                    self._data[cache_id][0] += data['ct'] if data['ct'] is not None else 0
+                if self._data[cache_id][1] is None:
+                    self._data[cache_id][1] = data['wt']
+                else:
+                    self._data[cache_id][1] += data['wt'] if data['wt'] is not None else 0
+                if data['m'] is not None:
+                    if self._data[cache_id][2] is not None:
+                        self._data[cache_id][2] = max(data['m'], self._data[cache_id][2])
+                    else:
+                        self._data[cache_id][2] = data['m']
                 self._data[cache_id][3] = False
 
     def add(self, report):
@@ -298,9 +308,9 @@ class ResourceData(object):
             'id': report.pk,
             'parent': report.parent_id,
             'component': report.component_id,
-            'wt': report.wall_time if report.wall_time is not None else 0,
-            'ct': report.cpu_time if report.wall_time is not None else 0,
-            'm': report.memory if report.wall_time is not None else 0
+            'wt': report.wall_time,
+            'ct': report.cpu_time,
+            'm': report.memory
         })
 
     def __update_resources(self, newdata):
