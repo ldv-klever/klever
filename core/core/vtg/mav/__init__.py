@@ -51,14 +51,12 @@ class MAV(CommonStrategy):
         self.prepare_bug_kind_functions_file()
         self.create_property_automata()
         self.add_verifier_options()
-        self.prepare_src_files()
 
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
             with open('task.json', 'w', encoding='ascii') as fp:
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
 
-        self.prepare_verification_task_files_archive()
         self.start_mav_cycle()
         self.print_mea_stats()
 
@@ -67,6 +65,8 @@ class MAV(CommonStrategy):
     def start_mav_cycle(self):
         self.logger.info('Multi-Aspect Verification with a single verification run')
         iterations = 1
+        self.prepare_src_files()
+        self.prepare_verification_task_files_archive()
         self.decide_verification_task()
         with open('cil.i.log', encoding='ascii') as fp:
             for line in fp:
