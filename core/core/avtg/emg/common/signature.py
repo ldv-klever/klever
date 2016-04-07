@@ -734,7 +734,8 @@ class Primitive(BaseType):
 
     @property
     def pretty_name(self):
-        return self._ast['specifiers']['type specifier']['name']
+        pn = self._ast['specifiers']['type specifier']['name']
+        return pn.replace(' ', '_')
 
     def _to_string(self, replacement):
         if replacement == '':
