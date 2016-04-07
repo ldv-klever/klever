@@ -268,3 +268,12 @@ class ComponentMarkUnknownProblem(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_mark_unknown_problem'
+
+
+class MarkAssociationsChanges(models.Model):
+    user = models.ForeignKey(User)
+    identifier = models.CharField(max_length=255, unique=True)
+    table_data = models.TextField()
+
+    class Meta:
+        db_table = 'cache_mark_associations_changes'

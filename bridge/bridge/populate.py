@@ -10,7 +10,7 @@ from django.utils.translation import override
 from django.utils.timezone import now
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
-from bridge.utils import file_get_or_create, logger
+from bridge.utils import file_get_or_create, logger, unique_id
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
@@ -271,27 +271,17 @@ class Population(object):
                     continue
                 try:
                     MarkUnknown.objects.get(
-                        component__name=component,
-                        function=data['function'],
-                        problem_pattern=data['pattern']
+                        component__name=component, function=data['function'], problem_pattern=data['pattern']
                     )
                     continue
                 except ObjectDoesNotExist:
-                    create_args = {
-                        'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
-                        'component': Component.objects.get_or_create(name=component)[0],
-                        'author': self.manager,
-                        'status': data['status'],
-                        'is_modifiable': data['is_modifiable'],
-                        'function': data['function'],
-                        'problem_pattern': data['pattern'],
-                        'description': data['description'],
-                        'type': MARK_TYPE[1][0]
-                    }
-                    if len(data['link']) > 0:
-                        create_args['link'] = data['link']
                     try:
-                        mark = MarkUnknown.objects.create(**create_args)
+                        mark = MarkUnknown.objects.create(
+                            identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
+                            author=self.manager, status=data['status'], is_modifiable=data['is_modifiable'],
+                            function=data['function'], problem_pattern=data['pattern'], description=data['description'],
+                            type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
+                        )
                     except Exception as e:
                         logger.exception("Can't save mark '%s' to DB: %s" % (mark_settings, e), stack_info=True)
                         continue

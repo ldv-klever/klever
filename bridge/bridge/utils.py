@@ -127,3 +127,7 @@ def extract_tar_temp(archive):
     tmp_dir_name = tempfile.TemporaryDirectory()
     tar.extractall(tmp_dir_name.name)
     return tmp_dir_name
+
+
+def unique_id():
+    return hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest()

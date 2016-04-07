@@ -44,7 +44,7 @@ def population(request):
     except ObjectDoesNotExist:
         activate(request.LANGUAGE_CODE)
     if not request.user.is_staff:
-        return HttpResponseRedirect(reverse('error', args=[900]))
+        return HttpResponseRedirect(reverse('error', args=[300]))
     need_manager = (len(Extended.objects.filter(role=USER_ROLES[2][0])) == 0)
     need_service = (len(Extended.objects.filter(role=USER_ROLES[4][0])) == 0)
     if request.method == 'POST':
@@ -55,7 +55,7 @@ def population(request):
         if len(service_username) == 0:
             service_username = None
         if need_manager and need_service and (manager_username is None or service_username is None):
-            return HttpResponseRedirect(reverse('error', args=[605]))
+            return HttpResponseRedirect(reverse('error', args=[305]))
         return render(request, 'Population.html', {
             'changes': Population(request.user, manager_username, service_username).changes
         })
