@@ -165,7 +165,8 @@ class FunctionModels:
 
     @staticmethod
     def init_pointer(signature):
-        return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], signature.points.to_string(''))
+        #return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], signature.points.to_string(''))
+        return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], '0')
 
     def __replace_mem_call(self, match):
         function, label_name, flag = match.groups()

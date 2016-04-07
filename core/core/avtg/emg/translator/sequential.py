@@ -406,7 +406,7 @@ class Translator(AbstractTranslator):
         self.model_aspects.append(cf)
 
     def get_file_from_label_value(self, analysis, label_value):
-        label_name = analysis.get_name_from_value(label_value)
+        label_name = self.__callback_name(label_value)
         if label_name:
             if label_name in analysis.modules_functions:
                 return list(analysis.modules_functions[label_name])[0]
@@ -425,7 +425,7 @@ class Translator(AbstractTranslator):
 
                 if len(implementations) > 1:
                     raise NotImplementedError("Cannot process fsm with several implementations of a single callback")
-                elif len(implementations) == 1:
+                elif len(implementations) == 1 and self.__callback_name(implementations[0].value):
                     invoke = '(' + implementations[0].value + ')'
                     file = implementations[0].file
                     check = False
@@ -441,22 +441,22 @@ class Translator(AbstractTranslator):
             else:
                 signature = access.label.prior_signature
 
-                if access.label.value:
-                    invoke = '(' + access.label.value + ')'
+                if access.label.value and self.__callback_name(access.label.value):
+                    invoke = self.__callback_name(access.label.value)
 
                     file = self.get_file_from_label_value(analysis, access.label.value)
                     check = False
                 else:
                     variable = automaton.determine_variable(analysis, access.label)
                     if variable:
-                        invoke = access.access_with_variable()
+                        invoke = access.access_with_variable(variable)
                         file = self.entry_file
                         check = True
                     else:
                         invoke = None
 
             if invoke:
-                additional_check = self.registration_intf_check(analysis, model, invoke)
+                additional_check = self.__registration_intf_check(analysis, model, invoke)
                 if additional_check:
                     new_case["guard"] += " && {}".format(additional_check)
 
@@ -486,29 +486,29 @@ class Translator(AbstractTranslator):
                 # Determine parameters
                 for index in range(len(signature.points.parameters)):
                     parameter = signature.points.parameters[index]
-                    expression = None
+                    if type(parameter) is not str:
+                        expression = None
+                        # Try to find existing variable
+                        ids = [intf.identifier for intf in
+                               analysis.resolve_interface(parameter, edge['automaton'].process.category)]
+                        if len(ids) > 0:
+                            for candidate in action.parameters:
+                                accesses = automaton.process.resolve_access(candidate)
+                                suits = [acc for acc in accesses if acc.interface and
+                                         acc.interface.identifier in ids]
+                                if len(suits) == 1:
+                                    var = automaton.determine_variable(analysis, suits[0].label,
+                                                                       suits[0].list_interface[0].identifier)
+                                    expression = suits[0].access_with_variable(var)
+                                    break
+                                elif len(suits) > 1:
+                                    raise NotImplementedError("Cannot set two different parameters")
 
-                    # Try to find existing variable
-                    ids = [intf.identifier for intf in
-                                  analysis.resolve_interface(parameter, edge['automaton'].process.category)]
-                    if len(ids) > 0:
-                        for candidate in action.parameters:
-                            accesses = automaton.process.resolve_access(candidate)
-                            suits = [acc for acc in accesses if acc.interface and
-                                     acc.interface.identifier in ids]
-                            if len(suits) == 1:
-                                var = automaton.determine_variable(analysis, suits[0].label,
-                                                                   suits[0].list_interface[0].identifier)
-                                expression = suits[0].access_with_variable(var)
-                                break
-                            elif len(suits) > 1:
-                                raise NotImplementedError("Cannot set two different parameters")
-
-                    # Generate new variable
-                    if not expression:
-                        tmp = Variable("emg_param_{}".format(index), None, signature.points.parameters[index], False)
-                        local_vars.append(tmp)
-                        expression = tmp.name
+                        # Generate new variable
+                        if not expression:
+                            tmp = Variable("emg_param_{}".format(index), None, signature.points.parameters[index], False)
+                            local_vars.append(tmp)
+                            expression = tmp.name
 
                     # Add string
                     params.append(expression)
@@ -692,11 +692,18 @@ class Translator(AbstractTranslator):
             case["body"].append("{} = {};".format(automaton.state_variable.name, edge["out"]))
         return cases
 
-    def registration_intf_check(self, analysis, model, function_call):
-        check = []
-        name = analysis.get_name_from_value(function_call)
-        if name:
+    def __callback_name(self, call):
+        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
+        if name_re.fullmatch(call):
+            return name_re.fullmatch(call).group(1)
+        else:
+            return None
 
+    def __registration_intf_check(self, analysis, model, function_call):
+        check = []
+
+        name = self.__callback_name(function_call)
+        if name:
             # Caclulate relevant models
             if name in analysis.modules_functions:
                 relevant_models = analysis.collect_relevant_models(name)

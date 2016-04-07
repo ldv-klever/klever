@@ -199,6 +199,10 @@ class ProcessModel:
                                                   format(label, parameter.identifier))
                                 new_process.labels[label].set_declaration(parameter.identifier, signature)
                                 break
+                    elif not new_process.labels[label].parameter and new_process.labels[label].interfaces:
+                        for interface in new_process.labels[label].interfaces:
+                            new_process.labels[label].set_declaration(interface,
+                                                                      analysis.interfaces[interface].declaration)
 
                     if new_process.labels[label].parameter and len(new_process.labels[label].interfaces) == 0:
                         raise ValueError("Cannot find a suitable signature for a label '{}' at function model '{}'".

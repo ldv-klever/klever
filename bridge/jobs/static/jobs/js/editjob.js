@@ -365,7 +365,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
 
 
 function update_treegrid() {
-    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon');
+    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon', true);
 }
 
 function selected_row() {
@@ -828,7 +828,7 @@ $(document).ready(function () {
             type: 'POST',
             success: function (data) {
                 $('#edit_job_div').html(data);
-                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
+                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon', true);
                 set_action_on_file_click();
                 set_actions_for_run_history();
             }

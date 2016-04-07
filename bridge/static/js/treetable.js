@@ -1,4 +1,4 @@
-window.inittree = function(table, column, expanded, collapsed) {
+window.inittree = function(table, column, expanded, collapsed, start_collapse) {
 
     String.prototype.startsWith = function(prefix) {
         return this.indexOf(prefix) === 0;
@@ -98,5 +98,10 @@ window.inittree = function(table, column, expanded, collapsed) {
     });
     if (prev_icon) {
         prev_icon.attr('style', 'opacity:0;');
+    }
+    if (start_collapse) {
+         $($('[id^="tt_expander_"]').get().reverse()).each(function () {
+             $(this).click();
+         });
     }
 };
