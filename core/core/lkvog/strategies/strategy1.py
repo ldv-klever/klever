@@ -318,5 +318,8 @@ class Strategy1:
                     for dep in self.modules[module.id].predecessors:
                         if dep.id in modules:
                             module.add_predecessor(modules[dep.id])
-            ret.add(Graph(list(modules.values())))
+            cluster2 = Graph(list(modules.values()))
+            if cluster2 not in self.checked_clusters:
+                self.checked_modules.add(cluster2)
+                ret.add(cluster2)
         return ret

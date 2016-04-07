@@ -49,9 +49,8 @@ class Closure:
         # Return only not checked clusters
         ret_clusters = []
         for cluster in clusters:
-            hash_num = hash(cluster)
-            if hash_num not in self.checked_clusters:
-                self.checked_clusters.add(hash_num)
+            if cluster not in self.checked_clusters:
+                self.checked_clusters.add(cluster)
                 ret_clusters.append(cluster)
 
         return ret_clusters

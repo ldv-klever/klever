@@ -122,7 +122,8 @@ class LKBCE(core.components.Component):
                                      if 'external modules archive' in self.conf['Linux kernel']
                                      else ('modules',))
             else:
-                if 'all' not in self.conf['Linux kernel']['modules'] \
+                if ('all' not in self.conf['Linux kernel']['modules']
+                        or not self.conf['Linux kernel'].get('build kernel', False)) \
                         and 'modules dep file' in self.conf['Linux kernel'] \
                         and self.conf['LKVOG strategy']['name'] != 'separate modules':
                     self.conf['Linux kernel']['modules'] = self.mqs['Linux kernel modules'].get()
@@ -170,7 +171,7 @@ class LKBCE(core.components.Component):
                         jobs_num=jobs_num,
                         specify_arch=True, collect_build_cmds=True)
 
-        if 'module dep file' not in self.conf['Linux kernel']:
+        if 'modules dep file' not in self.conf['Linux kernel']:
             self.extract_all_linux_kernel_mod_deps()
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')

@@ -20,7 +20,6 @@ def before_launch_all_components(context):
     context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
     context.mqs['Linux kernel module deps'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
-    context.mqs['Clusters'] = multiprocessing.Queue()
     context.mqs['Additional modules'] = multiprocessing.Queue()
 
 
@@ -201,7 +200,8 @@ class LKVOG(core.components.Component):
 
             self.logger.debug('After dividing build modules: {}'.format(build_modules))
 
-            if 'all' not in self.conf['Linux kernel']['modules']:
+            if 'all' not in self.conf['Linux kernel']['modules'] \
+                    or not self.conf['Linux kernel'].get('build kernel', False):
                 self.mqs['Linux kernel modules'].put(build_modules)
                 self.mqs['Additional modules'].put(build_modules)
 
@@ -288,8 +288,10 @@ class LKVOG(core.components.Component):
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
 
-        if 'all' not in self.conf['Linux kernel']['modules'] and 'user_deps' in self.conf['LKVOG strategy'] \
-            and self.conf['LKVOG strategy']['name'] != 'separate_modules':
+        if ('all' not in self.conf['Linux kernel']['modules']
+                or not self.conf['Linux kernel'].get('build kernel', False)) \
+                and 'modules dep file' in self.conf['Linux kernel'] \
+                and self.conf['LKVOG strategy']['name'] != 'separate_modules':
             self.conf['Linux kernel']['modules'] = self.mqs['Additional modules'].get()
 
 

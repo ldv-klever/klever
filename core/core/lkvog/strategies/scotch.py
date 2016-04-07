@@ -126,7 +126,7 @@ class Scotch:
                         group_dict[module].add_predecessor(group_dict[predecessor])
 
             if group_dict:
-                graph = Graph(list(group_dict.values()))
+                graph = Graph(sorted(list(group_dict.values())))
                 self.clusters.add(graph)
 
         #if len(clusters) != partitions:
