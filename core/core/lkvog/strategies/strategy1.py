@@ -14,12 +14,12 @@ class Strategy1:
         self.logger = logger
 
         # Going to read params
-        self.koef = params.get('koef', 5)
+        self.koef = params.get('cluster size', 5)
         self.max_g_for_m = params.get('max_g_for_m', 5)
         self.minimize_groups_for_module = params.get('minimize_groups_for_module', True)
         self.priority_on_module_size = params.get('priority_on_module_size', True) and bool(module_sizes)
         self.user_deps = params.get('user_deps', {})
-        self.division_type = params.get('division_type', 'Library')
+        self.division_type = params.get('division_type', 'All')
         if self.division_type not in ('Library', 'Module', 'All'):
             raise ValueError("Division type {} doesn't exist".format(self.division_type))
         self.analyze_all_export_function = \
@@ -301,7 +301,7 @@ class Strategy1:
                     self.count_groups_for_m.setdefault(module, 0)
                     self.count_groups_for_m[module] += 1
                 continue
-            if len(process) > 1:
+            if len(process) > 1 or (len(process) == 1 and not clusters):
                 self.logger.debug('Append cluster: {}'.format([module.id for module in process]))
                 clusters.add(frozenset(process))
             for module in process:
