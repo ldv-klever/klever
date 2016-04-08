@@ -8,13 +8,13 @@ import core.components
 import core.utils
 
 # VTG strategies.
-from core.vtg.abkm import ABKM
-from core.vtg.abks import ABKS
-from core.vtg.mav import MAV
-from core.vtg.mav.mav_abkm import MAVBKM
-from core.vtg.mav.cmav import CMAV
+from core.vtg.sbk import SBK
+from core.vtg.sbt import SBT
+from core.vtg.batch import Batch
+from core.vtg.mbk import MBK
+from core.vtg.mbt import MBT
 
-_strategies = (ABKM, ABKS, MAV, MAVBKM, CMAV)
+_strategies = (SBT, SBK, Batch, MBK, MBT)
 
 
 def before_launch_all_components(context):

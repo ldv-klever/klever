@@ -3,22 +3,21 @@
 import os
 import re
 
-from core.vtg import common
+from core.vtg.separated import SeparatedStrategy
 
 
-# This strategy is aimed at merging all bug kinds inside each rule scpecification
-# and at checking each rule specification as a separated verification run
-# until finding the first bug.
-class ABKM(common.SequentialStrategy):
-    def generate_verification_tasks(self):
-        self.logger.info('Generate one verification task by merging all bug kinds')
-        self.set_option_for_mea()
+# This strategy is aimed at merging all bug kinds inside each bug type
+# and at checking each bug type as a separated verification run.
+class SBT(SeparatedStrategy):
+    def print_strategy_information(self):
+        self.logger.info('Launch strategy "Single Bug Type"')
+        self.logger.info('Generate one verification task for each bug type')
+
+    def main_cycle(self):
         self.process_sequential_verification_task()
 
-    main = generate_verification_tasks
-
-    def prepare_bug_kind_functions_file(self):
-        self.logger.info('Prepare bug kind functions file "bug kind funcs.c"')
+    def prepare_bug_kind_functions_file(self, bug_kind=None):
+        self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
 
         # Get all bug kinds.
         bug_kinds = self.get_all_bug_kinds()

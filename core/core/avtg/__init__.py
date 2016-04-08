@@ -247,6 +247,10 @@ def _extract_rule_spec_descs(conf, logger):
 
     if 'unite rule specifications' in conf and conf['unite rule specifications']:
         unite_rule_specifications(conf, logger, raw_rule_spec_descs)
+    else:
+        # TODO: somehow common aspect may affect Single strategies!
+        if conf.__contains__('common aspect'):
+            conf.__delitem__('common aspect')
 
     for rule_spec_id in conf['rule specifications']:
         rule_spec_descs.append(_extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id))
@@ -495,6 +499,12 @@ class AVTG(core.components.Component):
 
             # VTG will consume this abstract verification task description.
             self.abstract_task_desc = cur_abstract_task_desc
+
+            # Set AVTG options, that are relevant to VTG.
+            self.abstract_task_desc['AVTG'] = {}
+            if 'unite rule specifications' in self.conf and self.conf['unite rule specifications']:
+                self.abstract_task_desc['AVTG']['unite rule specifications'] = True
+            # TODO: add support for property automata.
 
             # Count the number of successfully generated abstract verification task descriptions.
             self.abstract_task_desc_num += 1

@@ -4,33 +4,30 @@ import os
 import re
 import shutil
 
-from core.vtg import common
+from core.vtg.separated import SeparatedStrategy
 
 
 # This strategy is aimed at creating verification tasks for each
-# bug kind and at solving them as separated verification runs
-# until finding the first bug.
-class ABKS(common.SequentialStrategy):
+# bug kind and at solving them as separated verification runs.
+class SBK(SeparatedStrategy):
 
     src_files = []
 
-    def generate_verification_tasks(self):
-        self.logger.info('Generate verification tasks for each bug kinds')
+    def print_strategy_information(self):
+        self.logger.info('Launch strategy "Single Bug Kind"')
+        self.logger.info('Generate one verification task for each bug kind')
         bug_kinds = self.get_all_bug_kinds()
         self.logger.info('Verification tasks contains {0} bug kinds'.format(bug_kinds.__len__()))
 
+    def main_cycle(self):
         self.src_files = self.conf['abstract task desc']['extra C files'].copy()
-        self.set_option_for_mea()
-
-        for bug_kind in bug_kinds:
+        for bug_kind in self.get_all_bug_kinds():
             self.process_sequential_verification_task(bug_kind)
             # Clear output directory since it is the same for all runs.
             shutil.rmtree('output')
 
-    main = generate_verification_tasks
-
-    def prepare_bug_kind_functions_file(self, bug_kind):
-        self.logger.info('Prepare bug kind functions file "bug kind funcs.c"')
+    def prepare_bug_kind_functions_file(self, bug_kind=None):
+        self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
 
         # Create bug kind function definitions that all call __VERIFIER_error() since this strategy doesn't distinguish
         # different bug kinds.

@@ -6,10 +6,14 @@ import re
 from core.vtg.mav import MAV
 
 
-# Multi-Aspect Verification with bug kind merge (MAV_BKM)
-class MAVBKM(MAV):
+# Multiple Bug Types.
+class MBT(MAV):
 
     assert_to_bug_kinds = {}
+
+    def print_strategy_information(self):
+        self.logger.info('Launch strategy "Multiple Bug Types"')
+        self.logger.info('Generate one verification task and check all bug types at once')
 
     def get_all_bug_kinds(self):
         bug_kinds = []
