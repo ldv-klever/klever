@@ -121,6 +121,10 @@ class NewMark(object):
                 return _('Problem length must be less than 15 characters')
             mark.problem_pattern = args['problem']
 
+            if len(MarkUnknown.objects.filter(
+                    component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function)) > 0:
+                return _('Similar mark is exist already')
+
             if 'link' in args and len(args['link']) > 0:
                 mark.link = args['link']
 
@@ -200,6 +204,10 @@ class NewMark(object):
             if args['problem'] != mark.problem_pattern:
                 self.do_recalk = True
                 mark.problem_pattern = args['problem']
+
+            if len(MarkUnknown.objects.filter(
+                    component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function)) > 0:
+                return _('Similar mark is exist already')
 
             if 'link' in args and len(args['link']) > 0:
                 mark.link = args['link']
@@ -794,8 +802,7 @@ class ReadTarMark(object):
                 try:
                     mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:
-                    return _("The error traces comparison "
-                             "function was not found")
+                    return _("The error traces comparison function was not found")
             mark.format = int(args['format'])
             if mark.format != FORMAT:
                 return _('The mark format is not supported')
@@ -811,6 +818,11 @@ class ReadTarMark(object):
             elif self.type == 'safe' and args['verdict'] in list(x[0] for x in MARK_SAFE):
                 mark.verdict = args['verdict']
             elif self.type == 'unknown':
+                if len(MarkUnknown.objects.filter(
+                        component__name=args['component'],
+                        problem_pattern=args['problem'],
+                        function=args['function'])) > 0:
+                    return _('Similar mark is exist already')
                 mark.component = Component.objects.get_or_create(name=args['component'])[0]
                 mark.function = args['function']
                 mark.problem_pattern = args['problem']
@@ -831,7 +843,7 @@ class ReadTarMark(object):
                 mark.save()
             except Exception as e:
                 logger.exception("Saving mark to DB failed: %s" % e, stack_info=True)
-                return _("Unknown error")
+                return 'Unknown error'
 
             self.__update_mark(mark, tags=tags)
             if self.type != 'unknown':
