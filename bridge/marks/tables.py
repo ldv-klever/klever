@@ -29,7 +29,9 @@ MARK_TITLES = {
     'component': _('Component'),
     'pattern': _('Problem pattern'),
     'checkbox': '',
-    'type': _('Source')
+    'type': _('Source'),
+    'is_prime': _('Is primary'),
+    'has_prime': _('Has primary')
 }
 
 STATUS_COLOR = {
@@ -317,13 +319,13 @@ class ReportMarkTable(object):
         self.report = report
         self.user = user
         if isinstance(report, ReportUnsafe):
-            self.columns = ['number', 'verdict', 'result', 'status', 'author']
+            self.columns = ['number', 'verdict', 'result', 'status', 'author', 'is_prime']
             self.type = 'unsafe'
         elif isinstance(report, ReportSafe):
-            self.columns = ['number', 'verdict', 'status', 'author']
+            self.columns = ['number', 'verdict', 'status', 'author', 'is_prime']
             self.type = 'safe'
         elif isinstance(report, ReportUnknown):
-            self.columns = ['number', 'problem', 'status', 'author']
+            self.columns = ['number', 'problem', 'status', 'author', 'is_prime']
             self.type = 'unknown'
         else:
             return
@@ -375,6 +377,12 @@ class ReportMarkTable(object):
                         href = mark_rep.mark.link
                         if not href.startswith('http'):
                             href = 'http://' + mark_rep.mark.link
+                elif col == 'is_prime':
+                    if mark_rep.mark.prime == self.report:
+                        value = _('Yes')
+                        color = '#B12EAF'
+                    else:
+                        value = _('No')
                 values_row.append({
                     'value': value, 'href': href, 'color': color
                 })
@@ -719,13 +727,13 @@ class MarkReportsTable(object):
         self.user = user
         if isinstance(mark, MarkUnsafe):
             self.type = 'unsafe'
-            self.columns = ['report', 'job', 'result']
+            self.columns = ['report', 'job', 'result', 'is_prime']
         elif isinstance(mark, MarkSafe):
             self.type = 'safe'
-            self.columns = ['job', 'report_num']
+            self.columns = ['job', 'report_num', 'has_prime']
         elif isinstance(mark, MarkUnknown):
             self.type = 'unknown'
-            self.columns = ['job', 'report_num']
+            self.columns = ['job', 'report_num', 'has_prime']
         else:
             return
         self.mark = mark
@@ -735,10 +743,6 @@ class MarkReportsTable(object):
     def __get_values(self):
         values = []
         cnt = 0
-        report_filters = {
-            'parent': None,
-            'leaves__%s__markreport_set__mark' % self.type: self.mark
-        }
         if self.type == 'unsafe':
             for mark_report in self.mark.markreport_set.all():
                 report = mark_report.report
@@ -763,16 +767,37 @@ class MarkReportsTable(object):
                         val = report.root.job.name
                         if JobAccess(self.user, report.root.job).can_view():
                             href = reverse('jobs:job', args=[report.root.job.pk])
+                    elif col == 'is_prime':
+                        if self.mark.prime == mark_report.report:
+                            val = _('Yes')
+                            color = '#B12EAF'
+                        else:
+                            val = _('No')
                     values_str.append({'value': val, 'href': href, 'color': color})
                 values.append(values_str)
         else:
+            report_filters = {
+                'parent': None,
+                'leaves__%s__markreport_set__mark' % self.type: self.mark
+            }
             for report in ReportComponent.objects.filter(**report_filters).distinct().order_by('root__job__name'):
                 len_filter = {self.type + '__markreport_set__mark': self.mark}
+                mark_leaves = report.leaves.filter(**len_filter)
+
+                if self.mark.prime is not None and len(mark_leaves.filter(**{self.type: self.mark.prime})) > 0:
+                    color = '#B12EAF'
+                    has_primary = _('Yes')
+                else:
+                    has_primary = _('No')
+                    color = None
                 values.append([
                     {'value': report.root.job.name, 'href': reverse('jobs:job', args=[report.root.job_id])},
                     {
-                        'value': len(report.leaves.filter(**len_filter)),
+                        'value': len(mark_leaves),
                         'href': reverse('reports:list_mark', args=[report.pk, self.type + 's', self.mark.pk])
+                    },
+                    {
+                        'value': has_primary, 'color': color
                     }
                 ])
         return values
