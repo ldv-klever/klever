@@ -127,8 +127,6 @@ def setup_collection(collection, typedefs):
     global __typedef_collection
     global __typedefs
 
-    setup_parser()
-
     __typedef_collection = collection
     __typedefs = typedefs
 

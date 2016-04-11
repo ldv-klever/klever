@@ -2,11 +2,7 @@ import ply.lex as lex
 import ply.yacc as yacc
 import re
 
-__typedef_collection = {}
-
-__typedefs = {}
-
-__noname_identifier = 0
+__initialized = False
 
 tokens = (
     'INTERFACE',
@@ -532,12 +528,19 @@ def direct_declarator_processing(p):
             else:
                 p[0] = p[2]
 
+
 def setup_parser():
     lex.lex()
     yacc.yacc(debug=0, write_tables=0)
 
 
 def parse_signature(string):
+    global __initialized
+
+    if not __initialized:
+        setup_parser()
+        __initialized = True
+
     return yacc.parse(string)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
