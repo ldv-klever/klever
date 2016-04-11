@@ -1,62 +1,241 @@
-__process_grammar = \
-'''
-(* Main expression *)
-FinalProcess = (Operators | Bracket)$;
-Operators = Switch | Sequence;
+import ply.lex as lex
+import ply.yacc as yacc
 
-(* Signle process *)
-Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
-Null = null:'0';
-ReceiveProcess = receive:Receive;
-SendProcess = dispatch:Send;
-SubprocessProcess = subprocess:Subprocess;
-ConditionProcess = condition:Condition;
-Receive = '('[replicative:'!']name:identifier[number:Repetition]')';
-Send = '['[broadcast:'@']name:identifier[number:Repetition]']';
-Condition = '<'name:identifier[number:Repetition]'>';
-Subprocess = '{'name:identifier'}';
+__initialized = False
 
-(* Operators *)
-Sequence = sequence:SequenceExpr;
-Switch = options:SwitchExpr;
-SequenceExpr = @+:Process{'.'@+:Process}*;
-SwitchExpr = @+:Sequence{'|'@+:Sequence}+;
+tokens = (
+    'DOT',
+    'SEP',
+    'PAR_OPEN',
+    'PAR_CLOSE',
+    'BR_OPEN',
+    'BR_CLOSE',
+    'SBR_OPEN',
+    'SBR_CLOSE',
+    'DIM_OPEN',
+    'DIM_CLOSE',
+    'PER',
+    'RS',
+    'BS',
+    'NUMBER',
+    'IDENTIFIER',
+)
 
-(* Brackets *)
-Bracket = process:BracketExpr;
-BracketExpr = '('@:Operators')';
+t_DOT = r'[.]'
 
-(* Basic expressions and terminals *)
-Repetition = '['@:(number | label)']';
-identifier = /\w+/;
-number = /\d+/;
-label = /%\w+%/;
-'''
-__process_model = None
+t_SEP = r'[|]'
+
+t_PAR_OPEN = r'[(]'
+
+t_PAR_CLOSE = r'[)]'
+
+t_BR_OPEN = r'[{]'
+
+t_BR_CLOSE = r'[}]'
+
+t_SBR_OPEN = r'[[]'
+
+t_SBR_CLOSE = r'[]]'
+
+t_DIM_OPEN = r'[<]'
+
+t_DIM_CLOSE = r'[>]'
+
+t_PER =r'[%]'
+
+t_IDENTIFIER = r'\w+'
 
 
-def __undefaulted(x, tp):
-    if isinstance(x, list):
-        return [__undefaulted(element, tp) for element in x]
-    elif isinstance(x, tp):
-        return dict((k, __undefaulted(v, tp)) for (k, v) in x.iteritems())
+def t_RS(t):
+    r'[!]'
+    t.value = True
+    return t
+
+
+def t_BS(t):
+    r'[@]'
+    t.value = True
+    return t
+
+
+def t_NUMBER(t):
+    r'\d+'
+    t.value = int(t.value)
+    return t
+
+
+def t_error(t):
+    raise TypeError("Unknown text '%s'" % (t.value,))
+
+
+def p_error(t):
+    raise TypeError("Unknown text '%s'" % (t.value,))
+
+
+t_ignore = ' \t\n'
+
+
+def p_process(p):
+    """
+    process : action_list
+    """
+    p[0] = p[1]
+
+
+def p_action_list(p):
+    """
+    action_list : concatenation_list
+                | choice_list
+    """
+    p[0] = p[1]
+
+
+def p_action(p):
+    """
+    action : dispatch
+           | receive
+           | subprocess
+           | condition
+           | bracket
+    """
+    p[0] = p[1]
+
+
+def p_concatenation_list(p):
+    """
+    concatenation_list : action DOT concatenation_list
+                       | action
+    """
+    if len(p) > 2:
+        p[3]['actions'] = [p[1]] + p[3]['actions']
+        p[0] = p[3]
     else:
-        return x
+        p[0] = {
+            'type': 'concatenation',
+            'actions': [p[1]]
+        }
 
 
-def __check_grammar():
-    global __process_model
+def p_choice_list(p):
+    """
+    choice_list : concatenation_list SEP choice_list
+                | concatenation_list
+    """
+    if len(p) > 2:
+        p[3]['actions'] = [p[1]] + p[3]['actions']
+        p[0] = p[3]
+    else:
+        p[0] = {
+            'type': 'choice',
+            'actions': [p[1]]
+        }
 
-    if not __process_model:
-        import grako
-        __process_model = grako.genmodel('process', __process_grammar)
+
+def p_bracket(p):
+    """
+    bracket : PAR_OPEN action_list PAR_CLOSE
+    """
+    p[0] = p[2]
+
+
+def p_repeate(p):
+    """
+    repeate : SBR_OPEN NUMBER SBR_CLOSE
+            | SBR_OPEN PER IDENTIFIER PER SBR_CLOSE
+    """
+    if len(p) > 4:
+        p[0] = p[3]
+    else:
+        p[0] = p[2]
+
+
+def p_dispatch(p):
+    """
+    dispatch : SBR_OPEN BS IDENTIFIER repeate SBR_CLOSE
+             | SBR_OPEN IDENTIFIER repeate SBR_CLOSE
+             | SBR_OPEN BS IDENTIFIER SBR_CLOSE
+             | SBR_OPEN IDENTIFIER SBR_CLOSE
+    """
+    p[0] = {
+        'type': 'dispatch',
+        'number': 1
+    }
+    if type(p[2]) is not str and p[2]:
+        p[0]['broadcast'] = True
+        p[0]['name'] = p[3]
+
+        if len(p) == 6:
+            p[0]['number'] = p[4]
+    else:
+        p[0]['broadcast'] = False
+        p[0]['name'] = p[2]
+
+        if len(p) == 5:
+            p[0]['number'] = p[3]
+
+
+def p_receive(p):
+    """
+    receive : PAR_OPEN RS IDENTIFIER repeate PAR_CLOSE
+            | PAR_OPEN IDENTIFIER repeate PAR_CLOSE
+            | PAR_OPEN RS IDENTIFIER PAR_CLOSE
+            | PAR_OPEN IDENTIFIER PAR_CLOSE
+    """
+    p[0] = {
+        'type': 'receive',
+        'number': 1
+    }
+    if type(p[2]) is not str and p[2]:
+        p[0]['replicative'] = True
+        p[0]['name'] = p[3]
+
+        if len(p) == 6:
+            p[0]['number'] = p[4]
+    else:
+        p[0]['replicative'] = False
+        p[0]['name'] = p[2]
+
+        if len(p) == 5:
+            p[0]['number'] = p[3]
+
+
+def p_condition(p):
+    """
+    condition : DIM_OPEN IDENTIFIER repeate DIM_CLOSE
+              | DIM_OPEN IDENTIFIER DIM_CLOSE
+    """
+    p[0] = {
+        'type': 'condition',
+        'name': p[2],
+        'number': 1
+    }
+
+    if len(p) == 5:
+        p[0]['number'] = p[3]
+
+def p_subprocess(p):
+    """
+    subprocess : BR_OPEN IDENTIFIER BR_CLOSE
+    """
+    p[0] = {
+        'type': 'subprocess',
+        'name': p[2],
+        'number': 1
+    }
+
+
+def setup_parser():
+    lex.lex()
+    yacc.yacc(debug=0, write_tables=0)
 
 
 def parse_process(string):
-    __check_grammar()
-    ast = __process_model.parse(string, ignorecase=True)
-    ast = __undefaulted(ast, type(ast))
+    global __initialized
 
-    return ast
+    if not __initialized:
+        setup_parser()
+        __initialized = True
+
+    return yacc.parse(string)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
