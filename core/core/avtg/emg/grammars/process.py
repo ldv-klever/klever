@@ -160,7 +160,7 @@ def p_dispatch(p):
     p[0] = {
         'type': 'dispatch',
         'number': 1,
-        'label': p[1]
+        'label': '['
     }
     if type(p[2]) is not str and p[2]:
         p[0]['broadcast'] = True
@@ -175,7 +175,7 @@ def p_dispatch(p):
 
         if len(p) == 5:
             p[0]['number'] = p[3]
-    p[0]['label'] += "{}[{}]".format(p[0]['name'], p[0]['number']) + p[-1]
+    p[0]['label'] += "{}[{}]".format(p[0]['name'], p[0]['number']) + ']'
 
 
 def p_receive(p):
@@ -188,7 +188,7 @@ def p_receive(p):
     p[0] = {
         'type': 'receive',
         'number': 1,
-        'label': p[1]
+        'label': '('
     }
     if type(p[2]) is not str and p[2]:
         p[0]['replicative'] = True
@@ -203,7 +203,7 @@ def p_receive(p):
 
         if len(p) == 5:
             p[0]['number'] = p[3]
-    p[0]['label'] += "{}[{}]".format(p[0]['name'], p[0]['number']) + p[-1]
+    p[0]['label'] += "{}[{}]".format(p[0]['name'], p[0]['number']) + ')'
 
 
 def p_condition(p):
@@ -215,7 +215,7 @@ def p_condition(p):
         'type': 'condition',
         'name': p[2],
         'number': 1,
-        'label': p[1] + p[2] + p[-1]
+        'label': '<' + p[2] + '>'
     }
 
     if len(p) == 5:
