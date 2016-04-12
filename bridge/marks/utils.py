@@ -73,6 +73,7 @@ class NewMark(object):
         else:
             mark = MarkUnknown()
         mark.author = self.user
+        mark.prime = report
 
         if self.type == 'unsafe':
             if 'convert_id' in args:
@@ -407,6 +408,9 @@ class ConnectMarkWithReports(object):
         else:
             return
         self.changes.update(UpdateVerdict(self.mark, self.changes).changes)
+        if self.mark.prime not in self.changes or self.changes[self.mark.prime]['kind'] == '-':
+            self.mark.prime = None
+            self.mark.save()
 
     def __connect_unsafe_mark(self):
         last_version = self.mark.versions.get(version=self.mark.version)
@@ -427,13 +431,14 @@ class ConnectMarkWithReports(object):
                         pass
             else:
                 compare_failed = False
-                compare = CompareTrace(
-                    self.mark.function.name,
-                    self.mark.error_trace.decode('utf8'),
-                    unsafe.error_trace.decode('utf8'))
+                compare = CompareTrace(self.mark.function.name,
+                                       self.mark.error_trace.decode('utf8'), unsafe.error_trace.decode('utf8'))
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error)
                     compare_failed = True
+                    if self.mark.prime == unsafe:
+                        self.mark.prime = None
+                        self.mark.save()
                 if compare.result > 0 or compare_failed:
                     MarkUnsafeReport.objects.create(
                         mark=self.mark, report=unsafe, result=compare.result,
