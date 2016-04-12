@@ -2,7 +2,8 @@ import ply.lex as lex
 import ply.yacc as yacc
 import re
 
-__initialized = False
+__parser = None
+__lexer = None
 
 tokens = (
     'INTERFACE',
@@ -530,17 +531,20 @@ def direct_declarator_processing(p):
 
 
 def setup_parser():
-    lex.lex()
-    yacc.yacc(debug=0, write_tables=0)
+    global __parser
+    global __lexer
+
+    __lexer = lex.lex()
+    __parser = yacc.yacc(debug=0, write_tables=0)
 
 
 def parse_signature(string):
-    global __initialized
+    global __parser
+    global __lexer
 
-    if not __initialized:
+    if not __parser:
         setup_parser()
-        __initialized = True
 
-    return yacc.parse(string)
+    return __parser.parse(string, lexer=__lexer)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

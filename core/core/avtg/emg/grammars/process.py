@@ -1,7 +1,8 @@
 import ply.lex as lex
 import ply.yacc as yacc
 
-__initialized = False
+__parser = None
+__lexer = None
 
 tokens = (
     'DOT',
@@ -158,11 +159,13 @@ def p_dispatch(p):
     """
     p[0] = {
         'type': 'dispatch',
-        'number': 1
+        'number': 1,
+        'label': p[1]
     }
     if type(p[2]) is not str and p[2]:
         p[0]['broadcast'] = True
         p[0]['name'] = p[3]
+        p[0]['label'] += '@'
 
         if len(p) == 6:
             p[0]['number'] = p[4]
@@ -172,6 +175,7 @@ def p_dispatch(p):
 
         if len(p) == 5:
             p[0]['number'] = p[3]
+    p[0]['label'] += "{}[{}]".format(p[0]['name'], p[0]['number']) + p[-1]
 
 
 def p_receive(p):
@@ -183,11 +187,13 @@ def p_receive(p):
     """
     p[0] = {
         'type': 'receive',
-        'number': 1
+        'number': 1,
+        'label': p[1]
     }
     if type(p[2]) is not str and p[2]:
         p[0]['replicative'] = True
         p[0]['name'] = p[3]
+        p[0]['label'] += '!'
 
         if len(p) == 6:
             p[0]['number'] = p[4]
@@ -197,6 +203,7 @@ def p_receive(p):
 
         if len(p) == 5:
             p[0]['number'] = p[3]
+    p[0]['label'] += "{}[{}]".format(p[0]['name'], p[0]['number']) + p[-1]
 
 
 def p_condition(p):
@@ -207,11 +214,13 @@ def p_condition(p):
     p[0] = {
         'type': 'condition',
         'name': p[2],
-        'number': 1
+        'number': 1,
+        'label': p[1] + p[2] + p[-1]
     }
 
     if len(p) == 5:
         p[0]['number'] = p[3]
+
 
 def p_subprocess(p):
     """
@@ -225,17 +234,20 @@ def p_subprocess(p):
 
 
 def setup_parser():
-    lex.lex()
-    yacc.yacc(debug=0, write_tables=0)
+    global __parser
+    global __lexer
+
+    __lexer = lex.lex()
+    __parser = yacc.yacc(debug=0, write_tables=0)
 
 
 def parse_process(string):
-    global __initialized
+    global __parser
+    global __lexer
 
-    if not __initialized:
+    if not __parser:
         setup_parser()
-        __initialized = True
 
-    return yacc.parse(string)
+    return __parser.parse(string, lexer=__lexer)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
