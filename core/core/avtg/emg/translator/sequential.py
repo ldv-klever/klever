@@ -1,9 +1,10 @@
 import copy
 import os
 import re
+import graphviz
 
 from core.avtg.emg.translator import AbstractTranslator, Aspect
-from core.avtg.emg.translator.automaton import FSA
+from core.avtg.emg.translator.fsa import FSA
 from core.avtg.emg.common.interface import Container, Callback
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
@@ -770,7 +771,7 @@ class Automaton:
         # Generate FSA itself
         self.logger.info("Generate states for automaton {} based on process {} with category {}".
                          format(self.identifier, self.process.name, self.process.category))
-        self.fsa = FSA(self, self.process)
+        self.fsa = FSA(self.process)
 
     @property
     def state_variable(self):
@@ -850,6 +851,45 @@ class Automaton:
                          format(self.process.name, self.process.category))
         dg_file = "{}/{}.dot".format(directory, "{}_{}_{}".
                                      format(self.process.category, self.process.name, self.identifier))
-        self.fsa.save_fsa_digraph(dg_file, self.identifier, self.process)
+
+        graph = graphviz.Digraph(
+            name=str(self.identifier),
+            comment="Digraph for FSA {} based on self.process {} with category {}".
+                    format(self.identifier, self.process.name, self.process.category),
+            format="png"
+        )
+
+        # Add self.process description
+        graph.node(
+            self.process.name,
+            "self.process: {}".format(self.process.process),
+            {
+                "shape": "rectangle"
+            }
+        )
+
+        # Add subself.process description
+        for subp in [self.process.actions[name] for name in sorted(self.process.actions.keys())
+                       if type(self.process.actions[name]) is Subprocess]:
+            graph.node(
+                subp.name,
+                "Subprocess {}: {}".format(subp.name, subp.process),
+                {
+                    "shape": "rectangle"
+                }
+            )
+
+        for state in self.fsa.states:
+            graph.node(str(state.identifier), state.desc['label'])
+
+            for succ in state.successors:
+                graph.edge(
+                    str(state.identifier),
+                    str(succ.identifier)
+                )
+
+        # Save to dg_file
+        graph.save(dg_file)
+        graph.render()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
