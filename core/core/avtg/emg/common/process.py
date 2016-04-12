@@ -292,14 +292,13 @@ class Process:
         return name
 
     @property
-    def process_ast(self):
-        if not self.__process_ast:
-            self.__process_ast = process_parse(self.process)
-        return self.__process_ast
-
-    @property
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
+
+    def process_ast(self, cache=True):
+        if not self.__process_ast or not cache:
+            self.__process_ast = process_parse(self.process)
+        return self.__process_ast
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
@@ -468,9 +467,8 @@ class Subprocess:
         self.condition = None
         self.__process_ast = None
 
-    @property
-    def process_ast(self):
-        if not self.__process_ast:
+    def process_ast(self, cache=True):
+        if not self.__process_ast or not cache:
             self.__process_ast = process_parse(self.process)
         return self.__process_ast
 
