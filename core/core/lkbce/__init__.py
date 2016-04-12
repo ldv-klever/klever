@@ -99,7 +99,8 @@ class LKBCE(core.components.Component):
                 self.mqs['Linux kernel module deps function'].put(self.conf['Linux kernel']['module deps function'])
 
         if 'modules size file' in self.conf['Linux kernel']:
-            self.mqs['Linux kernel module sizes'].put(json.load(self.conf['Linux kernel']['modules size file']))
+            with open(self.conf['Linux kernel']['modules size file']) as fp:
+                self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
         if 'external modules archive' in self.conf['Linux kernel']:
             # Fetch working source tree of Linux external kernel modules like Linux kernel working source tree.

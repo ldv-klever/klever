@@ -147,6 +147,11 @@ class LKVOG(core.components.Component):
         strategy_name = self.conf['LKVOG strategy']['name']
 
         if strategy_name != 'separate modules':
+            if ('all' not in self.conf['Linux kernel']['modules'] or
+                    not self.conf['Linux kernel'].get('build kernel', False)) and \
+                    'modules dep file' not in self.conf['Linux kernel']:
+                raise RuntimeError("Strategy {} will not receive dependencied"
+                                   .format(self.conf['LKVOG strategy']['name']))
             self.logger.debug('Wait for dependencies')
             module_deps = self.mqs['Linux kernel module deps'].get()
             self.logger.debug('Dependencies was received')
