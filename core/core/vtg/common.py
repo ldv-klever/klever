@@ -47,8 +47,8 @@ class CommonStrategy(core.components.Component):
 
     # This function executes VTG strategy.
     def execute(self):
-        self.perform_sanity_checks()
         self.check_for_mpv()
+        self.perform_sanity_checks()
         self.perform_preprocess_actions()
         self.main_cycle()
         self.perform_postprocess_actions()
