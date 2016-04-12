@@ -19,6 +19,8 @@ def before_launch_all_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
     context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
     context.mqs['Linux kernel module deps'] = multiprocessing.Queue()
+    context.mqs['Linux kernel module deps function'] = multiprocessing.Queue()
+    context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
     context.mqs['Additional modules'] = multiprocessing.Queue()
 
@@ -29,14 +31,19 @@ def after_set_linux_kernel_attrs(context):
 
 def after_build_linux_kernel(context):
     if 'modules' in context.conf['Linux kernel'] and 'all' in context.conf['Linux kernel']['modules'] \
-            and context.conf['Linux kernel'].get('build kernel', False) \
-            and 'modules dep file' not in context.conf['Linux kernel']:
-        context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
+            and context.conf['Linux kernel'].get('build kernel', False):
+        if 'modules dep file' not in context.conf['Linux kernel']:
+            context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
+        if 'modules dep function file' not in context.conf['Linux kernel']:
+            context.mqs['Linux kernel module deps function'].put(context.linux_kernel['module deps function'])
+        if 'modules size file' not in context.conf['Linux kernel']:
+            context.mqs['Linux kernel module sizes'].put(context.linux_kernel['module sizes'])
 
 
 def after_process_all_linux_kernel_raw_build_cmds(context):
     context.logger.info('Terminate Linux kernel build command descriptions message queue')
     context.mqs['Linux kernel build cmd descs'].put(None)
+
 
 def after_process_linux_kernel_raw_build_cmd(context):
     if context.linux_kernel['build cmd']['type'] == 'CC':
@@ -165,7 +172,17 @@ class LKVOG(core.components.Component):
                                          os.path.join(scotch_dir_path, 'scotch_log'),
                                          os.path.join(scotch_dir_path, 'scotch_out'), params=self.conf['LKVOG strategy'])
             elif strategy_name == 'strategy1':
-                strategy = strategy1.Strategy1(self.logger, module_deps, params=self.conf['LKVOG strategy'])
+                module_deps_function = []
+                if ('all' in self.conf['Linux kernel']['modules'] and
+                        self.conf['Linux kernel'].get('build kernel', False)) \
+                        or 'modules dep function file' in self.conf['Linux kernel']:
+                    module_deps_function = self.mqs['Linux kernel module deps function'].get()
+                if ('all' in self.conf['Linux kernel']['modules'] and
+                        self.conf['Linux kernel'].get('build kernel', False)) \
+                        or 'modules size file' in self.conf['Linux kernel']:
+                    module_sizes = self.mqs['Linux kernel module sizes'].get()
+                strategy = strategy1.Strategy1(self.logger, module_deps, params=self.conf['LKVOG strategy'],
+                                               export_func=module_deps_function, module_sizes=module_sizes)
             elif strategy_name == 'separate modules':
                 pass
 
