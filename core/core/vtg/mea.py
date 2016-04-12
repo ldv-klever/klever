@@ -128,7 +128,8 @@ class MEA:
         for edge in graph.getElementsByTagName('edge'):
             for data in edge.getElementsByTagName('data'):
                 if data.getAttribute('key') == 'originfile':
-                    src_files.add(self.__normalize_path(data.firstChild))
+                    if data.firstChild:
+                        src_files.add(self.__normalize_path(data.firstChild))
 
         for src_file in src_files:
             with open(os.path.join(self.conf['source tree root'], src_file), encoding='utf8') as fp:

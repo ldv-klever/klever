@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import json
 import os
 import re
 import shutil
@@ -19,6 +18,7 @@ class CommonStrategy(core.components.Component):
 
     __metaclass__ = ABCMeta
 
+    mpv = False  # Property automata specifications.
     mea = None  # Processes MEA action.
     path_to_error_traces = 'output/witness.*.graphml'  # Common path to all error traces.
 
@@ -48,6 +48,7 @@ class CommonStrategy(core.components.Component):
     # This function executes VTG strategy.
     def execute(self):
         self.perform_sanity_checks()
+        self.check_for_mpv()
         self.perform_preprocess_actions()
         self.main_cycle()
         self.perform_postprocess_actions()
@@ -190,7 +191,9 @@ class CommonStrategy(core.components.Component):
             for edge in graph.getElementsByTagName('edge'):
                 for data in edge.getElementsByTagName('data'):
                     if data.getAttribute('key') == 'originfile':
-                        src_files.add(self.__normalize_path(data.firstChild))
+                        # Internal automaton variables do not have a source file.
+                        if data.firstChild:
+                            src_files.add(self.__normalize_path(data.firstChild))
 
             self.logger.debug('Extract notes and warnings from source files referred by error trace')
             notes = {}
@@ -269,7 +272,9 @@ class CommonStrategy(core.components.Component):
 
                 for data in edge.getElementsByTagName('data'):
                     if data.getAttribute('key') == 'originfile':
-                        src_file = data.firstChild.data
+                        # Internal automaton variables do not have a source file.
+                        if data.firstChild:
+                            src_file = data.firstChild.data
                     elif data.getAttribute('key') == 'startline':
                         i = int(data.firstChild.data)
                     elif data.getAttribute('key') == 'enterFunction':
@@ -415,6 +420,12 @@ class CommonStrategy(core.components.Component):
     def create_mea(self):
         if 'mea' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['mea']:
             self.mea = MEA(self.conf, self.logger)
+
+    def check_for_mpv(self):
+        if 'RSG strategy' in self.conf['abstract task desc']['AVTG'] \
+                and self.conf['abstract task desc']['AVTG']['RSG strategy'] == 'property automaton':
+            self.mpv = True
+            self.logger.info('Using property automata as specifications')
 
     def __normalize_path(self, path):
         # Each file is specified via absolute path or path relative to source tree root or it is placed to current

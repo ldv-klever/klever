@@ -15,3 +15,21 @@ class Batch(SBT):
     def print_strategy_information(self):
         self.logger.info('Launch strategy "Batch"')
         self.logger.info('Generate one verification task for all bug types')
+
+    def prepare_property_automaton(self, bug_kind=None):
+        # Unite all property automata into a single file.
+
+        united_automaton = []
+        for extra_c_file in self.conf['abstract task desc']['extra C files']:
+            if 'automaton' in extra_c_file:
+                automaton = extra_c_file['automaton']
+                united_automaton = united_automaton.__add__(automaton)
+                united_automaton.append('\n')
+
+        automaton_name = self.conf['abstract task desc']['attrs'][1]['rule specification'] + ".spc"
+        self.automaton_file = automaton_name
+
+        with open(automaton_name, 'w', encoding='ascii') as fp:
+            for line in united_automaton:
+                fp.write('{0}'.format(line))
+        self.conf['VTG strategy']['verifier']['options'].append({'-spec': automaton_name})

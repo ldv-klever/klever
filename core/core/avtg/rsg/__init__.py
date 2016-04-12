@@ -25,6 +25,14 @@ class RSG(core.components.Component):
                     self.logger.debug('Get generated model with C file "{0}'.format(file))
                 elif ext == '.aspect':
                     self.logger.debug('Get generated aspect "{0}'.format(file))
+                elif ext == '.spc':
+                    # Template property automata (after TR).
+                    res = re.sub(r'.spc$', '.c', file)
+                    res = re.sub(r'automata/', '', res)
+                    path = os.path.realpath(os.path.join(self.conf['source tree root'], file))
+                    with open(path) as fp:
+                        self.property_automata[res] = fp.readlines()
+
                 else:
                     raise ValueError('Files with extension "{0}" are not supported'.format(ext))
 
@@ -36,6 +44,9 @@ class RSG(core.components.Component):
         self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = generate_rule_specification
+
+    property_automata = {}
+    united_prefixes = {}
 
     def add_models(self, models):
         self.logger.info('Add models to abstract verification task description')
@@ -105,6 +116,9 @@ class RSG(core.components.Component):
                     'Replace prefix "ldv" with rule specification specific one "{0}" for model with C file "{1}"'
                     .format(rule_spec_prefix, model_c_file))
 
+                # Remember prefix, which will be used later.
+                self.united_prefixes[model_c_file] = rule_spec_prefix
+
                 preprocessed_c_file = os.path.join('models', '{0}.{1}.c'.format(
                     os.path.splitext(os.path.basename(model_c_file))[0],
                     re.sub(r'\W', '_', model['rule specification identifier'])))
@@ -150,6 +164,22 @@ class RSG(core.components.Component):
                 self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
                 # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
                 # specification model description.
+                if self.conf['RSG strategy'] == 'property automaton':
+                    # Usual property automata.
+                    if 'automaton' in model:
+                        automaton = model['automaton']
+                        if not self.property_automata.__contains__(model_c_file):
+                            with open(self.conf['main working directory'] + '/../' + automaton) as fp:
+                                self.property_automata[model_c_file] = fp.readlines()
+                        if model_c_file in self.united_prefixes:
+                            new_automata = []
+                            for line in self.property_automata[model_c_file]:
+                                line = re.sub(r'ldv_', self.united_prefixes[model_c_file], line)
+                                new_automata.append(line)
+                            self.property_automata[model_c_file] = new_automata
+                    else:
+                        raise KeyError('Model "{0}" does not support RSG strategy "property automaton"'.
+                                       format(model_c_file))
                 bug_kinds = set()
                 lines = []
                 with open(os.path.join(self.conf['source tree root'],
@@ -184,7 +214,9 @@ class RSG(core.components.Component):
                     # Specify original location to avoid references to *.bk.c files in error traces.
                     fp.write('# 1 "{0}"\n'.format(model_c_file))
                     for line in lines:
-                        fp.write(line)
+                        if self.conf['RSG strategy'] != 'property automaton':
+                            # In case of property automata we do not need this file.
+                            fp.write(line)
                 model['preprocessed C file'] = os.path.relpath(preprocessed_model_c_file,
                                                                os.path.realpath(self.conf['source tree root']))
                 self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
@@ -224,4 +256,6 @@ class RSG(core.components.Component):
                     self.conf['source tree root']))}
                 if 'bug kinds' in model:
                     cc_extra_full_desc_file['bug kinds'] = model['bug kinds']
+                if model_c_file in self.property_automata:
+                    cc_extra_full_desc_file['automaton'] = self.property_automata[model_c_file]
                 grp['cc extra full desc files'].append(cc_extra_full_desc_file)

@@ -209,25 +209,32 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
 # This function automatically untites all rule specifications and creates new rule specification.
 def unite_rule_specifications(conf, logger, raw_rule_spec_descs):
     logger.info("Uniting all rule specifications")
+    rule_specifications = conf['rule specifications']
+    prefix = os.path.commonprefix(rule_specifications)
+    postfixes = []
+    for rule_spec_id in rule_specifications:
+        postfixes.append(rule_spec_id.replace(prefix, ''))
+    new_rule_name_id = prefix + ":" + '+'.join(postfixes)
+    logger.info("United rule specification was given the following name '{0}'".
+                format(new_rule_name_id))
+    template = 'Linux kernel modules'
+    for rule_specification in rule_specifications:
+        model = raw_rule_spec_descs['rule specifications'][rule_specification]
+        if model['template'] == 'Argument signatures for Linux kernel modules':
+            template = 'Argument signatures for Linux kernel modules'
+            break
     if 'common aspect' in conf:
         common_aspect = conf['common aspect']
-        rule_specifications = conf['rule specifications']
-        prefix = os.path.commonprefix(rule_specifications)
-        postfixes = []
-        for rule_spec_id in rule_specifications:
-            postfixes.append(rule_spec_id.replace(prefix, ''))
-        new_rule_name_id = prefix + ":" + '+'.join(postfixes)
-        logger.info("United rule specification was given the following name '{0}'".
-                    format(new_rule_name_id))
         new_rule_spec_desc = {
-            # TODO: is it constant for 'reroter' specs?
-            "template": "Argument signatures for Linux kernel modules",
+            "template": template,
             "rule specifications": rule_specifications,
             "RSG": {"common aspect": common_aspect}}
-        raw_rule_spec_descs['rule specifications'][new_rule_name_id] = new_rule_spec_desc
-        conf['rule specifications'] = [new_rule_name_id]
     else:
-        raise AttributeError("Uniting all rule specifications requires a common aspect")
+        new_rule_spec_desc = {
+            "template": template,
+            "rule specifications": rule_specifications}
+    raw_rule_spec_descs['rule specifications'][new_rule_name_id] = new_rule_spec_desc
+    conf['rule specifications'] = [new_rule_name_id]
 
 
 # This function is invoked to collect plugin callbacks.
@@ -504,7 +511,8 @@ class AVTG(core.components.Component):
             self.abstract_task_desc['AVTG'] = {}
             if 'unite rule specifications' in self.conf and self.conf['unite rule specifications']:
                 self.abstract_task_desc['AVTG']['unite rule specifications'] = True
-            # TODO: add support for property automata.
+            if 'RSG strategy' in self.conf:
+                self.abstract_task_desc['AVTG']['RSG strategy'] = self.conf['RSG strategy']
 
             # Count the number of successfully generated abstract verification task descriptions.
             self.abstract_task_desc_num += 1

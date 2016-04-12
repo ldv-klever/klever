@@ -26,7 +26,36 @@ class SBK(SeparatedStrategy):
             # Clear output directory since it is the same for all runs.
             shutil.rmtree('output')
 
+    def prepare_property_automaton(self, bug_kind=None):
+        for extra_c_file in self.conf['abstract task desc']['extra C files']:
+            if 'bug kinds' in extra_c_file:
+                for found_bug_kind in extra_c_file['bug kinds']:
+                    if found_bug_kind == bug_kind:
+                        automaton = extra_c_file['automaton']
+                        automaton_name = bug_kind + ".spc"
+                        self.automaton_file = automaton_name
+                        with open(automaton_name, 'w', encoding='ascii') as fp:
+                            for line in automaton:
+                                res = re.search(r'ERROR\(\"(.+)\"\);', line)
+                                if res:
+                                    current_bug_kind = res.group(1)
+                                    if not current_bug_kind == bug_kind:
+                                        line = re.sub(r'ERROR\(\"(.+)\"\);', 'GOTO Stop;', line)
+                                        self.logger.debug('Removing bug kind {0}'.format(current_bug_kind))
+                                fp.write('{0}'.format(line))
+                        # Remove old '-spec' options from configuration.
+                        tmp_verifier_options = []
+                        for y in self.conf['VTG strategy']['verifier']['options']:
+                            for attr, val in y.items():
+                                if not attr == '-spec':
+                                    tmp_verifier_options.append({attr: val})
+                        self.conf['VTG strategy']['verifier']['options'] = tmp_verifier_options
+                        self.conf['VTG strategy']['verifier']['options'].append({'-spec': automaton_name})
+
     def prepare_bug_kind_functions_file(self, bug_kind=None):
+        if self.mpv:
+            # We do not need it for property automata.
+            return
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
 
         # Create bug kind function definitions that all call __VERIFIER_error() since this strategy doesn't distinguish

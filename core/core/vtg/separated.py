@@ -18,6 +18,8 @@ class SeparatedStrategy(CommonStrategy):
 
     __metaclass__ = ABCMeta
 
+    automaton_file = None
+
     def perform_sanity_checks(self):
         if 'unite rule specifications' in self.conf['abstract task desc']['AVTG'] \
                 and self.conf['abstract task desc']['AVTG']['unite rule specifications']:
@@ -53,7 +55,7 @@ class SeparatedStrategy(CommonStrategy):
                               'resources': decision_results['resources'],
                               'log': 'cil.i.log',
                               'files': ['cil.i.log'] + (
-                                  ['benchmark.xml', self.task_desc['property file']] + self.task_desc['files']
+                                  ['benchmark.xml', self.automaton_file] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
                               )
@@ -61,6 +63,16 @@ class SeparatedStrategy(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           suffix)
+
+    @abstractclassmethod
+    def prepare_property_automaton(self, bug_kind=None):
+        pass
+
+    def set_specific_options(self, bug_kind=None):
+        if self.mpv:
+            self.prepare_property_automaton(bug_kind)
+        else:
+            self.prepare_property_file()
 
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
@@ -74,6 +86,7 @@ class SeparatedStrategy(CommonStrategy):
                     self.conf['abstract task desc']['entry points'][0]))
 
             self.task_desc['property file'] = 'unreach-call.prp'
+            self.automaton_file = self.task_desc['property file']
 
             self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
         else:
@@ -83,13 +96,23 @@ class SeparatedStrategy(CommonStrategy):
         if self.mea:
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.stopAfterError=false'})
+            if self.mpv:
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'cpa.automaton.prec.limit.violations=-1'})
+        if self.mpv:
+            # Add entry point.
+             if 'entry points' in self.conf['abstract task desc']:
+                if len(self.conf['abstract task desc']['entry points']) > 1:
+                    raise NotImplementedError('Several entry points are not supported')
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-entryfunction': self.conf['abstract task desc']['entry points'][0]})
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
 
         with tarfile.open('task files.tar.gz', 'w:gz') as tar:
-            if os.path.isfile('unreach-call.prp'):
-                tar.add('unreach-call.prp')
+            if os.path.isfile(self.automaton_file):
+                tar.add(self.automaton_file)
             for file in self.task_desc['files']:
                 tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
@@ -104,7 +127,7 @@ class SeparatedStrategy(CommonStrategy):
             self.prepare_bug_kind_functions_file(bug_kind)
         else:
             self.prepare_bug_kind_functions_file()
-        self.prepare_property_file()
+        self.set_specific_options(bug_kind)
         self.prepare_src_files()
 
         if self.conf['keep intermediate files']:
@@ -119,7 +142,7 @@ class SeparatedStrategy(CommonStrategy):
         self.logger.info('Decide verification task')
         self.verification_status = None
 
-        if not os.path.isfile('unreach-call.prp'):
+        if not os.path.isfile(self.automaton_file):
             self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
             return
 
