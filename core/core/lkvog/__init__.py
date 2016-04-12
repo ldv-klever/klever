@@ -131,7 +131,7 @@ class LKVOG(core.components.Component):
     def is_part_of_subsystem(self, module, modules):
         # Returns true if module is a part of subsystem that contains in modules
         for module2 in modules:
-            if module.startswith(module2):
+            if module.id.startswith(module2):
                 return True
         else:
             return False
