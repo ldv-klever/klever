@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-04-06 13:48+0000\n"
+"POT-Creation-Date: 2016-04-12 18:57+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -378,8 +378,8 @@ msgstr "Разработка"
 msgid "Paranoid development"
 msgstr "Параноидальная разработка"
 
-#: bridge/views.py:34 jobs/utils.py:286 jobs/utils.py:493 marks/utils.py:761
-#: marks/utils.py:816 marks/utils.py:949 marks/views.py:209 marks/views.py:436
+#: bridge/views.py:34 jobs/utils.py:286 jobs/utils.py:493 marks/utils.py:766
+#: marks/utils.py:821 marks/utils.py:954 marks/views.py:209 marks/views.py:436
 #: marks/views.py:447 reports/etv.py:381 service/utils.py:942
 #: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
 #: tools/views.py:120 tools/views.py:140 users/views.py:320
@@ -477,7 +477,7 @@ msgstr "Название компонента"
 #: jobs/JobTableProperties.py:46 jobs/templates/jobs/jobData.html:7
 #: jobs/templates/jobs/viewJobFilters.html:22
 #: jobs/templates/jobs/viewJobFilters.html:44 jobs/utils.py:67
-#: reports/views.py:132 templates/base.html:49
+#: reports/views.py:131 templates/base.html:49
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
@@ -787,14 +787,14 @@ msgstr ""
 
 #: jobs/templates/jobs/jobData.html:33
 #: jobs/templates/jobs/viewJobFilters.html:12 jobs/utils.py:59
-#: jobs/utils.py:73 reports/views.py:121 reports/views.py:125
+#: jobs/utils.py:73 reports/views.py:120 reports/views.py:124
 #: templates/base.html:48
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
 #: jobs/templates/jobs/jobData.html:51
 #: jobs/templates/jobs/viewJobFilters.html:17 jobs/utils.py:52
-#: jobs/utils.py:72 reports/views.py:110 reports/views.py:114
+#: jobs/utils.py:72 reports/views.py:109 reports/views.py:113
 #: templates/base.html:50
 msgid "Safes"
 msgstr "Доказательства корректности"
@@ -1629,7 +1629,7 @@ msgstr "Файл не был найден"
 msgid "You don't have an access to stop decision of this job"
 msgstr "У Вас нет прав остановить решение данного задания"
 
-#: jobs/views.py:852 reports/views.py:383
+#: jobs/views.py:852 reports/views.py:382
 msgid "One of the selected jobs was not found, please reload page"
 msgstr ""
 "Одно из отмеченных заданий не было найдено, пожалуйста, обновите страницу"
@@ -1713,23 +1713,41 @@ msgstr "Шаблон проблемы"
 msgid "Source"
 msgstr "Источник"
 
-#: marks/tables.py:60
+#: marks/tables.py:33
+msgid "Automatic association"
+msgstr "Автоматическая привязка"
+
+#: marks/tables.py:34
+msgid "Has non-automatic association"
+msgstr "Имеется неавтоматическая привязка"
+
+#: marks/tables.py:62
 msgid "Changed"
 msgstr "Изменена"
 
-#: marks/tables.py:61
+#: marks/tables.py:63
 msgid "New"
 msgstr "Новая"
 
-#: marks/tables.py:62
+#: marks/tables.py:64
 msgid "Deleted"
 msgstr "Удалена"
 
-#: marks/tables.py:354 marks/tables.py:757
+#: marks/tables.py:356 marks/tables.py:761
 msgid "Comparison failed"
 msgstr "Сравнение провалилось"
 
-#: marks/tables.py:529 reports/utils.py:292
+#: marks/tables.py:382 marks/tables.py:772 marks/tables.py:789
+#: users/templates/users/showProfile.html:16
+msgid "Yes"
+msgstr "Да"
+
+#: marks/tables.py:385 marks/tables.py:775 marks/tables.py:791
+#: users/templates/users/showProfile.html:16
+msgid "No"
+msgstr "Нет"
+
+#: marks/tables.py:537 reports/utils.py:292
 #, python-format
 msgid "%(all)s (%(broken)s are broken)"
 msgstr "%(all)s (%(broken)s сломаны)"
@@ -1942,25 +1960,25 @@ msgstr "не совпадает с"
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:779 marks/views.py:186
+#: marks/utils.py:784 marks/views.py:186
 msgid "The error traces comparison function was not found"
 msgstr "Функция сравнения трасс ошибок не была найдена"
 
-#: marks/utils.py:783
+#: marks/utils.py:788
 msgid "The mark format is not supported"
 msgstr "Формат оценки не поддерживается"
 
-#: marks/utils.py:865 marks/utils.py:868
+#: marks/utils.py:870 marks/utils.py:873
 msgid "The attributes have wrong format"
 msgstr "Формат атрибутов некорректный"
 
-#: marks/utils.py:904 marks/utils.py:912 marks/utils.py:915 marks/utils.py:918
-#: marks/utils.py:923 marks/utils.py:928 marks/utils.py:930 marks/utils.py:932
-#: marks/utils.py:934
+#: marks/utils.py:909 marks/utils.py:917 marks/utils.py:920 marks/utils.py:923
+#: marks/utils.py:928 marks/utils.py:933 marks/utils.py:935 marks/utils.py:937
+#: marks/utils.py:939
 msgid "The mark archive is corrupted"
 msgstr "Архив оценки поврежден"
 
-#: marks/utils.py:920
+#: marks/utils.py:925
 msgid "The mark archive is corrupted: the pattern error trace is not found"
 msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
 
@@ -2163,35 +2181,35 @@ msgstr "Привязанные оценки"
 msgid "Number of associated marks"
 msgstr "Количество привязанных оценок"
 
-#: reports/views.py:108
+#: reports/views.py:107
 msgid "All safes"
 msgstr "Все доказательства корректности"
 
-#: reports/views.py:117
+#: reports/views.py:116
 msgid "Safes marked by"
 msgstr "Доказательства корректности с оценкой"
 
-#: reports/views.py:119
+#: reports/views.py:118
 msgid "All unsafes"
 msgstr "Все предупрeждения об ошибках"
 
-#: reports/views.py:128
+#: reports/views.py:127
 msgid "Unsafes marked by"
 msgstr "Предупреждения об ошибках с оценкой"
 
-#: reports/views.py:130
+#: reports/views.py:129
 msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
-#: reports/views.py:134
+#: reports/views.py:133
 msgid "Unknowns without marks"
 msgstr "Проблемы в компонентах без оценок"
 
-#: reports/views.py:136
+#: reports/views.py:135
 msgid "Unknowns marked by"
 msgstr "Проблемы в компонентах с оценкой"
 
-#: reports/views.py:346
+#: reports/views.py:345
 msgid "The component log is huge and can not be showed but you can download it"
 msgstr ""
 "Лог компонента большой и не может быть показан, но Вы можете загрузить его"
@@ -2796,14 +2814,6 @@ msgstr "Учетная запись"
 #: users/templates/users/showProfile.html:16
 msgid "Administrator"
 msgstr "Администратор"
-
-#: users/templates/users/showProfile.html:16
-msgid "Yes"
-msgstr "Да"
-
-#: users/templates/users/showProfile.html:16
-msgid "No"
-msgstr "Нет"
 
 #: users/templates/users/showProfile.html:17
 msgid "Role"

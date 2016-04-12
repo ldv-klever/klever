@@ -30,8 +30,8 @@ MARK_TITLES = {
     'pattern': _('Problem pattern'),
     'checkbox': '',
     'type': _('Source'),
-    'is_prime': _('Is primary'),
-    'has_prime': _('Has primary')
+    'is_prime': _('Automatic association'),
+    'has_prime': _('Has non-automatic association')
 }
 
 STATUS_COLOR = {
@@ -379,10 +379,10 @@ class ReportMarkTable(object):
                             href = 'http://' + mark_rep.mark.link
                 elif col == 'is_prime':
                     if mark_rep.mark.prime == self.report:
-                        value = _('Yes')
+                        value = _('No')
                         color = '#B12EAF'
                     else:
-                        value = _('No')
+                        value = _('Yes')
                 values_row.append({
                     'value': value, 'href': href, 'color': color
                 })
@@ -769,10 +769,10 @@ class MarkReportsTable(object):
                             href = reverse('jobs:job', args=[report.root.job.pk])
                     elif col == 'is_prime':
                         if self.mark.prime == mark_report.report:
-                            val = _('Yes')
+                            val = _('No')
                             color = '#B12EAF'
                         else:
-                            val = _('No')
+                            val = _('Yes')
                     values_str.append({'value': val, 'href': href, 'color': color})
                 values.append(values_str)
         else:
