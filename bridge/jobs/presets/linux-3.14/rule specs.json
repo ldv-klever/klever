@@ -165,7 +165,8 @@
       "TR": {
         "templates": [
           "linux/mutex.c.tmpl",
-          "linux/mutex.aspect.tmpl"
+          "linux/mutex.aspect.tmpl",
+          "linux/automata/mutex.spc.tmpl"
         ]
       },
       "RSG": {"models": {"$linux/mutex.c": {
@@ -175,7 +176,8 @@
           "linux:mutex::one thread:double unlock",
           "linux:mutex::one thread:locked at exit"
         ],
-        "sets model": "flag"
+        "sets model": "flag",
+        "automaton": "$linux/automata/mutex_as.spc"
       }}}
     },
     "linux:rwlock": {
@@ -215,7 +217,8 @@
             "linux:usb:resource:ref:unincremented counter decrement",
             "linux:usb:resource:ref:less initial decrement",
             "linux:usb:resource:ref:more initial at exit"
-          ]}
+          ],
+          "automaton": "linux/automata/usb1.spc"}
         }
       }
     },
