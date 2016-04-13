@@ -1,145 +1,16 @@
 import copy
 import os
 import re
-import graphviz
 
 from core.avtg.emg.translator import AbstractTranslator, Aspect
-from core.avtg.emg.translator.fsa import FSA
-from core.avtg.emg.common.interface import Container, Callback
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
-from core.avtg.emg.common.code import Variable, FunctionDefinition, FunctionModels
-
-
-def text_processor(analysis, automaton, statement):
-        # Replace model functions
-        mm = FunctionModels()
-        accesses = automaton.process.accesses()
-
-        statements = [statement]
-        for access in accesses:
-            new_statements = []
-            for text in list(statements):
-                processed = False
-                for option in sorted(accesses[access], key=lambda ac: ac.expression):
-                    if option.interface:
-                        signature = option.label.get_declaration(option.interface.identifier)
-                    else:
-                        signature = option.label.prior_signature
-
-                    if signature:
-                        if option.interface:
-                            var = automaton.determine_variable(analysis, option.label,
-                                                               option.list_interface[0].identifier)
-                        else:
-                            var = automaton.determine_variable(analysis, option.label)
-
-                        try:
-                            tmp = mm.replace_models(option.label.name, signature, text)
-                            tmp = option.replace_with_variable(tmp, var)
-                            new_statements.append(tmp)
-                            processed = True
-                        except ValueError:
-                            processed = True
-
-                if not processed:
-                    new_statements.append(text)
-            statements = new_statements
-
-        # Filter out statements without processes expressions
-        final = set()
-        for stm in list(statements):
-            if '%' not in stm and '$' not in statements:
-                final.add(stm)
-
-        return list(final)
+from core.avtg.emg.common.code import Variable, FunctionDefinition
 
 
 class Translator(AbstractTranslator):
 
-    def _generate_code(self, analysis, model):
-        # Initialize additional attributes
-        self.__callback_fsa = []
-        self.__model_fsa = []
-        self.__entry_fsa = None
-        self.__instance_modifier = 1
-        self.__identifier_cnt = -1
-        self.__max_instances = None
-
-        # Read translation options
-        if "translation options" not in self.conf:
-            self.conf["translation options"] = {}
-        if "max instances number" in self.conf["translation options"]:
-            self.__max_instances = int(self.conf["translation options"]["max instances number"])
-        if "instance modifier" in self.conf["translation options"]:
-            self.__instance_modifier = self.conf["translation options"]["instance modifier"]
-        if "pointer initialization" not in self.conf["translation options"]:
-            self.conf["translation options"]["pointer initialization"] = {}
-        if "pointer free" not in self.conf["translation options"]:
-            self.conf["translation options"]["pointer free"] = {}
-        for tag in ['structures', 'arrays', 'unions', 'primitives', 'enums', 'functions']:
-            if tag not in self.conf["translation options"]["pointer initialization"]:
-                self.conf["translation options"]["pointer initialization"][tag] = False
-            if tag not in self.conf["translation options"]["pointer free"]:
-                self.conf["translation options"]["pointer free"][tag] = \
-                    self.conf["translation options"]["pointer initialization"][tag]
-
-        # Determine how many instances is required for a model
-        self.logger.info("Determine how many instances is required to add to an environment model for each process")
-        for process in model.event_processes:
-            undefined_labels = []
-            # Determine nonimplemented containers
-            self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
-                              "category {}".format(process.name, process.category))
-            for label in [process.labels[name] for name in sorted(process.labels.keys())
-                          if len(process.labels[name].interfaces) > 0]:
-                nonimplemented_intrerfaces = [interface for interface in label.interfaces
-                                              if len(analysis.implementations(analysis.interfaces[interface])) == 0]
-                if len(nonimplemented_intrerfaces) > 0:
-                    undefined_labels.append(label)
-
-            # Determine is it necessary to make several instances
-            base_list = []
-            if len(undefined_labels) > 0:
-                for i in range(self.__instance_modifier):
-                    base_list.append(self.__copy_process(process))
-            else:
-                base_list.append(self.__copy_process(process))
-
-            self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
-                             format(len(base_list), len(undefined_labels), process.name, process.category))
-
-            base_list = self.__instanciate_processes(analysis, base_list, process)
-
-            self.logger.info("Generate {} FSA instances for process {} with category {}".
-                             format(len(base_list), process.name, process.category))
-            for instance in base_list:
-                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
-                fsa.variables(analysis)
-                self.__callback_fsa.append(fsa)
-
-        # Generate automata for models
-        for process in model.model_processes:
-            self.logger.info("Generate FSA for kernel model process {}".format(process.name))
-            processes = self.__instanciate_processes(analysis, [process], process)
-            for instance in processes:
-                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
-                fsa.variables(analysis)
-                self.__model_fsa.append(fsa)
-
-        # Generate state machine for init an exit
-        # todo: multimodule automaton (issues #6563, #6571, #6558)
-        self.logger.info("Generate FSA for module initialization and exit functions")
-        self.__entry_fsa = Automaton(self.logger, model.entry_process, self.__yeild_identifier())
-        self.__entry_fsa.variables(analysis)
-
-        # Save digraphs
-        automaton_dir = "automaton"
-        self.logger.info("Save automata to directory {}".format(automaton_dir))
-        os.mkdir(automaton_dir)
-        for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
-            automaton.save_digraph(automaton_dir)
-
+    def _generate_variables(self, analysis):
         # Generate variables
         for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
             variables = automaton.variables(analysis)
@@ -153,100 +24,28 @@ class Translator(AbstractTranslator):
                     }
                 self.files[variable.file]["variables"][variable.name] = variable
 
+    def _generate_functions(self, analysis, model):
         # Generate automata control function
         self.logger.info("Generate control functions for the environment model")
-        for automaton in self.__callback_fsa + [self.__entry_fsa]:
-            self.generate_control_function(analysis, model, automaton)
+        for automaton in self._callback_fsa + [self._entry_fsa]:
+            self._generate_control_functions(analysis, model, automaton)
 
         # Generate model control function
         for name in (pr.name for pr in model.model_processes):
-            automata = [a for a in self.__model_fsa if a.process.name == name]
-            self.generate_model_aspect(analysis, model, automata, name)
+            automata = [a for a in self._model_fsa if a.process.name == name]
+            self._generate_model_aspects(analysis, model, automata, name)
 
-        for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
+        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
             for function in automaton.functions:
                 if function.file not in self.files:
                     self.files[function.file] = {"functions": {}, "variables": {}}
                 self.files[function.file]["functions"][function.name] = function
 
         # Generate entry point function
-        ep = self.generate_entry_function()
+        ep = self._generate_entry_functions()
         self.files[self.entry_file]["functions"][ep.name] = ep
 
-    def __copy_process(self, process):
-        inst = copy.copy(process)
-        if self.__max_instances == 0:
-            raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration ({})'.
-                               format(int(self.conf["translation options"]["max instances number"])))
-        elif self.__max_instances:
-            self.__max_instances -= 1
-        return inst
-
-    def __yeild_identifier(self):
-        self.__identifier_cnt += 1
-        return self.__identifier_cnt
-
-    def __instanciate_processes(self, analysis, instances, process):
-        base_list = instances
-
-        # Copy base instances for each known implementation
-        relevant_multi_containers = set()
-        accesses = process.accesses()
-        self.logger.debug("Calculate relevant containers with several implementations for process {} for category {}".
-                          format(process.name, process.category))
-        for access in [accesses[name] for name in sorted(accesses.keys())]:
-            for inst_access in [inst for inst in sorted(access, key=lambda i: i.expression) if inst.interface]:
-                if type(inst_access.interface) is Container and \
-                        len(analysis.implementations(inst_access.interface)) > 1 and \
-                        inst_access.interface not in relevant_multi_containers:
-                    relevant_multi_containers.add(inst_access.interface)
-                elif len(inst_access.complete_list_interface) > 1:
-                    impl_cnt = [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
-                                len(analysis.implementations(intf)) > 1]
-                    if len(impl_cnt) > 0:
-                        relevant_multi_containers.add(impl_cnt[0])
-
-        # Copy instances for each implementation of a container
-        if len(relevant_multi_containers) > 0:
-            self.logger.debug("Found {} relevant containers with several implementations for process {} for category {}".
-                             format(str(len(relevant_multi_containers)), process.name, process.category))
-            for interface in relevant_multi_containers:
-                new_base_list = []
-                implementations = analysis.implementations(interface)
-
-                for implementation in implementations:
-                    for instance in base_list:
-                        newp = self.__copy_process(instance)
-                        newp.forbide_except(analysis, implementation)
-                        new_base_list.append(newp)
-
-                base_list = list(new_base_list)
-
-        new_base_list= []
-        for instance in base_list:
-            # Copy callbacks or resources which are not tied to a container
-            accesses = instance.accesses()
-            relevant_multi_leafs = set()
-            for access in [accesses[name] for name in sorted(accesses.keys())]:
-                relevant_multi_leafs.update([inst for inst in access if inst.interface and
-                                             type(inst.interface) is Callback and
-                                             len(instance.get_implementations(analysis, inst)) > 1])
-
-            if len(relevant_multi_leafs) > 0:
-                self.logger.debug("Found {} accesses with several implementations for process {} for category {}".
-                                  format(len(relevant_multi_leafs), process.name, process.category))
-                for access in relevant_multi_leafs:
-                    for implementation in analysis.implementations(access.interface):
-                        newp = self.__copy_process(instance)
-                        newp.forbide_except(analysis, implementation)
-                        new_base_list.append(newp)
-            else:
-                new_base_list.append(instance)
-
-        base_list = new_base_list
-        return base_list
-
-    def generate_entry_function(self):
+    def _generate_entry_functions(self):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
         # FunctionDefinition prototype
         ep = FunctionDefinition(
@@ -261,7 +60,7 @@ class Translator(AbstractTranslator):
             "\tswitch(ldv_undef_int()) {"
         ]
 
-        automata = self.__callback_fsa + [self.__entry_fsa]
+        automata = self._callback_fsa + [self._entry_fsa]
         for index in range(len(automata)):
             body.extend(
                 [
@@ -281,7 +80,7 @@ class Translator(AbstractTranslator):
 
         return ep
 
-    def generate_control_function(self, analysis, model, automaton):
+    def _generate_control_functions(self, analysis, model, automaton):
         self.logger.info("Generate control function for automata {} with process {}".
                          format(automaton.identifier, automaton.process.name))
 
@@ -328,7 +127,7 @@ class Translator(AbstractTranslator):
         automaton.functions.append(cf)
         automaton.control_function = cf
 
-    def generate_model_aspect(self, analysis, model, automata, name):
+    def _generate_model_aspect(self, analysis, model, automata, name):
         # Create function
         model_signature = analysis.kernel_functions[name].declaration
         cf = Aspect(name, model_signature)
@@ -405,6 +204,18 @@ class Translator(AbstractTranslator):
             body = bodies[0]
         cf.body.concatenate(body)
         self.model_aspects.append(cf)
+
+    @property
+    def state_variable(self):
+        if not self.__state_variable:
+            statev = Variable("emgfsa_state_{}".format(self.identifier), None, "int a", export=True)
+            statev.value = "0"
+            statev.use = 1
+            self.logger.debug("Add state variable for automata {} with process {}: {}".
+                              format(self.identifier, self.process.name, statev.name))
+            self.__state_variable = statev
+
+        return self.__state_variable
 
     def determine_callback_implementations(self, analysis, model, automaton, subprocess, case):
         accesses = automaton.process.resolve_access(subprocess.callback)
@@ -729,7 +540,7 @@ class Translator(AbstractTranslator):
 
     def __extract_relevant_automata(self, automata_peers, peers, sb_type=None):
         for peer in peers:
-            relevant_automata = [automaton for automaton in self.__callback_fsa
+            relevant_automata = [automaton for automaton in self._callback_fsa
                                  if automaton.process.name == peer["process"].name]
             for automaton in relevant_automata:
                 if automaton.identifier not in automata_peers:
@@ -752,144 +563,5 @@ class Translator(AbstractTranslator):
 
         return check
 
-
-class Automaton:
-
-    def __init__(self, logger, process, identifier):
-        # Set default values
-        self.control_function = None
-        self.functions = []
-        self.__state_variable = None
-        self.__variables = []
-        self.__label_variables = {}
-
-        # Set given values
-        self.logger = logger
-        self.process = process
-        self.identifier = identifier
-
-        # Generate FSA itself
-        self.logger.info("Generate states for automaton {} based on process {} with category {}".
-                         format(self.identifier, self.process.name, self.process.category))
-        self.fsa = FSA(self.process)
-
-    @property
-    def state_variable(self):
-        if not self.__state_variable:
-            statev = Variable("emgfsa_state_{}".format(self.identifier), None, "int a", export=True)
-            statev.value = "0"
-            statev.use = 1
-            self.logger.debug("Add state variable for automata {} with process {}: {}".
-                              format(self.identifier, self.process.name, statev.name))
-            self.__state_variable = statev
-
-        return self.__state_variable
-
-    def variables(self, analysis):
-        if len(self.__variables) == 0:
-            # Generate state variable
-            self.__variables.append(self.state_variable)
-
-            # Generate variable for each label
-            for label in [self.process.labels[name] for name in sorted(self.process.labels.keys())]:
-                if label.interfaces:
-                    for interface in label.interfaces:
-                        self.__variables.append(self.determine_variable(analysis, label, interface))
-                else:
-                    var = self.determine_variable(analysis, label)
-                    if var:
-                        self.__variables.append(self.determine_variable(analysis, label))
-
-        return self.__variables
-
-    def determine_variable(self, analysis, label, interface=None):
-        if not interface:
-            if label.name in self.__label_variables and "default" in self.__label_variables[label.name]:
-                return self.__label_variables[label.name]["default"]
-            else:
-                if label.prior_signature:
-                    var = Variable("emgfsa_{}_{}_{}".format(self.identifier, label.name, "default"), None,
-                                   label.prior_signature, export=True)
-                    if label.value:
-                        var.value = label.value
-
-                    if label.name not in self.__label_variables:
-                        self.__label_variables[label.name] = {}
-                    self.__label_variables[label.name]["default"] = var
-                    return self.__label_variables[label.name]["default"]
-                else:
-                    self.logger.warning("Cannot create variable for label which is not matched with interfaces and does"
-                                        " not have signature")
-                    return None
-        else:
-            if label.name in self.__label_variables and interface in self.__label_variables[label.name]:
-                return self.__label_variables[label.name][interface]
-            else:
-                if interface not in label.interfaces:
-                    raise KeyError("Label {} is not matched with interface {}".format(label.name, interface))
-                else:
-                    access = self.process.resolve_access(label, interface)
-                    category, short_id = interface.split(".")
-                    implementations = self.process.get_implementations(analysis, access)
-                    var = Variable("emgfsa_{}_{}_{}".format(self.identifier, label.name, short_id), None,
-                                   label.get_declaration(interface), export=True)
-
-                    if len(implementations) == 1:
-                        var.value = implementations[0].adjusted_value(var.declaration)
-
-                        # Change file according to the value
-                        var.file = implementations[0].file
-
-                    if label.name not in self.__label_variables:
-                        self.__label_variables[label.name] = {}
-                    self.__label_variables[label.name][interface] = var
-                    return self.__label_variables[label.name][interface]
-
-    def save_digraph(self, directory):
-        # Generate graph
-        self.logger.info("Generate graph for automaton based on process {} with category {}".
-                         format(self.process.name, self.process.category))
-        dg_file = "{}/{}.dot".format(directory, "{}_{}_{}".
-                                     format(self.process.category, self.process.name, self.identifier))
-
-        graph = graphviz.Digraph(
-            name=str(self.identifier),
-            comment="Digraph for FSA {} based on self.process {} with category {}".
-                    format(self.identifier, self.process.name, self.process.category),
-            format="png"
-        )
-
-        # Add self.process description
-        graph.node(
-            self.process.name,
-            "self.process: {}".format(self.process.process),
-            {
-                "shape": "rectangle"
-            }
-        )
-
-        # Add subself.process description
-        for subp in [self.process.actions[name] for name in sorted(self.process.actions.keys())
-                       if type(self.process.actions[name]) is Subprocess]:
-            graph.node(
-                subp.name,
-                "Subprocess {}: {}".format(subp.name, subp.process),
-                {
-                    "shape": "rectangle"
-                }
-            )
-
-        for state in self.fsa.states:
-            graph.node(str(state.identifier), state.desc['label'])
-
-            for succ in state.successors:
-                graph.edge(
-                    str(state.identifier),
-                    str(succ.identifier)
-                )
-
-        # Save to dg_file
-        graph.save(dg_file)
-        graph.render()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

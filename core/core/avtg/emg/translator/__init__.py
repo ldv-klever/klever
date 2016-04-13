@@ -1,8 +1,11 @@
 import abc
 import os
+import copy
 
 
 from core.avtg.emg.common.code import FunctionDefinition, FunctionBody
+from core.avtg.emg.common.interface import Container, Callback
+from core.avtg.emg.translator.fsa import Automaton
 
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
@@ -15,6 +18,30 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.aspects = {}
         self.entry_file = None
         self.model_aspects = []
+        self.__identifier_cnt = -1
+        self._callback_fsa = []
+        self._model_fsa = []
+        self._entry_fsa = None
+        self.__instance_modifier = 1
+        self.__max_instances = None
+
+        # Read translation options
+        if "translation options" not in self.conf:
+            self.conf["translation options"] = {}
+        if "max instances number" in self.conf["translation options"]:
+            self.__max_instances = int(self.conf["translation options"]["max instances number"])
+        if "instance modifier" in self.conf["translation options"]:
+            self.__instance_modifier = self.conf["translation options"]["instance modifier"]
+        if "pointer initialization" not in self.conf["translation options"]:
+            self.conf["translation options"]["pointer initialization"] = {}
+        if "pointer free" not in self.conf["translation options"]:
+            self.conf["translation options"]["pointer free"] = {}
+        for tag in ['structures', 'arrays', 'unions', 'primitives', 'enums', 'functions']:
+            if tag not in self.conf["translation options"]["pointer initialization"]:
+                self.conf["translation options"]["pointer initialization"][tag] = False
+            if tag not in self.conf["translation options"]["pointer free"]:
+                self.conf["translation options"]["pointer free"][tag] = \
+                    self.conf["translation options"]["pointer initialization"][tag]
 
         if not header_lines:
             self.additional_headers = []
@@ -38,21 +65,160 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         # Print aspect text
         self.logger.info("Add individual aspect files to the abstract verification task")
-        self._generate_aspects()
+        self.__generate_aspects()
 
         # Add aspects to abstract task
         self.logger.info("Add individual aspect files to the abstract verification task")
-        self._add_aspects()
+        self.__add_aspects()
 
         # Set entry point function in abstract task
         self.logger.info("Add entry point function to abstract verification task")
-        self._add_entry_points()
+        self.__add_entry_points()
 
         self.logger.info("Model translation is finished")
 
-    @abc.abstractmethod
     def _generate_code(self, analysis, model):
-        raise NotImplementedError
+        # Determine how many instances is required for a model
+        self.logger.info("Determine how many instances is required to add to an environment model for each process")
+        for process in model.event_processes:
+            self.logger.info("Generate {} FSA instances for process {} with category {}".
+                             format(len(base_list), process.name, process.category))
+            base_list = self._initial_instances(analysis, process)
+            base_list = self._instanciate_processes(analysis, base_list, process)
+
+            for instance in base_list:
+                fsa = Automaton(self.logger, analysis, instance, self.__yeild_identifier())
+                self._callback_fsa.append(fsa)
+
+        # Generate automata for models
+        for process in model.model_processes:
+            self.logger.info("Generate FSA for kernel model process {}".format(process.name))
+            processes = self._instanciate_processes(analysis, [process], process)
+            for instance in processes:
+                fsa = Automaton(self.logger, analysis, instance, self.__yeild_identifier())
+                self._model_fsa.append(fsa)
+
+        # Generate state machine for init an exit
+        # todo: multimodule automaton (issues #6563, #6571, #6558)
+        self.logger.info("Generate FSA for module initialization and exit functions")
+        self._entry_fsa = Automaton(self.logger, analysis, model.entry_process, self.__yeild_identifier())
+
+        # Generate variables
+        self._generate_variables(analysis)
+
+        # Save digraphs
+        automaton_dir = "automaton"
+        self.logger.info("Save automata to directory {}".format(automaton_dir))
+        os.mkdir(automaton_dir)
+        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+            automaton.save_digraph(automaton_dir)
+
+        self._generate_functions()
+
+    def _instanciate_processes(self, analysis, instances, process):
+        base_list = instances
+
+        # Copy base instances for each known implementation
+        relevant_multi_containers = set()
+        accesses = process.accesses()
+        self.logger.debug("Calculate relevant containers with several implementations for process {} for category {}".
+                          format(process.name, process.category))
+        for access in [accesses[name] for name in sorted(accesses.keys())]:
+            for inst_access in [inst for inst in sorted(access, key=lambda i: i.expression) if inst.interface]:
+                if type(inst_access.interface) is Container and \
+                                len(analysis.implementations(inst_access.interface)) > 1 and \
+                                inst_access.interface not in relevant_multi_containers:
+                    relevant_multi_containers.add(inst_access.interface)
+                elif len(inst_access.complete_list_interface) > 1:
+                    impl_cnt = [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
+                                len(analysis.implementations(intf)) > 1]
+                    if len(impl_cnt) > 0:
+                        relevant_multi_containers.add(impl_cnt[0])
+
+        # Copy instances for each implementation of a container
+        if len(relevant_multi_containers) > 0:
+            self.logger.debug(
+                "Found {} relevant containers with several implementations for process {} for category {}".
+                    format(str(len(relevant_multi_containers)), process.name, process.category))
+            for interface in relevant_multi_containers:
+                new_base_list = []
+                implementations = analysis.implementations(interface)
+
+                for implementation in implementations:
+                    for instance in base_list:
+                        newp = self._copy_process(instance)
+                        newp.forbide_except(analysis, implementation)
+                        new_base_list.append(newp)
+
+                base_list = list(new_base_list)
+
+        new_base_list = []
+        for instance in base_list:
+            # Copy callbacks or resources which are not tied to a container
+            accesses = instance.accesses()
+            relevant_multi_leafs = set()
+            for access in [accesses[name] for name in sorted(accesses.keys())]:
+                relevant_multi_leafs.update([inst for inst in access if inst.interface and
+                                             type(inst.interface) is Callback and
+                                             len(instance.get_implementations(analysis, inst)) > 1])
+
+            if len(relevant_multi_leafs) > 0:
+                self.logger.debug("Found {} accesses with several implementations for process {} for category {}".
+                                  format(len(relevant_multi_leafs), process.name, process.category))
+                for access in relevant_multi_leafs:
+                    for implementation in analysis.implementations(access.interface):
+                        newp = self._copy_process(instance)
+                        newp.forbide_except(analysis, implementation)
+                        new_base_list.append(newp)
+            else:
+                new_base_list.append(instance)
+
+        base_list = new_base_list
+        return base_list
+
+    def _initial_instanes(self, analysis, process):
+        base_list = []
+        undefined_labels = []
+        # Determine nonimplemented containers
+        self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
+                          "category {}".format(process.name, process.category))
+        for label in [process.labels[name] for name in sorted(process.labels.keys())
+                      if len(process.labels[name].interfaces) > 0]:
+            nonimplemented_intrerfaces = [interface for interface in label.interfaces
+                                          if len(analysis.implementations(analysis.interfaces[interface])) == 0]
+            if len(nonimplemented_intrerfaces) > 0:
+                undefined_labels.append(label)
+
+        # Determine is it necessary to make several instances
+        if len(undefined_labels) > 0:
+            for i in range(self.__instance_modifier):
+                base_list.append(self._copy_process(process))
+        else:
+            base_list.append(self._copy_process(process))
+
+        self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
+                         format(len(base_list), len(undefined_labels), process.name, process.category))
+
+        return base_list
+
+    def _copy_process(self, process):
+        inst = copy.deepcopy(process)
+        if self.__max_instances == 0:
+            raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration ({})'.
+                               format(int(self.conf["translation options"]["max instances number"])))
+        elif self.__max_instances:
+            self.__max_instances -= 1
+        return inst
+
+    def __yeild_identifier(self):
+        self.__identifier_cnt += 1
+        return self.__identifier_cnt
+
+    def _generate_variables(self, analysis):
+        raise NotImplementedError('Implement variables generation')
+
+    def _generate_functions(self):
+        raise NotImplementedError('Implement function generation')
 
     def __determine_entry(self, analysis):
         if len(analysis.inits) == 1:
@@ -67,7 +233,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             self.entry_point_name = "main"
 
-    def _generate_aspects(self):
+    def __generate_aspects(self):
         aspect_dir = "aspects"
         self.logger.info("Create directory for aspect files {}".format("aspects"))
         os.makedirs(aspect_dir, exist_ok=True)
@@ -156,7 +322,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 self.logger.info("Add aspect file {}".format(path))
                 self.aspects[cc_extra_full_desc_file["in file"]] = path
 
-    def _add_aspects(self):
+    def __add_aspects(self):
         for grp in self.task['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in sorted(grp['cc extra full desc files'],
@@ -171,7 +337,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         }
                     )
 
-    def _add_entry_points(self):
+    def __add_entry_points(self):
         self.task["entry points"] = [self.entry_point_name]
 
 
