@@ -100,12 +100,7 @@ class SeparatedStrategy(CommonStrategy):
                 self.conf['VTG strategy']['verifier']['options'].append(
                     {'-setprop': 'cpa.automaton.prec.limit.violations=-1'})
         if self.mpv:
-            # Add entry point.
-             if 'entry points' in self.conf['abstract task desc']:
-                if len(self.conf['abstract task desc']['entry points']) > 1:
-                    raise NotImplementedError('Several entry points are not supported')
-                self.conf['VTG strategy']['verifier']['options'].append(
-                    {'-entryfunction': self.conf['abstract task desc']['entry points'][0]})
+            self.add_option_for_entry_point()
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')

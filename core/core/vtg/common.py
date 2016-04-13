@@ -427,6 +427,13 @@ class CommonStrategy(core.components.Component):
             self.mpv = True
             self.logger.info('Using property automata as specifications')
 
+    def add_option_for_entry_point(self):
+        if 'entry points' in self.conf['abstract task desc']:
+            if len(self.conf['abstract task desc']['entry points']) > 1:
+                raise NotImplementedError('Several entry points are not supported')
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-entryfunction': self.conf['abstract task desc']['entry points'][0]})
+
     def __normalize_path(self, path):
         # Each file is specified via absolute path or path relative to source tree root or it is placed to current
         # working directory. Make all paths relative to source tree root.
