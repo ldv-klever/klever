@@ -16,17 +16,16 @@ class FSA:
         self.__generate_states(automaton, process)
 
     def __generate_states(self, automaton, process):
-        if "identifier" not in process.process_ast:
-            # Enumerate AST
-            nodes = [process.actions[name].process_ast for name in sorted(process.actions.keys())
-                     if type(process.actions[name]) is Subprocess] + [process.process_ast]
-            while len(nodes) > 0:
-                ast = nodes.pop()
-                new = self.__enumerate_ast(ast)
-                nodes.extend(new)
+        # Enumerate AST
+        nodes = [process.actions[name].process_ast(False) for name in sorted(process.actions.keys())
+                 if type(process.actions[name]) is Subprocess] + [process.process_ast(False)]
+        while len(nodes) > 0:
+            ast = nodes.pop()
+            new = self.__enumerate_ast(ast)
+            nodes.extend(new)
 
         # Generate states
-        transitions = [[process.process_ast, None]]
+        transitions = [[process.process_ast(), None]]
         while len(transitions) > 0:
             ast, predecessor = transitions.pop()
             new = self.__process_ast(automaton, process, ast, predecessor)
@@ -97,7 +96,7 @@ class FSA:
                 self.__checked_ast[ast["identifier"]] = self.__state_counter
 
                 # Add subprocess to process
-                to_process.append([process.actions[ast[key]["name"]].process_ast, ast["identifier"]])
+                to_process.append([process.actions[ast[key]["name"]].process_ast(), ast["identifier"]])
             self.__checked_ast[ast["identifier"]] = {"process": True, "name": ast[key]["name"]}
         elif key in ["receive", "dispatch", "condition"]:
             number = ast[key]["number"]

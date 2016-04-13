@@ -54,8 +54,7 @@ def report_component(request, job_id, report_id):
     unknown_href = None
     try:
         unknown = ReportUnknown.objects.get(parent=report)
-        unknown_href = reverse('reports:leaf',
-                               args=['unknown', unknown.pk])
+        unknown_href = reverse('reports:leaf', args=['unknown', unknown.pk])
         status = 3
     except ObjectDoesNotExist:
         pass
