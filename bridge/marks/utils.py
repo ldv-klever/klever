@@ -92,40 +92,40 @@ class NewMark(object):
                 func = MarkUnsafeConvert.objects.get(pk=int(args['convert_id']))
             except ObjectDoesNotExist:
                 logger.exception("Get MarkUnsafeConvert(pk=%s)" % args['convert_id'], stack_info=True)
-                return _('Convertion function was not found')
+                return _('The error traces conversion function was not found')
 
             converted = ConvertTrace(func.name, report.error_trace.decode('utf8'))
             if converted.error is not None:
                 logger.error(converted.error, stack_info=True)
-                return _('Converting error trace failed')
+                return _('Error trace converting failed')
             mark.error_trace = converted.pattern_error_trace.encode('utf8')
 
             try:
                 mark.function = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:
                 logger.exception("Get MarkUnsafeCompare(pk=%s)" % args['compare_id'], stack_info=True)
-                return _('Comparison function was not found')
+                return _('The error traces comparison function was not found')
         elif self.type == 'unknown':
             mark.component = report.component
 
             if 'function' not in args or len(args['function']) == 0:
-                return _('Function is required')
+                return _('The pattern is required')
             mark.function = args['function']
             try:
                 re.search(mark.function, '')
             except Exception as e:
                 logger.exception("Wrong mark function (%s): %s" % (mark.function, e), stack_info=True)
-                return _('Mark function is wrong, see python re.search() documentation')
+                return _('The pattern is wrong, please refer to documentation on the standard Python library for processing reqular expressions')
 
             if 'problem' not in args or len(args['problem']) == 0:
-                return _('Problem name pattern is required')
+                return _('The problem is required')
             elif len(args['problem']) > 15:
-                return _('Problem length must be less than 15 characters')
+                return _('The problem length must be less than 15 characters')
             mark.problem_pattern = args['problem']
 
             if len(MarkUnknown.objects.filter(
                     component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function)) > 0:
-                return _('Similar mark is exist already')
+                return _('Could not create a new mark since the similar mark exists already')
 
             if 'link' in args and len(args['link']) > 0:
                 mark.link = args['link']
@@ -182,34 +182,34 @@ class NewMark(object):
                 new_func = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:
                 logger.exception("Get MarkUnsafeCompare(pk=%s)" % args['compare_id'], stack_info=True)
-                return _('Comparison function was not found')
+                return _('The error traces comparison function was not found')
             if mark.function != new_func:
                 mark.function = new_func
                 self.do_recalk = True
 
         if self.type == 'unknown':
             if 'function' not in args or len(args['function']) == 0:
-                return _('Function is required')
+                return _('The pattern is required')
             if args['function'] != mark.function:
                 try:
                     re.search(args['function'], '')
                 except Exception as e:
                     logger.exception("Wrong mark function (%s): %s" % (args['function'], e), stack_info=True)
-                    return _('Mark function is wrong, see python re.search() documentation')
+                    return _('The pattern is wrong, please refer to documentation on the standard Python library for processing reqular expressions')
                 mark.function = args['function']
                 self.do_recalk = True
 
             if 'problem' not in args or len(args['problem']) == 0:
-                return _('Problem name pattern is required')
+                return _('The problem is required')
             elif len(args['problem']) > 15:
-                return _('Problem length must be less than 15 characters')
+                return _('The problem length must be less than 15 characters')
             if args['problem'] != mark.problem_pattern:
                 self.do_recalk = True
                 mark.problem_pattern = args['problem']
 
             if len(MarkUnknown.objects.filter(
                     component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function)) > 0:
-                return _('Similar mark is exist already')
+                return _('Could not change the mark since it would be similar to the existing mark')
 
             if 'link' in args and len(args['link']) > 0:
                 mark.link = args['link']
@@ -828,7 +828,7 @@ class ReadTarMark(object):
                         component__name=args['component'],
                         problem_pattern=args['problem'],
                         function=args['function'])) > 0:
-                    return _('Similar mark is exist already')
+                    return _('Could not upload the mark archive since the similar mark exists already')
                 mark.component = Component.objects.get_or_create(name=args['component'])[0]
                 mark.function = args['function']
                 mark.problem_pattern = args['problem']
