@@ -240,6 +240,24 @@ class Process:
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
+    def add_simple_label(self, name, declaration, value):
+        lb = Label(name)
+        lb.prior_signature = declaration
+        lb.value = value
+
+        self.labels[name] = lb
+        acc = Access('%{}%'.format(name))
+        acc.label = lb
+        self.__accesses[acc.expression] = [acc]
+        return lb
+
+    def add_condition(self, name, condition, statements):
+        new = Condition(name)
+        self.actions[name] = new
+
+        new.condition = condition
+        new.statements = statements
+
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
             name = self.label_re.fullmatch(string).group(1)
