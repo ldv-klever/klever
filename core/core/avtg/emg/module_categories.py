@@ -1,4 +1,5 @@
 import json
+import re
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
@@ -71,6 +72,13 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
             processed_names.append(name)
         return relevant
+
+    def callback_name(self, call):
+        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
+        if name_re.fullmatch(call):
+            return name_re.fullmatch(call).group(1)
+        else:
+            return None
 
     @staticmethod
     def __check_category_relevance(function):
