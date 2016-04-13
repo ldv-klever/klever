@@ -213,9 +213,22 @@ class RSG(core.components.Component):
                         fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
                     # Specify original location to avoid references to *.bk.c files in error traces.
                     fp.write('# 1 "{0}"\n'.format(model_c_file))
+                    is_mf = False
                     for line in lines:
-                        if self.conf['RSG strategy'] != 'property automaton':
-                            # In case of property automata we do not need this file.
+                        if self.conf['RSG strategy'] == 'property automaton':
+                            res = re.search(r'/\* MODEL_FUNC_DEF (.+) \*/', line)
+                            if is_mf:
+                                line = line.rstrip('\n')
+                                line += '{}\n'
+                                fp.write(line)
+                                is_mf = False
+                            if res:
+                                is_mf = True
+                                fp.write(line)
+                            res = re.search(r'#include', line)
+                            if res:
+                                fp.write(line)
+                        else:
                             fp.write(line)
                 model['preprocessed C file'] = os.path.relpath(preprocessed_model_c_file,
                                                                os.path.realpath(self.conf['source tree root']))
