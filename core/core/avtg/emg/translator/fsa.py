@@ -2,9 +2,8 @@ import copy
 import graphviz
 
 
-from core.avtg.emg.common.code import Variable, FunctionModels, FunctionDefinition
-from core.avtg.emg.common.process import Subprocess, Receive, Dispatch, Call, CallRetval, Condition, \
-    get_common_parameter
+from core.avtg.emg.common.code import Variable, FunctionModels
+from core.avtg.emg.common.process import Subprocess, Receive, Dispatch, Call, CallRetval, Condition
 
 
 class FSA:
@@ -35,7 +34,7 @@ class FSA:
 
             return state
 
-    def clone_node(self, node):
+    def clone_state(self, node):
         new_desc = copy.deepcopy(node.desc)
         new_id = self.__yield_id()
 
@@ -64,8 +63,8 @@ class FSA:
             pred.successors.remove(node)
             pred.successors.add(new)
 
-        node.predecessors = set(new)
-        new.successors = set(node)
+        node.predecessors = set([new])
+        new.successors = set([node])
 
         self.states.add(new)
 
@@ -81,8 +80,8 @@ class FSA:
             succ.predecessors.remove(node)
             succ.predecessors.add(new)
 
-        node.successors = set(new)
-        new.predecessors = set(node)
+        node.successors = set([new])
+        new.predecessors = set([node])
 
         self.states.add(new)
 
@@ -159,7 +158,7 @@ class FSA:
                     else:
                         asts.append([action, initflag])
             elif ast['type'] != 'subprocess':
-                node = Node(ast, self.__yield_id)
+                node = Node(ast, self.__yield_id())
 
                 node.action = process.actions[ast['name']]
                 self.states.add(node)
@@ -183,6 +182,7 @@ class Node:
         self.predecessors = set()
         self.successors = set()
         self.action = None
+        self.code = None
 
     def replace_successor(self, old, new):
         self.successors.remove(old)
@@ -311,7 +311,28 @@ class Automaton:
             )
 
         for state in self.fsa.states:
-            graph.node(str(state.identifier), state.desc['label'])
+            label = "Action: {}\n".format(state.desc['label'])
+            if state.code:
+                if 'file' in state.code:
+                    label += "File: '{}'\n".format(state.code['file'])
+
+                if 'guard' in state.code and len(state.code['guard']) > 0:
+                    label += 'Conditions:\n' + '\n'.join(state.code['guard'])
+
+                label+= 'Relevant automata:\n'
+                if 'relevant automata' in state.code and len(state.code['relevant automata']) > 0:
+                    for automaton in state.code['relevant automata'].values():
+                        label += "Automaton '{}': '{}' ({})\n".format(automaton['automaton'].identifier,
+                                                                      automaton['automaton'].process.name,
+                                                                      automaton['automaton'].process.category)
+
+                    label += 'Conditions:\n' + '\n'.join(state.code['body'])
+                    label += "\n"
+
+                if 'body' in state.code and len(state.code['body']) > 0:
+                    label += 'Body:\n' + '\n'.join(state.code['body'])
+
+            graph.node(str(state.identifier), label)
 
             for succ in state.successors:
                 graph.edge(
@@ -323,15 +344,15 @@ class Automaton:
         graph.save(dg_file)
         graph.render()
 
-    def generate_code(self, analysis, model, node):
+    def generate_code(self, analysis, model, translator, state):
         cases = []
         base_case = {
             "guard": [],
             "body": [],
         }
 
-        if type(node.action) is Call:
-            accesses = self.process.resolve_access(node.action.callback)
+        if type(state.action) is Call:
+            accesses = self.process.resolve_access(state.action.callback)
             callbacks = []
 
             for access in accesses:
@@ -344,7 +365,7 @@ class Automaton:
                     if len(implementations) > 1:
                         raise NotImplementedError(
                             "Cannot process fsm with several implementations of a single callback")
-                    elif len(implementations) == 1 and self.__callback_name(implementations[0].value):
+                    elif len(implementations) == 1 and analysis.callback_name(implementations[0].value):
                         invoke = '(' + implementations[0].value + ')'
                         file = implementations[0].file
                         check = False
@@ -354,35 +375,35 @@ class Automaton:
                                                                                      access.list_interface[0].
                                                                                      identifier)) + \
                                  ')'
-                        file = self.entry_file
+                        file = translator.entry_file
                         check = True
                     else:
                         invoke = None
                 else:
                     signature = access.label.prior_signature
 
-                    if access.label.value and self.__callback_name(access.label.value):
-                        invoke = self.__callback_name(access.label.value)
-                        file = self.entry_file
+                    if access.label.value and analysis.callback_name(access.label.value):
+                        invoke = analysis.callback_name(access.label.value)
+                        file = translator.entry_file
                         check = False
                     else:
                         variable = self.determine_variable(analysis, access.label)
                         if variable:
                             invoke = access.access_with_variable(variable)
-                            file = self.entry_file
+                            file = translator.entry_file
                             check = True
                         else:
                             invoke = None
 
                 if invoke:
-                    additional_check = self.__registration_intf_check(analysis, model, invoke)
-                    if additional_check:
-                        new_case["guard"].append(additional_check)
+                    additional_checks = translator.registration_intf_check(analysis, model, invoke)
+                    if len(list(additional_checks.keys())) > 0:
+                        new_case['relevant automata'] = additional_checks
 
                     if len(callbacks) == 0:
-                        callbacks.append([node, new_case, signature, invoke, file, check])
+                        callbacks.append([state, new_case, signature, invoke, file, check])
                     else:
-                        clone = self.clone_node(node)
+                        clone = self.fsa.clone_state(state)
                         callbacks.append([clone, new_case, signature, invoke, file, check])
 
             for nd, case, signature, invoke, file, check in callbacks:
@@ -400,7 +421,7 @@ class Automaton:
                         ids = [intf.identifier for intf in
                                analysis.resolve_interface(parameter, self.process.category)]
                         if len(ids) > 0:
-                            for candidate in node.action.parameters:
+                            for candidate in state.action.parameters:
                                 accesses = self.process.resolve_access(candidate)
                                 suits = [acc for acc in accesses if acc.interface and
                                          acc.interface.identifier in ids]
@@ -415,9 +436,9 @@ class Automaton:
                         # Generate new variable
                         if not expression:
                             tmp = self.new_variable(analysis,
-                                                  "emg_param_{}".format(nd.identifier),
-                                                  signature.points.parameters[index],
-                                                  None)
+                                                    "emg_param_{}".format(nd.identifier),
+                                                    signature.points.parameters[index],
+                                                    None)
                             local_vars.append(tmp)
                             expression = tmp.name
 
@@ -430,9 +451,9 @@ class Automaton:
                     post_statements = []
                     for var in local_vars:
                         definition = var.declare_with_init(
-                            self.conf["translation options"]["pointer initialization"]) + ";"
+                            translator.conf["translation options"]["pointer initialization"]) + ";"
                         pre_statements.append(definition)
-                        free = var.free_pointer(self.conf["translation options"]["pointer free"])
+                        free = var.free_pointer(translator.conf["translation options"]["pointer free"])
                         if free:
                             post_statements.append(free + ";")
                     cond_name = 'pre_call_{}'.format(nd.identifier)
@@ -442,7 +463,10 @@ class Automaton:
                     }
 
                     new_action = self.process.add_condition(cond_name, [], pre_statements)
-                    self.fsa.add_new_predecessor(node, new_action, {}, code)
+                    new = self.fsa.add_new_predecessor(state, new_action, {}, code)
+                    new.desc = {
+                        'label': "<{}>".format(cond_name)
+                    }
 
                     if len(post_statements) > 0:
                         post_code = {
@@ -450,14 +474,18 @@ class Automaton:
                             "body": post_statements,
                         }
 
+                        cond_name = 'post_call_{}'.format(nd.identifier)
                         succ_action = self.process.add_condition(cond_name, [], post_statements)
-                        self.fsa.add_new_successor(node, succ_action, {}, post_code)
+                        new = self.fsa.add_new_successor(state, succ_action, {}, post_code)
+                        new.desc = {
+                            'label': "<{}>".format(cond_name)
+                        }
 
                 # Generate return value assignment
                 retval = ""
                 ret_subprocess = [self.process.actions[name] for name in sorted(self.process.actions.keys())
                                   if type(self.process.actions[name]) is CallRetval and
-                                  self.process.actions[name].callback == node.action.callback and
+                                  self.process.actions[name].callback == state.action.callback and
                                   self.process.actions[name].retlabel]
                 if ret_subprocess:
                     ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
@@ -467,158 +495,67 @@ class Automaton:
 
                 # Generate callback call
                 if check:
-                    cb_statements.concatenate(
+                    cb_statements.extend(
                         [
                             "if ({})".format(invoke),
                             "\t" + retval + invoke + '(' + ", ".join(params) + ");"
                         ]
                     )
                 else:
-                    cb_statements.concatenate(
+                    cb_statements.append(
                         retval + invoke + '(' + ", ".join(params) + ");"
                     )
 
                 # Generate comment
-                case["body"].append("/* Call callback {} */".format(node.action.name))
+                case["body"].append("/* Call callback {} */".format(state.action.name))
                 case["body"].extend(cb_statements)
                 case['file'] = file
                 nd.code = case
-        elif type(node.action) is Dispatch:
+        elif type(state.action) is Dispatch:
             # Generate dispatch function
-            if len(node.action.peers) > 0:
+            if len(state.action.peers) > 0:
 
                 # Do call only if model which can be called will not hang
                 automata_peers = {}
-                self.__extract_relevant_automata(automata_peers, node.action.peers, Receive)
-                checks = self.__generate_state_pair(automata_peers)
-                if len(checks) > 0:
-                    # Generate dispatch function
-                    df = FunctionDefinition(
-                        "emg_{}_{}_dispatch_{}".format(self.identifier, self.process.name, node.action.name),
-                        self.entry_file,
-                        "void f(void)",
-                        False
-                    )
-
-                    body = []
-                    for check in checks:
-                        tmp_body = []
-                        dispatch_condition = "{} == {}".format(check[0], str(check[1]["in"]))
-
-                        # Receiver condition
-                        receiver_condition = []
-                        if check[1]["subprocess"].condition:
-                            receiver_condition = check[1]["subprocess"].condition
-
-                        # Add parameters
-                        for index in range(len(node.action.parameters)):
-                            # Determine dispatcher parameter
-                            interface = get_common_parameter(node.action, self.process, index)
-
-                            # Determine receiver parameter
-                            receiver_access = check[1]["automaton"].process. \
-                                resolve_access(check[1]["subprocess"].parameters[index], interface.identifier)
-                            receiver_expr = receiver_access. \
-                                access_with_variable(check[1]["automaton"].
-                                                     determine_variable(analysis, receiver_access.label,
-                                                                        interface.identifier))
-
-                            # Determine dispatcher parameter
-                            dispatcher_access = self.process. \
-                                resolve_access(node.action.parameters[index], interface.identifier)
-                            dispatcher_expr = dispatcher_access. \
-                                access_with_variable(self.determine_variable(analysis, dispatcher_access.label,
-                                                                                  interface.identifier))
-
-                            # Replace guard
-                            receiver_condition = [stm.replace("$ARG{}".format(index + 1), dispatcher_expr) for stm
-                                                  in receiver_condition]
-
-                            # Generate assignment
-                            tmp_body.append("\t{} = {};".format(receiver_expr, dispatcher_expr))
-
-                        if node.action.broadcast:
-                            tmp_body.extend(
-                                [
-                                    "}"
-                                ]
-                            )
-                        else:
-                            tmp_body.extend(
-                                [
-                                    "\treturn;",
-                                    "}"
-                                ]
-                            )
-
-                        if len(receiver_condition) > 0:
-                            new_receiver_condition = []
-                            for stm in receiver_condition:
-                                new_receiver_condition.extend(check[1]["automaton"].text_processor(analysis, stm))
-                            receiver_condition = new_receiver_condition
-                            dispatcher_condition = [dispatch_condition] + receiver_condition
-                        else:
-                            dispatcher_condition = [dispatch_condition]
-
-                        tmp_body = \
-                            [
-                                "/* Try receive according to {} */".format(check[1]["subprocess"].name),
-                                "if({}) ".format(" && ".join(dispatcher_condition)) + '{',
-                                "\t{} = {};".format(check[0], check[1]["out"]),
-                            ] + tmp_body
-                        body.extend(tmp_body)
-                    df.body.concatenate(body)
-                    self.functions.append(df)
-
-                    # Add dispatch expression
-                    base_case["body"].append("/* Dispatch {} */".format(node.action.name))
-                    base_case["body"].append("{}();".format(df.name))
-
-                    # Generate guard
-                    base_case["guard"] += ' && (' + " || ".join(["{} == {}".format(var, tr["in"])
-                                                                 for var, tr in checks]) + ')'
+                translator.extract_relevant_automata(automata_peers, state.action.peers, Receive)
+                if len(list(automata_peers.keys())) > 0:
+                    base_case['relevant automata'] = automata_peers
                 elif len(list(automata_peers.keys())) > 0:
                     raise RuntimeError("No dispatches are generated for dispatch {} but it can be received".
-                                       format(node.action.name))
+                                       format(state.action.name))
             else:
                 # Generate comment
                 base_case["body"].append("/* Dispatch {} is not expected by any process, skip it */".
-                                         format(node.action.name))
+                                         format(state.action.name))
             cases.append(base_case)
-        elif type(node.action) is CallRetval:
+        elif type(state.action) is CallRetval:
             base_case["body"].append("/* Should wait for return value of {} here, "
-                                     "but in sequential model it is not necessary */".format(action.name))
-            cases.append(base_case)
-        elif type(node.action) is Receive:
+                                     "but in sequential model it is not necessary */".format(state.action.name))
+            state.code = base_case
+        elif type(state.action) is Receive:
             # Generate comment
-            base_case["body"].append("/* Receive signal {} */".format(action.name))
-            cases.append(base_case)
-            # Do not chenge state there
-            return cases
-        elif type(node.action) is Condition:
+            base_case["body"].append("/* Receive signal {} */".format(state.action.name))
+            state.code = base_case
+        elif type(state.action) is Condition:
             # Generate comment
-            base_case["body"].append("/* Code or condition insertion {} */".format(action.name))
+            base_case["body"].append("/* Code or condition insertion {} */".format(state.action.name))
 
             # Add additional condition
-            if node.action.condition and len(node.action.condition) > 0:
-                for statement in node.action.condition:
+            if state.action.condition and len(state.action.condition) > 0:
+                for statement in state.action.condition:
                     cn = self.text_processor(analysis, statement)
-                    base_case["guard"] = " && ".join([base_case["guard"]] + cn)
+                    base_case["guard"].extend(cn)
 
-            if node.action.statements:
-                for statement in node.action.statements:
+            if state.action.statements:
+                for statement in state.action.statements:
                     base_case["body"].extend(self.text_processor(analysis, statement))
-            cases.append(base_case)
-        elif type(node.action) is Subprocess:
-            # Generate comment
-            base_case["body"].append("/* Start subprocess {} */".format(node.action.name))
-            cases.append(base_case)
+            state.code = base_case
+        elif type(state.action) is Subprocess:
+            raise NotImplementedError('Do not expect subprocess state')
         else:
-            raise ValueError("Unexpected state machine edge type: {}".format(node.action.type))
+            raise ValueError("Unexpected state machine edge type: {}".format(state.action.type))
 
-        return cases
-
-    def __text_processor(self, analysis, statement):
+    def text_processor(self, analysis, statement):
         # Replace model functions
         mm = FunctionModels()
         accesses = self.process.accesses()
@@ -660,65 +597,5 @@ class Automaton:
                 final.add(stm)
 
         return list(final)
-
-    def __registration_intf_check(self, analysis, model, function_call):
-        check = []
-
-        name = self.__callback_name(function_call)
-        if name:
-            # Caclulate relevant models
-            if name in analysis.modules_functions:
-                relevant_models = analysis.collect_relevant_models(name)
-
-                # Get list of models
-                process_models = [model for model in model.model_processes if model.name in relevant_models]
-
-                # Check relevant state machines for each model
-                automata_peers = {}
-                for model in process_models:
-                    signals = [model.actions[name] for name in sorted(model.actions.keys())
-                               if (type(model.actions[name]) is Receive or
-                                   type(model.actions[name]) is Dispatch) and
-                               len(model.actions[name].peers) > 0]
-
-                    # Get all peers in total
-                    peers = []
-                    for signal in signals:
-                        peers.extend(signal.peers)
-
-                    # Add relevant state machines
-                    self.__extract_relevant_automata(automata_peers, peers)
-
-                check.extend(["({} == {} || {} == 0)".format(var, tr["in"], var) for var, tr
-                              in self.__generate_state_pair(automata_peers)])
-        else:
-            self.logger.warning("Cannot find module function for callback '{}'".format(function_call))
-
-        return " && ".join(check)
-
-    def __extract_relevant_automata(self, automata_peers, peers, sb_type=None):
-        for peer in peers:
-            relevant_automata = [automaton for automaton in self._callback_fsa
-                                 if automaton.process.name == peer["process"].name]
-            for automaton in relevant_automata:
-                if automaton.identifier not in automata_peers:
-                    automata_peers[automaton.identifier] = {
-                        "automaton": automaton,
-                        "subprocesses": []
-                    }
-                if peer["subprocess"] not in automata_peers[automaton.identifier]["subprocesses"]:
-                    if not sb_type or isinstance(peer["subprocess"], sb_type):
-                        automata_peers[automaton.identifier]["subprocesses"].append(peer["subprocess"])
-
-    @staticmethod
-    def __generate_state_pair(automata_peers):
-        check = []
-        # Add state checks
-        for ap in [automata_peers[name] for name in sorted(automata_peers.keys())]:
-            for transition in ap["automaton"].fsa.state_transitions:
-                if transition["subprocess"].name in [subp.name for subp in ap["subprocesses"]]:
-                    check.append([ap["automaton"].state_variable.name, transition])
-
-        return check
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

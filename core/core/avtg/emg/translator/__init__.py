@@ -6,6 +6,7 @@ import copy
 from core.avtg.emg.common.code import FunctionDefinition, FunctionBody
 from core.avtg.emg.common.interface import Container, Callback
 from core.avtg.emg.translator.fsa import Automaton
+from core.avtg.emg.common.process import Receive, Dispatch
 
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
@@ -18,10 +19,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.aspects = {}
         self.entry_file = None
         self.model_aspects = []
-        self.__identifier_cnt = -1
         self._callback_fsa = []
         self._model_fsa = []
         self._entry_fsa = None
+        self.__identifier_cnt = -1
         self.__instance_modifier = 1
         self.__max_instances = None
 
@@ -81,10 +82,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Determine how many instances is required for a model
         self.logger.info("Determine how many instances is required to add to an environment model for each process")
         for process in model.event_processes:
-            self.logger.info("Generate {} FSA instances for process {} with category {}".
-                             format(len(base_list), process.name, process.category))
             base_list = self._initial_instances(analysis, process)
             base_list = self._instanciate_processes(analysis, base_list, process)
+            self.logger.info("Generate {} FSA instances for process {} with category {}".
+                             format(len(base_list), process.name, process.category))
 
             for instance in base_list:
                 fsa = Automaton(self.logger, analysis, instance, self.__yeild_identifier())
@@ -105,6 +106,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         # Generate variables
         self._generate_variables(analysis)
+
+        # Generates base code
+        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+            for state in list(automaton.fsa.states):
+                automaton.generate_code(analysis, model, self, state)
 
         # Save digraphs
         automaton_dir = "automaton"
@@ -176,7 +182,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         base_list = new_base_list
         return base_list
 
-    def _initial_instanes(self, analysis, process):
+    def _initial_instances(self, analysis, process):
         base_list = []
         undefined_labels = []
         # Determine nonimplemented containers
@@ -200,6 +206,53 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                          format(len(base_list), len(undefined_labels), process.name, process.category))
 
         return base_list
+
+    def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
+        for peer in peers:
+            relevant_automata = [automaton for automaton in self._callback_fsa
+                                 if automaton.process.name == peer["process"].name]
+            for automaton in relevant_automata:
+                if automaton.identifier not in automata_peers:
+                    automata_peers[automaton.identifier] = {
+                        "automaton": automaton,
+                        "states": set()
+                    }
+                for state in [node for node in automaton.fsa.states
+                              if node.action and node.action.name == peer["subprocess"].name]:
+                    if not sb_type or isinstance(state.action, sb_type):
+                        automata_peers[automaton.identifier]["states"].add(state)
+
+    def registration_intf_check(self, analysis, model, function_call):
+        automata_peers = {}
+
+        name = analysis.callback_name(function_call)
+        if name:
+            # Caclulate relevant models
+            if name in analysis.modules_functions:
+                relevant_models = analysis.collect_relevant_models(name)
+
+                # Get list of models
+                process_models = [model for model in model.model_processes if model.name in relevant_models]
+
+                # Check relevant state machines for each model
+                for model in process_models:
+                    signals = [model.actions[name] for name in sorted(model.actions.keys())
+                               if (type(model.actions[name]) is Receive or
+                                   type(model.actions[name]) is Dispatch) and
+                               len(model.actions[name].peers) > 0]
+
+                    # Get all peers in total
+                    peers = []
+                    for signal in signals:
+                        peers.extend(signal.peers)
+
+                    # Add relevant state machines
+                    self.extract_relevant_automata(automata_peers, peers)
+                check = automata_peers
+        else:
+            self.logger.warning("Cannot find module function for callback '{}'".format(function_call))
+
+        return automata_peers
 
     def _copy_process(self, process):
         inst = copy.deepcopy(process)

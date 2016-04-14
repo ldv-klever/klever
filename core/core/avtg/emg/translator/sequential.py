@@ -12,7 +12,7 @@ class Translator(AbstractTranslator):
 
     def _generate_variables(self, analysis):
         # Generate variables
-        for automaton in self.__callback_fsa + self.__model_fsa + [self.__entry_fsa]:
+        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
             variables = automaton.variables(analysis)
             for variable in variables:
                 if not variable.file:
