@@ -66,8 +66,8 @@ def after_process_linux_kernel_raw_build_cmd(context):
             # Sometimes when building several individual modules the same modules are built several times including
             # building of corresponding mod.o files. Do not fail in this case.
             if not context.linux_kernel['build cmd']['out file'].endswith('mod.o'):
-                raise FileExistsError('Linux kernel CC full description file "{0}" already exists'.format(
-                    linux_kernel_build_cmd_full_desc_file))
+                pass#raise FileExistsError('Linux kernel CC full description file "{0}" already exists'.format(
+                    #linux_kernel_build_cmd_full_desc_file))
         else:
             context.logger.debug(
                 'Dump Linux kernel CC full description to file "{0}"'.format(linux_kernel_build_cmd_full_desc_file))
@@ -178,6 +178,7 @@ class LKVOG(core.components.Component):
                                          os.path.join(scotch_dir_path, 'scotch_out'), params=self.conf['LKVOG strategy'])
             elif strategy_name == 'strategy1':
                 module_deps_function = []
+                module_sizes = {}
                 if ('all' in self.conf['Linux kernel']['modules'] and
                         self.conf['Linux kernel'].get('build kernel', False)) \
                         or 'modules dep function file' in self.conf['Linux kernel']:

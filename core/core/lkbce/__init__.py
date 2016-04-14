@@ -263,7 +263,7 @@ class LKBCE(core.components.Component):
                 module_name = module_name[7:] if module_name.startswith('kernel/') else module_name
                 module_deps = splits[1][:-1]
                 module_deps = list(filter(lambda x: x != '', module_deps.split(' ')))
-                if len(module_deps) == 1:
+                if len(module_deps) == 0:
                     continue
                 module_deps = [dep[7:] if dep.startswith('kernel/') else dep for dep in module_deps]
                 module_deps = list(sorted(module_deps))

@@ -34,7 +34,7 @@ class Strategy1:
 
         # Creating modules dict
         self.modules = {}
-        for module, m_deps in deps.items():
+        for module, m_deps in sorted(deps.items()):
             self.modules.setdefault(module, Module(module))
             for m_dep in m_deps:
                 self.modules.setdefault(m_dep, Module(m_dep))
@@ -45,7 +45,7 @@ class Strategy1:
         # Creating export/call functions
         self.not_checked_export_f = {}
         self.not_checked_call_f = {}
-        for module_pred, func, module_succ in export_func:
+        for module_succ, func, module_pred in export_func:
             if module_pred not in self.modules or module_succ not in self.modules:
                 continue
             self.modules[module_succ].export_functions.setdefault(func, [])
@@ -92,6 +92,10 @@ class Strategy1:
         if self.analyze_all_calls and not self.analyze_all_export_function \
                 and not self.not_checked_export_f.get(module, {}) and self.minimize_groups_for_module:
             # Should check all calls once
+            return True
+
+        if self.analyze_all_calls and self.analyze_all_export_function and not self.not_checked_call_f.get(module, {}) \
+            and not self.not_checked_export_f.get(module, {}) and self.minimize_groups_for_module:
             return True
 
         return False
@@ -144,7 +148,8 @@ class Strategy1:
 
     def count_already_weight(self, module, unused):
         # Returns weight based on counts groups for module
-        return (self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m
+        # TODO: one thousand?
+        return 1000-self.count_groups_for_m.get(module, 0)#(self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m
 
     def more_difference(self, ret, process, module):
         if not ret or not process:
@@ -158,7 +163,7 @@ class Strategy1:
         checked = set()
         ret = 0
         for process_module in process:
-            for values in process_module.call_functions.values():
+            for values in sorted(process_module.call_functions.values()):
                 if module.id in values:
                     ret += 1
                     checked.add(process_module)
@@ -216,21 +221,27 @@ class Strategy1:
     def get_best_candidate(self, modules):
         if not modules:
             return None
-        process = modules[:]
+        process = sorted(modules)
         for i in range(len(modules[0][1])):
             max_value = max(process, key=lambda module: module[1][i])[1][i]
             if max_value < 0:
                 return None
             elif max_value == 0:
                 continue
-            process = list(filter(lambda module: 1 - module[1][i]/max_value < 0.1, process))
+            # TODO:  < 3? Maybe, other number
+            process = list(sorted(filter(lambda module: max_value - module[1][i] < 3, process)))
         return list(sorted(process, key=itemgetter(1), reverse=True))[0][0]
 
     def divide(self, module_name):
+        if module_name == 'all':
+            for i, module in enumerate(sorted(self.modules.keys())):
+                print(i, module, len(self.divide(module)))
+            return self.checked_clusters
+
         if module_name not in self.modules:
             # This module has no dependencies
             self.logger.debug('Module {} has no dependencies'.format(module_name))
-            return [[Module(module_name)]]
+            return [Graph([Module(module_name)])]
 
         main_module = self.modules[module_name]
         if self.is_fully_checked(main_module):
@@ -255,12 +266,12 @@ class Strategy1:
                     if self.division_type != 'Module':
                         # Search best candidate from successors
                         candidate_list += list(map(lambda module_succ: (module_succ, self.measure_successor(module_succ, module, process, clusters)),
-                            module.successors))
+                            filter(lambda module: module not in process, module.successors)))
 
                     if self.division_type != 'Library':
                         # Search best candidate from predecessors
                         candidate_list += list(map(lambda module_pred: (module_pred, self.measure_predecessor(module, module_pred, process, clusters)),
-                                                   module.predecessors))
+                                                   filter(lambda module: module not in process, module.predecessors)))
                 best_candidate = self.get_best_candidate(candidate_list)
                 if best_candidate:
                     process.add(best_candidate)
@@ -272,20 +283,20 @@ class Strategy1:
 
 
                     # Update not checked export functions and not checked call functions
-                    for pred in filter(lambda module: module in process, best_candidate.predecessors):
+                    for pred in filter(lambda module: module in process, best_candidate.successors):
                         self.not_checked_export_f.setdefault(pred, set()).difference_update \
                             ([functions for functions, module in pred.export_functions.items()
                                 if best_candidate in module])
-                    for succ in filter(lambda module: module in process, best_candidate.successors):
+                    for succ in filter(lambda module: module in process, best_candidate.predecessors):
                         self.not_checked_export_f.setdefault(best_candidate, set()).difference_update \
                             ([function for function, modules in best_candidate.export_functions.items()
                                 if succ in modules])
 
-                    for pred in filter(lambda module: module in process, best_candidate.predecessors):
+                    for pred in filter(lambda module: module in process, best_candidate.successors):
                         self.not_checked_call_f.setdefault(pred, set()).difference_update \
                             ([function for function, modules in pred.call_functions.items()
                                 if best_candidate in modules])
-                    for succ in filter(lambda module: module in process, best_candidate.successors):
+                    for succ in filter(lambda module: module in process, best_candidate.predecessors):
                         self.not_checked_call_f.setdefault(best_candidate, set()).difference_update \
                             ([function for function, modules in best_candidate.call_functions.items()
                                 if succ in modules])
