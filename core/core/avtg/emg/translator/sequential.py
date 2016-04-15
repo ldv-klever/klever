@@ -24,62 +24,6 @@ class Translator(AbstractTranslator):
                     }
                 self.files[variable.file]["variables"][variable.name] = variable
 
-    def _generate_functions(self, analysis, model):
-        # Generate automata control function
-        self.logger.info("Generate control functions for the environment model")
-        for automaton in self._callback_fsa + [self._entry_fsa]:
-            self._generate_control_functions(analysis, model, automaton)
-
-        # Generate model control function
-        for name in (pr.name for pr in model.model_processes):
-            automata = [a for a in self._model_fsa if a.process.name == name]
-            self._generate_model_aspects(analysis, model, automata, name)
-
-        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
-            for function in automaton.functions:
-                if function.file not in self.files:
-                    self.files[function.file] = {"functions": {}, "variables": {}}
-                self.files[function.file]["functions"][function.name] = function
-
-        # Generate entry point function
-        ep = self._generate_entry_functions()
-        self.files[self.entry_file]["functions"][ep.name] = ep
-
-    def _generate_entry_functions(self):
-        self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
-        # FunctionDefinition prototype
-        ep = FunctionDefinition(
-            self.entry_point_name,
-            self.entry_file,
-            "void {}(void)".format(self.entry_point_name),
-            False
-        )
-
-        body = [
-            "while(1) {",
-            "\tswitch(ldv_undef_int()) {"
-        ]
-
-        automata = self._callback_fsa + [self._entry_fsa]
-        for index in range(len(automata)):
-            body.extend(
-                [
-                    "\t\tcase {}: ".format(index),
-                    "\t\t\t{}();".format(automata[index].control_function.name),
-                    "\t\tbreak;"
-                ]
-            )
-        body.extend(
-            [
-                "\t\tdefault: break;",
-                "\t}",
-                "}"
-            ]
-        )
-        ep.body.concatenate(body)
-
-        return ep
-
     def _generate_control_functions(self, analysis, model, automaton):
         self.logger.info("Generate control function for automata {} with process {}".
                          format(automaton.identifier, automaton.process.name))

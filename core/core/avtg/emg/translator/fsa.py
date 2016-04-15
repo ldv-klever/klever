@@ -214,6 +214,14 @@ class Automaton:
         self.fsa = FSA(self.process)
         self.variables(analysis)
 
+    @property
+    def state_variable(self):
+        if not self.__state_variable:
+            var = Variable('ldv_statevar_{}'.format(self.identifier),  None, 'int a', True)
+            self.__state_variable = var
+
+        return self.__state_variable
+
     def variables(self, analysis):
         if len(self.__variables) == 0:
             # Generate variable for each label
@@ -460,6 +468,7 @@ class Automaton:
                     code = {
                         "guard": [],
                         "body": pre_statements,
+                        "file": file
                     }
 
                     new_action = self.process.add_condition(cond_name, [], pre_statements)
@@ -472,6 +481,7 @@ class Automaton:
                         post_code = {
                             "guard": [],
                             "body": post_statements,
+                            "file": file
                         }
 
                         cond_name = 'post_call_{}'.format(nd.identifier)
@@ -514,7 +524,6 @@ class Automaton:
         elif type(state.action) is Dispatch:
             # Generate dispatch function
             if len(state.action.peers) > 0:
-
                 # Do call only if model which can be called will not hang
                 automata_peers = {}
                 translator.extract_relevant_automata(automata_peers, state.action.peers, Receive)

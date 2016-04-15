@@ -1,4 +1,3 @@
-import abc
 import os
 import copy
 
@@ -6,7 +5,7 @@ import copy
 from core.avtg.emg.common.code import FunctionDefinition, FunctionBody
 from core.avtg.emg.common.interface import Container, Callback
 from core.avtg.emg.translator.fsa import Automaton
-from core.avtg.emg.common.process import Receive, Dispatch
+from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess
 
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
@@ -22,9 +21,16 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._callback_fsa = []
         self._model_fsa = []
         self._entry_fsa = None
+        self._nested_automata = False
+        self._omit_states = {
+            'callback': False,
+            'dispatch': False,
+            'receive': False
+        }
         self.__identifier_cnt = -1
         self.__instance_modifier = 1
         self.__max_instances = None
+        self.types = []
 
         # Read translation options
         if "translation options" not in self.conf:
@@ -43,6 +49,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             if tag not in self.conf["translation options"]["pointer free"]:
                 self.conf["translation options"]["pointer free"][tag] = \
                     self.conf["translation options"]["pointer initialization"][tag]
+        if "omit states" in self.conf["translation options"]:
+            self._omit_states = self.conf["translation options"]["omit states"]
+        if not self._omit_states:
+            if 'omit composition' in self.conf["translation options"]:
+                for tag in self._omit_states:
+                    if tag in self.conf["translation options"]['omit composition']:
+                        self._omit_states[tag] = self.conf["translation options"]['omit composition'][tag]
+        if "nested automata" in self.conf["translation options"]:
+            self._nested_automata = self.conf["translation options"]["nested automata"]
 
         if not header_lines:
             self.additional_headers = []
@@ -286,6 +301,156 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             self.entry_point_name = "main"
 
+    def _generate_functions(self, analysis, model):
+        global_switch_automata = []
+
+        # Generate automata control function
+        self.logger.info("Generate control functions for the environment model")
+        for automaton in self._callback_fsa:
+            if self._omit_states:
+                func = self._generate_label_cfunction(analysis, automaton)
+            else:
+                func = self._generate_state_cfunction(analysis, automaton)
+            if func and not self._nested_automata:
+                global_switch_automata.append(func)
+
+        if self._omit_states:
+            func = self._generate_label_cfunction(analysis, self._callback_fsa)
+        else:
+            func = self._generate_state_cfunction(analysis, self._callback_fsa)
+        if func:
+            global_switch_automata.append(func)
+        else:
+            raise ValueError('Entry point function must contain init/exit automaton control function')
+
+        # Generate model control function
+        for name in (pr.name for pr in model.model_processes):
+            automata = [a for a in self._model_fsa if a.process.name == name]
+            self._generate_label_cfunction(analysis, automata, aspect=name)
+
+        # Generate entry point function
+        func = self._generate_entry_functions(global_switch_automata)
+        self.files[self.entry_file]["functions"][func.name] = func
+
+    def _generate_entry_functions(self, global_switch_automata):
+        self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
+        # FunctionDefinition prototype
+        ep = FunctionDefinition(
+            self.entry_point_name,
+            self.entry_file,
+            "void {}(void)".format(self.entry_point_name),
+            False
+        )
+
+        body = [
+            "while(1) {",
+            "\tswitch(ldv_undef_int()) {"
+        ]
+
+        for index in range(len(global_switch_automata)):
+            cfunction = global_switch_automata[index]
+            body.extend(
+                [
+                    "\t\tcase {}: ".format(index),
+                    "\t\t\t{}();".format(cfunction.name),
+                    "\t\tbreak;"
+                ]
+            )
+        body.extend(
+            [
+                "\t\tdefault: break;",
+                "\t}",
+                "}"
+            ]
+        )
+        ep.body.concatenate(body)
+
+        return ep
+
+    def _generate_label_cfunction(self, analysis, automaton, aspect=None):
+        # Function type
+        if aspect:
+            cf = Aspect(aspect, analysis.kernel_functions[aspect].declaration, 'around')
+        else:
+            cf = FunctionDefinition('ldv_cf_{}'.format(automaton.identifier), self.entry_file, export=False)
+
+        # Declare variables
+        for var in automaton.variables(analysis):
+            definition = var.declare_with_init(self.conf["translation options"]["pointer initialization"]) + ";"
+            cf.body.concatenate(definition)
+        cf.body.concatenate('')
+
+        tab = 0
+        if not self._nested_automata:
+            sv = automaton.state_variable
+            self.files[self.entry_file]["variables"][sv.name] = sv
+
+            cf.body.concatenate('if ({}) {')
+            tab += 1
+
+        switch_stack = []
+        for state in self.fsa:
+            cf.body.concatenate('ldv_{}_{}:'.format(automaton.identifier, state.identifier))
+            if len(switch_stack) > 0:
+                in_switch = True
+            else:
+                in_switch = False
+
+            if in_switch:
+
+
+            code = []
+            if type(state.action) is Call:
+                pass
+            elif type(state.action) is CallRetval:
+                code.append('\t'*tab + '/* Skip {} */'.format(state.desc['expression']))
+            elif type(state.action) is Condition:
+                conditional = True
+                for pred in state.predecessors:
+                    if len(pred.successors) > 0:
+                        conditional = False
+                        break
+
+                if conditional:
+                    code.append('\t'*tab + 'if ({}) {'.format(' && '.join(state.code['guard'])))
+                    tab += 1
+                    for stm in state.code['body']:
+                        code.append('\t' * tab + stm)
+                    tab -= 1
+                else:
+                    for stm in state.code['body']:
+                        code.append('\t' * tab + stm)
+            elif type(state.action) is Dispatch:
+                code.extend(self._generate_dispatch())
+            elif type(state.action) is Receive:
+                code.append('\t'*tab + '/* Skip {} */'.format(state.desc['expression']))
+            else:
+                raise ValueError('Unexpected state action')
+
+            reduce_stack = False
+            for succ in state.successors:
+                if len(succ.predecessors) > 0:
+                    reduce_stack = True
+                    break
+
+            if reduce_stack and len(state.successors) > 0:
+                raise RuntimeError('Unexpected automaton merge point')
+            elif len(state.successors) > 0:
+            else:
+                label
+
+
+
+
+
+        if not self._nested_automata:
+            cf.body.concatenate('}')
+
+        return cf
+
+    def _generate_state_cfunction(self, analysis, automaton):
+        raise NotImplementedError
+
     def __generate_aspects(self):
         aspect_dir = "aspects"
         self.logger.info("Create directory for aspect files {}".format("aspects"))
@@ -312,6 +477,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 # After file
                 lines.append('after: file ("$this")\n')
                 lines.append('{\n')
+
+                # todo: add types declarations
+                if len(self.types) > 0:
+                    raise NotImplementedError('Implement types declarations')
+
                 lines.append("/* EMG Function declarations */\n")
                 for file in sorted(self.files.keys()):
                     if "functions" in self.files[file]:
