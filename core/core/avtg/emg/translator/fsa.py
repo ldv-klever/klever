@@ -236,8 +236,9 @@ class Automaton:
 
         return self.__variables
 
-    def new_variable(self, analysis, name, declaration, value):
+    def new_param(self, analysis, name, declaration, value):
         lb = self.process.add_simple_label(name, declaration, value)
+        lb.resource = True
         vb = self.determine_variable(analysis, lb)
         return vb
 
@@ -443,10 +444,10 @@ class Automaton:
 
                         # Generate new variable
                         if not expression:
-                            tmp = self.new_variable(analysis,
+                            tmp = self.new_param(analysis,
                                                     "emg_param_{}".format(nd.identifier),
-                                                    signature.points.parameters[index],
-                                                    None)
+                                                 signature.points.parameters[index],
+                                                 None)
                             local_vars.append(tmp)
                             expression = tmp.name
 
@@ -501,7 +502,8 @@ class Automaton:
                     ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
                     retval = ret_access[0].access_with_variable(
                         self.determine_variable(analysis, ret_access[0].label))
-                    retval += " = "
+                    case['retval'] = [retval, signature.return_value]
+                    retval = 'return'
 
                 # Generate callback call
                 if check:
