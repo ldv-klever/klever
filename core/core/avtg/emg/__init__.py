@@ -83,6 +83,31 @@ class EMG(core.components.Component):
                              format(file_type))
         return lines
 
+    def __add_c_files(self, logger, conf, avt):
+        if 'additional C files' in self.conf:
+            for cf in self.conf['additional C files']:
+                path = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], cf)
+                out_file = os.path.join('', '{}.c'.format(os.path.splitext(os.path.basename(cf))[0]))
+                full_desc_file = '{}.json'.format(out_file)
+                if os.path.isfile(full_desc_file):
+                    raise FileExistsError('CC extra full description file "{0}" already exists'.format(full_desc_file))
+                self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
+                with open(full_desc_file, 'w', encoding='ascii') as fp:
+                    json.dump({
+                        # Input file path should be relative to source tree root since compilation options are relative
+                        # to this directory and we will change directory to that one before invoking preprocessor.
+                        "in files": [os.path.relpath(path, os.path.realpath(self.conf['source tree root']))],
+                        # Otput file should be located somewhere inside RSG working directory to avoid races.
+                        "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
+                        "opts": []
+                    }, fp, sort_keys=True, indent=4)
+
+                for grp in avt['grps']:
+                    grp['cc extra full desc files'].append({
+                        'cc full desc file': os.path.relpath(full_desc_file,
+                                                             os.path.realpath(self.conf['source tree root']))
+                    })
+
     def __get_analysis(self, avt):
         analysis = {}
         if "source analysis" in avt:
@@ -115,6 +140,9 @@ class EMG(core.components.Component):
         # Import additional aspect files
         self.logger.info("Check whether additional aspect files are provided to be included in an environment model")
         aspect_lines = self.__read_additional_content("aspects")
+
+        # Import additional c files
+        self.__add_c_files(self.logger, self.conf, avt)
 
         return translator(self.logger, self.conf, avt, headers_lines, aspect_lines)
 
