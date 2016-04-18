@@ -198,8 +198,10 @@ class Automaton:
     def __init__(self, logger, analysis, process, identifier):
         # Set default values
         self.control_function = None
+        self.cf_structure = None
         self.functions = []
         self.__state_variable = None
+        self.__thread_variable = None
         self.__variables = []
         self.__label_variables = {}
 
@@ -221,6 +223,14 @@ class Automaton:
             self.__state_variable = var
 
         return self.__state_variable
+
+    @property
+    def thread_variable(self):
+        if not self.__thread_variable:
+            var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'ldv_thread a', True)
+            self.__thread_variable = var
+
+        return self.__thread_variable
 
     def variables(self, analysis):
         if len(self.__variables) == 0:
@@ -354,7 +364,6 @@ class Automaton:
         graph.render()
 
     def generate_code(self, analysis, model, translator, state):
-        cases = []
         base_case = {
             "guard": [],
             "body": [],
@@ -436,7 +445,7 @@ class Automaton:
                                          acc.interface.identifier in ids]
                                 if len(suits) == 1:
                                     var = self.determine_variable(analysis, suits[0].label,
-                                                                       suits[0].list_interface[0].identifier)
+                                                                  suits[0].list_interface[0].identifier)
                                     expression = suits[0].access_with_variable(var)
                                     break
                                 elif len(suits) > 1:
@@ -444,8 +453,7 @@ class Automaton:
 
                         # Generate new variable
                         if not expression:
-                            tmp = self.new_param(analysis,
-                                                    "emg_param_{}".format(nd.identifier),
+                            tmp = self.new_param(analysis, "emg_param_{}".format(nd.identifier),
                                                  signature.points.parameters[index],
                                                  None)
                             local_vars.append(tmp)
@@ -493,7 +501,6 @@ class Automaton:
                         }
 
                 # Generate return value assignment
-                retval = ""
                 ret_subprocess = [self.process.actions[name] for name in sorted(self.process.actions.keys())
                                   if type(self.process.actions[name]) is CallRetval and
                                   self.process.actions[name].callback == state.action.callback and
@@ -502,43 +509,29 @@ class Automaton:
                     ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
                     retval = ret_access[0].access_with_variable(
                         self.determine_variable(analysis, ret_access[0].label))
-                    case['retval'] = [retval, signature.return_value]
-                    retval = 'return'
-
-                # Generate callback call
-                if check:
-                    cb_statements.extend(
-                        [
-                            "if ({})".format(invoke),
-                            "\t" + retval + invoke + '(' + ", ".join(params) + ");"
-                        ]
-                    )
-                else:
-                    cb_statements.append(
-                        retval + invoke + '(' + ", ".join(params) + ");"
-                    )
+                    case['retval'] = retval
 
                 # Generate comment
+                case["parameters"] = params
+                case["callback"] = signature
+                case["check pointer"] = check
+                case["invoke"] = invoke
                 case["body"].append("/* Call callback {} */".format(state.action.name))
                 case["body"].extend(cb_statements)
                 case['file'] = file
                 nd.code = case
         elif type(state.action) is Dispatch:
             # Generate dispatch function
+            automata_peers = {}
             if len(state.action.peers) > 0:
                 # Do call only if model which can be called will not hang
-                automata_peers = {}
                 translator.extract_relevant_automata(automata_peers, state.action.peers, Receive)
-                if len(list(automata_peers.keys())) > 0:
-                    base_case['relevant automata'] = automata_peers
-                elif len(list(automata_peers.keys())) > 0:
-                    raise RuntimeError("No dispatches are generated for dispatch {} but it can be received".
-                                       format(state.action.name))
             else:
                 # Generate comment
                 base_case["body"].append("/* Dispatch {} is not expected by any process, skip it */".
                                          format(state.action.name))
-            cases.append(base_case)
+            base_case['relevant automata'] = automata_peers
+            state.code = base_case
         elif type(state.action) is CallRetval:
             base_case["body"].append("/* Should wait for return value of {} here, "
                                      "but in sequential model it is not necessary */".format(state.action.name))
