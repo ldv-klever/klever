@@ -23,6 +23,14 @@
               "ignore missed callbacks": true
             },
             "translation options": {
+              "omit all states": true,
+              "nested automata": true,
+              "omit parallel composition": {
+                "dispatch": false,
+                "receive": false,
+                "call": false,
+                "condition": false
+              },
               "instance modifier": 1,
               "max instances number": 300,
               "pointer initialization": {
@@ -42,7 +50,10 @@
             },
             "additional headers": [
               "rcv.h",
-              "sv-comp.h"
+              "emg.h"
+            ],
+            "additional C files": [
+              "emg.c"
             ],
             "additional aspects": ["headers.aspect"]
           }
