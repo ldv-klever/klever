@@ -257,6 +257,7 @@ class Process:
 
         new.condition = condition
         new.statements = statements
+        return new
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
