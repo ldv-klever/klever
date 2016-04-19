@@ -17,9 +17,11 @@ class Module:
         if predecessor:
             self.predecessors.append(predecessor)
             predecessor.successors.append(self)
-            return 1
-        else:
-            return 0
+
+    def add_successor(self, successor):
+        if successor:
+            self.successors.append(successor)
+            successor.predecessors.append(self)
 
     def __hash__(self):
         return hash(self.id)
