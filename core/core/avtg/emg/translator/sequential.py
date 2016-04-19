@@ -24,7 +24,7 @@ class Translator(AbstractTranslator):
                     }
                 self.files[variable.file]["variables"][variable.name] = variable
 
-    def _generate_control_functions(self, analysis, model, automaton):
+    def _aaa(self, analysis, model, automaton):
         self.logger.info("Generate control function for automata {} with process {}".
                          format(automaton.identifier, automaton.process.name))
 
