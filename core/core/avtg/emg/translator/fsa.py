@@ -62,6 +62,7 @@ class FSA:
         for pred in node.predecessors:
             pred.successors.remove(node)
             pred.successors.add(new)
+            new.predecessors.add(pred)
 
         node.predecessors = set([new])
         new.successors = set([node])
@@ -79,6 +80,7 @@ class FSA:
         for succ in node.successors:
             succ.predecessors.remove(node)
             succ.predecessors.add(new)
+            new.successors.add(succ)
 
         node.successors = set([new])
         new.predecessors = set([node])
@@ -439,7 +441,7 @@ class Automaton:
                         ids = [intf.identifier for intf in
                                analysis.resolve_interface(parameter, self.process.category)]
                         if len(ids) > 0:
-                            for candidate in state.action.parameters:
+                            for candidate in nd.action.parameters:
                                 accesses = self.process.resolve_access(candidate)
                                 suits = [acc for acc in accesses if acc.interface and
                                          acc.interface.identifier in ids]
@@ -481,7 +483,7 @@ class Automaton:
                     }
 
                     new_action = self.process.add_condition(cond_name, [], pre_statements)
-                    new = self.fsa.add_new_predecessor(state, new_action, {}, code)
+                    new = self.fsa.add_new_predecessor(nd, new_action, {}, code)
                     new.desc = {
                         'label': "<{}>".format(cond_name)
                     }
@@ -495,7 +497,7 @@ class Automaton:
 
                         cond_name = 'post_call_{}'.format(nd.identifier)
                         succ_action = self.process.add_condition(cond_name, [], post_statements)
-                        new = self.fsa.add_new_successor(state, succ_action, {}, post_code)
+                        new = self.fsa.add_new_successor(nd, succ_action, {}, post_code)
                         new.desc = {
                             'label': "<{}>".format(cond_name)
                         }
@@ -503,7 +505,7 @@ class Automaton:
                 # Generate return value assignment
                 ret_subprocess = [self.process.actions[name] for name in sorted(self.process.actions.keys())
                                   if type(self.process.actions[name]) is CallRetval and
-                                  self.process.actions[name].callback == state.action.callback and
+                                  self.process.actions[name].callback == nd.action.callback and
                                   self.process.actions[name].retlabel]
                 if ret_subprocess:
                     ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
@@ -516,7 +518,7 @@ class Automaton:
                 case["callback"] = signature
                 case["check pointer"] = check
                 case["invoke"] = invoke
-                case["body"].append("/* Call callback {} */".format(state.action.name))
+                case["body"].append("/* Call callback {} */".format(nd.action.name))
                 case["body"].extend(cb_statements)
                 case['file'] = file
                 nd.code = case
