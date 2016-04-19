@@ -92,8 +92,12 @@ class FunctionDefinition:
         return [declaration + "\n"]
 
     def get_definition(self):
+        declaration = '{} {}({})'.format(self.declaration.return_value.to_string(), self.name,
+                                         [self.declaration.parameters[index].to_string('arg{}'.format(index)) for index
+                                          in range(len(self.declaration.parameters))])
+
         lines = list()
-        lines.append(self.declaration.to_string(self.name) + "{\n")
+        lines.append(declaration + " {\n")
         lines.extend(self.body.get_lines(1))
         lines.append("}\n")
         return lines
@@ -135,6 +139,34 @@ class FunctionBody:
         for splitted in self.__body:
             line = (start_indent + splitted["indent"]) * "\t" + splitted["statement"] + "\n"
             lines.append(line)
+        return lines
+
+
+class Aspect(FunctionDefinition):
+
+    def __init__(self, name, declaration, aspect_type="after"):
+        self.name = name
+        self.declaration = declaration
+        self.aspect_type = aspect_type
+        self.__body = None
+
+    @property
+    def body(self, body=None):
+        if not body:
+            body = []
+
+        if not self.__body:
+            self.__body = FunctionBody(body)
+        else:
+            self.__body.concatenate(body)
+        return self.__body
+
+    def get_aspect(self):
+        lines = list()
+        lines.append("around: call({}) ".format("$ {}(..)".format(self.name)) +
+                     " {\n")
+        lines.extend(self.body.get_lines(1))
+        lines.append("}\n")
         return lines
 
 
