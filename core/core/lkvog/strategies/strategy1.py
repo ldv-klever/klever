@@ -57,6 +57,13 @@ class Strategy1:
             self.not_checked_export_f[module] = set(module.export_functions.keys())
             self.not_checked_call_f[module] = set(module.call_functions.keys())
 
+        self.not_checked_preds = {}
+        self.not_checked_succs = {}
+        for module in self.modules.values():
+            self.not_checked_preds[module] = set(module.predecessors)
+            self.not_checked_succs[module] = set(module.successors)
+
+
         self.checked_clusters = set()
         self.checked_modules = set()
         self.count_groups_for_m = {}
@@ -100,10 +107,12 @@ class Strategy1:
 
         if self.count_groups_for_m.get(module, 0) > self.max_g_for_m:
             return True
+        if not self.not_checked_succs[module] and not self.not_checked_preds[module]:
+            return True
 
         return False
 
-    def export_weight(self, module_succ, module_pred):
+    def export_weight(self, module_pred, module_succ):
         # Count export functions, that predecessor calls from successor (this module)
         if not self.priority_on_export_function:
             return 0
@@ -113,7 +122,7 @@ class Strategy1:
                 ret += 1
         return ret
 
-    def call_weight(self, module_pred, module_succ):
+    def call_weight(self, module_succ, module_pred):
         # Count functions, that predecessor (this module) calls from successor
         if not self.priority_on_calls:
             return 0
@@ -152,7 +161,7 @@ class Strategy1:
     def count_already_weight(self, module, unused):
         # Returns weight based on counts groups for module
         # TODO: one thousand?
-        return 1000-self.count_groups_for_m.get(module, 0)#(self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m
+        return -self.count_groups_for_m.get(module, 0)#(self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m
 
     def more_difference(self, ret, process, module):
         if not ret or not process:
@@ -180,17 +189,25 @@ class Strategy1:
         return ret
 
     def measure_predecessor(self, module_pred, module_succ, process, ret):
-        weight_funcs = (self.count_already_weight, self.export_weight, self.size_weight, self.export_provided_weight,
-                   self.remoteness_weight)
+        weight_funcs = [self.count_already_weight, self.size_weight, self.export_provided_weight,
+                   self.remoteness_weight]
+        if self.analyze_all_export_function:
+            weight_funcs.insert(0, self.export_weight)
+        else:
+            weight_funcs.insert(1, self.export_weight)
         weights = [weight(module_pred, module_succ) for weight in weight_funcs]
-        weights.insert(1, self.more_difference(ret, process, module_succ))
+        weights.insert(2, self.more_difference(ret, process, module_pred))
         return weights
 
     def measure_successor(self, module_pred, module_succ, process, ret):
-        weight_funcs = (self.count_already_weight, self.call_weight, self.size_weight, self.call_provided_weight,
-                   self.remoteness_weight)
+        weight_funcs = [self.count_already_weight, self.size_weight, self.call_provided_weight,
+                   self.remoteness_weight]
+        if self.analyze_all_calls:
+            weight_funcs.insert(0, self.call_weight)
+        else:
+            weight_funcs.insert(1, self.call_weight)
         weights = [weight(module_succ, module_pred) for weight in weight_funcs]
-        weights.insert(1, self.more_difference(ret, process, module_pred))
+        weights.insert(2, self.more_difference(ret, process, module_succ))
         return weights
 
     def get_user_deps(self, module):
@@ -227,22 +244,19 @@ class Strategy1:
         process = sorted(modules)
         for i in range(len(modules[0][1])):
             max_value = max(process, key=lambda module: module[1][i])[1][i]
-            if max_value < 0:
-                return None
-            elif max_value == 0:
+            #if max_value < 0:
+            #    return None
+            if max_value == 0:
                 continue
-            # TODO:  < 3? Maybe, other number
-            process = list(sorted(filter(lambda module: max_value - module[1][i] < 3, process)))
+            # TODO:  < 0.5? Maybe, other number
+            process = list(sorted(filter(lambda module: max_value - module[1][i] < 0.5, process)))
         return list(sorted(process, key=itemgetter(1), reverse=True))[0][0]
 
     def divide(self, module_name):
         if module_name == 'all':
             ret = set()
-            for i, module in enumerate(sorted(self.modules.keys())):
-                r = self.divide(module)
-                if(len(r) > 20):
-                    print(i, module, len(r))
-                ret.update(r)
+            for module in sorted(self.modules.keys()):
+                ret.update(self.divide(module))
             return ret
 
         if module_name not in self.modules:
@@ -307,6 +321,10 @@ class Strategy1:
                         self.not_checked_call_f.setdefault(pred, set()).difference_update \
                             ([function for function, modules in pred.call_functions.items()
                                 if best_candidate in modules])
+
+                    for module in process:
+                        self.not_checked_succs[module].discard(best_candidate)
+                        self.not_checked_preds[module].discard(best_candidate)
                 else:
                     break
             else:
@@ -344,4 +362,8 @@ class Strategy1:
             if cluster2 not in self.checked_clusters:
                 self.checked_modules.add(cluster2)
                 ret.add(cluster2)
+        if self.not_checked_call_f[main_module]:
+            print('Not checked all call', main_module.id, len(self.not_checked_call_f[main_module]))
+        if self.not_checked_export_f[main_module]:
+            print('Not checked all export', main_module.id, len(self.not_checked_export_f[main_module]))
         return ret
