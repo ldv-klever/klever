@@ -97,18 +97,11 @@ class ReportFiles(models.Model):
 
 
 class ReportUnsafe(Report):
-    error_trace = models.BinaryField()
+    error_trace = models.ForeignKey(File)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
     class Meta:
         db_table = 'report_unsafe'
-
-
-@receiver(post_init, sender=ReportUnsafe)
-def get_unsafe_trace(**kwargs):
-    report = kwargs['instance']
-    if not isinstance(report.error_trace, bytes):
-        report.error_trace = report.error_trace.tobytes()
 
 
 class ETVFiles(models.Model):
@@ -121,33 +114,19 @@ class ETVFiles(models.Model):
 
 
 class ReportSafe(Report):
-    proof = models.BinaryField()
+    proof = models.ForeignKey(File)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
 
     class Meta:
         db_table = 'report_safe'
 
 
-@receiver(post_init, sender=ReportSafe)
-def get_safe_proof(**kwargs):
-    report = kwargs['instance']
-    if not isinstance(report.proof, bytes):
-        report.proof = report.proof.tobytes()
-
-
 class ReportUnknown(Report):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
-    problem_description = models.BinaryField()
+    problem_description = models.ForeignKey(File)
 
     class Meta:
         db_table = 'report_unknown'
-
-
-@receiver(post_init, sender=ReportUnknown)
-def get_unknown_problem(**kwargs):
-    report = kwargs['instance']
-    if not isinstance(report.problem_description, bytes):
-        report.problem_description = report.problem_description.tobytes()
 
 
 class ReportComponentLeaf(models.Model):

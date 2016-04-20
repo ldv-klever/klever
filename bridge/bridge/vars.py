@@ -21,6 +21,7 @@ ERRORS = {
     507: _("You don't have an access to compare these jobs"),
     508: _("The problem was not found"),
     509: _("The tag was not found"),
+    510: _("The report error trace is too big and can't be visualized"),
     604: _("The mark was not found"),
     601: _("You don't have an access to create new marks"),
     602: _("You don't have an access to delete this mark")

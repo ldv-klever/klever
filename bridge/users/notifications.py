@@ -56,7 +56,11 @@ class Notify(object):
             self.__notify(add_args)
 
     def __notify(self, add_args):
-        s = smtplib.SMTP(self.server)
+        try:
+            s = smtplib.SMTP(self.server)
+        except Exception as e:
+            logger.exception("SMTP registration error: %e" % e)
+            return
         for user in User.objects.filter(
                 ~Q(notifications__settings='[]') & ~Q(notifications=None)):
             if user.email is not None and len(user.email) > 0:
