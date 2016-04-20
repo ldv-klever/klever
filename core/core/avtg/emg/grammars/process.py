@@ -229,7 +229,8 @@ def p_subprocess(p):
     p[0] = {
         'type': 'subprocess',
         'name': p[2],
-        'number': 1
+        'number': 1,
+        'label': '{' + p[2] + '}'
     }
 
 
