@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.tableHead import Header
 from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS
+from bridge.utils import unique_id
 from marks.models import *
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -29,7 +30,9 @@ MARK_TITLES = {
     'component': _('Component'),
     'pattern': _('Problem pattern'),
     'checkbox': '',
-    'type': _('Source')
+    'type': _('Source'),
+    'is_prime': _('Automatic association'),
+    'has_prime': _('Has non-automatic association')
 }
 
 STATUS_COLOR = {
@@ -84,13 +87,33 @@ class MarkChangesTable(object):
         self.__accessed_changes(user)
         if not isinstance(mark, MarkUnknown):
             self.attr_values_data = self.__add_attrs()
-        self.header = Header(self.columns, MARK_TITLES).struct
         if isinstance(mark, MarkUnsafe):
             self.values = self.__get_unsafe_values()
+            self.mark_type = 'unsafe'
         elif isinstance(mark, MarkSafe):
             self.values = self.__get_safe_values()
+            self.mark_type = 'safe'
         elif isinstance(mark, MarkUnknown):
             self.values = self.__get_unknown_values()
+            self.mark_type = 'unknown'
+        else:
+            return
+        self.cache_id = self.__save_data(user)
+
+    def __save_data(self, user):
+        try:
+            cache = MarkAssociationsChanges.objects.get(user=user)
+        except ObjectDoesNotExist:
+            cache = MarkAssociationsChanges(user=user)
+        cache.identifier = unique_id()
+        cache.table_data = json.dumps({
+            'mark_type': self.mark_type,
+            'mark_id': self.mark.pk,
+            'columns': self.columns,
+            'values': self.values
+        })
+        cache.save()
+        return cache.identifier
 
     def __accessed_changes(self, user):
         for report in self.changes:
@@ -125,8 +148,7 @@ class MarkChangesTable(object):
                 tmp_unsafe = ReportUnsafe()
                 tmp_unsafe.verdict = self.changes[rep]['verdict1']
                 val1 = tmp_unsafe.get_verdict_display()
-                if self.changes[rep]['verdict1'] == \
-                        self.changes[rep]['verdict2']:
+                if self.changes[rep]['verdict1'] == self.changes[rep]['verdict2']:
                     return '<span style="color:%s">%s</span>' % (
                         UNSAFE_COLOR[self.changes[rep]['verdict1']], val1)
                 tmp_unsafe.verdict = self.changes[rep]['verdict2']
@@ -177,7 +199,7 @@ class MarkChangesTable(object):
                 elif col == 'format':
                     val = report.root.job.format
                 values_str.append({
-                    'value': val,
+                    'value': str(val),
                     'color': color,
                     'href': href
                 })
@@ -191,8 +213,7 @@ class MarkChangesTable(object):
                 tmp_safe = ReportSafe()
                 tmp_safe.verdict = self.changes[rep]['verdict1']
                 val1 = tmp_safe.get_verdict_display()
-                if self.changes[rep]['verdict1'] == \
-                        self.changes[rep]['verdict2']:
+                if self.changes[rep]['verdict1'] == self.changes[rep]['verdict2']:
                     return '<span style="color:%s">%s</span>' % (
                         SAFE_COLOR[self.changes[rep]['verdict1']], val1)
                 tmp_safe.verdict = self.changes[rep]['verdict2']
@@ -234,15 +255,14 @@ class MarkChangesTable(object):
                         self.mark.author.extended.last_name,
                         self.mark.author.extended.first_name
                     )
-                    href = reverse('users:show_profile',
-                                   args=[self.mark.author.pk])
+                    href = reverse('users:show_profile', args=[self.mark.author.pk])
                 elif col == 'job':
                     val = report.root.job.name
                     href = reverse('jobs:job', args=[report.root.job.pk])
                 elif col == 'format':
                     val = report.root.job.format
                 values_str.append({
-                    'value': val,
+                    'value': str(val),
                     'color': color,
                     'href': href
                 })
@@ -295,15 +315,14 @@ class MarkChangesTable(object):
                         self.mark.author.extended.last_name,
                         self.mark.author.extended.first_name
                     )
-                    href = reverse('users:show_profile',
-                                   args=[self.mark.author.pk])
+                    href = reverse('users:show_profile', args=[self.mark.author.pk])
                 elif col == 'job':
                     val = report.root.job.name
                     href = reverse('jobs:job', args=[report.root.job.pk])
                 elif col == 'format':
                     val = report.root.job.format
                 values_str.append({
-                    'value': val,
+                    'value': str(val),
                     'color': color,
                     'href': href
                 })
@@ -317,13 +336,13 @@ class ReportMarkTable(object):
         self.report = report
         self.user = user
         if isinstance(report, ReportUnsafe):
-            self.columns = ['number', 'verdict', 'result', 'status', 'author']
+            self.columns = ['number', 'verdict', 'result', 'status', 'author', 'is_prime']
             self.type = 'unsafe'
         elif isinstance(report, ReportSafe):
-            self.columns = ['number', 'verdict', 'status', 'author']
+            self.columns = ['number', 'verdict', 'status', 'author', 'is_prime']
             self.type = 'safe'
         elif isinstance(report, ReportUnknown):
-            self.columns = ['number', 'problem', 'status', 'author']
+            self.columns = ['number', 'problem', 'status', 'author', 'is_prime']
             self.type = 'unknown'
         else:
             return
@@ -375,6 +394,12 @@ class ReportMarkTable(object):
                         href = mark_rep.mark.link
                         if not href.startswith('http'):
                             href = 'http://' + mark_rep.mark.link
+                elif col == 'is_prime':
+                    if mark_rep.mark.prime == self.report:
+                        value = _('No')
+                        color = '#B12EAF'
+                    else:
+                        value = _('Yes')
                 values_row.append({
                     'value': value, 'href': href, 'color': color
                 })
@@ -615,13 +640,9 @@ class MarkData(object):
         return values
 
     def __unknown_info(self):
-        unknown_markdata = []
         if not isinstance(self.mark_version, MarkUnknownHistory):
-            return unknown_markdata
-        unknown_markdata.extend([self.mark_version.function,
-                                 self.mark_version.problem_pattern,
-                                 self.mark_version.link])
-        return unknown_markdata
+            return []
+        return [self.mark_version.function, self.mark_version.problem_pattern, self.mark_version.link]
 
     def __verdict_info(self):
         verdicts = []
@@ -719,13 +740,13 @@ class MarkReportsTable(object):
         self.user = user
         if isinstance(mark, MarkUnsafe):
             self.type = 'unsafe'
-            self.columns = ['report', 'job', 'result']
+            self.columns = ['report', 'job', 'result', 'is_prime']
         elif isinstance(mark, MarkSafe):
             self.type = 'safe'
-            self.columns = ['job', 'report_num']
+            self.columns = ['job', 'report_num', 'has_prime']
         elif isinstance(mark, MarkUnknown):
             self.type = 'unknown'
-            self.columns = ['job', 'report_num']
+            self.columns = ['job', 'report_num', 'has_prime']
         else:
             return
         self.mark = mark
@@ -735,10 +756,6 @@ class MarkReportsTable(object):
     def __get_values(self):
         values = []
         cnt = 0
-        report_filters = {
-            'parent': None,
-            'leaves__%s__markreport_set__mark' % self.type: self.mark
-        }
         if self.type == 'unsafe':
             for mark_report in self.mark.markreport_set.all():
                 report = mark_report.report
@@ -763,16 +780,37 @@ class MarkReportsTable(object):
                         val = report.root.job.name
                         if JobAccess(self.user, report.root.job).can_view():
                             href = reverse('jobs:job', args=[report.root.job.pk])
+                    elif col == 'is_prime':
+                        if self.mark.prime == mark_report.report:
+                            val = _('No')
+                            color = '#B12EAF'
+                        else:
+                            val = _('Yes')
                     values_str.append({'value': val, 'href': href, 'color': color})
                 values.append(values_str)
         else:
+            report_filters = {
+                'parent': None,
+                'leaves__%s__markreport_set__mark' % self.type: self.mark
+            }
             for report in ReportComponent.objects.filter(**report_filters).distinct().order_by('root__job__name'):
                 len_filter = {self.type + '__markreport_set__mark': self.mark}
+                mark_leaves = report.leaves.filter(**len_filter)
+
+                if self.mark.prime is not None and len(mark_leaves.filter(**{self.type: self.mark.prime})) > 0:
+                    color = '#B12EAF'
+                    has_primary = _('Yes')
+                else:
+                    has_primary = _('No')
+                    color = None
                 values.append([
                     {'value': report.root.job.name, 'href': reverse('jobs:job', args=[report.root.job_id])},
                     {
-                        'value': len(report.leaves.filter(**len_filter)),
+                        'value': len(mark_leaves),
                         'href': reverse('reports:list_mark', args=[report.pk, self.type + 's', self.mark.pk])
+                    },
+                    {
+                        'value': has_primary, 'color': color
                     }
                 ])
         return values

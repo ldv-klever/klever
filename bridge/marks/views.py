@@ -10,10 +10,11 @@ from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
+from bridge.tableHead import Header
 from bridge.utils import logger, unparallel_group, unparallel
 from users.models import View
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, TagsInfo, DeleteMark
-from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList
+from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
 
 
@@ -113,61 +114,55 @@ def save_mark(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        savedata = json.loads(unquote(request.POST.get('savedata', '{}')))
+    except Exception as e:
+        logger.exception(e, stack_info=True)
+        return JsonResponse({'error': 'Unknown error'})
+    if savedata.get('data_type') not in ['safe', 'unsafe', 'unknown']:
+        return JsonResponse({'error': 'Unknown error'})
 
-    savedata = json.loads(unquote(request.POST.get('savedata', '{}')))
-    if 'data_type' not in savedata or \
-            savedata['data_type'] not in ['safe', 'unsafe', 'unknown']:
-        return HttpResponseRedirect(reverse('error', args=[650]))
-
-    if 'status' not in savedata:
-        return HttpResponseRedirect(reverse('error', args=[650]))
-    if savedata['data_type'] == 'unknown':
-        if any(x not in savedata for x in ['function', 'problem']):
-            return HttpResponseRedirect(reverse('error', args=[650]))
-    else:
-        if any(x not in savedata for x in ['verdict', 'attrs']):
-            return HttpResponseRedirect(reverse('error', args=[650]))
     if 'report_id' in savedata:
         try:
             if savedata['data_type'] == 'unsafe':
                 inst = ReportUnsafe.objects.get(pk=int(savedata['report_id']))
-                if any(x not in savedata for x in ['convert_id', 'compare_id']):
-                    return HttpResponseRedirect(reverse('error', args=[650]))
             elif savedata['data_type'] == 'safe':
                 inst = ReportSafe.objects.get(pk=int(savedata['report_id']))
             else:
                 inst = ReportUnknown.objects.get(pk=int(savedata['report_id']))
         except ObjectDoesNotExist:
-            return HttpResponseRedirect(reverse('error', args=[504]))
+            return JsonResponse({'error': str(_('The report was not found'))})
         if not MarkAccess(request.user, report=inst).can_create():
-            return HttpResponseRedirect(reverse('error', args=[601]))
+            return JsonResponse({'error': str(_("You don't have an access to create new marks"))})
     elif 'mark_id' in savedata:
         try:
             if savedata['data_type'] == 'unsafe':
-                if 'compare_id' not in savedata:
-                    return HttpResponseRedirect(reverse('error', args=[650]))
                 inst = MarkUnsafe.objects.get(pk=int(savedata['mark_id']))
             elif savedata['data_type'] == 'safe':
                 inst = MarkSafe.objects.get(pk=int(savedata['mark_id']))
             else:
                 inst = MarkUnknown.objects.get(pk=int(savedata['mark_id']))
         except ObjectDoesNotExist:
-            return HttpResponseRedirect(reverse('error', args=[604]))
+            return JsonResponse({'error': str(_('The mark was not found'))})
         if not MarkAccess(request.user, mark=inst).can_edit():
-            return HttpResponseRedirect(reverse('error', args=[600]))
+            return JsonResponse({'error': str(_("You don't have an access to this mark"))})
     else:
-        return HttpResponseRedirect(reverse('error', args=[650]))
+        return JsonResponse({'error': 'Unknown error'})
 
-    res = NewMark(inst, request.user, savedata['data_type'], savedata)
+    try:
+        res = NewMark(inst, request.user, savedata['data_type'], savedata)
+    except Exception as e:
+        logger.exception("Error while saving/creating mark: %s" % e, stack_info=True)
+        return JsonResponse({'error': 'Unknown error'})
     if res.error is not None:
-        logger.error(res.error, stack_info=True)
-        return HttpResponseRedirect(reverse('error', args=[650]))
-    return render(request, 'marks/SaveMarkResult.html', {
-        'mark_type': res.type,
-        'mark': res.mark,
-        'MarkTable': MarkChangesTable(request.user, res.mark, res.changes)
-    })
+        return JsonResponse({'error': str(res.error)})
+
+    try:
+        return JsonResponse({'cache_id': MarkChangesTable(request.user, res.mark, res.changes).cache_id})
+    except Exception as e:
+        logger.exception('Error while saving changes of mark associations: %s' % e, stack_info=True)
+        return JsonResponse({'error': 'Unknown error'})
 
 
 @login_required
@@ -433,7 +428,7 @@ def get_mark_versions(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'message': _('Unknown error')})
+        return JsonResponse({'error': 'Unknown error'})
     mark_id = int(request.POST.get('mark_id', 0))
     mark_type = request.POST.get('mark_type', None)
     try:
@@ -444,11 +439,11 @@ def get_mark_versions(request):
         elif mark_type == 'unknown':
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
-            return JsonResponse({'message': _('Unknown error')})
+            return JsonResponse({'error': 'Unknown error'})
         mark_history = mark.versions.filter(
             ~Q(version__in=[mark.version, 1])).order_by('-version')
     except ObjectDoesNotExist:
-        return JsonResponse({'message': _('The mark was not found')})
+        return JsonResponse({'error': _('The mark was not found')})
     mark_versions = []
     for m in mark_history:
         mark_time = m.change_date.astimezone(
@@ -463,3 +458,19 @@ def get_mark_versions(request):
             'title': title
         })
     return render(request, 'marks/markVersions.html', {'versions': mark_versions})
+
+
+@login_required
+def association_changes(request, association_id):
+    try:
+        ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    try:
+        data = json.loads(ass_ch.table_data)
+    except ValueError:
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    return render(request, 'marks/SaveMarkResult.html', {
+        'MarkTable': data,
+        'header': Header(data.get('columns', []), MARK_TITLES).struct
+    })

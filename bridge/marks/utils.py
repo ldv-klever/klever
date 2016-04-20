@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import logger
+from bridge.utils import logger, unique_id
 from marks.models import *
 from reports.models import ReportComponent, Attr, AttrName, Verdict
 from marks.ConvertTrace import ConvertTrace
@@ -52,7 +52,8 @@ class NewMark(object):
         self.changes = {}
         self.cnt = 0
         if not isinstance(args, dict) or not isinstance(user, User):
-            self.error = "Wrong parameters"
+            logger.error('Wrong arguments', stack_info=True)
+            self.error = 'Unknown error'
         elif self.type == 'safe' and isinstance(inst, ReportSafe) or \
                 self.type == 'unsafe' and isinstance(inst, ReportUnsafe) or \
                 self.type == 'unknown' and isinstance(inst, ReportUnknown):
@@ -62,170 +63,187 @@ class NewMark(object):
                 self.type == 'unknown' and isinstance(inst, MarkUnknown):
             self.error = self.__change_mark(inst, args)
         else:
-            self.error = "Wrong parameters"
+            logger.error('Wrong arguments', stack_info=True)
+            self.error = 'Unknown error'
             return
 
     def __create_mark(self, report, args):
+        init_args = {
+            'identifier': unique_id(),
+            'author': self.user,
+            'format': report.root.job.format,
+            'job': report.root.job,
+            'description': str(args.get('description', ''))
+        }
         if self.type == 'unsafe':
-            mark = MarkUnsafe()
+            mark = MarkUnsafe(**init_args)
         elif self.type == 'safe':
-            mark = MarkSafe()
+            mark = MarkSafe(**init_args)
         else:
-            mark = MarkUnknown()
+            mark = MarkUnknown(**init_args)
         mark.author = self.user
+        mark.prime = report
 
         if self.type == 'unsafe':
-            if 'convert_id' in args:
-                try:
-                    func = MarkUnsafeConvert.objects.get(
-                        pk=int(args['convert_id']))
-                    converted = ConvertTrace(func.name, report.error_trace.decode('utf8'))
-                    if converted.error is not None:
-                        return converted.error
-                    mark.error_trace = converted.pattern_error_trace.encode('utf8')
-                except ObjectDoesNotExist:
-                    return "Convertion function was not found"
+            if any(x not in args for x in ['convert_id', 'compare_id']):
+                logger.error('Not enough data to create unsafe mark', stack_info=True)
+                return 'Unknown error'
+            try:
+                func = MarkUnsafeConvert.objects.get(pk=int(args['convert_id']))
+            except ObjectDoesNotExist:
+                logger.exception("Get MarkUnsafeConvert(pk=%s)" % args['convert_id'], stack_info=True)
+                return _('The error traces conversion function was not found')
 
-            if 'compare_id' in args:
-                try:
-                    mark.function = MarkUnsafeCompare.objects.get(
-                        pk=int(args['compare_id']))
-                except ObjectDoesNotExist:
-                    return "Comparison function was not found"
+            converted = ConvertTrace(func.name, report.error_trace.decode('utf8'))
+            if converted.error is not None:
+                logger.error(converted.error, stack_info=True)
+                return _('Error trace converting failed')
+            mark.error_trace = converted.pattern_error_trace.encode('utf8')
+
+            try:
+                mark.function = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
+            except ObjectDoesNotExist:
+                logger.exception("Get MarkUnsafeCompare(pk=%s)" % args['compare_id'], stack_info=True)
+                return _('The error traces comparison function was not found')
         elif self.type == 'unknown':
-            if 'function' in args and len(args['function']) > 0:
-                mark.function = args['function']
-                try:
-                    re.search(mark.function, '')
-                except Exception as e:
-                    logger.error("Wrong mark function: %s" % e)
-                    return 'Mark function is wrong. See python regular expression documentation'
-            else:
-                return "Function is required"
-            if 'problem' in args and len(args['problem']) > 0:
-                mark.problem_pattern = args['problem']
-            else:
-                return "Problem name pattern is required"
-            if 'link' in args and len(args['link']) > 0:
-                mark.link = args['link']
             mark.component = report.component
 
-        mark.format = report.root.job.format
-        mark.job = report.root.job
+            if 'function' not in args or len(args['function']) == 0:
+                return _('The pattern is required')
+            mark.function = args['function']
+            try:
+                re.search(mark.function, '')
+            except Exception as e:
+                logger.exception("Wrong mark function (%s): %s" % (mark.function, e), stack_info=True)
+                return _('The pattern is wrong, please refer to documentation on the standard Python library for processing reqular expressions')
 
-        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
-        mark.identifier = hashlib.md5(time_encoded).hexdigest()
+            if 'problem' not in args or len(args['problem']) == 0:
+                return _('The problem is required')
+            elif len(args['problem']) > 15:
+                return _('The problem length must be less than 15 characters')
+            mark.problem_pattern = args['problem']
 
-        if 'is_modifiable' in args and isinstance(args['is_modifiable'], bool) \
-                and self.user.extended.role == USER_ROLES[2][0]:
+            if len(MarkUnknown.objects.filter(
+                    component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function)) > 0:
+                return _('Could not create a new mark since the similar mark exists already')
+
+            if 'link' in args and len(args['link']) > 0:
+                mark.link = args['link']
+
+        if isinstance(args.get('is_modifiable'), bool) and self.user.extended.role == USER_ROLES[2][0]:
             mark.is_modifiable = args['is_modifiable']
 
-        if 'verdict' in args:
-            if self.type == 'unsafe' and args['verdict'] in list(x[0] for x in MARK_UNSAFE):
-                mark.verdict = args['verdict']
-            elif args['verdict'] in list(x[0] for x in MARK_SAFE):
-                mark.verdict = args['verdict']
+        if self.type == 'unsafe' and args.get('verdict') in list(x[0] for x in MARK_UNSAFE) \
+                or self.type == 'safe' and args.get('verdict') in list(x[0] for x in MARK_SAFE):
+            mark.verdict = args['verdict']
+        elif self.type != 'unknown':
+            logger.error('Verdict is wrong: %s' % args.get('verdict'), stack_info=True)
+            return 'Unknown error'
 
-        if 'status' in args and \
-                args['status'] in list(x[0] for x in MARK_STATUS):
+        if args.get('status') in list(x[0] for x in MARK_STATUS):
             mark.status = args['status']
-        tags = []
-        if 'tags' in args:
-            tags = args['tags']
-        if 'description' in args:
-            mark.description = args['description']
+        else:
+            logger.error('Unknown mark status: %s' % args.get('status'), stack_info=True)
+            return 'Unknown error'
 
         try:
             mark.save()
         except Exception as e:
-            return e
+            logger.exception('Saving mark failed: %s' % e, stack_info=True)
+            return 'Unknown error'
+        self.__update_mark(mark, args.get('tags'))
 
-        self.__update_mark(mark, tags=tags)
-        if 'attrs' in args and self.type != 'unknown':
-            res = self.__create_attributes(report, args['attrs'])
-            if res is not None:
+        if self.type != 'unknown':
+            if self.__create_attributes(report, args.get('attrs')):
                 mark.delete()
-                return res
+                return 'Unknown error'
         self.mark = mark
-        if self.calculate:
-            self.changes = ConnectMarkWithReports(self.mark).changes
-            UpdateTags(self.mark, changes=self.changes)
+        self.changes = ConnectMarkWithReports(self.mark).changes
+        UpdateTags(self.mark, changes=self.changes)
         return None
 
     def __change_mark(self, mark, args):
         recalc_verdicts = False
 
         if 'comment' not in args or len(args['comment']) == 0:
-            return 'Change comment is required'
+            return _('Change comment is required')
         old_tags = []
         last_v = None
         if self.type != 'unknown':
             last_v = mark.versions.order_by('-version').first()
             if last_v is None:
-                return 'No mark versions found'
-            for tag in last_v.tags.all():
-                old_tags.append(tag.tag)
+                logger.error('No mark versions found', stack_info=True)
+                return 'Unknown error'
+            old_tags = list(tag.tag for tag in last_v.tags.all())
+
         mark.author = self.user
         if self.type == 'unsafe' and 'compare_id' in args:
             try:
-                mark.function = MarkUnsafeCompare.objects.get(
-                    pk=int(args['compare_id']))
-                if mark.function != last_v.function:
-                    self.do_recalk = True
+                new_func = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:
-                return "Comparison function was not found"
+                logger.exception("Get MarkUnsafeCompare(pk=%s)" % args['compare_id'], stack_info=True)
+                return _('The error traces comparison function was not found')
+            if mark.function != new_func:
+                mark.function = new_func
+                self.do_recalk = True
 
         if self.type == 'unknown':
-            if 'function' in args and len(args['function']) > 0:
-                if args['function'] != mark.function:
-                    self.do_recalk = True
-                    mark.function = args['function']
-                    try:
-                        re.search(mark.function, '')
-                    except Exception as e:
-                        logger.error("Wrong mark function: %s" % e)
-                        return 'Mark function is wrong. See python regular expression documentation'
-            if 'problem' in args and 0 < len(args['problem']) < 15:
-                if args['problem'] != mark.problem_pattern:
-                    self.do_recalk = True
-                    mark.problem_pattern = args['problem']
+            if 'function' not in args or len(args['function']) == 0:
+                return _('The pattern is required')
+            if args['function'] != mark.function:
+                try:
+                    re.search(args['function'], '')
+                except Exception as e:
+                    logger.exception("Wrong mark function (%s): %s" % (args['function'], e), stack_info=True)
+                    return _('The pattern is wrong, please refer to documentation on the standard Python library for processing reqular expressions')
+                mark.function = args['function']
+                self.do_recalk = True
+
+            if 'problem' not in args or len(args['problem']) == 0:
+                return _('The problem is required')
+            elif len(args['problem']) > 15:
+                return _('The problem length must be less than 15 characters')
+            if args['problem'] != mark.problem_pattern:
+                self.do_recalk = True
+                mark.problem_pattern = args['problem']
+
+            if len(MarkUnknown.objects.filter(
+                    component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function)) > 0:
+                return _('Could not change the mark since it would be similar to the existing mark')
+
             if 'link' in args and len(args['link']) > 0:
                 mark.link = args['link']
 
-        if 'verdict' in args:
-            if (self.type == 'unsafe' and
-                    args['verdict'] in list(x[0] for x in MARK_UNSAFE)) or \
-                    (args['verdict'] in list(x[0] for x in MARK_SAFE)):
-                if mark.verdict != args['verdict']:
-                    recalc_verdicts = True
+        if (self.type == 'unsafe' and args.get('verdict') in list(x[0] for x in MARK_UNSAFE)) \
+                or (self.type == 'safe' and args.get('verdict') in list(x[0] for x in MARK_SAFE)):
+            if mark.verdict != args['verdict']:
                 mark.verdict = args['verdict']
+                recalc_verdicts = True
+        elif self.type != 'unknown':
+            logger.error('Verdict is wrong: %s' % args.get('verdict'), stack_info=True)
+            return 'Unknown error'
 
-        if 'status' in args and \
-                args['status'] in list(x[0] for x in MARK_STATUS):
+        if args.get('status') in list(x[0] for x in MARK_STATUS):
             mark.status = args['status']
+        else:
+            logger.error('Unknown mark status: %s' % args.get('status'), stack_info=True)
+            return 'Unknown error'
 
-        if 'is_modifiable' in args and isinstance(args['is_modifiable'], bool) \
-                and self.user.extended.role == USER_ROLES[2][0]:
+        if isinstance(args.get('is_modifiable'), bool) and self.user.extended.role == USER_ROLES[2][0]:
             mark.is_modifiable = args['is_modifiable']
         if 'description' in args:
-            mark.description = args['description']
-
-        tags = []
-        if 'tags' in args:
-            tags = args['tags']
-
+            mark.description = str(args['description'])
         mark.version += 1
-        mark.save()
-        self.__update_mark(mark, args['comment'], tags=tags)
-        if 'attrs' in args and last_v is not None:
-            res = self.__update_attributes(args['attrs'], last_v)
-            if res is not None:
-                mark.version -= 1
-                mark.save()
-                self.mark_version.delete()
-                return res
 
+        self.__update_mark(mark, args.get('tags', []), args['comment'])
+
+        if self.type != 'unknown':
+            if self.__update_attributes(last_v, args.get('attrs')):
+                self.mark_version.delete()
+                return 'Unknown error'
+        mark.save()
         self.mark = mark
+
         if self.calculate:
             if self.do_recalk:
                 self.changes = ConnectMarkWithReports(self.mark).changes
@@ -245,76 +263,86 @@ class NewMark(object):
             UpdateTags(self.mark, changes=self.changes, old_tags=old_tags)
         return None
 
-    def __update_mark(self, mark, comment='', tags=None):
-        if self.type == 'unsafe':
-            new_version = MarkUnsafeHistory()
-        elif self.type == 'safe':
-            new_version = MarkSafeHistory()
+    def __update_mark(self, mark, tags, comment=''):
+        args = {
+            'mark': mark,
+            'version': mark.version,
+            'status': mark.status,
+            'change_date': mark.change_date,
+            'comment': comment,
+            'author': mark.author,
+            'description': mark.description,
+        }
+        if self.type != 'safe':
+            args['function'] = mark.function
+        if self.type == 'unknown':
+            args['link'] = mark.link
+            args['problem_pattern'] = mark.problem_pattern
         else:
-            new_version = MarkUnknownHistory()
+            args['verdict'] = mark.verdict
 
-        new_version.mark = mark
         if self.type == 'unsafe':
-            new_version.function = mark.function
-        elif self.type == 'unknown':
-            new_version.link = mark.link
-            new_version.problem_pattern = mark.problem_pattern
-            new_version.function = mark.function
-        if self.type != 'unknown':
-            new_version.verdict = mark.verdict
-        new_version.version = mark.version
-        new_version.status = mark.status
-        new_version.change_date = mark.change_date
-        new_version.comment = comment
-        new_version.author = mark.author
-        new_version.description = mark.description
-        new_version.save()
-        self.mark_version = new_version
+            self.mark_version = MarkUnsafeHistory.objects.create(**args)
+        elif self.type == 'safe':
+            self.mark_version = MarkSafeHistory.objects.create(**args)
+        else:
+            self.mark_version = MarkUnknownHistory.objects.create(**args)
+
         if isinstance(tags, list):
             for tag in tags:
                 if self.type == 'safe':
-                    safetag = SafeTag.objects.get_or_create(tag=tag)[0]
-                    MarkSafeTag.objects.create(tag=safetag,
-                                               mark_version=new_version)
+                    MarkSafeTag.objects.create(
+                        tag=SafeTag.objects.get_or_create(tag=tag)[0], mark_version=self.mark_version
+                    )
                 elif self.type == 'unsafe':
-                    unsafetag = UnsafeTag.objects.get_or_create(tag=tag)[0]
-                    MarkUnsafeTag.objects.create(tag=unsafetag,
-                                                 mark_version=new_version)
+                    MarkUnsafeTag.objects.create(
+                        tag=UnsafeTag.objects.get_or_create(tag=tag)[0], mark_version=self.mark_version
+                    )
 
-    def __update_attributes(self, attrs, old_mark):
+    def __update_attributes(self, old_mark, attrs):
+        if old_mark is None:
+            logger.error('Need previous mark version', stack_info=True)
+            return True
         if not isinstance(attrs, list):
-            return 'Wrong attributes'
+            logger.error('Attributes must be a list', stack_info=True)
+            return True
         for a in attrs:
-            if not isinstance(a, dict) or any(x not in a for x in ['attr', 'is_compare']):
-                return 'Wrong args'
+            if not isinstance(a, dict) or 'attr' not in a or not isinstance(a.get('is_compare'), bool):
+                logger.error('Wrong attribute found: %s' % a, stack_info=True)
+                return True
         for a in old_mark.attrs.order_by('id'):
-            create_args = {
-                'attr': a.attr,
-                'is_compare': a.is_compare
-            }
+            create_args = {'attr': a.attr, 'is_compare': a.is_compare}
             for u_at in attrs:
                 if u_at['attr'] == a.attr.name.name:
                     if u_at['is_compare'] != create_args['is_compare']:
                         self.do_recalk = True
                     create_args['is_compare'] = u_at['is_compare']
                     break
+            else:
+                logger.error('Attribute %s was not found in the new mark data' % a.attr.name.name, stack_info=True)
+                return True
             self.mark_version.attrs.create(**create_args)
-        return None
+        return False
 
     def __create_attributes(self, report, attrs):
         if not isinstance(attrs, list):
-            return 'Wrong attributes'
+            logger.error('Attributes must be a list', stack_info=True)
+            return True
         for a in attrs:
-            if not isinstance(a, dict) or any(x not in a for x in ['attr', 'is_compare']):
-                return 'Wrong args'
-        for rep_attr in report.attrs.order_by('id'):
-            create_args = {'attr': rep_attr.attr}
+            if not isinstance(a, dict) or 'attr' not in a or not isinstance(a.get('is_compare'), bool):
+                logger.error('Wrong attribute found: %s' % a, stack_info=True)
+                return True
+        for a in report.attrs.order_by('id'):
+            create_args = {'attr': a.attr}
             for u_at in attrs:
-                if u_at['attr'] == rep_attr.attr.name.name:
+                if u_at['attr'] == a.attr.name.name:
                     create_args['is_compare'] = u_at['is_compare']
                     break
+            else:
+                logger.error('Attribute %s was not found in the new mark data' % a.attr.name.name, stack_info=True)
+                return True
             self.mark_version.attrs.create(**create_args)
-        return None
+        return False
 
 
 class ConnectReportWithMarks(object):
@@ -407,6 +435,9 @@ class ConnectMarkWithReports(object):
         else:
             return
         self.changes.update(UpdateVerdict(self.mark, self.changes).changes)
+        if self.mark.prime not in self.changes or self.changes[self.mark.prime]['kind'] == '-':
+            self.mark.prime = None
+            self.mark.save()
 
     def __connect_unsafe_mark(self):
         last_version = self.mark.versions.get(version=self.mark.version)
@@ -427,13 +458,14 @@ class ConnectMarkWithReports(object):
                         pass
             else:
                 compare_failed = False
-                compare = CompareTrace(
-                    self.mark.function.name,
-                    self.mark.error_trace.decode('utf8'),
-                    unsafe.error_trace.decode('utf8'))
+                compare = CompareTrace(self.mark.function.name,
+                                       self.mark.error_trace.decode('utf8'), unsafe.error_trace.decode('utf8'))
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error)
                     compare_failed = True
+                    if self.mark.prime == unsafe:
+                        self.mark.prime = None
+                        self.mark.save()
                 if compare.result > 0 or compare_failed:
                     MarkUnsafeReport.objects.create(
                         mark=self.mark, report=unsafe, result=compare.result,
@@ -776,8 +808,7 @@ class ReadTarMark(object):
                 try:
                     mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:
-                    return _("The error traces comparison "
-                             "function was not found")
+                    return _("The error traces comparison function was not found")
             mark.format = int(args['format'])
             if mark.format != FORMAT:
                 return _('The mark format is not supported')
@@ -793,6 +824,11 @@ class ReadTarMark(object):
             elif self.type == 'safe' and args['verdict'] in list(x[0] for x in MARK_SAFE):
                 mark.verdict = args['verdict']
             elif self.type == 'unknown':
+                if len(MarkUnknown.objects.filter(
+                        component__name=args['component'],
+                        problem_pattern=args['problem'],
+                        function=args['function'])) > 0:
+                    return _('Could not upload the mark archive since the similar mark exists already')
                 mark.component = Component.objects.get_or_create(name=args['component'])[0]
                 mark.function = args['function']
                 mark.problem_pattern = args['problem']
@@ -813,7 +849,7 @@ class ReadTarMark(object):
                 mark.save()
             except Exception as e:
                 logger.exception("Saving mark to DB failed: %s" % e, stack_info=True)
-                return _("Unknown error")
+                return 'Unknown error'
 
             self.__update_mark(mark, tags=tags)
             if self.type != 'unknown':
@@ -951,8 +987,7 @@ class ReadTarMark(object):
             if len(version_data['comment']) == 0:
                 version_data['comment'] = '1'
             if self.type == 'unsafe':
-                version_data['compare_id'] = \
-                    get_func_id(version_data['function'])
+                version_data['compare_id'] = get_func_id(version_data['function'])
             del version_data['function']
             upd_mark = NewMark(mark, self.user, self.type, version_data, False)
             if upd_mark.error is not None:
@@ -1014,8 +1049,10 @@ class MarkAccess(object):
             first_v = self.report.root.job.versions.order_by('version')[0]
             if first_v.change_author == self.user:
                 return True
-            last_v = self.report.root.job.versions.get(
-                version=self.report.root.job.version)
+            try:
+                last_v = self.report.root.job.versions.get(version=self.report.root.job.version)
+            except ObjectDoesNotExist:
+                return False
             if last_v.global_role in [JOB_ROLES[2][0], JOB_ROLES[4][0]]:
                 return True
             try:
@@ -1082,7 +1119,7 @@ class UpdateTags(object):
     def __update_tags_for_report(self, report):
         for mark_rep in report.markreport_set.all():
             tag_data = []
-            for mtag in mark_rep.mark.versions.order_by('-version')[0].tags.all():
+            for mtag in mark_rep.mark.versions.order_by('-version').first().tags.all():
                 rtag, created = mark_rep.report.tags.get_or_create(tag=mtag.tag)
                 if created:
                     tag_data.append({
@@ -1099,7 +1136,7 @@ class UpdateTags(object):
     def __update_tags(self, mark):
         if not isinstance(self.changes, dict):
             return
-        mark_last_v = mark.versions.order_by('-version')[0]
+        mark_last_v = mark.versions.order_by('-version').first()
         for report in self.changes:
             tag_data = []
             if self.changes[report]['kind'] == '+':

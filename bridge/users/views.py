@@ -37,7 +37,7 @@ def user_signin(request):
                 except ObjectDoesNotExist:
                     extend_user(user)
                 if len(Job.objects.all()) > 0:
-                    if next_url is not None:
+                    if next_url is not None and next_url != '':
                         return HttpResponseRedirect(next_url)
                     return HttpResponseRedirect(reverse('jobs:tree'))
                 return HttpResponseRedirect(reverse('population'))
@@ -45,8 +45,7 @@ def user_signin(request):
                 login_error = _("Account has been disabled")
         else:
             login_error = _("Incorrect username or password")
-        return render(request, 'users/login.html',
-                      {'login_errors': login_error})
+        return render(request, 'users/login.html', {'login_errors': login_error})
     else:
         return render(request, 'users/login.html')
 

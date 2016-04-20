@@ -391,7 +391,18 @@ $(document).ready(function () {
     });
 
     $('#save_new_mark_btn').click(function () {
-        $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: encodeData(collect_new_markdata())});
+        $.post(
+            marks_ajax_url + 'save_mark/',
+            {savedata: encodeData(collect_new_markdata())},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else if ('cache_id' in data) {
+                    window.location.replace('/marks/association_changes/' + data['cache_id'] + '/');
+                }
+            }
+        );
     });
 
     $('#convert_function').change(function () {
@@ -445,7 +456,18 @@ $(document).ready(function () {
     $('#save_mark_btn').click(function () {
         var comment_input = $('#edit_mark_comment');
         if (comment_input.val().length > 0) {
-            $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: encodeData(collect_markdata())});
+            $.post(
+                marks_ajax_url + 'save_mark/',
+                {savedata: encodeData(collect_markdata())},
+                function (data) {
+                    if (data.error) {
+                        err_notify(data.error);
+                    }
+                    else if ('cache_id' in data) {
+                        window.location.replace('/marks/association_changes/' + data['cache_id'] + '/');
+                    }
+                }
+            );
         }
         else {
             err_notify($('#error__comment_required').text());
@@ -458,10 +480,10 @@ $(document).ready(function () {
             marks_ajax_url + 'getversions/',
             {mark_id: $('#mark_pk').val(), mark_type: $('#mark_type').val()},
             function (data) {
-                try {
-                    JSON.stringify(data);
-                    err_notify(data.message);
-                } catch (e) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
                     $('#div_for_version_list').html(data);
                     set_actions_for_mark_versions_delete();
                 }

@@ -75,6 +75,7 @@ class MarkHistory(models.Model):
 
 # Safes tables
 class MarkSafe(Mark):
+    prime = models.ForeignKey(ReportSafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_SAFE, default='0')
 
     class Meta:
@@ -108,6 +109,7 @@ class MarkSafeReport(models.Model):
 
 # Unsafes tables
 class MarkUnsafe(Mark):
+    prime = models.ForeignKey(ReportUnsafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
     function = models.ForeignKey(MarkUnsafeCompare)
     error_trace = models.BinaryField(null=True)
@@ -232,6 +234,7 @@ class SafeReportTag(models.Model):
 
 # For unknowns
 class MarkUnknown(Mark):
+    prime = models.ForeignKey(ReportUnknown, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
     function = models.TextField()
     problem_pattern = models.CharField(max_length=15)
@@ -268,3 +271,12 @@ class ComponentMarkUnknownProblem(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_mark_unknown_problem'
+
+
+class MarkAssociationsChanges(models.Model):
+    user = models.ForeignKey(User)
+    identifier = models.CharField(max_length=255, unique=True)
+    table_data = models.TextField()
+
+    class Meta:
+        db_table = 'cache_mark_associations_changes'

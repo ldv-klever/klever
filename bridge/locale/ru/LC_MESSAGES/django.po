@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-04-06 13:48+0000\n"
+"POT-Creation-Date: 2016-04-13 10:36+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,14 +33,14 @@ msgstr "Без обработки"
 msgid "Human-readable"
 msgstr "Удобочитаемый"
 
-#: bridge/vars.py:12 jobs/views.py:351 jobs/views.py:373 jobs/views.py:448
-#: jobs/views.py:508 jobs/views.py:763 service/utils.py:905
-msgid "The job was not found"
-msgstr "Задание не было найдено"
+#: bridge/vars.py:12
+msgid "You don't have an access to this page"
+msgstr "У Вас нет прав на данную страницу"
 
-#: bridge/vars.py:13 jobs/views.py:509 jobs/views.py:638 tools/utils.py:200
-msgid "One of the selected jobs was not found"
-msgstr "Одно из отмеченных заданий не было найдено"
+#: bridge/vars.py:13
+msgid "Can't populate without Manager and service user"
+msgstr ""
+"Наполнение базы данных невозможно без Руководителя и служебного пользователя"
 
 #: bridge/vars.py:14
 msgid "You don't have an access to this job"
@@ -50,339 +50,324 @@ msgstr "У Вас нет прав на данное задание"
 msgid "You don't have an access to one of the selected jobs"
 msgstr "У Вас нет прав для одного из отмеченных заданий"
 
-#: bridge/vars.py:16
-msgid "You specified wrong parameters, please reload the page and try again"
-msgstr ""
-"Вы указали Некорректные параметры, пожалуйста, обновите страницу и "
-"попробуйте еще раз"
+#: bridge/vars.py:16 jobs/views.py:351 jobs/views.py:373 jobs/views.py:448
+#: jobs/views.py:508 jobs/views.py:763 service/utils.py:905
+msgid "The job was not found"
+msgstr "Задание не было найдено"
 
-#: bridge/vars.py:17
+#: bridge/vars.py:17 jobs/views.py:509 jobs/views.py:638 tools/utils.py:200
+msgid "One of the selected jobs was not found"
+msgstr "Одно из отмеченных заданий не было найдено"
+
+#: bridge/vars.py:18 marks/views.py:135
 msgid "The report was not found"
 msgstr "Отчет не был найден"
 
-#: bridge/vars.py:18 marks/views.py:410 marks/views.py:451
-msgid "The mark was not found"
-msgstr "Оценка не была найдена"
-
 #: bridge/vars.py:19
-msgid "You don't have an access to this mark"
-msgstr "У Вас нет прав на данную оценку"
+msgid "Couldn't visualize the error trace"
+msgstr "Не удалось визуализировать трассу ошибки"
 
 #: bridge/vars.py:20
-msgid "You don't have an access to create new marks"
-msgstr "У Вас нет прав создавать новые оценки"
+msgid "The comparison cache was not found or was corrupted"
+msgstr "Кэш сравнения не был найден или был поврежден"
 
 #: bridge/vars.py:21
-msgid "You don't have an access to delete this mark"
-msgstr "У Вас нет прав удалить данную оценку"
+msgid "You don't have an access to compare these jobs"
+msgstr "У Вас нет прав сравнивать данные задания"
 
-#: bridge/vars.py:22
-msgid "Saving the mark failed"
-msgstr "Сохранение оценки провалилось"
+#: bridge/vars.py:22 tools/views.py:103
+msgid "The problem was not found"
+msgstr "Проблема не была найдена"
 
 #: bridge/vars.py:23
 msgid "The tag was not found"
 msgstr "Тег не был найден"
 
-#: bridge/vars.py:24 tools/views.py:103
-msgid "The problem was not found"
-msgstr "Проблема не была найдена"
+#: bridge/vars.py:24 marks/views.py:147 marks/views.py:405 marks/views.py:446
+msgid "The mark was not found"
+msgstr "Оценка не была найдена"
 
-#: bridge/vars.py:25
-msgid "You don't have an access to this page"
-msgstr "У Вас нет прав на данную страницу"
+#: bridge/vars.py:25 marks/views.py:137
+msgid "You don't have an access to create new marks"
+msgstr "У Вас нет прав создавать новые оценки"
 
 #: bridge/vars.py:26
-msgid "Couldn't visualize the error trace"
-msgstr "Не удалось визуализировать трассу ошибки"
+msgid "You don't have an access to delete this mark"
+msgstr "У Вас нет прав удалить данную оценку"
 
-#: bridge/vars.py:27
-msgid "The comparison cache was not found or was corrupted"
-msgstr "Кэш сравнения не был найден или был поврежден"
-
-#: bridge/vars.py:28
-msgid "You don't have an access to compare these jobs"
-msgstr "У Вас нет прав сравнивать данные задания"
-
-#: bridge/vars.py:29
-msgid "Can't populate without Manager and service user"
-msgstr ""
-"Наполнение базы данных невозможно без Руководителя и служебного пользователя"
-
-#: bridge/vars.py:38 bridge/vars.py:63
+#: bridge/vars.py:35 bridge/vars.py:60
 #: tools/templates/tools/ManagerPanel.html:12 tools/views.py:28
 #: tools/views.py:77 tools/views.py:96 tools/views.py:123 tools/views.py:142
 #: tools/views.py:156
 msgid "No access"
 msgstr "Нет доступа"
 
-#: bridge/vars.py:39 users/notifications.py:222
+#: bridge/vars.py:36 users/notifications.py:222
 msgid "Producer"
 msgstr "Постановщик"
 
-#: bridge/vars.py:40 users/notifications.py:223
+#: bridge/vars.py:37 users/notifications.py:223
 msgid "Manager"
 msgstr "Руководитель"
 
-#: bridge/vars.py:41 bridge/vars.py:65 users/notifications.py:222
+#: bridge/vars.py:38 bridge/vars.py:62 users/notifications.py:222
 msgid "Expert"
 msgstr "Эксперт"
 
-#: bridge/vars.py:42
+#: bridge/vars.py:39
 msgid "Service user"
 msgstr "Служебный пользователь"
 
-#: bridge/vars.py:46
+#: bridge/vars.py:43
 msgid "Verification of Linux kernel modules"
 msgstr "Верификация модулей ядра Linux"
 
-#: bridge/vars.py:47
+#: bridge/vars.py:44
 msgid "Validation on Linux kernel modules"
 msgstr "Валидация на модулях ядра Linux"
 
-#: bridge/vars.py:48
+#: bridge/vars.py:45
 msgid "Verification of commits in Linux kernel Git repositories"
 msgstr "Верификация коммитов в Git-репозиториях ядра Linux"
 
-#: bridge/vars.py:49
+#: bridge/vars.py:46
 msgid "Validation on commits in Linux kernel Git repositories"
 msgstr "Валидация на коммитах в Git-репозиториях ядра Linux"
 
-#: bridge/vars.py:50
+#: bridge/vars.py:47
 msgid "Verification of C programs"
 msgstr "Верификация Си-программ"
 
-#: bridge/vars.py:51
+#: bridge/vars.py:48
 msgid "Validation on C programs"
 msgstr "Валидация на Си-программах"
 
-#: bridge/vars.py:55 reports/templates/reports/comparison.html:23
+#: bridge/vars.py:52 reports/templates/reports/comparison.html:23
 #: reports/templates/reports/comparison.html:30
 msgid "Total safe"
 msgstr "Доказана корректность"
 
-#: bridge/vars.py:56 reports/templates/reports/comparison.html:24
+#: bridge/vars.py:53 reports/templates/reports/comparison.html:24
 #: reports/templates/reports/comparison.html:42
 msgid "Found all unsafes"
 msgstr "Найдены все предупрeждения об ошибках"
 
-#: bridge/vars.py:57 reports/templates/reports/comparison.html:25
+#: bridge/vars.py:54 reports/templates/reports/comparison.html:25
 #: reports/templates/reports/comparison.html:54
 msgid "Found not all unsafes"
 msgstr "Найдены не все предупрeждения об ошибках"
 
-#: bridge/vars.py:58 bridge/vars.py:149 bridge/vars.py:156 bridge/vars.py:162
-#: bridge/vars.py:171 jobs/utils.py:55 jobs/utils.py:63
+#: bridge/vars.py:55 bridge/vars.py:146 bridge/vars.py:153 bridge/vars.py:159
+#: bridge/vars.py:168 jobs/utils.py:55 jobs/utils.py:63
 #: reports/comparison.py:517 reports/templates/reports/comparison.html:26
 #: reports/templates/reports/comparison.html:66
 #: reports/templates/reports/report_leaf.html:5 reports/utils.py:36
 msgid "Unknown"
 msgstr "Неизвестно"
 
-#: bridge/vars.py:59 reports/templates/reports/comparison.html:27
+#: bridge/vars.py:56 reports/templates/reports/comparison.html:27
 #: reports/templates/reports/comparison.html:78
 msgid "Unmatched"
 msgstr "Нет соответствия"
 
-#: bridge/vars.py:64 users/notifications.py:222
+#: bridge/vars.py:61 users/notifications.py:222
 msgid "Observer"
 msgstr "Обозреватель"
 
-#: bridge/vars.py:66
+#: bridge/vars.py:63
 msgid "Observer and Operator"
 msgstr "Обозреватель и оператор"
 
-#: bridge/vars.py:67
+#: bridge/vars.py:64
 msgid "Expert and Operator"
 msgstr "Эксперт и оператор"
 
-#: bridge/vars.py:71
+#: bridge/vars.py:68
 msgid "Not solved"
 msgstr "Не решено"
 
-#: bridge/vars.py:72 bridge/vars.py:375
+#: bridge/vars.py:69 bridge/vars.py:372
 msgid "Pending"
 msgstr "Ожидает"
 
-#: bridge/vars.py:73
+#: bridge/vars.py:70
 msgid "Is solving"
 msgstr "Решается"
 
-#: bridge/vars.py:74
+#: bridge/vars.py:71
 msgid "Solved"
 msgstr "Решено"
 
-#: bridge/vars.py:75 reports/templates/reports/ReportMain.html:33
+#: bridge/vars.py:72 reports/templates/reports/ReportMain.html:33
 msgid "Failed"
 msgstr "Провалено"
 
-#: bridge/vars.py:76
+#: bridge/vars.py:73
 msgid "Corrupted"
 msgstr "Повреждено"
 
-#: bridge/vars.py:77 bridge/vars.py:379
+#: bridge/vars.py:74 bridge/vars.py:376
 msgid "Cancelled"
 msgstr "Отменено"
 
-#: bridge/vars.py:136
+#: bridge/vars.py:133
 msgid "Created"
 msgstr "Созданная"
 
-#: bridge/vars.py:137
+#: bridge/vars.py:134
 msgid "Preset"
 msgstr "Предустановленная"
 
-#: bridge/vars.py:138
+#: bridge/vars.py:135
 msgid "Uploaded"
 msgstr "Загруженная на сервер"
 
-#: bridge/vars.py:142
+#: bridge/vars.py:139
 msgid "Unreported"
 msgstr "Не сообщена"
 
-#: bridge/vars.py:143
+#: bridge/vars.py:140
 msgid "Reported"
 msgstr "Сообщена"
 
-#: bridge/vars.py:144
+#: bridge/vars.py:141
 msgid "Fixed"
 msgstr "Исправлена"
 
-#: bridge/vars.py:145
+#: bridge/vars.py:142
 msgid "Rejected"
 msgstr "Отклонена"
 
-#: bridge/vars.py:150 bridge/vars.py:163
+#: bridge/vars.py:147 bridge/vars.py:160
 #: reports/templates/reports/ReportData.html:12
 msgid "Bug"
 msgstr "Ошибка"
 
-#: bridge/vars.py:151 bridge/vars.py:164
+#: bridge/vars.py:148 bridge/vars.py:161
 msgid "Target bug"
 msgstr "Целевая ошибка"
 
-#: bridge/vars.py:152 bridge/vars.py:165
+#: bridge/vars.py:149 bridge/vars.py:162
 msgid "False positive"
 msgstr "Ложное сообщение об ошибке"
 
-#: bridge/vars.py:157 bridge/vars.py:172 jobs/utils.py:54
+#: bridge/vars.py:154 bridge/vars.py:169 jobs/utils.py:54
 msgid "Incorrect proof"
 msgstr "Некорректное доказательство"
 
-#: bridge/vars.py:158 bridge/vars.py:173
+#: bridge/vars.py:155 bridge/vars.py:170
 msgid "Missed target bug"
 msgstr "Пропуск целевой ошибки"
 
-#: bridge/vars.py:166 bridge/vars.py:174 jobs/utils.py:56 jobs/utils.py:64
+#: bridge/vars.py:163 bridge/vars.py:171 jobs/utils.py:56 jobs/utils.py:64
 msgid "Incompatible marks"
 msgstr "Несовместимые оценки"
 
-#: bridge/vars.py:167 bridge/vars.py:175 jobs/JobTableProperties.py:580
+#: bridge/vars.py:164 bridge/vars.py:172 jobs/JobTableProperties.py:580
 #: jobs/JobTableProperties.py:585 jobs/ViewJobData.py:175 jobs/utils.py:57
 #: jobs/utils.py:65 reports/comparison.py:526
 msgid "Without marks"
 msgstr "Нет оценок"
 
-#: bridge/vars.py:350 bridge/vars.py:369
+#: bridge/vars.py:347 bridge/vars.py:366
 #: service/templates/service/scheduler.html:27
 msgid "Healthy"
 msgstr "Здоровый"
 
-#: bridge/vars.py:351 bridge/vars.py:370
+#: bridge/vars.py:348 bridge/vars.py:367
 #: service/templates/service/scheduler.html:29
 msgid "Ailing"
 msgstr "Нездоровый"
 
-#: bridge/vars.py:352 bridge/vars.py:371
+#: bridge/vars.py:349 bridge/vars.py:368
 #: service/templates/service/scheduler.html:31
 msgid "Disconnected"
 msgstr "Отключенный"
 
-#: bridge/vars.py:361
+#: bridge/vars.py:358
 msgid "Urgent"
 msgstr "Срочный"
 
-#: bridge/vars.py:362
+#: bridge/vars.py:359
 msgid "High"
 msgstr "Высокий"
 
-#: bridge/vars.py:363
+#: bridge/vars.py:360
 msgid "Low"
 msgstr "Низкий"
 
-#: bridge/vars.py:364
+#: bridge/vars.py:361
 msgid "Idle"
 msgstr "Незанятый"
 
-#: bridge/vars.py:368
+#: bridge/vars.py:365
 msgid "User occupied"
 msgstr "Занятый пользователем"
 
-#: bridge/vars.py:376
+#: bridge/vars.py:373
 msgid "Processing"
 msgstr "Решается"
 
-#: bridge/vars.py:378 templates/error.html:5
+#: bridge/vars.py:375 templates/error.html:5
 msgid "Error"
 msgstr "Ошибка"
 
-#: bridge/vars.py:403
+#: bridge/vars.py:400
 msgid "Balance"
 msgstr "Баланс"
 
-#: bridge/vars.py:404
+#: bridge/vars.py:401
 msgid "Rule specifications"
 msgstr "Спецификации правил"
 
-#: bridge/vars.py:405
+#: bridge/vars.py:402
 msgid "Verification objects"
 msgstr "Верификационные объекты"
 
-#: bridge/vars.py:409
+#: bridge/vars.py:406
 msgid "Sequentially"
 msgstr "Последовательно"
 
-#: bridge/vars.py:410
+#: bridge/vars.py:407
 msgid "Slowly"
 msgstr "Медленно"
 
-#: bridge/vars.py:411
+#: bridge/vars.py:408
 msgid "Quickly"
 msgstr "Быстро"
 
-#: bridge/vars.py:412
+#: bridge/vars.py:409
 msgid "Very quickly"
 msgstr "Очень быстро"
 
-#: bridge/vars.py:416
+#: bridge/vars.py:413
 msgid "Briefly"
 msgstr "Кратко"
 
-#: bridge/vars.py:417
+#: bridge/vars.py:414
 msgid "In detail"
 msgstr "Детально"
 
-#: bridge/vars.py:418
+#: bridge/vars.py:415
 msgid "Paranoidly"
 msgstr "Параноидально"
 
-#: bridge/vars.py:422
+#: bridge/vars.py:419
 msgid "Production"
 msgstr "Производство"
 
-#: bridge/vars.py:423
+#: bridge/vars.py:420
 msgid "Development"
 msgstr "Разработка"
 
-#: bridge/vars.py:424
+#: bridge/vars.py:421
 msgid "Paranoid development"
 msgstr "Параноидальная разработка"
 
-#: bridge/views.py:34 jobs/utils.py:286 jobs/utils.py:493 marks/utils.py:761
-#: marks/utils.py:816 marks/utils.py:949 marks/views.py:209 marks/views.py:436
-#: marks/views.py:447 reports/etv.py:381 service/utils.py:942
-#: tools/views.py:25 tools/views.py:66 tools/views.py:74 tools/views.py:93
-#: tools/views.py:120 tools/views.py:140 users/views.py:320
+#: bridge/views.py:34 jobs/utils.py:286 jobs/utils.py:493 marks/utils.py:793
+#: marks/utils.py:985 marks/views.py:204 reports/etv.py:381
+#: service/utils.py:942 tools/views.py:25 tools/views.py:66 tools/views.py:74
+#: tools/views.py:93 tools/views.py:120 tools/views.py:140 users/views.py:320
 msgid "Unknown error"
 msgstr "Неизвестная ошибка"
 
@@ -419,7 +404,7 @@ msgid "Title"
 msgstr "Название"
 
 #: jobs/JobTableProperties.py:28 jobs/JobTableProperties.py:42
-#: jobs/JobTableProperties.py:828 jobs/utils.py:49 marks/tables.py:22
+#: jobs/JobTableProperties.py:828 jobs/utils.py:49 marks/tables.py:23
 #: marks/templates/marks/EditMark.html:58
 #: marks/templates/marks/EditUnknownMark.html:56
 #: marks/templates/marks/ViewMark.html:39
@@ -477,7 +462,7 @@ msgstr "Название компонента"
 #: jobs/JobTableProperties.py:46 jobs/templates/jobs/jobData.html:7
 #: jobs/templates/jobs/viewJobFilters.html:22
 #: jobs/templates/jobs/viewJobFilters.html:44 jobs/utils.py:67
-#: reports/views.py:132 templates/base.html:49
+#: reports/views.py:131 templates/base.html:49
 msgid "Unknowns"
 msgstr "Проблемы в компонентах"
 
@@ -486,7 +471,7 @@ msgid "Problem name"
 msgstr "Название проблемы"
 
 #: jobs/JobTableProperties.py:48 jobs/templates/jobs/viewJob.html:65
-#: jobs/utils.py:75 marks/tables.py:25 marks/templates/marks/EditMark.html:49
+#: jobs/utils.py:75 marks/tables.py:26 marks/templates/marks/EditMark.html:49
 #: marks/templates/marks/EditUnknownMark.html:43
 #: marks/templates/marks/ViewMark.html:24
 #: marks/templates/marks/filters.html:41
@@ -630,7 +615,7 @@ msgstr "Отменить"
 
 #: jobs/templates/jobs/editJob.html:126 jobs/utils.py:498
 #: marks/templates/marks/EditMark.html:145
-#: marks/templates/marks/EditUnknownMark.html:142
+#: marks/templates/marks/EditUnknownMark.html:142 marks/utils.py:169
 msgid "Change comment is required"
 msgstr "Требуется написать комментарий к изменению"
 
@@ -787,14 +772,14 @@ msgstr ""
 
 #: jobs/templates/jobs/jobData.html:33
 #: jobs/templates/jobs/viewJobFilters.html:12 jobs/utils.py:59
-#: jobs/utils.py:73 reports/views.py:121 reports/views.py:125
+#: jobs/utils.py:73 reports/views.py:120 reports/views.py:124
 #: templates/base.html:48
 msgid "Unsafes"
 msgstr "Предупреждения об ошибках"
 
 #: jobs/templates/jobs/jobData.html:51
 #: jobs/templates/jobs/viewJobFilters.html:17 jobs/utils.py:52
-#: jobs/utils.py:72 reports/views.py:110 reports/views.py:114
+#: jobs/utils.py:72 reports/views.py:109 reports/views.py:113
 #: templates/base.html:50
 msgid "Safes"
 msgstr "Доказательства корректности"
@@ -1231,7 +1216,7 @@ msgstr ""
 "Список заданий пустой, пожалуйста, наполните базу данных или измените "
 "представление"
 
-#: jobs/templates/jobs/viewJob.html:10 marks/tables.py:24
+#: jobs/templates/jobs/viewJob.html:10 marks/tables.py:25
 #: reports/templates/reports/ReportMain.html:26
 #: reports/templates/reports/report_leaf.html:12
 #: reports/templates/reports/report_list.html:12
@@ -1537,7 +1522,7 @@ msgstr "Вы не можете удалить представление, кот
 msgid "The view was successfully removed"
 msgstr "Представление было успешно удалено"
 
-#: jobs/views.py:308 marks/views.py:70
+#: jobs/views.py:308 marks/views.py:71
 msgid "Current version"
 msgstr "Текущая версия"
 
@@ -1545,11 +1530,11 @@ msgstr "Текущая версия"
 msgid "You don't have access to delete versions"
 msgstr "У Вас нет прав удалить версии"
 
-#: jobs/views.py:359 marks/views.py:426
+#: jobs/views.py:359 marks/views.py:421
 msgid "Selected versions were successfully deleted"
 msgstr "Отмеченные версии были успешно удалены"
 
-#: jobs/views.py:360 marks/views.py:428
+#: jobs/views.py:360 marks/views.py:423
 msgid "Nothing to delete"
 msgstr "Нечего удалять"
 
@@ -1581,7 +1566,7 @@ msgstr "Для этого задания не может быть установ
 msgid "The parent identifier is required for this job"
 msgstr "Для этого задания требуется идентификатор родителя"
 
-#: jobs/views.py:471 marks/views.py:228
+#: jobs/views.py:471 marks/views.py:223
 msgid "Your version is expired, please reload the page"
 msgstr "Ваша версия устарела, пожалуйста, обновите страницу"
 
@@ -1629,7 +1614,7 @@ msgstr "Файл не был найден"
 msgid "You don't have an access to stop decision of this job"
 msgstr "У Вас нет прав остановить решение данного задания"
 
-#: jobs/views.py:852 reports/views.py:383
+#: jobs/views.py:852 reports/views.py:382
 msgid "One of the selected jobs was not found, please reload page"
 msgstr ""
 "Одно из отмеченных заданий не было найдено, пожалуйста, обновите страницу"
@@ -1638,15 +1623,15 @@ msgstr ""
 msgid "You can't compare the selected jobs"
 msgstr "Вы не можете сравнить отмеченные задания"
 
-#: marks/tables.py:16
+#: marks/tables.py:17
 msgid "Number of reports"
 msgstr "Количество отчетов"
 
-#: marks/tables.py:17
+#: marks/tables.py:18
 msgid "Change kind"
 msgstr "Тип изменения"
 
-#: marks/tables.py:18 marks/templates/marks/CreateMark.html:55
+#: marks/tables.py:19 marks/templates/marks/CreateMark.html:55
 #: marks/templates/marks/CreateMark.html:123
 #: marks/templates/marks/MarkAddData.html:26
 #: marks/templates/marks/ViewMark.html:97
@@ -1656,15 +1641,15 @@ msgstr "Тип изменения"
 msgid "Verdict"
 msgstr "Вердикт"
 
-#: marks/tables.py:19 reports/utils.py:27
+#: marks/tables.py:20 reports/utils.py:27
 msgid "Total verdict"
 msgstr "Итоговый вердикт"
 
-#: marks/tables.py:20 reports/utils.py:22
+#: marks/tables.py:21 reports/utils.py:22
 msgid "Similarity"
 msgstr "Похожесть"
 
-#: marks/tables.py:21 marks/templates/marks/CreateMark.html:67
+#: marks/tables.py:22 marks/templates/marks/CreateMark.html:67
 #: marks/templates/marks/CreateMark.html:133
 #: marks/templates/marks/CreateMark.html:202
 #: marks/templates/marks/MarkAddData.html:38
@@ -1678,21 +1663,21 @@ msgstr "Похожесть"
 msgid "Status"
 msgstr "Статус"
 
-#: marks/tables.py:23 reports/templates/reports/base.html:5
+#: marks/tables.py:24 reports/templates/reports/base.html:5
 msgid "Report"
 msgstr "Отчет"
 
-#: marks/tables.py:27
+#: marks/tables.py:28
 msgid "Number of associated leaf reports"
 msgstr "Количество привязанных листовых отчетов"
 
-#: marks/tables.py:28 marks/templates/marks/CreateMark.html:217
+#: marks/tables.py:29 marks/templates/marks/CreateMark.html:217
 #: marks/templates/marks/MarkUnknownData.html:28
 #: marks/templates/marks/ViewMark.html:190
 msgid "Problem"
 msgstr "Проблема"
 
-#: marks/tables.py:29 marks/templates/marks/EditUnknownMark.html:51
+#: marks/tables.py:30 marks/templates/marks/EditUnknownMark.html:51
 #: marks/templates/marks/ViewMark.html:33
 #: marks/templates/marks/filters.html:19
 #: marks/templates/marks/filters.html:104
@@ -1701,11 +1686,11 @@ msgstr "Проблема"
 msgid "Component"
 msgstr "Компонент"
 
-#: marks/tables.py:30 marks/templates/marks/filters.html:47
+#: marks/tables.py:31 marks/templates/marks/filters.html:47
 msgid "Problem pattern"
 msgstr "Шаблон проблемы"
 
-#: marks/tables.py:32 marks/templates/marks/EditMark.html:53
+#: marks/tables.py:33 marks/templates/marks/EditMark.html:53
 #: marks/templates/marks/EditUnknownMark.html:47
 #: marks/templates/marks/ViewMark.html:28
 #: marks/templates/marks/filters.html:53
@@ -1713,23 +1698,41 @@ msgstr "Шаблон проблемы"
 msgid "Source"
 msgstr "Источник"
 
-#: marks/tables.py:60
+#: marks/tables.py:34
+msgid "Automatic association"
+msgstr "Автоматическая привязка"
+
+#: marks/tables.py:35
+msgid "Has non-automatic association"
+msgstr "Имеется неавтоматическая привязка"
+
+#: marks/tables.py:63
 msgid "Changed"
 msgstr "Изменена"
 
-#: marks/tables.py:61
+#: marks/tables.py:64
 msgid "New"
 msgstr "Новая"
 
-#: marks/tables.py:62
+#: marks/tables.py:65
 msgid "Deleted"
 msgstr "Удалена"
 
-#: marks/tables.py:354 marks/tables.py:757
+#: marks/tables.py:373 marks/tables.py:774
 msgid "Comparison failed"
 msgstr "Сравнение провалилось"
 
-#: marks/tables.py:529 reports/utils.py:292
+#: marks/tables.py:399 marks/tables.py:785 marks/tables.py:804
+#: users/templates/users/showProfile.html:16
+msgid "No"
+msgstr "Нет"
+
+#: marks/tables.py:402 marks/tables.py:788 marks/tables.py:802
+#: users/templates/users/showProfile.html:16
+msgid "Yes"
+msgstr "Да"
+
+#: marks/tables.py:554 reports/utils.py:292
 #, python-format
 msgid "%(all)s (%(broken)s are broken)"
 msgstr "%(all)s (%(broken)s сломаны)"
@@ -1779,11 +1782,13 @@ msgstr "Шаблон"
 msgid "Link to detailed description"
 msgstr "Ссылка на детальное описание"
 
-#: marks/templates/marks/CreateMark.html:252
+#: marks/templates/marks/CreateMark.html:252 marks/utils.py:112
+#: marks/utils.py:192
 msgid "The pattern is required"
 msgstr "Требуется шаблон"
 
-#: marks/templates/marks/CreateMark.html:253
+#: marks/templates/marks/CreateMark.html:253 marks/utils.py:121
+#: marks/utils.py:203
 msgid "The problem is required"
 msgstr "Требуется проблема"
 
@@ -1824,15 +1829,15 @@ msgstr "Все версии и все данные оценки будут уд�
 msgid "Unknowns mark"
 msgstr "Оценка проблем в компонентах"
 
-#: marks/templates/marks/MarkList.html:4 marks/views.py:254
+#: marks/templates/marks/MarkList.html:4 marks/views.py:249
 msgid "Safe marks"
 msgstr "Оценки доказательств корректности"
 
-#: marks/templates/marks/MarkList.html:4 marks/views.py:253
+#: marks/templates/marks/MarkList.html:4 marks/views.py:248
 msgid "Unsafe marks"
 msgstr "Оценки предупреждений об ошибках"
 
-#: marks/templates/marks/MarkList.html:4 marks/views.py:255
+#: marks/templates/marks/MarkList.html:4 marks/views.py:250
 msgid "Unknown marks"
 msgstr "Оценки проблем в компонентах"
 
@@ -1877,8 +1882,8 @@ msgid "No tags to display"
 msgstr "Теги отсутствуют"
 
 #: marks/templates/marks/Tags.html:30
-msgid "Tags can't be more than 15 characters"
-msgstr "Теги не могут быть больше 15 символов"
+msgid "The tag length must be not more than 15 characters"
+msgstr "Длина тега должна быть не более 15 символов"
 
 #: marks/templates/marks/base.html:5 reports/utils.py:20
 msgid "Mark"
@@ -1942,41 +1947,76 @@ msgstr "не совпадает с"
 msgid "Value of attribute"
 msgstr "Значение атрибута"
 
-#: marks/utils.py:779 marks/views.py:186
-msgid "The error traces comparison function was not found"
-msgstr "Функция сравнения трасс ошибок не была найдена"
-
-#: marks/utils.py:783
-msgid "The mark format is not supported"
-msgstr "Формат оценки не поддерживается"
-
-#: marks/utils.py:865 marks/utils.py:868
-msgid "The attributes have wrong format"
-msgstr "Формат атрибутов некорректный"
-
-#: marks/utils.py:904 marks/utils.py:912 marks/utils.py:915 marks/utils.py:918
-#: marks/utils.py:923 marks/utils.py:928 marks/utils.py:930 marks/utils.py:932
-#: marks/utils.py:934
-msgid "The mark archive is corrupted"
-msgstr "Архив оценки поврежден"
-
-#: marks/utils.py:920
-msgid "The mark archive is corrupted: the pattern error trace is not found"
-msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
-
-#: marks/views.py:193
+#: marks/utils.py:95 marks/views.py:188
 msgid "The error traces conversion function was not found"
 msgstr "Функция преобразования трасс ошибок не была найдена"
 
-#: marks/views.py:232 marks/views.py:415
+#: marks/utils.py:100
+msgid "Error trace converting failed"
+msgstr "Преобразование трассы ошибки провалилось"
+
+#: marks/utils.py:107 marks/utils.py:185 marks/utils.py:811 marks/views.py:181
+msgid "The error traces comparison function was not found"
+msgstr "Функция сравнения трасс ошибок не была найдена"
+
+#: marks/utils.py:118 marks/utils.py:198
+msgid ""
+"The pattern is wrong, please refer to documentation on the standard Python "
+"library for processing reqular expressions"
+msgstr ""
+"Шаблон некорректный, пожалуйста, обратитесь к документации на стандартную "
+"библиотеку Python для работы с регулярными выражениями"
+
+#: marks/utils.py:123 marks/utils.py:205
+msgid "The problem length must be less than 15 characters"
+msgstr "Длина проблемы должна быть не более 15 символов"
+
+#: marks/utils.py:128
+msgid "Could not create a new mark since the similar mark exists already"
+msgstr "Не удалось создать новую оценку, поскольку существует похожая оценка"
+
+#: marks/utils.py:212
+msgid ""
+"Could not change the mark since it would be similar to the existing mark"
+msgstr ""
+"Не удалось изменить оценку, поскольку она стала бы похожа на существую оценку"
+
+#: marks/utils.py:814
+msgid "The mark format is not supported"
+msgstr "Формат оценки не поддерживается"
+
+#: marks/utils.py:831
+msgid "Could not upload the mark archive since the similar mark exists already"
+msgstr ""
+"Не удалось загрузить архив с оценкой, поскольку существует похожая оценка"
+
+#: marks/utils.py:901 marks/utils.py:904
+msgid "The attributes have wrong format"
+msgstr "Формат атрибутов некорректный"
+
+#: marks/utils.py:940 marks/utils.py:948 marks/utils.py:951 marks/utils.py:954
+#: marks/utils.py:959 marks/utils.py:964 marks/utils.py:966 marks/utils.py:968
+#: marks/utils.py:970
+msgid "The mark archive is corrupted"
+msgstr "Архив оценки поврежден"
+
+#: marks/utils.py:956
+msgid "The mark archive is corrupted: the pattern error trace is not found"
+msgstr "Архив оценки поврежден: не найдена шаблонная трасса ошибки"
+
+#: marks/views.py:149
+msgid "You don't have an access to this mark"
+msgstr "У Вас нет прав на данную оценку"
+
+#: marks/views.py:227 marks/views.py:410
 msgid "You don't have an access to edit this mark"
 msgstr "У Вас нет прав редактировать данную оценку"
 
-#: marks/views.py:318
+#: marks/views.py:313
 msgid "You don't have access to create new marks"
 msgstr "У Вас нет прав создавать новые оценки"
 
-#: marks/views.py:383
+#: marks/views.py:378
 msgid "You can't delete one of the selected mark"
 msgstr "Вы не можете удалить одну из отмеченных оценок"
 
@@ -2163,35 +2203,35 @@ msgstr "Привязанные оценки"
 msgid "Number of associated marks"
 msgstr "Количество привязанных оценок"
 
-#: reports/views.py:108
+#: reports/views.py:107
 msgid "All safes"
 msgstr "Все доказательства корректности"
 
-#: reports/views.py:117
+#: reports/views.py:116
 msgid "Safes marked by"
 msgstr "Доказательства корректности с оценкой"
 
-#: reports/views.py:119
+#: reports/views.py:118
 msgid "All unsafes"
 msgstr "Все предупрeждения об ошибках"
 
-#: reports/views.py:128
+#: reports/views.py:127
 msgid "Unsafes marked by"
 msgstr "Предупреждения об ошибках с оценкой"
 
-#: reports/views.py:130
+#: reports/views.py:129
 msgid "All unknowns"
 msgstr "Все проблемы в компонентах"
 
-#: reports/views.py:134
+#: reports/views.py:133
 msgid "Unknowns without marks"
 msgstr "Проблемы в компонентах без оценок"
 
-#: reports/views.py:136
+#: reports/views.py:135
 msgid "Unknowns marked by"
 msgstr "Проблемы в компонентах с оценкой"
 
-#: reports/views.py:346
+#: reports/views.py:345
 msgid "The component log is huge and can not be showed but you can download it"
 msgstr ""
 "Лог компонента большой и не может быть показан, но Вы можете загрузить его"
@@ -2797,14 +2837,6 @@ msgstr "Учетная запись"
 msgid "Administrator"
 msgstr "Администратор"
 
-#: users/templates/users/showProfile.html:16
-msgid "Yes"
-msgstr "Да"
-
-#: users/templates/users/showProfile.html:16
-msgid "No"
-msgstr "Нет"
-
 #: users/templates/users/showProfile.html:17
 msgid "Role"
 msgstr "Роль"
@@ -2848,6 +2880,3 @@ msgstr "Изменение"
 #: users/views.py:319
 msgid "Saved"
 msgstr "Сохранено"
-
-#~ msgid "Accuracy"
-#~ msgstr "Точность"

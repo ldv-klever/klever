@@ -54,8 +54,7 @@ def report_component(request, job_id, report_id):
     unknown_href = None
     try:
         unknown = ReportUnknown.objects.get(parent=report)
-        unknown_href = reverse('reports:leaf',
-                               args=['unknown', unknown.pk])
+        unknown_href = reverse('reports:leaf', args=['unknown', unknown.pk])
         status = 3
     except ObjectDoesNotExist:
         pass
@@ -166,7 +165,7 @@ def report_list_tag(request, report_id, ltype, tag_id):
         else:
             tag = SafeTag.objects.get(pk=int(tag_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[704]))
+        return HttpResponseRedirect(reverse('error', args=[509]))
     return report_list(request, report_id, ltype, tag=tag)
 
 
@@ -203,7 +202,7 @@ def report_unknowns_by_problem(request, report_id, component_id, problem_id):
         try:
             problem = UnknownProblem.objects.get(pk=problem_id)
         except ObjectDoesNotExist:
-            return HttpResponseRedirect(reverse('error', args=[804]))
+            return HttpResponseRedirect(reverse('error', args=[508]))
     return report_list(request, report_id, 'unknowns', component_id=component_id, problem=problem)
 
 
