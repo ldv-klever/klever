@@ -53,11 +53,16 @@ class FSA:
 
         return new_state
 
-    def add_new_predecessor(self, node, action, desc, code):
+    def new_state(self, action, desc, code):
         new = Node(desc, self.__yield_id())
         new.action = action
         new.code = code
         new.desc = desc
+        self.states.add(new)
+        return new
+
+    def add_new_predecessor(self, node, action, desc, code):
+        new = self.new_state(action, desc, code)
 
         for pred in node.predecessors:
             pred.successors.remove(node)
@@ -67,15 +72,10 @@ class FSA:
         node.predecessors = set([new])
         new.successors = set([node])
 
-        self.states.add(new)
-
         return new
 
     def add_new_successor(self, node, action, desc, code):
-        new = Node(desc, self.__yield_id())
-        new.action = action
-        new.code = code
-        new.desc = desc
+        new = self.new_state(action, desc, code)
 
         for succ in node.successors:
             succ.predecessors.remove(node)
@@ -85,8 +85,6 @@ class FSA:
         node.successors = set([new])
         new.predecessors = set([node])
 
-        self.states.add(new)
-
         return new
 
     def __generate_states(self, process):
@@ -94,12 +92,13 @@ class FSA:
         sb_processed = set()
         asts = list()
 
+        subprocess_nodes = {}
         for name in [name for name in sorted(process.actions.keys()) if type(process.actions[name]) is Subprocess]:
             ast = copy.deepcopy(process.actions[name].process_ast)
-            self.__generate_nodes(process, ast)
+            self.__generate_nodes(process, ast, subprocess_nodes)
             sb_asts[name] = ast
         p_ast = copy.deepcopy(process.process_ast)
-        self.initial_states = self.__generate_nodes(process, p_ast)
+        self.initial_states = self.__generate_nodes(process, p_ast, subprocess_nodes)
         asts.append([p_ast, None])
 
         while len(asts) > 0:
@@ -112,12 +111,13 @@ class FSA:
                 for action in ast['actions']:
                     asts.append([action, prev])
                     prev = action
-            elif ast['type'] == 'subprocess':
-                pair = "{} {}".format(ast['name'], str(prev))
-                if pair not in sb_processed:
-                    sb_processed.add(pair)
-                    asts.append([sb_asts[ast['name']], prev])
             else:
+                if ast['type'] == 'subprocess':
+                    pair = "{} {}".format(ast['name'], str(prev))
+                    if pair not in sb_processed:
+                        sb_processed.add(pair)
+                        asts.append([sb_asts[ast['name']], ast])
+
                 for pre_state in self.__resolve_last(prev):
                     ast['node'].predecessors.add(pre_state)
                     pre_state.successors.add(ast['node'])
@@ -142,7 +142,7 @@ class FSA:
 
         return last
 
-    def __generate_nodes(self, process, pr_ast):
+    def __generate_nodes(self, process, pr_ast, subprocess_nodes):
         asts = [[pr_ast, True]]
         initial_states = set()
 
@@ -159,8 +159,14 @@ class FSA:
                         initflag = False
                     else:
                         asts.append([action, initflag])
-            elif ast['type'] != 'subprocess':
-                node = Node(ast, self.__yield_id())
+            else:
+                if ast['type'] == 'subprocess' and ast['name'] in subprocess_nodes:
+                    node = subprocess_nodes[ast['name']]
+                elif ast['type'] == 'subprocess':
+                    node = Node(ast, self.__yield_id())
+                    subprocess_nodes[ast['name']] = node
+                else:
+                    node = Node(ast, self.__yield_id())
 
                 node.action = process.actions[ast['name']]
                 self.states.add(node)
@@ -334,24 +340,32 @@ class Automaton:
         for state in self.fsa.states:
             label = "Action: {}\n".format(state.desc['label'])
             if state.code:
-                if 'file' in state.code:
-                    label += "File: '{}'\n".format(state.code['file'])
-
                 if 'guard' in state.code and len(state.code['guard']) > 0:
-                    label += 'Conditions:\n' + '\n'.join(state.code['guard'])
+                    label += 'Guard: ' + ' && '.join(state.code['guard'])
+                    label += '\n'
 
-                label+= 'Relevant automata:\n'
-                if 'relevant automata' in state.code and len(state.code['relevant automata']) > 0:
-                    for automaton in state.code['relevant automata'].values():
-                        label += "Automaton '{}': '{}' ({})\n".format(automaton['automaton'].identifier,
-                                                                      automaton['automaton'].process.name,
-                                                                      automaton['automaton'].process.category)
+                if type(state.action) is Call:
+                    if 'file' in state.code:
+                        label += "File: '{}'\n".format(state.code['file'])
+                    call = ''
+                    if 'retval' in state.code:
+                        call += "{} = ".format(state.code['retval'])
+                    call += state.code['invoke']
+                    if 'check pointer' in state.code and state.code['check pointer']:
+                        call += 'if ({})'.format(state.code['invoke']) + '\n\t'
+                    call += '(' + ', '.join(state.code['parameters']) + ')'
+                    label += call
+                else:
+                    if 'body' in state.code and len(state.code['body']) > 0:
+                        label += 'Body:\n' + '\n'.join(state.code['body'])
 
-                    label += 'Conditions:\n' + '\n'.join(state.code['body'])
-                    label += "\n"
-
-                if 'body' in state.code and len(state.code['body']) > 0:
-                    label += 'Body:\n' + '\n'.join(state.code['body'])
+                if 'relevant automata' in state.code:
+                    label += '\nRelevant automata:\n'
+                    if len(state.code['relevant automata']) > 0:
+                        for automaton in state.code['relevant automata'].values():
+                            label += "Automaton '{}': '{}' ({})\n".format(automaton['automaton'].identifier,
+                                                                          automaton['automaton'].process.name,
+                                                                          automaton['automaton'].process.category)
 
             graph.node(str(state.identifier), label)
 
@@ -359,6 +373,15 @@ class Automaton:
                 graph.edge(
                     str(state.identifier),
                     str(succ.identifier)
+                )
+
+        if len(self.fsa.initial_states) > 1:
+            name = 'Artificial initial state'
+            graph.node(name, name)
+            for entry in self.fsa.initial_states:
+                graph.edge(
+                    str(name),
+                    str(entry.identifier)
                 )
 
         # Save to dg_file
@@ -557,7 +580,16 @@ class Automaton:
                     base_case["body"].extend(self.text_processor(analysis, statement))
             state.code = base_case
         elif type(state.action) is Subprocess:
-            raise NotImplementedError('Do not expect subprocess state')
+            # Generate comment
+            base_case["body"].append("/* Jump to an initial state of subprocess '{}' */".format(state.action.name))
+
+            # Add additional condition
+            if state.action.condition and len(state.action.condition) > 0:
+                for statement in state.action.condition:
+                    cn = self.text_processor(analysis, statement)
+                    base_case["guard"].extend(cn)
+
+            state.code = base_case
         else:
             raise ValueError("Unexpected state machine edge type: {}".format(state.action.type))
 
