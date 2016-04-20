@@ -6,6 +6,7 @@
       <option name="ignoredIdentifiers">
         <list>
           <option value="bytearray.nbytes" />
+          <option value="re.__Match.*" />
         </list>
       </option>
     </inspection_tool>
