@@ -20,7 +20,6 @@ void ldv_check_final_state(void);
 /* Special nondeterministic functions. */
 int ldv_undef_int(void);
 
-
 unsigned long ldv_undef_ulong(void);
 /* Return nondeterministic negative integer number. */
 static inline int ldv_undef_int_negative(void)
