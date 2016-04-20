@@ -18,22 +18,6 @@ class FSA:
         # Generate AST states
         self.__generate_states(process)
 
-    def __iter__(self):
-        self.__todo_set = set(self.initial_states)
-        self.__processed_set = set()
-        return self
-
-    def __next__(self):
-        if len(self.__todo_set) > 0:
-            state = self.__todo_set.pop()
-            self.__processed_set.add(state)
-
-            for state in state.successors:
-                if state not in self.__todo_set and state not in self.__processed_set:
-                    self.__todo_set.add(state)
-
-            return state
-
     def clone_state(self, node):
         new_desc = copy.deepcopy(node.desc)
         new_id = self.__yield_id()
@@ -92,13 +76,12 @@ class FSA:
         sb_processed = set()
         asts = list()
 
-        subprocess_nodes = {}
         for name in [name for name in sorted(process.actions.keys()) if type(process.actions[name]) is Subprocess]:
             ast = copy.deepcopy(process.actions[name].process_ast)
-            self.__generate_nodes(process, ast, subprocess_nodes)
+            self.__generate_nodes(process, ast)
             sb_asts[name] = ast
         p_ast = copy.deepcopy(process.process_ast)
-        self.initial_states = self.__generate_nodes(process, p_ast, subprocess_nodes)
+        self.initial_states = self.__generate_nodes(process, p_ast)
         asts.append([p_ast, None])
 
         while len(asts) > 0:
@@ -142,7 +125,7 @@ class FSA:
 
         return last
 
-    def __generate_nodes(self, process, pr_ast, subprocess_nodes):
+    def __generate_nodes(self, process, pr_ast):
         asts = [[pr_ast, True]]
         initial_states = set()
 
@@ -160,13 +143,7 @@ class FSA:
                     else:
                         asts.append([action, initflag])
             else:
-                if ast['type'] == 'subprocess' and ast['name'] in subprocess_nodes:
-                    node = subprocess_nodes[ast['name']]
-                elif ast['type'] == 'subprocess':
-                    node = Node(ast, self.__yield_id())
-                    subprocess_nodes[ast['name']] = node
-                else:
-                    node = Node(ast, self.__yield_id())
+                node = Node(ast, self.__yield_id())
 
                 node.action = process.actions[ast['name']]
                 self.states.add(node)
@@ -337,6 +314,7 @@ class Automaton:
                 }
             )
 
+        subprocesses = {}
         for state in self.fsa.states:
             label = "Action: {}\n".format(state.desc['label'])
             if state.code:
@@ -367,13 +345,24 @@ class Automaton:
                                                                           automaton['automaton'].process.name,
                                                                           automaton['automaton'].process.category)
 
-            graph.node(str(state.identifier), label)
+            if type(state.action) is not Subprocess or state.action.name not in subprocesses:
+                graph.node(str(state.identifier), label)
+                if type(state.action) is Subprocess:
+                    subprocesses[state.action.name] = state.identifier
 
-            for succ in state.successors:
-                graph.edge(
-                    str(state.identifier),
-                    str(succ.identifier)
-                )
+        for state in self.fsa.states:
+            if type(state.action) is not Subprocess or state.identifier in subprocesses.values():
+                for succ in state.successors:
+                    if type(succ.action) is Subprocess:
+                        graph.edge(
+                            str(state.identifier),
+                            str(subprocesses[succ.action.name])
+                        )
+                    else:
+                        graph.edge(
+                            str(state.identifier),
+                            str(succ.identifier)
+                    )
 
         if len(self.fsa.initial_states) > 1:
             name = 'Artificial initial state'
