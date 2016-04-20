@@ -88,7 +88,7 @@ class ProcessModel:
                          " kernel functions")
         # Retval check
         # todo: it can be done much, much better (relevant to issue #6566)
-        dispatches = ['[init_success]']
+        dispatches = []
         # All default registrations and then deregistrations
         names = [name for name in sorted(self.entry_process.actions.keys()) if name not in ["init", "exit"] and
                  type(self.entry_process.actions[name]) is Dispatch]
