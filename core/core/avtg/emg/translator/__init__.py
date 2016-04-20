@@ -6,7 +6,8 @@ from core.avtg.emg.common.signature import import_signature
 from core.avtg.emg.common.code import FunctionDefinition, Aspect, Variable
 from core.avtg.emg.common.interface import Container, Callback
 from core.avtg.emg.translator.fsa import Automaton
-from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, get_common_parameter
+from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
+    get_common_parameter
 
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
@@ -318,7 +319,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             }
 
         self.files[file]['variables'][variable.name] = variable
-
 
     def _generate_control_functions(self, analysis, model):
         global_switch_automata = []
@@ -653,6 +653,204 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return '{}({});'.format(df.name, ', '.join(df_parameters))
 
+    def _generate_action_base_block(self, analysis, automaton, state):
+        block = []
+        if type(state.action) is Call:
+            if not self._omit_all_states:
+                checks = self._generate_relevant_checks(analysis, automaton, state)
+                state.code['guard'].extend(checks)
+
+            call = self._generate_call(analysis, automaton, state)
+            block.append(call)
+        elif type(state.action) is CallRetval:
+            block.append('/* Skip {} */'.format(state.desc['label']))
+        elif type(state.action) is Condition:
+            for stm in state.code['body']:
+                block.append(stm)
+        elif type(state.action) is Dispatch:
+            if not self._omit_all_states and not self._nested_automata:
+                checks = self._generate_relevant_checks(analysis, automaton, state)
+                state.code['guard'].extend(checks)
+
+            if self._nested_automata:
+                call = self._generate_nested_dispatch(analysis, automaton, state)
+            else:
+                call = self._generate_dispatch(analysis, automaton, state)
+
+            block.append(call)
+        elif type(state.action) is Receive:
+            block.append('/* Skip {} */'.format(state.desc['label']))
+        else:
+            raise ValueError('Unexpected state action')
+
+        return block
+
+    def _label_sequence(self, analysis, automaton, state_stack):
+        f_code = []
+        v_code = []
+
+        processed_states = set()
+        conditional_stack = []
+        tab = 0
+        while len(state_stack) > 0:
+            state = state_stack.pop()
+            processed_states.add(state)
+
+            if type(state.action) is Subprocess:
+                code = [
+                    '/* Jump to subprocess {} initial state */'.format(state.action.name),
+                    'goto ldv_{}_{};'.format(automaton.identifier, state.identifier)
+                ]
+            else:
+                code = self._generate_action_base_block(analysis, automaton, state)
+
+            if len(conditional_stack) > 0 and conditional_stack[-1]['condition'] == 'switch' and \
+                    state in conditional_stack[-1]['state'].successors:
+                if conditional_stack[-1]['counter'] != 0:
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                f_code.append('\t' * tab + 'case {}: '.format(conditional_stack[-1]['counter']) + '{')
+                conditional_stack[-1]['counter'] += 1
+                conditional_stack[-1]['cases left'] -= 1
+                tab += 1
+
+                if state.code and len(state.code['guard']) > 0:
+                    f_code.append('\t' * tab + 'if ({}) '.format(' && '.join(sorted(state.code['guard']))) + '{')
+                    tab += 1
+                    for stm in code:
+                        f_code.append('\t' * tab + stm)
+                    f_code.append('\t' * tab + '{} = 1;'.format(conditional_stack[-1]['pass variable']))
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                    f_code.append('\t' * tab + 'else:')
+                    tab += 1
+                    f_code.append('\t' * tab + 'goto {};'.format(conditional_stack[-1]['label']))
+                    tab -= 1
+                else:
+                    for stm in code:
+                        f_code.append('\t' * tab + stm)
+                f_code.append('\t' * tab + '{} = 1;'.format(conditional_stack[-1]['pass variable']))
+            elif len(conditional_stack) > 0 and conditional_stack[-1]['condition'] == 'if' and \
+                    (state in automaton.fsa.initial_states or state in conditional_stack[-1]['state'].successors):
+                if conditional_stack[-1]['counter'] != 0:
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                f_code.append('\t' * tab + 'else: {')
+                conditional_stack[-1]['counter'] += 1
+                conditional_stack[-1]['cases left'] -= 1
+                tab += 1
+
+                for stm in code:
+                    f_code.append('\t' * tab + stm)
+            else:
+                if len(conditional_stack) > 0:
+                    tab -= 1
+                    f_code.append('')
+
+                if state.code and len(state.code['guard']) > 0:
+                    f_code.append('\t' * tab + 'if ({}) '.format(' && '.join(state.code['guard'])) + '{')
+                    tab += 1
+                    for stm in code:
+                        f_code.append('\t' * tab + stm)
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                else:
+                    for stm in code:
+                        f_code.append('\t' * tab + stm)
+
+            reduce_stack = False
+            if len(conditional_stack) > 0:
+                if len(state.successors) == 0:
+                    reduce_stack = True
+                elif type(state.action) is Subprocess:
+                    reduce_stack = True
+                else:
+                    for succ in state.successors:
+                        trivial_predecessors = len([p for p in succ.predecessors if type(p.action) is not Subprocess])
+                        if trivial_predecessors > 1:
+                            reduce_stack = True
+                            break
+
+                if reduce_stack and conditional_stack[-1]['cases left'] == 0 and \
+                                conditional_stack[-1]['condition'] == 'switch':
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                    f_code.append('\t' * tab + 'default: goto {};'.format(format(conditional_stack[-1]['label'])))
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                    conditional_stack.pop()
+                elif reduce_stack and conditional_stack[-1]['cases left'] == 0 and \
+                                conditional_stack[-1]['condition'] == 'if':
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                    conditional_stack.pop()
+
+            if not reduce_stack or (reduce_stack and type(state.action) is not Subprocess):
+                if len(state.successors) == 1:
+                    if list(state.successors)[0] not in state_stack and \
+                                    list(state.successors)[0] not in processed_states:
+                        state_stack.append(list(state.successors)[0])
+                else:
+                    if_condition = None
+                    if len(state.successors) == 2:
+
+                        successors = sorted(list(state.successors), key=lambda f: f.identifier)
+                        if successors[0].code and len(successors[0].code['guard']) > 0 and successors[1].code and \
+                                        len(successors[1].code['guard']) > 0:
+                            cond1 = ' && '.join(sorted(successors[0].code['guard']))
+                            cond2 = ' && '.join(sorted(successors[1].code['guard']))
+
+                            if '(' not in cond1 and cond1.replace('!=', '==') == cond2.replace('!=', '=='):
+                                # Expect contraversal conditions
+                                if_condition = cond1
+                        elif successors[0].code and len(successors[0].code['guard']) > 0 and (not successors[1].code
+                                                                                              or len(successors[1].code['guard']) == 0):
+                            if_condition = ' && '.join(sorted(successors[0].code['guard']))
+                        elif (not successors[0].code or len(successors[0].code['guard']) == 0) and \
+                                successors[1].code and len(successors[1].code['guard']) == 0:
+                            if_condition = ' && '.join(sorted(successors[1].code['guard']))
+                            successors = reversed(successors)
+                        else:
+                            if_condition = '__VERIFIER_nondet_int()'
+
+                    if if_condition:
+                        for succ in successors:
+                            state_stack.append(succ)
+
+                        condition = {
+                            'condition': 'if',
+                            'state': state,
+                            'cases left': 2,
+                            'counter': 0
+                        }
+
+                        f_code.append('\t' * tab + 'if ({}) '.format(if_condition) + '{')
+                        tab += 1
+
+                        conditional_stack.append(condition)
+                    else:
+                        for succ in sorted(list(state.successors), key=lambda f: f.identifier):
+                            state_stack.append(succ)
+
+                        condition = {
+                            'condition': 'switch',
+                            'state': state,
+                            'label': 'ldv_state_switch_{}_{}'.format(automaton.identifier, state.identifier),
+                            'pass variable': 'ldv_switch_proceed_{}_{}'.format(automaton.identifier, state.identifier),
+                            'cases left': len(list(state.successors)),
+                            'counter': 0
+                        }
+
+                        v_code.append("int {};".format(condition['pass variable']))
+                        f_code.append("{}:".format(condition['label']))
+                        f_code.append('\t' * tab + "{} = 0;".format(condition['pass variable']))
+                        f_code.append('\t' * tab + 'switch (__VERIFIER_nondet_int()) {')
+                        tab += 1
+
+                        conditional_stack.append(condition)
+
+        return [v_code, f_code]
+
     def _generate_label_cfunction(self, analysis, automaton, aspect=None):
         self.logger.info('Generate label-based control function for automaton {} based on process {} of category {}'.
                          format(automaton.identifier, automaton.process.name, automaton.process.category))
@@ -707,155 +905,41 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             tab += 1
 
         state_stack = []
-        switch_stack = []
         if len(automaton.fsa.initial_states) > 1:
-            for state in sorted(list(automaton.fsa.initial_states), key=lambda fsa: fsa.identifier):
-                state_stack.append(state)
-
-            label = 'ldv_init_switch_{}'.format(automaton.identifier)
-            var = 'ldv_init_proceed_{}'.format(automaton.identifier)
-            v_code.append("int {};".format(var))
-            f_code.append("{}:".format(label))
-            f_code.append("{} = 0;".format(var))
-            f_code.append('\t'*tab + 'switch (__VERIFIER_nondet_int()) {')
-            tab += 1
-            switch_stack.append([label, len(automaton.fsa.initial_states), None, var, 0])
+            action = Condition('initial_state')
+            desc = {
+                'label': '<{}>'.format(action.name)
+            }
+            code = {
+                'body': ['Artificial single initial state'],
+                'guard': []
+            }
+            new = automaton.fsa.new_state(action, desc, code)
+            new.successors = automaton.fsa.initial_states
+            state_stack.append(new)
         else:
             state_stack.append(list(automaton.fsa.initial_states)[0])
 
-        processed_states = set()
-        while len(state_stack) > 0:
-            state = state_stack.pop()
-            processed_states.add(state)
+        main_v_code, main_f_code = self._label_sequence(analysis, automaton, state_stack)
+        v_code.extend(main_v_code)
+        f_code.extend(main_f_code)
 
-            if len(switch_stack) > 0 and (state in automaton.fsa.initial_states or
-                                          state in state_stack[-1][2].successors):
-                f_code.append('\t' * tab + 'case {}: '.format(switch_stack[-1][-1]) + '{')
-                switch_stack[-1][-1] += 1
-                switch_stack[-1][1] -= 1
-                tab += 1
-            elif len(switch_stack) > 0:
-                tab -= 1
-                f_code.append('')
+        processed = []
+        for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
+                     if type(s.action) is Subprocess]:
+            if subp.action.name not in processed:
+                st = sorted(list(subp.successors), key=lambda f: f.identifier)
+                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, st)
 
-            code = ['ldv_{}_{}:'.format(automaton.identifier, state.identifier)]
-            if type(state.action) is Call:
-                if not self._omit_all_states:
-                    checks = self._generate_relevant_checks(analysis, automaton, state)
-                    state.code['guard'].extend(checks)
-
-                call = self._generate_call(analysis, automaton, state)
-                code.append(call)
-            elif type(state.action) is CallRetval:
-                code.append('/* Skip {} */'.format(state.desc['label']))
-            elif type(state.action) is Condition:
-                for stm in state.code['body']:
-                    code.append(stm)
-            elif type(state.action) is Dispatch:
-                if not self._omit_all_states and not self._nested_automata:
-                    checks = self._generate_relevant_checks(analysis, automaton, state)
-                    state.code['guard'].extend(checks)
-
-                if self._nested_automata:
-                    call = self._generate_nested_dispatch(analysis, automaton, state)
-                else:
-                    call = self._generate_dispatch(analysis, automaton, state)
-
-                code.append(call)
-            elif type(state.action) is Receive:
-                code.append('/* Skip {} */'.format(state.desc['label']))
-            else:
-                raise ValueError('Unexpected state action')
-
-            if state.code and len(state.code['guard']) > 0:
-                f_code.append('\t' * tab + 'if ({}) '.format(' && '.join(state.code['guard'])) + '{')
-                tab += 1
-                for stm in code:
-                    f_code.append('\t' * tab + stm)
-                f_code.append('\t' * tab + '{} = 1;'.format(switch_stack[-1][3]))
-                tab -= 1
-                f_code.append('\t' * tab + '}')
-
-                if len(switch_stack) > 0 and switch_stack[-1][-1] == 1:
-                    f_code.append('\t' * tab + 'else:')
-                    tab += 1
-                    f_code.append('\t' * tab + 'goto {};'.format(switch_stack[-1][0]))
-                    tab -= 1
-            else:
-                for stm in code:
-                    f_code.append('\t' * tab + stm)
-                f_code.append('\t' * tab + '{} = 1;'.format(switch_stack[-1][3]))
-
-            if len(switch_stack) > 0 and switch_stack[-1][-1] == 1:
-                reduce_stack = False
-                if len(state.successors) == 0:
-                    reduce_stack = True
-                else:
-                    for succ in state.successors:
-                        if len(succ.predecessors) > 0:
-                            reduce_stack = True
-                            break
-
-                last_case = False
-                if switch_stack[-1][1] == 0:
-                    last_case = True
-
-                if reduce_stack and last_case:
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                    f_code.append('\t' * tab + 'default: goto {};'.format(format(switch_stack[-1][0])))
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                    switch_stack.pop()
-
-                if not reduce_stack or (reduce_stack and last_case):
-                    if len(state.successors) == 1:
-                        if list(state.successors)[0] not in state_stack and \
-                                        list(state.successors)[0] not in processed_states:
-                            state_stack.append(list(state.successors)[0])
-                        else:
-                            f_code.append('\t' * tab +
-                                          'goto: {};'.format('ldv_{}_{}:'.format(automaton.identifier,
-                                                                                 list(state.successors)[0].identifier)))
-                    else:
-                        repeate = []
-                        for succ in sorted(list(state.successors), key=lambda f: f.identifier):
-                            if succ not in processed_states and succ not in state_stack:
-                                state_stack.append(succ)
-                            else:
-                                repeate.append(succ)
-
-                        label = 'ldv_state_switch_{}_{}'.format(automaton.identifier, state.identifier)
-                        f_code.append("{}:".format(label))
-                        var = 'ldv_switch_proceed_{}_{}'.format(automaton.identifier, state.identifier)
-                        v_code.append("int {};".format(var))
-                        f_code.append('\t' * tab + "{} = 0;".format(var))
-                        f_code.append('\t' * tab + 'switch (__VERIFIER_nondet_int()) {')
-                        tab += 1
-                        cnt = 0
-                        for st in repeate:
-                            f_code.append('\t' * tab + "case {}:".format(cnt))
-                            tab += 1
-                            f_code.append('\t' * tab +
-                                          'goto: {};'.format('ldv_{}_{}:'.format(automaton.identifier,
-                                                                                 st.identifier)))
-                            tab -= 1
-
-                        if len(repeate) == len(list(state.successors)):
-                            f_code.append('\t' * tab + "default: goto {};".format(label))
-                            tab -= 1
-                            f_code.append('\t' * tab + "}")
-                        else:
-                            switch_stack.append([label, len(state.successors), var, cnt])
-
-        while len(switch_stack) > 0:
-            ss = switch_stack.pop()
-
-            tab -= 1
-            f_code.append('\t' * tab + '}')
-            f_code.append('\t' * tab + 'default: goto {};'.format(format(ss[0])))
-            tab -= 1
-            f_code.append('\t' * tab + '}')
+                v_code.extend(sp_v_code)
+                f_code.extend([
+                    '',
+                    '/* Sbprocess {} */'.format(subp.action.name),
+                    'ldv_{}_{}:'.format(automaton.identifier, subp.identifier)
+                ])
+                f_code.extend(sp_f_code)
+                f_code.append('return')
+                processed.append(subp.action.name)
 
         if not self._nested_automata and not aspect:
             f_code.append('}')
