@@ -147,6 +147,11 @@ class FSA:
                 node = Node(ast, self.__yield_id())
 
                 node.action = process.actions[ast['name']]
+                if type(process.actions[ast['name']]) is Receive:
+                    node.action.replicative = node.desc['replicative']
+                if type(process.actions[ast['name']]) is Dispatch:
+                    node.action.broadcast = node.desc['broadcast']
+
                 self.states.add(node)
                 ast['node'] = node
 

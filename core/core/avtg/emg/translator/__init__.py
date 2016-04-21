@@ -565,6 +565,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def _generate_nested_dispatch(self, analysis, automaton, state):
         body = ['int ret;']
 
+        # Check dispatch type
+        replicative = False
+        for name in state.code['relevant automata']:
+            for st in state.code['relevant automata'][name]['states']:
+                if st.action.replicative:
+                    replicative = True
+                    break
+
         # Determine parameters
         df_parameters = []
         function_parameters = []
@@ -585,18 +593,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 function_parameters.append(interface.declaration)
                 df_parameters.append(dispatcher_expr)
 
-            decl = self._get_cf_struct(automaton, function_parameters)
-            body.append(Variable('cf_arg', None, decl, False).declare() + ';')
-            for index in range(len(function_parameters)):
-                body.append('cf_arg.arg{} = arg{};'.format(index, index))
-            body.append('')
-
-        replicative = False
-        for name in state.code['relevant automata']:
-            for st in state.code['relevant automata'][name]['states']:
-                if st.action.replicative:
-                    replicative = True
-                    break
+            if replicative:
+                decl = self._get_cf_struct(automaton, function_parameters)
+                body.append(Variable('cf_arg', None, decl, False).declare() + ';')
+                for index in range(len(function_parameters)):
+                    body.append('cf_arg.arg{} = arg{};'.format(index, index))
+                body.append('')
 
         tmp_body = []
         if replicative:
@@ -615,20 +617,20 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             for name in state.code['relevant automata']:
                 tmp_body.append(self.join_cf(state.code['relevant automata'][name]['automaton']))
 
-        label = 'ldv_dsp_{}_{}:'.format(automaton.identifier, state.identifier)
+        label = 'ldv_dsp_{}_{}'.format(automaton.identifier, state.identifier)
         body.append(label + ':')
         if len(tmp_body) == 1:
-            body.append('ret = {};'.format(tmp_body[0]))
+            body.append('ret = {}'.format(tmp_body[0]))
             body.append('if (ret != 0)')
             body.append('\tgoto {};'.format(label))
         else:
             if state.action.broadcast:
-                body += tmp_body
+                body.extend(tmp_body)
             else:
-                body += 'switch (__VERIFIER_nondet_int()) {'
+                body.append('switch (__VERIFIER_nondet_int()) {')
                 for index in range(len(tmp_body)):
                     body.append('\tcase {}: '.format(index) + '{')
-                    body.append('\t\tret = {};'.format(tmp_body[index]))
+                    body.append('\t\tret = {}'.format(tmp_body[index]))
                     body.append('\t\tif (ret != 0)')
                     body.append('\t\t\tgoto {};'.format(label))
                     body.append('\t};')
@@ -896,26 +898,26 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
             param_declarations = []
             param_expressions = []
-            for receive in [r for r in automaton.process.actions.values() if type(r) is Receive]:
-                if receive.replicative:
-                    if len(receive.parameters) > 0:
-                        for index in range(len(receive.parameters)):
-                            # Determine dispatcher parameter
-                            interface = get_common_parameter(receive, automaton.process, index)
+            for receive in [r for r in automaton.process.actions.values() if type(r) is Receive and r.replicative]:
+                if len(receive.parameters) > 0:
+                    for index in range(len(receive.parameters)):
+                        # Determine dispatcher parameter
+                        interface = get_common_parameter(receive, automaton.process, index)
 
-                            # Determine receiver parameter
-                            receiver_access = automaton.process.resolve_access(receive.parameters[index],
-                                                                               interface.identifier)
-                            receiver_expr = receiver_access.access_with_variable(
-                                automaton.determine_variable(analysis, receiver_access.label, interface.identifier))
+                        # Determine receiver parameter
+                        receiver_access = automaton.process.resolve_access(receive.parameters[index],
+                                                                           interface.identifier)
+                        receiver_expr = receiver_access.access_with_variable(
+                            automaton.determine_variable(analysis, receiver_access.label, interface.identifier))
 
-                            param_declarations.append(interface.declaration)
-                            param_expressions.append(receiver_expr)
+                        param_declarations.append(interface.declaration)
+                        param_expressions.append(receiver_expr)
                     break
 
             if len(param_declarations) > 0:
                 decl = self._get_cf_struct(automaton, [val[0] for val in param_declarations])
                 var = Variable('cf_arg_struct', None, decl.take_pointer(), False)
+                v_code.append('/* Received values */')
                 v_code.append('{} = (*{}) cf_arg;'.format(var.declare(), decl.to_string('')))
 
                 for index in range(len(param_expressions)):
