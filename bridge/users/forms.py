@@ -86,7 +86,7 @@ class UserExtendedForm(forms.ModelForm):
         self.fields['first_name'].label = _("First name")
         self.fields['language'].label = _("Language")
         self.fields['data_format'].label = _("Data format")
-        self.fields['assumptions'].label = _("Assumptions")
+        self.fields['assumptions'].label = _("Error trace assumptions")
 
     class Meta:
         model = Extended
