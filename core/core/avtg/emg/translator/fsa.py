@@ -243,7 +243,7 @@ class Automaton:
                 return self.__label_variables[label.name]["default"]
             else:
                 if label.prior_signature:
-                    var = Variable("emgfsa_{}_{}_{}".format(self.identifier, label.name, "default"), None,
+                    var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, "default"), None,
                                    label.prior_signature, export=True)
                     if label.value:
                         var.value = label.value
@@ -266,7 +266,7 @@ class Automaton:
                     access = self.process.resolve_access(label, interface)
                     category, short_id = interface.split(".")
                     implementations = self.process.get_implementations(analysis, access)
-                    var = Variable("emgfsa_{}_{}_{}".format(self.identifier, label.name, short_id), None,
+                    var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, short_id), None,
                                    label.get_declaration(interface), export=True)
 
                     if len(implementations) == 1:
