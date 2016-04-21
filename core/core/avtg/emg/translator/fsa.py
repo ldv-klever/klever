@@ -37,16 +37,17 @@ class FSA:
 
         return new_state
 
-    def new_state(self, action, desc, code):
+    def new_state(self, action):
+        desc = {
+            'label': '<{}>'.format(action.name)
+        }
         new = Node(desc, self.__yield_id())
         new.action = action
-        new.code = code
-        new.desc = desc
         self.states.add(new)
         return new
 
-    def add_new_predecessor(self, node, action, desc, code):
-        new = self.new_state(action, desc, code)
+    def add_new_predecessor(self, node, action):
+        new = self.new_state(action)
 
         for pred in node.predecessors:
             pred.successors.remove(node)
@@ -58,8 +59,8 @@ class FSA:
 
         return new
 
-    def add_new_successor(self, node, action, desc, code):
-        new = self.new_state(action, desc, code)
+    def add_new_successor(self, node, action):
+        new = self.new_state(action)
 
         for succ in node.successors:
             succ.predecessors.remove(node)
@@ -232,10 +233,10 @@ class Automaton:
         return self.__variables
 
     def new_param(self, analysis, name, declaration, value):
-        lb = self.process.add_simple_label(name, declaration, value)
+        lb = self.process.add_label(name, declaration, value)
         lb.resource = True
         vb = self.determine_variable(analysis, lb)
-        return vb
+        return lb, vb
 
     def determine_variable(self, analysis, label, interface=None):
         if not interface:
@@ -402,11 +403,9 @@ class Automaton:
                         file = implementations[0].file
                         check = False
                     elif signature.clean_declaration:
-                        invoke = '(' + \
-                                 access.access_with_variable(self.determine_variable(analysis, access.label,
+                        invoke = access.access_with_variable(self.determine_variable(analysis, access.label,
                                                                                      access.list_interface[0].
-                                                                                     identifier)) + \
-                                 ')'
+                                                                                     identifier))
                         file = translator.entry_file
                         check = True
                     else:
@@ -441,7 +440,7 @@ class Automaton:
             for nd, case, signature, invoke, file, check in callbacks:
                 # Generate function call and corresponding function
                 params = []
-                local_vars = []
+                label_params = []
                 cb_statements = []
 
                 # Determine parameters
@@ -467,52 +466,32 @@ class Automaton:
 
                         # Generate new variable
                         if not expression:
-                            tmp = self.new_param(analysis, "emg_param_{}".format(nd.identifier),
+                            lb, var = self.new_param(analysis, "ldv_param_{}".format(nd.identifier),
                                                  signature.points.parameters[index],
                                                  None)
-                            local_vars.append(tmp)
-                            expression = tmp.name
+                            label_params.append(lb)
+                            expression = var.name
 
                     # Add string
                     params.append(expression)
 
                 # Add precondition and postcondition
-                if len(local_vars) > 0:
+                if len(label_params) > 0:
                     pre_statements = []
                     post_statements = []
-                    for var in local_vars:
-                        definition = var.declare_with_init(
-                            translator.conf["translation options"]["pointer initialization"]) + ";"
-                        pre_statements.append(definition)
-                        free = var.free_pointer(translator.conf["translation options"]["pointer free"])
-                        if free:
-                            post_statements.append(free + ";")
-                    cond_name = 'pre_call_{}'.format(nd.identifier)
-                    code = {
-                        "guard": [],
-                        "body": pre_statements,
-                        "file": file
-                    }
+                    for label in label_params:
+                        pre_statements.append('%{}% = $ALLOC(%{}%);'.format(label.name, label.name))
+                        post_statements.append('$FREE(%{}%);'.format(label.name))
 
-                    new_action = self.process.add_condition(cond_name, [], pre_statements)
-                    new = self.fsa.add_new_predecessor(nd, new_action, {}, code)
-                    new.desc = {
-                        'label': "<{}>".format(cond_name)
-                    }
+                    pre_name = 'pre_call_{}'.format(nd.identifier)
+                    pre_action = self.process.add_condition(pre_name, [], pre_statements)
+                    pre_st = self.fsa.add_new_predecessor(nd, pre_action)
+                    self.generate_code(analysis, model, translator, pre_st)
 
-                    if len(post_statements) > 0:
-                        post_code = {
-                            "guard": [],
-                            "body": post_statements,
-                            "file": file
-                        }
-
-                        cond_name = 'post_call_{}'.format(nd.identifier)
-                        succ_action = self.process.add_condition(cond_name, [], post_statements)
-                        new = self.fsa.add_new_successor(nd, succ_action, {}, post_code)
-                        new.desc = {
-                            'label': "<{}>".format(cond_name)
-                        }
+                    post_name = 'post_call_{}'.format(nd.identifier)
+                    post_action = self.process.add_condition(post_name, [], post_statements)
+                    post_st = self.fsa.add_new_successor(nd, post_action)
+                    self.generate_code(analysis, model, translator, post_st)
 
                 # Generate return value assignment
                 ret_subprocess = [self.process.actions[name] for name in sorted(self.process.actions.keys())
