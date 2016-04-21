@@ -21,20 +21,13 @@ class Variable:
         else:
             raise ValueError("Attempt to create variable {} without signature".format(name))
 
-    def declare_with_init(self, conf):
+    def declare_with_init(self):
         # Ger declaration
         declaration = self.declare(extern=False)
 
         # Add memory allocation
         if self.value:
             declaration += " = {}".format(self.value)
-        elif type(self.declaration) is Pointer and\
-                ((type(self.declaration.points) is Structure and conf['structures']) or
-                 (type(self.declaration.points) is Array and conf['arrays']) or
-                 (type(self.declaration.points) is Union and conf['unions']) or
-                 (type(self.declaration.points) is Function and conf['functions']) or
-                 (type(self.declaration.points) is Primitive and conf['primitives'])):
-            declaration += " = {}".format(FunctionModels.init_pointer(self.declaration))
 
         return declaration
 
@@ -93,8 +86,8 @@ class FunctionDefinition:
 
     def get_definition(self):
         declaration = '{} {}({})'.format(self.declaration.return_value.to_string(), self.name,
-                                         [self.declaration.parameters[index].to_string('arg{}'.format(index)) for index
-                                          in range(len(self.declaration.parameters))])
+                                         ', '.join([self.declaration.parameters[index].to_string('arg{}'.format(index))
+                                                    for index in range(len(self.declaration.parameters))]))
 
         lines = list()
         lines.append(declaration + " {\n")
