@@ -141,7 +141,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._generate_control_functions(analysis, model)
 
         # Add structures to declare types
-        self.files[self.entry_file]['types'] = self._structures.values()
+        self.files[self.entry_file]['types'] = sorted(self._structures.values(), key=lambda v: v.identifier)
 
     def _instanciate_processes(self, analysis, instances, process):
         base_list = instances
@@ -167,8 +167,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if len(relevant_multi_containers) > 0:
             self.logger.debug(
                 "Found {} relevant containers with several implementations for process {} for category {}".
-                    format(str(len(relevant_multi_containers)), process.name, process.category))
-            for interface in relevant_multi_containers:
+                format(str(len(relevant_multi_containers)), process.name, process.category))
+            for interface in sorted(list(relevant_multi_containers), key=lambda intf: intf.identifier):
                 new_base_list = []
                 implementations = analysis.implementations(interface)
 
@@ -193,7 +193,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             if len(relevant_multi_leafs) > 0:
                 self.logger.debug("Found {} accesses with several implementations for process {} for category {}".
                                   format(len(relevant_multi_leafs), process.name, process.category))
-                for access in relevant_multi_leafs:
+                for access in sorted(list(relevant_multi_leafs), key=lambda intf: intf.identifier):
                     for implementation in analysis.implementations(access.interface):
                         newp = self._copy_process(instance)
                         newp.forbide_except(analysis, implementation)
@@ -330,6 +330,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 func = self._generate_label_cfunction(analysis, automaton)
             else:
                 func = self._generate_state_cfunction(analysis, automaton)
+
             if func and not self._nested_automata:
                 global_switch_automata.append(func)
 
@@ -735,16 +736,16 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 if conditional_stack[-1]['counter'] != 0:
                     tab -= 1
                     f_code.append('\t' * tab + '}')
-                f_code.append('\t' * tab + 'else: {')
+                    f_code.append('\t' * tab + 'else: {')
+                    tab += 1
+
                 conditional_stack[-1]['counter'] += 1
                 conditional_stack[-1]['cases left'] -= 1
-                tab += 1
 
                 for stm in code:
                     f_code.append('\t' * tab + stm)
             else:
                 if len(conditional_stack) > 0:
-                    tab -= 1
                     f_code.append('')
 
                 if state.code and len(state.code['guard']) > 0:
@@ -775,7 +776,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                 conditional_stack[-1]['condition'] == 'switch':
                     tab -= 1
                     f_code.append('\t' * tab + '}')
-                    f_code.append('\t' * tab + 'default: goto {};'.format(format(conditional_stack[-1]['label'])))
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                    f_code.append('\t' * tab + 'if (!{})'.format(conditional_stack[-1]['pass variable']))
+                    tab += 1
+                    f_code.append('\t' * tab + 'goto {};'.format(format(conditional_stack[-1]['label'])))
                     tab -= 1
                     f_code.append('\t' * tab + '}')
                     conditional_stack.pop()
@@ -790,26 +795,27 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     if list(state.successors)[0] not in state_stack and \
                                     list(state.successors)[0] not in processed_states:
                         state_stack.append(list(state.successors)[0])
-                else:
+                elif len(state.successors) > 1:
                     if_condition = None
                     if len(state.successors) == 2:
 
                         successors = sorted(list(state.successors), key=lambda f: f.identifier)
                         if successors[0].code and len(successors[0].code['guard']) > 0 and successors[1].code and \
-                                        len(successors[1].code['guard']) > 0:
+                                len(successors[1].code['guard']) > 0:
                             cond1 = ' && '.join(sorted(successors[0].code['guard']))
                             cond2 = ' && '.join(sorted(successors[1].code['guard']))
 
                             if '(' not in cond1 and cond1.replace('!=', '==') == cond2.replace('!=', '=='):
                                 # Expect contraversal conditions
                                 if_condition = cond1
+                                successors = reversed(successors)
                         elif successors[0].code and len(successors[0].code['guard']) > 0 and (not successors[1].code
                                                                                               or len(successors[1].code['guard']) == 0):
                             if_condition = ' && '.join(sorted(successors[0].code['guard']))
+                            successors = reversed(successors)
                         elif (not successors[0].code or len(successors[0].code['guard']) == 0) and \
                                 successors[1].code and len(successors[1].code['guard']) == 0:
                             if_condition = ' && '.join(sorted(successors[1].code['guard']))
-                            successors = reversed(successors)
                         else:
                             if_condition = '__VERIFIER_nondet_int()'
 
@@ -987,6 +993,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             lines.extend("{} = ".format(tp.to_string(tp.name)) + "{\n")
                             for field in sorted(list(tp.fields.keys())):
                                 lines.extend("\t{},\n".format(tp.fields[field].to_string(field)))
+                            lines.extend("};\n")
                             lines.extend("\n")
 
                 lines.append("/* EMG Function declarations */\n")
