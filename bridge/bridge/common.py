@@ -167,6 +167,7 @@ DEF_USER = {
     'language': 'en',  # See bridge.vars.LANGUAGES for options
     'timezone': 'Europe/Moscow',  # See pytz.common_timezones for options
     'accuracy': 2,  # 0 - 10
+    'assumptions': False
 }
 
 LOGGING = {
@@ -220,5 +221,3 @@ LOGGING = {
 }
 
 MAX_FILE_SIZE = 104857600  # 100MB
-
-MAX_ERROR_TRACE_SIZE = 3 * 1024**2  # 3MB

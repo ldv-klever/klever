@@ -6,7 +6,6 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from bridge.vars import JOB_STATUS
 from bridge.utils import unparallel_group, logger
-from bridge.settings import MAX_ERROR_TRACE_SIZE
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -230,12 +229,9 @@ def report_leaf(request, leaf_type, report_id):
     template = 'reports/report_leaf.html'
     etv = None
     main_file_content = None
-    include_assumptions = True
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        if len(report.error_trace.file) > MAX_ERROR_TRACE_SIZE:
-            include_assumptions = False
-        etv = GetETV(report.error_trace.file.read(), include_assumptions=include_assumptions)
+        etv = GetETV(report.error_trace.file.read(), request.user.extended.assumptions)
         if etv.error is not None:
             logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
@@ -243,20 +239,24 @@ def report_leaf(request, leaf_type, report_id):
         main_file_content = report.proof.file.read()
     elif leaf_type == 'unknown':
         main_file_content = report.problem_description.file.read()
-    return render(
-        request, template,
-        {
-            'type': leaf_type,
-            'report': report,
-            'parents': get_parents(report),
-            'SelfAttrsData': ReportTable(request.user, report).table_data,
-            'MarkTable': ReportMarkTable(request.user, report),
-            'etv': etv,
-            'can_mark': MarkAccess(request.user, report=report).can_create(),
-            'main_content': main_file_content,
-            'include_assumptions': include_assumptions
-        }
-    )
+    try:
+        return render(
+            request, template,
+            {
+                'type': leaf_type,
+                'report': report,
+                'parents': get_parents(report),
+                'SelfAttrsData': ReportTable(request.user, report).table_data,
+                'MarkTable': ReportMarkTable(request.user, report),
+                'etv': etv,
+                'can_mark': MarkAccess(request.user, report=report).can_create(),
+                'main_content': main_file_content,
+                'include_assumptions': request.user.extended.assumptions
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
 
 @login_required
@@ -271,21 +271,22 @@ def report_etv_full(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    include_assumptions = True
-    if len(report.error_trace.file) > MAX_ERROR_TRACE_SIZE:
-        include_assumptions = False
-    etv = GetETV(report.error_trace.file.read(), include_assumptions=include_assumptions)
+    etv = GetETV(report.error_trace.file.read(), request.user.extended.assumptions)
     if etv.error is not None:
         logger.error(etv.error, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[505]))
-    return render(
-        request, 'reports/etv_fullscreen.html',
-        {
-            'report': report,
-            'etv': etv,
-            'include_assumptions': include_assumptions
-        }
-    )
+    try:
+        return render(
+            request, 'reports/etv_fullscreen.html',
+            {
+                'report': report,
+                'etv': etv,
+                'include_assumptions': request.user.extended.assumptions
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
 
 @unparallel_group(['mark', 'report'])
