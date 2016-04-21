@@ -156,7 +156,7 @@ class ProcessModel:
                                  format(category))
 
     def __import_kernel_models(self, analysis):
-        for function in self.__abstr_model_processes:
+        for function in sorted(list(self.__abstr_model_processes.keys())):
             if function in sorted(analysis.kernel_functions.keys()):
                 self.logger.debug("Add model of function '{}' to an environment model".format(function))
                 new_process = self.__add_process(analysis, self.__abstr_model_processes[function], model=True)

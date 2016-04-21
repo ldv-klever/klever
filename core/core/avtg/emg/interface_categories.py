@@ -150,7 +150,7 @@ class CategoriesSpecification:
             for impl in candidates:
                 if len(impl.sequence) > 0:
                     cnts = self.resolve_containers(interface)
-                    for cnt in cnts:
+                    for cnt in sorted(list(cnts.keys())):
                         cnt_intf = self.interfaces[cnt]
                         if type(cnt_intf.declaration) is Array and cnt_intf.element_interface and \
                                 interface.identifier == cnt_intf.element_interface.identifier:
