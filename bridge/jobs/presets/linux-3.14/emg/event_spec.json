@@ -65,14 +65,9 @@
           "interface": ["net.net_device"]
         }
       },
-      "process": "<alloc>.<init>.<success> | <fail>",
+      "process": "<alloc>.<success> | <fail>",
       "actions": {
         "alloc": {
-          "statements": [
-            "%netdev% = $ALLOC(%netdev%);"
-          ]
-        },
-        "init": {
           "statements": [
             "%netdev% = $ALLOC(%netdev%);"
           ]
@@ -101,6 +96,7 @@
       "actions": {
         "free": {
           "statements": [
+            "%netdev% = $arg1",
             "$FREE(%netdev%);"
           ]
         }
