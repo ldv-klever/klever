@@ -388,11 +388,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return ep
 
-    def _generate_call(self, analysis, automaton, state):
+    def _generate_call(self, automaton, state):
         # Generate function call and corresponding function
         fname = "ldv_{}_{}_{}".format(automaton.process.name, automaton.identifier, state.identifier)
         if not state.code:
-            return '/* Skip callback, since no callbacks has been found */'
+            return ['/* Skip callback, since no callbacks has been found */']
 
         # Generate special function with call
         if 'retval' in state.code:
@@ -404,28 +404,31 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             ret_expr = ''
             cf_ret_expr = ''
 
-        resources = [state.code['callback'].points.parameters[p].to_string('arg{}'.format(p)) for p in
-                     range(len(state.code['callback'].points.parameters))]
-        rs = 'void'
-        if len(resources) > 0:
-            rs = ', '.join(resources)
+        resources = [state.code['callback']] + state.code['callback'].points.parameters
+        resources = [resources[p].to_string('arg{}'.format(p)) for p in range(len(resources))]
         function = FunctionDefinition(fname,
                                       state.code['file'],
-                                      "{} {}({})".format(ret, fname, rs),
+                                      "{} {}({})".format(ret, fname, ', '.join(resources)),
                                       True)
 
-        function.body.concatenate("/* Call callback {} */".format(state.action.name))
-        call = ret_expr + state.code['invoke'] + \
-               '(' + ", ".join(["arg{}".format(i) for i in range(len(resources))]) + ')'
+        function.body.concatenate("/* Callback {} */".format(state.action.name))
+        inv = [
+            '/* Callback {} */'.format(state.action.name)
+        ]
+
         # Generate callback call
+        f_invoke = cf_ret_expr + fname + '(' + ', '.join([state.code['invoke']] + state.code['parameters']) + ');'
         if state.code['check pointer']:
-            function.body.concatenate('if ({})'.format(state.code['invoke']))
-            function.body.concatenate('\t{};'.format(call))
+            inv.append('if ({})'.format(state.code['invoke']))
+            inv.append('\t' + f_invoke)
         else:
-            function.body.concatenate('{};'.format(call))
+            inv.append(f_invoke)
+        call = ret_expr + '(*arg0)' + '(' + ", ".join(["arg{}".format(i) for i in range(1, len(resources))]) + ')'
+        function.body.concatenate('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
-        return cf_ret_expr + fname + '(' + ', '.join(state.code['parameters']) + ');'
+
+        return inv
 
     def _generate_relevant_checks(self, state):
         checks = []
@@ -650,9 +653,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         df.body.concatenate(body)
         automaton.functions.append(df)
-        self.files[self.entry_file][df.name] = df
-
-        return '{}({});'.format(df.name, ', '.join(df_parameters))
+        self._add_function_definition(self.entry_file, df)
+        return [
+            '/* Dispatch {} */'.format(state.action.name),
+            '{}({});'.format(df.name, ', '.join(df_parameters))
+        ]
 
     def _generate_action_base_block(self, analysis, automaton, state):
         block = []
@@ -661,8 +666,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 checks = self._generate_relevant_checks(analysis, automaton, state)
                 state.code['guard'].extend(checks)
 
-            call = self._generate_call(analysis, automaton, state)
-            block.append(call)
+            call = self._generate_call(automaton, state)
+            block.extend(call)
         elif type(state.action) is CallRetval:
             block.append('/* Skip {} */'.format(state.desc['label']))
         elif type(state.action) is Condition:
@@ -678,7 +683,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             else:
                 call = self._generate_dispatch(analysis, automaton, state)
 
-            block.append(call)
+            block.extend(call)
         elif type(state.action) is Receive:
             block.append('/* Skip {} */'.format(state.desc['label']))
         else:
@@ -686,9 +691,23 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return block
 
-    def _label_sequence(self, analysis, automaton, state_stack):
+    def _label_sequence(self, analysis, automaton, initial_states, name):
         f_code = []
         v_code = []
+
+        state_stack = []
+        if len(initial_states) > 1:
+            action = Condition(name)
+            new = automaton.fsa.new_state(action)
+            new.successors = initial_states
+            cd = {
+                'body': ['/* Artificial state */'],
+                'guard': []
+            }
+            new.code = cd
+            state_stack.append(new)
+        else:
+            state_stack.append(list(automaton.fsa.initial_states)[0])
 
         processed_states = set()
         conditional_stack = []
@@ -700,7 +719,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             if type(state.action) is Subprocess:
                 code = [
                     '/* Jump to subprocess {} initial state */'.format(state.action.name),
-                    'goto ldv_{}_{};'.format(automaton.identifier, state.identifier)
+                    'goto ldv_{}_{};'.format(state.action.name, automaton.identifier)
                 ]
             else:
                 code = self._generate_action_base_block(analysis, automaton, state)
@@ -745,8 +764,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 for stm in code:
                     f_code.append('\t' * tab + stm)
             else:
-                if len(conditional_stack) > 0:
-                    f_code.append('')
+                f_code.append('')
 
                 if state.code and len(state.code['guard']) > 0:
                     f_code.append('\t' * tab + 'if ({}) '.format(' && '.join(state.code['guard'])) + '{')
@@ -759,38 +777,42 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     for stm in code:
                         f_code.append('\t' * tab + stm)
 
-            reduce_stack = False
+            last_action = False
+            closed_condition = False
             if len(conditional_stack) > 0:
                 if len(state.successors) == 0:
-                    reduce_stack = True
+                    last_action = True
                 elif type(state.action) is Subprocess:
-                    reduce_stack = True
+                    last_action = True
                 else:
                     for succ in state.successors:
                         trivial_predecessors = len([p for p in succ.predecessors if type(p.action) is not Subprocess])
                         if trivial_predecessors > 1:
-                            reduce_stack = True
+                            last_action = True
                             break
 
-                if reduce_stack and conditional_stack[-1]['cases left'] == 0 and \
-                                conditional_stack[-1]['condition'] == 'switch':
+                if last_action and conditional_stack[-1]['cases left'] == 0 and \
+                        conditional_stack[-1]['condition'] == 'switch':
                     tab -= 1
                     f_code.append('\t' * tab + '}')
                     tab -= 1
                     f_code.append('\t' * tab + '}')
-                    f_code.append('\t' * tab + 'if (!{})'.format(conditional_stack[-1]['pass variable']))
+                    f_code.append('\t' * tab + 'if (!{}) '.format(conditional_stack[-1]['pass variable']) + '{')
                     tab += 1
                     f_code.append('\t' * tab + 'goto {};'.format(format(conditional_stack[-1]['label'])))
                     tab -= 1
                     f_code.append('\t' * tab + '}')
                     conditional_stack.pop()
-                elif reduce_stack and conditional_stack[-1]['cases left'] == 0 and \
-                                conditional_stack[-1]['condition'] == 'if':
+                    closed_condition = True
+                elif last_action and conditional_stack[-1]['cases left'] == 0 and \
+                        conditional_stack[-1]['condition'] == 'if':
                     tab -= 1
                     f_code.append('\t' * tab + '}')
                     conditional_stack.pop()
+                    closed_condition = True
 
-            if not reduce_stack or (reduce_stack and type(state.action) is not Subprocess):
+            if (type(state.action) is not Subprocess or len(state.code['guard']) > 0) and \
+                    (not last_action or (last_action and closed_condition)):
                 if len(state.successors) == 1:
                     if list(state.successors)[0] not in state_stack and \
                                     list(state.successors)[0] not in processed_states:
@@ -848,7 +870,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         }
 
                         v_code.append("int {};".format(condition['pass variable']))
-                        f_code.append("{}:".format(condition['label']))
+                        f_code.append('\t' * tab + "{}:".format(condition['label']))
                         f_code.append('\t' * tab + "{} = 0;".format(condition['pass variable']))
                         f_code.append('\t' * tab + 'switch (__VERIFIER_nondet_int()) {')
                         tab += 1
@@ -900,7 +922,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     f_code.append('{} = cf_arg_struct->arg{};'.format(param_expressions[0], index))
 
         for var in automaton.variables(analysis):
-            definition = var.declare_with_init(self.conf["translation options"]["pointer initialization"]) + ";"
+            definition = var.declare_with_init() + ";"
             v_code.append(definition)
 
         tab = 0
@@ -910,23 +932,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             f_code.append('if ({}) '.format(sv.name) + ' {')
             tab += 1
 
-        state_stack = []
-        if len(automaton.fsa.initial_states) > 1:
-            action = Condition('initial_state')
-            desc = {
-                'label': '<{}>'.format(action.name)
-            }
-            code = {
-                'body': ['Artificial single initial state'],
-                'guard': []
-            }
-            new = automaton.fsa.new_state(action, desc, code)
-            new.successors = automaton.fsa.initial_states
-            state_stack.append(new)
-        else:
-            state_stack.append(list(automaton.fsa.initial_states)[0])
-
-        main_v_code, main_f_code = self._label_sequence(analysis, automaton, state_stack)
+        main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
+                                                        'initial_state')
         v_code.extend(main_v_code)
         f_code.extend(main_f_code)
 
@@ -934,14 +941,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
                      if type(s.action) is Subprocess]:
             if subp.action.name not in processed:
-                st = sorted(list(subp.successors), key=lambda f: f.identifier)
-                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, st)
+                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, subp.successors,
+                                                            '{}_initial_state'.format(subp.action.name))
 
                 v_code.extend(sp_v_code)
                 f_code.extend([
                     '',
                     '/* Sbprocess {} */'.format(subp.action.name),
-                    'ldv_{}_{}:'.format(automaton.identifier, subp.identifier)
+                    'ldv_{}_{}:'.format(subp.action.name, automaton.identifier)
                 ])
                 f_code.extend(sp_f_code)
                 f_code.append('return')
@@ -953,7 +960,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         elif not aspect:
             self._add_global_variable(self.entry_file, automaton.thread_variable)
 
-        cf.body.concatenate(v_code + [''] + f_code)
+        cf.body.concatenate(v_code + f_code)
         return cf
 
     def _generate_state_cfunction(self, analysis, automaton):
@@ -990,7 +997,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 for file in sorted(self.files.keys()):
                     if "types" in self.files[file]:
                         for tp in self.files[file]["types"]:
-                            lines.extend("{} = ".format(tp.to_string(tp.name)) + "{\n")
+                            lines.extend("{} = ".format(tp.to_string('')) + "{\n")
                             for field in sorted(list(tp.fields.keys())):
                                 lines.extend("\t{},\n".format(tp.fields[field].to_string(field)))
                             lines.extend("};\n")
