@@ -100,35 +100,37 @@ class Access:
             target = self.list_interface[-1].declaration
 
         expression = variable.name
-        candidate = variable.declaration
         accesses = self.list_access[1:]
-        previous = None
-        while candidate:
-            tmp = candidate
 
-            if candidate.compare(target):
-                candidate = None
-                if type(previous) is Pointer:
-                    expression = "*({})".format(expression)
-            elif type(candidate) is Pointer:
-                candidate = candidate.points
-            elif type(candidate) is Array:
-                candidate = candidate.element
-                expression += '[{}]'.format(accesses.pop(0))
-            elif type(candidate) is Structure:
-                field = accesses.pop(0)
-                if field in candidate.fields:
-                    candidate = candidate.fields[field]
+        if len(accesses) > 0:
+            candidate = variable.declaration
+            previous = None
+            while candidate:
+                tmp = candidate
+
+                if candidate.compare(target):
+                    candidate = None
                     if type(previous) is Pointer:
-                        expression += '->{}'.format(field)
+                        expression = "*({})".format(expression)
+                elif type(candidate) is Pointer:
+                    candidate = candidate.points
+                elif type(candidate) is Array:
+                    candidate = candidate.element
+                    expression += '[{}]'.format(accesses.pop(0))
+                elif type(candidate) is Structure:
+                    field = accesses.pop(0)
+                    if field in candidate.fields:
+                        candidate = candidate.fields[field]
+                        if type(previous) is Pointer:
+                            expression += '->{}'.format(field)
+                        else:
+                            expression += '.{}'.format(field)
                     else:
-                        expression += '.{}'.format(field)
+                        raise ValueError('Cannot build access from given variable')
                 else:
-                    raise ValueError('Cannot build access from given variable')
-            else:
-                raise ValueError('CAnnot build access from given variable')
+                    raise ValueError('CAnnot build access from given variable')
 
-            previous = tmp
+                previous = tmp
 
         return expression
 
@@ -240,7 +242,7 @@ class Process:
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
-    def add_simple_label(self, name, declaration, value):
+    def add_label(self, name, declaration, value):
         lb = Label(name)
         lb.prior_signature = declaration
         lb.value = value
@@ -248,6 +250,7 @@ class Process:
         self.labels[name] = lb
         acc = Access('%{}%'.format(name))
         acc.label = lb
+        acc.list_access = [lb.name]
         self.__accesses[acc.expression] = [acc]
         return lb
 
