@@ -1,6 +1,4 @@
 from django.db import models
-from django.db.models.signals import post_init
-from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
 from jobs.models import File, Job
@@ -73,18 +71,11 @@ class ReportComponent(Report):
     memory = models.BigIntegerField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
-    log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
-    data = models.BinaryField(null=True)
+    log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL, related_name='reports1')
+    data = models.ForeignKey(File, null=True, related_name='reports2')
 
     class Meta:
         db_table = 'report_component'
-
-
-@receiver(post_init, sender=ReportComponent)
-def get_report_data(**kwargs):
-    report = kwargs['instance']
-    if report.data is not None and not isinstance(report.data, bytes):
-        report.data = report.data.tobytes()
 
 
 class ReportFiles(models.Model):

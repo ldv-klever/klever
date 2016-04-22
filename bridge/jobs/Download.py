@@ -195,7 +195,7 @@ class ReportsData(object):
             } if all(x is not None for x in [report.cpu_time, report.wall_time, report.memory]) else None,
             'start_date': get_date(report.start_date),
             'finish_date': get_date(report.finish_date),
-            'data': report.data.decode('utf8') if report.data is not None else None,
+            'data': report.data.file.read().decode('utf8') if report.data is not None else None,
             'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
 
@@ -419,6 +419,10 @@ class UploadReports(object):
         if uf.log is None:
             raise ValueError('Component report without log was found')
 
+        if data['data'] is not None:
+            report_datafile = file_get_or_create(BytesIO(data['data'].encode('utf8')), 'report-data.json')[0]
+        else:
+            report_datafile = None
         self._pk_map[data['pk']] = ReportComponent.objects.create(
             root=self.job.reportroot,
             parent=parent,
@@ -432,7 +436,7 @@ class UploadReports(object):
             finish_date=datetime(*data['finish_date'], tzinfo=pytz.timezone('UTC'))
             if data['finish_date'] is not None else None,
             log=uf.log,
-            data=data['data'].encode('utf8') if data['data'] is not None else None
+            data=report_datafile
         )
         for attr in data['attrs']:
             self._attrs.add(self._pk_map[data['pk']].pk, attr[0], attr[1])

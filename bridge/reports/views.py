@@ -62,7 +62,7 @@ def report_component(request, job_id, report_id):
     report_data = None
     if report.data is not None:
         try:
-            report_data = json.loads(report.data.decode('utf8'))
+            report_data = json.loads(report.data.file.read().decode('utf8'))
         except Exception as e:
             logger.exception("Json parsing error: %s" % e, stack_info=True)
 

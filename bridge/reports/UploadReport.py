@@ -224,12 +224,11 @@ class UploadReport(object):
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
+            report_datafile = None
+            if 'data' in self.data:
+                report_datafile = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
             report = ReportComponent(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root,
-                start_date=now(),
-                data=self.data['data'].encode('utf8') if 'data' in self.data else None,
+                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), data=report_datafile,
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
 
@@ -279,7 +278,7 @@ class UploadReport(object):
     def __update_report_data(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
-            report.data = self.data['data'].encode('utf8')
+            report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
             report.save()
         except ObjectDoesNotExist:
             self.error = 'Updated report does not exist'
@@ -309,7 +308,7 @@ class UploadReport(object):
                 return
             report.log = uf.log
         if 'data' in self.data:
-            report.data = self.data['data'].encode('utf8')
+            report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
         report.finish_date = now()
         report.save()
         if uf is not None:

@@ -1,3 +1,4 @@
+from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -140,7 +141,7 @@ def clear_system(request):
         return JsonResponse({'error': _('Unknown error')})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
-    clear_job_files()
+    clear_files()
     clear_service_files()
     clear_computers()
     return JsonResponse({'message': _("All unused files and DB rows were deleted")})
