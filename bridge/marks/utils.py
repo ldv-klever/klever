@@ -1,18 +1,22 @@
+import os
 import re
 import json
 import tarfile
 import hashlib
 from io import BytesIO
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import logger, unique_id
+from bridge.utils import logger, unique_id, file_get_or_create
 from marks.models import *
 from reports.models import ReportComponent, Attr, AttrName, Verdict
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
+
+MARK_ERROR_TRACE_FILE_NAME = 'converted-error-trace'
 
 
 class NewMark(object):
@@ -94,11 +98,14 @@ class NewMark(object):
                 logger.exception("Get MarkUnsafeConvert(pk=%s)" % args['convert_id'], stack_info=True)
                 return _('The error traces conversion function was not found')
 
-            converted = ConvertTrace(func.name, report.error_trace.decode('utf8'))
+            converted = ConvertTrace(func.name, report.error_trace.file.read().decode('utf8'))
             if converted.error is not None:
                 logger.error(converted.error, stack_info=True)
                 return _('Error trace converting failed')
-            mark.error_trace = converted.pattern_error_trace.encode('utf8')
+            mark.error_trace = file_get_or_create(
+                BytesIO(converted.pattern_error_trace.encode('utf8')),
+                MARK_ERROR_TRACE_FILE_NAME
+            )[0]
 
             try:
                 mark.function = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
@@ -115,7 +122,8 @@ class NewMark(object):
                 re.search(mark.function, '')
             except Exception as e:
                 logger.exception("Wrong mark function (%s): %s" % (mark.function, e), stack_info=True)
-                return _('The pattern is wrong, please refer to documentation on the standard Python library for processing reqular expressions')
+                return _('The pattern is wrong, please refer to documentation on the standard Python '
+                         'library for processing reqular expressions')
 
             if 'problem' not in args or len(args['problem']) == 0:
                 return _('The problem is required')
@@ -195,7 +203,8 @@ class NewMark(object):
                     re.search(args['function'], '')
                 except Exception as e:
                     logger.exception("Wrong mark function (%s): %s" % (args['function'], e), stack_info=True)
-                    return _('The pattern is wrong, please refer to documentation on the standard Python library for processing reqular expressions')
+                    return _('The pattern is wrong, please refer to documentation on the standard Python '
+                             'library for processing reqular expressions')
                 mark.function = args['function']
                 self.do_recalk = True
 
@@ -372,8 +381,8 @@ class ConnectReportWithMarks(object):
                 compare_failed = False
                 compare = CompareTrace(
                     mark.function.name,
-                    mark.error_trace.decode('utf8'),
-                    self.report.error_trace.decode('utf8')
+                    mark.error_trace.file.read().decode('utf8'),
+                    self.report.error_trace.file.read().decode('utf8')
                 )
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error, stack_info=True)
@@ -401,7 +410,7 @@ class ConnectReportWithMarks(object):
         changes = {self.report: {}}
         for mark in MarkUnknown.objects.filter(component=self.report.component):
             problem = MatchUnknown(
-                self.report.problem_description.decode('utf8'),
+                self.report.problem_description.file.read().decode('utf8'),
                 mark.function,
                 mark.problem_pattern
             ).problem
@@ -448,6 +457,7 @@ class ConnectMarkWithReports(object):
                 'verdict1': mark_unsafe.report.verdict,
             }
         self.mark.markreport_set.all().delete()
+        pattern_error_trace = self.mark.error_trace.file.read().decode('utf8')
         for unsafe in ReportUnsafe.objects.all():
             for attr in last_version.attrs.all():
                 if attr.is_compare:
@@ -458,8 +468,8 @@ class ConnectMarkWithReports(object):
                         pass
             else:
                 compare_failed = False
-                compare = CompareTrace(self.mark.function.name,
-                                       self.mark.error_trace.decode('utf8'), unsafe.error_trace.decode('utf8'))
+                compare = CompareTrace(self.mark.function.name, pattern_error_trace,
+                                       unsafe.error_trace.file.read().decode('utf8'))
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error)
                     compare_failed = True
@@ -509,7 +519,7 @@ class ConnectMarkWithReports(object):
         self.mark.markreport_set.all().delete()
         for unknown in ReportUnknown.objects.filter(component=self.mark.component):
             problem = MatchUnknown(
-                unknown.problem_description.decode('utf8'),
+                unknown.problem_description.file.read().decode('utf8'),
                 self.mark.function,
                 self.mark.problem_pattern
             ).problem
@@ -757,8 +767,7 @@ class CreateMarkTar(object):
                         'value': attr.attr.value,
                         'is_compare': attr.is_compare
                     })
-            write_file_str(marktar_obj, 'version-%s' % markversion.version,
-                           json.dumps(version_data))
+            write_file_str(marktar_obj, 'version-%s' % markversion.version, json.dumps(version_data))
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
@@ -768,8 +777,7 @@ class CreateMarkTar(object):
             common_data['component'] = self.mark.component.name
         write_file_str(marktar_obj, 'markdata', json.dumps(common_data))
         if self.type == 'unsafe':
-            write_file_str(marktar_obj, 'error-trace',
-                           self.mark.error_trace.decode('utf8'))
+            marktar_obj.add(os.path.join(settings.MEDIA_ROOT, self.mark.error_trace.file.name), arcname='error-trace')
         marktar_obj.close()
 
 
@@ -804,7 +812,7 @@ class ReadTarMark(object):
             mark.author = self.user
 
             if self.type == 'unsafe':
-                mark.error_trace = args['error_trace'].encode('utf8')
+                mark.error_trace = file_get_or_create(args['error_trace'], MARK_ERROR_TRACE_FILE_NAME)
                 try:
                     mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:
@@ -939,7 +947,7 @@ class ReadTarMark(object):
                 except ValueError:
                     return _("The mark archive is corrupted")
             elif file_name == 'error-trace':
-                err_trace = file_obj.read().decode('utf-8')
+                err_trace = file_obj
             elif file_name.startswith('version-'):
                 version_id = int(file_name.replace('version-', ''))
                 try:
@@ -953,8 +961,7 @@ class ReadTarMark(object):
         if self.type not in ['safe', 'unsafe', 'unknown']:
             return _("The mark archive is corrupted")
         if self.type == 'unsafe' and err_trace is None:
-            return _("The mark archive is corrupted: "
-                     "the pattern error trace is not found")
+            return _("The mark archive is corrupted: the pattern error trace is not found")
         elif self.type == 'unknown' and 'component' not in mark_data:
             return _("The mark archive is corrupted")
 

@@ -64,6 +64,14 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <br>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            {{ profile_form.assumptions }}
+                            <label>{{ profile_form.assumptions.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace assumptions. This can take very much time for big error traces.' %}"></i></label>
+                        </div>
+                        <br>
+                    </div>
                 </div>
                 <div class="six wide column">
                     <h3 class="header">{% trans 'VerifierCloud Credentials' %}</h3>

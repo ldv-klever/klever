@@ -224,12 +224,11 @@ class UploadReport(object):
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
+            report_datafile = None
+            if 'data' in self.data:
+                report_datafile = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
             report = ReportComponent(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root,
-                start_date=now(),
-                data=self.data['data'].encode('utf8') if 'data' in self.data else None,
+                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), data=report_datafile,
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
 
@@ -279,7 +278,7 @@ class UploadReport(object):
     def __update_report_data(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
-            report.data = self.data['data'].encode('utf8')
+            report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
             report.save()
         except ObjectDoesNotExist:
             self.error = 'Updated report does not exist'
@@ -309,7 +308,7 @@ class UploadReport(object):
                 return
             report.log = uf.log
         if 'data' in self.data:
-            report.data = self.data['data'].encode('utf8')
+            report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
         report.finish_date = now()
         report.save()
         if uf is not None:
@@ -345,10 +344,10 @@ class UploadReport(object):
             logger.exception("Files uploading failed: %s" % e, stack_info=True)
             self.error = 'Files uploading failed'
             return
-        if uf.file_content is None:
+        if uf.main_file is None:
             self.error = 'The unknown report problem description was not found in the archive'
             return
-        report.problem_description = uf.file_content
+        report.problem_description = uf.main_file
         report.save()
 
         self.__collect_attrs(report)
@@ -384,10 +383,10 @@ class UploadReport(object):
             logger.exception("Files uploading failed: %s" % e, stack_info=True)
             self.error = 'Files uploading failed'
             return
-        if uf.file_content is None:
+        if uf.main_file is None:
             self.error = 'The safe report proof was not found in teh archive'
             return
-        report.proof = uf.file_content
+        report.proof = uf.main_file
         report.save()
 
         self.__collect_attrs(report)
@@ -425,10 +424,10 @@ class UploadReport(object):
             logger.exception("Files uploading failed: %s" % e, stack_info=True)
             self.error = 'Files uploading failed'
             return
-        if uf.file_content is None:
+        if uf.main_file is None:
             self.error = 'The unsafe error trace was not found in the archive'
             return
-        report.error_trace = uf.file_content
+        report.error_trace = uf.main_file
         report.save()
 
         for src_f in uf.other_files:
@@ -526,7 +525,7 @@ class UploadReport(object):
 class UploadReportFiles(object):
     def __init__(self, archive, log=None, file_name=None, need_other=False):
         self.log = None
-        self.file_content = None
+        self.main_file = None
         self.need_other = need_other
         self.other_files = []
         self.__read_archive(archive, log, file_name)
@@ -543,7 +542,7 @@ class UploadReportFiles(object):
                 if logname is not None and file_name == logname:
                     self.log = file_get_or_create(file_obj, os.path.basename(file_name))[0]
                 elif report_filename is not None and file_name == report_filename:
-                    self.file_content = file_obj.read()
+                    self.main_file = file_get_or_create(file_obj, os.path.basename(file_name))[0]
                 elif self.need_other:
                     self.other_files.append({
                         'name': file_name,
