@@ -193,7 +193,6 @@ class Automaton:
         self.functions = []
         self.__state_variable = None
         self.__thread_variable = None
-        self.__variables = []
         self.__label_variables = {}
 
         # Set given values
@@ -211,6 +210,7 @@ class Automaton:
     def state_variable(self):
         if not self.__state_variable:
             var = Variable('ldv_statevar_{}'.format(self.identifier),  None, 'int a', True)
+            var.use += 1
             self.__state_variable = var
 
         return self.__state_variable
@@ -219,23 +219,25 @@ class Automaton:
     def thread_variable(self):
         if not self.__thread_variable:
             var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'ldv_thread a', True)
+            var.use += 1
             self.__thread_variable = var
 
         return self.__thread_variable
 
     def variables(self, analysis):
-        if len(self.__variables) == 0:
-            # Generate variable for each label
-            for label in [self.process.labels[name] for name in sorted(self.process.labels.keys())]:
-                if label.interfaces:
-                    for interface in label.interfaces:
-                        self.__variables.append(self.determine_variable(analysis, label, interface))
-                else:
-                    var = self.determine_variable(analysis, label)
-                    if var:
-                        self.__variables.append(self.determine_variable(analysis, label))
+        variables = []
 
-        return self.__variables
+        # Generate variable for each label
+        for label in [self.process.labels[name] for name in sorted(self.process.labels.keys())]:
+            if label.interfaces:
+                for interface in label.interfaces:
+                    variables.append(self.determine_variable(analysis, label, interface))
+            else:
+                var = self.determine_variable(analysis, label)
+                if var:
+                    variables.append(self.determine_variable(analysis, label))
+
+        return variables
 
     def new_param(self, analysis, name, declaration, value):
         lb = self.process.add_label(name, declaration, value)
