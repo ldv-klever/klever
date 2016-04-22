@@ -116,8 +116,12 @@ class ProcessModel:
         self.entry_process.actions['none'] = none
 
         # Add subprocesses finally
-        self.entry_process.process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.({} | <none>).[exit]." \
-                                      "<stop>)".format('.'.join(dispatches))
+        if len(dispatches):
+            default_dispatches = '({} | <none>)'.format('.'.join(dispatches))
+        else:
+            default_dispatches = '<none>'
+        self.entry_process.process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.{}.[exit]." \
+                                      "<stop>)".format(default_dispatches)
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models
