@@ -156,7 +156,7 @@ class Aspect(FunctionDefinition):
 
     def get_aspect(self):
         lines = list()
-        lines.append("around: call({}) ".format("$ {}(..)".format(self.name)) +
+        lines.append("after: call({}) ".format("$ {}(..)".format(self.name)) +
                      " {\n")
         lines.extend(self.body.get_lines(1))
         lines.append("}\n")
