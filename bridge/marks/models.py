@@ -5,7 +5,7 @@ from django.dispatch.dispatcher import receiver
 from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent,\
     Component, ReportUnknown, AttrName
-from jobs.models import Job
+from jobs.models import Job, File
 
 
 class UnknownProblem(models.Model):
@@ -112,17 +112,10 @@ class MarkUnsafe(Mark):
     prime = models.ForeignKey(ReportUnsafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
     function = models.ForeignKey(MarkUnsafeCompare)
-    error_trace = models.BinaryField(null=True)
+    error_trace = models.ForeignKey(File, null=True)
 
     class Meta:
         db_table = 'mark_unsafe'
-
-
-@receiver(post_init, sender=MarkUnsafe)
-def get_mark_trace(**kwargs):
-    mark = kwargs['instance']
-    if mark.error_trace is not None and not isinstance(mark.error_trace, bytes):
-        mark.error_trace = mark.error_trace.tobytes()
 
 
 class MarkUnsafeHistory(MarkHistory):

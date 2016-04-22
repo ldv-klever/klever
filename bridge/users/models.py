@@ -13,6 +13,7 @@ class Extended(models.Model):
     language = models.CharField(max_length=2, choices=LANGUAGES, default=DEF_USER['language'])
     role = models.CharField(max_length=1, choices=USER_ROLES, default='0')
     timezone = models.CharField(max_length=255, default=DEF_USER['timezone'])
+    assumptions = models.BooleanField(default=DEF_USER['assumptions'])
 
     def __str__(self):
         return self.user.username

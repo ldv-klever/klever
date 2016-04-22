@@ -10,15 +10,17 @@ from marks.models import *
 from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 
 
-def clear_job_files():
+def clear_files():
     from jobs.models import File, JOBFILE_DIR
     files_in_the_system = []
     for f in File.objects.all():
-        if len(f.etvfiles_set.all()) == 0 \
-                and len(f.reportcomponent_set.all()) == 0 \
-                and len(f.filesystem_set.all()) == 0 \
-                and len(f.reportfiles_set.all()) == 0 \
-                and len(f.runhistory_set.all()) == 0:
+
+        if len(f.etvfiles_set.all()) == 0 and len(f.reportcomponent_set.all()) == 0 \
+                and len(f.filesystem_set.all()) == 0 and len(f.reportfiles_set.all()) == 0 \
+                and len(f.runhistory_set.all()) == 0 and len(f.reports1.all()) == 0 \
+                and len(f.reports2.all()) == 0 and len(f.etvfiles_set.all()) == 0 \
+                and len(f.markunsafe_set.all()) == 0 and len(f.reportsafe_set.all()) == 0 \
+                and len(f.reportunsafe_set.all()) == 0 and len(f.reportunknown_set.all()) == 0:
             f.delete()
         else:
             file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))
