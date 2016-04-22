@@ -96,7 +96,7 @@
       "actions": {
         "free": {
           "statements": [
-            "%netdev% = $arg1",
+            "%netdev% = $arg1;",
             "$FREE(%netdev%);"
           ]
         }

@@ -52,10 +52,8 @@
               "rcv.h",
               "emg.h"
             ],
-            "additional C files": [
-              "emg.c"
-            ],
-            "additional aspects": ["headers.aspect"]
+            "additional C files": [],
+            "additional aspects": []
           }
         },
         {
