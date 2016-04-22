@@ -54,23 +54,22 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #    fh.write(content)
 
     def collect_relevant_models(self, function):
-        self.logger.debug("Collect relevant kernel functions called in a call stack of function ''".format(function))
+        self.logger.debug("Collect relevant kernel functions called in a call stack of function '{}'".format(function))
         process_names = [function]
-        processed_names = []
+        processed_names = set()
         relevant = []
         while len(process_names) > 0:
             name = process_names.pop()
+            processed_names.add(name)
 
             if name in self.modules_functions:
                 for file in sorted(self.modules_functions[name].keys()):
                     for called in self.modules_functions[name][file]['calls']:
-                        if called in self.modules_functions and called not in processed_names and \
-                                called not in process_names:
+                        if called in self.modules_functions and called not in processed_names:
                             process_names.append(called)
                         elif called in self.kernel_functions:
                             relevant.append(called)
 
-            processed_names.append(name)
         return relevant
 
     def callback_name(self, call):

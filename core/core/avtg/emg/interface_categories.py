@@ -127,7 +127,7 @@ class CategoriesSpecification:
         return intf
 
     def implementations(self, interface, weakly=True):
-        self.logger.debug("Calculate inplementations for interface '{}'".format(interface.identifier))
+        self.logger.debug("Calculate implementations for interface '{}'".format(interface.identifier))
         if weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['weak']) is list:
             self.logger.debug("Cache hit")

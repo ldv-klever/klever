@@ -19,7 +19,7 @@ class FSA:
         self.__generate_states(process)
 
     def clone_state(self, node):
-        new_desc = copy.deepcopy(node.desc)
+        new_desc = copy.copy(node.desc)
         new_id = self.__yield_id()
 
         new_state = Node(new_desc, new_id)
@@ -78,10 +78,10 @@ class FSA:
         asts = list()
 
         for name in [name for name in sorted(process.actions.keys()) if type(process.actions[name]) is Subprocess]:
-            ast = copy.deepcopy(process.actions[name].process_ast)
+            ast = copy.copy(process.actions[name].process_ast)
             self.__generate_nodes(process, ast)
             sb_asts[name] = ast
-        p_ast = copy.deepcopy(process.process_ast)
+        p_ast = copy.copy(process.process_ast)
         self.initial_states = self.__generate_nodes(process, p_ast)
         asts.append([p_ast, None])
 
@@ -396,7 +396,7 @@ class Automaton:
             callbacks = []
 
             for access in accesses:
-                new_case = copy.deepcopy(base_case)
+                new_case = copy.copy(base_case)
 
                 if access.interface:
                     signature = access.interface.declaration
@@ -409,10 +409,14 @@ class Automaton:
                         invoke = '(' + implementations[0].value + ')'
                         file = implementations[0].file
                         check = False
+                        func_variable = access.access_with_variable(self.determine_variable(analysis, access.label,
+                                                                                     access.list_interface[0].
+                                                                                     identifier))
                     elif signature.clean_declaration:
                         invoke = access.access_with_variable(self.determine_variable(analysis, access.label,
                                                                                      access.list_interface[0].
                                                                                      identifier))
+                        func_variable = invoke
                         file = translator.entry_file
                         check = True
                     else:
@@ -420,14 +424,16 @@ class Automaton:
                 else:
                     signature = access.label.prior_signature
 
+                    func_variable = self.determine_variable(analysis, access.label)
                     if access.label.value and analysis.callback_name(access.label.value):
                         invoke = analysis.callback_name(access.label.value)
+                        func_variable = func_variable.name
                         file = translator.entry_file
                         check = False
                     else:
-                        variable = self.determine_variable(analysis, access.label)
-                        if variable:
-                            invoke = access.access_with_variable(variable)
+                        if func_variable:
+                            func_variable = func_variable.name
+                            invoke = access.access_with_variable(func_variable)
                             file = translator.entry_file
                             check = True
                         else:
@@ -439,12 +445,12 @@ class Automaton:
                         new_case['relevant automata'] = additional_checks
 
                     if len(callbacks) == 0:
-                        callbacks.append([state, new_case, signature, invoke, file, check])
+                        callbacks.append([state, new_case, signature, invoke, file, check, func_variable])
                     else:
                         clone = self.fsa.clone_state(state)
-                        callbacks.append([clone, new_case, signature, invoke, file, check])
+                        callbacks.append([clone, new_case, signature, invoke, file, check, func_variable])
 
-            for nd, case, signature, invoke, file, check in callbacks:
+            for nd, case, signature, invoke, file, check, func_variable in callbacks:
                 # Generate function call and corresponding function
                 params = []
                 label_params = []
@@ -519,6 +525,7 @@ class Automaton:
                 case["body"].append("/* Call callback {} */".format(nd.action.name))
                 case["body"].extend(cb_statements)
                 case['file'] = file
+                case['variable'] = func_variable
                 nd.code = case
         elif type(state.action) is Dispatch:
             # Generate dispatch function
