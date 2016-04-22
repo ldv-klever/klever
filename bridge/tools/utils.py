@@ -15,7 +15,7 @@ def clear_files():
     files_in_the_system = []
     for f in File.objects.all():
 
-        if len(f.etvfiles_set.all()) == 0 and len(f.reportcomponent_set.all()) == 0 \
+        if len(f.etvfiles_set.all()) == 0 \
                 and len(f.filesystem_set.all()) == 0 and len(f.reportfiles_set.all()) == 0 \
                 and len(f.runhistory_set.all()) == 0 and len(f.reports1.all()) == 0 \
                 and len(f.reports2.all()) == 0 and len(f.etvfiles_set.all()) == 0 \
