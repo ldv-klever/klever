@@ -105,15 +105,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "9aaf9678ea3e~"},
-        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "790cc82a2b2b~"},
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
@@ -195,6 +186,15 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "9aaf9678ea3e~"},
+        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Target bug can be detected just if this module will be analysed together with snd-emu10k1.ko. That module defines snd_emu10k1_voice_alloc() that can call snd_emu10k1_synth_get_voice() acquiring the same spinlock as snd_emu10k1_voice_alloc() already acquired"
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "44f694330e1e"},
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
@@ -215,15 +215,6 @@
       "Linux kernel": {
         "Git repository": {"commit": "ae3f34854485"},
         "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "9aaf9678ea3e"},
-        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "safe",
@@ -299,6 +290,14 @@
         "modules": ["drivers/leds/leds-lp5523.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "9aaf9678ea3e"},
+        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "safe"
     }
   ],
