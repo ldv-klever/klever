@@ -789,38 +789,41 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         f_code.append('\t' * tab + stm)
 
             last_action = False
-            closed_condition = False
-            if len(conditional_stack) > 0:
-                if len(state.successors) == 0:
-                    last_action = True
-                elif type(state.action) is Subprocess:
-                    last_action = True
-                else:
-                    for succ in state.successors:
-                        trivial_predecessors = len([p for p in succ.predecessors if type(p.action) is not Subprocess])
-                        if trivial_predecessors > 1:
-                            last_action = True
-                            break
+            closed_condition = True
+            while closed_condition:
+                last_action = False
+                closed_condition = False
+                if len(conditional_stack) > 0:
+                    if len(state.successors) == 0:
+                        last_action = True
+                    elif type(state.action) is Subprocess:
+                        last_action = True
+                    else:
+                        for succ in state.successors:
+                            trivial_predecessors = len([p for p in succ.predecessors if type(p.action) is not Subprocess])
+                            if trivial_predecessors > 1:
+                                last_action = True
+                                break
 
-                if last_action and conditional_stack[-1]['cases left'] == 0 and \
-                        conditional_stack[-1]['condition'] == 'switch':
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                    f_code.append('\t' * tab + 'if (!{}) '.format(conditional_stack[-1]['pass variable']) + '{')
-                    tab += 1
-                    f_code.append('\t' * tab + 'goto {};'.format(format(conditional_stack[-1]['label'])))
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                    conditional_stack.pop()
-                    closed_condition = True
-                elif last_action and conditional_stack[-1]['cases left'] == 0 and \
-                        conditional_stack[-1]['condition'] == 'if':
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                    conditional_stack.pop()
-                    closed_condition = True
+                    if last_action and conditional_stack[-1]['cases left'] == 0 and \
+                                    conditional_stack[-1]['condition'] == 'switch':
+                        tab -= 1
+                        f_code.append('\t' * tab + '}')
+                        tab -= 1
+                        f_code.append('\t' * tab + '}')
+                        f_code.append('\t' * tab + 'if (!{}) '.format(conditional_stack[-1]['pass variable']) + '{')
+                        tab += 1
+                        f_code.append('\t' * tab + 'goto {};'.format(format(conditional_stack[-1]['label'])))
+                        tab -= 1
+                        f_code.append('\t' * tab + '}')
+                        conditional_stack.pop()
+                        closed_condition = True
+                    elif last_action and conditional_stack[-1]['cases left'] == 0 and \
+                                    conditional_stack[-1]['condition'] == 'if':
+                        tab -= 1
+                        f_code.append('\t' * tab + '}')
+                        conditional_stack.pop()
+                        closed_condition = True
 
             if (type(state.action) is not Subprocess or len(state.code['guard']) > 0) and \
                     (not last_action or (last_action and closed_condition)):
