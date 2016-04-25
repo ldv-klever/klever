@@ -640,14 +640,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     body.append(tmp_body[index])
                 else:
                     body.append('ret = {}'.format(tmp_body[index]))
-                    body.append('ldv_assume(ret);')
+                    body.append('ldv_assume(ret == 0);')
         else:
             if len(tmp_body) == 1:
                 if self.direct_cf_calls:
                     body.append(tmp_body[0])
                 else:
                     body.append('ret = {}'.format(tmp_body[0]))
-                    body.append('ldv_assume(ret);')
+                    body.append('ldv_assume(ret == 0);')
             elif len(tmp_body) == 2:
                 for index in range(2):
                     if index == 0:
@@ -658,7 +658,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         body.append('\t' + tmp_body[index])
                     else:
                         body.append('\tret = {}'.format(tmp_body[index]))
-                        body.append('\tldv_assume(ret);')
+                        body.append('\tldv_assume(ret == 0);')
                     body.append('}')
             else:
                 body.append('switch (ldv_undef_int()) {')
@@ -668,7 +668,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         body.append('\t\t' + tmp_body[index])
                     else:
                         body.append('\t\tret = {}'.format(tmp_body[index]))
-                        body.append('\t\tldv_assume(ret);')
+                        body.append('\t\tldv_assume(ret == 0);')
                     body.append('\t};')
                 body.append('\tdefault: ldv_stop();')
                 body.append('};')
