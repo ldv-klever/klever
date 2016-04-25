@@ -8,8 +8,11 @@
 
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_error(void);
+void __VERIFIER_assume(int expression);
 
-#define ldv_assume(expr) __VERIFIER_assume(expr)
+void ldv_assume(int expression) {
+    return __VERIFIER_assume(expression);
+}
 
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_assume(int expr);

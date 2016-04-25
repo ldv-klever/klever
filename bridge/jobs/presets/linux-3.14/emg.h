@@ -29,6 +29,9 @@ unsigned long __VERIFIER_nondet_ulong(void);
 void *__VERIFIER_nondet_pointer(void);
 void __VERIFIER_assume(int expression);
 
+void ldv_check_final_state(void);
+void ldv_assume(int expression);
+
 void *ldv_successful_malloc(size_t size) {
   void *p = malloc(size);
   __VERIFIER_assume(p != 0);
@@ -97,4 +100,10 @@ int ldv_undef_int(void) {
 
 unsigned long ldv_undef_ulong(void) {
   return __VERIFIER_nondet_ulong();
+}
+
+void ldv_stop(void) {
+    while (true) {
+        // Stop there
+    }
 }

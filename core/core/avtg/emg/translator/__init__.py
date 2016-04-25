@@ -65,6 +65,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         self._omit_states[tag] = self.conf["translation options"]['omit composition'][tag]
         if "nested automata" in self.conf["translation options"]:
             self._nested_automata = self.conf["translation options"]["nested automata"]
+        if "direct control function calls" in self.conf["translation options"]:
+            self.direct_cf_calls = self.conf["translation options"]["direct control function calls"]
 
         if not header_lines:
             self.additional_headers = []
@@ -423,12 +425,13 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             f_invoke = cf_ret_expr + fname + '(' + ', '.join([state.code['invoke']] + state.code['parameters']) + ');'
             inv.append('if ({})'.format(state.code['invoke']))
             inv.append('\t' + f_invoke)
+            call = ret_expr + '(*arg0)' + '(' + ", ".join(["arg{}".format(i) for i in range(1, len(resources))]) + ')'
         else:
             f_invoke = cf_ret_expr + fname + '(' + \
                        ', '.join([state.code['variable']] + state.code['parameters']) + ');'
-            function.body.concatenate('arg0 = {};'.format(state.code['invoke']))
             inv.append(f_invoke)
-        call = ret_expr + '(*arg0)' + '(' + ", ".join(["arg{}".format(i) for i in range(1, len(resources))]) + ')'
+            call = ret_expr + '({})'.format(state.code['invoke']) + \
+                   '(' + ", ".join(["arg{}".format(i) for i in range(1, len(resources))]) + ')'
         function.body.concatenate('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
@@ -537,9 +540,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def _call_cf(self, automaton, parameter='0'):
         sv = automaton.thread_variable
 
-        return 'ldv_thread_create({}, {}, {});'.format('& ' + sv.name,
-                                                       self.CF_PREFIX + str(automaton.identifier),
-                                                       parameter)
+        if self.direct_cf_calls:
+            return '{}({});'.format(self.CF_PREFIX + str(automaton.identifier), parameter)
+        else:
+            return 'ldv_thread_create({}, {}, {});'.format('& ' + sv.name,
+                                                           self.CF_PREFIX + str(automaton.identifier),
+                                                           parameter)
 
     def join_cf(self, automaton):
         sv = automaton.thread_variable
@@ -567,7 +573,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         return decl
 
     def _generate_nested_dispatch(self, analysis, automaton, state):
-        body = ['int ret;']
+        if self.direct_cf_calls:
+            body = []
+        else:
+            body = ['int ret;']
 
         if len(state.code['relevant automata']) == 0:
             return ['/* Skip dispatch {} without processes to receive */']
@@ -625,24 +634,44 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             for name in state.code['relevant automata']:
                 tmp_body.append(self.join_cf(state.code['relevant automata'][name]['automaton']))
 
-        label = 'ldv_dsp_{}_{}'.format(automaton.identifier, state.identifier)
-        body.append(label + ':')
-        if len(tmp_body) == 1:
-            body.append('ret = {}'.format(tmp_body[0]))
-            body.append('if (ret != 0)')
-            body.append('\tgoto {};'.format(label))
+        if state.action.broadcast:
+            for index in range(len(tmp_body)):
+                if self.direct_cf_calls:
+                    body.append(tmp_body[index])
+                else:
+                    body.append('ret = {}'.format(tmp_body[index]))
+                    body.append('ldv_assume(ret)')
         else:
-            if state.action.broadcast:
-                body.extend(tmp_body)
+            if len(tmp_body) == 1:
+                if self.direct_cf_calls:
+                    body.append(tmp_body[0])
+                else:
+                    body.append('ret = {}'.format(tmp_body[0]))
+                    body.append('ldv_assume(ret)')
+            elif len(tmp_body) == 2:
+                for index in range(2):
+                    if index == 0:
+                        body.append('if (ldv_nondet_int() {')
+                    else:
+                        body.append('else {')
+                    if self.direct_cf_calls:
+                        body.append('\t' + tmp_body[index])
+                    else:
+                        body.append('\tret = {}'.format(tmp_body[index]))
+                        body.append('\tldv_assume(ret)')
+                    body.append('}')
+                body.append('if (ldv_nondet_int() {')
             else:
-                body.append('switch (__VERIFIER_nondet_int()) {')
+                body.append('switch (ldv_undef_int()) {')
                 for index in range(len(tmp_body)):
                     body.append('\tcase {}: '.format(index) + '{')
-                    body.append('\t\tret = {}'.format(tmp_body[index]))
-                    body.append('\t\tif (ret != 0)')
-                    body.append('\t\t\tgoto {};'.format(label))
+                    if self.direct_cf_calls:
+                        body.append('\t\t' + tmp_body[index])
+                    else:
+                        body.append('\t\tret = {}'.format(tmp_body[index]))
+                        body.append('\t\tldv_assume(ret)')
                     body.append('\t};')
-                body.append('\tdefault: goto {};'.format(label))
+                body.append('\tdefault: ldv_stop();')
                 body.append('};')
         body.append('return;')
 
@@ -674,7 +703,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         block = []
         if type(state.action) is Call:
             if not self._omit_all_states:
-                checks = self._generate_relevant_checks(analysis, automaton, state)
+                checks = self._generate_relevant_checks(analysis, dfautomaton, state)
                 state.code['guard'].extend(checks)
 
             call = self._generate_call(automaton, state)
@@ -750,17 +779,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     tab += 1
                     for stm in code:
                         f_code.append('\t' * tab + stm)
-                    f_code.append('\t' * tab + '{} = 1;'.format(conditional_stack[-1]['pass variable']))
                     tab -= 1
                     f_code.append('\t' * tab + '}')
                     f_code.append('\t' * tab + 'else')
                     tab += 1
-                    f_code.append('\t' * tab + 'goto {};'.format(conditional_stack[-1]['label']))
+                    f_code.append('\t' * tab + 'ldv_stop();')
                     tab -= 1
                 else:
                     for stm in code:
                         f_code.append('\t' * tab + stm)
-                f_code.append('\t' * tab + '{} = 1;'.format(conditional_stack[-1]['pass variable']))
             elif len(conditional_stack) > 0 and conditional_stack[-1]['condition'] == 'if' and \
                     (state in automaton.fsa.initial_states or state in conditional_stack[-1]['state'].successors):
                 if conditional_stack[-1]['counter'] != 0:
@@ -772,6 +799,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 conditional_stack[-1]['counter'] += 1
                 conditional_stack[-1]['cases left'] -= 1
 
+                if state.code and len(state.code['guard']) > 0:
+                    f_code.append('\t' * tab + 'ldv_assume({});'.format(' && '.join(sorted(state.code['guard']))))
                 for stm in code:
                     f_code.append('\t' * tab + stm)
             else:
@@ -806,20 +835,16 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                 break
 
                     if last_action and conditional_stack[-1]['cases left'] == 0 and \
-                                    conditional_stack[-1]['condition'] == 'switch':
+                            conditional_stack[-1]['condition'] == 'switch':
                         tab -= 1
                         f_code.append('\t' * tab + '}')
-                        tab -= 1
-                        f_code.append('\t' * tab + '}')
-                        f_code.append('\t' * tab + 'if (!{}) '.format(conditional_stack[-1]['pass variable']) + '{')
-                        tab += 1
-                        f_code.append('\t' * tab + 'goto {};'.format(format(conditional_stack[-1]['label'])))
+                        f_code.append('\t' * tab + 'default: ldv_stop();')
                         tab -= 1
                         f_code.append('\t' * tab + '}')
                         conditional_stack.pop()
                         closed_condition = True
                     elif last_action and conditional_stack[-1]['cases left'] == 0 and \
-                                    conditional_stack[-1]['condition'] == 'if':
+                            conditional_stack[-1]['condition'] == 'if':
                         tab -= 1
                         f_code.append('\t' * tab + '}')
                         conditional_stack.pop()
@@ -834,26 +859,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 elif len(state.successors) > 1:
                     if_condition = None
                     if len(state.successors) == 2:
-
                         successors = sorted(list(state.successors), key=lambda f: f.identifier)
-                        if successors[0].code and len(successors[0].code['guard']) > 0 and successors[1].code and \
-                                len(successors[1].code['guard']) > 0:
-                            cond1 = ' && '.join(sorted(successors[0].code['guard']))
-                            cond2 = ' && '.join(sorted(successors[1].code['guard']))
-
-                            if '(' not in cond1 and cond1.replace('!=', '==') == cond2.replace('!=', '=='):
-                                # Expect contraversal conditions
-                                if_condition = cond1
-                                successors = reversed(successors)
-                        elif successors[0].code and len(successors[0].code['guard']) > 0 and (not successors[1].code
-                                                                                              or len(successors[1].code['guard']) == 0):
-                            if_condition = ' && '.join(sorted(successors[0].code['guard']))
-                            successors = reversed(successors)
-                        elif (not successors[0].code or len(successors[0].code['guard']) == 0) and \
-                                successors[1].code and len(successors[1].code['guard']) == 0:
-                            if_condition = ' && '.join(sorted(successors[1].code['guard']))
-                        else:
-                            if_condition = '__VERIFIER_nondet_int()'
+                        if_condition = 'ldv_undef_int()'
 
                     if if_condition:
                         for succ in successors:
@@ -877,16 +884,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         condition = {
                             'condition': 'switch',
                             'state': state,
-                            'label': 'ldv_state_switch_{}_{}'.format(automaton.identifier, state.identifier),
-                            'pass variable': 'ldv_switch_proceed_{}_{}'.format(automaton.identifier, state.identifier),
                             'cases left': len(list(state.successors)),
                             'counter': 0
                         }
 
-                        v_code.append("int {};".format(condition['pass variable']))
-                        f_code.append('\t' * tab + "{}:".format(condition['label']))
-                        f_code.append('\t' * tab + "{} = 0;".format(condition['pass variable']))
-                        f_code.append('\t' * tab + 'switch (__VERIFIER_nondet_int()) {')
+                        f_code.append('\t' * tab + 'switch (ldv_undef_int()) {')
                         tab += 1
 
                         conditional_stack.append(condition)
