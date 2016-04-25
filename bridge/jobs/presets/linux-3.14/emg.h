@@ -32,6 +32,10 @@ void __VERIFIER_assume(int expression);
 void ldv_check_final_state(void);
 void ldv_assume(int expression);
 
+int ldv_nondet_int(void) {
+   return __VERIFIER_nondet_int();
+}
+
 void *ldv_successful_malloc(size_t size) {
   void *p = malloc(size);
   __VERIFIER_assume(p != 0);

@@ -640,27 +640,26 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     body.append(tmp_body[index])
                 else:
                     body.append('ret = {}'.format(tmp_body[index]))
-                    body.append('ldv_assume(ret)')
+                    body.append('ldv_assume(ret);')
         else:
             if len(tmp_body) == 1:
                 if self.direct_cf_calls:
                     body.append(tmp_body[0])
                 else:
                     body.append('ret = {}'.format(tmp_body[0]))
-                    body.append('ldv_assume(ret)')
+                    body.append('ldv_assume(ret);')
             elif len(tmp_body) == 2:
                 for index in range(2):
                     if index == 0:
-                        body.append('if (ldv_nondet_int() {')
+                        body.append('if (ldv_nondet_int()) {')
                     else:
                         body.append('else {')
                     if self.direct_cf_calls:
                         body.append('\t' + tmp_body[index])
                     else:
                         body.append('\tret = {}'.format(tmp_body[index]))
-                        body.append('\tldv_assume(ret)')
+                        body.append('\tldv_assume(ret);')
                     body.append('}')
-                body.append('if (ldv_nondet_int() {')
             else:
                 body.append('switch (ldv_undef_int()) {')
                 for index in range(len(tmp_body)):
@@ -669,7 +668,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         body.append('\t\t' + tmp_body[index])
                     else:
                         body.append('\t\tret = {}'.format(tmp_body[index]))
-                        body.append('\t\tldv_assume(ret)')
+                        body.append('\t\tldv_assume(ret);')
                     body.append('\t};')
                 body.append('\tdefault: ldv_stop();')
                 body.append('};')
@@ -703,7 +702,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         block = []
         if type(state.action) is Call:
             if not self._omit_all_states:
-                checks = self._generate_relevant_checks(analysis, dfautomaton, state)
+                checks = self._generate_relevant_checks(analysis, automaton, state)
                 state.code['guard'].extend(checks)
 
             call = self._generate_call(automaton, state)

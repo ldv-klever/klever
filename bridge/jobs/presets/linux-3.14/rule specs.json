@@ -23,6 +23,7 @@
               "ignore missed callbacks": true
             },
             "translation options": {
+              "direct control function calls": false,
               "omit all states": true,
               "nested automata": true,
               "omit parallel composition": {
@@ -49,7 +50,6 @@
               }
             },
             "additional headers": [
-              "rcv.h",
               "emg.h"
             ],
             "additional C files": [],
