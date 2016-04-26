@@ -1,5 +1,7 @@
+import json
 from django.core.urlresolvers import reverse
 from django.test import Client, TestCase
+from bridge.vars import LANGUAGES, DATAFORMAT
 from users.models import User, Extended, Notifications
 from service.models import SchedulerUser
 
@@ -35,7 +37,6 @@ class TestLoginAndRegister(TestCase):
         self.assertRedirects(response, reverse('users:login'))
 
     def test_register(self):
-        from bridge.vars import LANGUAGES, DATAFORMAT
         response = self.client.get(reverse('users:register'))
         self.assertEqual(response.status_code, 200)
         response = self.client.post(reverse('users:register'), {
@@ -62,7 +63,6 @@ class TestLoginAndRegister(TestCase):
         )), 1)
 
     def test_service(self):
-        import json
 
         Extended.objects.create(
             user=User.objects.create_user(username='service', password='service'),
@@ -123,7 +123,6 @@ class TestLoggedInUser(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_save_notifications(self):
-        import json
 
         def get_json_val(param):
             try:
@@ -141,7 +140,6 @@ class TestLoggedInUser(TestCase):
         self.assertEqual(ntf.settings, '["0_0","0_4"]')
 
     def test_edit_profile(self):
-        from bridge.vars import LANGUAGES, DATAFORMAT
         response = self.client.get(reverse('users:edit_profile'))
         self.assertEqual(response.status_code, 200)
 
