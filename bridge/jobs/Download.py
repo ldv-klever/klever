@@ -134,9 +134,7 @@ class DownloadJob(object):
             tarobj = tarfile.open(fileobj=memory, mode='w:gz')
             for f in unsafe.files.all():
                 tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
-            tinfo = tarfile.TarInfo(ET_FILE)
-            tinfo.size = len(unsafe.error_trace)
-            tarobj.addfile(tinfo, BytesIO(unsafe.error_trace))
+            tarobj.add(os.path.join(settings.MEDIA_ROOT, unsafe.error_trace.file.name), arcname=ET_FILE)
             tarobj.close()
             memory.seek(0)
             tarname = '%s.tar.gz' % unsafe.pk
@@ -146,15 +144,17 @@ class DownloadJob(object):
 
     def __add_safe_files(self, jobtar):
         for safe in ReportSafe.objects.filter(root__job=self.job):
-            tinfo = tarfile.TarInfo(os.path.join('Safes', str(safe.pk)))
-            tinfo.size = len(safe.proof)
-            jobtar.addfile(tinfo, BytesIO(safe.proof))
+            jobtar.add(
+                os.path.join(settings.MEDIA_ROOT, safe.proof.file.name),
+                arcname=os.path.join('Safes', str(safe.pk))
+            )
 
     def __add_unknown_files(self, jobtar):
         for unknown in ReportUnknown.objects.filter(root__job=self.job):
-            tinfo = tarfile.TarInfo(os.path.join('Unknowns', str(unknown.pk)))
-            tinfo.size = len(unknown.problem_description)
-            jobtar.addfile(tinfo, BytesIO(unknown.problem_description))
+            jobtar.add(
+                os.path.join(settings.MEDIA_ROOT, unknown.problem_description.file.name),
+                arcname=os.path.join('Unknowns', str(unknown.pk))
+            )
 
     def __add_component_files(self, jobtar):
         for report in ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(log=None)):
@@ -195,7 +195,7 @@ class ReportsData(object):
             } if all(x is not None for x in [report.cpu_time, report.wall_time, report.memory]) else None,
             'start_date': get_date(report.start_date),
             'finish_date': get_date(report.finish_date),
-            'data': report.data.decode('utf8') if report.data is not None else None,
+            'data': report.data.file.read().decode('utf8') if report.data is not None else None,
             'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
 
@@ -419,6 +419,10 @@ class UploadReports(object):
         if uf.log is None:
             raise ValueError('Component report without log was found')
 
+        if data['data'] is not None:
+            report_datafile = file_get_or_create(BytesIO(data['data'].encode('utf8')), 'report-data.json')[0]
+        else:
+            report_datafile = None
         self._pk_map[data['pk']] = ReportComponent.objects.create(
             root=self.job.reportroot,
             parent=parent,
@@ -432,7 +436,7 @@ class UploadReports(object):
             finish_date=datetime(*data['finish_date'], tzinfo=pytz.timezone('UTC'))
             if data['finish_date'] is not None else None,
             log=uf.log,
-            data=data['data'].encode('utf8') if data['data'] is not None else None
+            data=report_datafile
         )
         for attr in data['attrs']:
             self._attrs.add(self._pk_map[data['pk']].pk, attr[0], attr[1])
@@ -450,7 +454,7 @@ class UploadReports(object):
                 root=self.job.reportroot,
                 parent=parent,
                 identifier=data['identifier'],
-                proof=fp.read()
+                proof=file_get_or_create(fp, 'safe-proof.txt')[0]
             )
         for attr in data['attrs']:
             self._attrs.add(report.pk, attr[0], attr[1])
@@ -466,7 +470,7 @@ class UploadReports(object):
                 root=self.job.reportroot,
                 parent=parent,
                 identifier=data['identifier'],
-                problem_description=fp.read(),
+                problem_description=file_get_or_create(fp, 'problem-description.txt')[0],
                 component=parent.component
             )
         for attr in data['attrs']:
@@ -477,7 +481,7 @@ class UploadReports(object):
             raise ValueError('Unsafe without files was found')
         with open(self.files[('unsafe', data['pk'])], mode='rb') as fp:
             uf = UploadReportFiles(fp, file_name=ET_FILE, need_other=True)
-        if uf.file_content is None:
+        if uf.main_file is None:
             raise ValueError('Unsafe without error trace was found')
         if 'parent' in data and data['parent'] in self._pk_map:
             parent = self._pk_map[data['parent']]
@@ -487,7 +491,7 @@ class UploadReports(object):
             root=self.job.reportroot,
             parent=parent,
             identifier=data['identifier'],
-            error_trace=uf.file_content
+            error_trace=uf.main_file
         )
         for attr in data['attrs']:
             self._attrs.add(report.pk, attr[0], attr[1])

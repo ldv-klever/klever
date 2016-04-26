@@ -38,7 +38,7 @@ def user_signin(request):
                 except ObjectDoesNotExist:
                     extend_user(user)
                 if len(Job.objects.all()) > 0:
-                    if next_url is not None:
+                    if next_url is not None and next_url != '':
                         return HttpResponseRedirect(next_url)
                     return HttpResponseRedirect(reverse('jobs:tree'))
                 if user.is_staff:

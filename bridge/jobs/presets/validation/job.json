@@ -44,14 +44,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "60b35930067d~"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "bcb4a75bde38"},
         "modules": ["drivers/hid/hid.ko"]
       },
@@ -70,65 +62,12 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "60b35930067d"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "44f694330e1e~"},
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ac4de081312a~"},
-        "modules": ["drivers/leds/leds-lp5521.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ac4de081312a~"},
-        "modules": ["drivers/leds/leds-lp5523.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "21a018a58f3c~"},
-        "modules": ["net/tipc/tipc.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6773'>Bug #6773</a>"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ae3f34854485~"},
-        "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "9aaf9678ea3e~"},
-        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
+      "comment": "<a href='http://forge.ispras.ru/issues/7110'>Bug #7110</a>"
     },
     {
       "Linux kernel": {
@@ -186,6 +125,33 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "60b35930067d~"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "TODO"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "21a018a58f3c~"},
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe",
+      "comment": "TODO"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ae3f34854485~"},
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe",
+      "comment": "TODO"
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "063579d4c3ed~"},
         "modules": ["drivers/w1/wire.ko"]
       },
@@ -195,55 +161,37 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "ac4de081312a~"},
+        "modules": ["drivers/leds/leds-lp5521.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Target bug can be detected just if this module will be analysed together with leds-lp55xx-common.ko. That module defines lp55xx_firmware_loaded() that calls module specific function with target bug lp5521_firmware_loaded()."
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ac4de081312a~"},
+        "modules": ["drivers/leds/leds-lp5523.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Target bug can be detected just if this module will be analysed together with leds-lp55xx-common.ko. That module defines lp55xx_firmware_loaded() that calls module specific function with target bug lp5523_firmware_loaded()."
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "9aaf9678ea3e~"},
+        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Target bug can be detected just if this module will be analysed together with snd-emu10k1.ko. That module defines snd_emu10k1_voice_alloc() that can call snd_emu10k1_synth_get_voice() acquiring the same spinlock as snd_emu10k1_voice_alloc() already acquired"
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "44f694330e1e"},
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ac4de081312a"},
-        "modules": ["drivers/leds/leds-lp5521.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ac4de081312a"},
-        "modules": ["drivers/leds/leds-lp5523.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "21a018a58f3c"},
-        "modules": ["net/tipc/tipc.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ae3f34854485"},
-        "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "9aaf9678ea3e"},
-        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "safe",
       "comment": "See comment for unsafe"
     },
@@ -297,10 +245,58 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "60b35930067d"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "21a018a58f3c"},
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ae3f34854485"},
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "063579d4c3ed"},
         "modules": ["drivers/w1/wire.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ac4de081312a"},
+        "modules": ["drivers/leds/leds-lp5521.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ac4de081312a"},
+        "modules": ["drivers/leds/leds-lp5523.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "9aaf9678ea3e"},
+        "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "safe"
     }
   ],
