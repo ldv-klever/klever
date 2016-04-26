@@ -29,9 +29,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._nested_automata = False
         self._omit_all_states = False
         self._omit_states = {
-            'callback': False,
-            'dispatch': False,
-            'receive': False
+            'callback': True,
+            'dispatch': True,
+            'receive': True,
+            'return value': False,
+            'subprocess': False,
+            'condition': False,
         }
         self.__identifier_cnt = -1
         self.__instance_modifier = 1
@@ -67,6 +70,20 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self._nested_automata = self.conf["translation options"]["nested automata"]
         if "direct control function calls" in self.conf["translation options"]:
             self.direct_cf_calls = self.conf["translation options"]["direct control function calls"]
+
+        self.jump_types = set()
+        if self._omit_states['callback']:
+            self.jump_types.add(Call)
+        if self._omit_states['dispatch']:
+            self.jump_types.add(Dispatch)
+        if self._omit_states['receive']:
+            self.jump_types.add(Receive)
+        if self._omit_states['return value']:
+            self.jump_types.add(CallRetval)
+        if self._omit_states['subprocess']:
+            self.jump_types.add(Subprocess)
+        if self._omit_states['condition']:
+            self.jump_types.add(Condition)
 
         if not header_lines:
             self.additional_headers = []
@@ -899,16 +916,54 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                          format(automaton.identifier, automaton.process.name, automaton.process.category))
         v_code = []
         f_code = []
-        ret_expression = 'return;'
 
+        # Check necessity to return a value
+        if analysis.kernel_functions[aspect].declaration.return_value and \
+                analysis.kernel_functions[aspect].declaration.return_value.identifier != 'void':
+            ret_expression = 'return $res;'
+        else:
+            ret_expression = 'return;'
+
+        # Generate function definition
+        cf = self.__new_control_function(analysis, automaton, v_code, f_code, aspect)
+
+        main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
+                                                        'initial_state')
+        v_code.extend(main_v_code)
+        f_code.extend(main_f_code)
+        f_code.append(ret_expression)
+
+        processed = []
+        for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
+                     if type(s.action) is Subprocess]:
+            if subp.action.name not in processed:
+                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, subp.successors,
+                                                            '{}_initial_state'.format(subp.action.name))
+
+                v_code.extend(sp_v_code)
+                f_code.extend([
+                    '',
+                    '/* Sbprocess {} */'.format(subp.action.name),
+                    'ldv_{}_{}:'.format(subp.action.name, automaton.identifier)
+                ])
+                f_code.extend(sp_f_code)
+                f_code.append(ret_expression)
+                processed.append(subp.action.name)
+
+        if not self._nested_automata and not aspect:
+            self._add_global_variable(self.entry_file, automaton.state_variable)
+        elif not aspect:
+            self._add_global_variable(self.entry_file, automaton.thread_variable)
+
+        cf.body.concatenate(v_code + f_code)
+        automaton.control_function = cf
+        return cf
+
+    def __new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
         # Function type
         if aspect:
             cf = Aspect(aspect, analysis.kernel_functions[aspect].declaration, 'around')
             self.model_aspects.append(cf)
-
-            if analysis.kernel_functions[aspect].declaration.return_value and \
-                    analysis.kernel_functions[aspect].declaration.return_value.identifier != 'void':
-                ret_expression = 'return $res;'
         else:
             cf = FunctionDefinition(self.CF_PREFIX + str(automaton.identifier), self.entry_file, 'void f(void *cf_arg)',
                                     False)
@@ -950,48 +1005,83 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             definition = var.declare() + ";"
             v_code.append(definition)
 
-        tab = 0
-        if not self._nested_automata:
-            sv = automaton.state_variable
-
-            f_code.append('if ({}) '.format(sv.name) + ' {')
-            tab += 1
-
-        main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
-                                                        'initial_state')
-        v_code.extend(main_v_code)
-        f_code.extend(main_f_code)
-        f_code.append(ret_expression)
-
-        processed = []
-        for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
-                     if type(s.action) is Subprocess]:
-            if subp.action.name not in processed:
-                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, subp.successors,
-                                                            '{}_initial_state'.format(subp.action.name))
-
-                v_code.extend(sp_v_code)
-                f_code.extend([
-                    '',
-                    '/* Sbprocess {} */'.format(subp.action.name),
-                    'ldv_{}_{}:'.format(subp.action.name, automaton.identifier)
-                ])
-                f_code.extend(sp_f_code)
-                f_code.append(ret_expression)
-                processed.append(subp.action.name)
-
-        if not self._nested_automata and not aspect:
-            f_code.append('}')
-            self._add_global_variable(self.entry_file, automaton.state_variable)
-        elif not aspect:
-            self._add_global_variable(self.entry_file, automaton.thread_variable)
-
-        cf.body.concatenate(v_code + f_code)
-        automaton.control_function = cf
         return cf
 
+    def _state_sequence(self, analysis, automaton, origin):
+        first = True
+        state_stack = [origin]
+        code = []
+        while len(state_stack) > 0:
+            state = state_stack.pop()
+            act = self._generate_action_base_block(analysis, automaton, state)
+            if state.code and len(state.code['guard']) > 0 and first:
+                code.append('ldv_assert({});'.format(
+                    ' && '.join(sorted(['{} == {}'.format(automaton.state_variable.name, state.identifier)] +
+                                       state.code['guard']))))
+                code.extend(act)
+                first = False
+            elif state.code and len(state.code['guard']) > 0:
+                code.append('if({}) {'.format(
+                    ' && '.join(sorted(['{} == {}'.format(automaton.state_variable.name, state.identifier)] +
+                                       state.code['guard']))))
+                for st in act:
+                    code.append('\t' + st)
+                code.append('}')
+            else:
+                code.extend(act)
+
+            if len(state.successors) == 1 and type(list(state.successors)[0].action) not in self.jump_types:
+                state_stack.append(list(state.successors)[0])
+                code.append('')
+
+        successors = sorted(list(state.successors), key=lambda f: f.identifier)
+        if len(state.successors) == 1:
+            code.append('{} = {};'.format(automaton.state_variable.name, successors[0].identifier))
+        elif len(state.successors) == 2:
+            code.extend([
+                'if (ldv_nondet_int())',
+                '\t{} = {};'.format(automaton.state_variable.name, successors[0].identifier),
+                'else',
+                '\t{} = {};'.format(automaton.state_variable.name, successors[1].identifier),
+            ])
+        elif len(state.successors) > 2:
+            code.append('switch (ldv_nondet_int()) {')
+            for index in range(len(successors)):
+                code.append('\tcase {}: {} = {};'.format(index, automaton.state_variable.name,
+                                                         successors[index].identifier))
+            code.append('\tdefault: ldv_stop();')
+            code.append('}')
+
+        return code
+
     def _generate_state_cfunction(self, analysis, automaton):
-        raise NotImplementedError
+        self.logger.info('Generate state-based control function for automaton {} based on process {} of category {}'.
+                         format(automaton.identifier, automaton.process.name, automaton.process.category))
+        v_code = []
+        f_code = []
+
+        # Generate function definition
+        cf = self.__new_control_function(analysis, automaton, v_code, f_code, None)
+
+        state_stack = [sorted(list(automaton.fsa.initial_states), key=lambda f: f.identifier)]
+        blocks = []
+        while len(state_stack) > 0:
+            origin = state_stack.pop()
+            blocks.append(self._state_sequence(analysis, automaton, origin))
+
+        f_code.append('switch (ldv_nondet_int()) {')
+        for index in range(len(blocks)):
+            f_code.append('\tcase {}: {'.format(index))
+            f_code.extend(['\t\t' + st for st in blocks])
+            f_code.append('\t}')
+        f_code.append('\tdefault: ldv_stop();')
+        f_code.append('}')
+
+        self._add_global_variable(self.entry_file, automaton.state_variable)
+        cf.body.concatenate(v_code + f_code)
+        automaton.control_function = cf
+
+        return cf
 
     def __generate_aspects(self):
         aspect_dir = "aspects"
