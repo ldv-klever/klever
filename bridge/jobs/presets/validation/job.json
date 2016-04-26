@@ -44,14 +44,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "60b35930067d~"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "bcb4a75bde38"},
         "modules": ["drivers/hid/hid.ko"]
       },
@@ -70,38 +62,12 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "60b35930067d"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "44f694330e1e~"},
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe",
       "comment": "<a href='http://forge.ispras.ru/issues/7110'>Bug #7110</a>"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "21a018a58f3c~"},
-        "modules": ["net/tipc/tipc.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6773'>Bug #6773</a>"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ae3f34854485~"},
-        "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe",
-      "comment": "<a href='https://forge.ispras.ru/issues/6560'>Bug #6560</a>"
     },
     {
       "Linux kernel": {
@@ -159,6 +125,33 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "60b35930067d~"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "TODO"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "21a018a58f3c~"},
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe",
+      "comment": "TODO"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ae3f34854485~"},
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe",
+      "comment": "TODO"
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "063579d4c3ed~"},
         "modules": ["drivers/w1/wire.ko"]
       },
@@ -199,24 +192,6 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "21a018a58f3c"},
-        "modules": ["net/tipc/tipc.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ae3f34854485"},
-        "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "safe",
       "comment": "See comment for unsafe"
     },
@@ -266,6 +241,30 @@
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
       "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "60b35930067d"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "21a018a58f3c"},
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ae3f34854485"},
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "safe"
     },
     {
