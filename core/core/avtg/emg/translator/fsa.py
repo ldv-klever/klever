@@ -13,7 +13,7 @@ class FSA:
         self.initial_states = set()
         self.finite_states = set()
         self.states = set()
-        self.__id_cnt = -1
+        self.__id_cnt = 0
 
         # Generate AST states
         self.__generate_states(process)
@@ -492,7 +492,7 @@ class Automaton:
                 if len(label_params) > 0:
                     pre_statements = []
                     post_statements = []
-                    for label in label_params:
+                    for label in sorted(list(set(label_params)), key=lambda lb: lb.name):
                         pre_statements.append('%{}% = $ALLOC(%{}%);'.format(label.name, label.name))
                         post_statements.append('$FREE(%{}%);'.format(label.name))
 
