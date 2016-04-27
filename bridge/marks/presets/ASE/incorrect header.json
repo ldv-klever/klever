@@ -1,0 +1,5 @@
+{
+  "function": "(error: implicit declaration of function 'rts51x_sd_cleanup_work'|drivers/usb/image/microtek.c:.*: error: dereferencing pointer to incomplete type)",
+  "pattern": "IncorrectHeader",
+  "link": "https://forge.ispras.ru/issues/7147"
+}
