@@ -1,0 +1,5 @@
+{
+  "function": "KeyError: 'type specifier'",
+  "pattern": "MissedTypeSpec",
+  "link": "http://forge.ispras.ru/issues/7064"
+}
