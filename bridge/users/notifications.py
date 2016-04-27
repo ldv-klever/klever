@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, activate
 from bridge.vars import JOB_ROLES, USER_ROLES
-from bridge.utils import print_err
+from bridge.utils import logger
 from jobs.models import Job
 
 
@@ -56,7 +56,11 @@ class Notify(object):
             self.__notify(add_args)
 
     def __notify(self, add_args):
-        s = smtplib.SMTP(self.server)
+        try:
+            s = smtplib.SMTP(self.server)
+        except Exception as e:
+            logger.exception("SMTP registration error: %s" % e)
+            return
         for user in User.objects.filter(
                 ~Q(notifications__settings='[]') & ~Q(notifications=None)):
             if user.email is not None and len(user.email) > 0:
@@ -68,7 +72,7 @@ class Notify(object):
                     try:
                         s.send_message(message)
                     except Exception as e:
-                        print_err("send_message() error: %s" % e)
+                        logger.exception("send_message() error: %s" % e, stack_info=True)
         s.quit()
 
 

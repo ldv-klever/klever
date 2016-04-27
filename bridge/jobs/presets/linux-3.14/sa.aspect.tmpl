@@ -3,50 +3,36 @@ around: define(likely(x)) { (x) }
 around: define(unlikely(x)) { (x) }
 
 info: execution(static $ $(void)) {
-  $fprintf<"$env<CWD>/static-execution.txt","%s %s ret='%s'\n",$path,$func_name,$ret_type_str>
+  $fprintf<"$env<CWD>/static-execution.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
-// for i in range(max_args_num)
-info: execution(static $ $({{ arg_patterns[i] }})) {
-  $fprintf<"$env<CWD>/static-execution.txt","%s %s ret='%s' {{ arg_printf_patterns[i] }}\n",$path,$func_name,$ret_type_str,{{ arg_types[i] }}>
+
+info: execution(static $ $(..)) {
+  $fprintf<"$env<CWD>/static-execution.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
-// endfor
-// for i in range(max_args_num)
-info: execution(static $ $({{ arg_patterns[i] }}, ...)) {
-  $fprintf<"$env<CWD>/static-execution.txt","%s %s ret='%s' {{ arg_printf_patterns[i] }} ...\n",$path,$func_name,$ret_type_str,{{ arg_types[i] }}>
-}
-// endfor
 
 info: execution($ $(void)) {
-  $fprintf<"$env<CWD>/execution.txt","%s %s ret='%s'\n",$path,$func_name,$ret_type_str>
+  $fprintf<"$env<CWD>/execution.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
-// for i in range(max_args_num)
-info: execution($ $({{ arg_patterns[i] }})) {
-  $fprintf<"$env<CWD>/execution.txt","%s %s ret='%s' {{ arg_printf_patterns[i] }}\n",$path,$func_name,$ret_type_str,{{ arg_types[i] }}>
+
+info: execution($ $(..)) {
+  $fprintf<"$env<CWD>/execution.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
-// endfor
-// for i in range(max_args_num)
-info: execution($ $({{ arg_patterns[i] }}, ...)) {
-  $fprintf<"$env<CWD>/execution.txt","%s %s ret='%s' {{ arg_printf_patterns[i] }} ...\n",$path,$func_name,$ret_type_str,{{ arg_types[i] }}>
-}
-// endfor
 
 info: declare_func(static $ $(void)) {
-  $fprintf<"$env<CWD>/static-declare_func.txt","%s %s ret='%s'\n",$path,$func_name,$ret_type_str>
+  $fprintf<"$env<CWD>/static-declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
-// for i in range(max_args_num)
-info: declare_func(static $ $({{ arg_patterns[i] }})) {
-  $fprintf<"$env<CWD>/static-declare_func.txt","%s %s ret='%s' {{ arg_printf_patterns[i] }}\n",$path,$func_name,$ret_type_str,{{ arg_types[i] }}>
+
+info: declare_func(static $ $(..)) {
+  $fprintf<"$env<CWD>/static-declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
-// endfor
 
 info: declare_func($ $(void)) {
-  $fprintf<"$env<CWD>/declare_func.txt","%s %s ret='%s'\n",$path,$func_name,$ret_type_str>
+  $fprintf<"$env<CWD>/declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
-// for i in range(max_args_num)
-info: declare_func($ $({{ arg_patterns[i] }})) {
-  $fprintf<"$env<CWD>/declare_func.txt","%s %s ret='%s' {{ arg_printf_patterns[i] }}\n",$path,$func_name,$ret_type_str,{{ arg_types[i] }}>
+
+info: declare_func($ $(..)) {
+  $fprintf<"$env<CWD>/declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
-// endfor
 
 /* info: expand(__EXPORT_SYMBOL(sym, sec)) {
   $fprintf<"$env<CWD>/exported-symbols.txt","%s %s\n",$path,$arg_val1>
@@ -75,20 +61,11 @@ info: call($ $({{ arg_patterns[i] }})) {
 }
 // endfor
 
-info: init_global($ struct $ $){
-    $fprintf<"$env<CWD>/global.txt","Structure initializer description begin path='%s' name='%s' type='%s'\n",$env<CC_IN_FILE>,$var_name,$var_type_name>
+info: init_global($ $){
+    $fprintf<"$env<CWD>/global.txt","declaration: %s path: %s\n",$signature,$env<CC_IN_FILE>>
     $fprintf_var_init_list<"$env<CWD>/global.txt">
-    $fprintf<"$env<CWD>/global.txt","Structure initializer description end\n">
 }
 
-info: init_global($ struct $ *$){
-    $fprintf<"$env<CWD>/global.txt","Structure pointer initializer description begin path='%s' name='%s'\n",$env<CC_IN_FILE>,$var_name>
-    $fprintf_var_init_list<"$env<CWD>/global.txt">
-    $fprintf<"$env<CWD>/global.txt","Structure pointer initializer description end\n">
-}
-
-info: init_global($ struct $ *$[$]){
-    $fprintf<"$env<CWD>/global.txt","Structure pointers array initializer description begin path='%s' name='%s'\n",$env<CC_IN_FILE>,$var_name>
-    $fprintf_var_init_list<"$env<CWD>/global.txt">
-    $fprintf<"$env<CWD>/global.txt","Structure pointers array initializer description end\n">
+info: introduce($ $) {
+    $fprintf<"$env<CWD>/typedefs.txt","declaration: %s\n",$signature>
 }

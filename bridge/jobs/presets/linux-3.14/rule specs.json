@@ -19,7 +19,27 @@
             "specifications directory": "emg",
             "entry point": "entry_point",
             "translator": "sequential",
-            "translation options": {"instance modifier": 1},
+            "intermediate model options": {
+              "ignore missed callbacks": true
+            },
+            "translation options": {
+              "instance modifier": 1,
+              "max instances number": 300,
+              "pointer initialization": {
+                "structures": true,
+                "arrays": true,
+                "functions": false,
+                "unions": false,
+                "primitives": false
+              },
+              "pointer free": {
+                "structures": false,
+                "arrays": false,
+                "functions": false,
+                "unions": false,
+                "primitives": false
+              }
+            },
             "additional headers": [
               "rcv.h",
               "sv-comp.h"

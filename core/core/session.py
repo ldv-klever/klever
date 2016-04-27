@@ -90,6 +90,9 @@ class Session:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
 
+    def remove_task(self, task_id):
+        self.__request('service/remove_task/', {'task id': task_id})
+
     def sign_out(self):
         self.logger.info('Finish session')
         self.__request('users/service_signout/')

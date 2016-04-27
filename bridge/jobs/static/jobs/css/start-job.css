@@ -3,6 +3,7 @@
     color: #763598;
     margin: 10px;
     font-weight: bold;
+    white-space: nowrap;
 }
 
 .get-attr-value:hover {

@@ -5,7 +5,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, Stream
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, print_err
+from bridge.utils import unparallel_group, logger
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -54,8 +54,7 @@ def report_component(request, job_id, report_id):
     unknown_href = None
     try:
         unknown = ReportUnknown.objects.get(parent=report)
-        unknown_href = reverse('reports:leaf',
-                               args=['unknown', unknown.pk])
+        unknown_href = reverse('reports:leaf', args=['unknown', unknown.pk])
         status = 3
     except ObjectDoesNotExist:
         pass
@@ -63,9 +62,9 @@ def report_component(request, job_id, report_id):
     report_data = None
     if report.data is not None:
         try:
-            report_data = json.loads(report.data.decode('utf8'))
+            report_data = json.loads(report.data.file.read().decode('utf8'))
         except Exception as e:
-            print_err(e)
+            logger.exception("Json parsing error: %s" % e, stack_info=True)
 
     return render(
         request,
@@ -166,7 +165,7 @@ def report_list_tag(request, report_id, ltype, tag_id):
         else:
             tag = SafeTag.objects.get(pk=int(tag_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[704]))
+        return HttpResponseRedirect(reverse('error', args=[509]))
     return report_list(request, report_id, ltype, tag=tag)
 
 
@@ -203,7 +202,7 @@ def report_unknowns_by_problem(request, report_id, component_id, problem_id):
         try:
             problem = UnknownProblem.objects.get(pk=problem_id)
         except ObjectDoesNotExist:
-            return HttpResponseRedirect(reverse('error', args=[804]))
+            return HttpResponseRedirect(reverse('error', args=[508]))
     return report_list(request, report_id, 'unknowns', component_id=component_id, problem=problem)
 
 
@@ -229,24 +228,35 @@ def report_leaf(request, leaf_type, report_id):
 
     template = 'reports/report_leaf.html'
     etv = None
+    main_file_content = None
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        etv = GetETV(report.error_trace)
+        etv = GetETV(report.error_trace.file.read(), request.user.extended.assumptions)
         if etv.error is not None:
-            print_err(etv.error)
+            logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
-    return render(
-        request, template,
-        {
-            'type': leaf_type,
-            'report': report,
-            'parents': get_parents(report),
-            'SelfAttrsData': ReportTable(request.user, report).table_data,
-            'MarkTable': ReportMarkTable(request.user, report),
-            'etv': etv,
-            'can_mark': MarkAccess(request.user, report=report).can_create()
-        }
-    )
+    elif leaf_type == 'safe':
+        main_file_content = report.proof.file.read()
+    elif leaf_type == 'unknown':
+        main_file_content = report.problem_description.file.read()
+    try:
+        return render(
+            request, template,
+            {
+                'type': leaf_type,
+                'report': report,
+                'parents': get_parents(report),
+                'SelfAttrsData': ReportTable(request.user, report).table_data,
+                'MarkTable': ReportMarkTable(request.user, report),
+                'etv': etv,
+                'can_mark': MarkAccess(request.user, report=report).can_create(),
+                'main_content': main_file_content,
+                'include_assumptions': request.user.extended.assumptions
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
 
 @login_required
@@ -261,17 +271,22 @@ def report_etv_full(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    etv = GetETV(report.error_trace)
+    etv = GetETV(report.error_trace.file.read(), request.user.extended.assumptions)
     if etv.error is not None:
-        print_err(etv.error)
+        logger.error(etv.error, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[505]))
-    return render(
-        request, 'reports/etv_fullscreen.html',
-        {
-            'report': report,
-            'etv': etv
-        }
-    )
+    try:
+        return render(
+            request, 'reports/etv_fullscreen.html',
+            {
+                'report': report,
+                'etv': etv,
+                'include_assumptions': request.user.extended.assumptions
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
 
 @unparallel_group(['mark', 'report'])
@@ -298,7 +313,7 @@ def upload_report(request):
     try:
         data = json.loads(request.POST.get('report', '{}'))
     except Exception as e:
-        print_err(e)
+        logger.exception("Json parsing error: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Can not parse json data'})
     archive = None
     for f in request.FILES.getlist('file'):
@@ -384,7 +399,7 @@ def fill_compare_cache(request):
     try:
         CompareTree(request.user, j1, j2)
     except Exception as e:
-        print_err(e)
+        logger.exception("Comparison of reports' trees failed: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Unknown error while filling comparison cache'})
     return JsonResponse({})
 

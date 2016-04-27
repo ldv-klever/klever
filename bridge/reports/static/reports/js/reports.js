@@ -85,6 +85,7 @@ function unknown_filters_data() {
 }
 
 $(document).ready(function () {
+    $('#resources-note').popup();
     $('#component_name_tr').popup({
         popup: $('#timeinfo_popup'),
         position: 'right center',

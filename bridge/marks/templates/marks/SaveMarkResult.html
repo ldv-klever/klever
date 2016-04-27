@@ -6,7 +6,7 @@
         <div style="overflow-x: auto; max-height: 1000px; overflow-y: auto;">
             <table class="ui celled compact pink table tree">
                 <thead>
-                    {% for column_row in MarkTable.header %}
+                    {% for column_row in header %}
                         <tr>
                         {% for coldata in column_row %}
                             <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
@@ -35,5 +35,5 @@
         <h1 class="header" style="text-align:center;">{% trans 'No changes in associations of marks with leaf reports' %}</h1>
     {% endif %}
     <br>
-    <a href="{% url 'marks:edit_mark' mark_type mark.pk %}" class="ui green button" style="float: right">{% trans 'Continue editing' %}</a>
+    <a href="{% url 'marks:edit_mark' MarkTable.mark_type MarkTable.mark_id %}" class="ui green button" style="float: right">{% trans 'Continue editing' %}</a>
 {% endblock %}

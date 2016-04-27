@@ -13,19 +13,6 @@ import core.session
 import core.utils
 
 
-def before_launch_all_components(context):
-    context.mqs['verification statuses'] = multiprocessing.Queue()
-
-
-def after_decide_verification_task(context):
-    context.mqs['verification statuses'].put(context.verification_status)
-
-
-def after_generate_all_verification_tasks(context):
-    context.logger.info('Terminate verification statuses message queue')
-    context.mqs['verification statuses'].put(None)
-
-
 class Core(core.utils.CallbacksCaller):
     DEFAULT_CONF_FILE = 'core.json'
     ID = '/'
@@ -101,6 +88,24 @@ class Core(core.utils.CallbacksCaller):
                 self.launch_all_components(self.ID)
                 self.wait_for_components()
             elif job.type == 'Validation on commits in Linux kernel Git repositories':
+                # Specify callbacks to collect verification statuses from VTG. They will be used to
+                # calculate validation results.
+                def before_launch_all_components(context):
+                    context.mqs['verification statuses'] = multiprocessing.Queue()
+
+                def after_decide_verification_task(context):
+                    context.mqs['verification statuses'].put(context.verification_status)
+
+                def after_generate_all_verification_tasks(context):
+                    context.logger.info('Terminate verification statuses message queue')
+                    context.mqs['verification statuses'].put(None)
+
+                core.utils.set_component_callbacks(self.logger, type(self),
+                                                   (
+                                                       before_launch_all_components,
+                                                       after_decide_verification_task,
+                                                       after_generate_all_verification_tasks
+                                                   ))
                 self.logger.info('Prepare sub-jobs of class "Verification of Linux kernel modules"')
                 sub_jobs_common_conf = {}
                 if 'Common' in job.conf:
@@ -119,8 +124,20 @@ class Core(core.utils.CallbacksCaller):
                 with open('__log', 'w', encoding='ascii'):
                     pass
                 self.data = []
+                commits = {}
                 for sub_job in job.sub_jobs:
                     commit = sub_job.conf['Linux kernel']['Git repository']['commit']
+                    if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
+                        raise ValueError(
+                            'Commit hashes should have 12 symbols and optional "~" at the end but "{0}" is given'.
+                                format(commit))
+                    # Make unique identifiers by extending commit hashes with the number of sub-jobs referred to the
+                    # same commit if so.
+                    if commit in commits:
+                        commits[commit] += 1
+                        commit += ' ({0})'.format(commits[commit])
+                    else:
+                        commits[commit] = 1
                     sub_job_id = self.ID + str(commit)
                     # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
                     core.utils.report(self.logger,
@@ -199,7 +216,7 @@ class Core(core.utils.CallbacksCaller):
                             if not sub_job.conf['obtained verification statuses']:
                                 sub_job.conf['obtained verification statuses'].append('unknown')
 
-                            self.data.append([sub_job.conf['Linux kernel']['Git repository']['commit'],
+                            self.data.append([commit,
                                               sub_job.conf['ideal verdict']] +
                                              sub_job.conf['obtained verification statuses'] +
                                              [sub_job.conf['comment'] if 'comment' in sub_job.conf else None])
@@ -491,8 +508,13 @@ class Core(core.utils.CallbacksCaller):
         for commit1, ideal_verdict1, verification_status1, comment1 in validation_results_before_bug_fixes:
             found_validation_res_after_bug_fix = False
             for commit2, ideal_verdict2, verification_status2, comment2 in validation_results_after_bug_fixes:
-                # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v.
-                if commit1 == commit2 + '~' or commit2 == commit1 + '~':
+                # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v. Also it is
+                # taken into account that all commit hashes have exactly 12 symbols and sub-jobs referred to the same
+                # commit are properly ordered (for instance, unsafe1 - safe1 - unsafe2 - safe2 or unsafe1 - unsafe2 -
+                # safe1 - safe2 and not unsafe1 - unsafe2 - safe2 - safe1).
+                if commit1[:12] == commit2[:12] and (commit1[13:] == commit2[12:]
+                                                     if len(commit1) > 12 and commit1[12] == '~'
+                                                     else commit1[12:] == commit2[13:]):
                     found_validation_res_after_bug_fix = True
                     break
             validation_res_msg = 'Verification status of bug "{0}" before fix is "{1}"{2}'.format(

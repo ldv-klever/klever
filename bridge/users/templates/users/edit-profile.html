@@ -1,10 +1,6 @@
 {% extends 'base.html' %}
 
-{% load staticfiles %}
-{% load tz %}
 {% load i18n %}
-
-{% get_current_timezone as TIME_ZONE %}
 
 {% block title %}{% trans 'Settings' %}{% endblock %}
 
@@ -48,7 +44,7 @@
                 </div>
                 <div class="five wide column">
                     <div class="field">
-                        <label>{{ profile_form.accuracy.label }}</label>
+                        <label>{{ profile_form.accuracy.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting is used just for the human-readable data format' %}"></i></label>
                         {{ profile_form.accuracy }}
                         <br>{{ profile_form.errors.accuracy }}
                     </div>
@@ -67,6 +63,14 @@
                                 <option value="{{ tmz }}"{% if tmz == user.extended.timezone %} selected="selected"{% endif %}>{{ tmz }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    <br>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            {{ profile_form.assumptions }}
+                            <label>{{ profile_form.assumptions.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace assumptions. This can take very much time for big error traces.' %}"></i></label>
+                        </div>
+                        <br>
                     </div>
                 </div>
                 <div class="six wide column">

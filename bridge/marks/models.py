@@ -2,10 +2,10 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import post_init
 from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE
+from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent,\
     Component, ReportUnknown, AttrName
-from jobs.models import Job
+from jobs.models import Job, File
 
 
 class UnknownProblem(models.Model):
@@ -52,6 +52,7 @@ class Mark(models.Model):
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
     description = models.TextField(default='')
+    type = models.CharField(max_length=1, choices=MARK_TYPE, default=MARK_TYPE[0][0])
 
     def __str__(self):
         return self.identifier
@@ -74,6 +75,7 @@ class MarkHistory(models.Model):
 
 # Safes tables
 class MarkSafe(Mark):
+    prime = models.ForeignKey(ReportSafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_SAFE, default='0')
 
     class Meta:
@@ -107,19 +109,13 @@ class MarkSafeReport(models.Model):
 
 # Unsafes tables
 class MarkUnsafe(Mark):
+    prime = models.ForeignKey(ReportUnsafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
     function = models.ForeignKey(MarkUnsafeCompare)
-    error_trace = models.BinaryField(null=True)
+    error_trace = models.ForeignKey(File, null=True)
 
     class Meta:
         db_table = 'mark_unsafe'
-
-
-@receiver(post_init, sender=MarkUnsafe)
-def get_mark_trace(**kwargs):
-    mark = kwargs['instance']
-    if mark.error_trace is not None and not isinstance(mark.error_trace, bytes):
-        mark.error_trace = mark.error_trace.tobytes()
 
 
 class MarkUnsafeHistory(MarkHistory):
@@ -231,6 +227,7 @@ class SafeReportTag(models.Model):
 
 # For unknowns
 class MarkUnknown(Mark):
+    prime = models.ForeignKey(ReportUnknown, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
     function = models.TextField()
     problem_pattern = models.CharField(max_length=15)
@@ -267,3 +264,12 @@ class ComponentMarkUnknownProblem(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_mark_unknown_problem'
+
+
+class MarkAssociationsChanges(models.Model):
+    user = models.ForeignKey(User)
+    identifier = models.CharField(max_length=255, unique=True)
+    table_data = models.TextField()
+
+    class Meta:
+        db_table = 'cache_mark_associations_changes'

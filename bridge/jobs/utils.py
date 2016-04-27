@@ -1,20 +1,22 @@
 import os
+import re
 import json
 import hashlib
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
+from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
     DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES
-from bridge.utils import print_err
+from bridge.utils import logger
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS
 from jobs.models import Job, JobHistory, FileSystem, File, UserRole
 from users.notifications import Notify
-from reports.models import CompareJobsInfo
+from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
@@ -45,7 +47,7 @@ UNSAFES = [
 TITLES = {
     'name': _('Title'),
     'author': _('Author'),
-    'date': _('Last change date'),
+    'date': _('Last change'),
     'status': _('Decision status'),
     'safe': _('Safes'),
     'safe:missed_bug': _('Missed target bugs'),
@@ -321,37 +323,61 @@ class SaveFileData(object):
 
 
 def convert_time(val, acc):
+    def final_value(time, postfix):
+        fpart_len = len(str(round(time)))
+        if fpart_len > int(acc):
+            tmp_div = 10**(fpart_len - int(acc))
+            rounded_value = round(time/tmp_div) * tmp_div
+        elif fpart_len == int(acc):
+            rounded_value = round(time)
+        else:
+            rounded_value = round(time, int(acc) - fpart_len)
+        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
+            'val': rounded_value, 'postfix': postfix
+        }))
+
     new_time = int(val)
-    time_format = "%%1.%df %%s" % int(acc)
     try_div = new_time / 1000
     if try_div < 1:
-        return time_format % (new_time, _('ms'))
+        return final_value(new_time, _('ms'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('s'))
+        return final_value(new_time, _('s'))
     new_time = try_div
     try_div = new_time / 60
     if try_div < 1:
-        return time_format % (new_time, _('min'))
-    return time_format % (try_div, _('h'))
+        return final_value(new_time, _('min'))
+    return final_value(try_div, _('h'))
 
 
 def convert_memory(val, acc):
+    def final_value(memory, postfix):
+        fpart_len = len(str(round(memory)))
+        if fpart_len > int(acc):
+            tmp_div = 10 ** (fpart_len - int(acc))
+            rounded_value = round(memory / tmp_div) * tmp_div
+        elif fpart_len == int(acc):
+            rounded_value = round(memory)
+        else:
+            rounded_value = round(memory, int(acc) - fpart_len)
+        return Template('{% load l10n %}{{ val }} {{ postfix }}').render(Context({
+            'val': rounded_value, 'postfix': postfix
+        }))
+
     new_mem = int(val)
-    mem_format = "%%1.%df %%s" % int(acc)
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('B'))
+        return final_value(new_mem, _('B'))
     new_mem = try_div
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('KB'))
+        return final_value(new_mem, _('KB'))
     new_mem = try_div
     try_div = new_mem / 10**3
     if try_div < 1:
-        return mem_format % (new_mem, _('MB'))
-    return mem_format % (try_div, _('GB'))
+        return final_value(new_mem, _('MB'))
+    return final_value(try_div, _('GB'))
 
 
 def role_info(job, user):
@@ -453,12 +479,12 @@ def create_job(kwargs):
                 'absurl': kwargs['absolute_url'] + newjob_url
             })
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
     else:
         try:
             Notify(newjob, 0)
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
     return newjob
 
 
@@ -493,12 +519,12 @@ def update_job(kwargs):
         try:
             Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
     else:
         try:
             Notify(kwargs['job'], 1)
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
     return kwargs['job']
 
 
@@ -516,7 +542,7 @@ def remove_jobs_by_id(user, job_ids):
         try:
             Notify(job, 2)
         except Exception as e:
-            print_err("Can't notify users: %s" % e)
+            logger.exception("Can't notify users: %s" % e)
         job.delete()
     return 0
 
@@ -546,22 +572,22 @@ def check_new_parent(job, parent):
 
 
 def get_resource_data(user, resource):
-    accuracy = user.extended.accuracy
-    cpu = resource.cpu_time
-    wall = resource.wall_time
-    mem = resource.memory
     if user.extended.data_format == 'hum':
-        wall = convert_time(wall, accuracy)
-        cpu = convert_time(cpu, accuracy)
-        mem = convert_memory(mem, accuracy)
+        wall = convert_time(resource.wall_time, user.extended.accuracy)
+        cpu = convert_time(resource.cpu_time, user.extended.accuracy)
+        mem = convert_memory(resource.memory, user.extended.accuracy)
+    else:
+        wall = "%s %s" % (resource.wall_time, _('ms'))
+        cpu = "%s %s" % (resource.cpu_time, _('ms'))
+        mem = "%s %s" % (resource.memory, _('B'))
     return [wall, cpu, mem]
 
 
 def get_user_time(user, milliseconds):
-    accuracy = user.extended.accuracy
-    converted = int(milliseconds)
     if user.extended.data_format == 'hum':
-        converted = convert_time(converted, accuracy)
+        converted = convert_time(int(milliseconds), user.extended.accuracy)
+    else:
+        converted = "%s %s" % (int(milliseconds), _('ms'))
     return converted
 
 
@@ -644,6 +670,10 @@ class GetFilesComparison(object):
 def change_job_status(job, status):
     if not isinstance(job, Job) or status not in list(x[0] for x in JOB_STATUS):
         return
+    if status in [JOB_STATUS[3], JOB_STATUS[4]]:
+        for comp in ReportComponent.objects.filter(root=job.reportroot, finish_date=None):
+            comp.finish_date = now()
+            comp.save()
     job.status = status
     job.save()
     try:
@@ -701,7 +731,7 @@ class GetConfiguration(object):
                 list(conf_template[4:])
             ]
         except Exception as e:
-            print_err(e)
+            logger.exception("Wrong default configuration format: %s" % e, stack_info=True)
 
     def __get_file_conf(self, filedata):
         scheduler = None
@@ -709,7 +739,7 @@ class GetConfiguration(object):
             if sch[1] == filedata['task scheduler']:
                 scheduler = sch[0]
         if scheduler is None:
-            print_err('Scheduler %s is not supported' % filedata['task scheduler'])
+            logger.error('Scheduler %s is not supported' % filedata['task scheduler'], stack_info=True)
             return
 
         cpu_time = filedata['resource limits']['CPU time']
@@ -736,7 +766,7 @@ class GetConfiguration(object):
                 loggers['file']['formatter']
             ]
         except Exception as e:
-            print_err("Wrong logging format: %s" % e)
+            logger.exception("Wrong logging format: %s" % e)
             return
 
         try:
@@ -760,10 +790,13 @@ class GetConfiguration(object):
                 ]
             ]
         except Exception as e:
-            print_err("Wrong core configuration format: %s" % e)
+            logger.exception("Wrong core configuration format: %s" % e, stack_info=True)
 
     def __get_user_conf(self, conf):
         def int_or_float(val):
+            m = re.match('^\s*(\d+),(\d+)\s*$', val)
+            if m is not None:
+                val = '%s.%s' % (m.group(1), m.group(2))
             try:
                 return int(val)
             except ValueError:
@@ -782,7 +815,7 @@ class GetConfiguration(object):
             if conf[2][5] is not None:
                 conf[2][5] = float(conf[2][5])
         except Exception as e:
-            print_err("Wrong user configuration format: %s" % e)
+            logger.exception("Wrong user configuration format: %s" % e, stack_info=True)
             return
         self.configuration = conf
 

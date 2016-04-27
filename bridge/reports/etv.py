@@ -2,7 +2,7 @@ import re
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from bridge.utils import print_err
+from bridge.utils import logger
 from reports.models import ReportUnsafe
 from reports.graphml_parser import GraphMLParser
 
@@ -36,7 +36,7 @@ KEY2_WORDS = [
 
 
 class GetETV(object):
-    def __init__(self, graphml_file):
+    def __init__(self, graphml_file, include_assumptions=True):
         self.error = None
 
         self.g = self.__parse_graph(graphml_file)
@@ -56,6 +56,7 @@ class GetETV(object):
 
         self.html_traces = []
         self.assumes = []
+        self.include_assumptions = include_assumptions
 
         self._cnt = 0
         for trace in self.traces:
@@ -74,7 +75,7 @@ class GetETV(object):
         try:
             return GraphMLParser().parse(graphml_file)
         except Exception as e:
-            print_err(e)
+            logger.exception(e, stack_info=True)
             self.error = 'The error trace has incorrect format'
         return None
 
@@ -181,7 +182,7 @@ class GetETV(object):
                 'offset': curr_offset * ' ',
                 'class': scope_stack[-1]
             }
-            if line_data['line'] is not None and 'assumption' not in n.attr:
+            if line_data['line'] is not None and 'assumption' not in n.attr and self.include_assumptions:
                 line_data.update(fill_assumptions())
             if 'note' in n.attr:
                 line_data['note'] = n['note']
@@ -207,15 +208,17 @@ class GetETV(object):
                 else:
                     ass_scope = 'global'
 
-                if ass_scope not in assume_scopes:
-                    assume_scopes[ass_scope] = []
-                curr_assumes = []
-                for assume in n['assumption'].split(';'):
-                    if len(assume) == 0:
-                        continue
-                    assume_scopes[ass_scope].append(assume)
-                    curr_assumes.append('%s_%s' % (ass_scope, str(len(assume_scopes[ass_scope]) - 1)))
-                line_data.update(fill_assumptions(curr_assumes))
+                if self.include_assumptions:
+                    if ass_scope not in assume_scopes:
+                        assume_scopes[ass_scope] = []
+                    curr_assumes = []
+                    for assume in n['assumption'].split(';'):
+                        if len(assume) == 0:
+                            continue
+                        assume_scopes[ass_scope].append(assume)
+                        curr_assumes.append('%s_%s' % (ass_scope, str(len(assume_scopes[ass_scope]) - 1)))
+
+                    line_data.update(fill_assumptions(curr_assumes))
             if 'enterFunction' in n.attr:
                 if scope_stack[-1] == 'global':
                     cnt += 1
@@ -515,7 +518,7 @@ def error_trace_callstack(error_trace):
     try:
         graph = GraphMLParser().parse(error_trace.encode('utf8'))
     except Exception as e:
-        print_err(e)
+        logger.exception(e, stack_info=True)
         raise ValueError('The error trace has incorrect format')
     traces = []
     if graph.set_root_by_attribute('true', 'isEntryNode') is None:

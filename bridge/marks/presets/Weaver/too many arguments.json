@@ -1,0 +1,5 @@
+{
+  "function": "error: too many arguments to function",
+  "pattern": "TooManyArgs",
+  "link": "https://forge.ispras.ru/issues/7117"
+}

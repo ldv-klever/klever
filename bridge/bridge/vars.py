@@ -9,24 +9,21 @@ DATAFORMAT = (
 
 # Do not use error code 500 (Unknown error)
 ERRORS = {
-    404: _('The job was not found'),
-    405: _('One of the selected jobs was not found'),
+    300: _("You don't have an access to this page"),
+    305: _("Can't populate without Manager and service user"),
     400: _("You don't have an access to this job"),
     401: _("You don't have an access to one of the selected jobs"),
-    451: _('You specified wrong parameters, please reload the page and try again'),
+    404: _('The job was not found'),
+    405: _('One of the selected jobs was not found'),
     504: _('The report was not found'),
-    604: _("The mark was not found"),
-    600: _("You don't have an access to this mark"),
-    601: _("You don't have an access to create new marks"),
-    602: _("You don't have an access to delete this mark"),
-    650: _("Saving the mark failed"),
-    704: _("The tag was not found"),
-    804: _("The problem was not found"),
-    900: _("You don't have an access to this page"),
     505: _("Couldn't visualize the error trace"),
     506: _("The comparison cache was not found or was corrupted"),
     507: _("You don't have an access to compare these jobs"),
-    605: _("Can't populate without Manager and service user")
+    508: _("The problem was not found"),
+    509: _("The tag was not found"),
+    604: _("The mark was not found"),
+    601: _("You don't have an access to create new marks"),
+    602: _("You don't have an access to delete this mark")
 }
 
 LANGUAGES = (
@@ -131,6 +128,12 @@ VIEW_TYPES = {
     ('8', 'safe marks'),
     ('9', 'unknown marks')
 }
+
+MARK_TYPE = (
+    ('0', _('Created')),
+    ('1', _('Preset')),
+    ('2', _('Uploaded')),
+)
 
 MARK_STATUS = (
     ('0', _('Unreported')),

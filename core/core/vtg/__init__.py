@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import copy
+import importlib
 import multiprocessing
 import os
 
@@ -52,6 +53,7 @@ def after_generate_all_abstract_verification_task_descs(context):
 
 class VTG(core.components.Component):
     def generate_verification_tasks(self):
+        self.strategy_name = None
         self.strategy = None
         self.common_prj_attrs = {}
         self.abstract_task_descs_num = multiprocessing.Value('i', 0)
@@ -77,12 +79,14 @@ class VTG(core.components.Component):
     def get_strategy(self):
         self.logger.info('Get strategy')
 
-        for strategy in _strategies:
-            if ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')]) == strategy.__name__.lower():
-                self.strategy = strategy
+        self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
 
-        if not self.strategy:
-            NotImplementedError('Strategy {0} is not supported'.format(self.conf['VTG strategy']['name']))
+        try:
+            self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
+                                    self.strategy_name.upper())
+        except ImportError:
+            raise NotImplementedError('Strategy "{0}" is not supported'.format(self.conf['VTG strategy']['name']))
+
 
     def get_common_prj_attrs(self):
         self.logger.info('Get common project atributes')
@@ -145,14 +149,14 @@ class VTG(core.components.Component):
                             os.path.join(self.conf['source tree root'],
                                          '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
                                          abstract_task_desc['attrs'][1]['rule specification'])),
-                    self.strategy.__name__.lower())
+                    self.strategy_name)
             os.makedirs(work_dir)
             self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
             self.conf['abstract task desc'] = abstract_task_desc
 
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs,
-                              '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy.__name__.lower()]),
+                              '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
                               work_dir, abstract_task_desc['attrs'], True, True)
             try:
                 p.start()

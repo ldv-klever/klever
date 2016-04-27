@@ -1,7 +1,5 @@
 {% extends 'base.html' %}
 
-{% load staticfiles %}
-{% load tz %}
 {% load i18n %}
 
 {% block title %}{% trans 'Registration' %}{% endblock %}
@@ -18,10 +16,9 @@
             <div class="ui grid form">
                 <div class="six wide column">
                     <div class="field">
-                        <label>{{ user_form.username.label }}</label>
+                        <label>{{ user_form.username.label }}<i class="ui help blue icon note-popup" data-content="{{ user_form.username.help_text }}"></i></label>
                         {{ user_form.username }}
                         <small>{{ user_form.username.errors }}</small>
-                        <small style="color: #afafaf">{{ user_form.username.help_text }}</small>
                     </div>
                     <div class="field">
                         <label>{{ user_form.password.label }}</label>
@@ -53,7 +50,7 @@
                 </div>
                 <div class="five wide column">
                     <div class="field">
-                        <label>{{ profile_form.accuracy.label }}</label>
+                        <label>{{ profile_form.accuracy.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting is used just for the human-readable data format' %}"></i></label>
                         {{ profile_form.accuracy }}
                         <small>{{ profile_form.accuracy.errors }}</small>
                     </div>

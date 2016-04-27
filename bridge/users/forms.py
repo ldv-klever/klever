@@ -81,18 +81,20 @@ class UserExtendedForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(UserExtendedForm, self).__init__(*args, **kwargs)
-        self.fields['accuracy'].label = _("Accuracy")
+        self.fields['accuracy'].label = _("The number of significant figures")
         self.fields['last_name'].label = _("Last name")
         self.fields['first_name'].label = _("First name")
         self.fields['language'].label = _("Language")
         self.fields['data_format'].label = _("Data format")
+        self.fields['assumptions'].label = _("Error trace assumptions")
 
     class Meta:
         model = Extended
-        fields = ('accuracy', 'data_format', 'language', 'first_name', 'last_name')
+        fields = ('accuracy', 'data_format', 'language', 'first_name', 'last_name', 'assumptions')
         widgets = {
             'data_format': forms.Select(attrs={'class': 'ui selection dropdown'}),
             'language': forms.Select(attrs={'class': 'ui selection dropdown'}),
             'first_name': forms.TextInput(),
-            'last_name': forms.TextInput()
+            'last_name': forms.TextInput(),
+            'assumptions': forms.CheckboxInput(attrs={'class': 'hidden'})
         }

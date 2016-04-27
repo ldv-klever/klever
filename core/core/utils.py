@@ -249,6 +249,22 @@ def is_src_tree_root(filenames):
     return False
 
 
+def set_component_callbacks(logger, component, callbacks):
+    logger.info('Set callbacks for component "{0}"'.format(component.__name__))
+
+    module = sys.modules[component.__module__]
+
+    for callback in callbacks:
+        logger.debug('Set callback "{0}" for component "{1}"'.format(callback.__name__, component.__name__))
+        if not any(callback.__name__.startswith(kind) for kind in CALLBACK_KINDS):
+            raise ValueError('Callback "{0}" does not start with one of {1}'.format(callback.__name__, ', '.join(
+                ('"{0}"'.format(kind) for kind in CALLBACK_KINDS))))
+        if callback.__name__ in dir(module):
+            raise ValueError(
+                'Callback "{0}" already exists for component "{1}"'.format(callback.__name__, component.__name__))
+        setattr(module, callback.__name__, callback)
+
+
 def get_component_callbacks(logger, components, components_conf):
     logger.info('Get callbacks for components "{0}"'.format([component.__name__ for component in components]))
 

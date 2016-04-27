@@ -4,7 +4,7 @@ function encodeData(s) {
 
 function collect_filters_data() {
     var view_values = {columns: []}, filter_values = {},
-        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format', 'pattern'],
+        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format', 'pattern', 'type'],
         order_type = $('input[name=marks_enable_order]:checked').val();
     $.each(columns, function (index, val) {
         var column_checkbox = $('#marks_filter_checkbox__' + val);
@@ -47,6 +47,12 @@ function collect_filters_data() {
         filter_values['author'] = {
             type: 'is',
             value: parseInt($('#filter__value__author').children(':selected').val())
+        }
+    }
+    if ($('#filter__enable__type').is(':checked')) {
+        filter_values['type'] = {
+            type: $('#filter__type__type').val(),
+            value: $('#filter__value__type').val()
         }
     }
     if ($('#filter__enable__component').is(':checked')) {
@@ -385,7 +391,18 @@ $(document).ready(function () {
     });
 
     $('#save_new_mark_btn').click(function () {
-        $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: encodeData(collect_new_markdata())});
+        $.post(
+            marks_ajax_url + 'save_mark/',
+            {savedata: encodeData(collect_new_markdata())},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else if ('cache_id' in data) {
+                    window.location.replace('/marks/association_changes/' + data['cache_id'] + '/');
+                }
+            }
+        );
     });
 
     $('#convert_function').change(function () {
@@ -439,7 +456,18 @@ $(document).ready(function () {
     $('#save_mark_btn').click(function () {
         var comment_input = $('#edit_mark_comment');
         if (comment_input.val().length > 0) {
-            $.redirectPost(marks_ajax_url + 'save_mark/', {savedata: encodeData(collect_markdata())});
+            $.post(
+                marks_ajax_url + 'save_mark/',
+                {savedata: encodeData(collect_markdata())},
+                function (data) {
+                    if (data.error) {
+                        err_notify(data.error);
+                    }
+                    else if ('cache_id' in data) {
+                        window.location.replace('/marks/association_changes/' + data['cache_id'] + '/');
+                    }
+                }
+            );
         }
         else {
             err_notify($('#error__comment_required').text());
@@ -452,10 +480,10 @@ $(document).ready(function () {
             marks_ajax_url + 'getversions/',
             {mark_id: $('#mark_pk').val(), mark_type: $('#mark_type').val()},
             function (data) {
-                try {
-                    JSON.stringify(data);
-                    err_notify(data.message);
-                } catch (e) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
                     $('#div_for_version_list').html(data);
                     set_actions_for_mark_versions_delete();
                 }

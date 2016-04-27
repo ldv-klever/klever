@@ -3,7 +3,7 @@
     "usb_reset_device": {
       "labels": {},
       "process": "[@usb_reset]",
-      "subprocesses": {
+      "actions": {
         "usb_reset": {
           "parameters": []
         }
@@ -18,7 +18,7 @@
         }
       },
       "process": "<assign>.[register] | <none>",
-      "subprocesses": {
+      "actions": {
         "register": {
           "parameters": [
             "%usb_driver%"
@@ -44,7 +44,7 @@
         }
       },
       "process": "<assign>.[deregister]",
-      "subprocesses": {
+      "actions": {
         "deregister": {
           "parameters": [
             "%usb_driver%"
@@ -66,7 +66,7 @@
         }
       },
       "process": "<alloc>.<init>.<success> | <fail>",
-      "subprocesses": {
+      "actions": {
         "alloc": {
           "statements": [
             "%netdev% = $ALLOC(%netdev%);"
@@ -98,7 +98,7 @@
         }
       },
       "process": "<free>",
-      "subprocesses": {
+      "actions": {
         "free": {
           "statements": [
             "$FREE(%netdev%);"
@@ -115,7 +115,7 @@
         }
       },
       "process": "<assign>.[open].(ret_open).[register] | <none>",
-      "subprocesses": {
+      "actions": {
         "open": {
           "callback": "%netdev.net_device_ops.open%",
           "parameters": [
@@ -150,7 +150,7 @@
         }
       },
       "process": "<assign>.[stop].(ret_stop).[deregister]",
-      "subprocesses": {
+      "actions": {
         "stop": {
           "callback": "%netdev.net_device_ops.stop%",
           "parameters": [
@@ -181,7 +181,7 @@
         }
       },
       "process": "<assign>.[register] | <none>",
-      "subprocesses": {
+      "actions": {
         "register": {
           "parameters": [
             "%platform_driver%"
@@ -212,7 +212,7 @@
         }
       },
       "process": "<assign>.[register] | <none>",
-      "subprocesses": {
+      "actions": {
         "register": {
           "parameters": [
             "%platform_driver%"
@@ -240,7 +240,7 @@
         }
       },
       "process": "<assign>.[deregister]",
-      "subprocesses": {
+      "actions": {
         "deregister": {
           "parameters": [
             "%platform_driver%"
@@ -262,7 +262,7 @@
         }
       },
       "process": "<assign>.[instance_register] | <none>",
-      "subprocesses": {
+      "actions": {
         "instance_register": {
           "parameters": [
             "%timer_list%"
@@ -298,7 +298,7 @@
         }
       },
       "process": "<assign>.[instance_register] | <none>",
-      "subprocesses": {
+      "actions": {
         "instance_register": {
           "parameters": [
             "%timer_list%"
@@ -328,7 +328,7 @@
         }
       },
       "process": "<assign>.[instance_deregister]",
-      "subprocesses": {
+      "actions": {
         "instance_deregister": {
           "parameters": [
             "%timer_list%"
@@ -365,7 +365,7 @@
         }
       },
       "process": "<assign>.[irq_register] | <none>",
-      "subprocesses": {
+      "actions": {
         "irq_register": {
           "parameters": [
             "%line%",
@@ -388,6 +388,52 @@
         }
       }
     },
+    "request_irq": {
+      "labels": {
+        "thread": {
+          "callback": true,
+          "interface": ["interrupt.thread"]
+        },
+        "callback": {
+          "callback": true,
+          "interface": ["interrupt.handler"],
+          "parameter": true
+        },
+        "line": {
+          "resource": true,
+          "interface": ["interrupt.line"],
+          "parameter": true
+        },
+        "data": {
+          "resource": true,
+          "interface": ["interrupt.data"],
+          "parameter": true
+        }
+      },
+      "process": "<assign>.[irq_register] | <none>",
+      "actions": {
+        "irq_register": {
+          "parameters": [
+            "%line%",
+            "%callback%",
+            "%thread%",
+            "%data%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%line% = $arg1;",
+            "%callback% = $arg2;",
+            "%thread% = 0;",
+            "%data% = $arg5;"
+          ]
+        }
+      }
+    },
     "free_irq": {
       "labels": {
         "line": {
@@ -397,7 +443,7 @@
         }
       },
       "process": "<assign>.[irq_deregister]",
-      "subprocesses": {
+      "actions": {
         "irq_deregister": {
           "parameters": [
             "%line%"
@@ -418,12 +464,12 @@
           "container": true
         },
         "k": {
-          "signature": "int %s",
+          "signature": "int a",
           "value": "2"
         }
       },
       "process": "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)",
-      "subprocesses": {
+      "actions": {
         "register": {
           "parameters": [
             "%container%"
@@ -457,15 +503,18 @@
           "resource": true
         },
         "reset_flag": {
-          "signature": "bool %s",
+          "signature": "bool a",
           "value": "false"
         },
         "probe_retval": {
-          "signature": "int %s"
+          "signature": "int a"
+        },
+        "callback": {
+          "callback": true
         }
       },
-      "process": "(!instance_register).<alloc>.<init>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post].(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | <null>).[release].(ret_release) | <failed_probe>).<free>.(instance_deregister)",
-      "subprocesses": {
+      "process": "(!instance_register).<alloc>.<init>.[probe].(ret_probe).(<probe_success>.[callback].((usb_reset).[pre].(ret_pre).[post].(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | <null>).[release].(ret_release) | <failed_probe>).<free>.(instance_deregister)",
+      "actions": {
         "instance_register": {
           "parameters": [
             "%container%"
@@ -490,6 +539,12 @@
         "free": {
           "statements": [
             "$FREE(%resource%);"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
           ]
         },
         "probe": {
@@ -565,15 +620,15 @@
           "callback": true
         },
         "probed": {
-          "signature": "int %s",
+          "signature": "int a",
           "value": "1"
         },
         "suspended": {
-          "signature": "int %s"
+          "signature": "int a"
         }
       },
       "process": "(!register).<init>.{call}",
-      "subprocesses": {
+      "actions": {
         "call": {
           "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} |  <positive_probe>.[suspend].(ret_suspend).(<suspended>.[resume].(ret_resume) | <not_suspended>).{call} | <negative_probe>.(<free>.(deregister) | [probe].(ret_probe).{call})"
         },
@@ -669,12 +724,12 @@
           "callback": true
         },
         "probed": {
-          "signature": "int %s",
+          "signature": "int a",
           "value": "1"
         }
       },
       "process": "(!register).<init>.{call}",
-      "subprocesses": {
+      "actions": {
         "call": {
           "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | [probe].(ret_probe).{call})"
         },
@@ -744,7 +799,7 @@
         }
       },
       "process": "(!register).{call}",
-      "subprocesses": {
+      "actions": {
         "call": {
           "process": "[callback].(ret_callback).{call} | (deregister)"
         },
@@ -783,7 +838,7 @@
         }
       },
       "process": "(!register).<init>.{call}",
-      "subprocesses": {
+      "actions": {
         "call": {
           "process": "[callback].(ret_callback).{call} | <free>.(deregister)"
         },
@@ -827,7 +882,7 @@
         }
       },
       "process": "(!instance_register).[callback].(ret_callback).(instance_deregister)",
-      "subprocesses": {
+      "actions": {
         "instance_register": {
           "parameters": [
             "%container%"
@@ -869,11 +924,11 @@
           "interface": ["interrupt.data"]
         },
         "ret_val": {
-          "signature": "int %s"
+          "signature": "int a"
         }
       },
       "process": "(!irq_register).[handler].(ret_handler).(<need_thread>.[thread].(ret_thread) | <handled>).(irq_deregister)",
-      "subprocesses": {
+      "actions": {
         "irq_register": {
            "parameters": [
              "%line%",

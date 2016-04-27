@@ -8,9 +8,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override
 from django.utils.timezone import now
-from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS
+from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
-from bridge.utils import print_err, file_get_or_create
+from bridge.utils import file_get_or_create, logger, unique_id
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
@@ -152,28 +152,37 @@ class Population(object):
         default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
-                print_err('There is default job without settings file')
+                logger.error('There is default job without settings file (%s)' % jobdir, stack_info=True)
                 continue
             with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
                 try:
                     job_settings = json.load(fp)
                 except Exception as e:
-                    print_err(e)
-                    print_err('The default job was not created')
+                    logger.exception('The default job was not created: %s' % e, stack_info=True)
                     continue
             if any(x not in job_settings for x in ['name', 'class', 'description']):
-                print_err('Default job settings must contain name, class and description')
+                logger.error(
+                    'Default job settings must contain name, class and description. Job in "%s" has %s' % (
+                        jobdir, str(list(job_settings))
+                    ), stack_info=True
+                )
                 continue
             if job_settings['class'] not in list(x[0] for x in JOB_CLASSES):
-                print_err('Default job class is wrong. See bridge.vars.JOB_CLASSES for choice ("0", "1" or "2")')
+                logger.error(
+                    'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class'],
+                    stack_info=True
+                )
                 continue
             if len(job_settings['name']) == 0:
-                print_err('Default job name is required')
+                logger.error('Default job name is required', stack_info=True)
                 continue
             try:
                 parent = Job.objects.get(parent=None, type=job_settings['class'])
             except ObjectDoesNotExist:
-                print_err('Main jobs were not created')
+                logger.exception(
+                    "Main jobs were not created (can't find main job with class %s)" % job_settings['class'],
+                    stack_info=True
+                )
                 continue
             job = create_job({
                 'author': self.manager,
@@ -204,7 +213,7 @@ class Population(object):
                     try:
                         check_sum = file_get_or_create(open(f, 'rb'), base_f, True)[1]
                     except Exception as e:
-                        print_err('One of the job files was not uploaded: %s' % e)
+                        logger.exception('One of the job files was not uploaded (%s): %s' % (f, e), stack_info=True)
                         continue
                     fdata.append({
                         'id': self.cnt,
@@ -235,17 +244,16 @@ class Population(object):
         for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
             component = os.path.basename(component_dir)
             if not 0 < len(component) <= 15:
-                print_err('Wrong component length: %s' % component)
+                logger.error('Wrong component length: "%s". 1-15 is allowed.' % component, stack_info=True)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
-                fname = os.path.basename(mark_settings)
                 with open(mark_settings, encoding='utf8') as fp:
                     try:
                         data = json.load(fp)
                     except Exception as e:
-                        print_err(e)
+                        logger.exception("Error while parsing mark's data %s: %s" % (mark_settings, e), stack_info=True)
                         continue
                 if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
-                    print_err('Wrong unknown mark data: %s' % fname)
+                    logger.error('Wrong unknown mark data format: %s' % mark_settings, stack_info=True)
                     continue
                 if 'link' not in data:
                     data['link'] = ''
@@ -259,32 +267,23 @@ class Population(object):
                         or len(data['function']) == 0 \
                         or not 0 < len(data['pattern']) <= 15 \
                         or not isinstance(data['is_modifiable'], bool):
-                    print_err('Wrong unknown mark data: %s' % fname)
+                    logger.error('Wrong unknown mark data: %s' % mark_settings, stack_info=True)
                     continue
                 try:
                     MarkUnknown.objects.get(
-                        component__name=component,
-                        function=data['function'],
-                        problem_pattern=data['pattern']
+                        component__name=component, function=data['function'], problem_pattern=data['pattern']
                     )
                     continue
                 except ObjectDoesNotExist:
-                    create_args = {
-                        'identifier': hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest(),
-                        'component': Component.objects.get_or_create(name=component)[0],
-                        'author': self.manager,
-                        'status': data['status'],
-                        'is_modifiable': data['is_modifiable'],
-                        'function': data['function'],
-                        'problem_pattern': data['pattern'],
-                        'description': data['description']
-                    }
-                    if len(data['link']) > 0:
-                        create_args['link'] = data['link']
                     try:
-                        mark = MarkUnknown.objects.create(**create_args)
+                        mark = MarkUnknown.objects.create(
+                            identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
+                            author=self.manager, status=data['status'], is_modifiable=data['is_modifiable'],
+                            function=data['function'], problem_pattern=data['pattern'], description=data['description'],
+                            type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
+                        )
                     except Exception as e:
-                        print_err(e)
+                        logger.exception("Can't save mark '%s' to DB: %s" % (mark_settings, e), stack_info=True)
                         continue
                     MarkUnknownHistory.objects.create(
                         mark=mark, version=mark.version, author=mark.author, status=mark.status,

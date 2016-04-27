@@ -19,7 +19,7 @@
 
     {% if tabledata.values|length %}
         <h2 class="header" style="text-align:center">{{ title }}</h2>
-        <div style="overflow-x:auto;max-height: 1000px;overflow-y:auto;">
+        <div style="overflow-x:auto;max-height: 690px;overflow-y:auto;">
             <table class="ui compact celled table {% if view_type == '7' %}orange{% elif view_type == '8' %}green{% elif view_type == '9' %}red{% endif %}">
                 <thead>
                     {% for column_row in tabledata.header %}

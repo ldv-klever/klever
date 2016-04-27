@@ -215,8 +215,13 @@ $(document).ready(function () {
     $('.ui.checkbox').checkbox();
     $('.ui.accordion').accordion();
 
-    $('#upload_marks_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_marks_popup', 'show');
-    $('#upload_job_popup').modal({transition: 'vertical flip'}).modal('attach events', '#show_upload_job_popup', 'show');
+    if ($('#show_upload_marks_popup').length) {
+        $('#upload_marks_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_marks_popup', 'show');
+    }
+
+    if ($('#show_upload_job_popup').length) {
+        $('#upload_job_popup').modal({transition: 'vertical flip'}).modal('attach events', '#show_upload_job_popup', 'show');
+    }
 
     $('#upload_marks_start').click(function () {
         var files = $('#upload_marks_file_input')[0].files,
