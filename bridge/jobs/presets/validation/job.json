@@ -130,7 +130,7 @@
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
-      "comment": "TODO"
+      "comment": "[Environment model] <a href='http://forge.ispras.ru/issues/7141'>Bug #7141</a>"
     },
     {
       "Linux kernel": {
@@ -139,7 +139,7 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe",
-      "comment": "TODO"
+      "comment": "[Environment model] <a href='http://forge.ispras.ru/issues/7133'>Bug #7133</a>"
     },
     {
       "Linux kernel": {
@@ -148,7 +148,7 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe",
-      "comment": "TODO"
+      "comment": "Incredibly complex module with great number of process instances and large call stack to target bug"
     },
     {
       "Linux kernel": {
