@@ -67,7 +67,7 @@
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe",
-      "comment": "Too complex module (<a href='http://forge.ispras.ru/issues/7110'>bug #7110</a>)"
+      "comment": "[Environment model] Too complex module (<a href='http://forge.ispras.ru/issues/7110'>bug #7110</a>)"
     },
     {
       "Linux kernel": {
@@ -76,7 +76,7 @@
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
-      "comment": "Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
+      "comment": "[Environment model] Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
     },
     {
       "Linux kernel": {
@@ -85,7 +85,7 @@
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe",
-      "comment": "Interrupt callback invocations support (<a href='https://forge.ispras.ru/issues/6575'>feature #6575</a>)"
+      "comment": "[Environment model] Interrupt callback invocations support (<a href='https://forge.ispras.ru/issues/6575'>feature #6575</a>)"
     },
     {
       "Linux kernel": {
@@ -94,7 +94,7 @@
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe",
-      "comment": "Interrupt callback invocations support (<a href='https://forge.ispras.ru/issues/6575'>feature #6575</a>)"
+      "comment": "[Environment model] Interrupt callback invocations support (<a href='https://forge.ispras.ru/issues/6575'>feature #6575</a>)"
     },
     {
       "Linux kernel": {
