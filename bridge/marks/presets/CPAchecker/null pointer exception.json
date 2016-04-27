@@ -1,0 +1,5 @@
+{
+  "function": "java\\.lang\\.NullPointerException",
+  "pattern": "Null pointer",
+  "link": "https://docs.oracle.com/javase/7/docs/api/java/lang/NullPointerException.html"
+}
