@@ -67,7 +67,7 @@
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] Too complex module (<a href='http://forge.ispras.ru/issues/7110'>bug #7110</a>)"
+      "comment": "[Environment model] Complex modules support <a href='http://forge.ispras.ru/issues/7110'>Bug #7110</a>"
     },
     {
       "Linux kernel": {
