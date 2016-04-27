@@ -103,7 +103,7 @@
       },
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe",
-      "comment": "Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
+      "comment": "[Bug in kernel] Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
     },
     {
       "Linux kernel": {
@@ -157,7 +157,7 @@
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
-      "comment": "Target bug is in __w1_remove_master_device() that is called when all devices added by means of w1_add_master_device() are deregistered. But w1_add_master_device() is called just from other modules."
+      "comment": "[Multimodule] Target bug is in __w1_remove_master_device() that is called when all devices added by means of w1_add_master_device() are deregistered. But w1_add_master_device() is called just from other modules."
     },
     {
       "Linux kernel": {
@@ -166,7 +166,7 @@
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
-      "comment": "Target bug can be detected just if this module will be analysed together with leds-lp55xx-common.ko. That module defines lp55xx_firmware_loaded() that calls module specific function with target bug lp5521_firmware_loaded()."
+      "comment": "[Multimodule] Target bug can be detected just if this module will be analysed together with leds-lp55xx-common.ko. That module defines lp55xx_firmware_loaded() that calls module specific function with target bug lp5521_firmware_loaded()."
     },
     {
       "Linux kernel": {
@@ -175,7 +175,7 @@
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
-      "comment": "Target bug can be detected just if this module will be analysed together with leds-lp55xx-common.ko. That module defines lp55xx_firmware_loaded() that calls module specific function with target bug lp5523_firmware_loaded()."
+      "comment": "[Multimodule] Target bug can be detected just if this module will be analysed together with leds-lp55xx-common.ko. That module defines lp55xx_firmware_loaded() that calls module specific function with target bug lp5523_firmware_loaded()."
     },
     {
       "Linux kernel": {
@@ -184,7 +184,7 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "unsafe",
-      "comment": "Target bug can be detected just if this module will be analysed together with snd-emu10k1.ko. That module defines snd_emu10k1_voice_alloc() that can call snd_emu10k1_synth_get_voice() acquiring the same spinlock as snd_emu10k1_voice_alloc() already acquired"
+      "comment": "[Multimodule] Target bug can be detected just if this module will be analysed together with snd-emu10k1.ko. That module defines snd_emu10k1_voice_alloc() that can call snd_emu10k1_synth_get_voice() acquiring the same spinlock as snd_emu10k1_voice_alloc() already acquired"
     },
     {
       "Linux kernel": {
