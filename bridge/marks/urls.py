@@ -9,9 +9,10 @@ urlpatterns = [
     url(r'^download/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
         views.download_mark, name='download_mark'),
     url(r'^delete/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$', views.delete_mark, name='delete_mark'),
-    url(r'^ajax/delete/$', views.delete_marks),
+    url(r'^association_changes/(?P<association_id>.*)/$', views.association_changes),
 
     # For ajax requests
+    url(r'^ajax/delete/$', views.delete_marks),
     url(r'^ajax/save_mark/$', views.save_mark),
     url(r'^ajax/get_func_description/$', views.get_func_description),
     url(r'^ajax/upload_marks/$', views.upload_marks),

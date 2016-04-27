@@ -455,7 +455,7 @@ class ProcessModel:
                                            if type(intf) is Callback  and not intf.called and
                                            intf.identifier not in label_map['matched callbacks']]:
                                 self.__add_label_match(label_map, callback, f_intf.identifier)
-            elif len(unmatched_callbacks) > 0:
+            if len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
                     for intf in [intf for intf in analysis.callbacks(category)
                                  if not intf.called and intf.identifier not in label_map['matched callbacks']]:
