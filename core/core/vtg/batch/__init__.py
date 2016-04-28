@@ -5,7 +5,7 @@ from core.vtg.sbt import SBT
 
 # This strategy is aimed at creating 1 verification tasks for all
 # specified bug types.
-class Batch(SBT):
+class BATCH(SBT):
 
     def perform_sanity_checks(self):
         if 'unite rule specifications' not in self.conf['abstract task desc']['AVTG'] \

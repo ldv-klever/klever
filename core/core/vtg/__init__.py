@@ -11,13 +11,13 @@ import core.utils
 # VTG strategies.
 from core.vtg.sbk import SBK
 from core.vtg.sbt import SBT
-from core.vtg.batch import Batch
+from core.vtg.batch import BATCH
 from core.vtg.mbk import MBK
 from core.vtg.mbt import MBT
 from core.vtg.mpvbt import MPVBT
 from core.vtg.mpvbk import MPVBK
 
-_strategies = (SBT, SBK, Batch, MBK, MBT, MPVBT, MPVBK)
+_strategies = (SBT, SBK, BATCH, MBK, MBT, MPVBT, MPVBK)
 
 
 def before_launch_all_components(context):
