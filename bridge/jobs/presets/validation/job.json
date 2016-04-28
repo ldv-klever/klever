@@ -116,33 +116,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "5c256d215753~"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it."
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "214c97a12f1f"},
-        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "unsafe",
-      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it, but it also takes quite much time."
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ae3f34854485~"},
-        "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "unsafe",
-      "comment": "Incredibly complex module with great number of process instances and large call stack to target bug"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "063579d4c3ed~"},
         "modules": ["drivers/w1/wire.ko"]
       },
@@ -185,6 +158,33 @@
       "rule specifications": ["linux:alloc2"],
       "ideal verdict": "unsafe",
       "comment": "[Bug in kernel] Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "5c256d215753~"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it."
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "214c97a12f1f"},
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it, but it also takes quite much time."
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ae3f34854485~"},
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
+      "ideal verdict": "unsafe",
+      "comment": "Incredibly complex module with great number of process instances and large call stack to target bug"
     },
     {
       "Linux kernel": {
@@ -237,30 +237,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "5c256d215753"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "214c97a12f1f~"},
-        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
-      "rule specifications": ["linux:mutex:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ae3f34854485"},
-        "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "063579d4c3ed"},
         "modules": ["drivers/w1/wire.ko"]
       },
@@ -297,6 +273,30 @@
         "modules": ["drivers/net/ppp/ppp_generic.ko"]
       },
       "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "5c256d215753"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "214c97a12f1f~"},
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ae3f34854485"},
+        "modules": ["fs/nfs/nfs.ko"]
+      },
+      "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "safe"
     }
   ],
