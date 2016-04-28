@@ -544,8 +544,16 @@ class Automaton:
                                      "but in sequential model it is not necessary */".format(state.action.name))
             state.code = base_case
         elif type(state.action) is Receive:
-            # Generate comment
-            base_case["body"].append("/* Receive signal {} */".format(state.action.name))
+            # Generate dispatch function
+            automata_peers = {}
+            if len(state.action.peers) > 0:
+                # Do call only if model which can be called will not hang
+                translator.extract_relevant_automata(automata_peers, state.action.peers, Dispatch)
+            else:
+                # Generate comment
+                base_case["body"].append("/* Receive {} does not expect any signal from existing processes, skip it */".
+                                         format(state.action.name))
+            base_case['relevant automata'] = automata_peers
             state.code = base_case
         elif type(state.action) is Condition:
             # Generate comment
