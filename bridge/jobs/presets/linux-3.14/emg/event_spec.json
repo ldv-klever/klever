@@ -509,7 +509,7 @@
           "callback": true
         }
       },
-      "process": "(!instance_register).<alloc>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post].(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | <null>).[release].(ret_release) | <failed_probe>).<free>.(instance_deregister)",
+      "process": "(!instance_register).<alloc>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post].(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | [callback] | <null>).[release].(ret_release) | <failed_probe>).<free>.(instance_deregister)",
       "actions": {
         "instance_register": {
           "parameters": [
