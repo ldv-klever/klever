@@ -126,7 +126,7 @@ class EMG(core.components.Component):
         if "translator" in self.conf:
             translator_name = self.conf["translator"]
         else:
-            translator_name = "sequential"
+            translator_name = "default"
         self.logger.info("Translation module {} has been chosen".format(translator_name))
 
         translator = getattr(__import__("core.avtg.emg.translator.{}".format(translator_name),

@@ -18,12 +18,12 @@
           "EMG": {
             "specifications directory": "emg",
             "entry point": "entry_point",
-            "translator": "sequential",
+            "translator": "default",
             "intermediate model options": {
               "ignore missed callbacks": true
             },
             "translation options": {
-              "direct control function calls": false,
+              "direct control function calls": true,
               "omit all states": true,
               "nested automata": true,
               "omit parallel composition": {
