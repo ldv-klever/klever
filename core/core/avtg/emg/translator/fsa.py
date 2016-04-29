@@ -189,6 +189,7 @@ class Automaton:
     def __init__(self, logger, analysis, process, identifier):
         # Set default values
         self.control_function = None
+        self.state_blocks = {}
         self.cf_structure = None
         self.functions = []
         self.__state_variable = None
@@ -325,33 +326,33 @@ class Automaton:
         subprocesses = {}
         for state in self.fsa.states:
             label = "Action: {}\n".format(state.desc['label'])
-            if state.code:
-                if 'guard' in state.code and len(state.code['guard']) > 0:
-                    label += 'Guard: ' + ' && '.join(state.code['guard'])
-                    label += '\n'
 
-                if type(state.action) is Call:
-                    if 'file' in state.code:
-                        label += "File: '{}'\n".format(state.code['file'])
-                    call = ''
-                    if 'retval' in state.code:
-                        call += "{} = ".format(state.code['retval'])
-                    call += state.code['invoke']
-                    if 'check pointer' in state.code and state.code['check pointer']:
-                        call += 'if ({})'.format(state.code['invoke']) + '\n\t'
-                    call += '(' + ', '.join(state.code['parameters']) + ')'
-                    label += call
-                else:
-                    if 'body' in state.code and len(state.code['body']) > 0:
-                        label += 'Body:\n' + '\n'.join(state.code['body'])
+            if 'guard' in state.code and len(state.code['guard']) > 0:
+                label += 'Guard: ' + ' && '.join(state.code['guard'])
+                label += '\n'
 
-                if 'relevant automata' in state.code:
-                    label += '\nRelevant automata:\n'
-                    if len(state.code['relevant automata']) > 0:
-                        for automaton in state.code['relevant automata'].values():
-                            label += "Automaton '{}': '{}' ({})\n".format(automaton['automaton'].identifier,
-                                                                          automaton['automaton'].process.name,
-                                                                          automaton['automaton'].process.category)
+            if type(state.action) is Call and 'invoke' in state.code:
+                if 'file' in state.code:
+                    label += "File: '{}'\n".format(state.code['file'])
+                call = ''
+                if 'retval' in state.code:
+                    call += "{} = ".format(state.code['retval'])
+                call += state.code['invoke']
+                if 'check pointer' in state.code and state.code['check pointer']:
+                    call += 'if ({})'.format(state.code['invoke']) + '\n\t'
+                call += '(' + ', '.join(state.code['parameters']) + ')'
+                label += call
+            else:
+                if 'body' in state.code and len(state.code['body']) > 0:
+                    label += 'Body:\n' + '\n'.join(state.code['body'])
+
+            if 'relevant automata' in state.code:
+                label += '\nRelevant automata:\n'
+                if len(state.code['relevant automata']) > 0:
+                    for automaton in state.code['relevant automata'].values():
+                        label += "Automaton '{}': '{}' ({})\n".format(automaton['automaton'].identifier,
+                                                                      automaton['automaton'].process.name,
+                                                                      automaton['automaton'].process.category)
 
             if type(state.action) is not Subprocess or state.action.name not in subprocesses:
                 graph.node(str(state.identifier), label)
@@ -396,7 +397,7 @@ class Automaton:
             callbacks = []
 
             for access in accesses:
-                new_case = copy.copy(base_case)
+                new_case = copy.deepcopy(base_case)
 
                 if access.interface:
                     signature = access.interface.declaration
@@ -517,6 +518,12 @@ class Automaton:
                         self.determine_variable(analysis, ret_access[0].label))
                     case['retval'] = retval
 
+                # Add additional condition
+                if state.action.condition and len(state.action.condition) > 0:
+                    for statement in state.action.condition:
+                        cn = self.text_processor(analysis, statement)
+                        base_case["guard"].extend(cn)
+
                 # Generate comment
                 case["parameters"] = params
                 case["callback"] = signature
@@ -527,6 +534,11 @@ class Automaton:
                 case['file'] = file
                 case['variable'] = func_variable
                 nd.code = case
+            else:
+                # Generate comment
+                base_case["body"].append("/* Skip callback call {} without an implementation */".
+                                         format(state.action.name))
+                state.code = base_case
         elif type(state.action) is Dispatch:
             # Generate dispatch function
             automata_peers = {}
@@ -537,6 +549,13 @@ class Automaton:
                 # Generate comment
                 base_case["body"].append("/* Dispatch {} is not expected by any process, skip it */".
                                          format(state.action.name))
+
+            # Add additional condition
+            if state.action.condition and len(state.action.condition) > 0:
+                for statement in state.action.condition:
+                    cn = self.text_processor(analysis, statement)
+                    base_case["guard"].extend(cn)
+
             base_case['relevant automata'] = automata_peers
             state.code = base_case
         elif type(state.action) is CallRetval:
@@ -549,10 +568,18 @@ class Automaton:
             if len(state.action.peers) > 0:
                 # Do call only if model which can be called will not hang
                 translator.extract_relevant_automata(automata_peers, state.action.peers, Dispatch)
+
+                # Add additional condition
+                base_case["receive guard"] = []
+                if state.action.condition and len(state.action.condition) > 0:
+                    for statement in state.action.condition:
+                        cn = self.text_processor(analysis, statement)
+                        base_case["receive guard"].extend(cn)
             else:
                 # Generate comment
                 base_case["body"].append("/* Receive {} does not expect any signal from existing processes, skip it */".
                                          format(state.action.name))
+
             base_case['relevant automata'] = automata_peers
             state.code = base_case
         elif type(state.action) is Condition:
@@ -572,6 +599,12 @@ class Automaton:
         elif type(state.action) is Subprocess:
             # Generate comment
             base_case["body"].append("/* Jump to an initial state of subprocess '{}' */".format(state.action.name))
+
+            # Add additional condition
+            if state.action.condition and len(state.action.condition) > 0:
+                for statement in state.action.condition:
+                    cn = self.text_processor(analysis, statement)
+                    base_case["guard"].extend(cn)
 
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
