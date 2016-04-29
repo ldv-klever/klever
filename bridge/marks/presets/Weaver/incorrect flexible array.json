@@ -1,5 +1,0 @@
-{
-  "function": "error: flexible array member not at end of struct",
-  "pattern": "IncorFlexArray",
-  "link": "http://forge.ispras.ru/issues/7144"
-}

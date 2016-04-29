@@ -1,4 +1,5 @@
 {
   "function": "EMG tries to generate more instances than it is allowed by configuration",
-  "pattern": "Many insts"
+  "pattern": "TooManyInsts",
+  "link": "http://forge.ispras.ru/issues/7110"
 }

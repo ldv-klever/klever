@@ -1,5 +1,0 @@
-{
-  "function": "\\.S:\\d+:\\d+: error:",
-  "pattern": "Assembler code",
-  "link": "https://forge.ispras.ru/issues/6900"
-}

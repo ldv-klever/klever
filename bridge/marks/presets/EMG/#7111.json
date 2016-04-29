@@ -1,5 +1,5 @@
 {
   "function": "File \".*/core/avtg/emg/module_categories.py\", line \\d+, in __import_entities",
-  "pattern": "Broken import",
+  "pattern": "#7111",
   "link": "http://forge.ispras.ru/issues/7111"
 }

@@ -1,5 +1,0 @@
-{
-  "function": "error: '.+' has an incomplete type",
-  "pattern": "IncompleteType",
-  "link": "http://forge.ispras.ru/issues/6560"
-}
