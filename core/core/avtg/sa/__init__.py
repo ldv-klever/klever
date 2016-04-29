@@ -133,7 +133,7 @@ class SA(core.components.Component):
                                                       '--debug', 'DEBUG'] +
                                                      (['--keep'] if self.conf['keep intermediate files'] else []) +
                                                      ['--'] +
-                                                     command["opts"] +
+                                                     [opt.replace('"', '\\"') for opt in command["opts"]] +
                                                      ['-isystem{0}'.format(stdout[0])]),
                                   cwd=self.conf['source tree root'])
 
