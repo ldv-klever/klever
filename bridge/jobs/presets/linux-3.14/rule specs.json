@@ -63,7 +63,7 @@
               "-D__KERNEL__",
               "-Os"
             ],
-            "common models": ["linux/err.c"],
+            "common models": ["linux/ldv.c", "linux/err.c"],
             "common aspects": ["linux/err.aspect"]
           }
         },
