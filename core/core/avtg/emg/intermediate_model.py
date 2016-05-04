@@ -108,7 +108,8 @@ class ProcessModel:
         self.entry_process.actions['init_failed'] = failed
 
         stop = Condition('stop')
-        stop.statements = ["ldv_check_final_state();"]
+        stop.statements = ["ldv_check_final_state();",
+                           "ldv_stop();"]
         self.entry_process.actions['stop'] = stop
 
         none = Condition('none')

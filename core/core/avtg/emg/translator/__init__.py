@@ -14,7 +14,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     CF_PREFIX = 'ldv_control_function_'
 
-    def __init__(self, logger, conf, avt, header_lines=None, aspect_lines=None):
+    def __init__(self, logger, conf, avt, aspect_lines=None):
         self.logger = logger
         self.conf = conf
         self.task = avt
@@ -85,10 +85,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if self._omit_states['condition']:
             self.jump_types.add(Condition)
 
-        if not header_lines:
-            self.additional_headers = []
-        else:
-            self.additional_headers = header_lines
         if not aspect_lines:
             self.additional_aspects = []
         else:
@@ -611,7 +607,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             elif len(blocks) == 2:
                 for index in range(2):
                     if index == 0:
-                        body.append('if (ldv_nondet_int()) {')
+                        body.append('if (ldv_undef_int()) {')
                     else:
                         body.append('else {')
                     body.extend(['\t' + stm for stm in blocks[index]])
@@ -750,14 +746,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     first = True
                     for element in elements:
                         if first:
-                            block.append('if (ldv_nondet_int()) {')
+                            block.append('if (ldv_undef_int()) {')
                             first = False
                         else:
                             block.append('else {')
                         block.extend(['\t' + stm for stm in element])
                         block.append('}')
                 elif len(elements) > 2:
-                    block.append('switch (ldv_nondet_int()) {')
+                    block.append('switch (ldv_undef_int()) {')
                     for index in range(len(elements)):
                         block.append('\tcase {}:'.format(index) + '{')
                         block.extend(['\t\t' + stm for stm in elements[index]])
@@ -1084,13 +1080,13 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             code.append('{} = {};'.format(automaton.state_variable.name, successors[0].identifier))
         elif len(state.successors) == 2:
             code.extend([
-                'if (ldv_nondet_int())',
+                'if (ldv_undef_int())',
                 '\t{} = {};'.format(automaton.state_variable.name, successors[0].identifier),
                 'else',
                 '\t{} = {};'.format(automaton.state_variable.name, successors[1].identifier),
             ])
         elif len(state.successors) > 2:
-            code.append('switch (ldv_nondet_int()) {')
+            code.append('switch (ldv_undef_int()) {')
             for index in range(len(successors)):
                 code.append('\tcase {}: '.format(index) + '{')
                 code.append('\t\t{} = {};'.format(automaton.state_variable.name, successors[index].identifier))
@@ -1098,6 +1094,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 code.append('\t}')
             code.append('\tdefault: ldv_stop();')
             code.append('}')
+        else:
+            code.append('{} = {};'.format(automaton.state_variable.name, '0'))
+            code.append('/* Repeate automaton */')
 
         return v_code, code
 
@@ -1118,13 +1117,13 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             f_code.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
         elif len(initial_states) == 2:
             f_code.extend([
-                '\tif (ldv_nondet_int())',
+                '\tif (ldv_undef_int())',
                 '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
                 '\telse',
                 '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
             ])
         elif len(initial_states) > 2:
-            f_code.append('switch (ldv_nondet_int()) {')
+            f_code.append('switch (ldv_undef_int()) {')
             for index in range(len(initial_states)):
                 f_code.append('\t\tcase {}: '.format(index) + '{')
                 f_code.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
@@ -1147,7 +1146,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 tab += 1
                 for key in sorted(list(automaton.state_blocks.keys())):
                     if first:
-                        f_code.append('\t' * (tab - 1) + 'if (ldv_nondet_int()) {')
+                        f_code.append('\t' * (tab - 1) + 'if (ldv_undef_int()) {')
                         first = False
                     else:
                         f_code.append('\t' * (tab - 1) + 'else {')
@@ -1193,16 +1192,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                                   key=lambda f: f['in file']):
                 # Aspect text
                 lines = list()
-
-                # Before file
-                lines.append('before: file ("$this")\n')
-                lines.append('{\n')
-
-                if len(self.additional_headers) > 0:
-                    lines.append("/* EMG additional headers */\n")
-                    lines.extend(self.additional_headers)
-                    lines.append("\n")
-                lines.append('}\n')
 
                 if len(self.additional_aspects) > 0:
                     lines.append("\n")
