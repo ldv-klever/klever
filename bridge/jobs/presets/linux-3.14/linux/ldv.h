@@ -11,7 +11,7 @@
  * initialization of global variables that are usually used as model states.
  *
  * ldv_initialize() should be always called by generated environment models
- * just before all module initialization functions.
+ * just before calling all module initialization functions.
  */
 extern void ldv_initialize(void);
 
@@ -87,9 +87,9 @@ extern bool ldv_in_interrupt_context(void);
  * use model states and need to check it at the end.
  *
  * ldv_check_final_state() should be always called by generated environment
- * models just after all module exit functions. Nothing should be performed
- * after calling ldv_check_final_state() since this can lead to unexpected false
- * alarms.
+ * models just after calling all module exit functions. Nothing should be
+ * performed after calling ldv_check_final_state() since this can lead to
+ * unexpected false alarms.
  */
 extern void ldv_check_final_state(void);
 
