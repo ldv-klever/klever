@@ -9,14 +9,14 @@
       "plugins": [
         {
           "SA": {
-            "template aspect": "sa.aspect.tmpl",
+            "template aspect": "linux/emg/source_analysis.aspect.tmpl",
             "max arguments number": 30,
             "filter kernel functions": true
           }
         },
         {
           "EMG": {
-            "specifications directory": "emg",
+            "specifications directory": "linux/emg",
             "entry point": "entry_point",
             "translator": "default",
             "intermediate model options": {
@@ -24,13 +24,13 @@
             },
             "translation options": {
               "direct control function calls": true,
-              "omit all states": true,
-              "nested automata": true,
+              "omit all states": false,
+              "nested automata": false,
               "omit parallel composition": {
                 "dispatch": false,
                 "receive": false,
                 "call": false,
-                "condition": false
+                "condition": true
               },
               "instance modifier": 1,
               "max instances number": 300,
@@ -49,11 +49,7 @@
                 "primitives": false
               }
             },
-            "additional headers": [
-              "emg.h"
-            ],
-            "additional C files": [],
-            "additional aspects": []
+            "additional aspects": ["linux/emg/emg.aspect"]
           }
         },
         {
@@ -72,8 +68,15 @@
               "-D__KERNEL__",
               "-Os"
             ],
-            "common models": ["linux/err.c"],
-            "common aspects": ["linux/err.aspect"]
+            "common models": [
+              "linux/err.c",
+              "verifier/rcv.c",
+              "verifier/memory.c",
+              "verifier/thread.c"
+            ],
+            "common aspects": [
+              "linux/err.aspect"
+            ]
           }
         },
         "Weaver"
