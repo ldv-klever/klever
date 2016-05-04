@@ -167,17 +167,11 @@ class FunctionModels:
 
     # todo: implement all models
     mem_function_map = {
-        "ALLOC": "ldvemg_undef_ptr",
-        "ALLOC_RECURSIVELY": "ldvemg_undef_ptr",
-        "ZINIT": "ldvemg_undef_ptr",
-        "ZINIT_STRUCT": None,
-        "INIT_STRUCT": None,
-        "INIT_RECURSIVELY": None,
-        "ZINIT_RECURSIVELY": None,
+        "ALLOC": "ldv_malloc",
+        "ZALLOC": "ldv_malloc"
     }
     free_function_map = {
-        "FREE": "ldv_free",
-        "FREE_RECURSIVELY": None
+        "FREE": "ldv_free"
     }
     irq_function_map = {
         "GET_CONTEXT": None,
