@@ -1,0 +1,5 @@
+{
+  "function": "OSError: Got unexpected status code \"500\" when send \"POST\" request to \"http://localhost:8998/users/service_signin/\"",
+  "pattern": "SignInDeadlock",
+  "link": "https://forge.ispras.ru/issues/7146"
+}
