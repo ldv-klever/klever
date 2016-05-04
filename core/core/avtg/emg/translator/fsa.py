@@ -536,9 +536,9 @@ class Automaton:
                     nd.code = case
             else:
                 # Generate comment
-                new_case["body"].append("/* Skip callback call {} without an implementation */".
-                                         format(state.action.name))
-                state.code = new_case
+                base_case["body"].append("/* Skip callback call {} without an implementation */".
+                                        format(state.action.name))
+                state.code = base_case
         elif type(state.action) is Dispatch:
             # Generate dispatch function
             automata_peers = {}
