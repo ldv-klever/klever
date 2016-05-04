@@ -331,7 +331,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         self.files[file]['functions'][function.name] = function
 
-    def _add_global_variable(self, file, variable):
+    def _add_global_variable(self, variable):
+        if variable.file:
+            file = variable.file
+        else:
+            file = self.entry_file
+
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
@@ -352,7 +357,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 global_switch_automata.append(func)
         else:
             self.logger.info("Generate control functions for the environment model")
-            for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
+            for automaton in sorted(list(self._callback_fsa) + [self._entry_fsa], key=lambda fsa: fsa.identifier):
                 automaton.state_blocks = self._state_sequences(automaton)
 
             for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
@@ -653,7 +658,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                 None, decl.take_pointer, False)
 
         if vf_param_var.name not in self.files[self.entry_file]['variables']:
-            self._add_global_variable(self.entry_file, vf_param_var)
+            self._add_global_variable(vf_param_var)
         return vf_param_var
 
     def _action_base_block(self, analysis, automaton, state):
@@ -976,9 +981,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 processed.append(subp.action.name)
 
         if not self._nested_automata and not aspect:
-            self._add_global_variable(self.entry_file, automaton.state_variable)
+            self._add_global_variable(automaton.state_variable)
         elif not aspect:
-            self._add_global_variable(self.entry_file, automaton.thread_variable)
+            self._add_global_variable(automaton.thread_variable)
 
         cf.body.concatenate(v_code + f_code)
         automaton.control_function = cf
@@ -1019,7 +1024,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 v_code.append(definition)
         else:
             for var in automaton.variables(analysis):
-                self._add_global_variable(self.entry_file, var)
+                self._add_global_variable(var)
 
         return cf
 
@@ -1170,7 +1175,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 tab -= 1
                 f_code.append('\t' * tab + '}')
 
-        self._add_global_variable(self.entry_file, automaton.state_variable)
+        self._add_global_variable(automaton.state_variable)
         cf.body.concatenate(v_code + f_code)
         automaton.control_function = cf
 
