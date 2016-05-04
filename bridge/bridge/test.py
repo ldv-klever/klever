@@ -2,6 +2,7 @@ import os
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.test import Client, TestCase
+from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
 from bridge.vars import JOB_CLASSES, USER_ROLES
 from users.models import User, Extended
@@ -67,3 +68,18 @@ class TestPopulation(TestCase):
             if os.path.isdir(os.path.join(BASE_DIR, 'marks', 'presets', comp_dir)):
                 number_of_preset_marks += len(os.listdir(os.path.join(BASE_DIR, 'marks', 'presets', comp_dir)))
         self.assertEqual(len(MarkUnknown.objects.all()), number_of_preset_marks)
+
+    def test_service_population(self):
+        result = populate_users(
+            admin={'username': 'superuser'},
+            manager={'username': 'manager', 'password': '12345'},
+            service={'username': 'service', 'password': 'service'}
+        )
+        self.assertEqual(result, None)
+        self.assertEqual(len(Extended.objects.filter(user__username='manager', role=USER_ROLES[2][0])), 1)
+        self.assertEqual(len(Extended.objects.filter(user__username='service', role=USER_ROLES[4][0])), 1)
+
+        self.client.post(reverse('users:login'), {'username': 'superuser', 'password': 'top_secret'})
+        # Population after service and manager were created by function call
+        response = self.client.post(reverse('population'))
+        self.assertEqual(response.status_code, 200)
