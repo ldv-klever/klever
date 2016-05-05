@@ -1,5 +1,5 @@
-#ifndef _LDV_THREAD_H_
-#define _LDV_THREAD_H_
+#ifndef __VERIFIER_THREAD_H
+#define __VERIFIER_THREAD_H
 
 /* Thread type */
 struct ldv_thread;
@@ -10,4 +10,4 @@ extern int ldv_thread_create(void *ldv_thread, void (*function)(void *), void *d
 /* Join thread */
 extern int ldv_thread_join(void *ldv_thread);
 
-#endif /* _LDV_THREAD_H_ */
+#endif /* __VERIFIER_THREAD_H */

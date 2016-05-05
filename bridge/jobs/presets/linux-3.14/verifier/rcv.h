@@ -1,5 +1,5 @@
-#ifndef _LDV_RCV_H_
-#define _LDV_RCV_H_
+#ifndef __VERIFIER_RCV_H
+#define __VERIFIER_RCV_H
 
 /* If expr evaluates to zero, ldv_assert() causes a program to reach the error
  * function call like the standard assert().
@@ -44,4 +44,4 @@ extern void __builtin_trap(void);
 /* Pointers greater then this number correspond to errors. */
 #define LDV_PTR_MAX 2012
 
-#endif /* _LDV_RCV_H_ */
+#endif /* __VERIFIER_RCV_H */
