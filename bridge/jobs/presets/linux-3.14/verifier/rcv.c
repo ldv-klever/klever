@@ -6,12 +6,15 @@ void __VERIFIER_error(void);
 /* If expr evaluates to zero, ldv_assert() causes a program to reach the error
  * function call like the standard assert().
  */
-void ldv_assert(int expression) {
+void ldv_assert(int expression)
+{
     (expression) ? 0 : __VERIFIER_error();
 }
 
-void ldv_assume(int expression) {
-    if (!expression) {
+void ldv_assume(int expression)
+{
+    if (!expression)
+    {
         /* Cut this path */
         ldv_assume_label:
         goto ldv_assume_label;
