@@ -75,9 +75,7 @@
               "verifier/memory.c",
               "verifier/thread.c"
             ],
-            "common aspects": [
-              "linux/err.aspect"
-            ]
+            "common aspects": ["linux/err.aspect"]
           }
         },
         "Weaver"
