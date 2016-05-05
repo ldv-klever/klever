@@ -219,7 +219,7 @@ class Automaton:
     @property
     def thread_variable(self):
         if not self.__thread_variable:
-            var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'ldv_thread a', True)
+            var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'struct ldv_thread a', True)
             var.use += 1
             self.__thread_variable = var
 
