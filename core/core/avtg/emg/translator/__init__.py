@@ -344,6 +344,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def _generate_control_functions(self, analysis, model):
         global_switch_automata = []
 
+        if self._omit_all_states and not self._nested_automata:
+            raise NotImplementedError('EMG options are inconsistent: cannot create label-based automata without nested'
+                                      'dispatches')
+
         # Generate automata control function
         self.logger.info("Generate control functions for the environment model")
         if self._omit_all_states:
@@ -574,6 +578,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             else:
                                 block.append('ret = {}'.format(call))
                                 block.append('ldv_assume(ret == 0);')
+                            blocks.append(block)
                             break
                         else:
                             self.logger.warning(
@@ -581,7 +586,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                     .format(r_state.action.name,
                                             state.code['relevant automata'][name]['automaton'].process.name,
                                             state.code['relevant automata'][name]['automaton'].process.category))
-                        blocks.append(block)
             else:
                 for name in state.code['relevant automata']:
                     call = self.join_cf(state.code['relevant automata'][name]['automaton'])
@@ -662,7 +666,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         v_code = []
 
         if type(state.action) is Call:
-            if not self._omit_all_states and state.code:
+            if not self._nested_automata:
                 checks = self._relevant_checks(state)
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
@@ -675,7 +679,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             for stm in state.code['body']:
                 block.append(stm)
         elif type(state.action) is Dispatch:
-            if not self._omit_all_states and not self._nested_automata:
+            if not self._nested_automata:
                 checks = self._relevant_checks(state)
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
@@ -1095,8 +1099,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             code.append('\tdefault: ldv_stop();')
             code.append('}')
         else:
+            code.append('/* Reset automaton state */')
             code.append('{} = {};'.format(automaton.state_variable.name, '0'))
-            code.append('/* Repeate automaton */')
+            if self._nested_automata:
+                code.append('goto out_{};'.format(automaton.identifier))
 
         return v_code, code
 
@@ -1111,7 +1117,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         cf = self.__new_control_function(analysis, automaton, v_code, f_code, None)
 
         f_code.append('/* Initialize state */')
-        f_code.append('if (!{})'.format(automaton.state_variable.name) + '{')
+        f_code.append('if (!{}) '.format(automaton.state_variable.name) + '{')
         initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
         if len(initial_states) == 1:
             f_code.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
@@ -1133,6 +1139,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 f_code.append('\t}')
         f_code.append('}')
 
+        # Add loop for nested case
+        if self._nested_automata:
+            f_code.append('while (1) {')
+            tab += 1
+
         if len(list(automaton.state_blocks.keys())) == 0:
             f_code.append('/* Empty control function */')
         else:
@@ -1140,7 +1151,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 new_v_code, new_f_code = self._state_sequence_code(analysis, automaton,
                                                                    list(automaton.state_blocks.values())[0])
                 v_code.extend(new_v_code)
-                f_code.extend(new_f_code)
+                f_code.extend(['\t' * tab + stm for stm in new_f_code])
             elif len(list(automaton.state_blocks)) == 2:
                 first = True
                 tab += 1
@@ -1174,7 +1185,16 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 tab -= 1
                 f_code.append('\t' * tab + '}')
 
-        self._add_global_variable(automaton.state_variable)
+        # Add loop for nested case
+        if self._nested_automata:
+            f_code.append('}')
+            tab -= 1
+            f_code.append('out_{}:'.format(automaton.identifier))
+            f_code.append('return;')
+            self._add_global_variable(automaton.thread_variable)
+            v_code.append(automaton.state_variable.declare() + " = 0;")
+        else:
+            self._add_global_variable(automaton.state_variable)
         cf.body.concatenate(v_code + f_code)
         automaton.control_function = cf
 
