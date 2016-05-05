@@ -27,22 +27,6 @@ void ldv_stop(void) {
     goto ldv_stop_label;
 }
 
-/* Return nondeterministic negative integer number. */
-int ldv_undef_int_negative(void)
-{
-	int ret = ldv_undef_int();
-	ldv_assume(ret < 0);
-	return ret;
-}
-
-/* Return nondeterministic nonpositive integer number. */
-int ldv_undef_int_nonpositive(void)
-{
-	int ret = ldv_undef_int();
-	ldv_assume(ret <= 0);
-	return ret;
-}
-
 /* Explicit model for GCC function __builin_expect(). Without this model
  * return value of __builtin_expect() will be treated as nondetermined by
  * verifiers.
