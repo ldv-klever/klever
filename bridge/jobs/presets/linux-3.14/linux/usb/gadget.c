@@ -1,4 +1,4 @@
-#include <linux/ldv.h>
+#include <linux/ldv/common.h>
 #include <verifier/rcv.h>
 
 /* There are 2 possible states of usb gadget class registration. */

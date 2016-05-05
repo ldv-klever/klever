@@ -69,7 +69,7 @@
               "-Os"
             ],
             "common models": [
-              "linux/ldv.c",
+              "linux/ldv/common.c",
               "linux/err.c",
               "verifier/rcv.c",
               "verifier/memory.c",

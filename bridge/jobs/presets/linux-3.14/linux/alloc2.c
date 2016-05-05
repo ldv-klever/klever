@@ -1,6 +1,6 @@
-/* Here is the definition of CHECK_WAIT_FLAGS(flags) macro. */
-#include "gfp.h"
 #include <linux/gfp.h>
+
+#include <linux/ldv/gfp.h>
 #include <verifier/rcv.h>
 
 #define LDV_ZERO_STATE 0
