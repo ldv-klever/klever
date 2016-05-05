@@ -1,6 +1,5 @@
 import os
 import json
-import tempfile
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
@@ -21,6 +20,8 @@ class TestJobs(TestCase):
             service={'username': 'service', 'password': 'service'}
         )
         self.client.post(reverse('users:login'), {'username': 'superuser', 'password': 'top_secret'})
+        self.test_filename = 'test_jobfile.txt'
+        self.test_archive = 'test_jobarchive.tar.gz'
 
     def test_tree_and_views(self):
 
@@ -285,7 +286,6 @@ class TestJobs(TestCase):
             except ValueError:
                 self.fail('Response must be in JSON format')
             if 'error' in res:
-                print(res['error'])
                 self.fail('Error message is not expected')
             if 'job_id' not in res:
                 self.fail('Job id is expected')
@@ -336,18 +336,18 @@ class TestJobs(TestCase):
             'title': 'New job title',
             'description': 'Description of new job',
             'global_role': JOB_ROLES[0][0],
-            'user_roles': json.dumps([{'user': User.objects.get(username='superuser').pk, 'role': JOB_ROLES[2][0]}]),
+            'user_roles': '[]',
             'parent_identifier': job_template.identifier,
             'file_data': '[]'
         })
         newjob_pk = int(json.loads(str(response.content, encoding='utf8'))['job_id'])
-        test_filename = 'test_jobfile.txt'
-        with open(os.path.join(MEDIA_ROOT, test_filename), mode='wb') as fp:
+        newjob = Job.objects.get(pk=newjob_pk)
+
+        with open(os.path.join(MEDIA_ROOT, self.test_filename), mode='wb') as fp:
             fp.write(b'My test text')
             fp.close()
-        with open(os.path.join(MEDIA_ROOT, test_filename), mode='rb') as fp:
+        with open(os.path.join(MEDIA_ROOT, self.test_filename), mode='rb') as fp:
             response = self.client.post('/jobs/ajax/upload_file/', {'file': fp})
-        os.remove(os.path.join(MEDIA_ROOT, test_filename))
 
         self.assertEqual(response.status_code, 200)
         try:
@@ -363,4 +363,189 @@ class TestJobs(TestCase):
         except ObjectDoesNotExist:
             self.fail('The file was not uploaded')
 
+        # Add new file to job and check result and DB changes
+        response = self.client.post('/jobs/ajax/savejob/', {
+            'title': 'New job title',
+            'description': 'New description of new job',
+            'global_role': JOB_ROLES[1][0],
+            'user_roles': json.dumps([{'user': User.objects.get(username='superuser').pk, 'role': JOB_ROLES[2][0]}]),
+            'job_id': newjob_pk,
+            'file_data': json.dumps([{
+                'id': newfile.pk, 'parent': None, 'hash_sum': newfile.hash_sum, 'title': 'filename.txt', 'type': '1'
+            }]),
+            'parent_identifier': job_template.identifier,
+            'comment': 'Add file',
+            'last_version': 1
+        })
+        self.assertEqual(response.status_code, 200)
+        try:
+            res = json.loads(str(response.content, encoding='utf8'))
+        except ValueError:
+            self.fail('Response must be in JSON format')
+        if 'error' in res:
+            self.fail('Error message is not expected')
+        if 'job_id' not in res:
+            self.fail('Job id is expected')
+        self.assertEqual(len(JobHistory.objects.filter(job_id=newjob_pk)), 2)
+        try:
+            job_file = FileSystem.objects.get(job__job_id=newjob_pk, job__version=2)
+        except ObjectDoesNotExist:
+            self.fail('File was not saved')
+        except MultipleObjectsReturned:
+            self.fail('Too many files for new job (only 1 expected)')
+        self.assertEqual(job_file.name, 'filename.txt')
+        self.assertEqual(job_file.parent, None)
+        self.assertEqual(job_file.file_id, newfile.pk)
 
+        # Try to download new file
+        response = self.client.get(reverse('jobs:download_file', args=[job_file.pk]))
+        self.assertEqual(response.status_code, 200)
+
+        # Try to download new job and one of the defaults
+        response = self.client.post('/jobs/ajax/downloadjobs/', {
+            'job_ids': json.dumps([newjob_pk, Job.objects.get(parent=None, type=JOB_CLASSES[0][0]).pk])
+        })
+        self.assertEqual(response.status_code, 200)
+
+        # Check access to download job
+        response = self.client.post('/jobs/ajax/check_access/', {
+            'jobs': json.dumps([newjob_pk, Job.objects.get(parent=None, type=JOB_CLASSES[0][0]).pk])
+        })
+        self.assertEqual(response.status_code, 200)
+        try:
+            res = json.loads(str(response.content, encoding='utf8'))
+        except ValueError:
+            self.fail('Response must be in JSON format')
+        if 'error' in res:
+            self.fail('Error message is not expected')
+
+        # Try to download new job
+        response = self.client.get('/jobs/ajax/downloadjob/%s/' % newjob_pk)
+        self.assertEqual(response.status_code, 200)
+        with open(os.path.join(MEDIA_ROOT, self.test_archive), mode='wb') as fp:
+            fp.write(response.content)
+            fp.close()
+        with open(os.path.join(MEDIA_ROOT, self.test_archive), mode='rb') as fp:
+            response = self.client.post('/jobs/ajax/upload_job/%s/' % newjob.identifier, {
+                'file': fp
+            })
+            fp.close()
+        self.assertEqual(response.status_code, 200)
+        try:
+            res = json.loads(str(response.content, encoding='utf8'))
+        except ValueError:
+            self.fail('Response must be in JSON format')
+        if 'status' not in res or not isinstance(res['status'], bool):
+            self.fail('Boolean upload status is required')
+        if not res['status']:
+            self.fail('Upload job failed')
+        self.assertEqual(len(Job.objects.filter(parent__identifier=newjob.identifier)), 1)
+        uploaded_job = Job.objects.get(parent__identifier=newjob.identifier)
+        self.assertEqual(len(FileSystem.objects.filter(job__job=newjob, job__version=2)), 1)
+        self.assertEqual(len(FileSystem.objects.filter(job__job=newjob, job__version=1)), 0)
+        self.assertEqual(len(JobHistory.objects.filter(job=newjob)), 2)
+        self.assertEqual(uploaded_job.name, newjob.name)
+
+        # Check file content of uploaded job
+        response = self.client.post('/jobs/ajax/getfilecontent/', {
+            'file_id': FileSystem.objects.get(job__job=uploaded_job, job__version=2).pk
+        })
+        self.assertEqual(response.status_code, 200)
+        try:
+            json.loads(str(response.content, encoding='utf8'))
+            self.fail('File content is expected')
+        except ValueError:
+            self.assertEqual(response.content, b'My test text')
+
+        # Check that user can't compare jobs that are not decided
+        response = self.client.get(reverse('jobs:comparison', args=[newjob_pk, uploaded_job.pk]))
+        self.assertRedirects(response, reverse('error', args=[507]))
+        # TODO: check this page after decision
+
+    def test_service(self):
+        # TODO: add parameters to session and check service decide_job
+        pass
+
+    def test_run_decision(self):
+        self.client.post(reverse('population'))
+        self.client.get(reverse('users:logout'))
+        self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
+        job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
+        response = self.client.post('/jobs/ajax/savejob/', {
+            'title': 'New job title',
+            'description': 'Description of new job',
+            'global_role': JOB_ROLES[0][0],
+            'user_roles': '[]',
+            'parent_identifier': job_template.identifier,
+            'file_data': '[]'
+        })
+        job_pk = int(json.loads(str(response.content, encoding='utf8'))['job_id'])
+
+        # Fast run
+        response = self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': job_pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(Job.objects.filter(pk=job_pk, status=JOB_STATUS[1][0])), 1)
+        self.assertEqual(len(RunHistory.objects.filter(
+            job_id=job_pk, operator__username='manager', status=JOB_STATUS[1][0]
+        )), 1)
+
+        # Stop decision
+        response = self.client.post('/jobs/ajax/stop_decision/', {'job_id': job_pk})
+        self.assertEqual(response.status_code, 200)
+        try:
+            res = json.loads(str(response.content, encoding='utf8'))
+        except ValueError:
+            self.fail('Response must be in JSON format')
+        if 'error' in res:
+            self.fail('Error message is not expected')
+        self.assertEqual(Job.objects.get(pk=job_pk).status, JOB_STATUS[6][0])
+        self.assertEqual(len(RunHistory.objects.filter(job_id=job_pk, operator__username='manager')), 1)
+
+        # Start decision page
+        # TODO: test run decision with config file and preset configurations
+        response = self.client.get(reverse('jobs:prepare_run', args=[job_pk]))
+        self.assertEqual(response.status_code, 200)
+
+        # Get KLEVER_CORE_LOG_FORMATTERS value
+        response = self.client.post('/jobs/ajax/get_def_start_job_val/', {'name': 'formatter', 'value': 'brief'})
+        self.assertEqual(response.status_code, 200)
+        try:
+            res = json.loads(str(response.content, encoding='utf8'))
+        except ValueError:
+            self.fail('Response must be in JSON format')
+        if 'error' in res:
+            self.fail('Error message is not expected')
+        if 'value' not in res:
+            self.fail('Value is expected')
+
+        # Start decision with settings
+        run_conf = json.dumps([
+            ["HIGH", "0", "rule specifications"],
+            ["2.0", "2.0"], [1, 1, 100, '', 15, None],
+            [
+                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
+                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
+            ],
+            [False, True, True, False, True]
+        ])
+        response = self.client.post('/jobs/ajax/run_decision/', {'job_id': job_pk, 'data': run_conf})
+        self.assertEqual(response.status_code, 200)
+        try:
+            res = json.loads(str(response.content, encoding='utf8'))
+        except ValueError:
+            self.fail('Response must be in JSON format')
+        if 'error' in res:
+            self.fail('Error message is not expected')
+        self.assertEqual(Job.objects.get(pk=job_pk).status, JOB_STATUS[1][0])
+        self.assertEqual(len(RunHistory.objects.filter(job_id=job_pk, operator__username='manager')), 2)
+
+        response = self.client.get(
+            '/jobs/download_configuration/%s/' % RunHistory.objects.filter(job_id=job_pk).order_by('-date').first().pk
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def tearDown(self):
+        if os.path.exists(os.path.join(MEDIA_ROOT, self.test_filename)):
+            os.remove(os.path.join(MEDIA_ROOT, self.test_filename))
+        if os.path.exists(os.path.join(MEDIA_ROOT, self.test_archive)):
+            os.remove(os.path.join(MEDIA_ROOT, self.test_archive))

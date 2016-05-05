@@ -642,8 +642,7 @@ def upload_job(request, parent_id=None):
     if len(parents) == 0:
         return JsonResponse({
             'status': False,
-            'message': _("The parent with the specified "
-                         "identifier was not found")
+            'message': _("The parent with the specified identifier was not found")
         })
     elif len(parents) > 1:
         return JsonResponse({
