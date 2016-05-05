@@ -13,9 +13,6 @@ extern void ldv_assume(int expression);
 /* Stop analysis */
 extern void ldv_stop(void);
 
-/* Check that error has not been found until there. */
-extern void ldv_check_final_state(void);
-
 /* Special nondeterministic functions. */
 extern int ldv_undef_int(void);
 extern void *ldv_undef_ptr(void);
