@@ -1,5 +1,0 @@
-{
-  "function": "internal compiler error: Segmentation fault",
-  "pattern": "SegFault",
-  "link": "http://forge.ispras.ru/issues/7115"
-}

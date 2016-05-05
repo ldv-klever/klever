@@ -1,5 +1,0 @@
-{
-  "function": "error: dereferencing pointer to incomplete type",
-  "pattern": "IncomplDeref",
-  "link": "http://forge.ispras.ru/issues/6560"
-}

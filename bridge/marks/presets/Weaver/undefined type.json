@@ -1,5 +1,0 @@
-{
-  "function": "error: invalid use of undefined type",
-  "pattern": "UndefinedType",
-  "link": "https://forge.ispras.ru/issues/7118"
-}

@@ -69,7 +69,7 @@ class ASE(core.components.Component):
                                           '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['keep intermediate files'] else []) +
                                          ['--'] +
-                                         cc_full_desc['opts'] +
+                                         [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
                                          [gcc_search_dir]),
                                    env,
                                    self.conf['source tree root'])
