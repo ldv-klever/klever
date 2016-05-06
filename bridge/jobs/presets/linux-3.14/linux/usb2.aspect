@@ -1,8 +1,5 @@
 before: file ("$this")
 {
-#include <linux/kernel.h>
-#include <linux/module.h>
-
 int ldv_usb_register(void);
 int ldv_register_netdev(void);
 }

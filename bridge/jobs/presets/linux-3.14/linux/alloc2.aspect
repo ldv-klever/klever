@@ -89,10 +89,7 @@ extern void ldv_spin_lock(void);
 extern void ldv_spin_unlock(void);
 extern int ldv_spin_trylock(void);
 
-#include <linux/kernel.h>
-#include <verifier/rcv.h>
-#include <linux/module.h>
-#include <linux/slab.h>
+#include <linux/types.h>
 
 extern void *ldv_undefined_pointer(void);
 extern void ldv_check_alloc_flags(gfp_t flags);

@@ -1,5 +1,5 @@
-#include <linux/kernel.h>
-#include <verifier/rcv.h>
+#include <linux/ldv/common.h>
+#include <verifier/common.h>
 
 /* There are 2 possible model states. */
 enum
