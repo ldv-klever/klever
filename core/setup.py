@@ -1,7 +1,4 @@
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(name='Klever Core',
       version='0.1',
@@ -10,7 +7,7 @@ setup(name='Klever Core',
       author_email='novikov@ispras.ru',
       url='http://forge.ispras.ru/projects/klever',
       download_url='TODO: a URL to download the package',
-      packages=['core', 'core.lkbce', 'core.lkvog', 'core.avtg', 'core.vtg'],
+      packages=find_packages(),
       scripts=['bin/klever-core'],
       requires=['jinja2', 'requests'],
       classifiers=['TODO: a list of categories for the package'],
