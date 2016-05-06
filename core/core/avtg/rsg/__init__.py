@@ -82,7 +82,16 @@ class RSG(core.components.Component):
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add models to group "{0}"'.format(grp['id']))
             for model in models:
-                out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model))[0]))
+                rule_specs_dir = os.path.dirname(core.utils.find_file_or_dir(self.logger,
+                                                                             self.conf['main working directory'],
+                                                                             self.conf['rule specifications DB']))
+                model_file = os.path.relpath(os.path.join(os.path.realpath(self.conf['source tree root']), model),
+                                             rule_specs_dir)
+                if os.path.isfile(os.path.join(rule_specs_dir, model_file)):
+                    os.makedirs(os.path.join('models', os.path.dirname(model_file)), exist_ok=True)
+                    out_file = os.path.join('models', '{}.c'.format(os.path.splitext(model_file)[0]))
+                else:
+                    out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model))[0]))
                 full_desc_file = '{0}.json'.format(out_file)
                 if os.path.isfile(full_desc_file):
                     raise FileExistsError('CC extra full description file "{0}" already exists'.format(full_desc_file))

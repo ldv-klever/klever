@@ -1,11 +1,7 @@
 before: file ("$this")
 {
-#include <linux/module.h>
-#include <linux/usb.h>
-
 void ldv_usb_get_dev(void);
 void ldv_usb_put_dev(void);
-
 void ldv_atomic_sub(i,v);
 }
 

@@ -1,5 +1,5 @@
-#ifndef _LDV_SET_H_
-#define _LDV_SET_H_
+#ifndef __VERIFIER_SET_H
+#define __VERIFIER_SET_H
 
 /* At the moment sets are represented just as counters, but this won't be the
  * case in future. */
@@ -44,4 +44,4 @@ typedef void *Element;
 #define ldv_set_contains(set, element) (set != 0)
 #define ldv_set_is_empty(set) (set == 0)
 
-#endif /* _LDV_SET_H_ */
+#endif /* __VERIFIER_SET_H */

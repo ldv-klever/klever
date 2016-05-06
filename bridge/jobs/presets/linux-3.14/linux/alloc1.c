@@ -1,6 +1,5 @@
-#include <linux/kernel.h>
 #include <linux/gfp.h>
-#include <verifier/rcv.h>
+#include <verifier/common.h>
 
 extern struct page *ldv_some_page(void);
 

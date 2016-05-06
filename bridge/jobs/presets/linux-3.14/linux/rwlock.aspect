@@ -1,6 +1,5 @@
 before: file ("$this")
 {
-#include <linux/kernel.h>
 #include <linux/spinlock.h>
 
 extern void ldv_read_lock_irqsave(rwlock_t *lock);
