@@ -9,6 +9,6 @@ setup(name='KleverCore',
       download_url='TODO: a URL to download the package',
       packages=find_packages(),
       scripts=['bin/klever-core'],
-      requires=['jinja2', 'requests'],
+      requires=['jinja2', 'graphviz', 'ply', 'requests'],
       classifiers=['TODO: a list of categories for the package'],
       )
