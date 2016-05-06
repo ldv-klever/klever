@@ -470,6 +470,9 @@ class Call:
         self.condition = None
         self.callback = None
         self.parameters = []
+        self.retlabel = None
+        self.pre_call = []
+        self.post_call = []
 
 
 class CallRetval:
