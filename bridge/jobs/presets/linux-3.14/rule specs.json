@@ -69,9 +69,10 @@
               "-Os"
             ],
             "common models": [
-              "linux/ldv/common.c",
               "linux/err.c",
-              "verifier/rcv.c",
+              "linux/ldv/common.c",
+              "verifier/common.c",
+              "verifier/nondet.c",
               "verifier/memory.c",
               "verifier/thread.c"
             ],
