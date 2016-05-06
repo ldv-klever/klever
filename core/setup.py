@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-setup(name='Klever Core',
+setup(name='KleverCore',
       version='0.1',
       description='TODO: a single line describing the package',
       author='Evgeny Novikov',
