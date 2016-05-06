@@ -10,8 +10,8 @@ import time
 import urllib.parse
 
 import core.components
-import core.lkbce.cmds.cmds
 import core.utils
+from core.lkbce.constants import BUILD_CMDS_SEPARATOR
 
 # We assume that CC/LD options always start with "-".
 # Some CC/LD options always require values that can be specified either together with option itself (maybe separated
@@ -162,7 +162,7 @@ class LKBCE(core.components.Component):
 
         self.logger.info('Terminate Linux kernel raw build commands "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['raw build cmds file'], 'a', encoding='ascii') as fp:
-            fp.write(core.lkbce.cmds.cmds.Command.cmds_separator)
+            fp.write(BUILD_CMDS_SEPARATOR)
 
     def extract_all_linux_kernel_mod_deps(self):
         self.linux_kernel['module deps'] = {}
@@ -344,10 +344,10 @@ class LKBCE(core.components.Component):
                 self.linux_kernel['build cmd']['type'] = None
                 opts = []
                 for line in fp:
-                    if line == core.lkbce.cmds.cmds.Command.cmds_separator:
+                    if line == BUILD_CMDS_SEPARATOR:
                         # If there is no Linux kernel raw build commands just one separator will be printed by LKBCE
                         # itself when terminating corresponding message queue.
-                        if not prev_line or prev_line == core.lkbce.cmds.cmds.Command.cmds_separator:
+                        if not prev_line or prev_line == BUILD_CMDS_SEPARATOR:
                             self.logger.debug('Linux kernel raw build commands "message queue" was terminated')
                             return
                         else:

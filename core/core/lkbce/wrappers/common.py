@@ -3,13 +3,10 @@ import re
 import subprocess
 
 import core.utils
+from core.lkbce.constants import BUILD_CMDS_SEPARATOR
 
 
 class Command:
-    # All command line argument will be printed at separate line and they aren't empty strings. So one empty string
-    # can safely separate different build commands from each other.
-    cmds_separator = '\n'
-
     def __init__(self, argv):
         self.cmd = os.path.basename(argv[0])
         self.opts = argv[1:]
@@ -32,6 +29,6 @@ class Command:
         if 'LINUX_KERNEL_RAW_BUILD_CMDS_FILE' in os.environ:
             with core.utils.LockedOpen(os.environ['LINUX_KERNEL_RAW_BUILD_CMDS_FILE'], 'a', encoding='ascii') as fp:
                 fp.write('{0}\n{1}'.format('\n'.join([self.cmd.upper() if self.cmd != 'gcc' else 'CC'] + self.opts),
-                                           self.cmds_separator))
+                                           BUILD_CMDS_SEPARATOR))
 
         return 0
