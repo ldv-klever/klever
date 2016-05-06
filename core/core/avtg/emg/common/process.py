@@ -154,6 +154,13 @@ class Label:
     def interfaces(self):
         return sorted(self.__signature_map.keys())
 
+    @property
+    def declarations(self):
+        if self.prior_signature:
+            return [self.prior_signature]
+        else:
+            return sorted(self.__signature_map.values())
+
     def get_declaration(self, identifier):
         if identifier in self.__signature_map:
             return self.__signature_map[identifier]

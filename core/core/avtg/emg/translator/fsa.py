@@ -418,8 +418,8 @@ class Automaton:
                         file = implementations[0].file
                         check = False
                         func_variable = access.access_with_variable(self.determine_variable(analysis, access.label,
-                                                                                     access.list_interface[0].
-                                                                                     identifier))
+                                                                                            access.list_interface[0].
+                                                                                            identifier))
                     elif signature.clean_declaration:
                         invoke = access.access_with_variable(self.determine_variable(analysis, access.label,
                                                                                      access.list_interface[0].
@@ -470,7 +470,7 @@ class Automaton:
                     callbacks.append([st, new_case, signature, invoke, file, check, func_variable])
 
             if len(callbacks) > 0:
-                for nd, case, signature, invoke, file, check, func_variable in callbacks:
+                for st, case, signature, invoke, file, check, func_variable in callbacks:
                     # Generate function call and corresponding function
                     params = []
                     label_params = []
@@ -479,34 +479,35 @@ class Automaton:
                     # Determine parameters
                     for index in range(len(signature.points.parameters)):
                         parameter = signature.points.parameters[index]
+
                         if type(parameter) is not str:
                             expression = None
-                            # Try to find existing variable
-                            ids = [intf.identifier for intf in
-                                   analysis.resolve_interface(parameter, self.process.category)]
-                            if len(ids) > 0:
-                                for candidate in nd.action.parameters:
-                                    accesses = self.process.resolve_access(candidate)
-                                    suits = [acc for acc in accesses if acc.interface and
-                                             acc.interface.identifier in ids]
-                                    if len(suits) == 1:
-                                        var = self.determine_variable(analysis, suits[0].label,
-                                                                      suits[0].list_interface[0].identifier)
-                                        expression = suits[0].access_with_variable(var)
+                            `   
+                            # Search access
+                            for access_parameter in st.action.parameters[index:]:
+                                accesses = self.process.resolve_access(access_parameter)
+                                for acc in accesses:
+                                    if len(acc.list_interface) > 0 and \
+                                            (acc.list_interface[-1].declaration.compare(parameter) or
+                                             acc.list_interface[-1].declaration.pointer_alias(parameter)):
+                                        expression = acc.access_with_variable(
+                                            self.determine_variable(analysis, acc.label,
+                                                                    acc.list_interface[0].
+                                                                    identifier))
                                         break
-                                    elif len(suits) > 1:
-                                        raise NotImplementedError("Cannot set two different parameters")
+                                if expression:
+                                    break
 
                             # Generate new variable
                             if not expression:
-                                lb, var = self.new_param(analysis, "ldv_param_{}".format(nd.identifier),
-                                                     signature.points.parameters[index],
-                                                     None)
+                                lb, var = self.new_param(analysis, "ldv_param_{}_{}".format(st.identifier, index),
+                                                         signature.points.parameters[index],
+                                                         None)
                                 label_params.append(lb)
                                 expression = var.name
 
-                        # Add string
-                        params.append(expression)
+                            # Add string
+                            params.append(expression)
 
                     # Add precondition and postcondition
                     if len(label_params) > 0:
@@ -516,20 +517,20 @@ class Automaton:
                             pre_statements.append('%{}% = $ALLOC(%{}%);'.format(label.name, label.name))
                             post_statements.append('$FREE(%{}%);'.format(label.name))
 
-                        pre_name = 'pre_call_{}'.format(nd.identifier)
+                        pre_name = 'pre_call_{}'.format(st.identifier)
                         pre_action = self.process.add_condition(pre_name, [], pre_statements)
-                        pre_st = self.fsa.add_new_predecessor(nd, pre_action)
+                        pre_st = self.fsa.add_new_predecessor(st, pre_action)
                         self.generate_code(analysis, model, translator, pre_st)
 
-                        post_name = 'post_call_{}'.format(nd.identifier)
+                        post_name = 'post_call_{}'.format(st.identifier)
                         post_action = self.process.add_condition(post_name, [], post_statements)
-                        post_st = self.fsa.add_new_successor(nd, post_action)
+                        post_st = self.fsa.add_new_successor(st, post_action)
                         self.generate_code(analysis, model, translator, post_st)
 
                     # Generate return value assignment
                     ret_subprocess = [self.process.actions[name] for name in sorted(self.process.actions.keys())
                                       if type(self.process.actions[name]) is CallRetval and
-                                      self.process.actions[name].callback == nd.action.callback and
+                                      self.process.actions[name].callback == st.action.callback and
                                       self.process.actions[name].retlabel]
                     if ret_subprocess:
                         ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
@@ -548,11 +549,11 @@ class Automaton:
                     case["callback"] = signature
                     case["check pointer"] = check
                     case["invoke"] = invoke
-                    case["body"].append("/* Call callback {} */".format(nd.action.name))
+                    case["body"].append("/* Call callback {} */".format(st.action.name))
                     case["body"].extend(cb_statements)
                     case['file'] = file
                     case['variable'] = func_variable
-                    nd.code = case
+                    st.code = case
             else:
                 # Generate comment
                 base_case["body"].append("/* Skip callback call {} without an implementation */".
