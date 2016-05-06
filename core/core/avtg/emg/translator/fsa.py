@@ -482,7 +482,7 @@ class Automaton:
 
                         if type(parameter) is not str:
                             expression = None
-                            `   
+
                             # Search access
                             for access_parameter in st.action.parameters[index:]:
                                 accesses = self.process.resolve_access(access_parameter)
