@@ -1,5 +1,5 @@
+#include <verifier/common.h>
 #include <verifier/memory.h>
-#include <verifier/rcv.h>
 
 void *ldv_malloc(size_t size)
 {

@@ -1,3 +1,4 @@
+#include <verifier/common.h>
 #include <verifier/nondet.h>
 
 int ldv_undef_int_negative(void)

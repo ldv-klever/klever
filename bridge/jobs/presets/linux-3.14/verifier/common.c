@@ -1,4 +1,4 @@
-#include <verifier/rcv.h>
+#include <verifier/common.h>
 
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_error(void);
