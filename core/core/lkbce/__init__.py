@@ -505,7 +505,7 @@ class LKBCE(core.components.Component):
     def __make(self, build_target, jobs_num=1, specify_arch=False, collect_build_cmds=False, collect_all_stdout=False):
         # Update environment variables so that invoke build command wrappers and optionally collect build commands.
         env = dict(os.environ)
-        env.update({'PATH': '{0}:{1}'.format(os.path.join(sys.path[0], os.path.pardir, 'core', 'lkbce', 'cmds'),
+        env.update({'PATH': '{0}:{1}'.format(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'wrappers'),
                                              os.environ['PATH'])})
         if collect_build_cmds:
             env.update({'LINUX_KERNEL_RAW_BUILD_CMDS_FILE': os.path.abspath(self.linux_kernel['raw build cmds file'])})
