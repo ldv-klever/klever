@@ -2,6 +2,7 @@
  * Trivial model for interrupt context. Likely it is correct just in case of
  * single thread executed on single CPU core.
  */
+#include <linux/types.h>
 #include <linux/ldv/irq.h>
 
 static bool __ldv_in_interrupt_context = false;

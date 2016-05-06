@@ -1,7 +1,5 @@
-#include <linux/types.h>
-
 #include <linux/ldv/common.h>
-#include <verifier/rcv.h>
+#include <verifier/common.h>
 
 static int ldv_filter_positive_int(int val)
 {
