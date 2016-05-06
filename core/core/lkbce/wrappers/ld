@@ -2,6 +2,6 @@
 
 import sys
 
-import cmds
+from core.lkbce.wrappers.common import Command
 
-exit(cmds.Command(sys.argv).launch())
+exit(Command(sys.argv).launch())
