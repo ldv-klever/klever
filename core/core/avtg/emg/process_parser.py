@@ -91,6 +91,14 @@ def __import_process(name, dic):
         if 'parameters' in dic['actions'][subprocess_name]:
             process.actions[subprocess_name].parameters = dic['actions'][subprocess_name]['parameters']
 
+        # Add pre-callback operations
+        if 'pre-call' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].pre_call = dic['actions'][subprocess_name]['pre-call']
+
+        # Add post-callback operations
+        if 'post-call' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].post_call = dic['actions'][subprocess_name]['post-call']
+
         # Add callback return value
         if 'callback return value' in dic['actions'][subprocess_name]:
             process.actions[subprocess_name].retlabel = dic['actions'][subprocess_name]['callback return value']

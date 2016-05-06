@@ -344,9 +344,6 @@ class Automaton:
                 if 'check pointer' in state.code and state.code['check pointer']:
                     call += 'if ({})'.format(state.code['invoke']) + '\n\t'
                 call += '(' + ', '.join(state.code['parameters']) + ')'
-                if 'pre_call' in state.code:
-                    call += '\n'.join(state.code['pre_call'])
-                    call += '\n'
                 if 'post_call' in state.code:
                     call += '\n'.join(state.code['post_call'])
                     call += '\n'
@@ -528,12 +525,18 @@ class Automaton:
                         self.generate_code(analysis, model, translator, post_st)
 
                     # Generate return value assignment
-                    ret_subprocess = [self.process.actions[name] for name in sorted(self.process.actions.keys())
-                                      if type(self.process.actions[name]) is CallRetval and
-                                      self.process.actions[name].callback == st.action.callback and
-                                      self.process.actions[name].retlabel]
-                    if ret_subprocess:
-                        ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
+                    ret_access = None
+                    if st.action.retlabel:
+                        ret_access = self.process.resolve_access(st.action.retlabel)
+                    else:
+                        ret_subprocess = [self.process.actions[name] for name in sorted(self.process.actions.keys())
+                                          if type(self.process.actions[name]) is CallRetval and
+                                          self.process.actions[name].callback == st.action.callback and
+                                          self.process.actions[name].retlabel]
+                        if ret_subprocess:
+                            ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
+
+                    if ret_access:
                         retval = ret_access[0].access_with_variable(
                             self.determine_variable(analysis, ret_access[0].label))
                         case['retval'] = retval
@@ -543,6 +546,28 @@ class Automaton:
                         for statement in state.action.condition:
                             cn = self.text_processor(analysis, statement)
                             base_case["guard"].extend(cn)
+
+                    if st.action.pre_call and len(st.action.pre_call) > 0:
+                        pre_call = []
+                        for statement in st.action.pre_call:
+                            pre_call.extend(self.text_processor(analysis, statement))
+
+                        if 'pre_call' not in case:
+                            case['pre_call'] = ['/* Callback pre-call */'] + pre_call
+                        else:
+                            # Comment + user pre-call + interrupt switch
+                            case['pre_call'] = ['/* Callback pre-call */'] + pre_call + case['pre_call'][1:]
+
+                    if st.action.post_call and len(st.action.post_call) > 0:
+                        post_call = []
+                        for statement in st.action.post_call:
+                            post_call.extend(self.text_processor(analysis, statement))
+
+                        if 'post_call' not in case:
+                            case['post_call'] = ['/* Callback post-call */'] + post_call
+                        else:
+                            # Comment + user post-call + interrupt switch
+                            case['post_call'] = ['/* Callback pre-call */'] + pre_call + case['post_call'][1:]
 
                     # Generate comment
                     case["parameters"] = params
@@ -557,7 +582,7 @@ class Automaton:
             else:
                 # Generate comment
                 base_case["body"].append("/* Skip callback call {} without an implementation */".
-                                        format(state.action.name))
+                                         format(state.action.name))
                 state.code = base_case
         elif type(state.action) is Dispatch:
             # Generate dispatch function

@@ -54,11 +54,13 @@ class ProcessModel:
         init_label.prior_signature = import_signature("int (*f)(void)")
         self.logger.debug("Found init function {}".format(init_name))
 
+        # Add ret value
         ret_label = Label('ret')
         ret_label.prior_signature = import_signature("int label")
-        ret_init = CallRetval('ret_init')
-        ret_init.retlabel = "%ret%"
-        ret_init.callback = init_subprocess.callback
+        init_subprocess.retlabel = "%ret%"
+        init_subprocess.post_call = [
+            '%ret% = ldv_post_init(%ret%);'
+        ]
 
         # Generate exit subprocess
         exit_subprocess = Call('exit')
@@ -80,7 +82,6 @@ class ProcessModel:
         ep.labels['ret'] = ret_label
         ep.actions['init'] = init_subprocess
         ep.actions['exit'] = exit_subprocess
-        ep.actions['ret_init'] = ret_init
         self.logger.debug("Artificial process for invocation of Init and Exit module functions is generated")
 
     def __finish_entry(self):
@@ -121,7 +122,7 @@ class ProcessModel:
             default_dispatches = '({} | <none>)'.format('.'.join(dispatches))
         else:
             default_dispatches = '<none>'
-        self.entry_process.process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.{}.[exit]." \
+        self.entry_process.process = "[init].(<init_failed>.<stop> | <init_success>.{}.[exit]." \
                                       "<stop>)".format(default_dispatches)
 
     def __select_processes_and_models(self, analysis):
