@@ -174,9 +174,9 @@ class FunctionModels:
         "FREE": "ldv_free"
     }
     irq_function_map = {
-        "GET_CONTEXT": None,
-        "IRQ_CONTEXT": None,
-        "PROCESS_CONTEXT": None
+        "IN_INTERRUPT_CONTEXT": 'ldv_in_interrupt_context',
+        "SWITCH_TO_IRQ_CONTEXT": 'ldv_switch_to_interrupt_context',
+        "SWITCH_TO_PROCESS_CONTEXT": 'ldv_switch_to_process_context'
     }
 
     mem_function_re = "\$({})\(%({})%(?:,\s?(\w+))?\)"
@@ -216,14 +216,14 @@ class FunctionModels:
             raise ValueError('This is not a pointer')
 
     def __replace_irq_call(self, match):
-        function = match.groups()
-        if function not in self.mem_function_map:
+        function = match.groups()[0]
+        if function not in self.irq_function_map:
             raise NotImplementedError("Model of {} is not supported".format(function))
-        elif not self.mem_function_map[function]:
+        elif not self.irq_function_map[function]:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
         # Replace
-        return self.mem_function_map[function]
+        return self.irq_function_map[function]
 
     def replace_models(self, label, signature, string):
         self.signature = signature

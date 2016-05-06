@@ -464,6 +464,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         self._add_function_definition(state.code['file'], function)
 
+        if 'pre_call' in state.code and len(state.code['pre_call']) > 0:
+            inv = state.code['pre_call'] + inv
+        if 'post_call' in state.code and len(state.code['post_call']) > 0:
+            inv.extend(state.code['post_call'])
+
         return inv
 
     def _relevant_checks(self, state):

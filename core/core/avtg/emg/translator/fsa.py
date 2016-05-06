@@ -335,12 +335,21 @@ class Automaton:
                 if 'file' in state.code:
                     label += "File: '{}'\n".format(state.code['file'])
                 call = ''
+                if 'pre_call' in state.code:
+                    call += '\n'.join(state.code['pre_call'])
+                    call += '\n'
                 if 'retval' in state.code:
                     call += "{} = ".format(state.code['retval'])
                 call += state.code['invoke']
                 if 'check pointer' in state.code and state.code['check pointer']:
                     call += 'if ({})'.format(state.code['invoke']) + '\n\t'
                 call += '(' + ', '.join(state.code['parameters']) + ')'
+                if 'pre_call' in state.code:
+                    call += '\n'.join(state.code['pre_call'])
+                    call += '\n'
+                if 'post_call' in state.code:
+                    call += '\n'.join(state.code['post_call'])
+                    call += '\n'
                 label += call
             else:
                 if 'body' in state.code and len(state.code['body']) > 0:
@@ -445,10 +454,20 @@ class Automaton:
                         new_case['relevant automata'] = additional_checks
 
                     if len(callbacks) == 0:
-                        callbacks.append([state, new_case, signature, invoke, file, check, func_variable])
+                        st = state
                     else:
-                        clone = self.fsa.clone_state(state)
-                        callbacks.append([clone, new_case, signature, invoke, file, check, func_variable])
+                        st = self.fsa.clone_state(state)
+
+                    if access.interface and access.interface.interrupt_context:
+                        new_case['pre_call'] = [
+                            "/* Callback pre-call */"
+                        ]
+                        new_case['pre_call'].extend(self.text_processor(analysis, '$SWITCH_TO_IRQ_CONTEXT();'))
+                        new_case['post_call'] = [
+                            "/* Callback post-call */"
+                        ]
+                        new_case['post_call'].extend(self.text_processor(analysis, '$SWITCH_TO_PROCESS_CONTEXT();'))
+                    callbacks.append([st, new_case, signature, invoke, file, check, func_variable])
 
             if len(callbacks) > 0:
                 for nd, case, signature, invoke, file, check, func_variable in callbacks:

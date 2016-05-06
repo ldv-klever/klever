@@ -355,6 +355,9 @@ class CategoriesSpecification:
         if "signature" in desc:
             interface.declaration = import_signature(desc["signature"])
 
+        if "interrupt context" in desc and desc["interrupt context"]:
+            interface.interrupt_context = True
+
         return interface
 
     def __import_category_interfaces(self, category_name, dictionary):

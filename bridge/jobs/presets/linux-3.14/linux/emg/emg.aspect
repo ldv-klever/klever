@@ -3,4 +3,5 @@ before: file ("$this")
 #include <verifier/rcv.h>
 #include <verifier/memory.h>
 #include <verifier/thread.h>
+#include <linux/ldv/irq.h>
 }
