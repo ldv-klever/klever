@@ -110,16 +110,13 @@
           "interface": ["net.net_device"]
         }
       },
-      "process": "<assign>.[open].(ret_open).[register] | <none>",
+      "process": "<assign>.[open].[register] | <none>",
       "actions": {
         "open": {
           "callback": "%netdev.net_device_ops.open%",
           "parameters": [
             "%netdev%"
           ]
-        },
-        "ret_open": {
-          "callback": "%netdev.net_device_ops.open%"
         },
         "register": {
           "parameters": [
@@ -145,16 +142,13 @@
           "interface": ["net.net_device"]
         }
       },
-      "process": "<assign>.[stop].(ret_stop).[deregister]",
+      "process": "<assign>.[stop].[deregister]",
       "actions": {
         "stop": {
           "callback": "%netdev.net_device_ops.stop%",
           "parameters": [
             "%netdev%"
           ]
-        },
-        "ret_stop": {
-          "callback": "%netdev.net_device_ops.stop%"
         },
         "deregister": {
           "parameters": [
@@ -509,7 +503,7 @@
           "callback": true
         }
       },
-      "process": "(!instance_register).<alloc>.[probe].(ret_probe).(<probe_success>.((usb_reset).[pre].(ret_pre).[post].(ret_post) | [suspend].(ret_suspend).[resume].(ret_resume) | [callback] | <null>).[release].(ret_release) | <failed_probe>).<free>.(instance_deregister)",
+      "process": "(!instance_register).<alloc>.[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].[resume] | [callback] | <null>).[release] | <failed_probe>).<free>.(instance_deregister)",
       "actions": {
         "instance_register": {
           "parameters": [
@@ -542,11 +536,11 @@
           "callback": "%container.probe%",
           "parameters": [
             "%resource%"
+          ],
+          "callback return value": "%probe_retval%",
+          "post-call": [
+            "%probe_retval% = ldv_post_probe(%probe_retval%);"
           ]
-        },
-        "ret_probe": {
-          "callback": "%container.probe%",
-          "callback return value": "%probe_retval%"
         },
         "release": {
           "callback": "%container.release%",
@@ -560,34 +554,19 @@
             "%resource%"
           ]
         },
-        "ret_suspend": {
-          "callback": "%container.suspend%"
-        },
         "resume": {
           "callback": "%container.resume%",
           "parameters": [
             "%resource%"
           ]
         },
-        "ret_resume": {
-          "callback": "%container.resume%"
-        },
-        "ret_release": {
-          "callback": "%container.release%"
-        },
         "pre": {
           "callback": "%container.pre%",
           "parameters": ["%resource%"]
         },
-        "ret_pre": {
-          "callback": "%container.pre%"
-        },
         "post": {
           "callback": "%container.post%",
           "parameters": ["%resource%"]
-        },
-        "ret_post": {
-          "callback": "%container.post%"
         },
         "usb_reset": {},
         "probe_success": {
@@ -621,7 +600,7 @@
       "process": "(!register).<init>.{call}",
       "actions": {
         "call": {
-          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} |  <positive_probe>.[suspend].(ret_suspend).(<suspended>.[resume].(ret_resume) | <not_suspended>).{call} | <negative_probe>.(<free>.(deregister) | [probe].(ret_probe).{call})"
+          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} |  <positive_probe>.[suspend].(<suspended>.[resume] | <not_suspended>).{call} | <negative_probe>.(<free>.(deregister) | [probe].{call})"
         },
         "register": {
           "parameters": [
@@ -649,20 +628,17 @@
           "callback": "%container.probe%",
           "parameters": [
             "%resource%"
+          ],
+          "callback return value": "%probed%",
+          "post-call": [
+            "%probed% = ldv_post_probe(%probed%);"
           ]
-        },
-        "ret_probe": {
-          "callback": "%container.probe%",
-          "callback return value": "%probed%"
         },
         "suspend": {
           "callback": "%container.suspend%",
           "parameters": [
             "%resource%"
-          ]
-        },
-        "ret_suspend": {
-          "callback": "%container.suspend%",
+          ],
           "callback return value": "%suspended%"
         },
         "resume": {
@@ -670,9 +646,6 @@
           "parameters": [
             "%resource%"
           ]
-        },
-        "ret_resume": {
-          "callback": "%container.resume%"
         },
         "init": {
           "statements": [
@@ -722,7 +695,7 @@
       "process": "(!register).<init>.{call}",
       "actions": {
         "call": {
-          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | [probe].(ret_probe).{call})"
+          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | [probe].{call})"
         },
         "register": {
           "parameters": [
@@ -750,11 +723,11 @@
           "callback": "%container.probe%",
           "parameters": [
             "%resource%"
+          ],
+          "callback return value": "%probed%",
+          "post-call": [
+            "%probed% = ldv_post_probe(%probed%);"
           ]
-        },
-        "ret_probe": {
-          "callback": "%container.probe%",
-          "callback return value": "%probed%"
         },
         "init": {
           "statements": [
@@ -792,7 +765,7 @@
       "process": "(!register).{call}",
       "actions": {
         "call": {
-          "process": "[callback].(ret_callback).{call} | (deregister)"
+          "process": "[callback].{call} | (deregister)"
         },
         "register": {
           "parameters": [
@@ -810,9 +783,6 @@
           "parameters": [
             "%container%"
           ]
-        },
-        "ret_callback": {
-          "callback": "%callback%"
         }
       }
     },
@@ -831,7 +801,7 @@
       "process": "(!register).<init>.{call}",
       "actions": {
         "call": {
-          "process": "[callback].(ret_callback).{call} | <free>.(deregister)"
+          "process": "[callback].{call} | <free>.(deregister)"
         },
         "register": {
           "parameters": [
@@ -849,9 +819,6 @@
           "parameters": [
             "%resource%"
           ]
-        },
-        "ret_callback": {
-          "callback": "%callback%"
         },
         "init": {
           "statements": [
@@ -872,7 +839,7 @@
           "interface": ["timer.timer_list"]
         }
       },
-      "process": "(!instance_register).[callback].(ret_callback).(instance_deregister)",
+      "process": "(!instance_register).[callback].(instance_deregister)",
       "actions": {
         "instance_register": {
           "parameters": [
@@ -890,9 +857,6 @@
           "parameters": [
             "%container.data%"
           ]
-        },
-        "ret_callback": {
-          "callback": "%container.handler%"
         }
       }
     },
@@ -918,7 +882,7 @@
           "signature": "int a"
         }
       },
-      "process": "(!irq_register).[handler].(ret_handler).(<need_thread>.[thread].(ret_thread) | <handled>).(irq_deregister)",
+      "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",
       "actions": {
         "irq_register": {
            "parameters": [
@@ -939,10 +903,7 @@
           "parameters": [
             "%line%",
             "%data%"
-          ]
-        },
-        "ret_handler": {
-          "callback": "%callback%",
+          ],
           "callback return value": "%ret_val%"
         },
         "thread": {
@@ -951,9 +912,6 @@
             "%line%",
             "%data%"
           ]
-        },
-        "ret_thread": {
-          "callback": "%thread%"
         },
         "need_thread": {
           "condition": ["%ret_val% == IRQ_WAKE_THREAD"]
