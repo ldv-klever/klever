@@ -82,19 +82,18 @@ class RSG(core.components.Component):
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add models to group "{0}"'.format(grp['id']))
             for model in models:
-                rule_specs_dir = os.path.dirname(core.utils.find_file_or_dir(self.logger,
-                                                                             self.conf['main working directory'],
-                                                                             self.conf['rule specifications DB']))
-                model_file = os.path.relpath(os.path.join(os.path.realpath(self.conf['source tree root']), model),
-                                             rule_specs_dir)
-                if os.path.isfile(os.path.join(rule_specs_dir, model_file)):
-                    os.makedirs(os.path.join('models', os.path.dirname(model_file)), exist_ok=True)
-                    out_file = os.path.join('models', '{}.c'.format(os.path.splitext(model_file)[0]))
-                else:
-                    out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model))[0]))
-                full_desc_file = '{0}.json'.format(out_file)
+                suffix = ''
+                full_desc_file = os.path.join('models', '{0}.json'.format(os.path.basename(model)))
                 if os.path.isfile(full_desc_file):
-                    raise FileExistsError('CC extra full description file "{0}" already exists'.format(full_desc_file))
+                    suffix = 2
+                    while True:
+                        full_desc_file = os.path.join('models', '{0}{1}.json'.format(os.path.basename(model), suffix))
+                        if os.path.isfile(full_desc_file):
+                            suffix = str(int(suffix) + 1)
+                        else:
+                            break
+                out_file = os.path.join('models',
+                                        '{0}{1}.o'.format(os.path.splitext(os.path.basename(model))[0], suffix))
                 self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
                 with open(full_desc_file, 'w', encoding='ascii') as fp:
                     json.dump({
