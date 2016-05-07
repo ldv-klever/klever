@@ -1,8 +1,8 @@
+import os
 from setuptools import setup, find_packages
-from subprocess import getoutput
 
 setup(name='KleverCore',
-      version=getoutput('git --git-dir ../.git describe --always --abbrev=7 --dirty'),
+      use_scm_version={'root': os.path.pardir, 'local_scheme': 'dirty-tag'},
       description='TODO: a single line describing the package',
       author='Evgeny Novikov',
       author_email='novikov@ispras.ru',
@@ -11,6 +11,7 @@ setup(name='KleverCore',
       packages=find_packages(),
       package_data={'core.lkbce': ['wrappers/gcc', 'wrappers/ld', 'wrappers/mv']},
       scripts=['bin/klever-core'],
+      setup_requires=['setuptools_scm'],
       requires=['jinja2', 'graphviz', 'ply', 'requests'],
       classifiers=['TODO: a list of categories for the package'],
       )
