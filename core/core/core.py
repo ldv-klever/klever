@@ -71,7 +71,6 @@ class Core(core.utils.CallbacksCaller):
                                                   })
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], job.id)
             self.session.decide_job(job, start_report_file)
-            # TODO: create parallel process to send requests about successful operation to Klever Bridge.
             self.mqs['report files'] = multiprocessing.Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
