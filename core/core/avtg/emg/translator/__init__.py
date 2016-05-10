@@ -395,6 +395,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         )
 
         body = [
+            "ldv_initialize();",
+            ""
             "while(1) {",
             "\tswitch(ldv_undef_int()) {"
         ]
