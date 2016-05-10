@@ -39,6 +39,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__identifier_cnt = -1
         self.__instance_modifier = 1
         self.__max_instances = None
+        self.__reduce_container_aliases = True
+        self.__combine_containers = True
 
         # Read translation options
         if "translation options" not in self.conf:
@@ -47,6 +49,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.__max_instances = int(self.conf["translation options"]["max instances number"])
         if "instance modifier" in self.conf["translation options"]:
             self.__instance_modifier = self.conf["translation options"]["instance modifier"]
+        if "combine containers" in self.conf["translation options"]:
+            self.__combine_containers = self.conf["translation options"]["combine containers"]
+        if "reduce container aliases" in self.conf["translation options"]:
+            self.__reduce_container_aliases = self.conf["translation options"]["reduce container aliases"]
         if "pointer initialization" not in self.conf["translation options"]:
             self.conf["translation options"]["pointer initialization"] = {}
         if "pointer free" not in self.conf["translation options"]:
@@ -160,6 +166,39 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Add structures to declare types
         self.files[self.entry_file]['types'] = sorted(list(set(self._structures.values())), key=lambda v: v.identifier)
 
+    def _select_container_implementations(self, analysis, interface):
+        implementations = analysis.implementations(interface)
+        if self.__reduce_container_aliases:
+            # Collect allback implementations
+            values = [i.value for i in implementations]
+            child_implementations = {val: set() for val in values}
+            intfs = set()
+
+            for intf in interface.field_interfaces.values():
+                for ci in intf.declaration.implementations.values():
+                    if ci.base_value in values:
+                        child_implementations[ci.base_value].add(ci.value)
+                        intfs.add(ci.value)
+
+            if len(intfs) > 0:
+                # Greedy choose containers which cover all callback implementations
+                values = reversed(sorted(values, key=lambda val: len(child_implementations[val])))
+                selected_containers = set()
+                covered = set()
+                for intf in intfs:
+                    if intf not in covered:
+                        for value in values:
+                            if intf in child_implementations[value]:
+                                selected_containers.add(value)
+                                covered.update(child_implementations[value])
+                                break
+                new_implementations = [i for i in implementations if i.value in sorted(selected_containers)]
+                self.logger.debug('Having {} instances choose {} of them for interface {}'.
+                                  format(len(implementations), len(new_implementations), interface.identifier))
+                implementations = new_implementations
+
+        return implementations
+
     def _instanciate_processes(self, analysis, instances, process):
         base_list = instances
 
@@ -185,17 +224,56 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.logger.debug(
                 "Found {} relevant containers with several implementations for process {} for category {}".
                 format(str(len(relevant_multi_containers)), process.name, process.category))
-            for interface in sorted(list(relevant_multi_containers), key=lambda intf: intf.identifier):
-                new_base_list = []
-                implementations = analysis.implementations(interface)
 
-                for implementation in implementations:
-                    for instance in base_list:
-                        newp = self._copy_process(instance)
-                        newp.forbide_except(analysis, implementation)
-                        new_base_list.append(newp)
+            if not self.__combine_containers:
+                for interface in sorted(list(relevant_multi_containers), key=lambda intf: intf.identifier):
+                    new_base_list = []
+                    implementations = self._select_container_implementations(self, analysis, interface)
 
-                base_list = list(new_base_list)
+                    for implementation in implementations:
+                        for instance in base_list:
+                            newp = self._copy_process(instance)
+                            newp.forbide_except(analysis, implementation)
+                            new_base_list.append(newp)
+
+                    base_list = list(new_base_list)
+            else:
+                containers_implementations = {}
+                sorted_cnts = list()
+                # Get implementations
+                for container in relevant_multi_containers:
+                    implementations = list(self._select_container_implementations(analysis, container))
+                    if len(implementations) > 0:
+                        containers_implementations[container.identifier] = implementations
+                        sorted_cnts.append(container)
+
+                # Generate ranking by implementations number
+                sorted_cnts = list(reversed(sorted(sorted_cnts,
+                                            key=lambda c: len(containers_implementations[c.identifier]))))
+                ivector = [0 for i in range(len(sorted_cnts))]
+
+                if len(sorted_cnts) > 0:
+                    groups = []
+                    new_base_list = []
+                    for gr_id in range(len(containers_implementations[sorted_cnts[0].identifier])):
+                        group = []
+                        for cnt in range(len(sorted_cnts)):
+                            group.append(containers_implementations[sorted_cnts[cnt].identifier][ivector[cnt]])
+                            ivector[cnt] += 1
+                            if ivector[cnt] == len(containers_implementations[sorted_cnts[cnt].identifier]):
+                                ivector[cnt] = 0
+                        groups.append(group)
+
+                    for group in groups:
+
+                        for instance in base_list:
+                            newp = self._copy_process(instance)
+                            for implementation in group:
+                                newp.forbide_except(analysis, implementation)
+                            new_base_list.append(newp)
+
+                    if len(new_base_list) > 0:
+                        base_list = list(new_base_list)
 
         new_base_list = []
         for instance in base_list:
@@ -300,7 +378,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         elif self.__max_instances:
             self.__max_instances -= 1
 
-        inst.forbidden_implementations = set(process.forbidden_implementations)
+        inst.forbidded_implementations = set(process.forbidded_implementations)
         return inst
 
     def __yeild_identifier(self):
