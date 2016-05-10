@@ -299,6 +299,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                format(int(self.conf["translation options"]["max instances number"])))
         elif self.__max_instances:
             self.__max_instances -= 1
+
+        inst.forbidden_implementations = set(process.forbidden_implementations)
         return inst
 
     def __yeild_identifier(self):

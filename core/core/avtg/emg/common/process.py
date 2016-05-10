@@ -205,7 +205,7 @@ class Process:
         self.process = None
         self.__process_ast = None
         self.__accesses = None
-        self.__forbidded_implementations = set()
+        self.forbidded_implementations = set()
 
     @property
     def unmatched_receives(self):
@@ -404,6 +404,8 @@ class Process:
             return False
 
     def forbide_except(self, analysis, implementation):
+        forbide = set()
+
         accesses = self.accesses()
         for access_list in [accesses[name] for name in sorted(accesses.keys())]:
             for access in access_list:
@@ -413,15 +415,18 @@ class Process:
 
                 if implementation.value in base_values:
                     for candidate in [i for i in implementations if i.base_value != implementation.value]:
-                        self.__forbidded_implementations.add(candidate.identifier)
+                        forbide.add(candidate.identifier)
                 elif implementation.identifier in identifiers:
                     for candidate in [i for i in implementations if i.identifier != implementation.identifier]:
-                        self.__forbidded_implementations.add(candidate.identifier)
+                        forbide.add(candidate.identifier)
+
+        # Then forbide
+        self.forbidded_implementations.update(forbide)
 
     def get_implementations(self, analysis, access):
         if access.interface:
             implementations = analysis.implementations(access.interface)
-            return [impl for impl in implementations if impl.identifier not in self.__forbidded_implementations]
+            return [impl for impl in implementations if impl.identifier not in self.forbidded_implementations]
         elif access.label and len(access.list_access) == 1:
             return []
         else:

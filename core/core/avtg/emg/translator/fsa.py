@@ -484,7 +484,7 @@ class Automaton:
                             for access_parameter in st.action.parameters[index:]:
                                 accesses = self.process.resolve_access(access_parameter)
                                 for acc in accesses:
-                                    if len(acc.list_interface) > 0 and \
+                                    if acc.list_interface and len(acc.list_interface) > 0 and \
                                             (acc.list_interface[-1].declaration.compare(parameter) or
                                              acc.list_interface[-1].declaration.pointer_alias(parameter)):
                                         expression = acc.access_with_variable(
