@@ -452,13 +452,9 @@
       "labels": {
         "container": {
           "container": true
-        },
-        "k": {
-          "signature": "int a",
-          "value": "2"
         }
       },
-      "process": "(!register).[instance_register[%k%]].[instance_deregister[%k%]].(deregister)",
+      "process": "(!register).[@instance_register].[@instance_deregister].(deregister)",
       "actions": {
         "register": {
           "parameters": [
