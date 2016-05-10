@@ -21,7 +21,7 @@ from core.vtg.common import CommonStrategy
 class MPVStrategy(Enum):
     All = [
         {"-setprop": "analysis.mpa.partition.operator=AllThenNoneOperator"},
-        {"-setprop": "analysis.mpa.partition.time.cpu=900s"}
+        {"-setprop": "analysis.mpa.partition.time.cpu=900000s"}
     ]
     AllThenSep = [
         {"-setprop": "analysis.mpa.partition.operator=AllThenSepOperator"},
@@ -252,8 +252,8 @@ class MPV(CommonStrategy):
                             self.logger.debug('Property "{0}" got verdict "{1}"'.
                                               format(assertion, verdict))
                 if not is_stats_found:
-                    self.process_global_error('Output file does not contain final results')
-                    break
+                    for assertion, automaton in self.property_automata.items():
+                        results[assertion] = 'unknown'
 
                 # Process all found error traces.
                 witness_assert = {}  # Witnss (error trace) <-> assert (bug kind).
