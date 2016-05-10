@@ -132,6 +132,9 @@ class CommonStrategy(core.components.Component):
     def process_single_verdict(self, decision_results, assertion=None, specified_error_trace=None):
         verification_report_id = '{0}/verification{1}'.format(self.id, assertion)
         # Add assertion if it was specified.
+        if decision_results['status'] == 'checking':
+            # Do not print any verdict for still checking tasks
+            return
         added_attrs = []
         if assertion:
             added_attrs.append({"Assert": assertion})

@@ -298,6 +298,16 @@ class MAV(CommonStrategy):
                                 results[bug_kind] = verdict
                                 self.logger.debug('Assertion "{0}" got verdict "{1}"'.
                                                   format(bug_kind, verdict))
+                            else:
+                                result = re.search(r'\[(.+)\]', line)
+                                if result:
+                                    # LCA here.
+                                    LCA = result.group(1)
+                                    self.logger.info('LCA is "{0}"'.format(LCA))
+                                    if not is_new_verdicts:
+                                        is_new_verdicts = True
+                                        results[LCA] = 'unknown'
+
                 except FileNotFoundError:
                     with open('cil.i.log', encoding='ascii') as fp:
                         content = fp.readlines()
@@ -320,12 +330,12 @@ class MAV(CommonStrategy):
                     witness_assert[error_trace] = found_bug_kind
 
                 for bug_kind, verdict in results.items():
-                    decision_results['status'] = verdict
                     if verdict == 'checking':
                         if self.relaunch == 'external':
                             is_finished = False
                         else:
                             verdict = 'unknown'
+                    decision_results['status'] = verdict
                     if verdict == 'unsafe':
                         for error_trace in all_found_error_traces:
                             if witness_assert[error_trace] == bug_kind:
@@ -334,7 +344,8 @@ class MAV(CommonStrategy):
                                 self.remove_assertion(bug_kind)
                     else:  # Verdicts unknown or safe.
                         self.process_single_verdict(decision_results, assertion=bug_kind)
-                        self.remove_assertion(bug_kind)
+                        if verdict != 'checking':
+                            self.remove_assertion(bug_kind)
                 break
             time.sleep(1)
         self.is_finished = is_finished
