@@ -261,13 +261,12 @@ class LKBCE(core.components.Component):
 
     def set_src_tree_root(self):
         self.logger.info('Set source tree root')
-        self.src_tree_root = os.path.abspath(self.linux_kernel['work src tree'])
+        # All other components should find Linux kernel working source tree relatively to main working directory.
+        self.src_tree_root = os.path.relpath(os.path.realpath(self.linux_kernel['work src tree']),
+                                             self.conf['main working directory'])
 
     def fetch_linux_kernel_work_src_tree(self):
-        # Fetch Linux kernel working source tree to root directory of all Klever Core components for convenience and to
-        # keep it when several sub-jobs are decided (each such sub-job will have its own Linux kernel working source
-        # tree).
-        self.linux_kernel['work src tree'] = os.path.join(os.path.pardir, 'linux')
+        self.linux_kernel['work src tree'] = 'linux'
 
         self.logger.info('Fetch Linux kernel working source tree to "{0}"'.format(self.linux_kernel['work src tree']))
 
@@ -293,7 +292,7 @@ class LKBCE(core.components.Component):
                 self.logger.debug('Linux kernel source code is provided in form of source tree')
 
             if self.conf['allow local source directories use']:
-                os.symlink(os.path.abspath(self.linux_kernel['src']), self.linux_kernel['work src tree'])
+                self.linux_kernel['work src tree'] = self.linux_kernel['src']
             else:
                 shutil.copytree(self.linux_kernel['src'], self.linux_kernel['work src tree'], symlinks=True)
 

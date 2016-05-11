@@ -74,28 +74,29 @@ class ABKM(core.components.Component):
             self.logger.info('Ignore asm goto expressions')
 
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(extra_c_file['C file'])[0])
-                with open(os.path.join(self.conf['source tree root'], extra_c_file['C file']),
-                          encoding='ascii') as fp_in, open(os.path.join(self.conf['source tree root'], trimmed_c_file),
-                                                           'w', encoding='ascii') as fp_out:
+                trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
+                with open(os.path.join(self.conf['main working directory'], extra_c_file['C file']),
+                          encoding='ascii') as fp_in, open(trimmed_c_file, 'w', encoding='ascii') as fp_out:
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
-                extra_c_file['C file'] = trimmed_c_file
+                extra_c_file['C file'] = os.path.relpath(trimmed_c_file,
+                                                         os.path.join(self.conf['main working directory'],
+                                                                      self.conf['source tree root']))
 
             # TODO: CIL can't proces files with spaces in their names. Try to screen spaces.
             with open('cil input files.txt', 'w', encoding='ascii') as fp:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
                     fp.write('{0}\n'.format(extra_c_file['C file']))
 
-            cil_out_file = os.path.relpath('cil.i', os.path.realpath(self.conf['source tree root']))
-
             core.utils.execute(self.logger,
                                (
                                    'cilly.asm.exe',
                                    '--extrafiles', os.path.relpath('cil input files.txt',
-                                                                   os.path.realpath(self.conf['source tree root'])),
-                                   '--out', cil_out_file,
+                                                                   os.path.join(self.conf['main working directory'],
+                                                                                self.conf['source tree root'])),
+                                   '--out', os.path.relpath('cil.i', os.path.join(self.conf['main working directory'],
+                                                                                  self.conf['source tree root'])),
                                    '--printCilAsIs',
                                    '--domakeCFG',
                                    '--decil',
@@ -111,9 +112,10 @@ class ABKM(core.components.Component):
                                    '--no-split-structs',
                                    '--rmUnusedInlines'
                                ),
-                               cwd=self.conf['source tree root'])
+                               cwd=os.path.relpath(os.path.join(self.conf['main working directory'],
+                                                                self.conf['source tree root'])))
 
-            self.task_desc['files'].append(cil_out_file)
+            self.task_desc['files'].append('cil.i')
 
             self.logger.debug('Merged source files was outputted to "cil.i"')
         else:
@@ -127,7 +129,7 @@ class ABKM(core.components.Component):
             if os.path.isfile('unreach-call.prp'):
                 tar.add('unreach-call.prp')
             for file in self.task_desc['files']:
-                tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
+                tar.add(file)
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def decide_verification_task(self):
@@ -238,7 +240,8 @@ class ABKM(core.components.Component):
                     notes = {}
                     warns = {}
                     for src_file in src_files:
-                        with open(os.path.join(self.conf['source tree root'], src_file), encoding='utf8') as fp:
+                        with open(os.path.join(self.conf['main working directory'], self.conf['source tree root'],
+                                               src_file), encoding='utf8') as fp:
                             i = 0
                             for line in fp:
                                 i += 1
@@ -377,7 +380,8 @@ class ABKM(core.components.Component):
                         self.logger.debug('Source files referred by error trace are: "{}"'.format(src_files))
                         for src_file in src_files:
                             os.makedirs(os.path.dirname(src_file), exist_ok=True)
-                            shutil.copy(os.path.join(self.conf['source tree root'], src_file), src_file)
+                            shutil.copy(os.path.join(self.conf['main working directory'], self.conf['source tree root'],
+                                                     src_file), src_file)
 
                     core.utils.report(self.logger,
                                       'unsafe',
@@ -417,14 +421,15 @@ class ABKM(core.components.Component):
         self.logger.info('Remove verification task "{0}"'.format(task_id))
         session.remove_task(task_id)
 
-
     def __normalize_path(self, path):
         # Each file is specified either via absolute path or path relative to source tree root.
         # Make all paths relative to source tree root.
         if os.path.isabs(path.data):
-            path.data = os.path.relpath(path.data, os.path.realpath(self.conf['source tree root']))
+            path.data = os.path.relpath(path.data, os.path.join(self.conf['main working directory'],
+                                                                self.conf['source tree root']))
 
-        if not os.path.isfile(os.path.join(self.conf['source tree root'], path.data)):
+        if not os.path.isfile(
+                os.path.join(self.conf['main working directory'], self.conf['source tree root'], path.data)):
             raise FileNotFoundError('File "{0}" referred by error trace does not exist'.format(path.data))
 
         return path.data

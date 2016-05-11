@@ -309,9 +309,8 @@ class AVTG(core.components.Component):
             'Generate abstract verification task description for {0}'.format(
                 'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals)))
 
-        self.plugins_work_dir = os.path.relpath(
-            os.path.join(self.conf['source tree root'], '{0}.task'.format(verification_obj_desc['id']),
-                         rule_spec_desc['id']))
+        self.plugins_work_dir = os.path.join(os.path.basename(self.conf['source tree root']),
+                                             verification_obj_desc['id'], rule_spec_desc['id'])
         os.makedirs(self.plugins_work_dir)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
 
@@ -322,7 +321,7 @@ class AVTG(core.components.Component):
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = []
             for cc_full_desc_file in grp['cc full desc files']:
-                with open(os.path.join(self.conf['source tree root'], cc_full_desc_file), encoding='ascii') as fh:
+                with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='ascii') as fh:
                     command = json.load(fh)
                 in_file = command['in files'][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})

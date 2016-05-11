@@ -1305,7 +1305,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 with open(name, "w", encoding="ascii") as fh:
                     fh.writelines(lines)
 
-                path = os.path.relpath(os.path.abspath(name), os.path.realpath(self.conf['source tree root']))
+                path = os.path.relpath(name, self.conf['main working directory'])
                 self.logger.info("Add aspect file {}".format(path))
                 self.aspects[cc_extra_full_desc_file["in file"]] = path
 
