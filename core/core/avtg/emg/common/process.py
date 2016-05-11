@@ -403,7 +403,7 @@ class Process:
         else:
             return False
 
-    def forbide_except(self, analysis, implementation):
+    def forbide_except(self, analysis, interface, implementation):
         forbide = set()
 
         accesses = self.accesses()
@@ -414,10 +414,16 @@ class Process:
                 identifiers = set([i.identifier for i in implementations])
 
                 if implementation.value in base_values:
+                    # Forbide having a container in base values
                     for candidate in [i for i in implementations if i.base_value != implementation.value]:
                         forbide.add(candidate.identifier)
                 elif implementation.identifier in identifiers:
+                    # Forbide having an implementation of the access itself
                     for candidate in [i for i in implementations if i.identifier != implementation.identifier]:
+                        forbide.add(candidate.identifier)
+                elif access.complete_list_interface and interface in access.complete_list_interface:
+                    # Forbide all if the access is not implemented with the container at all
+                    for candidate in implementations:
                         forbide.add(candidate.identifier)
 
         # Then forbide

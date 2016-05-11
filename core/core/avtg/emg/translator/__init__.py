@@ -242,7 +242,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     for implementation in implementations:
                         for instance in base_list:
                             newp = self._copy_process(instance)
-                            newp.forbide_except(analysis, implementation)
+                            newp.forbide_except(analysis, interface, implementation)
                             new_base_list.append(newp)
 
                     base_list = list(new_base_list)
@@ -255,9 +255,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 groups = []
                 new_base_list = []
                 for gr_id in range(len(relevant_multi_containers[sorted_cnts[0]])):
-                    group = []
+                    group = {}
                     for cnt in range(len(sorted_cnts)):
-                        group.append(relevant_multi_containers[sorted_cnts[cnt]][ivector[cnt]])
+                        group[sorted_cnts[cnt]] = relevant_multi_containers[sorted_cnts[cnt]][ivector[cnt]]
                         ivector[cnt] += 1
                         if ivector[cnt] == len(relevant_multi_containers[sorted_cnts[cnt]]):
                             ivector[cnt] = 0
@@ -266,8 +266,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 for group in groups:
                     for instance in base_list:
                         newp = self._copy_process(instance)
-                        for implementation in group:
-                            newp.forbide_except(analysis, implementation)
+                        for identifier in group:
+                            interface = analysis.interfaces[identifier]
+                            newp.forbide_except(analysis, interface, group[identifier])
                         new_base_list.append(newp)
 
                 base_list = list(new_base_list)
