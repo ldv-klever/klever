@@ -28,6 +28,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._entry_fsa = None
         self._nested_automata = False
         self._omit_all_states = False
+        self.__dump_automata = False
         self._omit_states = {
             'callback': True,
             'dispatch': True,
@@ -43,6 +44,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__combine_containers = True
 
         # Read translation options
+        if "dump automata graphs" in self.conf["translation options"]:
+            self.__dump_automata = self.conf["translation options"]["dump automata graphs"]
         if "translation options" not in self.conf:
             self.conf["translation options"] = {}
         if "max instances number" in self.conf["translation options"]:
@@ -153,11 +156,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 automaton.generate_code(analysis, model, self, state)
 
         # Save digraphs
-        automaton_dir = "automaton"
-        self.logger.info("Save automata to directory {}".format(automaton_dir))
-        os.mkdir(automaton_dir)
-        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
-            automaton.save_digraph(automaton_dir)
+        if self.__dump_automata:
+            automaton_dir = "automaton"
+            self.logger.info("Save automata to directory {}".format(automaton_dir))
+            os.mkdir(automaton_dir)
+            for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+                automaton.save_digraph(automaton_dir)
 
         # Generate control functions
         self.logger.info("Generate control functions for each automaton")
@@ -468,6 +472,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         )
 
         body = [
+            "ldv_initialize();",
+            ""
             "while(1) {",
             "\tswitch(ldv_undef_int()) {"
         ]
@@ -509,11 +515,23 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             ret_expr = ''
             cf_ret_expr = ''
 
-        resources = [state.code['callback']] + state.code['callback'].points.parameters
-        resources = [resources[p].to_string('arg{}'.format(p)) for p in range(len(resources))]
+        resources = [state.code['callback'].to_string('arg0')]
+        params = []
+        for index in range(len(state.code['callback'].points.parameters)):
+            if index in state.code["pointer parameters"]:
+                resources.append(state.code['callback'].points.parameters[index].take_pointer.
+                                 to_string('arg{}'.format(index + 1)))
+                params.append('*arg{}'.format(index + 1))
+            else:
+                resources.append(state.code['callback'].points.parameters[index].
+                                 to_string('arg{}'.format(index + 1)))
+                params.append('arg{}'.format(index + 1))
+        params = ", ".join(params)
+        resources = ", ".join(resources)
+
         function = FunctionDefinition(fname,
                                       state.code['file'],
-                                      "{} {}({})".format(ret, fname, ', '.join(resources)),
+                                      "{} {}({})".format(ret, fname, resources),
                                       True)
 
         function.body.concatenate("/* Callback {} */".format(state.action.name))
@@ -521,18 +539,16 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             '/* Callback {} */'.format(state.action.name)
         ]
 
-        # Generate callback call
         if state.code['check pointer']:
             f_invoke = cf_ret_expr + fname + '(' + ', '.join([state.code['invoke']] + state.code['parameters']) + ');'
             inv.append('if ({})'.format(state.code['invoke']))
             inv.append('\t' + f_invoke)
-            call = ret_expr + '(*arg0)' + '(' + ", ".join(["arg{}".format(i) for i in range(1, len(resources))]) + ')'
+            call = ret_expr + '(*arg0)' + '(' + params + ')'
         else:
             f_invoke = cf_ret_expr + fname + '(' + \
                        ', '.join([state.code['variable']] + state.code['parameters']) + ');'
             inv.append(f_invoke)
-            call = ret_expr + '({})'.format(state.code['invoke']) + \
-                   '(' + ", ".join(["arg{}".format(i) for i in range(1, len(resources))]) + ')'
+            call = ret_expr + '({})'.format(state.code['invoke']) + '(' + params + ')'
         function.body.concatenate('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)

@@ -1,7 +1,7 @@
 import copy
 import graphviz
 
-
+from core.avtg.emg.common.signature import Primitive, Pointer
 from core.avtg.emg.common.code import Variable, FunctionModels
 from core.avtg.emg.common.process import Subprocess, Receive, Dispatch, Call, CallRetval, Condition
 
@@ -437,8 +437,8 @@ class Automaton:
                         check = False
                     else:
                         if func_variable:
-                            func_variable = func_variable.name
                             invoke = access.access_with_variable(func_variable)
+                            func_variable = func_variable.name
                             file = translator.entry_file
                             check = True
                         else:
@@ -470,6 +470,7 @@ class Automaton:
                 for st, case, signature, invoke, file, check, func_variable in callbacks:
                     # Generate function call and corresponding function
                     params = []
+                    pointer_params = []
                     label_params = []
                     cb_statements = []
 
@@ -497,9 +498,15 @@ class Automaton:
 
                             # Generate new variable
                             if not expression:
+                                if type(signature.points.parameters[index]) is not Primitive and \
+                                        type(signature.points.parameters[index]) is not Pointer:
+                                    param_signature = signature.points.parameters[index].take_pointer
+                                    pointer_params.append(index)
+                                else:
+                                    param_signature = signature.points.parameters[index]
+
                                 lb, var = self.new_param(analysis, "ldv_param_{}_{}".format(st.identifier, index),
-                                                         signature.points.parameters[index],
-                                                         None)
+                                                         param_signature, None)
                                 label_params.append(lb)
                                 expression = var.name
 
@@ -571,6 +578,7 @@ class Automaton:
 
                     # Generate comment
                     case["parameters"] = params
+                    case["pointer parameters"] = pointer_params
                     case["callback"] = signature
                     case["check pointer"] = check
                     case["invoke"] = invoke

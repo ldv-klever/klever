@@ -24,6 +24,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self._implementations_cache = {}
         self._containers_cache = {}
         self._interface_cache = {}
+        self._kernel_functions_cache = {}
 
         setup_collection(self.types, self.typedefs)
 
@@ -54,23 +55,29 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #    fh.write(content)
 
     def collect_relevant_models(self, function):
+        # todo: This function takes a lot of time
         self.logger.debug("Collect relevant kernel functions called in a call stack of function '{}'".format(function))
-        process_names = [function]
-        processed_names = set()
-        relevant = []
-        while len(process_names) > 0:
-            name = process_names.pop()
-            processed_names.add(name)
+        if function not in self._kernel_functions_cache:
+            process_names = [function]
+            processed_names = set()
+            relevant = []
+            while len(process_names) > 0:
+                name = process_names.pop()
+                processed_names.add(name)
 
-            if name in self.modules_functions:
-                for file in sorted(self.modules_functions[name].keys()):
-                    for called in self.modules_functions[name][file]['calls']:
-                        if called in self.modules_functions and called not in processed_names:
-                            process_names.append(called)
-                        elif called in self.kernel_functions:
-                            relevant.append(called)
+                if name in self.modules_functions:
+                    for file in sorted(self.modules_functions[name].keys()):
+                        for called in self.modules_functions[name][file]['calls']:
+                            if called in self.modules_functions and called not in processed_names:
+                                process_names.append(called)
+                            elif called in self.kernel_functions:
+                                relevant.append(called)
 
-        return relevant
+            self._kernel_functions_cache[function] = relevant
+        else:
+            self.logger.debug("Cache hit")
+
+        return self._kernel_functions_cache[function]
 
     def callback_name(self, call):
         name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
