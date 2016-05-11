@@ -138,7 +138,7 @@ class LKBCE(core.components.Component):
                         and 'modules dep file' in self.conf['Linux kernel'] \
                         and self.conf['LKVOG strategy']['name'] != 'separate modules':
                     self.conf['Linux kernel']['modules'] = self.mqs['Linux kernel modules'].get()
-                    self.mqs['Linux kernel modules'].close()
+                self.mqs['Linux kernel modules'].close()
 
                 # Check that module sets aren't intersect explicitly.
                 for i, modules1 in enumerate(self.conf['Linux kernel']['modules']):
@@ -206,7 +206,7 @@ class LKBCE(core.components.Component):
 
             # Specify installed Linux kernel modules directory like Linux kernel working source tree in
             # fetch_linux_kernel_work_src_tree().
-            self.linux_kernel['installed modules dir'] = os.path.join(os.path.pardir, 'linux-modules')
+            self.linux_kernel['installed modules dir'] = os.path.abspath(os.path.join(os.path.pardir, 'linux-modules'))
             os.mkdir(self.linux_kernel['installed modules dir'])
             # TODO: whether parallel execution has some benefits here?
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
@@ -219,7 +219,7 @@ class LKBCE(core.components.Component):
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
             self.logger.info('Extract all Linux kernel module dependencies function')
-            p = subprocess.Popen(['/sbin/depmod', '-b', os.path.join(os.path.pardir, 'linux-modules'),
+            p = subprocess.Popen(['/sbin/depmod', '-b', self.linux_kernel['installed modules dir'],
                               self.linux_kernel['version'], '-v'], stdout=subprocess.PIPE,
                              stderr=subprocess.DEVNULL, universal_newlines=True)
             with p.stdout as fp:
@@ -229,17 +229,21 @@ class LKBCE(core.components.Component):
         if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
                 and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
             all_modules = set()
-            for module, deps in self.conf['Linux kernel']['module deps']:
+            for module, deps in self.conf['Linux kernel']['module deps'].items():
                 all_modules.add(module)
                 all_modules.update(deps)
 
             self.conf['Linux kernel']['module sizes'] = {}
+            self.linux_kernel['module sizes'] = {}
             for module in all_modules:
                 self.conf['Linux kernel']['module sizes'][module] = \
-                    os.path.getsize(os.path.join(os.path.pardir, 'linux-modules', module))
+                    os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                                 self.linux_kernel['version'], 'kernel', module))
+                self.linux_kernel['module sizes'][module] = self.conf['Linux kernel']['module sizes'][module]
 
     def parse_linux_kernel_mod_function_deps(self, fp):
         self.conf['Linux kernel']['module deps function'] = []
+        self.linux_kernel['module deps function'] = []
         for line in fp:
             splts = line[:-1].split(' ')
             first = splts[0]
@@ -249,22 +253,23 @@ class LKBCE(core.components.Component):
             if 'kernel' in second:
                 second = second[second.find('kernel') + 7:]
             func = splts[2][1:-2]
-            self.conf['Linux kernel']['module deps function'].append((first, func, second))
+            self.conf['Linux kernel']['module deps function'].append((second, func, first))
+            self.linux_kernel['module deps function'].append((second, func, first))
 
     def parse_linux_kernel_mod_deps(self, path):
         self.logger.info("Parse dependencies file from {}".format(path))
         with open(path, encoding='ascii') as fp:
             self.linux_kernel['module deps'] = {}
             for line in fp:
+                if line[-1] == '\n':
+                    line = line[:-1]
                 splits = line.split(':')
-                if len(splits) == 1:
+                if len(splits) == 1 or not splits[1]:
                     continue
                 module_name = splits[0]
                 module_name = module_name[7:] if module_name.startswith('kernel/') else module_name
-                module_deps = splits[1][:-1]
+                module_deps = splits[1]
                 module_deps = list(filter(lambda x: x != '', module_deps.split(' ')))
-                if len(module_deps) == 0:
-                    continue
                 module_deps = [dep[7:] if dep.startswith('kernel/') else dep for dep in module_deps]
                 module_deps = list(sorted(module_deps))
                 self.linux_kernel['module deps'][module_name] = module_deps

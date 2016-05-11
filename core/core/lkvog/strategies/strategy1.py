@@ -259,6 +259,7 @@ class Strategy1:
                 ret.update(self.divide(module))
             return ret
 
+
         if module_name not in self.modules:
             # This module has no dependencies
             self.logger.debug('Module {} has no dependencies'.format(module_name))
@@ -359,6 +360,7 @@ class Strategy1:
                         if dep.id in modules:
                             module.add_predecessor(modules[dep.id])
             cluster2 = Graph(list(modules.values()))
+            cluster2.root = [module for module in cluster2.modules if module.id == main_module.id][0]
             if cluster2 not in self.checked_clusters:
                 self.checked_modules.add(cluster2)
                 ret.add(cluster2)

@@ -66,8 +66,8 @@ def after_process_linux_kernel_raw_build_cmd(context):
             # Sometimes when building several individual modules the same modules are built several times including
             # building of corresponding mod.o files. Do not fail in this case.
             if not context.linux_kernel['build cmd']['out file'].endswith('mod.o'):
-                pass#raise FileExistsError('Linux kernel CC full description file "{0}" already exists'.format(
-                    #linux_kernel_build_cmd_full_desc_file))
+                raise FileExistsError('Linux kernel CC full description file "{0}" already exists'.format(
+                    linux_kernel_build_cmd_full_desc_file))
         else:
             context.logger.debug(
                 'Dump Linux kernel CC full description to file "{0}"'.format(linux_kernel_build_cmd_full_desc_file))
@@ -146,16 +146,31 @@ class LKVOG(core.components.Component):
     def generate_all_verification_obj_descs(self):
         strategy_name = self.conf['LKVOG strategy']['name']
 
-        if strategy_name != 'separate modules':
-            if ('all' not in self.conf['Linux kernel']['modules'] or
-                    not self.conf['Linux kernel'].get('build kernel', False)) and \
-                    'modules dep file' not in self.conf['Linux kernel']:
+        module_deps = {}
+        module_deps_function = {}
+        module_sizes = {}
+
+        if ('all' in self.conf['Linux kernel']['modules'] and
+                self.conf['Linux kernel'].get('build kernel', False)):
+
+                module_deps = self.mqs['Linux kernel module deps'].get()
+                module_deps_function = self.mqs['Linux kernel module deps function'].get()
+                module_sizes = self.mqs['Linux kernel module sizes'].get()
+        else:
+            if 'modules dep file' not in self.conf['Linux kernel']:
                 raise RuntimeError("Strategy {} will not receive dependencied"
                                    .format(self.conf['LKVOG strategy']['name']))
-            self.logger.debug('Wait for dependencies')
-            module_deps = self.mqs['Linux kernel module deps'].get()
-            self.logger.debug('Dependencies was received')
+            else:
+                module_deps = self.mqs['Linux kernel module deps'].get()
+            if 'modules dep function file' in self.conf['Linux kernel']:
+                module_deps_function = self.mqs['Linux kernel module deps function'].get()
+            if 'modules size file' in self.conf['Linux kernel']:
+                module_sizes = self.mqs['Linux kernel module sizes'].get()
+        self.mqs['Linux kernel module deps'].close()
+        self.mqs['Linux kernel module deps function'].close()
+        self.mqs['Linux kernel module sizes'].close()
 
+        if strategy_name != 'separate modules':
             # Use strategy
             strategy = None
 
@@ -177,16 +192,6 @@ class LKVOG(core.components.Component):
                                          os.path.join(scotch_dir_path, 'scotch_log'),
                                          os.path.join(scotch_dir_path, 'scotch_out'), params=self.conf['LKVOG strategy'])
             elif strategy_name == 'strategy1':
-                module_deps_function = []
-                module_sizes = {}
-                if ('all' in self.conf['Linux kernel']['modules'] and
-                        self.conf['Linux kernel'].get('build kernel', False)) \
-                        or 'modules dep function file' in self.conf['Linux kernel']:
-                    module_deps_function = self.mqs['Linux kernel module deps function'].get()
-                if ('all' in self.conf['Linux kernel']['modules'] and
-                        self.conf['Linux kernel'].get('build kernel', False)) \
-                        or 'modules size file' in self.conf['Linux kernel']:
-                    module_sizes = self.mqs['Linux kernel module sizes'].get()
                 strategy = strategy1.Strategy1(self.logger, module_deps, params=self.conf['LKVOG strategy'],
                                                export_func=module_deps_function, module_sizes=module_sizes)
             elif strategy_name == 'separate modules':
@@ -198,7 +203,7 @@ class LKVOG(core.components.Component):
             build_modules = set()
             self.logger.debug("Initial build modules: {}".format(self.conf['Linux kernel']['modules']))
             for kernel_module in self.conf['Linux kernel']['modules']:
-                if re.search(r'\.ko$', kernel_module):
+                if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
                     # Invidiual module just use strategy
                     self.logger.debug('Use strategy for {} module'.format(kernel_module))
                     clusters = strategy.divide(kernel_module)
@@ -227,7 +232,9 @@ class LKVOG(core.components.Component):
                     or not self.conf['Linux kernel'].get('build kernel', False):
                 self.mqs['Linux kernel modules'].put(build_modules)
                 self.mqs['Additional modules'].put(build_modules)
-
+        else:
+            self.mqs['Linux kernel module deps'].close()
+            self.mqs['Linux kernel module deps function'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
 
         cc_ready = set()
@@ -316,6 +323,7 @@ class LKVOG(core.components.Component):
                 and 'modules dep file' in self.conf['Linux kernel'] \
                 and self.conf['LKVOG strategy']['name'] != 'separate_modules':
             self.conf['Linux kernel']['modules'] = self.mqs['Additional modules'].get()
+        self.mqs['Additional modules'].close()
 
 
         while True:
