@@ -102,8 +102,8 @@ class ProcessModel:
         # All default registrations and then deregistrations
         names = [name for name in sorted(self.entry_process.actions.keys())
                  if type(self.entry_process.actions[name]) is Dispatch]
-        #for name in names:
-        #    self.entry_process.actions[name].broadcast = True
+        for name in names:
+            self.entry_process.actions[name].broadcast = True
         names.sort()
         names.reverse()
         names[len(names):] = reversed(names[len(names):])
