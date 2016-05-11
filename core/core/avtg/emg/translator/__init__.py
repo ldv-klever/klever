@@ -166,44 +166,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Add structures to declare types
         self.files[self.entry_file]['types'] = sorted(list(set(self._structures.values())), key=lambda v: v.identifier)
 
-    def _select_container_implementations(self, analysis, interface):
-        implementations = analysis.implementations(interface)
-        if self.__reduce_container_aliases:
-            # Collect allback implementations
-            values = [i.value for i in implementations]
-            child_implementations = {val: set() for val in values}
-            intfs = set()
-
-            for intf in interface.field_interfaces.values():
-                for ci in intf.declaration.implementations.values():
-                    if ci.base_value in values:
-                        child_implementations[ci.base_value].add(ci.value)
-                        intfs.add(ci.value)
-
-            if len(intfs) > 0:
-                # Greedy choose containers which cover all callback implementations
-                values = reversed(sorted(values, key=lambda val: len(child_implementations[val])))
-                selected_containers = set()
-                covered = set()
-                for intf in intfs:
-                    if intf not in covered:
-                        for value in values:
-                            if intf in child_implementations[value]:
-                                selected_containers.add(value)
-                                covered.update(child_implementations[value])
-                                break
-                new_implementations = [i for i in implementations if i.value in sorted(selected_containers)]
-                self.logger.debug('Having {} instances choose {} of them for interface {}'.
-                                  format(len(implementations), len(new_implementations), interface.identifier))
-                implementations = new_implementations
-
-        return implementations
-
-    def _instanciate_processes(self, analysis, instances, process):
-        base_list = instances
-
-        # Copy base instances for each known implementation
-        relevant_multi_containers = set()
+    def _select_containers_implementations(self, analysis, process):
+        relevant_multi_containers = {}
         accesses = process.accesses()
         self.logger.debug("Calculate relevant containers with several implementations for process {} for category {}".
                           format(process.name, process.category))
@@ -211,24 +175,65 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             for inst_access in [inst for inst in sorted(access, key=lambda i: i.expression) if inst.interface]:
                 if type(inst_access.interface) is Container and \
                                 len(analysis.implementations(inst_access.interface)) > 1 and \
-                                inst_access.interface not in relevant_multi_containers:
-                    relevant_multi_containers.add(inst_access.interface)
+                                inst_access.interface.identifier not in relevant_multi_containers:
+                    implementations = analysis.implementations(inst_access.interface)
+                    relevant_multi_containers[inst_access.interface.identifier] = implementations
                 elif len(inst_access.complete_list_interface) > 1:
                     impl_cnt = [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
                                 len(analysis.implementations(intf)) > 1]
                     if len(impl_cnt) > 0:
-                        relevant_multi_containers.add(impl_cnt[0])
+                        interface = impl_cnt[0]
+                        implementations = analysis.implementations(interface)
+                        relevant_multi_containers[interface.identifier] = implementations
+
+        if self.__reduce_container_aliases:
+            for interface in [analysis.interfaces[key] for key in relevant_multi_containers]:
+                # Collect allback implementations
+                implementations = relevant_multi_containers[interface.identifier]
+                values = [i.value for i in implementations]
+                child_implementations = {val: set() for val in values}
+                intfs = set()
+                for intf in [intf for intf in interface.field_interfaces.values() if type(intf) is Callback]:
+                    for ci in intf.declaration.implementations.values():
+                        if ci.base_value in values:
+                            child_implementations[ci.base_value].add(ci.value)
+                            intfs.add(ci.value)
+
+                if len(intfs) > 0:
+                    # Greedy choose containers which cover all callback implementations
+                    values = reversed(sorted(values, key=lambda val: len(child_implementations[val])))
+                    selected_containers = set()
+                    covered = set()
+                    for intf in intfs:
+                        if intf not in covered:
+                            for value in values:
+                                if intf in child_implementations[value]:
+                                    selected_containers.add(value)
+                                    covered.update(child_implementations[value])
+                                    break
+                    new_implementations = [i for i in implementations if i.value in sorted(selected_containers)]
+                    self.logger.debug('Having {} instances choose {} of them for interface {}'.
+                                      format(len(implementations), len(new_implementations), interface.identifier))
+                    relevant_multi_containers[interface.identifier] = new_implementations
+
+        return relevant_multi_containers
+
+    def _instanciate_processes(self, analysis, instances, process):
+        base_list = instances
+
+        # Copy base instances for each known implementation
+        relevant_multi_containers = self._select_containers_implementations(analysis, process)
 
         # Copy instances for each implementation of a container
-        if len(relevant_multi_containers) > 0:
+        if len(list(relevant_multi_containers.keys())) > 0:
             self.logger.debug(
                 "Found {} relevant containers with several implementations for process {} for category {}".
                 format(str(len(relevant_multi_containers)), process.name, process.category))
 
             if not self.__combine_containers:
-                for interface in sorted(list(relevant_multi_containers), key=lambda intf: intf.identifier):
+                for interface in sorted(list(relevant_multi_containers.keys())):
                     new_base_list = []
-                    implementations = self._select_container_implementations(self, analysis, interface)
+                    implementations = relevant_multi_containers[interface]
 
                     for implementation in implementations:
                         for instance in base_list:
@@ -238,42 +243,30 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
                     base_list = list(new_base_list)
             else:
-                containers_implementations = {}
-                sorted_cnts = list()
-                # Get implementations
-                for container in relevant_multi_containers:
-                    implementations = list(self._select_container_implementations(analysis, container))
-                    if len(implementations) > 0:
-                        containers_implementations[container.identifier] = implementations
-                        sorted_cnts.append(container)
-
                 # Generate ranking by implementations number
-                sorted_cnts = list(reversed(sorted(sorted_cnts,
-                                            key=lambda c: len(containers_implementations[c.identifier]))))
+                sorted_cnts = list(reversed(sorted(list(relevant_multi_containers.keys()),
+                                                   key=lambda c: len(relevant_multi_containers[c]))))
                 ivector = [0 for i in range(len(sorted_cnts))]
 
-                if len(sorted_cnts) > 0:
-                    groups = []
-                    new_base_list = []
-                    for gr_id in range(len(containers_implementations[sorted_cnts[0].identifier])):
-                        group = []
-                        for cnt in range(len(sorted_cnts)):
-                            group.append(containers_implementations[sorted_cnts[cnt].identifier][ivector[cnt]])
-                            ivector[cnt] += 1
-                            if ivector[cnt] == len(containers_implementations[sorted_cnts[cnt].identifier]):
-                                ivector[cnt] = 0
-                        groups.append(group)
+                groups = []
+                new_base_list = []
+                for gr_id in range(len(relevant_multi_containers[sorted_cnts[0]])):
+                    group = []
+                    for cnt in range(len(sorted_cnts)):
+                        group.append(relevant_multi_containers[sorted_cnts[cnt]][ivector[cnt]])
+                        ivector[cnt] += 1
+                        if ivector[cnt] == len(relevant_multi_containers[sorted_cnts[cnt]]):
+                            ivector[cnt] = 0
+                    groups.append(group)
 
-                    for group in groups:
+                for group in groups:
+                    for instance in base_list:
+                        newp = self._copy_process(instance)
+                        for implementation in group:
+                            newp.forbide_except(analysis, implementation)
+                        new_base_list.append(newp)
 
-                        for instance in base_list:
-                            newp = self._copy_process(instance)
-                            for implementation in group:
-                                newp.forbide_except(analysis, implementation)
-                            new_base_list.append(newp)
-
-                    if len(new_base_list) > 0:
-                        base_list = list(new_base_list)
+                base_list = list(new_base_list)
 
         new_base_list = []
         for instance in base_list:
