@@ -1,4 +1,5 @@
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 #include <verifier/memory.h>
 
 void *ldv_malloc(size_t size)
