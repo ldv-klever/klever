@@ -157,10 +157,10 @@ class LKVOG(core.components.Component):
                 module_deps_function = self.mqs['Linux kernel module deps function'].get()
                 module_sizes = self.mqs['Linux kernel module sizes'].get()
         else:
-            if 'modules dep file' not in self.conf['Linux kernel']:
+            if strategy_name != 'separate modules' and 'modules dep file' not in self.conf['Linux kernel']:
                 raise RuntimeError("Strategy {} will not receive dependencied"
                                    .format(self.conf['LKVOG strategy']['name']))
-            else:
+            elif 'modules dep file' in self.conf['Linux kernel']:
                 module_deps = self.mqs['Linux kernel module deps'].get()
             if 'modules dep function file' in self.conf['Linux kernel']:
                 module_deps_function = self.mqs['Linux kernel module deps function'].get()

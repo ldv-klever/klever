@@ -45,12 +45,13 @@ class ProcessModel:
             raise RuntimeError('Module does not have Init function')
 
         # Generate init subprocess
-        for _, init_name in analysis.inits:
+        for filename, init_name in analysis.inits:
 
             # todo: Add none instead of particular name (relevant to #6571)
             init_label = Label('init_{}'.format(init_name))
             init_label.value = "& {}".format(init_name)
             init_label.prior_signature = import_signature("int (*f)(void)")
+            init_label.file = filename
             init_subprocess = Call(init_label.name)
             init_subprocess.callback = "%init_{}%".format(init_name)
             init_subprocess.retlabel = "%ret%"
@@ -75,14 +76,16 @@ class ProcessModel:
             exit_label = Label('exit')
             exit_label.prior_signature = import_signature("void (*f)(void)")
             exit_label.value = None
+            exit_label.file = None
             ep.labels['exit'] = exit_label
             ep.actions['exit'] = exit_subprocess
         else:
-            for _, exit_name in analysis.exits:
+            for filename, exit_name in analysis.exits:
 
                 exit_label = Label('exit_{}'.format(exit_name))
                 exit_label.prior_signature = import_signature("void (*f)(void)")
                 exit_label.value = "& {}".format(exit_name)
+                exit_label.file = filename
                 exit_subprocess = Call(exit_label.name)
                 exit_subprocess.callback = "%exit_{}%".format(exit_name)
                 self.logger.debug("Found exit function {}".format(exit_name))
@@ -128,7 +131,7 @@ class ProcessModel:
         # Add subprocesses finally
         self.entry_process.process = ""
         for i, pair in enumerate(analysis.inits):
-            self.entry_process.process += "[init_{0}].(ret_init_{0}).(<init_failed>.".format(pair[1])
+            self.entry_process.process += "[init_{0}].(<init_failed>.".format(pair[1])
             for j, pair2 in enumerate(analysis.exits[::-1]):
                 if pair2[0] == pair[0]:
                     break

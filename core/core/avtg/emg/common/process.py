@@ -144,7 +144,7 @@ class Label:
         self.parameter = False
         self.pointer = False
         self.parameters = []
-
+        self.file = None
         self.value = None
         self.name = name
         self.prior_signature = None

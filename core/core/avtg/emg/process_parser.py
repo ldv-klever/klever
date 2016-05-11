@@ -37,7 +37,7 @@ def __import_process(name, dic):
             label = Label(name)
             process.labels[name] = label
 
-            for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer']:
+            for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer', 'file']:
                 if att in dic['labels'][name]:
                     setattr(label, att, dic['labels'][name][att])
 

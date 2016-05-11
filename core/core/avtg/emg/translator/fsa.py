@@ -256,6 +256,8 @@ class Automaton:
                                    label.prior_signature, export=True)
                     if label.value:
                         var.value = label.value
+                    if label.file:
+                        var.file = label.file
 
                     if label.name not in self.__label_variables:
                         self.__label_variables[label.name] = {}
