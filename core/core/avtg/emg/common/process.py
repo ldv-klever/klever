@@ -404,6 +404,11 @@ class Process:
             return False
 
     def forbide_except(self, analysis, interface, implementation):
+        if type(implementation) is list:
+            element = implementation[1]
+            implementation = implementation[0]
+        else:
+            element = None
         forbide = set()
 
         accesses = self.accesses()
@@ -415,7 +420,8 @@ class Process:
 
                 if implementation.value in base_values:
                     # Forbide having a container in base values
-                    for candidate in [i for i in implementations if i.base_value != implementation.value]:
+                    for candidate in [i for i in implementations if i.base_value != implementation.value and
+                                      (not element or i.sequence[0] != element)]:
                         forbide.add(candidate.identifier)
                 elif implementation.identifier in identifiers:
                     # Forbide having an implementation of the access itself

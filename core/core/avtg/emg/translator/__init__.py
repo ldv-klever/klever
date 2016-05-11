@@ -220,6 +220,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                       format(len(implementations), len(new_implementations), interface.identifier))
                     relevant_multi_containers[interface.identifier] = new_implementations
 
+        for container in relevant_multi_containers:
+            if analysis.interfaces[container].element_interface:
+                new_implementations = []
+                for implementation in relevant_multi_containers[container]:
+                    for index in range(analysis.interfaces[container].declaration.size):
+                        new_implementations.append([implementation, index])
+                relevant_multi_containers[container] = new_implementations
+
         return relevant_multi_containers
 
     def _instanciate_processes(self, analysis, instances, process):
@@ -289,7 +297,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 for access in sorted(list(relevant_multi_leafs), key=lambda intf: intf.expression):
                     for implementation in analysis.implementations(access.interface):
                         newp = self._copy_process(instance)
-                        newp.forbide_except(analysis, implementation)
+                        newp.forbide_except(analysis, access.interface, implementation)
                         new_base_list.append(newp)
             else:
                 new_base_list.append(instance)
