@@ -142,5 +142,8 @@ class Scotch:
         ret_clusters = [cluster for cluster in self.clusters if module_name in
                         [module.id for module in cluster.modules]]
         self.clusters.difference_update(ret_clusters)
-
+        for ret_cluster in ret_clusters:
+            ret_cluster.root = [module for module in ret_cluster.modules if module.id == module_name][0]
+        if not ret_clusters:
+            ret_clusters = Graph([Module(module_name)])
         return ret_clusters
