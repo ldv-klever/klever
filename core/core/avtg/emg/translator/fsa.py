@@ -437,8 +437,8 @@ class Automaton:
                         check = False
                     else:
                         if func_variable:
-                            func_variable = func_variable.name
                             invoke = access.access_with_variable(func_variable)
+                            func_variable = func_variable.name
                             file = translator.entry_file
                             check = True
                         else:
