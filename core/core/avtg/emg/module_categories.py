@@ -1,4 +1,5 @@
 import json
+import re
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
@@ -54,24 +55,37 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #    fh.write(content)
 
     def collect_relevant_models(self, function):
-        self.logger.debug("Collect relevant kernel functions called in a call stack of function ''".format(function))
+        self.logger.debug("Collect relevant kernel functions called in a call stack of function '{}'".format(function))
         process_names = [function]
-        processed_names = []
+        processed_names = set()
         relevant = []
         while len(process_names) > 0:
             name = process_names.pop()
+            processed_names.add(name)
 
             if name in self.modules_functions:
                 for file in sorted(self.modules_functions[name].keys()):
                     for called in self.modules_functions[name][file]['calls']:
-                        if called in self.modules_functions and called not in processed_names and \
-                                called not in process_names:
+                        if called in self.modules_functions and called not in processed_names:
                             process_names.append(called)
                         elif called in self.kernel_functions:
                             relevant.append(called)
 
-            processed_names.append(name)
         return relevant
+
+    def callback_name(self, call):
+        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
+        if name_re.fullmatch(call):
+            return name_re.fullmatch(call).group(1)
+        else:
+            return None
+
+    def determine_original_file(self, label_value):
+        label_name = self.callback_name(label_value)
+        if label_name and label_name in self.modules_functions:
+            # todo: if several files exist?
+            return list(self.modules_functions[label_name])[0]
+        raise RuntimeError("Cannot find an original file for label '{}'".format(label_value))
 
     @staticmethod
     def __check_category_relevance(function):

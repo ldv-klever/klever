@@ -79,10 +79,19 @@ class RSG(core.components.Component):
         # Generate CC extra full description file per each model and add it to abstract task description.
         model_grp = {'id': 'models', 'cc extra full desc files': []}
         for model in models:
-            out_file = os.path.join('models', '{}.c'.format(os.path.splitext(os.path.basename(model))[0]))
-            full_desc_file = '{0}.json'.format(out_file)
+
+            suffix = ''
+            full_desc_file = os.path.join('models', '{0}.json'.format(os.path.basename(model)))
             if os.path.isfile(full_desc_file):
-                raise FileExistsError('CC extra full description file "{0}" already exists'.format(full_desc_file))
+                suffix = 2
+                while True:
+                    full_desc_file = os.path.join('models', '{0}{1}.json'.format(os.path.basename(model), suffix))
+                    if os.path.isfile(full_desc_file):
+                        suffix = str(int(suffix) + 1)
+                    else:
+                        break
+            out_file = os.path.join('models',
+                                    '{0}{1}.o'.format(os.path.splitext(os.path.basename(model))[0], suffix))
             self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='ascii') as fp:
                 json.dump({
@@ -102,7 +111,7 @@ class RSG(core.components.Component):
                 'rule spec id': self.conf['rule spec id'],
                 'bug kinds': self.conf['bug kinds']
             })
+
         self.abstract_task_desc['grps'].append(model_grp)
         for dep in self.abstract_task_desc['deps'].values():
             dep.append(model_grp['id'])
-

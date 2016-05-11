@@ -1,7 +1,8 @@
-#include <verifier/rcv.h>
 #include <linux/mmc/sdio_func.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/card.h>
+#include <linux/ldv/common.h>
+#include <verifier/common.h>
 
 /* CHANGE_STATE SDIO bus is unclaimed */
 unsigned short ldv_sdio_element = 0;

@@ -1,4 +1,5 @@
-#include <verifier/rcv.h>
+#include <linux/ldv/common.h>
+#include <verifier/common.h>
 
 /* Module reference counter that shouldn't go lower its initial state. We do not distinguish different modules. */
 /* CHANGE_STATE Set module reference counter initial value at the beginning */	

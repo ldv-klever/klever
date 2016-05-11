@@ -454,7 +454,7 @@ class UploadReports(object):
                 root=self.job.reportroot,
                 parent=parent,
                 identifier=data['identifier'],
-                proof=fp.read()
+                proof=file_get_or_create(fp, 'safe-proof.txt')[0]
             )
         for attr in data['attrs']:
             self._attrs.add(report.pk, attr[0], attr[1])
@@ -470,7 +470,7 @@ class UploadReports(object):
                 root=self.job.reportroot,
                 parent=parent,
                 identifier=data['identifier'],
-                problem_description=fp.read(),
+                problem_description=file_get_or_create(fp, 'problem-description.txt')[0],
                 component=parent.component
             )
         for attr in data['attrs']:

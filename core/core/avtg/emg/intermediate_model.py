@@ -53,16 +53,14 @@ class ProcessModel:
             init_label.prior_signature = import_signature("int (*f)(void)")
             init_subprocess = Call(init_label.name)
             init_subprocess.callback = "%init_{}%".format(init_name)
+            init_subprocess.retlabel = "%ret%"
+            init_subprocess.post_call = [
+                '%ret% = ldv_post_init(%ret%);'
+            ]
             self.logger.debug("Found init function {}".format(init_name))
             ep.labels[init_label.name] = init_label
             ep.actions[init_label.name] = init_subprocess
 
-            ret_init = CallRetval('ret_init_{}'.format(init_name))
-            ret_init.retlabel = "%ret%"
-            ret_init.callback = init_subprocess.callback
-            ep.actions[ret_init.name] = ret_init
-
-        # Generate ret label
         ret_label = Label('ret')
         ret_label.prior_signature = import_signature("int label")
         ep.labels['ret'] = ret_label
@@ -98,7 +96,7 @@ class ProcessModel:
                          " kernel functions")
         # Retval check
         # todo: it can be done much, much better (relevant to issue #6566)
-        dispatches = ['[init_success]']
+        dispatches = []
         # All default registrations and then deregistrations
         names = [name for name in sorted(self.entry_process.actions.keys())
                  if type(self.entry_process.actions[name]) is Dispatch]
@@ -107,7 +105,6 @@ class ProcessModel:
         names.sort()
         names.reverse()
         names[len(names):] = reversed(names[len(names):])
-        # todo: order
         dispatches.extend(["[@{}]".format(name) for name in names])
 
         # Generate conditions
@@ -120,7 +117,8 @@ class ProcessModel:
         self.entry_process.actions['init_failed'] = failed
 
         stop = Condition('stop')
-        stop.statements = ["ldv_check_final_state();"]
+        stop.statements = ["ldv_check_final_state();",
+                           "ldv_stop();"]
         self.entry_process.actions['stop'] = stop
 
         none = Condition('none')
@@ -137,7 +135,10 @@ class ProcessModel:
             for _, exit_name in analysis.exits[:j-1:-1]:
                 self.entry_process.process += "[exit_{}].".format(exit_name)
             self.entry_process.process += "<stop>|<init_success>."
-        self.entry_process.process += "({}|<none>).".format(".".join(dispatches))
+        if len(dispatches):
+            self.entry_process.process += "({}|<none>).".format(".".join(dispatches))
+        else:
+            self.entry_process.process += "<none>."
         for _, exit_name in analysis.exits:
             self.entry_process.process += "[exit_{}].".format(exit_name)
         self.entry_process.process += "<stop>"
@@ -180,7 +181,7 @@ class ProcessModel:
                                  format(category))
 
     def __import_kernel_models(self, analysis):
-        for function in self.__abstr_model_processes:
+        for function in sorted(list(self.__abstr_model_processes.keys())):
             if function in sorted(analysis.kernel_functions.keys()):
                 self.logger.debug("Add model of function '{}' to an environment model".format(function))
                 new_process = self.__add_process(analysis, self.__abstr_model_processes[function], model=True)

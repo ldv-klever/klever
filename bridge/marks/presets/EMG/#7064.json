@@ -1,0 +1,5 @@
+{
+  "function": "File \".*/core/avtg/emg/common/signature.py\", line \\d+, in import_signature",
+  "pattern": "#7064",
+  "link": "http://forge.ispras.ru/issues/7064"
+}

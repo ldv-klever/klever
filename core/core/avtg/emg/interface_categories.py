@@ -128,7 +128,7 @@ class CategoriesSpecification:
         return intf
 
     def implementations(self, interface, weakly=True):
-        self.logger.debug("Calculate inplementations for interface '{}'".format(interface.identifier))
+        self.logger.debug("Calculate implementations for interface '{}'".format(interface.identifier))
         if weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['weak']) is list:
             self.logger.debug("Cache hit")
@@ -151,7 +151,7 @@ class CategoriesSpecification:
             for impl in candidates:
                 if len(impl.sequence) > 0:
                     cnts = self.resolve_containers(interface)
-                    for cnt in cnts:
+                    for cnt in sorted(list(cnts.keys())):
                         cnt_intf = self.interfaces[cnt]
                         if type(cnt_intf.declaration) is Array and cnt_intf.element_interface and \
                                 interface.identifier == cnt_intf.element_interface.identifier:
@@ -355,6 +355,9 @@ class CategoriesSpecification:
 
         if "signature" in desc:
             interface.declaration = import_signature(desc["signature"])
+
+        if "interrupt context" in desc and desc["interrupt context"]:
+            interface.interrupt_context = True
 
         return interface
 

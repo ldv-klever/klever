@@ -21,20 +21,13 @@ class Variable:
         else:
             raise ValueError("Attempt to create variable {} without signature".format(name))
 
-    def declare_with_init(self, conf):
+    def declare_with_init(self):
         # Ger declaration
         declaration = self.declare(extern=False)
 
         # Add memory allocation
         if self.value:
             declaration += " = {}".format(self.value)
-        elif type(self.declaration) is Pointer and\
-                ((type(self.declaration.points) is Structure and conf['structures']) or
-                 (type(self.declaration.points) is Array and conf['arrays']) or
-                 (type(self.declaration.points) is Union and conf['unions']) or
-                 (type(self.declaration.points) is Function and conf['functions']) or
-                 (type(self.declaration.points) is Primitive and conf['primitives'])):
-            declaration += " = {}".format(FunctionModels.init_pointer(self.declaration))
 
         return declaration
 
@@ -92,8 +85,12 @@ class FunctionDefinition:
         return [declaration + "\n"]
 
     def get_definition(self):
+        declaration = '{} {}({})'.format(self.declaration.return_value.to_string(), self.name,
+                                         ', '.join([self.declaration.parameters[index].to_string('arg{}'.format(index))
+                                                    for index in range(len(self.declaration.parameters))]))
+
         lines = list()
-        lines.append(self.declaration.to_string(self.name) + "{\n")
+        lines.append(declaration + " {\n")
         lines.extend(self.body.get_lines(1))
         lines.append("}\n")
         return lines
@@ -138,26 +135,48 @@ class FunctionBody:
         return lines
 
 
+class Aspect(FunctionDefinition):
+
+    def __init__(self, name, declaration, aspect_type="after"):
+        self.name = name
+        self.declaration = declaration
+        self.aspect_type = aspect_type
+        self.__body = None
+
+    @property
+    def body(self, body=None):
+        if not body:
+            body = []
+
+        if not self.__body:
+            self.__body = FunctionBody(body)
+        else:
+            self.__body.concatenate(body)
+        return self.__body
+
+    def get_aspect(self):
+        lines = list()
+        lines.append("after: call({}) ".format("$ {}(..)".format(self.name)) +
+                     " {\n")
+        lines.extend(self.body.get_lines(1))
+        lines.append("}\n")
+        return lines
+
+
 class FunctionModels:
 
     # todo: implement all models
     mem_function_map = {
-        "ALLOC": "ldvemg_undef_ptr",
-        "ALLOC_RECURSIVELY": "ldvemg_undef_ptr",
-        "ZINIT": "ldvemg_undef_ptr",
-        "ZINIT_STRUCT": None,
-        "INIT_STRUCT": None,
-        "INIT_RECURSIVELY": None,
-        "ZINIT_RECURSIVELY": None,
+        "ALLOC": "ldv_malloc",
+        "ZALLOC": "ldv_malloc"
     }
     free_function_map = {
-        "FREE": "ldv_free",
-        "FREE_RECURSIVELY": None
+        "FREE": "ldv_free"
     }
     irq_function_map = {
-        "GET_CONTEXT": None,
-        "IRQ_CONTEXT": None,
-        "PROCESS_CONTEXT": None
+        "IN_INTERRUPT_CONTEXT": 'ldv_in_interrupt_context',
+        "SWITCH_TO_IRQ_CONTEXT": 'ldv_switch_to_interrupt_context',
+        "SWITCH_TO_PROCESS_CONTEXT": 'ldv_switch_to_process_context'
     }
 
     mem_function_re = "\$({})\(%({})%(?:,\s?(\w+))?\)"
@@ -197,14 +216,14 @@ class FunctionModels:
             raise ValueError('This is not a pointer')
 
     def __replace_irq_call(self, match):
-        function = match.groups()
-        if function not in self.mem_function_map:
+        function = match.groups()[0]
+        if function not in self.irq_function_map:
             raise NotImplementedError("Model of {} is not supported".format(function))
-        elif not self.mem_function_map[function]:
+        elif not self.irq_function_map[function]:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
         # Replace
-        return self.mem_function_map[function]
+        return self.irq_function_map[function]
 
     def replace_models(self, label, signature, string):
         self.signature = signature

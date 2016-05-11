@@ -75,7 +75,7 @@ class Weaver(core.components.Component):
                                           '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['keep intermediate files'] else []) +
                                          ['--'] +
-                                         cc_full_desc['opts'] +
+                                         [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
                                          [
                                              '-isystem{0}'.format(stdout[0]),
                                              # Besides header files specific for rule specifications will be searched

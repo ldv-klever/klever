@@ -1,4 +1,0 @@
-{
-  "function": "error: '.+' redeclared as different kind of symbol",
-  "pattern": "RedeclSymbol"
-}

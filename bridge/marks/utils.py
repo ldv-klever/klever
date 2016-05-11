@@ -216,8 +216,9 @@ class NewMark(object):
                 self.do_recalk = True
                 mark.problem_pattern = args['problem']
 
-            if len(MarkUnknown.objects.filter(
-                    component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function)) > 0:
+            if len(MarkUnknown.objects.filter(Q(
+                    component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function
+            ) & ~Q(pk=mark.pk))) > 0:
                 return _('Could not change the mark since it would be similar to the existing mark')
 
             if 'link' in args and len(args['link']) > 0:
@@ -369,6 +370,7 @@ class ConnectReportWithMarks(object):
 
     def __connect_unsafe(self):
         self.report.markreport_set.all().delete()
+        error_trace = self.report.error_trace.file.read().decode('utf8')
         for mark in MarkUnsafe.objects.all():
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
@@ -379,11 +381,7 @@ class ConnectReportWithMarks(object):
                         pass
             else:
                 compare_failed = False
-                compare = CompareTrace(
-                    mark.function.name,
-                    mark.error_trace.file.read().decode('utf8'),
-                    self.report.error_trace.file.read().decode('utf8')
-                )
+                compare = CompareTrace(mark.function.name, mark.error_trace.file.read().decode('utf8'), error_trace)
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error, stack_info=True)
                     compare_failed = True
@@ -408,12 +406,9 @@ class ConnectReportWithMarks(object):
     def __connect_unknown(self):
         self.report.markreport_set.all().delete()
         changes = {self.report: {}}
+        problem_description = self.report.problem_description.file.read().decode('utf8')
         for mark in MarkUnknown.objects.filter(component=self.report.component):
-            problem = MatchUnknown(
-                self.report.problem_description.file.read().decode('utf8'),
-                mark.function,
-                mark.problem_pattern
-            ).problem
+            problem = MatchUnknown(problem_description, mark.function, mark.problem_pattern).problem
             if problem is None:
                 continue
             elif len(problem) > 15:

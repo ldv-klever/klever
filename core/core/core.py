@@ -4,6 +4,8 @@ import importlib
 import json
 import multiprocessing
 import os
+import setuptools_scm
+import setuptools_scm.hacks
 import shutil
 import time
 import traceback
@@ -69,7 +71,6 @@ class Core(core.utils.CallbacksCaller):
                                                   })
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], job.id)
             self.session.decide_job(job, start_report_file)
-            # TODO: create parallel process to send requests about successful operation to Klever Bridge.
             self.mqs['report files'] = multiprocessing.Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
@@ -359,14 +360,16 @@ class Core(core.utils.CallbacksCaller):
         Get version either as a tag in the Git repository of Klever or from the file created when installing Klever.
         """
         # Git repository directory may be located in parent directory of parent directory.
-        git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
-        if os.path.isdir(git_repo_dir):
-            return core.utils.get_entity_val(self.logger, 'version',
-                                             'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(
-                                                 git_repo_dir))
+        git_repo_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
+        if os.path.isdir(os.path.join(git_repo_dir, '.git')):
+            self.logger.info('Get version on the basis of the Git repository')
+            version = setuptools_scm.get_version(root=git_repo_dir, local_scheme='dirty-tag')
         else:
-            # TODO: get version of installed Klever.
-            return ''
+            self.logger.info('Get version on the basis of package information')
+            version = setuptools_scm.get_version(os.path.join(os.path.dirname(__file__), os.path.pardir, 'EGG-INFO'),
+                                                 parse=setuptools_scm.hacks.parse_pkginfo)
+        self.logger.debug('Klever Core version is "{0}"'.format(version))
+        return version
 
     def get_comp_desc(self):
         self.logger.info('Get computer description')

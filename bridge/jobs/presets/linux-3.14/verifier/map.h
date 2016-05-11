@@ -1,5 +1,5 @@
-#ifndef _LDV_MAP_H_
-#define _LDV_MAP_H_
+#ifndef __VERIFIER_MAP_H
+#define __VERIFIER_MAP_H
 
 /* At the moment maps are represented just as counters, but this won't be the
  * case in future. */
@@ -15,4 +15,4 @@ typedef void *Value;
 #define ldv_map_remove(map, key) (map = 0)
 #define ldv_map_is_empty(map) (map == 0)
 
-#endif /* _LDV_MAP_H_ */
+#endif /* __VERIFIER_MAP_H */

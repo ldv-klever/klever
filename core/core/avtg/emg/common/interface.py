@@ -33,6 +33,7 @@ class Callback(Interface):
         self.param_interfaces = []
         self.rv_interface = False
         self.called = False
+        self.interrupt_context = False
 
 
 class Resource(Interface):

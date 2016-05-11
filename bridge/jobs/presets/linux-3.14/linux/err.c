@@ -1,4 +1,4 @@
-#include <verifier/rcv.h>
+#include <verifier/common.h>
 
 /* MODEL_FUNC_DEF Check whether pointer represents error */
 long ldv_is_err(const void *ptr)
