@@ -55,6 +55,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #    fh.write(content)
 
     def collect_relevant_models(self, function):
+        # todo: This function takes a lot of time
         self.logger.debug("Collect relevant kernel functions called in a call stack of function '{}'".format(function))
         if function not in self._kernel_functions_cache:
             process_names = [function]
