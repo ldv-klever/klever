@@ -247,7 +247,7 @@ class LKBCE(core.components.Component):
         self.logger.debug('Linux kernel version is "{0}"'.format(self.linux_kernel['version']))
 
         self.logger.debug('Get Linux kernel architecture')
-        self.linux_kernel['arch'] = self.conf['Linux kernel'].get('architecture') or self.conf['sys']['arch']
+        self.linux_kernel['arch'] = self.conf['Linux kernel'].get('architecture') or self.conf['architecture']
         self.logger.debug('Linux kernel architecture is "{0}"'.format(self.linux_kernel['arch']))
 
         self.linux_kernel['attrs'] = [

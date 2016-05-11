@@ -409,7 +409,7 @@ def get_parallel_threads_num(logger, conf, action):
         parallel_threads_num = raw_parallel_threads_num
     # In case of decimal number it is fraction of the number of CPUs.
     elif isinstance(raw_parallel_threads_num, float):
-        parallel_threads_num = conf['sys']['CPUs num'] * raw_parallel_threads_num
+        parallel_threads_num = conf['number of CPU cores'] * raw_parallel_threads_num
     else:
         raise ValueError(
             'The number of parallel threads ("{0}") for "{1}" is neither integer nor decimal number'.format(
@@ -420,7 +420,7 @@ def get_parallel_threads_num(logger, conf, action):
     if parallel_threads_num < 1:
         raise ValueError('The computed number of parallel threads ("{0}") for "{1}" is less than 1'.format(
             parallel_threads_num, action))
-    elif parallel_threads_num > 2 * conf['sys']['CPUs num']:
+    elif parallel_threads_num > 2 * conf['number of CPU cores']:
         raise ValueError(
             'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'.format(
                 parallel_threads_num, action))

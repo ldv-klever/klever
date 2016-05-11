@@ -102,8 +102,8 @@ class RSG(core.components.Component):
                         "in files": [model],
                         # Otput file should be located somewhere inside RSG working directory to avoid races.
                         "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
-                        "opts":
-                            [string.Template(opt).substitute(hdr_arch=self.conf['sys']['hdr arch']) for opt in
+                        'opts':
+                            [string.Template(opt).substitute(hdr_arch=self.conf['header architecture']) for opt in
                              self.conf['model CC options']]
                     }, fp, sort_keys=True, indent=4)
 

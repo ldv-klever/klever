@@ -9,7 +9,7 @@ import core.components
 import core.utils
 
 
-def before_launch_all_components(context):
+def before_launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['abstract task descs and nums'] = multiprocessing.Queue()
     context.mqs['abstract task descs num'] = multiprocessing.Queue()

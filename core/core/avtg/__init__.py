@@ -11,7 +11,7 @@ import core.components
 import core.utils
 
 
-def before_launch_all_components(context):
+def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj descs'] = multiprocessing.Queue()
     context.mqs['AVTG src tree root'] = multiprocessing.Queue()
@@ -257,12 +257,12 @@ class AVTG(core.components.Component):
     def get_hdr_arch(self):
         self.logger.info('Get architecture name to search for architecture specific header files')
 
-        self.conf['sys']['hdr arch'] = self.mqs['hdr arch'].get()
+        self.conf['header architecture'] = self.mqs['hdr arch'].get()
 
         self.mqs['hdr arch'].close()
 
         self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
-            self.conf['sys']['hdr arch']))
+            self.conf['header architecture']))
 
     def get_src_tree_root(self):
         self.logger.info('Get source tree root')
