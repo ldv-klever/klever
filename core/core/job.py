@@ -148,6 +148,13 @@ class Job(core.utils.CallbacksCaller):
                     sub_job_name = commit
                     sub_job_attrs = [{'commit': commit}]
                     sub_job_type = 'Verification of Linux kernel modules'
+                elif self.type == 'Verification of Linux kernel modules':
+                    modules = sub_job_concrete_conf['Linux kernel']['modules']
+                    if len(modules) != 1:
+                        raise ValueError('You should specify exactly one module ("{0}" is given)'.format(modules))
+                    sub_job_name = os.path.basename(modules[0])
+                    sub_job_attrs = [{'module': sub_job_name}]
+                    sub_job_type = 'Verification of Linux kernel modules'
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.type))
                 self.logger.debug('Sub-job name and type are "{0}" and "{1}"'.format(sub_job_name, sub_job_type))
