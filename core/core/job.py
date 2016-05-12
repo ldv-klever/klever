@@ -184,20 +184,22 @@ class Job(core.utils.CallbacksCaller):
         self.logger.info('Launch components for sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
 
         # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
-        # to be used as working directories for corresponding sub-jobs.
-        os.makedirs(self.name)
+        # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
+        if self.name:
+            os.makedirs(self.name)
 
-        with core.utils.Cd(self.name):
-            core.utils.report(self.logger,
-                              'start',
-                              {
-                                  'id': self.id,
-                                  'parent id': self.parent_job_id,
-                                  'name': 'Sub-job',
-                                  'attrs': self.attrs,
-                              },
-                              self.mqs['report files'],
-                              self.components_common_conf['main working directory'])
+        with core.utils.Cd(self.name if self.name else os.path.curdir):
+            if self.name:
+                core.utils.report(self.logger,
+                                  'start',
+                                  {
+                                      'id': self.id,
+                                      'parent id': self.parent_job_id,
+                                      'name': 'Sub-job',
+                                      'attrs': self.attrs,
+                                  },
+                                  self.mqs['report files'],
+                                  self.components_common_conf['main working directory'])
 
             try:
                 for component in self.components:
@@ -222,38 +224,41 @@ class Job(core.utils.CallbacksCaller):
 
                     if self.uploading_reports_process.exitcode:
                         raise RuntimeError('Uploading reports failed')
-            except Exception:
+            except Exception as e:
                 for p in self.component_processes:
                     # Do not terminate components that already exitted.
                     if p.is_alive():
                         p.stop()
 
-                if self.mqs:
-                    with open('problem desc.txt', 'w', encoding='ascii') as fp:
-                        traceback.print_exc(file=fp)
+                if self.name:
+                    if self.mqs:
+                        with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                            traceback.print_exc(file=fp)
 
-                    if os.path.isfile('problem desc.txt'):
-                        core.utils.report(self.logger,
-                                          'unknown',
-                                          {
-                                              'id': self.id + '/unknown',
-                                              'parent id': self.parent_job_id,
-                                              'problem desc': 'problem desc.txt',
-                                              'files': ['problem desc.txt']
-                                          },
-                                          self.mqs['report files'],
-                                          self.components_common_conf['main working directory'])
+                        if os.path.isfile('problem desc.txt'):
+                            core.utils.report(self.logger,
+                                              'unknown',
+                                              {
+                                                  'id': self.id + '/unknown',
+                                                  'parent id': self.parent_job_id,
+                                                  'problem desc': 'problem desc.txt',
+                                                  'files': ['problem desc.txt']
+                                              },
+                                              self.mqs['report files'],
+                                              self.components_common_conf['main working directory'])
 
-                if self.logger:
-                    self.logger.exception('Catch exception')
+                    if self.logger:
+                        self.logger.exception('Catch exception')
+                    else:
+                        traceback.print_exc()
+
+                    self.logger.info('Forcibly terminate verification statuses message queue')
+                    self.mqs['verification statuses'].put(None)
+
+                    raise RuntimeError(
+                        'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
                 else:
-                    traceback.print_exc()
-
-                self.logger.info('Forcibly terminate verification statuses message queue')
-                self.mqs['verification statuses'].put(None)
-
-                raise RuntimeError(
-                    'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
+                    raise e
             finally:
                 if 'verification statuses' in self.mqs:
                     verification_statuses = []
@@ -278,20 +283,21 @@ class Job(core.utils.CallbacksCaller):
 
                     self.report_validation_results()
 
-                # Create empty log required just for finish report below.
-                with open('log', 'w', encoding='ascii'):
-                    pass
+                if self.name:
+                    # Create empty log required just for finish report below.
+                    with open('log', 'w', encoding='ascii'):
+                        pass
 
-                core.utils.report(self.logger,
-                                  'finish',
-                                  {
-                                      'id': self.id,
-                                      'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                      'log': 'log',
-                                      'files': ['log']
-                                  },
-                                  self.mqs['report files'],
-                                  self.components_common_conf['main working directory'])
+                    core.utils.report(self.logger,
+                                      'finish',
+                                      {
+                                          'id': self.id,
+                                          'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
+                                          'log': 'log',
+                                          'files': ['log']
+                                      },
+                                      self.mqs['report files'],
+                                      self.components_common_conf['main working directory'])
 
     def report_validation_results(self):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
