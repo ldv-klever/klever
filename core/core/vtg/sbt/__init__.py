@@ -14,6 +14,7 @@ class SBT(SeparatedStrategy):
         self.logger.info('Generate one verification task for each bug type')
 
     def main_cycle(self):
+        self.resources_written = False
         self.process_sequential_verification_task()
 
     def prepare_property_automaton(self, bug_kind=None):

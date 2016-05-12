@@ -136,8 +136,6 @@ class MAV(CommonStrategy):
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'analysis.mav.precisionCleanSet=WAITLIST'})
         self.conf['VTG strategy']['verifier']['options'].append(
-            {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
-        self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'analysis.mav.specificationComparator=VIOLATED_PROPERTY'})
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'cpa.arg.errorPath.file='})

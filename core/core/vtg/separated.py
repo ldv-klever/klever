@@ -19,6 +19,7 @@ class SeparatedStrategy(CommonStrategy):
     __metaclass__ = ABCMeta
 
     automaton_file = None
+    resources_written = False
 
     def perform_sanity_checks(self):
         if 'unite rule specifications' in self.conf['abstract task desc']['AVTG'] \
@@ -42,6 +43,12 @@ class SeparatedStrategy(CommonStrategy):
         pass
 
     def create_auxiliary_report(self, verification_report_id, decision_results, suffix):
+        if self.resources_written:
+            # In MAV we write resource statistics only for 1 verdict.
+            decision_results['resources'] = {
+                "CPU time": 0,
+                "memory size": 0,
+                "wall time": 0}
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         core.utils.report(self.logger,
                           'verification',
@@ -63,6 +70,7 @@ class SeparatedStrategy(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           suffix)
+        self.resources_written = True
 
     @abstractclassmethod
     def prepare_property_automaton(self, bug_kind=None):

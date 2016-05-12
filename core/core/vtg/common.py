@@ -148,12 +148,12 @@ class CommonStrategy(core.components.Component):
             if self.mea:
                 if self.mea.error_trace_filter(path_to_witness, assertion):
                     self.logger.debug('Processing error trace "{0}"'.format(path_to_witness, assertion))
-                    new_errro_trace_number = self.mea.get_current_error_trace_number(assertion)
-                    verification_report_id += "{0}".format(new_errro_trace_number)
+                    new_error_trace_number = self.mea.get_current_error_trace_number(assertion)
+                    verification_report_id += "{0}".format(new_error_trace_number)
                     if not assertion:
                         assertion = ''
-                    assertion += "{0}".format(new_errro_trace_number)
-                    added_attrs.append({"Error trace number": "{0}".format(new_errro_trace_number)})
+                    assertion += "{0}".format(new_error_trace_number)
+                    added_attrs.append({"Error trace number": "{0}".format(new_error_trace_number)})
                 else:
                     self.logger.info('Error trace "{0}" is equivalent to one of the already processed'.
                                      format(path_to_witness))
@@ -182,7 +182,12 @@ class CommonStrategy(core.components.Component):
             path_to_processed_witness = path_to_witness + ".processed"
             with open(path_to_witness, encoding='ascii') as fp:
                 # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
-                dom = minidom.parse(fp)
+                # TODO: If error trace was not printed in time, this will fail.
+                try:
+                    dom = minidom.parse(fp)
+                except:
+                    self.logger.warning('{0} cannot be parsed, skipping it'.format(path_to_witness))
+                    return False
             default_src_file = None
             graphml = dom.getElementsByTagName('graphml')[0]
             for key in graphml.getElementsByTagName('key'):
@@ -436,6 +441,9 @@ class CommonStrategy(core.components.Component):
                 raise NotImplementedError('Several entry points are not supported')
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-entryfunction': self.conf['abstract task desc']['entry points'][0]})
+        # Very useful option for all strategies.
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
 
     def __normalize_path(self, path):
         # Each file is specified via absolute path or path relative to source tree root or it is placed to current

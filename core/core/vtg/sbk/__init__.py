@@ -22,6 +22,7 @@ class SBK(SeparatedStrategy):
     def main_cycle(self):
         self.src_files = self.conf['abstract task desc']['extra C files'].copy()
         for bug_kind in self.get_all_bug_kinds():
+            self.resources_written = False
             self.process_sequential_verification_task(bug_kind)
             # Clear output directory since it is the same for all runs.
             shutil.rmtree('output')

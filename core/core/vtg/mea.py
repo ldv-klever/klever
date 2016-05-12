@@ -181,7 +181,12 @@ class MEA:
 
         # Prepare internal representation of model functions call tree for the selected error trace.
         with open(new_error_trace, encoding='ascii') as fp:
-            dom = minidom.parse(fp)
+            try:
+                dom = minidom.parse(fp)
+            except:
+                self.logger.warning('{0} cannot be parsed, skipping it'.format(new_error_trace))
+                return False
+
         graphml = dom.getElementsByTagName('graphml')[0]
         graph = graphml.getElementsByTagName('graph')[0]
 
