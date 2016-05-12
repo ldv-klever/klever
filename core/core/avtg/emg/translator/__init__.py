@@ -2,10 +2,11 @@ import os
 import copy
 import abc
 
+
+from core.avtg.emg.translator.instances import split_into_instances
+from core.avtg.emg.translator.fsa import Automaton
 from core.avtg.emg.common.signature import import_signature
 from core.avtg.emg.common.code import FunctionDefinition, Aspect, Variable
-from core.avtg.emg.common.interface import Container, Callback
-from core.avtg.emg.translator.fsa import Automaton
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
 
@@ -40,8 +41,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__identifier_cnt = -1
         self.__instance_modifier = 1
         self.__max_instances = None
-        self.__reduce_container_aliases = True
-        self.__combine_containers = True
 
         # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
@@ -52,10 +51,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.__max_instances = int(self.conf["translation options"]["max instances number"])
         if "instance modifier" in self.conf["translation options"]:
             self.__instance_modifier = self.conf["translation options"]["instance modifier"]
-        if "combine containers" in self.conf["translation options"]:
-            self.__combine_containers = self.conf["translation options"]["combine containers"]
-        if "reduce container aliases" in self.conf["translation options"]:
-            self.__reduce_container_aliases = self.conf["translation options"]["reduce container aliases"]
         if "pointer initialization" not in self.conf["translation options"]:
             self.conf["translation options"]["pointer initialization"] = {}
         if "pointer free" not in self.conf["translation options"]:
@@ -134,7 +129,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                              format(len(base_list), process.name, process.category))
 
             for instance in base_list:
-                fsa = Automaton(self.logger, analysis, instance, self.__yeild_identifier())
+                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
                 self._callback_fsa.append(fsa)
 
         # Generate automata for models
@@ -142,13 +137,13 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.logger.info("Generate FSA for kernel model process {}".format(process.name))
             processes = self._instanciate_processes(analysis, [process], process)
             for instance in processes:
-                fsa = Automaton(self.logger, analysis, instance, self.__yeild_identifier())
+                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
                 self._model_fsa.append(fsa)
 
         # Generate state machine for init an exit
         # todo: multimodule automaton (issues #6563, #6571, #6558)
         self.logger.info("Generate FSA for module initialization and exit functions")
-        self._entry_fsa = Automaton(self.logger, analysis, model.entry_process, self.__yeild_identifier())
+        self._entry_fsa = Automaton(self.logger, model.entry_process, self.__yeild_identifier())
 
         # Generates base code blocks
         for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
@@ -170,140 +165,21 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Add structures to declare types
         self.files[self.entry_file]['types'] = sorted(list(set(self._structures.values())), key=lambda v: v.identifier)
 
-    def _select_containers_implementations(self, analysis, process):
-        relevant_multi_containers = {}
-        accesses = process.accesses()
-        self.logger.debug("Calculate relevant containers with several implementations for process {} for category {}".
-                          format(process.name, process.category))
-        for access in [accesses[name] for name in sorted(accesses.keys())]:
-            for inst_access in [inst for inst in sorted(access, key=lambda i: i.expression) if inst.interface]:
-                if type(inst_access.interface) is Container and \
-                                len(analysis.implementations(inst_access.interface)) > 1 and \
-                                inst_access.interface.identifier not in relevant_multi_containers:
-                    implementations = analysis.implementations(inst_access.interface)
-                    relevant_multi_containers[inst_access.interface.identifier] = implementations
-                elif len(inst_access.complete_list_interface) > 1:
-                    impl_cnt = [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
-                                len(analysis.implementations(intf)) > 1]
-                    if len(impl_cnt) > 0:
-                        interface = impl_cnt[0]
-                        implementations = analysis.implementations(interface)
-                        relevant_multi_containers[interface.identifier] = implementations
-
-        if self.__reduce_container_aliases:
-            for interface in [analysis.interfaces[key] for key in relevant_multi_containers]:
-                # Collect allback implementations
-                implementations = relevant_multi_containers[interface.identifier]
-                values = [i.value for i in implementations]
-                child_implementations = {val: set() for val in values}
-                intfs = set()
-                for intf in [intf for intf in interface.field_interfaces.values() if type(intf) is Callback]:
-                    for ci in intf.declaration.implementations.values():
-                        if ci.base_value in values:
-                            child_implementations[ci.base_value].add(ci.value)
-                            intfs.add(ci.value)
-
-                if len(intfs) > 0:
-                    # Greedy choose containers which cover all callback implementations
-                    values = reversed(sorted(values, key=lambda val: len(child_implementations[val])))
-                    selected_containers = set()
-                    covered = set()
-                    for intf in intfs:
-                        if intf not in covered:
-                            for value in values:
-                                if intf in child_implementations[value]:
-                                    selected_containers.add(value)
-                                    covered.update(child_implementations[value])
-                                    break
-                    new_implementations = [i for i in implementations if i.value in sorted(selected_containers)]
-                    self.logger.debug('Having {} instances choose {} of them for interface {}'.
-                                      format(len(implementations), len(new_implementations), interface.identifier))
-                    relevant_multi_containers[interface.identifier] = new_implementations
-
-        for container in relevant_multi_containers:
-            if analysis.interfaces[container].element_interface:
-                new_implementations = []
-                for implementation in relevant_multi_containers[container]:
-                    for index in range(analysis.interfaces[container].declaration.size):
-                        new_implementations.append([implementation, index])
-                relevant_multi_containers[container] = new_implementations
-
-        return relevant_multi_containers
-
     def _instanciate_processes(self, analysis, instances, process):
         base_list = instances
 
-        # Copy base instances for each known implementation
-        relevant_multi_containers = self._select_containers_implementations(analysis, process)
-
-        # Copy instances for each implementation of a container
-        if len(list(relevant_multi_containers.keys())) > 0:
-            self.logger.debug(
-                "Found {} relevant containers with several implementations for process {} for category {}".
-                format(str(len(relevant_multi_containers)), process.name, process.category))
-
-            if not self.__combine_containers:
-                for interface in sorted(list(relevant_multi_containers.keys())):
-                    new_base_list = []
-                    implementations = relevant_multi_containers[interface]
-
-                    for implementation in implementations:
-                        for instance in base_list:
-                            newp = self._copy_process(instance)
-                            newp.forbide_except(analysis, interface, implementation)
-                            new_base_list.append(newp)
-
-                    base_list = list(new_base_list)
-            else:
-                # Generate ranking by implementations number
-                sorted_cnts = list(reversed(sorted(list(relevant_multi_containers.keys()),
-                                                   key=lambda c: len(relevant_multi_containers[c]))))
-                ivector = [0 for i in range(len(sorted_cnts))]
-
-                groups = []
-                new_base_list = []
-                for gr_id in range(len(relevant_multi_containers[sorted_cnts[0]])):
-                    group = {}
-                    for cnt in range(len(sorted_cnts)):
-                        group[sorted_cnts[cnt]] = relevant_multi_containers[sorted_cnts[cnt]][ivector[cnt]]
-                        ivector[cnt] += 1
-                        if ivector[cnt] == len(relevant_multi_containers[sorted_cnts[cnt]]):
-                            ivector[cnt] = 0
-                    groups.append(group)
-
-                for group in groups:
-                    for instance in base_list:
-                        newp = self._copy_process(instance)
-                        for identifier in group:
-                            interface = analysis.interfaces[identifier]
-                            newp.forbide_except(analysis, interface, group[identifier])
-                        new_base_list.append(newp)
-
-                base_list = list(new_base_list)
-
+        # Get map from accesses to implementations
+        maps = split_into_instances(analysis, process)
         new_base_list = []
-        for instance in base_list:
-            # Copy callbacks or resources which are not tied to a container
-            accesses = instance.accesses()
-            relevant_multi_leafs = set()
-            for access in [accesses[name] for name in sorted(accesses.keys())]:
-                relevant_multi_leafs.update([inst for inst in access if inst.interface and
-                                             type(inst.interface) is Callback and
-                                             len(instance.get_implementations(analysis, inst)) > 1])
+        for access_map in maps:
+            for instance in base_list:
+                newp = self._copy_process(instance)
+                newp.allowed_implementations = access_map
+                new_base_list.append(newp)
 
-            if len(relevant_multi_leafs) > 0:
-                self.logger.debug("Found {} accesses with several implementations for process {} for category {}".
-                                  format(len(relevant_multi_leafs), process.name, process.category))
-                for access in sorted(list(relevant_multi_leafs), key=lambda intf: intf.expression):
-                    for implementation in analysis.implementations(access.interface):
-                        newp = self._copy_process(instance)
-                        newp.forbide_except(analysis, access.interface, implementation)
-                        new_base_list.append(newp)
-            else:
-                new_base_list.append(instance)
-
-        base_list = new_base_list
-        return base_list
+        self.logger.info("Generate {} instances for process '{}' with category '{}'".
+                         format(len(new_base_list), process.name, process.category))
+        return new_base_list
 
     def _initial_instances(self, analysis, process):
         base_list = []
@@ -384,7 +260,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         elif self.__max_instances:
             self.__max_instances -= 1
 
-        inst.forbidded_implementations = set(process.forbidded_implementations)
+        inst.allowed_implementations = dict(process.allowed_implementations)
         return inst
 
     def __yeild_identifier(self):
@@ -527,14 +403,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         resources = [state.code['callback'].to_string('arg0')]
         params = []
         for index in range(len(state.code['callback'].points.parameters)):
-            if index in state.code["pointer parameters"]:
-                resources.append(state.code['callback'].points.parameters[index].take_pointer.
-                                 to_string('arg{}'.format(index + 1)))
-                params.append('*arg{}'.format(index + 1))
-            else:
-                resources.append(state.code['callback'].points.parameters[index].
-                                 to_string('arg{}'.format(index + 1)))
-                params.append('arg{}'.format(index + 1))
+            if type(state.code['callback'].points.parameters[index]) is not str:
+                if index in state.code["pointer parameters"]:
+                    resources.append(state.code['callback'].points.parameters[index].take_pointer.
+                                     to_string('arg{}'.format(index + 1)))
+                    params.append('*arg{}'.format(index + 1))
+                else:
+                    resources.append(state.code['callback'].points.parameters[index].
+                                     to_string('arg{}'.format(index + 1)))
+                    params.append('arg{}'.format(index + 1))
         params = ", ".join(params)
         resources = ", ".join(resources)
 
@@ -648,7 +525,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             # Determine dispatcher parameter
             dispatcher_access = automaton.process.resolve_access(state.action.parameters[index],
                                                                  interface.identifier)
-            variable = automaton.determine_variable(analysis, dispatcher_access.label, interface.identifier)
+            variable = automaton.determine_variable(dispatcher_access.label, interface.identifier)
             dispatcher_expr = dispatcher_access.access_with_variable(variable)
 
             function_parameters.append(variable.declaration)
@@ -802,7 +679,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     # Determine receiver parameter
                     receiver_access = automaton.process.resolve_access(state.action.parameters[index],
                                                                        interface.identifier)
-                    var = automaton.determine_variable(analysis, receiver_access.label, interface.identifier)
+                    var = automaton.determine_variable(receiver_access.label, interface.identifier)
                     receiver_expr = receiver_access.access_with_variable(var)
 
                     param_declarations.append(var.declaration)
@@ -1114,7 +991,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             # Determine receiver parameter
                             receiver_access = automaton.process.resolve_access(receive.parameters[index],
                                                                                interface.identifier)
-                            var = automaton.determine_variable(analysis, receiver_access.label, interface.identifier)
+                            var = automaton.determine_variable(receiver_access.label, interface.identifier)
                             receiver_expr = receiver_access.access_with_variable(var)
 
                             param_declarations.append(var.declaration)
@@ -1122,11 +999,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         break
 
         if self._nested_automata:
-            for var in automaton.variables(analysis):
+            for var in automaton.variables():
                 definition = var.declare() + ";"
                 v_code.append(definition)
         else:
-            for var in automaton.variables(analysis):
+            for var in automaton.variables():
                 self._add_global_variable(var)
 
         return cf

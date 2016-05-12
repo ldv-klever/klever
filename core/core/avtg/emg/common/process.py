@@ -205,7 +205,7 @@ class Process:
         self.process = None
         self.__process_ast = None
         self.__accesses = None
-        self.forbidded_implementations = set()
+        self.allowed_implementations = dict()
 
     @property
     def unmatched_receives(self):
@@ -403,46 +403,11 @@ class Process:
         else:
             return False
 
-    def forbide_except(self, analysis, interface, implementation):
-        if type(implementation) is list:
-            element = implementation[1]
-            implementation = implementation[0]
-        else:
-            element = None
-        forbide = set()
-
-        accesses = self.accesses()
-        for access_list in [accesses[name] for name in sorted(accesses.keys())]:
-            for access in access_list:
-                implementations = self.get_implementations(analysis, access)
-                base_values = set([i.base_value for i in implementations])
-                identifiers = set([i.identifier for i in implementations])
-
-                if implementation.value in base_values:
-                    # Forbide having a container in base values
-                    for candidate in [i for i in implementations if i.base_value != implementation.value and
-                                      (not element or i.sequence[0] != element)]:
-                        forbide.add(candidate.identifier)
-                elif implementation.identifier in identifiers:
-                    # Forbide having an implementation of the access itself
-                    for candidate in [i for i in implementations if i.identifier != implementation.identifier]:
-                        forbide.add(candidate.identifier)
-                elif access.complete_list_interface and interface in access.complete_list_interface:
-                    # Forbide all if the access is not implemented with the container at all
-                    for candidate in implementations:
-                        forbide.add(candidate.identifier)
-
-        # Then forbide
-        self.forbidded_implementations.update(forbide)
-
-    def get_implementations(self, analysis, access):
+    def get_implementation(self, access):
         if access.interface:
-            implementations = analysis.implementations(access.interface)
-            return [impl for impl in implementations if impl.identifier not in self.forbidded_implementations]
-        elif access.label and len(access.list_access) == 1:
-            return []
+            return self.allowed_implementations[access.expression][access.interface.identifier]
         else:
-            raise ValueError("Cannot resolve access '{}'".format(access.expression))
+            return None
 
 
 class Subprocess:

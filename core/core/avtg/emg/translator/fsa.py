@@ -186,7 +186,7 @@ class Node:
 
 class Automaton:
 
-    def __init__(self, logger, analysis, process, identifier):
+    def __init__(self, logger, process, identifier):
         # Set default values
         self.control_function = None
         self.state_blocks = {}
@@ -205,7 +205,7 @@ class Automaton:
         self.logger.info("Generate states for automaton {} based on process {} with category {}".
                          format(self.identifier, self.process.name, self.process.category))
         self.fsa = FSA(self.process)
-        self.variables(analysis)
+        self.variables()
 
     @property
     def state_variable(self):
@@ -225,28 +225,28 @@ class Automaton:
 
         return self.__thread_variable
 
-    def variables(self, analysis):
+    def variables(self):
         variables = []
 
         # Generate variable for each label
         for label in [self.process.labels[name] for name in sorted(self.process.labels.keys())]:
             if label.interfaces:
                 for interface in label.interfaces:
-                    variables.append(self.determine_variable(analysis, label, interface))
+                    variables.append(self.determine_variable(label, interface))
             else:
-                var = self.determine_variable(analysis, label)
+                var = self.determine_variable(label)
                 if var:
-                    variables.append(self.determine_variable(analysis, label))
+                    variables.append(self.determine_variable(label))
 
         return variables
 
-    def new_param(self, analysis, name, declaration, value):
+    def new_param(self, name, declaration, value):
         lb = self.process.add_label(name, declaration, value)
         lb.resource = True
-        vb = self.determine_variable(analysis, lb)
+        vb = self.determine_variable(lb)
         return lb, vb
 
-    def determine_variable(self, analysis, label, interface=None):
+    def determine_variable(self, label, interface=None):
         if not interface:
             if label.name in self.__label_variables and "default" in self.__label_variables[label.name]:
                 return self.__label_variables[label.name]["default"]
@@ -274,15 +274,15 @@ class Automaton:
                 else:
                     access = self.process.resolve_access(label, interface)
                     category, short_id = interface.split(".")
-                    implementations = self.process.get_implementations(analysis, access)
+                    implementation = self.process.get_implementation(access)
                     var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, short_id), None,
                                    label.get_declaration(interface), export=True)
 
-                    if len(implementations) == 1:
-                        var.value = implementations[0].adjusted_value(var.declaration)
+                    if implementation:
+                        var.value = implementation.adjusted_value(var.declaration)
 
                         # Change file according to the value
-                        var.file = implementations[0].file
+                        var.file = implementation.file
 
                     if label.name not in self.__label_variables:
                         self.__label_variables[label.name] = {}
@@ -405,20 +405,17 @@ class Automaton:
             for access in accesses:
                 if access.interface:
                     signature = access.interface.declaration
-                    implementations = self.process.get_implementations(analysis, access)
+                    implementation = self.process.get_implementation(access)
 
-                    if len(implementations) > 1:
-                        raise NotImplementedError(
-                            "Cannot process fsm with several implementations of a single callback")
-                    elif len(implementations) == 1 and analysis.callback_name(implementations[0].value):
-                        invoke = '(' + implementations[0].value + ')'
-                        file = implementations[0].file
+                    if implementation and analysis.callback_name(implementation.value):
+                        invoke = '(' + implementation.value + ')'
+                        file = implementation.file
                         check = False
-                        func_variable = access.access_with_variable(self.determine_variable(analysis, access.label,
+                        func_variable = access.access_with_variable(self.determine_variable(access.label,
                                                                                             access.list_interface[0].
                                                                                             identifier))
                     elif signature.clean_declaration:
-                        invoke = access.access_with_variable(self.determine_variable(analysis, access.label,
+                        invoke = access.access_with_variable(self.determine_variable(access.label,
                                                                                      access.list_interface[0].
                                                                                      identifier))
                         func_variable = invoke
@@ -429,7 +426,7 @@ class Automaton:
                 else:
                     signature = access.label.prior_signature
 
-                    func_variable = self.determine_variable(analysis, access.label)
+                    func_variable = self.determine_variable(access.label)
                     if access.label.value and analysis.callback_name(access.label.value):
                         invoke = analysis.callback_name(access.label.value)
                         func_variable = func_variable.name
@@ -459,11 +456,11 @@ class Automaton:
                         new_case['pre_call'] = [
                             "/* Callback pre-call */"
                         ]
-                        new_case['pre_call'].extend(self.text_processor(analysis, '$SWITCH_TO_IRQ_CONTEXT();'))
+                        new_case['pre_call'].extend(self.text_processor('$SWITCH_TO_IRQ_CONTEXT();'))
                         new_case['post_call'] = [
                             "/* Callback post-call */"
                         ]
-                        new_case['post_call'].extend(self.text_processor(analysis, '$SWITCH_TO_PROCESS_CONTEXT();'))
+                        new_case['post_call'].extend(self.text_processor('$SWITCH_TO_PROCESS_CONTEXT();'))
                     callbacks.append([st, new_case, signature, invoke, file, check, func_variable])
 
             if len(callbacks) > 0:
@@ -489,9 +486,7 @@ class Automaton:
                                             (acc.list_interface[-1].declaration.compare(parameter) or
                                              acc.list_interface[-1].declaration.pointer_alias(parameter)):
                                         expression = acc.access_with_variable(
-                                            self.determine_variable(analysis, acc.label,
-                                                                    acc.list_interface[0].
-                                                                    identifier))
+                                            self.determine_variable(acc.label, acc.list_interface[0].identifier))
                                         break
                                 if expression:
                                     break
@@ -505,7 +500,7 @@ class Automaton:
                                 else:
                                     param_signature = signature.points.parameters[index]
 
-                                lb, var = self.new_param(analysis, "ldv_param_{}_{}".format(st.identifier, index),
+                                lb, var = self.new_param("ldv_param_{}_{}".format(st.identifier, index),
                                                          param_signature, None)
                                 label_params.append(lb)
                                 expression = var.name
@@ -545,19 +540,19 @@ class Automaton:
 
                     if ret_access:
                         retval = ret_access[0].access_with_variable(
-                            self.determine_variable(analysis, ret_access[0].label))
+                            self.determine_variable(ret_access[0].label))
                         case['retval'] = retval
 
                     # Add additional condition
                     if state.action.condition and len(state.action.condition) > 0:
                         for statement in state.action.condition:
-                            cn = self.text_processor(analysis, statement)
+                            cn = self.text_processor(statement)
                             base_case["guard"].extend(cn)
 
                     if st.action.pre_call and len(st.action.pre_call) > 0:
                         pre_call = []
                         for statement in st.action.pre_call:
-                            pre_call.extend(self.text_processor(analysis, statement))
+                            pre_call.extend(self.text_processor(statement))
 
                         if 'pre_call' not in case:
                             case['pre_call'] = ['/* Callback pre-call */'] + pre_call
@@ -568,7 +563,7 @@ class Automaton:
                     if st.action.post_call and len(st.action.post_call) > 0:
                         post_call = []
                         for statement in st.action.post_call:
-                            post_call.extend(self.text_processor(analysis, statement))
+                            post_call.extend(self.text_processor(statement))
 
                         if 'post_call' not in case:
                             case['post_call'] = ['/* Callback post-call */'] + post_call
@@ -606,7 +601,7 @@ class Automaton:
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
                 for statement in state.action.condition:
-                    cn = self.text_processor(analysis, statement)
+                    cn = self.text_processor(statement)
                     base_case["guard"].extend(cn)
 
             base_case['relevant automata'] = automata_peers
@@ -626,7 +621,7 @@ class Automaton:
                 base_case["receive guard"] = []
                 if state.action.condition and len(state.action.condition) > 0:
                     for statement in state.action.condition:
-                        cn = self.text_processor(analysis, statement)
+                        cn = self.text_processor(statement)
                         base_case["receive guard"].extend(cn)
             else:
                 # Generate comment
@@ -642,12 +637,12 @@ class Automaton:
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
                 for statement in state.action.condition:
-                    cn = self.text_processor(analysis, statement)
+                    cn = self.text_processor(statement)
                     base_case["guard"].extend(cn)
 
             if state.action.statements:
                 for statement in state.action.statements:
-                    base_case["body"].extend(self.text_processor(analysis, statement))
+                    base_case["body"].extend(self.text_processor(statement))
             state.code = base_case
         elif type(state.action) is Subprocess:
             # Generate comment
@@ -656,20 +651,20 @@ class Automaton:
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
                 for statement in state.action.condition:
-                    cn = self.text_processor(analysis, statement)
+                    cn = self.text_processor(statement)
                     base_case["guard"].extend(cn)
 
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
                 for statement in state.action.condition:
-                    cn = self.text_processor(analysis, statement)
+                    cn = self.text_processor(statement)
                     base_case["guard"].extend(cn)
 
             state.code = base_case
         else:
             raise ValueError("Unexpected state machine edge type: {}".format(state.action.type))
 
-    def text_processor(self, analysis, statement):
+    def text_processor(self, statement):
         # Replace model functions
         mm = FunctionModels()
         accesses = self.process.accesses()
@@ -687,10 +682,9 @@ class Automaton:
 
                     if signature:
                         if option.interface:
-                            var = self.determine_variable(analysis, option.label,
-                                                               option.list_interface[0].identifier)
+                            var = self.determine_variable(option.label, option.list_interface[0].identifier)
                         else:
-                            var = self.determine_variable(analysis, option.label)
+                            var = self.determine_variable(option.label)
 
                         try:
                             tmp = mm.replace_models(option.label.name, signature, text)
