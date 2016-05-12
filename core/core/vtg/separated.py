@@ -5,6 +5,7 @@ import os
 import tarfile
 import time
 import glob
+import re
 from abc import abstractclassmethod, ABCMeta
 
 import core.components
@@ -70,7 +71,31 @@ class SeparatedStrategy(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           suffix)
+        if not self.resources_written and decision_results['status'] == 'unsafe':
+            # Unsafe-incomplete.
+            is_incomplete = True
+            with open('cil.i.log') as fp:
+                for line in fp:
+                    match = re.search(r'Verification result: FALSE', line)
+                    if match:
+                        is_incomplete = False
+            if is_incomplete:
+                with open('unsafe-incomplete.txt', 'w', encoding='ascii') as fp:
+                    fp.write('Unsafe-incomplete')
+                core.utils.report(self.logger,
+                                  'unknown',
+                                  {
+                                      'id': verification_report_id + '/unsafe-incomplete',
+                                      'parent id': verification_report_id,
+                                      'attrs': [],
+                                      'problem desc': 'unsafe-incomplete.txt',
+                                      'files': ['unsafe-incomplete.txt']
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'],
+                                  suffix)
         self.resources_written = True
+
 
     @abstractclassmethod
     def prepare_property_automaton(self, bug_kind=None):
