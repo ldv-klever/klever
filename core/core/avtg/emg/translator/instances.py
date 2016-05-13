@@ -75,12 +75,16 @@ def split_into_instances(analysis, process):
                 strict_suits = [value for value in interface_to_value[interface]
                                 if value not in total_chosen_values and
                                 (len(interface_to_value[interface][value]) == 0 or
-                                 len(chosen_values.intersection(interface_to_value[interface][value])) > 0)]
+                                 len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
+                                 len([cv for cv in interface_to_value[interface][value]
+                                      if cv not in value_to_implementation and cv not in chosen_values]) > 0)]
                 if len(strict_suits) == 0:
                     # If values are repeated just choose random one
                     suits = [value for value in interface_to_value[interface]
                              if len(interface_to_value[interface][value]) == 0 or
-                             len(chosen_values.intersection(interface_to_value[interface][value])) > 0]
+                             len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
+                             (len([cv for cv in interface_to_value[interface][value]
+                                   if cv not in value_to_implementation and cv not in chosen_values]) > 0)]
                     if len(suits) > 0:
                         suits = [list(sorted(suits)).pop()]
                 else:
@@ -104,6 +108,13 @@ def split_into_instances(analysis, process):
                     # Fulfill new instances
                     for additional_value in suits:
                         nm, ncv = additional_maps.pop()
+
+                        hidden_container_values = sorted([cv for cv in interface_to_value[interface][additional_value]
+                                                          if cv not in value_to_implementation])
+                        if len(hidden_container_values) > 0:
+                            first_random = hidden_container_values.pop()
+                            ncv.add(first_random)
+                            total_chosen_values.add(first_random)
 
                         nm[expression][interface] = value_to_implementation[additional_value]
                         ncv.add(additional_value)
@@ -143,9 +154,9 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
     interface_to_value = {}
     value_to_implementation = {}
     interface_to_expression = {}
+    basevalue_to_value = {}
 
     # Additional data
-    basevalue_to_value = {}
     basevalue_to_interface = {}
     options_interfaces = set()
 
