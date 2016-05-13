@@ -31,9 +31,9 @@ class Job(core.utils.CallbacksCaller):
         self.logger = logger
         self.id = id
         self.logger.debug('Job identifier is "{0}"'.format(id))
-        self.parent_job_id = None
+        self.parent = {}
         self.name = None
-        self.attrs = []
+        self.work_dir = None
         self.mqs = {}
         self.uploading_reports_process = None
         self.type = type
@@ -125,35 +125,35 @@ class Job(core.utils.CallbacksCaller):
 
         if 'Common' in self.components_common_conf:
             self.components_common_conf.update(self.components_common_conf['Common'])
-            del(self.components_common_conf['Common'])
+            del (self.components_common_conf['Common'])
 
         if 'Sub-jobs' in self.components_common_conf:
-            if self.type == 'Validation on commits in Linux kernel Git repositories':
-                commits = {}
             for sub_job_concrete_conf in self.components_common_conf['Sub-jobs']:
                 self.logger.info('Get sub-job name and type')
+                external_modules = sub_job_concrete_conf['Linux kernel'].get('external modules', '')
+
+                modules = sub_job_concrete_conf['Linux kernel']['modules']
+                if len(modules) != 1:
+                    raise ValueError('You should specify exactly one module ("{0}" is given)'.format(modules))
+                modules = modules[0]
+
+                rule_specs = sub_job_concrete_conf['rule specifications']
+                if len(rule_specs) != 1:
+                    raise ValueError(
+                        'You should specify exactly one rule specification ("{0}" is given)'.format(rule_specs))
+                rule_specs = rule_specs[0]
                 if self.type == 'Validation on commits in Linux kernel Git repositories':
                     commit = sub_job_concrete_conf['Linux kernel']['Git repository']['commit']
                     if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
                         raise ValueError(
                             'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'.format(
                                 commit))
-                    # Make unique identifiers by extending commit hashes with the number of sub-jobs referred to the
-                    # same commit if so.
-                    if commit in commits:
-                        commits[commit] += 1
-                        commit += ' ({0})'.format(commits[commit])
-                    else:
-                        commits[commit] = 1
-                    sub_job_name = commit
-                    sub_job_attrs = [{'commit': commit}]
+                    sub_job_name = os.path.join(commit, external_modules, modules, rule_specs)
+                    sub_job_work_dir = os.path.join(commit, external_modules, modules, re.sub(r'\W', '-', rule_specs))
                     sub_job_type = 'Verification of Linux kernel modules'
                 elif self.type == 'Verification of Linux kernel modules':
-                    modules = sub_job_concrete_conf['Linux kernel']['modules']
-                    if len(modules) != 1:
-                        raise ValueError('You should specify exactly one module ("{0}" is given)'.format(modules))
-                    sub_job_name = os.path.basename(modules[0])
-                    sub_job_attrs = [{'module': sub_job_name}]
+                    sub_job_name = os.path.join(external_modules, modules, rule_specs)
+                    sub_job_work_dir = os.path.join(external_modules, modules, re.sub(r'\W', '-', rule_specs))
                     sub_job_type = 'Verification of Linux kernel modules'
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.type))
@@ -161,9 +161,9 @@ class Job(core.utils.CallbacksCaller):
 
                 sub_job = Job(self.logger, self.id + sub_job_name, sub_job_type)
                 self.sub_jobs.append(sub_job)
-                sub_job.parent_job_id = self.id
+                sub_job.parent = {'id': self.id, 'type': self.type}
                 sub_job.name = sub_job_name
-                sub_job.attrs.extend(sub_job_attrs)
+                sub_job.work_dir = sub_job_work_dir
                 sub_job.mqs = self.mqs
                 sub_job.uploading_reports_process = self.uploading_reports_process
                 # Sub-job configuration is based on common sub-jobs configuration.
@@ -193,17 +193,17 @@ class Job(core.utils.CallbacksCaller):
         # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
         # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
         if self.name:
-            os.makedirs(self.name)
+            os.makedirs(self.work_dir)
 
-        with core.utils.Cd(self.name if self.name else os.path.curdir):
+        with core.utils.Cd(self.work_dir if self.name else os.path.curdir):
             if self.name:
                 core.utils.report(self.logger,
                                   'start',
                                   {
                                       'id': self.id,
-                                      'parent id': self.parent_job_id,
+                                      'parent id': self.parent['id'],
                                       'name': 'Sub-job',
-                                      'attrs': self.attrs,
+                                      'attrs': [{'name': self.name}],
                                   },
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
@@ -247,7 +247,7 @@ class Job(core.utils.CallbacksCaller):
                                               'unknown',
                                               {
                                                   'id': self.id + '/unknown',
-                                                  'parent id': self.parent_job_id,
+                                                  'parent id': self.parent['id'],
                                                   'problem desc': 'problem desc.txt',
                                                   'files': ['problem desc.txt']
                                               },
