@@ -392,9 +392,38 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         body = [
             "ldv_initialize();",
             ""
+            "/* Initialize initial states of automata */"
+        ]
+
+        for automaton in [self._entry_fsa] + self._callback_fsa:
+            body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
+                        format(automaton.identifier, automaton.process.name, automaton.process.category))
+            body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
+            initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
+            if len(initial_states) == 1:
+                body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
+            elif len(initial_states) == 2:
+                body.extend([
+                    '\tif (ldv_undef_int())',
+                    '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
+                    '\telse',
+                    '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
+                ])
+            elif len(initial_states) > 2:
+                body.append('switch (ldv_undef_int()) {')
+                for index in range(len(initial_states)):
+                    body.append('\t\tcase {}: '.format(index) + '{')
+                    body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
+                    body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
+                    body.append('\t\t}')
+                    body.append('\t\tdefault: ldv_stop();')
+                    body.append('\t}')
+            body.append('}')
+
+        body.extend([
             "while(1) {",
             "\tswitch(ldv_undef_int()) {"
-        ]
+        ])
 
         for index in range(len(global_switch_automata)):
             cfunction = global_switch_automata[index]
@@ -1128,29 +1157,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         # Generate function definition
         cf = self.__new_control_function(analysis, automaton, v_code, f_code, None)
-
-        f_code.append('/* Initialize state */')
-        f_code.append('if (!{}) '.format(automaton.state_variable.name) + '{')
-        initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
-        if len(initial_states) == 1:
-            f_code.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
-        elif len(initial_states) == 2:
-            f_code.extend([
-                '\tif (ldv_undef_int())',
-                '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
-                '\telse',
-                '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
-            ])
-        elif len(initial_states) > 2:
-            f_code.append('switch (ldv_undef_int()) {')
-            for index in range(len(initial_states)):
-                f_code.append('\t\tcase {}: '.format(index) + '{')
-                f_code.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
-                f_code.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
-                f_code.append('\t\t}')
-                f_code.append('\t\tdefault: ldv_stop();')
-                f_code.append('\t}')
-        f_code.append('}')
 
         # Add loop for nested case
         if self._nested_automata:
