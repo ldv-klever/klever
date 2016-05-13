@@ -1,5 +1,4 @@
 import copy
-import re
 
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import BaseType, InterfaceReference, UndefinedReference, Primitive, Array, Function,\

@@ -110,7 +110,6 @@ class Scotch:
         # Prepare module groups
         self.logger.debug('Extract groups for verification objects')
         for group_id in partitioning:
-
             # Create group with Module
             group_dict = {}
             for module in partitioning[group_id]:

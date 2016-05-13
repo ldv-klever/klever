@@ -79,7 +79,6 @@ class RSG(core.components.Component):
         # Generate CC extra full description file per each model and add it to abstract task description.
         model_grp = {'id': 'models', 'cc extra full desc files': []}
         for model in models:
-
             suffix = ''
             full_desc_file = os.path.join('models', '{0}.json'.format(os.path.basename(model)))
             if os.path.isfile(full_desc_file):
