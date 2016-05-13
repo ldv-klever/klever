@@ -3,13 +3,14 @@ import importlib
 import json
 import multiprocessing
 import os
+import re
 import tarfile
 import traceback
 
 import core.utils
 
 # TODO: this variable should likely become shared between various sub-jobs when they will be decided in parallel.
-_data = None
+_data = []
 
 
 class Job(core.utils.CallbacksCaller):
@@ -42,6 +43,7 @@ class Job(core.utils.CallbacksCaller):
         self.components = []
         self.callbacks = {}
         self.component_processes = []
+        self.results = []
 
     def decide(self, conf, mqs, uploading_reports_process):
         self.logger.info('Decide job')
@@ -53,9 +55,19 @@ class Job(core.utils.CallbacksCaller):
         self.get_common_components_conf(conf)
         self.get_sub_jobs()
 
-        if self.type == 'Validation on commits in Linux kernel Git repositories':
-            # Specify callbacks to collect verification statuses from VTG. They will be used to
-            # calculate validation results.
+        if self.sub_jobs:
+            for sub_job in self.sub_jobs:
+                sub_job.decide_sub_job()
+        else:
+            # Klever Core working directory is used for the only sub-job that is job itself.
+            self.decide_sub_job()
+
+    def decide_sub_job(self):
+        self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
+
+        # Specify callbacks to collect verification statuses from VTG. They will be used to
+        # calculate validation and testing results.
+        if 'ideal verdict' in self.components_common_conf:
             def before_launch_sub_job_components(context):
                 context.mqs['verification statuses'] = multiprocessing.Queue()
 
@@ -73,25 +85,15 @@ class Job(core.utils.CallbacksCaller):
                                                    after_generate_all_verification_tasks
                                                ))
 
-            global _data
-            _data = []
-
-        if self.sub_jobs:
-            for sub_job in self.sub_jobs:
-                sub_job.decide_sub_job()
-        else:
-            # Klever Core working directory is used for the only sub-job that is job itself.
-            self.decide_sub_job()
-
-    def decide_sub_job(self):
-        self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
-
         self.get_sub_job_components()
 
         self.callbacks = core.utils.get_component_callbacks(self.logger, [type(self)] + self.components,
                                                             self.components_common_conf)
 
-        self.launch_sub_job_components()
+        try:
+            self.launch_sub_job_components()
+        finally:
+            core.utils.remove_component_callbacks(self.logger, type(self))
 
     def get_class(self):
         self.logger.info('Get job class')
@@ -259,36 +261,16 @@ class Job(core.utils.CallbacksCaller):
                     else:
                         traceback.print_exc()
 
-                    self.logger.info('Forcibly terminate verification statuses message queue')
-                    self.mqs['verification statuses'].put(None)
+                    if 'verification statuses' in self.mqs:
+                        self.logger.info('Forcibly terminate verification statuses message queue')
+                        self.mqs['verification statuses'].put(None)
 
                     raise RuntimeError(
                         'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
                 else:
                     raise e
             finally:
-                if 'verification statuses' in self.mqs:
-                    verification_statuses = []
-                    while True:
-                        verification_status = self.mqs['verification statuses'].get()
-
-                        if verification_status is None:
-                            self.logger.debug('Verification statuses message queue was terminated')
-                            self.mqs['verification statuses'].close()
-                            del self.mqs['verification statuses']
-                            break
-
-                        verification_statuses.append(verification_status)
-
-                    # There is no verification statuses when some (sub)component failed prior to VTG strategy
-                    # receives some abstract verification tasks.
-                    if not verification_statuses:
-                        verification_statuses.append('unknown')
-
-                    _data.append([self.name, self.components_common_conf['ideal verdict']] + verification_statuses +
-                                 [self.components_common_conf.get('comment')])
-
-                    self.report_validation_results()
+                self.report_results()
 
                 if self.name:
                     # Create empty log required just for finish report below.
@@ -306,9 +288,53 @@ class Job(core.utils.CallbacksCaller):
                                       self.mqs['report files'],
                                       self.components_common_conf['main working directory'])
 
+    def report_results(self):
+        if 'ideal verdict' in self.components_common_conf:
+            verification_statuses = []
+            while True:
+                verification_status = self.mqs['verification statuses'].get()
+
+                if verification_status is None:
+                    self.logger.debug('Verification statuses message queue was terminated')
+                    self.mqs['verification statuses'].close()
+                    del self.mqs['verification statuses']
+                    break
+
+                verification_statuses.append(verification_status)
+
+            # There is no verification statuses when some (sub)component failed prior to VTG strategy
+            # receives some abstract verification tasks.
+            if not verification_statuses:
+                verification_statuses.append('unknown')
+
+            _data.append([self.name, self.components_common_conf['ideal verdict']] + verification_statuses +
+                         [self.components_common_conf.get('comment')])
+
+            if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
+                self.report_validation_results()
+            elif self.parent['type'] == 'Verification of Linux kernel modules':
+                self.report_testing_results()
+            else:
+                raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
+
+            core.utils.report(self.logger,
+                              'data',
+                              {
+                                  'id': self.parent['id'],
+                                  'data': json.dumps(self.results)
+                              },
+                              self.mqs['report files'],
+                              self.components_common_conf['main working directory'])
+
+    def report_testing_results(self):
+        self.logger.info('Check whether tests passed')
+        for testing_res in _data:
+            if len(testing_res) != 4:
+                raise ValueError('Got too many verification statuses')
+        self.results = _data
+
     def report_validation_results(self):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
-        validation_results = []
         validation_results_before_bug_fixes = []
         validation_results_after_bug_fixes = []
         for validation_res in _data:
@@ -338,18 +364,10 @@ class Job(core.utils.CallbacksCaller):
             # At least save validation result before bug fix.
             if not found_validation_res_after_bug_fix:
                 self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(commit1))
-                validation_results.append([commit1, verification_status1, comment1, None, None])
+                self.results.append([commit1, verification_status1, comment1, None, None])
             else:
                 validation_res_msg += ', after fix is "{0}"{1}'.format(verification_status2,
                                                                        ' ("{0}")'.format(comment2) if comment2 else '')
-                validation_results.append([commit1, verification_status1, comment1, verification_status2, comment2])
+                self.results.append([commit1, verification_status1, comment1, verification_status2, comment2])
             self.logger.info(validation_res_msg)
 
-        core.utils.report(self.logger,
-                          'data',
-                          {
-                              'id': self.parent_job_id,
-                              'data': json.dumps(validation_results)
-                          },
-                          self.mqs['report files'],
-                          self.components_common_conf['main working directory'])
