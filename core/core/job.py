@@ -331,6 +331,9 @@ class Job(core.utils.CallbacksCaller):
         for testing_res in _data:
             if len(testing_res) != 4:
                 raise ValueError('Got too many verification statuses')
+            self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
+                testing_res[0], testing_res[1], testing_res[2],
+                ' ("{0}")'.format(testing_res[3]) if testing_res[3] else ''))
         self.results = _data
 
     def report_validation_results(self):
@@ -359,7 +362,7 @@ class Job(core.utils.CallbacksCaller):
                                                      else commit1[12:] == commit2[13:]):
                     found_validation_res_after_bug_fix = True
                     break
-            validation_res_msg = 'Verification status of bug "{0}" before fix is "{1}"{2}'.format(
+            validation_res_msg = 'Verification status for bug "{0}" before fix is "{1}"{2}'.format(
                 commit1, verification_status1, ' ("{0}")'.format(comment1) if comment1 else '')
             # At least save validation result before bug fix.
             if not found_validation_res_after_bug_fix:
@@ -370,4 +373,3 @@ class Job(core.utils.CallbacksCaller):
                                                                        ' ("{0}")'.format(comment2) if comment2 else '')
                 self.results.append([commit1, verification_status1, comment1, verification_status2, comment2])
             self.logger.info(validation_res_msg)
-
