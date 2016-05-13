@@ -204,7 +204,7 @@ class LKVOG(core.components.Component):
                 self.logger.debug(
                     'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
                         self.module['name'], verification_obj_desc_file))
-                os.makedirs(os.path.dirname(verification_obj_desc_file))
+                os.makedirs(os.path.dirname(verification_obj_desc_file), exist_ok=True)
                 with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
         elif strategy in strategies_list:
