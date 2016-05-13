@@ -12,10 +12,29 @@ from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Co
 
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
+    """
+    This class implements translator from process format to C code. Its workflow in general looks as follows:
+    1) Assign single implementation to each access of the process copying it into instances with corresponding
+       different interface implementations.
+    2) Translate each instance into a finitie-state automaton (FSM) with states and transitions.
+    3) Generte a control function in C for each automaton.
+    4) Generate an entry point function with invocations of all control functions.
+    5) Generate aspect files with entry point, control functions and the other collateral functions and variables.
+    """
 
     CF_PREFIX = 'ldv_control_function_'
 
     def __init__(self, logger, conf, avt, aspect_lines=None):
+        """
+        Just read translation configuration options and save corresponding values to object attributes. Do not do any
+        translation actually.
+
+        :param logger: Logger object.
+        :param conf: Configuration dictionary for EMG plugin.
+        :param avt: Abstract verification task dictionary.
+        :param aspect_lines: List of lins with text of addiotional aspect files provided to EMG to add to the
+                             generated model.
+        """
         self.logger = logger
         self.conf = conf
         self.task = avt
@@ -94,7 +113,17 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             self.additional_aspects = aspect_lines
 
+    ####################################################################################################################
+    # PUBLIC METHODS
+    ####################################################################################################################
+
     def translate(self, analysis, model):
+        """
+        Main function for translation of processes to automata and then to C code.
+        :param analysis: ModuleCategoriesSpecification object.
+        :param model: ProcessModel object.
+        :return: None.
+        """
         # Determine entry point name and file
         self.logger.info("Determine entry point name and file")
         self.__determine_entry(analysis)
@@ -118,6 +147,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__add_entry_points()
 
         self.logger.info("Model translation is finished")
+
+    ####################################################################################################################
+    # PRIVATE METHODS
+    ####################################################################################################################
 
     def _prepare_code(self, analysis, model):
         # Determine how many instances is required for a model

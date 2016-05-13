@@ -6,12 +6,32 @@ from core.avtg.emg.common.signature import BaseType, InterfaceReference, Undefin
 
 
 class CategoriesSpecification:
+    """
+    Parser and importer of a interface categories specification which should be provided to a EMG plugin.
+    """
+
+    ####################################################################################################################
+    # PUBLIC METHODS
+    ####################################################################################################################
 
     @property
     def categories(self):
+        """
+        Return a list with names of all existing categories in a deterministic order.
+
+        :return: List of strings.
+        """
         return sorted(set([interface.category for interface in self.interfaces.values()]))
 
     def import_specification(self, specification):
+        """
+        Starts specification import.
+
+        First it creates Interface objects for each container, resource and callback in specification and then imports
+        kernel functions matching their parameters with already imported interfaces.
+        :param specification: Dictionary with content of a JSON specification prepared manually.
+        :return: None
+        """
         self.logger.info("Analyze provided interface categories specification")
         for category in sorted(specification["categories"]):
             self.logger.debug("Found interface category {}".format(category))
@@ -45,28 +65,65 @@ class CategoriesSpecification:
 
         # todo: import "kernel macro-functions" (issue #6573)
 
-        # Refine dirty declarations
+        # Refine "dirty" declarations
         self._refine_interfaces()
 
     def containers(self, category=None):
+        """
+        Return a list with deterministic order with all existing containers from a provided category or
+        with containers from all categories if the first parameter has not been provided.
+
+        :param category: Category name string.
+        :return: List with Container objects.
+        """
         return [self.interfaces[name] for name in sorted(self.interfaces.keys())
                 if type(self.interfaces[name]) is Container and
                 (not category or self.interfaces[name].category == category)]
 
     def callbacks(self, category=None):
+        """
+        Return a list with deterministic order with all existing callbacks from a provided category or
+        with callbacks from all categories if the first parameter has not been provided.
+
+        :param category: Category name string.
+        :return: List with Callback objects.
+        """
         return [self.interfaces[name] for name in sorted(self.interfaces.keys())
                 if type(self.interfaces[name]) is Callback and
                 (not category or self.interfaces[name].category == category)]
 
     def resources(self, category=None):
+        """
+        Return a list with deterministic order with all existing resources from a provided category or
+        with resources from all categories if the first parameter has not been provided.
+
+        :param category: Category name string.
+        :return: List with Resource objects.
+        """
         return [self.interfaces[name] for name in sorted(self.interfaces.keys())
                 if type(self.interfaces[name]) is Resource and
                 (not category or self.interfaces[name].category == category)]
 
     def uncalled_callbacks(self, category=None):
+        """
+        Returns a list with deterministic order which contains Callback from a given category or from all categories
+        that are not called in the environment model.
+
+        :param category: Category name string.
+        :return: List with Callback objects.
+        """
         return [cb for cb in self.callbacks(category) if not cb.called]
 
     def select_containers(self, field, signature=None, category=None):
+        """
+        Search for containers with a declaration of type Structure and with a provided field. If a signature parameter
+        is provided than those containers are chosen which additionaly has the field with the corresponding type.
+        Containers can be chosen from a provided categorty only.
+        :param field: Name of the structure field to match.
+        :param signature: a declaration object (Any inherited from BaseType from common.signature) to match the field.
+        :param category: a category name string.
+        :return: List with Container objects.
+        """
         self.logger.debug("Search for containers which has field '{}'".format(field))
         return [container for container in self.containers(category)
                 if type(container.declaration) is Structure and
@@ -177,6 +234,10 @@ class CategoriesSpecification:
         elif not weakly and not self._implementations_cache[interface.identifier]['strict']:
             self._implementations_cache[interface.identifier]['strict'] = candidates
         return candidates
+
+    ####################################################################################################################
+    # PRIVATE METHODS
+    ####################################################################################################################
 
     def __resolve_containers(self, target, category):
         self.logger.debug("Calculate containers for signature '{}'".format(target.identifier))
