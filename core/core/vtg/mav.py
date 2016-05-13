@@ -41,6 +41,7 @@ class MAV(CommonStrategy):
     # Relevant for revision 20410.
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
     resources_written = False
+    resources_written_unsafe = False
     # Possible values: internal, external, no.
     relaunch = "internal"
     is_finished = False  # TODO: work-around.
@@ -69,6 +70,7 @@ class MAV(CommonStrategy):
         iterations = 0
         while True:
             iterations += 1
+            self.resources_written_unsafe = False
             self.resources_written = False
             self.create_property_automata()
             self.logger.info('Starting iteration {0}'.format(iterations))
@@ -221,6 +223,33 @@ class MAV(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           suffix)
+        if not self.resources_written_unsafe and decision_results['status'] == 'unsafe':
+            # Unsafe-incomplete.
+            is_incomplete = False
+            with open('cil.i.log') as fp:
+                for line in fp:
+                    match = re.search(r'Assert \[(.+)\] has exhausted its', line)
+                    if match:
+                        exhausted_assert = match.group(1)
+                        if exhausted_assert in suffix:
+                            is_incomplete = True
+            if is_incomplete:
+                name = 'unsafe-incomplete{0}.txt'.format(suffix)
+                with open(name, 'w', encoding='ascii') as fp:
+                    fp.write('Unsafe-incomplete')
+                core.utils.report(self.logger,
+                                  'unknown',
+                                  {
+                                      'id': verification_report_id + '/unsafe-incomplete',
+                                      'parent id': verification_report_id,
+                                      'attrs': [],
+                                      'problem desc': name,
+                                      'files': [name]
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'],
+                                  suffix)
+            self.resources_written_unsafe = True
         self.resources_written = True
 
     def process_global_error(self, task_error):
