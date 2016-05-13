@@ -428,6 +428,9 @@ class CommonStrategy(core.components.Component):
     def create_mea(self):
         if 'mea' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['mea']:
             self.mea = MEA(self.conf, self.logger)
+        # Very useful option for all strategies.
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
 
     def check_for_mpv(self):
         if 'RSG strategy' in self.conf['abstract task desc']['AVTG'] \
@@ -441,9 +444,6 @@ class CommonStrategy(core.components.Component):
                 raise NotImplementedError('Several entry points are not supported')
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-entryfunction': self.conf['abstract task desc']['entry points'][0]})
-        # Very useful option for all strategies.
-        self.conf['VTG strategy']['verifier']['options'].append(
-            {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
 
     def __normalize_path(self, path):
         # Each file is specified via absolute path or path relative to source tree root or it is placed to current
