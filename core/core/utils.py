@@ -297,6 +297,16 @@ def get_component_callbacks(logger, components, components_conf):
     return callbacks
 
 
+def remove_component_callbacks(logger, component):
+    logger.info('Remove callbacks for component "{0}"'.format(component.__name__))
+
+    module = sys.modules[component.__module__]
+
+    for attr in dir(module):
+        if any(attr.startswith(kind) for kind in CALLBACK_KINDS):
+            delattr(module, attr)
+
+
 def get_entity_val(logger, name, cmd):
     """
     Return a value of the specified entity name by executing the specified command and reading its first string
