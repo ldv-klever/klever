@@ -9,7 +9,7 @@ import core.components
 import core.utils
 
 
-def before_launch_all_components(context):
+def before_launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['abstract task descs and nums'] = multiprocessing.Queue()
     context.mqs['abstract task descs num'] = multiprocessing.Queue()
@@ -132,13 +132,10 @@ class VTG(core.components.Component):
                     '/{0}'.format(self.abstract_task_descs_num.value) if self.abstract_task_descs_num.value else ''))
 
             attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
-
-            work_dir = os.path.join(
-                    os.path.relpath(
-                            os.path.join(self.conf['source tree root'],
-                                         '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
-                                         abstract_task_desc['attrs'][1]['rule specification'])),
-                    self.strategy_name)
+            work_dir = os.path.join(os.path.basename(self.conf['source tree root']),
+                                    abstract_task_desc['attrs'][0]['verification object'],
+                                    abstract_task_desc['attrs'][1]['rule specification'],
+                                    self.strategy_name)
             os.makedirs(work_dir)
             self.logger.debug('Working directory is "{0}"'.format(work_dir))
 

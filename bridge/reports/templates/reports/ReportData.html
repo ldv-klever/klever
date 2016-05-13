@@ -3,7 +3,25 @@
 {% block reports_head_block %}<link href="/static/reports/css/reports.css" rel="stylesheet">{% endblock %}
 
 {% if component == 'Core' and type == '0' %}
-    <p>{{ data }}</p>
+    <h5 class="ui brown header">{% trans 'Testing results' %}</h5>
+    <table class="ui compact brown table">
+        <thead>
+            <tr>
+                <th>{% trans 'Test' %}</th>
+                <th>{% trans 'Verdict' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for testing_res in data %}
+                <tr>
+                    <td>{{ testing_res.0 }}</td>
+                    <td>
+                        <span style="color: {% if testing_res.1 != testing_res.2 %}#ff3463{% else %}#20d467{% endif %};"{% if testing_res.3 %} class="report-data-popup hoverable" data-content="{{ testing_res.3 }}" data-variation="very wide"{% endif %}>{% if testing_res.1 != testing_res.2 %}{% trans 'Failed' %}{% else %}{% trans 'Passed' %}{% endif %}<br>{{ testing_res.1 }} &rarr; {{ testing_res.2 }}</span>{% if testing_res.3 %}*{% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% elif component == 'Core' and type == '3' %}
     <h5 class="ui brown header">{% trans 'Validation results' %}</h5>
     <table class="ui compact brown table">
