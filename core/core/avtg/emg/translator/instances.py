@@ -125,7 +125,7 @@ def split_into_instances(analysis, process):
             # Add additional maps
             maps.extend(intf_additional_maps)
 
-    return (m for m, cv in maps)
+    return [m for m, cv in maps]
 
 
 def _extract_implementation_dependencies(analysis, access_map, accesses):
@@ -195,26 +195,31 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
         # Collect all child values
         summary_values = set()
         summary_interfaces = set()
+        original_options = set()
         for value in [value for value in interface_to_value[container_id] if value in basevalue_to_value]:
             summary_values.update(basevalue_to_value[value])
             summary_interfaces.update(basevalue_to_interface[value])
+            original_options.add(value)
 
         # Greedy add implementations to fill all child values
         fulfilled_values = set()
         fulfilled_interfaces = set()
         final_set = set()
-        original_options = reversed(list(sorted(list([v for v in interface_to_value[container_id] if v in
-                                                      basevalue_to_value]),
-                                                key=lambda v: len(basevalue_to_value[v]))))
+        original_options = list(reversed(sorted(list(original_options), key=lambda v: len(basevalue_to_value[v]))))
         while len(fulfilled_values) != len(summary_values) and len(fulfilled_interfaces) != len(summary_interfaces):
             value = set(summary_values - fulfilled_values).pop()
+            chosen_value = None
 
             for option in original_options:
                 if value in basevalue_to_value[option]:
+                    chosen_value = option
                     final_set.add(option)
                     fulfilled_values.update(basevalue_to_value[option])
                     fulfilled_interfaces.update(basevalue_to_interface[option])
                     break
+
+            if not chosen_value:
+                raise RuntimeError('Inifnite loop due to inability to cover an implementation by a container')
 
         containers_impacts[container_id] = len(final_set)
         # Keep values with base values anyway
