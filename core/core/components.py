@@ -197,7 +197,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
             self.logger.warning('Component "{0}" exitted with "{1}"'.format(self.name, self.exitcode))
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
-    # TODO: very close to code in core/__init__.py. Maybe join them.
+    # TODO: very close to code in job.py. Maybe join them.
     def launch_subcomponents(self, *subcomponents):
         subcomponent_processes = []
         try:

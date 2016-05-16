@@ -6,6 +6,7 @@ import os
 import re
 import tarfile
 import traceback
+import types
 
 import core.utils
 
@@ -56,13 +57,54 @@ class Job(core.utils.CallbacksCaller):
         self.get_sub_jobs()
 
         if self.sub_jobs:
-            for sub_job in self.sub_jobs:
-                sub_job.decide_sub_job()
+            self.logger.info('Decide sub-jobs')
+
+            sub_job_solvers_num = core.utils.get_parallel_threads_num(self.logger, self.components_common_conf,
+                                                                      'Sub-jobs processing')
+            self.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
+
+            self.mqs['sub-job indexes'] = multiprocessing.Queue()
+            for i in range(len(self.sub_jobs)):
+                self.mqs['sub-job indexes'].put(i)
+            for i in range(sub_job_solvers_num):
+                self.mqs['sub-job indexes'].put(None)
+
+            sub_job_solver_processes = []
+            try:
+                for i in range(sub_job_solvers_num):
+                    p = multiprocessing.Process(target=self.decide_sub_job, name='Worker ' + str(i))
+                    p.start()
+                    sub_job_solver_processes.append(p)
+
+                self.logger.info('Wait for subcomponents')
+                while True:
+                    operating_sub_job_solvers_num = 0
+
+                    for p in sub_job_solver_processes:
+                        p.join(1.0 / len(sub_job_solver_processes))
+                        operating_sub_job_solvers_num += p.is_alive()
+
+                    if not operating_sub_job_solvers_num:
+                        break
+            finally:
+                for p in sub_job_solver_processes:
+                    if p.is_alive():
+                        p.stop()
         else:
             # Klever Core working directory is used for the only sub-job that is job itself.
-            self.decide_sub_job()
+            self.__decide_sub_job()
 
     def decide_sub_job(self):
+        while True:
+            sub_job_index = self.mqs['sub-job indexes'].get()
+
+            if sub_job_index is None:
+                self.logger.debug('Sub-job indexes message queue was terminated')
+                break
+
+            self.sub_jobs[sub_job_index].__decide_sub_job()
+
+    def __decide_sub_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
 
         # Specify callbacks to collect verification statuses from VTG. They will be used to
