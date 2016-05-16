@@ -1,6 +1,6 @@
 before: file ("$this")
 {
-#include <linux/module.h>
+struct module;
 
 extern int ldv_try_module_get(struct module *);
 extern void ldv_module_get(struct module *);
@@ -9,47 +9,31 @@ extern unsigned int ldv_module_refcount(void);
 extern void ldv_module_put_and_exit(void);
 }
 
-around: call(static inline int try_module_get(..))
+around: execution(static inline int try_module_get(..)) ||
+        call(bool try_module_get(..))
 {
 	return ldv_try_module_get($arg1);
 }
 
-around: call(bool try_module_get(..))
-{
-	return ldv_try_module_get($arg1);
-}
-
-around: call(static inline void __module_get(..))
+around: execution(static inline void __module_get(..)) ||
+        call(void __module_get(..))
 {
 	ldv_module_get($arg1);
 }
 
-around: call(void __module_get(..))
-{
-	ldv_module_get($arg1);
-}
-
-around: call(void module_put(..))
-{
-	ldv_module_put($arg1);
-}
-
-around: call(static inline void module_put(..))
+around: call(void module_put(..)) ||
+        execution(static inline void module_put(..))
 {
 	ldv_module_put($arg1);
 }
 
 around: define(module_put_and_exit(code))
 {
-ldv_module_put_and_exit();
+    ldv_module_put_and_exit();
 }
 
-around: call(unsigned int module_refcount(..))
-{
-	return ldv_module_refcount();
-}
-
-around: call(unsigned long module_refcount(..))
+around: call(unsigned int module_refcount(..)) ||
+        call(unsigned long module_refcount(..))
 {
 	return ldv_module_refcount();
 }

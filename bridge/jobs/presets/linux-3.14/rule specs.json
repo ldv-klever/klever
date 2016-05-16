@@ -157,16 +157,6 @@
         "aspects": ["linux/module.aspect"]
       }
     },
-    "linux:module:next": {
-      "aliases": ["8"],
-      "description": "...",
-      "bug kinds": [],
-      "template": "Linux kernel modules",
-      "RSG": {
-        "models": ["linux/module.next.c"],
-        "aspects": ["linux/module.next.aspect"]
-      }
-    },
     "linux:mutex": {
       "aliases": ["32"],
       "description": "...",

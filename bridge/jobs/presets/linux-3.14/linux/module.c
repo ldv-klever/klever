@@ -19,15 +19,11 @@ void ldv_module_get(struct module *module)
 /* MODEL_FUNC_DEF Nondeterministically increment module reference counter unless module pointer is NULL */
 int ldv_try_module_get(struct module *module)
 {
-	int module_get_succeeded;
-
 	/* OTHER Do nothing if module pointer is NULL */
 	if (module)
 	{
-		module_get_succeeded = ldv_undef_int();
-
 		/* OTHER Nondeterministically increment module reference counter */
-		if (module_get_succeeded == 1)
+		if (ldv_undef_int() == 1)
 		{
 			/* CHANGE_STATE Increment module reference counter */
 			ldv_module_refcounter++;
@@ -48,6 +44,7 @@ void ldv_module_put(struct module *module)
 	/* OTHER Do nothing if module pointer is NULL */
 	if (module)
 	{
+	    // linux:module:double acquisition
 		/* ASSERT Decremented module reference counter should be greater than its initial state */
 		ldv_assert(ldv_module_refcounter > 1);
 		/* CHANGE_STATE Decrement module reference counter */
@@ -74,6 +71,7 @@ unsigned int ldv_module_refcount(void)
 /* MODEL_FUNC_DEF Check that module reference counter has its initial value at the end */
 void ldv_check_final_state(void)
 {
+    // linux:module:unreleased at exit
 	/* ASSERT Module reference counter should be decremented to its initial value before finishing operation */
 	ldv_assert(ldv_module_refcounter == 1);
 }
