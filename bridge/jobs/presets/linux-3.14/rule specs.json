@@ -19,6 +19,7 @@
             "specifications directory": "linux/emg",
             "entry point": "entry_point",
             "translator": "default",
+            "callstack deep search": 3,
             "intermediate model options": {
               "ignore missed callbacks": true
             },

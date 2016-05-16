@@ -10,13 +10,15 @@ from core.avtg.emg.common.signature import Function, Structure, Union, Array, Po
 class ModuleCategoriesSpecification(CategoriesSpecification):
     """Implements parser of source analysis and representation of module interface categories specification."""
 
-    def __init__(self, logger):
+    def __init__(self, logger, conf):
         """
         Setup initial attributes and get logger object.
 
         :param logger: logging object.
+        :param conf: Configuration properties dictionary.
         """
         self.logger = logger
+        self.conf = conf
         self.interfaces = {}
         self.kernel_functions = {}
         self.kernel_macro_functions = {}
@@ -71,29 +73,30 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         :param function: Module function name string.
         :return: List with kernel functions name strings.
         """
-        # todo: This function takes a lot of time
-        self.logger.debug("Collect relevant kernel functions called in a call stack of function '{}'".format(function))
-        if function not in self._kernel_functions_cache:
-            process_names = [function]
-            processed_names = set()
-            relevant = []
-            while len(process_names) > 0:
-                name = process_names.pop()
-                processed_names.add(name)
+        self.logger.debug("Collect relevant kernel functions called in a call stack of callback '{}'".format(function))
+        level_counter = 0
+        max_level = None
 
-                if name in self.modules_functions:
-                    for file in sorted(self.modules_functions[name].keys()):
-                        for called in self.modules_functions[name][file]['calls']:
-                            if called in self.modules_functions and called not in processed_names:
-                                process_names.append(called)
-                            elif called in self.kernel_functions:
-                                relevant.append(called)
+        if 'callstack deep search' in self.conf:
+            max_level = int(self.conf['callstack deep search'])
 
-            self._kernel_functions_cache[function] = relevant
-        else:
-            self.logger.debug("Cache hit")
+        # Simple BFS with deep counting from the given function
+        relevant = set()
+        level_functions = {function}
+        processed = set()
+        while len(level_functions) > 0 and (not max_level or level_counter < max_level):
+            next_level = set()
 
-        return self._kernel_functions_cache[function]
+            for fn in level_functions:
+                # kernel functions + modules functions
+                kfs, mfs = self.__functions_called_in(fn, processed)
+                next_level.update(mfs)
+                relevant.update(kfs)
+
+            level_functions = next_level
+            level_counter += 1
+
+        return sorted(relevant)
 
     @staticmethod
     def callback_name(call):
@@ -122,6 +125,27 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
     ####################################################################################################################
     # PRIVATE METHODS
     ####################################################################################################################
+
+    def __functions_called_in(self, function, processed):
+        kfs = set()
+        mfs = set()
+        processed.add(function)
+
+        if function in self.modules_functions:
+            self.logger.debug("Collect relevant functions called in a call stack of function '{}'".format(function))
+            if function in self._kernel_functions_cache:
+                self.logger.debug("Cache hit")
+                return self._kernel_functions_cache[function]
+            else:
+                for file in sorted(self.modules_functions[function].keys()):
+                    for called in self.modules_functions[function][file]['calls']:
+                        if called in self.modules_functions and called not in processed:
+                            mfs.add(called)
+                        elif called in self.kernel_functions:
+                            kfs.add(called)
+
+                self._kernel_functions_cache[function] = [kfs, mfs]
+        return kfs, mfs
 
     @staticmethod
     def __check_category_relevance(function):
