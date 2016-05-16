@@ -93,7 +93,11 @@ $(document).ready(function () {
                     $('input[name="scheduler"]:checked').val(),
                     $('input[name="avtg_priority"]:checked').val()
                 ],
-                [$('#build_parallelism__value').val(), $('#tasks_gen_parallelism__value').val()],
+                [
+                    $('#sub_jobs_proc_parallelism__value').val(),
+                    $('#build_parallelism__value').val(),
+                    $('#tasks_gen_parallelism__value').val()
+                ],
                 [
                     parseFloat($('#max_ram').val()),
                     parseInt($('#max_cpus').val()),
@@ -155,9 +159,9 @@ $(document).ready(function () {
         var required_fields = [
             'max_ram', 'max_cpus', 'max_disk',
             'console_log_formatter__value', 'file_log_formatter__value',
-            'build_parallelism__value', 'tasks_gen_parallelism__value'
-        ], err_found = false, nummeric_fields = [
-            'build_parallelism__value', 'tasks_gen_parallelism__value',
+            'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value'
+        ], err_found = false, numeric_fields = [
+            'sub_jobs_proc_parallelism__value', 'build_parallelism__value', 'tasks_gen_parallelism__value',
             'max_ram', 'max_cpus', 'max_disk', 'max_cpu_time', 'max_wall_time'
         ];
         $.each(required_fields, function (i, v) {
@@ -173,7 +177,7 @@ $(document).ready(function () {
             return false;
         }
 
-        $.each(nummeric_fields, function (i, v) {
+        $.each(numeric_fields, function (i, v) {
             var curr_input = $('#' + v);
             curr_input.parent().removeClass('error');
             if (curr_input.val() && !$.isNumeric(curr_input.val()) && (curr_input.val().match(/^\s*\d+(,|\.)\d+\s*$/i) == null)) {
