@@ -22,7 +22,7 @@ class FSA:
         new_desc = copy.copy(node.desc)
         new_id = self.__yield_id()
 
-        new_state = Node(new_desc, new_id)
+        new_state = State(new_desc, new_id)
         new_state.action = node.action
 
         for pred in node.predecessors:
@@ -41,7 +41,7 @@ class FSA:
         desc = {
             'label': '<{}>'.format(action.name)
         }
-        new = Node(desc, self.__yield_id())
+        new = State(desc, self.__yield_id())
         new.action = action
         self.states.add(new)
         return new
@@ -144,7 +144,7 @@ class FSA:
                     else:
                         asts.append([action, initflag])
             else:
-                node = Node(ast, self.__yield_id())
+                node = State(ast, self.__yield_id())
 
                 node.action = process.actions[ast['name']]
                 if type(process.actions[ast['name']]) is Receive:
@@ -165,7 +165,7 @@ class FSA:
         return self.__id_cnt
 
 
-class Node:
+class State:
 
     def __init__(self, desc, identifier):
         self.identifier = identifier

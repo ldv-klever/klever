@@ -126,7 +126,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         """
         # Determine entry point name and file
         self.logger.info("Determine entry point name and file")
-        self.__determine_entry(analysis)
+        self._determine_entry(analysis)
         self.logger.info("Going to generate entry point function {} in file {}".
                          format(self.entry_point_name, self.entry_file))
 
@@ -147,6 +147,73 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__add_entry_points()
 
         self.logger.info("Model translation is finished")
+
+    def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
+        """
+        Determine which automata can receive signals from the given instance or send signals to it.
+
+        :param automata_peers: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
+                                                                            'automaton': 'Automaton object'}
+        :param peers: List of relevant Process objects: [{'process': 'Process obj',
+                                                         'subprocess': 'Receive or Dispatch obj'}]
+        :param sb_type: Receive or Dispatch class to choose only those automata that reseive or send signals to the
+                        given one
+        :return: None, since it modifies the first argument.
+        """
+        for peer in peers:
+            relevant_automata = [automaton for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]
+                                 if automaton.process.name == peer["process"].name]
+            for automaton in relevant_automata:
+                if automaton.identifier not in automata_peers:
+                    automata_peers[automaton.identifier] = {
+                        "automaton": automaton,
+                        "states": set()
+                    }
+                for state in [node for node in automaton.fsa.states
+                              if node.action and node.action.name == peer["subprocess"].name]:
+                    if not sb_type or isinstance(state.action, sb_type):
+                        automata_peers[automaton.identifier]["states"].add(state)
+
+    def registration_intf_check(self, analysis, model, function_call):
+        """
+        Tries to find relevant automata that can receive signals from model processes of those kernel functions which
+        can be called whithin the execution of a provided callback.
+
+        :param analysis: ModuleCategoriesSpecification object
+        :param model: ProcessModel object.
+        :param function_call: Function name string (Expect explicit function name like 'myfunc' or '(& myfunc)').
+        :return: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
+                                                                         'automaton': 'Automaton object'}
+        """
+        automata_peers = {}
+
+        name = analysis.callback_name(function_call)
+        if name:
+            # Caclulate relevant models
+            if name in analysis.modules_functions:
+                relevant_models = analysis.collect_relevant_models(name)
+
+                # Get list of models
+                process_models = [model for model in model.model_processes if model.name in relevant_models]
+
+                # Check relevant state machines for each model
+                for model in process_models:
+                    signals = [model.actions[name] for name in sorted(model.actions.keys())
+                               if (type(model.actions[name]) is Receive or
+                                   type(model.actions[name]) is Dispatch) and
+                               len(model.actions[name].peers) > 0]
+
+                    # Get all peers in total
+                    peers = []
+                    for signal in signals:
+                        peers.extend(signal.peers)
+
+                    # Add relevant state machines
+                    self.extract_relevant_automata(automata_peers, peers)
+        else:
+            self.logger.warning("Cannot find module function for callback '{}'".format(function_call))
+
+        return automata_peers
 
     ####################################################################################################################
     # PRIVATE METHODS
@@ -202,7 +269,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         base_list = instances
 
         # Get map from accesses to implementations
+        self.logger.info("Determine number of instances for process '{}' with category '{}'".
+                         format(process.name, process.category))
         maps = split_into_instances(analysis, process)
+        self.logger.info("Going to generate {} instances for process '{}' with category '{}'".
+                         format(len(maps), process.name, process.category))
         new_base_list = []
         for access_map in maps:
             for instance in base_list:
@@ -210,8 +281,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 newp.allowed_implementations = access_map
                 new_base_list.append(newp)
 
-        self.logger.info("Generate {} instances for process '{}' with category '{}'".
-                         format(len(new_base_list), process.name, process.category))
         return new_base_list
 
     def _initial_instances(self, analysis, process):
@@ -239,52 +308,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return base_list
 
-    def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
-        for peer in peers:
-            relevant_automata = [automaton for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]
-                                 if automaton.process.name == peer["process"].name]
-            for automaton in relevant_automata:
-                if automaton.identifier not in automata_peers:
-                    automata_peers[automaton.identifier] = {
-                        "automaton": automaton,
-                        "states": set()
-                    }
-                for state in [node for node in automaton.fsa.states
-                              if node.action and node.action.name == peer["subprocess"].name]:
-                    if not sb_type or isinstance(state.action, sb_type):
-                        automata_peers[automaton.identifier]["states"].add(state)
-
-    def registration_intf_check(self, analysis, model, function_call):
-        automata_peers = {}
-
-        name = analysis.callback_name(function_call)
-        if name:
-            # Caclulate relevant models
-            if name in analysis.modules_functions:
-                relevant_models = analysis.collect_relevant_models(name)
-
-                # Get list of models
-                process_models = [model for model in model.model_processes if model.name in relevant_models]
-
-                # Check relevant state machines for each model
-                for model in process_models:
-                    signals = [model.actions[name] for name in sorted(model.actions.keys())
-                               if (type(model.actions[name]) is Receive or
-                                   type(model.actions[name]) is Dispatch) and
-                               len(model.actions[name].peers) > 0]
-
-                    # Get all peers in total
-                    peers = []
-                    for signal in signals:
-                        peers.extend(signal.peers)
-
-                    # Add relevant state machines
-                    self.extract_relevant_automata(automata_peers, peers)
-        else:
-            self.logger.warning("Cannot find module function for callback '{}'".format(function_call))
-
-        return automata_peers
-
     def _copy_process(self, process):
         inst = copy.copy(process)
         if self.__max_instances == 0:
@@ -296,11 +319,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         inst.allowed_implementations = dict(process.allowed_implementations)
         return inst
 
-    def __yeild_identifier(self):
-        self.__identifier_cnt += 1
-        return self.__identifier_cnt
-
-    def __determine_entry(self, analysis):
+    def _determine_entry(self, analysis):
         if len(analysis.inits) == 1:
             file = list(analysis.inits.keys())[0]
             self.logger.info("Choose file {} to add an entry point function".format(file))
@@ -533,7 +552,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                                            self.CF_PREFIX + str(automaton.identifier),
                                                            parameter)
 
-    def join_cf(self, automaton):
+    def _join_cf(self, automaton):
         sv = automaton.thread_variable
 
         return 'ldv_thread_join({});'.format('& ' + sv.name)
@@ -630,7 +649,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                             state.code['relevant automata'][name]['automaton'].process.category))
             else:
                 for name in state.code['relevant automata']:
-                    call = self.join_cf(state.code['relevant automata'][name]['automaton'])
+                    call = self._join_cf(state.code['relevant automata'][name]['automaton'])
                     if self._direct_cf_calls:
                         block = [call]
                     else:
@@ -997,7 +1016,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             ret_expression = 'return;'
 
         # Generate function definition
-        cf = self.__new_control_function(analysis, automaton, v_code, f_code, aspect)
+        cf = self._new_control_function(analysis, automaton, v_code, f_code, aspect)
 
         main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
                                                         'initial_state')
@@ -1031,7 +1050,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         automaton.control_function = cf
         return cf
 
-    def __new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
+    def _new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
         # Function type
         if aspect:
             cf = Aspect(aspect, analysis.kernel_functions[aspect].declaration, 'around')
@@ -1156,7 +1175,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         tab = 0
 
         # Generate function definition
-        cf = self.__new_control_function(analysis, automaton, v_code, f_code, None)
+        cf = self._new_control_function(analysis, automaton, v_code, f_code, None)
 
         # Add loop for nested case
         if self._nested_automata:
@@ -1324,6 +1343,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     def __add_entry_points(self):
         self.task["entry points"] = [self.entry_point_name]
+
+    def __yeild_identifier(self):
+        self.__identifier_cnt += 1
+        return self.__identifier_cnt
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 
