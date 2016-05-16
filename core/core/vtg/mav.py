@@ -233,6 +233,9 @@ class MAV(CommonStrategy):
                         exhausted_assert = match.group(1)
                         if exhausted_assert in suffix:
                             is_incomplete = True
+                    match = re.search(r'Shutdown requested', line)
+                    if match:
+                        is_incomplete = True
             if is_incomplete:
                 name = 'unsafe-incomplete{0}.txt'.format(suffix)
                 with open(name, 'w', encoding='ascii') as fp:
