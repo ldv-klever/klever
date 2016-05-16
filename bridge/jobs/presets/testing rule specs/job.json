@@ -65,6 +65,54 @@
       },
       "rule specifications": ["linux:usb:gadget"],
       "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["double-get.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["get-without-put.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["put-and-exit.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["refcount.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["tryget.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "safe"
     }
   ]
 }
