@@ -179,15 +179,85 @@ class FunctionModels:
         "SWITCH_TO_PROCESS_CONTEXT": 'ldv_switch_to_process_context'
     }
 
-    mem_function_re = "\$({})\(%({})%(?:,\s?(\w+))?\)"
-    irq_function_re = "\$({})"
+    mem_function_template = "\$({})\(%({})%(?:,\s?(\w+))?\)"
+    simple_function_template = "\$({})\("
+    access_template = '\w+(?:(?:[.]|->)\w+)*'
+    mem_function_re = re.compile(mem_function_template.format('\w+', access_template))
+    simple_function_re = re.compile(simple_function_template.format('\w+'))
+    access_re = re.compile('(%{}%)'.format(access_template))
 
     @staticmethod
     def init_pointer(signature):
         #return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], signature.points.to_string(''))
         return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], '0')
 
-    def __replace_mem_call(self, match):
+    @staticmethod
+    def text_processor(automaton, statement):
+        # Replace model functions
+        mm = FunctionModels()
+
+        # Replace function names
+        stms = []
+        matched = False
+        for fn in mm.simple_function_re.findall(statement):
+            matched = True
+
+            # Bracket is required to ignore CIF expressions like $res or $arg1
+            if fn in mm.mem_function_map or fn in mm.free_function_map:
+                access = mm.mem_function_re.search(statement).group(2)
+                if fn in mm.mem_function_map:
+                    replacement = mm._replace_mem_call
+                else:
+                    replacement = mm._replace_free_call
+
+                accesses = automaton.process.resolve_access('%{}%'.format(access))
+                for access in accesses:
+                    if access.interface:
+                        signature = access.label.get_declaration(access.interface.identifier)
+                    else:
+                        signature = access.label.prior_signature
+
+                    if signature:
+                        if access.interface:
+                            var = automaton.determine_variable(access.label, access.list_interface[0].identifier)
+                        else:
+                            var = automaton.determine_variable(access.label)
+
+                        if type(var.declaration) is Pointer:
+                            mm.signature = var.declaration
+                            new = mm.mem_function_re.sub(replacement, statement)
+                            new = access.replace_with_variable(new, var)
+                            stms.append(new)
+            elif fn in mm.irq_function_map:
+                statement = mm.simple_function_re.sub(mm.irq_function_map[fn] + '(', statement)
+                stms.append(statement)
+            else:
+                raise NotImplementedError("Model function '${}' is not supported".format(fn))
+
+        if not matched:
+            stms = [statement]
+
+        # Replace rest accesses
+        final = []
+        matched = False
+        for stm in stms:
+            for expression in mm.access_re.findall(stm):
+                matched = True
+
+                accesses = automaton.process.resolve_access(expression)
+                for access in accesses:
+                    if access.interface:
+                        var = automaton.determine_variable(access.label, access.list_interface[0].identifier)
+                    else:
+                        var = automaton.determine_variable(access.label)
+
+                    final.append(access.replace_with_variable(stm, var))
+
+        if not matched:
+            final = stms
+        return final
+
+    def _replace_mem_call(self, match):
         function, label_name, flag = match.groups()
         if function not in self.mem_function_map:
             raise NotImplementedError("Model of {} is not supported".format(function))
@@ -202,7 +272,7 @@ class FunctionModels:
         else:
             raise ValueError('This is not a pointer')
 
-    def __replace_free_call(self, match):
+    def _replace_free_call(self, match):
         function, label_name, flag = match.groups()
         if function not in self.free_function_map:
             raise NotImplementedError("Model of {} is not supported".format(function))
@@ -214,35 +284,5 @@ class FunctionModels:
             return "{}(%{}%)".format(self.free_function_map[function], label_name)
         else:
             raise ValueError('This is not a pointer')
-
-    def __replace_irq_call(self, match):
-        function = match.groups()[0]
-        if function not in self.irq_function_map:
-            raise NotImplementedError("Model of {} is not supported".format(function))
-        elif not self.irq_function_map[function]:
-            raise NotImplementedError("Set implementation for the function {}".format(function))
-
-        # Replace
-        return self.irq_function_map[function]
-
-    def replace_models(self, label, signature, string):
-        self.signature = signature
-
-        ret = string
-        # Memory functions
-        for function in sorted(self.mem_function_map.keys()):
-            regex = re.compile(self.mem_function_re.format(function, label))
-            ret = regex.sub(self.__replace_mem_call, ret)
-
-        # Free functions
-        for function in sorted(self.free_function_map.keys()):
-            regex = re.compile(self.mem_function_re.format(function, label))
-            ret = regex.sub(self.__replace_free_call, ret)
-
-        # IRQ functions
-        for function in sorted(self.irq_function_map.keys()):
-            regex = re.compile(self.irq_function_re.format(function))
-            ret = regex.sub(self.__replace_irq_call, ret)
-        return ret
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
