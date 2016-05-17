@@ -249,7 +249,7 @@ class Job(core.utils.CallbacksCaller):
                                               'unknown',
                                               {
                                                   'id': self.id + '/unknown',
-                                                  'parent id': self.parent['id'],
+                                                  'parent id': self.id,
                                                   'problem desc': 'problem desc.txt',
                                                   'files': ['problem desc.txt']
                                               },
