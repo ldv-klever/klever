@@ -14,12 +14,12 @@ void ldv_unregister_usb_gadget(void);
 
 around: define(class_create(owner, name))
 {
-ldv_create_class()
+    ldv_create_class()
 }
 
 around: define(class_register(class))
 {
-ldv_register_class()
+    ldv_register_class()
 }
 
 after: call(void class_destroy(..)) ||
