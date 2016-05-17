@@ -34,6 +34,10 @@ info: declare_func($ $(..)) {
   $fprintf<"$env<CWD>/declare_func.txt","%s %s signature='%s'\n",$path,$func_name,$signature>
 }
 
+around: define(__EXPORT_SYMBOL(sym, sec))
+{
+}
+
 /* info: expand(__EXPORT_SYMBOL(sym, sec)) {
   $fprintf<"$env<CWD>/exported-symbols.txt","%s %s\n",$path,$arg_val1>
 }*/
