@@ -1103,7 +1103,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 block.append(state)
                 no_jump = (type(state.action) not in self.jump_types) and no_jump
 
-                if len(state.successors) == 1 and (no_jump or list(state.successors)[0] not in self.jump_types):
+                if len(state.successors) == 1 and (no_jump or type(list(state.successors)[0].action) not in self.jump_types):
                     state_stack.append(list(state.successors)[0])
 
             blocks[origin.identifier] = block

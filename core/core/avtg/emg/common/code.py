@@ -1,6 +1,6 @@
 import re
 
-from core.avtg.emg.common.signature import BaseType, Pointer, Structure, Array, Union, Function, Primitive, \
+from core.avtg.emg.common.signature import Declaration, Pointer, Structure, Array, Union, Function, Primitive, \
     import_signature
 
 
@@ -16,7 +16,7 @@ class Variable:
 
         if type(signature) is str:
             self.declaration = import_signature(signature)
-        elif issubclass(type(signature), BaseType):
+        elif issubclass(type(signature), Declaration):
             self.declaration = signature
         else:
             raise ValueError("Attempt to create variable {} without signature".format(name))
