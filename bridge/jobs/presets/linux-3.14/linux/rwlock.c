@@ -8,42 +8,6 @@ int ldv_rlock = 1;
 int ldv_wlock = 1;
 
 /* MODEL_FUNC_DEF Check that write lock is not acquired and acquire read lock */
-void ldv_read_lock_irqsave(rwlock_t *lock)
-{
-	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
-	/* CHANGE_STATE Acquire read lock */
-	ldv_rlock += 1;
-}
-
-/* MODEL_FUNC_DEF Check that read lock is acquired and release it */
-void ldv_read_unlock_irqrestore(rwlock_t *lock)
-{
-	/* ASSERT Read lock should be acquired */
-	ldv_assert(ldv_rlock > 1);
-	/* CHANGE_STATE Release read lock */
-	ldv_rlock -= 1;
-}
-
-/* MODEL_FUNC_DEF Check that write lock is not aquired and acquire it */
-void ldv_write_lock_irqsave(rwlock_t *lock)
-{
-	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
-	/* CHANGE_STATE Acquire write lock */
-	ldv_wlock = 2;
-}
-
-/* MODEL_FUNC_DEF Check that write lock is aquired and release it */
-void ldv_write_unlock_irqrestore(rwlock_t *lock)
-{
-	/* ASSERT Write lock should be aquired */
-	ldv_assert(ldv_wlock != 1);
-	/* CHANGE_STATE Release write lock */
-	ldv_wlock = 1;
-}
-
-/* MODEL_FUNC_DEF Check that write lock is not acquired and acquire read lock */
 void ldv_read_lock(rwlock_t *lock)
 {
 	/* ASSERT Write lock should not be aquired */
@@ -113,78 +77,6 @@ int ldv_write_trylock(rwlock_t *lock)
 		/* RETURN Write lock was not acquired */
 		return 0;
 	}
-}
-
-/* MODEL_FUNC_DEF Check that write lock is not acquired and acquire read lock */
-void ldv_read_lock_irq(rwlock_t *lock)
-{
-	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
-	/* CHANGE_STATE Acquire read lock */
-	ldv_rlock += 1;
-}
-
-/* MODEL_FUNC_DEF Check that read lock is acquired and release it */
-void ldv_read_unlock_irq(rwlock_t *lock)
-{
-	/* ASSERT Read lock should be acquired */
-	ldv_assert(ldv_rlock > 1);
-	/* CHANGE_STATE Release read lock */
-	ldv_rlock -= 1;
-}
-
-/* MODEL_FUNC_DEF Check that write lock is not aquired and acquire it */
-void ldv_write_lock_irq(rwlock_t *lock)
-{
-	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
-	/* CHANGE_STATE Acquire write lock */
-	ldv_wlock = 2;
-}
-
-/* MODEL_FUNC_DEF Check that write lock is aquired and release it */
-void ldv_write_unlock_irq(rwlock_t *lock)
-{
-	/* ASSERT Write lock should be aquired */
-	ldv_assert(ldv_wlock != 1);
-	/* CHANGE_STATE Acquire write lock */
-	ldv_wlock = 1;
-}
-
-/* MODEL_FUNC_DEF Check that write lock is not acquired and acquire read lock */
-void ldv_read_lock_bh(rwlock_t *lock)
-{
-	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
-	/* CHANGE_STATE Acquire read lock */
-	ldv_rlock += 1;
-}
-
-/* MODEL_FUNC_DEF Check that read lock is acquired and release it */
-void ldv_read_unlock_bh(rwlock_t *lock)
-{
-	/* ASSERT Read lock should be acquired */
-	ldv_assert(ldv_rlock > 1);
-	/* CHANGE_STATE Release read lock */
-	ldv_rlock -= 1;
-}
-
-/* MODEL_FUNC_DEF Check that write lock is not aquired and acquire it */
-void ldv_write_lock_bh(rwlock_t *lock)
-{
-	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
-	/* CHANGE_STATE Acquire write lock */
-	ldv_wlock = 2;
-}
-
-/* MODEL_FUNC_DEF Check that write lock is aquired and release it */
-void ldv_write_unlock_bh(rwlock_t *lock)
-{
-	/* ASSERT Write lock should be aquired */
-	ldv_assert(ldv_wlock != 1);
-	/* CHANGE_STATE Acquire write lock */
-	ldv_wlock = 1;
 }
 
 /* MODEL_FUNC_DEF Check that all read/write locks are unacquired at the end */
