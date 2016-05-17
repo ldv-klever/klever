@@ -60,6 +60,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__identifier_cnt = -1
         self.__instance_modifier = 1
         self.__max_instances = None
+        self.__resource_new_insts = 1
 
         # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
@@ -70,6 +71,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.__max_instances = int(self.conf["translation options"]["max instances number"])
         if "instance modifier" in self.conf["translation options"]:
             self.__instance_modifier = self.conf["translation options"]["instance modifier"]
+        if "number of new instances per resource implementation" in self.conf["translation options"]:
+            self.__resource_new_insts = \
+                self.conf["translation options"]["number of new instances per resource implementation"]
         if "pointer initialization" not in self.conf["translation options"]:
             self.conf["translation options"]["pointer initialization"] = {}
         if "pointer free" not in self.conf["translation options"]:
@@ -160,6 +164,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         given one
         :return: None, since it modifies the first argument.
         """
+        self.logger.debug("Searching for relevant automata")
+
         for peer in peers:
             relevant_automata = [automaton for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]
                                  if automaton.process.name == peer["process"].name]
@@ -185,6 +191,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         :return: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
                                                                          'automaton': 'Automaton object'}
         """
+        self.logger.debug("Searching for relevant automata to generate check before callback call '{}'".
+                          format(function_call))
         automata_peers = {}
 
         name = analysis.callback_name(function_call)
@@ -221,11 +229,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     def _prepare_code(self, analysis, model):
         # Determine how many instances is required for a model
-        self.logger.info("Determine how many instances is required to add to an environment model for each process")
+        self.logger.info("Generate automata for processes with callback calls")
         for process in model.event_processes:
             base_list = self._initial_instances(analysis, process)
             base_list = self._instanciate_processes(analysis, base_list, process)
-            self.logger.info("Generate {} FSA instances for process {} with category {}".
+            self.logger.info("Generate {} FSA instances for environment model processes {} with category {}".
                              format(len(base_list), process.name, process.category))
 
             for instance in base_list:
@@ -233,6 +241,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 self._callback_fsa.append(fsa)
 
         # Generate automata for models
+        self.logger.info("Generate automata for kernel model processes")
         for process in model.model_processes:
             self.logger.info("Generate FSA for kernel model process {}".format(process.name))
             processes = self._instanciate_processes(analysis, [process], process)
@@ -246,7 +255,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._entry_fsa = Automaton(self.logger, model.entry_process, self.__yeild_identifier())
 
         # Generates base code blocks
+        self.logger.info("Prepare code on each action of each automanon instance")
         for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+            self.logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
+                              format(automaton.identifier, automaton.process.name, automaton.process.category))
             for state in list(automaton.fsa.states):
                 automaton.generate_code(analysis, model, self, state)
 
@@ -271,7 +283,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Get map from accesses to implementations
         self.logger.info("Determine number of instances for process '{}' with category '{}'".
                          format(process.name, process.category))
-        maps = split_into_instances(analysis, process)
+        maps = split_into_instances(analysis, process, self.__resource_new_insts)
         self.logger.info("Going to generate {} instances for process '{}' with category '{}'".
                          format(len(maps), process.name, process.category))
         new_base_list = []
@@ -460,7 +472,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 "}"
             ]
         )
-        ep.body.concatenate(body)
+        ep.body.extend(body)
 
         return ep
 
@@ -501,7 +513,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                       "{} {}({})".format(ret, fname, resources),
                                       True)
 
-        function.body.concatenate("/* Callback {} */".format(state.action.name))
+        function.body.append("/* Callback {} */".format(state.action.name))
         inv = [
             '/* Callback {} */'.format(state.action.name)
         ]
@@ -516,7 +528,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                        ', '.join([state.code['variable']] + state.code['parameters']) + ');'
             inv.append(f_invoke)
             call = ret_expr + '({})'.format(state.code['invoke']) + '(' + params + ')'
-        function.body.concatenate('{};'.format(call))
+        function.body.append('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
 
@@ -704,7 +716,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 False
             )
 
-        df.body.concatenate(body)
+        df.body.extend(body)
         automaton.functions.append(df)
         self._add_function_definition(self.entry_file, df)
 
@@ -1046,7 +1058,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         elif not aspect:
             self._add_global_variable(automaton.thread_variable)
 
-        cf.body.concatenate(v_code + f_code)
+        cf.body.extend(v_code + f_code)
         automaton.control_function = cf
         return cf
 
@@ -1233,7 +1245,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             v_code.append(automaton.state_variable.declare() + " = 0;")
         else:
             self._add_global_variable(automaton.state_variable)
-        cf.body.concatenate(v_code + f_code)
+        cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
         return cf

@@ -59,22 +59,11 @@ class FunctionDefinition:
         self.name = name
         self.file = file
         self.export = export
-        self.__body = None
+        self.body = []
 
         if not signature:
             signature = 'void f(void)'
         self.declaration = import_signature(signature)
-
-    @property
-    def body(self, body=None):
-        if not body:
-            body = []
-
-        if not self.__body:
-            self.__body = FunctionBody(body)
-        else:
-            self.__body.concatenate(body)
-        return self.__body
 
     def get_declaration(self, extern=False):
         declaration = self.declaration.to_string(self.name)
@@ -91,47 +80,8 @@ class FunctionDefinition:
 
         lines = list()
         lines.append(declaration + " {\n")
-        lines.extend(self.body.get_lines(1))
+        lines.extend(['\t' + stm for stm in self.body])
         lines.append("}\n")
-        return lines
-
-
-class FunctionBody:
-    indent_re = re.compile("^(\t*)([^\s]*.*)")
-
-    def __init__(self, body=None):
-        if not body:
-            body = []
-
-        self.__body = []
-
-        if len(body) > 0:
-            self.concatenate(body)
-
-    def _split_indent(self, string):
-        split = self.indent_re.match(string)
-        return {
-            "indent": len(split.group(1)),
-            "statement": split.group(2)
-        }
-
-    def concatenate(self, statements):
-        if type(statements) is list:
-            for line in statements:
-                splitted = self._split_indent(line)
-                self.__body.append(splitted)
-        elif type(statements) is str:
-            splitted = self._split_indent(statements)
-            self.__body.append(splitted)
-        else:
-            raise TypeError("Can add only string or list of strings to function body but given: {}".
-                            format(str(type(statements))))
-
-    def get_lines(self, start_indent=1):
-        lines = []
-        for splitted in self.__body:
-            line = (start_indent + splitted["indent"]) * "\t" + splitted["statement"] + "\n"
-            lines.append(line)
         return lines
 
 
@@ -141,24 +91,13 @@ class Aspect(FunctionDefinition):
         self.name = name
         self.declaration = declaration
         self.aspect_type = aspect_type
-        self.__body = None
-
-    @property
-    def body(self, body=None):
-        if not body:
-            body = []
-
-        if not self.__body:
-            self.__body = FunctionBody(body)
-        else:
-            self.__body.concatenate(body)
-        return self.__body
+        self.body = []
 
     def get_aspect(self):
         lines = list()
         lines.append("after: call({}) ".format("$ {}(..)".format(self.name)) +
                      " {\n")
-        lines.extend(self.body.get_lines(1))
+        lines.extend(['\t' + stm for stm in self.body])
         lines.append("}\n")
         return lines
 
@@ -179,15 +118,85 @@ class FunctionModels:
         "SWITCH_TO_PROCESS_CONTEXT": 'ldv_switch_to_process_context'
     }
 
-    mem_function_re = "\$({})\(%({})%(?:,\s?(\w+))?\)"
-    irq_function_re = "\$({})"
+    mem_function_template = "\$({})\(%({})%(?:,\s?(\w+))?\)"
+    simple_function_template = "\$({})\("
+    access_template = '\w+(?:(?:[.]|->)\w+)*'
+    mem_function_re = re.compile(mem_function_template.format('\w+', access_template))
+    simple_function_re = re.compile(simple_function_template.format('\w+'))
+    access_re = re.compile('(%{}%)'.format(access_template))
 
     @staticmethod
     def init_pointer(signature):
         #return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], signature.points.to_string(''))
         return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], '0')
 
-    def __replace_mem_call(self, match):
+    @staticmethod
+    def text_processor(automaton, statement):
+        # Replace model functions
+        mm = FunctionModels()
+
+        # Replace function names
+        stms = []
+        matched = False
+        for fn in mm.simple_function_re.findall(statement):
+            matched = True
+
+            # Bracket is required to ignore CIF expressions like $res or $arg1
+            if fn in mm.mem_function_map or fn in mm.free_function_map:
+                access = mm.mem_function_re.search(statement).group(2)
+                if fn in mm.mem_function_map:
+                    replacement = mm._replace_mem_call
+                else:
+                    replacement = mm._replace_free_call
+
+                accesses = automaton.process.resolve_access('%{}%'.format(access))
+                for access in accesses:
+                    if access.interface:
+                        signature = access.label.get_declaration(access.interface.identifier)
+                    else:
+                        signature = access.label.prior_signature
+
+                    if signature:
+                        if access.interface:
+                            var = automaton.determine_variable(access.label, access.list_interface[0].identifier)
+                        else:
+                            var = automaton.determine_variable(access.label)
+
+                        if type(var.declaration) is Pointer:
+                            mm.signature = var.declaration
+                            new = mm.mem_function_re.sub(replacement, statement)
+                            new = access.replace_with_variable(new, var)
+                            stms.append(new)
+            elif fn in mm.irq_function_map:
+                statement = mm.simple_function_re.sub(mm.irq_function_map[fn] + '(', statement)
+                stms.append(statement)
+            else:
+                raise NotImplementedError("Model function '${}' is not supported".format(fn))
+
+        if not matched:
+            stms = [statement]
+
+        # Replace rest accesses
+        final = []
+        matched = False
+        for stm in stms:
+            for expression in mm.access_re.findall(stm):
+                matched = True
+
+                accesses = automaton.process.resolve_access(expression)
+                for access in accesses:
+                    if access.interface:
+                        var = automaton.determine_variable(access.label, access.list_interface[0].identifier)
+                    else:
+                        var = automaton.determine_variable(access.label)
+
+                    final.append(access.replace_with_variable(stm, var))
+
+        if not matched:
+            final = stms
+        return final
+
+    def _replace_mem_call(self, match):
         function, label_name, flag = match.groups()
         if function not in self.mem_function_map:
             raise NotImplementedError("Model of {} is not supported".format(function))
@@ -202,7 +211,7 @@ class FunctionModels:
         else:
             raise ValueError('This is not a pointer')
 
-    def __replace_free_call(self, match):
+    def _replace_free_call(self, match):
         function, label_name, flag = match.groups()
         if function not in self.free_function_map:
             raise NotImplementedError("Model of {} is not supported".format(function))
@@ -214,35 +223,5 @@ class FunctionModels:
             return "{}(%{}%)".format(self.free_function_map[function], label_name)
         else:
             raise ValueError('This is not a pointer')
-
-    def __replace_irq_call(self, match):
-        function = match.groups()[0]
-        if function not in self.irq_function_map:
-            raise NotImplementedError("Model of {} is not supported".format(function))
-        elif not self.irq_function_map[function]:
-            raise NotImplementedError("Set implementation for the function {}".format(function))
-
-        # Replace
-        return self.irq_function_map[function]
-
-    def replace_models(self, label, signature, string):
-        self.signature = signature
-
-        ret = string
-        # Memory functions
-        for function in sorted(self.mem_function_map.keys()):
-            regex = re.compile(self.mem_function_re.format(function, label))
-            ret = regex.sub(self.__replace_mem_call, ret)
-
-        # Free functions
-        for function in sorted(self.free_function_map.keys()):
-            regex = re.compile(self.mem_function_re.format(function, label))
-            ret = regex.sub(self.__replace_free_call, ret)
-
-        # IRQ functions
-        for function in sorted(self.irq_function_map.keys()):
-            regex = re.compile(self.irq_function_re.format(function))
-            ret = regex.sub(self.__replace_irq_call, ret)
-        return ret
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
