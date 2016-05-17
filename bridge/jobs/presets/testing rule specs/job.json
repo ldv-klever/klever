@@ -177,6 +177,31 @@
       },
       "rule specifications": ["linux:rwlock"],
       "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
+        "modules": ["netdev.ko"]
+      },
+      "rule specifications": ["linux:usb2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
+        "modules": ["register.ko"]
+      },
+      "rule specifications": ["linux:usb2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb2"],
+      "ideal verdict": "safe"
     }
+
   ]
 }
