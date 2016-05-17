@@ -37,6 +37,7 @@ class Job(core.utils.CallbacksCaller):
         self.name = None
         self.work_dir = None
         self.mqs = {}
+        self.locks = {}
         self.uploading_reports_process = None
         self.type = type
         self.components_common_conf = None
@@ -46,10 +47,11 @@ class Job(core.utils.CallbacksCaller):
         self.component_processes = []
         self.results = []
 
-    def decide(self, conf, mqs, uploading_reports_process):
+    def decide(self, conf, mqs, locks, uploading_reports_process):
         self.logger.info('Decide job')
 
         self.mqs = mqs
+        self.locks = locks
         self.uploading_reports_process = uploading_reports_process
         self.extract_archive()
         self.get_class()
@@ -209,6 +211,7 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.name = sub_job_name
                 sub_job.work_dir = sub_job_work_dir
                 sub_job.mqs = self.mqs
+                sub_job.locks = self.locks
                 sub_job.uploading_reports_process = self.uploading_reports_process
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job.components_common_conf = copy.deepcopy(self.components_common_conf)
@@ -255,7 +258,7 @@ class Job(core.utils.CallbacksCaller):
             try:
                 for component in self.components:
                     p = component(self.components_common_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                  separate_from_parent=True)
+                                  self.locks, separate_from_parent=True)
                     p.start()
                     self.component_processes.append(p)
 

@@ -352,7 +352,7 @@ class AVTG(core.components.Component):
                 if 'bug kinds' in rule_spec_desc:
                     plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
 
-                p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, plugin_mqs,
+                p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, plugin_mqs, self.locks,
                                           '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
                                           os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
                                           initial_attrs, True, True)

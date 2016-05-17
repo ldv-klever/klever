@@ -43,36 +43,41 @@ _arch_hdr_arch = {
 class LKBCE(core.components.Component):
     def extract_linux_kernel_build_commands(self):
         self.linux_kernel = {}
-        self.fetch_linux_kernel_work_src_tree()
-        self.make_canonical_linux_kernel_work_src_tree()
-        self.set_src_tree_root()
-        # Determine Linux kernel configuration just after Linux kernel working source tree is prepared since it affect
-        # value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather than
-        # configuration target.
-        self.get_linux_kernel_conf()
-        self.clean_linux_kernel_work_src_tree()
-        self.set_linux_kernel_attrs()
-        self.set_hdr_arch()
-        core.utils.report(self.logger,
-                          'attrs',
-                          {
-                              'id': self.id,
-                              'attrs': self.linux_kernel['attrs']
-                          },
-                          self.mqs['report files'],
-                          self.conf['main working directory'])
-        # This file should be specified to collect build commands during configuring and building of the Linux kernel.
-        self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
-        self.configure_linux_kernel()
-        # Always create Linux kernel raw build commands file prior to its reading in
-        # self.process_all_linux_kernel_raw_build_cmds().
-        with open(self.linux_kernel['raw build cmds file'], 'w'):
-            pass
-        self.launch_subcomponents(('LKB', self.build_linux_kernel),
-                                  ('ALKRBCP', self.process_all_linux_kernel_raw_build_cmds))
-        # Linux kernel raw build commands file should be kept just in debugging.
-        if not self.conf['keep intermediate files']:
-            os.remove(self.linux_kernel['raw build cmds file'])
+        # Prepare Linux kernel source code and extract build commands exclusively but just with other sub-jobs of a
+        # given job. It would be more properly to lock working source trees especially if different sub-jobs use
+        # different trees (https://forge.ispras.ru/issues/6647).
+        with self.locks['build']:
+            self.fetch_linux_kernel_work_src_tree()
+            self.make_canonical_linux_kernel_work_src_tree()
+            self.set_src_tree_root()
+            # Determine Linux kernel configuration just after Linux kernel working source tree is prepared since it
+            # affect value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather
+            # than configuration target.
+            self.get_linux_kernel_conf()
+            self.clean_linux_kernel_work_src_tree()
+            self.set_linux_kernel_attrs()
+            self.set_hdr_arch()
+            core.utils.report(self.logger,
+                              'attrs',
+                              {
+                                  'id': self.id,
+                                  'attrs': self.linux_kernel['attrs']
+                              },
+                              self.mqs['report files'],
+                              self.conf['main working directory'])
+            # This file should be specified to collect build commands during configuring and building of the Linux
+            # kernel.
+            self.linux_kernel['raw build cmds file'] = 'Linux kernel raw build cmds'
+            self.configure_linux_kernel()
+            # Always create Linux kernel raw build commands file prior to its reading in
+            # self.process_all_linux_kernel_raw_build_cmds().
+            with open(self.linux_kernel['raw build cmds file'], 'w'):
+                pass
+            self.launch_subcomponents(('LKB', self.build_linux_kernel),
+                                      ('ALKRBCP', self.process_all_linux_kernel_raw_build_cmds))
+            # Linux kernel raw build commands file should be kept just in debugging.
+            if not self.conf['keep intermediate files']:
+                os.remove(self.linux_kernel['raw build cmds file'])
 
     main = extract_linux_kernel_build_commands
 
