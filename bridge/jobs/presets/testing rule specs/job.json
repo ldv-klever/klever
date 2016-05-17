@@ -281,7 +281,62 @@
       },
       "rule specifications": ["linux:usb2"],
       "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["claim.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["memcpy.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["release.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["sdio.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["sdio-2.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["sdio-3.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "safe"
     }
-
   ]
 }
