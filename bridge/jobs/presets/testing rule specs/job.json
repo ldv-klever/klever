@@ -113,6 +113,70 @@
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["rlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["wlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["runlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["wunlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["rlock-after-wlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["tryrlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["trywlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "safe"
     }
   ]
 }
