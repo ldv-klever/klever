@@ -1,9 +1,8 @@
 before: file ("$this")
 {
 #include <linux/kernel.h>
-#include <verifier/rcv.h>
-#include <linux/module.h>
-#include <linux/slab.h>
+#include <linux/ldv/common.h>
+#include <verifier/common.h>
 
 extern void *ldv_undefined_pointer(void);
 void ldv_check_alloc_flags(gfp_t flags);
