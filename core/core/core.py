@@ -54,7 +54,7 @@ class Core(core.utils.CallbacksCaller):
                                                   })
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(job, start_report_file)
-            self.mqs['report files'] = multiprocessing.Queue()
+            self.mqs['report files'] = multiprocessing.Manager().Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
             job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()}, self.uploading_reports_process)
@@ -223,10 +223,6 @@ class Core(core.utils.CallbacksCaller):
 
                 if report_and_report_files_archive is None:
                     self.logger.debug('Report files message queue was terminated')
-                    # Note that this and all other closing of message queues aren't strictly necessary and everything
-                    # will work without them as well, but this potentially can save some memory since closing explicitly
-                    # notifies that corresponding message queue won't be used any more and its memory could be freed.
-                    self.mqs['report files'].close()
                     break
 
                 report_file = report_and_report_files_archive['report file']
