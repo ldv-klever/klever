@@ -1,7 +1,6 @@
 import os
 import copy
 import abc
-from pympler import asizeof
 
 
 from core.avtg.emg.translator.instances import split_into_instances
@@ -276,7 +275,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._generate_control_functions(analysis, model)
 
         # Add structures to declare types
-        h = asizeof.asizeof(self.files)
         self.files[self.entry_file]['types'] = sorted(list(set(self._structures.values())), key=lambda v: v.identifier)
 
     def _instanciate_processes(self, analysis, instances, process):
