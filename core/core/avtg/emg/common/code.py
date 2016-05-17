@@ -59,22 +59,11 @@ class FunctionDefinition:
         self.name = name
         self.file = file
         self.export = export
-        self.__body = None
+        self.body = []
 
         if not signature:
             signature = 'void f(void)'
         self.declaration = import_signature(signature)
-
-    @property
-    def body(self, body=None):
-        if not body:
-            body = []
-
-        if not self.__body:
-            self.__body = FunctionBody(body)
-        else:
-            self.__body.concatenate(body)
-        return self.__body
 
     def get_declaration(self, extern=False):
         declaration = self.declaration.to_string(self.name)
@@ -91,47 +80,8 @@ class FunctionDefinition:
 
         lines = list()
         lines.append(declaration + " {\n")
-        lines.extend(self.body.get_lines(1))
+        lines.extend(['\t' + stm for stm in self.body])
         lines.append("}\n")
-        return lines
-
-
-class FunctionBody:
-    indent_re = re.compile("^(\t*)([^\s]*.*)")
-
-    def __init__(self, body=None):
-        if not body:
-            body = []
-
-        self.__body = []
-
-        if len(body) > 0:
-            self.concatenate(body)
-
-    def _split_indent(self, string):
-        split = self.indent_re.match(string)
-        return {
-            "indent": len(split.group(1)),
-            "statement": split.group(2)
-        }
-
-    def concatenate(self, statements):
-        if type(statements) is list:
-            for line in statements:
-                splitted = self._split_indent(line)
-                self.__body.append(splitted)
-        elif type(statements) is str:
-            splitted = self._split_indent(statements)
-            self.__body.append(splitted)
-        else:
-            raise TypeError("Can add only string or list of strings to function body but given: {}".
-                            format(str(type(statements))))
-
-    def get_lines(self, start_indent=1):
-        lines = []
-        for splitted in self.__body:
-            line = (start_indent + splitted["indent"]) * "\t" + splitted["statement"] + "\n"
-            lines.append(line)
         return lines
 
 
@@ -141,24 +91,13 @@ class Aspect(FunctionDefinition):
         self.name = name
         self.declaration = declaration
         self.aspect_type = aspect_type
-        self.__body = None
-
-    @property
-    def body(self, body=None):
-        if not body:
-            body = []
-
-        if not self.__body:
-            self.__body = FunctionBody(body)
-        else:
-            self.__body.concatenate(body)
-        return self.__body
+        self.body = []
 
     def get_aspect(self):
         lines = list()
         lines.append("after: call({}) ".format("$ {}(..)".format(self.name)) +
                      " {\n")
-        lines.extend(self.body.get_lines(1))
+        lines.extend(['\t' + stm for stm in self.body])
         lines.append("}\n")
         return lines
 

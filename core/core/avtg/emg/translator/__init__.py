@@ -1,6 +1,7 @@
 import os
 import copy
 import abc
+from pympler import asizeof
 
 
 from core.avtg.emg.translator.instances import split_into_instances
@@ -275,6 +276,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._generate_control_functions(analysis, model)
 
         # Add structures to declare types
+        h = asizeof.asizeof(self.files)
         self.files[self.entry_file]['types'] = sorted(list(set(self._structures.values())), key=lambda v: v.identifier)
 
     def _instanciate_processes(self, analysis, instances, process):
@@ -472,7 +474,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 "}"
             ]
         )
-        ep.body.concatenate(body)
+        ep.body.extend(body)
 
         return ep
 
@@ -513,7 +515,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                       "{} {}({})".format(ret, fname, resources),
                                       True)
 
-        function.body.concatenate("/* Callback {} */".format(state.action.name))
+        function.body.append("/* Callback {} */".format(state.action.name))
         inv = [
             '/* Callback {} */'.format(state.action.name)
         ]
@@ -528,7 +530,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                        ', '.join([state.code['variable']] + state.code['parameters']) + ');'
             inv.append(f_invoke)
             call = ret_expr + '({})'.format(state.code['invoke']) + '(' + params + ')'
-        function.body.concatenate('{};'.format(call))
+        function.body.append('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
 
@@ -716,7 +718,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 False
             )
 
-        df.body.concatenate(body)
+        df.body.extend(body)
         automaton.functions.append(df)
         self._add_function_definition(self.entry_file, df)
 
@@ -1058,7 +1060,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         elif not aspect:
             self._add_global_variable(automaton.thread_variable)
 
-        cf.body.concatenate(v_code + f_code)
+        cf.body.extend(v_code + f_code)
         automaton.control_function = cf
         return cf
 
@@ -1245,7 +1247,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             v_code.append(automaton.state_variable.declare() + " = 0;")
         else:
             self._add_global_variable(automaton.state_variable)
-        cf.body.concatenate(v_code + f_code)
+        cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
         return cf
