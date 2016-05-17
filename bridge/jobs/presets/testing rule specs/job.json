@@ -1,7 +1,7 @@
 {
   "Common": {
     "Linux kernel": {
-      "source": "linux-stable",
+      "source": "linux-3.14",
       "configuration": "allmodconfig",
       "build kernel": false
     },
