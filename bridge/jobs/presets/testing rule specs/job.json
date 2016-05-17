@@ -68,6 +68,86 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["chrdev-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["chrdev-at-exit-2.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["chrdev-with-usb-gadget.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["class-with-usb-gadget.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["class-registered-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["usb-gadget-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["unregister-usb-gadget.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["unregister-class.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["unregister-chrdev.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/linux/module",
         "modules": ["double-get.ko"]
       },
