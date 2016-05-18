@@ -2,7 +2,6 @@ import os
 import copy
 import abc
 
-
 from core.avtg.emg.translator.instances import split_into_instances
 from core.avtg.emg.translator.fsa import Automaton
 from core.avtg.emg.common.signature import import_signature
@@ -61,6 +60,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__instance_modifier = 1
         self.__max_instances = None
         self.__resource_new_insts = 1
+        self.__switchers_cache = {}
 
         # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
@@ -348,10 +348,27 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
-                'functions': {}
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
             }
 
-        self.files[file]['functions'][function.name] = function
+        self.files[file]['functions'][function.name] = function.get_definition()
+        if file == self.entry_file:
+            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=False)
+        else:
+            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=True)
+
+    def _add_function_declaration(self, file, function):
+        if file not in self.files:
+            self.files[file] = {
+                'variables': {},
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
+            }
+
+        self.files[file]['declarations'][function.name] = function.get_declaration(extern=True)
 
     def _add_global_variable(self, variable):
         if variable.file:
@@ -362,10 +379,19 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
-                'functions': {}
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
             }
 
-        self.files[file]['variables'][variable.name] = variable
+        if file == self.entry_file:
+            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
+        else:
+            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=True) + ";\n"
+            self.files[file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
+
+        if variable.value:
+            self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
 
     def _generate_control_functions(self, analysis, model):
         global_switch_automata = []
@@ -374,22 +400,59 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             raise NotImplementedError('EMG options are inconsistent: cannot create label-based automata without nested'
                                       'dispatches')
 
+        # Initialize states in an entry point
+        body = []
+        if not self._omit_all_states:
+            for automaton in [self._entry_fsa] + self._callback_fsa:
+                body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
+                            format(automaton.identifier, automaton.process.name, automaton.process.category))
+                body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
+                initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
+                if len(initial_states) == 1:
+                    body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
+                elif len(initial_states) == 2:
+                    body.extend([
+                        '\tif (ldv_undef_int())',
+                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
+                        '\telse',
+                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
+                    ])
+                elif len(initial_states) > 2:
+                    body.append('switch (ldv_undef_int()) {')
+                    for index in range(len(initial_states)):
+                        body.append('\t\tcase {}: '.format(index) + '{')
+                        body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
+                        body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
+                        body.append('\t\t}')
+                        body.append('\t\tdefault: ldv_stop();')
+                        body.append('\t}')
+                body.append('}')
+
+        # Prepare action blocks
+        self.logger.info('Prepare code base block on each action of each instance')
+        for automaton in [self._entry_fsa] + self._callback_fsa + self._model_fsa:
+            for state in automaton.fsa.states:
+                state.code['final block'] = self._action_base_block(analysis, automaton, state)
+
+        # Generate model control function
+        self.logger.info('Generate control functions for kernel model functions')
+        while len(self._model_fsa) > 0:
+            automaton = self._model_fsa.pop()
+            self._label_cfunction(analysis, automaton, automaton.process.name)
+
         # Generate automata control function
-        self.logger.info("Generate control functions for the environment model")
-        if self._omit_all_states:
-            for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
+        self.logger.info("Generate control functions for the rest automata of an environment model")
+        while len(self._callback_fsa) > 0:
+            automaton = self._callback_fsa.pop()
+
+            if self._omit_all_states:
                 func = self._label_cfunction(analysis, automaton)
+            else:
+                automaton.state_blocks = self._state_sequences(automaton)
+                func = self._state_cfunction(analysis, automaton)
+
             if func and not self._nested_automata:
                 global_switch_automata.append(func)
-        else:
-            self.logger.info("Generate control functions for the environment model")
-            for automaton in sorted(list(self._callback_fsa) + [self._entry_fsa], key=lambda fsa: fsa.identifier):
-                automaton.state_blocks = self._state_sequences(automaton)
-
-            for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
-                func = self._state_cfunction(analysis, automaton)
-                if func and not self._nested_automata:
-                    global_switch_automata.append(func)
 
         if self._omit_all_states:
             func = self._label_cfunction(analysis, self._entry_fsa)
@@ -400,17 +463,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             raise ValueError('Entry point function must contain init/exit automaton control function')
 
-        # Generate model control function
-        for name in (pr.name for pr in model.model_processes):
-            for automaton in [a for a in sorted(list(self._model_fsa), key=lambda fsa: fsa.identifier)
-                              if a.process.name == name]:
-                self._label_cfunction(analysis, automaton, name)
-
         # Generate entry point function
-        func = self._generate_entry_functions(global_switch_automata)
+        func = self._generate_entry_functions(body, global_switch_automata)
         self._add_function_definition(self.entry_file, func)
 
-    def _generate_entry_functions(self, global_switch_automata):
+    def _generate_entry_functions(self, body, global_switch_automata):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
         # FunctionDefinition prototype
         ep = FunctionDefinition(
@@ -424,32 +481,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             "ldv_initialize();",
             ""
             "/* Initialize initial states of automata */"
-        ]
-
-        for automaton in [self._entry_fsa] + self._callback_fsa:
-            body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
-                        format(automaton.identifier, automaton.process.name, automaton.process.category))
-            body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
-            initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
-            if len(initial_states) == 1:
-                body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
-            elif len(initial_states) == 2:
-                body.extend([
-                    '\tif (ldv_undef_int())',
-                    '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
-                    '\telse',
-                    '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
-                ])
-            elif len(initial_states) > 2:
-                body.append('switch (ldv_undef_int()) {')
-                for index in range(len(initial_states)):
-                    body.append('\t\tcase {}: '.format(index) + '{')
-                    body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
-                    body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
-                    body.append('\t\t}')
-                    body.append('\t\tdefault: ldv_stop();')
-                    body.append('\t}')
-            body.append('}')
+        ] + body
 
         body.extend([
             "while(1) {",
@@ -461,7 +493,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             body.extend(
                 [
                     "\t\tcase {}: ".format(index),
-                    "\t\t\t{}(0);".format(cfunction.name),
+                    "\t\t\t{}(0);".format(cfunction),
                     "\t\tbreak;"
                 ]
             )
@@ -538,21 +570,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             inv.extend(state.code['post_call'])
 
         return inv
-
-    def _relevant_checks(self, state):
-        checks = []
-
-        # Add state checks
-        if state.code and 'relevant automata' in state.code:
-            for name in sorted(state.code['relevant automata'].keys()):
-                for st in state.code['relevant automata'][name]['states']:
-                    for index in state.code['relevant automata'][name]["automaton"].state_blocks:
-                        if st in state.code['relevant automata'][name]["automaton"].state_blocks[index]:
-                            checks.append("{} == {}".
-                                          format(state.code['relevant automata'][name]["automaton"].state_variable.name,
-                                                 index))
-
-        return checks
 
     def _call_cf(self, automaton, parameter='0'):
         sv = automaton.thread_variable
@@ -717,8 +734,17 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             )
 
         df.body.extend(body)
-        automaton.functions.append(df)
         self._add_function_definition(self.entry_file, df)
+
+        # Determine files to export
+        files = set()
+        if automaton.process.category == "kernel models":
+            for caller in (c for c in analysis.kernel_functions[automaton.process.name].called_at):
+                for file in analysis.modules_functions[caller]:
+                    files.add(file)
+        # Export
+        for file in files:
+            self._add_function_declaration(file, df)
 
         return [
             '/* Dispatch {} */'.format(state.action.name),
@@ -730,8 +756,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         vf_param_var = Variable('ldv_dispatch_params_{}_{}'.format(automaton.identifier, state.identifier),
                                 None, decl.take_pointer, False)
 
-        if vf_param_var.name not in self.files[self.entry_file]['variables']:
-            self._add_global_variable(vf_param_var)
+        self._add_global_variable(vf_param_var)
         return vf_param_var
 
     def _action_base_block(self, analysis, automaton, state):
@@ -740,7 +765,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         if type(state.action) is Call:
             if not self._nested_automata:
-                checks = self._relevant_checks(state)
+                checks = state._relevant_checks()
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
@@ -753,7 +778,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 block.append(stm)
         elif type(state.action) is Dispatch:
             if not self._nested_automata:
-                checks = self._relevant_checks(state)
+                checks = state._relevant_checks()
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
@@ -862,6 +887,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             }
             new.code = cd
             state_stack.append(new)
+            new.code['final block'] = self._action_base_block(analysis, automaton, new)
         else:
             state_stack.append(list(automaton.fsa.initial_states)[0])
 
@@ -878,7 +904,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     'goto ldv_{}_{};'.format(state.action.name, automaton.identifier)
                 ]
             else:
-                new_v_code, code = self._action_base_block(analysis, automaton, state)
+                new_v_code, code = state.code['final block']
                 v_code.extend(new_v_code)
 
             if len(conditional_stack) > 0 and conditional_stack[-1]['condition'] == 'switch' and \
@@ -1060,7 +1086,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
-        return cf
+
+        if not aspect:
+            self._add_function_definition(self.entry_file, cf)
+        return cf.name
 
     def _new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
         # Function type
@@ -1070,8 +1099,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             cf = FunctionDefinition(self.CF_PREFIX + str(automaton.identifier), self.entry_file, 'void f(void *cf_arg)',
                                     False)
-            self._add_function_definition(self.entry_file, cf)
-
             if self._nested_automata:
                 param_declarations = []
                 param_expressions = []
@@ -1091,15 +1118,43 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             param_expressions.append(receiver_expr)
                         break
 
-        if self._nested_automata:
+        if self._nested_automata or aspect:
             for var in automaton.variables():
                 definition = var.declare() + ";"
                 v_code.append(definition)
-        else:
+        elif not aspect:
             for var in automaton.variables():
                 self._add_global_variable(var)
 
         return cf
+
+    def _state_switch(self, states):
+        key = ''.join((str(i) for i in states))
+        if key in self.__switchers_cache:
+            return self.__switchers_cache[key]
+
+        # Generate switch function
+        name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
+        function = FunctionDefinition(name, self.entry_file, 'int f(void)', False)
+
+        # Generate switch body
+        code = list()
+        code.append('switch (ldv_undef_int()) {')
+        for index in range(len(states)):
+            code.append('\tcase {}: '.format(index) + '{')
+            code.append('\t\treturn {};'.format(states[index]))
+            code.append('\t\tbreak;')
+            code.append('\t}')
+        code.append('\tdefault: ldv_stop();')
+        code.append('}')
+        function.body.extend(code)
+
+        # Add function
+        self._add_function_definition(self.entry_file, function)
+
+        invoke = '{}()'.format(name)
+        self.__switchers_cache[key] = invoke
+        return invoke
 
     def _state_sequences(self, automaton):
         blocks_stack = sorted(list(automaton.fsa.initial_states), key=lambda f: f.identifier)
@@ -1132,7 +1187,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         v_code = []
 
         for state in block:
-            new_v_code, block = self._action_base_block(analysis, automaton, state)
+            new_v_code, block = state.code['final block']
             v_code.extend(new_v_code)
 
             if state.code and len(state.code['guard']) > 0 and first:
@@ -1163,14 +1218,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 '\t{} = {};'.format(automaton.state_variable.name, successors[1].identifier),
             ])
         elif len(state.successors) > 2:
-            code.append('switch (ldv_undef_int()) {')
-            for index in range(len(successors)):
-                code.append('\tcase {}: '.format(index) + '{')
-                code.append('\t\t{} = {};'.format(automaton.state_variable.name, successors[index].identifier))
-                code.append('\t\tbreak;'.format(automaton.state_variable.name, successors[index].identifier))
-                code.append('\t}')
-            code.append('\tdefault: ldv_stop();')
-            code.append('}')
+            switch_call = self._state_switch([st.identifier for st in successors])
+            code.append('{} = {};'.format(automaton.state_variable.name, switch_call))
         else:
             code.append('/* Reset automaton state */')
             code.append('{} = {};'.format(automaton.state_variable.name, '0'))
@@ -1248,7 +1297,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
-        return cf
+        self._add_function_definition(self.entry_file, cf)
+        return cf.name
 
     def __generate_aspects(self):
         aspect_dir = "aspects"
@@ -1286,41 +1336,33 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines.append("/* EMG Function declarations */\n")
                 for file in sorted(self.files.keys()):
                     if "functions" in self.files[file]:
-                        for function in [self.files[file]["functions"][name] for name
-                                         in sorted(self.files[file]["functions"].keys())]:
-                            if function.export and cc_extra_full_desc_file["in file"] != file:
-                                lines.extend(function.get_declaration(extern=True))
-                            else:
-                                lines.extend(function.get_declaration(extern=False))
+                        for function in sorted(self.files[file]["declarations"].keys()):
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.extend(self.files[file]["declarations"][function])
 
                 lines.append("\n")
                 lines.append("/* EMG variable declarations */\n")
                 for file in sorted(self.files):
                     if "variables" in self.files[file]:
-                        for variable in [self.files[file]["variables"][name] for name in
-                                         sorted(self.files[file]["variables"].keys())]:
-                            if variable.export and cc_extra_full_desc_file["in file"] != file:
-                                lines.extend([variable.declare(extern=True) + ";\n"])
-                            else:
-                                lines.extend([variable.declare(extern=False) + ";\n"])
+                        for variable in sorted(self.files[file]["variables"].keys()):
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.append(self.files[file]["variables"][variable])
 
                 lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
                 for file in sorted(self.files):
                     if "variables" in self.files[file]:
-                        for variable in [self.files[file]["variables"][name] for name in
-                                         sorted(self.files[file]["variables"].keys())]:
-                            if cc_extra_full_desc_file["in file"] == file and variable.value:
-                                lines.extend([variable.declare_with_init() + ";\n"])
+                        for variable in sorted(self.files[file]["initializations"].keys()):
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.append(self.files[file]["initializations"][variable])
 
                 lines.append("\n")
                 lines.append("/* EMG function definitions */\n")
                 for file in sorted(self.files):
                     if "functions" in self.files[file]:
-                        for function in [self.files[file]["functions"][name] for name
-                                         in sorted(self.files[file]["functions"].keys())]:
+                        for function in sorted(self.files[file]["functions"].keys()):
                             if cc_extra_full_desc_file["in file"] == file:
-                                lines.extend(function.get_definition())
+                                lines.extend(self.files[file]["functions"][function])
                                 lines.append("\n")
 
                 lines.append("}\n")

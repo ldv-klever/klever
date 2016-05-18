@@ -80,7 +80,7 @@ class FunctionDefinition:
 
         lines = list()
         lines.append(declaration + " {\n")
-        lines.extend(['\t' + stm for stm in self.body])
+        lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
         return lines
 
@@ -97,7 +97,7 @@ class Aspect(FunctionDefinition):
         lines = list()
         lines.append("after: call({}) ".format("$ {}(..)".format(self.name)) +
                      " {\n")
-        lines.extend(['\t' + stm for stm in self.body])
+        lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
         return lines
 
