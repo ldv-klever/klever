@@ -14,16 +14,11 @@ import core.utils
 def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj descs'] = multiprocessing.Queue()
-    context.mqs['AVTG src tree root'] = multiprocessing.Queue()
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
 def after_set_common_prj_attrs(context):
     context.mqs['AVTG common prj attrs'].put(context.common_prj_attrs)
-
-
-def after_set_src_tree_root(context):
-    context.mqs['AVTG src tree root'].put(context.src_tree_root)
 
 
 def after_set_hdr_arch(context):
@@ -240,7 +235,6 @@ class AVTG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.get_src_tree_root()
         self.get_hdr_arch()
         self.rule_spec_descs = _rule_spec_descs
         self.generate_all_abstract_verification_task_descs()
@@ -263,15 +257,6 @@ class AVTG(core.components.Component):
 
         self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
             self.conf['header architecture']))
-
-    def get_src_tree_root(self):
-        self.logger.info('Get source tree root')
-
-        self.conf['source tree root'] = self.mqs['AVTG src tree root'].get()
-
-        self.mqs['AVTG src tree root'].close()
-
-        self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
 
     def generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')

@@ -13,15 +13,10 @@ def before_launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['abstract task descs and nums'] = multiprocessing.Queue()
     context.mqs['abstract task descs num'] = multiprocessing.Queue()
-    context.mqs['VTG src tree root'] = multiprocessing.Queue()
 
 
 def after_set_common_prj_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
-
-
-def after_set_src_tree_root(context):
-    context.mqs['VTG src tree root'].put(context.src_tree_root)
 
 
 def after_generate_abstact_verification_task_desc(context):
@@ -60,7 +55,6 @@ class VTG(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
-        self.get_src_tree_root()
         self.generate_all_verification_tasks()
 
     main = generate_verification_tasks
@@ -83,15 +77,6 @@ class VTG(core.components.Component):
         self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
 
         self.mqs['VTG common prj attrs'].close()
-
-    def get_src_tree_root(self):
-        self.logger.info('Get source tree root')
-
-        self.conf['source tree root'] = self.mqs['VTG src tree root'].get()
-
-        self.mqs['VTG src tree root'].close()
-
-        self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
 
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')

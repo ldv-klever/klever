@@ -8,6 +8,14 @@ import core.components
 import core.utils
 
 
+def before_launch_sub_job_components(context):
+    context.mqs['src tree root'] = multiprocessing.Queue()
+
+
+def after_set_src_tree_root(context):
+    context.mqs['src tree root'].put(context.src_tree_root)
+
+
 class RSG(core.components.Component):
     def generate_rule_specification(self):
         self.abstract_task_desc = self.mqs['abstract task description'].get()
@@ -32,6 +40,7 @@ class RSG(core.components.Component):
                     raise ValueError('Files with extension "{0}" are not supported'.format(ext))
 
         self.add_aspects(aspects)
+        self.get_src_tree_root()
         self.add_models(models)
 
         if 'files' in self.abstract_task_desc:
@@ -115,3 +124,12 @@ class RSG(core.components.Component):
                     'rule spec id': self.conf['rule spec id'],
                     'bug kinds': self.conf['bug kinds']
                 })
+
+    def get_src_tree_root(self):
+        self.logger.info('Get source tree root')
+
+        self.src_tree_root = self.mqs['src tree root'].get()
+
+        self.mqs['src tree root'].close()
+
+        self.logger.debug('Source tree root is "{0}"'.format(self.src_tree_root))
