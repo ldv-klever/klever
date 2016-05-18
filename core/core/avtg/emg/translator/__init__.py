@@ -60,6 +60,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__instance_modifier = 1
         self.__max_instances = None
         self.__resource_new_insts = 1
+        self.__switchers_cache = {}
 
         # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
@@ -1127,6 +1128,34 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return cf
 
+    def _state_switch(self, states):
+        key = ''.join((str(i) for i in states))
+        if key in self.__switchers_cache:
+            return self.__switchers_cache[key]
+
+        # Generate switch function
+        name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
+        function = FunctionDefinition(name, self.entry_file, 'int f(void)', False)
+
+        # Generate switch body
+        code = list()
+        code.append('switch (ldv_undef_int()) {')
+        for index in range(len(states)):
+            code.append('\tcase {}: '.format(index) + '{')
+            code.append('\t\treturn {};'.format(states[index]))
+            code.append('\t\tbreak;')
+            code.append('\t}')
+        code.append('\tdefault: ldv_stop();')
+        code.append('}')
+        function.body.extend(code)
+
+        # Add function
+        self._add_function_definition(self.entry_file, function)
+
+        invoke = '{}()'.format(name)
+        self.__switchers_cache[key] = invoke
+        return invoke
+
     def _state_sequences(self, automaton):
         blocks_stack = sorted(list(automaton.fsa.initial_states), key=lambda f: f.identifier)
         blocks = {}
@@ -1189,14 +1218,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 '\t{} = {};'.format(automaton.state_variable.name, successors[1].identifier),
             ])
         elif len(state.successors) > 2:
-            code.append('switch (ldv_undef_int()) {')
-            for index in range(len(successors)):
-                code.append('\tcase {}: '.format(index) + '{')
-                code.append('\t\t{} = {};'.format(automaton.state_variable.name, successors[index].identifier))
-                code.append('\t\tbreak;'.format(automaton.state_variable.name, successors[index].identifier))
-                code.append('\t}')
-            code.append('\tdefault: ldv_stop();')
-            code.append('}')
+            switch_call = self._state_switch([st.identifier for st in successors])
+            code.append('{} = {};'.format(automaton.state_variable.name, switch_call))
         else:
             code.append('/* Reset automaton state */')
             code.append('{} = {};'.format(automaton.state_variable.name, '0'))
