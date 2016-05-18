@@ -337,6 +337,126 @@
       },
       "rule specifications": ["linux:mmc:sdio_func"],
       "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc1",
+        "modules": ["wrong-flags.ko"]
+      },
+      "rule specifications": ["linux:alloc1"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc1",
+        "modules": ["nonatomic.ko"]
+      },
+      "rule specifications": ["linux:alloc1"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc1",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc1"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["wrong-flags-lock.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["wrong-flags-trylock.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["nonatomic-lock.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["nonatomic-trylock.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc2"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["wrong-flags-lock.ko"]
+      },
+      "rule specifications": ["linux:alloc3"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["wrong-flags-lock-for-reset.ko"]
+      },
+      "rule specifications": ["linux:alloc3"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["wrong-flags-trylock.ko"]
+      },
+      "rule specifications": ["linux:alloc3"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["nonatomic-lock.ko"]
+      },
+      "rule specifications": ["linux:alloc3"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["nonatomic-lock-for-reset.ko"]
+      },
+      "rule specifications": ["linux:alloc3"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["nonatomic-trylock.ko"]
+      },
+      "rule specifications": ["linux:alloc3"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc3"],
+      "ideal verdict": "safe"
     }
   ]
 }
