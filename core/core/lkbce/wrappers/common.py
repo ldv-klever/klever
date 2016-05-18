@@ -1,6 +1,8 @@
+import filecmp
 import json
 import os
 import re
+import shutil
 import subprocess
 
 import core.utils
@@ -33,11 +35,64 @@ class Command:
         self.out_file = None
         self.other_opts = []
         self.type = None
+        self.desc_file = None
 
-    def dump(self):
-        if 'KLEVER_BUILD_CMD_DESCS_FILE' not in os.environ:
+    def copy_deps(self):
+        if self.type != 'CC':
             return
 
+        # We assume that dependency files are generated for all C source files.
+        deps_file = None
+        for opt in self.other_opts:
+            match = re.search(r'-MD,(.+)', opt)
+            if match:
+                deps_file = match.group(1)
+                break
+        if not deps_file:
+            # # Generate them by ourselves if not so.
+            # deps_file = self.out_file + '.d'
+            # p = subprocess.Popen(['aspectator', '-M', '-MF', deps_file] + self.opts, stdout=subprocess.DEVNULL,
+            #                      stderr=subprocess.DEVNULL)
+            # if p.wait():
+            #     raise RuntimeError('Getting dependencies failed')
+            raise AssertionError('Could not find dependencies file among options "{0}"'.format(self.other_opts))
+
+        deps = []
+        with open(deps_file, encoding='ascii') as fp:
+            match = re.match(r'[^:]+:(.+)', fp.readline())
+            if match:
+                first_dep_line = match.group(1)
+            else:
+                raise AssertionError('Dependencies file has unsupported format')
+
+            for dep_line in [first_dep_line] + fp.readlines():
+                dep_line = dep_line.lstrip(' ')
+                dep_line = dep_line.rstrip(' \\\n')
+                if not dep_line:
+                    continue
+                deps.extend(dep_line.split(' '))
+
+        # There are several kinds of dependencies:
+        # - each non-absolute file path represents dependency relative to current working directory (Linux kernel
+        #   working source tree is assumed) - they all should be copied;
+        # - each absolute file path that starts with current working directory is the same as above;
+        # - other absolute file paths represent either system or compiler specific headers that aren't touched by
+        #   build process and can be used later as is.
+        for dep in deps:
+            if os.path.isabs(dep) and os.path.commonprefix((os.getcwd(), dep)) != os.getcwd():
+                continue
+            dest_dep = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                    os.path.relpath(dep))
+            if os.path.isfile(dest_dep):
+                if filecmp.cmp(dep, dest_dep):
+                    continue
+                else:
+                    raise AssertionError(
+                        'Dependency "{0}" has changed during build process'.format(os.path.relpath(dep)))
+            os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
+            shutil.copy2(dep, dest_dep)
+
+    def dump(self):
         full_desc_file = None
 
         if self.type == 'CC':
@@ -53,25 +108,32 @@ class Command:
             else:
                 os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
                 with open(full_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump({'in files': self.in_files, 'out file': self.out_file, 'opts': self.other_opts}, fp,
-                              sort_keys=True, indent=4)
+                    json.dump({
+                        'cwd': os.path.relpath(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                               os.environ['KLEVER_MAIN_WORK_DIR']),
+                        'in files': self.in_files,
+                        'out file': self.out_file,
+                        'opts': self.other_opts
+                    }, fp, sort_keys=True, indent=4)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
         if full_desc_file:
             desc['full desc file'] = os.path.relpath(full_desc_file, os.environ['KLEVER_MAIN_WORK_DIR'])
 
-        desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
-                                 '{0}.json'.format(self.out_file))
+        self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                      '{0}.json'.format(self.out_file))
 
-        if os.path.isfile(desc_file):
-            raise FileExistsError('Linux kernel build command description file "{0}" already exists'.format(desc_file))
+        if os.path.isfile(self.desc_file):
+            raise FileExistsError(
+                'Linux kernel build command description file "{0}" already exists'.format(self.desc_file))
         else:
-            os.makedirs(os.path.dirname(desc_file), exist_ok=True)
-            with open(desc_file, 'w', encoding='ascii') as fp:
+            os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
+            with open(self.desc_file, 'w', encoding='ascii') as fp:
                 json.dump(desc, fp, sort_keys=True, indent=4)
 
+    def enqueue(self):
         with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='ascii') as fp:
-            fp.write(os.path.relpath(desc_file, os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'])) + '\n')
+            fp.write(os.path.relpath(self.desc_file, os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'])) + '\n')
 
     def filter(self):
         # Filter out CC commands if input file is absent or '/dev/null' or STDIN ('-') or 'init/version.c' or output
@@ -100,8 +162,10 @@ class Command:
             return exit_code
 
         self.parse()
-        if not self.filter():
+        if not self.filter() and 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ:
             self.dump()
+            self.copy_deps()
+            self.enqueue()
 
         return 0
 
