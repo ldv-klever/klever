@@ -733,7 +733,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             )
 
         df.body.extend(body)
-        # automaton.functions.append(df)
         self._add_function_definition(self.entry_file, df)
 
         # Determine files to export
@@ -1086,6 +1085,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
+
+        if not aspect:
+            self._add_function_definition(self.entry_file, cf)
         return cf.name
 
     def _new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
@@ -1096,8 +1098,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             cf = FunctionDefinition(self.CF_PREFIX + str(automaton.identifier), self.entry_file, 'void f(void *cf_arg)',
                                     False)
-            self._add_function_definition(self.entry_file, cf)
-
             if self._nested_automata:
                 param_declarations = []
                 param_expressions = []
@@ -1274,6 +1274,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
+        self._add_function_definition(self.entry_file, cf)
         return cf.name
 
     def __generate_aspects(self):
