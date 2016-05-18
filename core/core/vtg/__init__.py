@@ -117,8 +117,7 @@ class VTG(core.components.Component):
                     '/{0}'.format(self.abstract_task_descs_num.value) if self.abstract_task_descs_num.value else ''))
 
             attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
-            work_dir = os.path.join(os.path.basename(self.conf['source tree root']),
-                                    abstract_task_desc['attrs'][0]['verification object'],
+            work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
                                     self.strategy_name)
             os.makedirs(work_dir)
