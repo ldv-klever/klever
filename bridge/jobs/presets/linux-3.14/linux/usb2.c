@@ -54,12 +54,11 @@ int ldv_register_netdev(void)
 }
 
 /* MODEL_FUNC_DEF Check that error code was properly propagated in probe() */
-int ldv_check_return_value_probe(int retval)
+void ldv_check_return_value_probe(int retval)
 {
 	if (ldv_probe_state == LDV_PROBE_ERROR)
 	{
 		/* ASSERT Errors of usb_register() and register_netdev() should be properly propagated */
 		ldv_assert(retval != 0);
 	}
-	return retval;
 }
