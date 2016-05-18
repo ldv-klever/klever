@@ -221,18 +221,22 @@ class ABKM(core.components.Component):
                     for key in graphml.getElementsByTagName('key'):
                         if key.getAttribute('id') == 'originfile':
                             default = key.getElementsByTagName('default')[0]
-                            default_src_file = self.__normalize_path(default.firstChild)
+                            default_src_file = default.firstChild.data
                             src_files.add(default_src_file)
                     graph = graphml.getElementsByTagName('graph')[0]
                     for edge in graph.getElementsByTagName('edge'):
                         for data in edge.getElementsByTagName('data'):
                             if data.getAttribute('key') == 'originfile':
-                                src_files.add(self.__normalize_path(data.firstChild))
+                                src_files.add(data.firstChild.data)
 
                     self.logger.info('Extract notes and warnings from source files referred by error trace')
                     notes = {}
                     warns = {}
                     for src_file in src_files:
+                        if not os.path.isfile(src_file):
+                            raise FileNotFoundError(
+                                'File "{0}" referred by error trace does not exist'.format(src_file))
+
                         with open(src_file, encoding='utf8') as fp:
                             i = 0
                             for line in fp:
@@ -366,15 +370,6 @@ class ABKM(core.components.Component):
                     with open('witness.processed.graphml', 'w', encoding='utf8') as fp:
                         graphml.writexml(fp)
 
-                    # TODO: copy is done just to create unsafe report later, so get rid of it sometime.
-                    # Copy all source files referred by error trace to working directory.
-                    if src_files:
-                        self.logger.debug('Source files referred by error trace are: "{}"'.format(src_files))
-                        for src_file in src_files:
-                            os.makedirs(os.path.dirname(src_file), exist_ok=True)
-                            shutil.copy(os.path.join(self.conf['main working directory'], self.conf['source tree root'],
-                                                     src_file), src_file)
-
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
@@ -412,16 +407,3 @@ class ABKM(core.components.Component):
 
         self.logger.info('Remove verification task "{0}"'.format(task_id))
         session.remove_task(task_id)
-
-    def __normalize_path(self, path):
-        # Each file is specified either via absolute path or path relative to source tree root.
-        # Make all paths relative to source tree root.
-        if os.path.isabs(path.data):
-            path.data = os.path.relpath(path.data, os.path.join(self.conf['main working directory'],
-                                                                self.conf['source tree root']))
-
-        if not os.path.isfile(
-                os.path.join(self.conf['main working directory'], self.conf['source tree root'], path.data)):
-            raise FileNotFoundError('File "{0}" referred by error trace does not exist'.format(path.data))
-
-        return path.data

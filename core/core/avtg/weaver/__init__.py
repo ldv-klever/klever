@@ -3,6 +3,7 @@
 import fileinput
 import json
 import os
+import re
 
 import core.components
 import core.utils
@@ -105,7 +106,33 @@ class Weaver(core.components.Component):
                                    ))
                 self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
 
-                extra_c_file = {'C file': os.path.relpath(preprocessed_c_file, self.conf['main working directory'])}
+                abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc_full_desc['out file'])[0])
+                with open(preprocessed_c_file, encoding='ascii') as fp_in, open(abs_paths_c_file, 'w',
+                                                                                encoding='ascii') as fp_out:
+                    # Print preprocessor header as is.
+                    first_line = fp_in.readline()
+                    fp_out.write(first_line)
+                    for line in fp_in:
+                        fp_out.write(line)
+                        if line == first_line:
+                            break
+
+                    # Replace relative file paths with absolute ones for line directives in other lines.
+                    for line in fp_in:
+                        match = re.match(r'(# \d+ ")(.+)("\n)', line)
+                        if match:
+                            file = match.group(2)
+                            if not os.path.isabs(file):
+                                # All relative file paths are relative to CC working directory.
+                                file = os.path.abspath(
+                                    os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file))
+                            fp_out.write(match.group(1) + file + match.group(3))
+                        else:
+                            fp_out.write(line)
+                self.logger.debug(
+                    'Preprocessed weaved C file with absolute paths was put to "{0}"'.format(abs_paths_c_file))
+
+                extra_c_file = {'C file': os.path.relpath(abs_paths_c_file, self.conf['main working directory'])}
 
                 if 'rule spec id' in cc_extra_full_desc_file:
                     extra_c_file['rule spec id'] = cc_extra_full_desc_file['rule spec id']
