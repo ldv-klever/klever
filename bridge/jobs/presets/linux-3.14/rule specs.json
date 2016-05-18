@@ -109,7 +109,10 @@
       "template": "Linux kernel modules",
       "RSG": {
         "models": ["linux/alloc1.c"],
-        "aspects": ["linux/alloc1.aspect"]
+        "aspects": [
+          "linux/alloc1.aspect",
+          "linux/alloc.aspect"
+        ]
       }
     },
     "linux:alloc2": {
@@ -119,7 +122,10 @@
       "template": "Linux kernel modules",
       "RSG": {
         "models": ["linux/alloc2.c"],
-        "aspects": ["linux/alloc2.aspect"]
+        "aspects": [
+          "linux/alloc2.aspect",
+          "linux/alloc.aspect"
+        ]
       }
     },
     "linux:alloc3": {
@@ -129,7 +135,10 @@
       "template": "Linux kernel modules",
       "RSG": {
         "models": ["linux/alloc3.c"],
-        "aspects": ["linux/alloc3.aspect"]
+        "aspects": [
+          "linux/alloc3.aspect",
+          "linux/alloc.aspect"
+        ]
       }
     },
     "linux:empty": {

@@ -4,8 +4,6 @@
 
 #define LDV_ZERO_STATE 0
 
-extern struct page *ldv_some_page(void);
-
 /* There are 2 possible states. */
 enum {
 	LDV_SPIN_UNLOCKED = LDV_ZERO_STATE, /* Spinlock is not acquired. */
@@ -29,14 +27,7 @@ void ldv_check_alloc_nonatomic(void)
 	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED);
 }
 
-/* MODEL_FUNC_DEF Check that correct flag was used when spinlock is aquired and return some page */
-struct page *ldv_check_alloc_flags_and_return_some_page(gfp_t flags)
-{
-	/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
-	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
-	/* RETURN Some page (maybe NULL) */
-	return ldv_some_page();
-}
+//TODO: merge it with linux:spinlock:as
 
 /* MODEL_FUNC_DEF Acquire spinlock */
 void ldv_spin_lock(void)
