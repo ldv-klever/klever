@@ -347,10 +347,22 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
-                'functions': {}
+                'functions': {},
+                'declarations': {}
             }
 
         self.files[file]['functions'][function.name] = function
+        self._add_function_declaration(self.entry_file, function)
+
+    def _add_function_declaration(self, file, function):
+        if file not in self.files:
+            self.files[file] = {
+                'variables': {},
+                'functions': {},
+                'declarations': {}
+            }
+
+        self.files[file]['declarations'][function.name] = function
 
     def _add_global_variable(self, variable):
         if variable.file:
@@ -361,7 +373,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
-                'functions': {}
+                'functions': {},
+                'declarations': {}
             }
 
         if variable.name not in self.files[file]['variables']:
@@ -583,7 +596,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return decl
 
-    def _dispatch(self, automaton, state):
+    def _dispatch(self, analysis, automaton, state):
         body = []
         if not self._direct_cf_calls:
             body = ['int ret;']
@@ -713,6 +726,16 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         automaton.functions.append(df)
         self._add_function_definition(self.entry_file, df)
 
+        # Determine files to export
+        files = set()
+        if automaton.process.category == "kernel models":
+            for caller in (c for c in analysis.kernel_functions[automaton.process.name].called_at):
+                for file in analysis.modules_functions[caller]:
+                    files.add(file)
+        # Export
+        for file in files:
+            self._add_function_declaration(file, df)
+
         return [
             '/* Dispatch {} */'.format(state.action.name),
             '{}({});'.format(df.name, ', '.join(df_parameters))
@@ -749,7 +772,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
-            call = self._dispatch(automaton, state)
+            call = self._dispatch(analysis, automaton, state)
 
             block.extend(call)
         elif type(state.action) is Receive:
@@ -1084,11 +1107,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             param_expressions.append(receiver_expr)
                         break
 
-        if self._nested_automata:
+        if self._nested_automata or aspect:
             for var in automaton.variables():
                 definition = var.declare() + ";"
                 v_code.append(definition)
-        else:
+        elif not aspect:
             for var in automaton.variables():
                 self._add_global_variable(var)
 
@@ -1279,12 +1302,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines.append("/* EMG Function declarations */\n")
                 for file in sorted(self.files.keys()):
                     if "functions" in self.files[file]:
-                        for function in [self.files[file]["functions"][name] for name
-                                         in sorted(self.files[file]["functions"].keys())]:
-                            if function.export and cc_extra_full_desc_file["in file"] != file:
-                                lines.extend(function.get_declaration(extern=True))
-                            else:
+                        for function in [self.files[file]["declarations"][name] for name
+                                         in sorted(self.files[file]["declarations"].keys())]:
+                            if cc_extra_full_desc_file["in file"] == file and \
+                                    cc_extra_full_desc_file["in file"] == function.file:
                                 lines.extend(function.get_declaration(extern=False))
+                            elif cc_extra_full_desc_file["in file"] == file and \
+                                    cc_extra_full_desc_file["in file"] != function.file:
+                                lines.extend(function.get_declaration(extern=True))
 
                 lines.append("\n")
                 lines.append("/* EMG variable declarations */\n")
@@ -1292,10 +1317,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     if "variables" in self.files[file]:
                         for variable in [self.files[file]["variables"][name] for name in
                                          sorted(self.files[file]["variables"].keys())]:
-                            if variable.export and cc_extra_full_desc_file["in file"] != file:
-                                lines.extend([variable.declare(extern=True) + ";\n"])
-                            else:
+                            if cc_extra_full_desc_file["in file"] == file:
                                 lines.extend([variable.declare(extern=False) + ";\n"])
+                            elif cc_extra_full_desc_file["in file"] != file and \
+                                            cc_extra_full_desc_file["in file"] == self.entry_file:
+                                lines.extend([variable.declare(extern=True) + ";\n"])
 
                 lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
