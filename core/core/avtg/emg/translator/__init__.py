@@ -348,21 +348,26 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.files[file] = {
                 'variables': {},
                 'functions': {},
-                'declarations': {}
+                'declarations': {},
+                'initializations': {}
             }
 
-        self.files[file]['functions'][function.name] = function
-        self._add_function_declaration(self.entry_file, function)
+        self.files[file]['functions'][function.name] = function.get_definition()
+        if file == self.entry_file:
+            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=False)
+        else:
+            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=True)
 
     def _add_function_declaration(self, file, function):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
                 'functions': {},
-                'declarations': {}
+                'declarations': {},
+                'initializations': {}
             }
 
-        self.files[file]['declarations'][function.name] = function
+        self.files[file]['declarations'][function.name] = function.get_declaration(extern=True)
 
     def _add_global_variable(self, variable):
         if variable.file:
@@ -374,11 +379,18 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.files[file] = {
                 'variables': {},
                 'functions': {},
-                'declarations': {}
+                'declarations': {},
+                'initializations': {}
             }
 
-        if variable.name not in self.files[file]['variables']:
-            self.files[file]['variables'][variable.name] = variable
+        if file == self.entry_file:
+            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
+        else:
+            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=True) + ";\n"
+            self.files[file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
+
+        if variable.value:
+            self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
 
     def _generate_control_functions(self, analysis, model):
         global_switch_automata = []
@@ -723,7 +735,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             )
 
         df.body.extend(body)
-        automaton.functions.append(df)
+        # automaton.functions.append(df)
         self._add_function_definition(self.entry_file, df)
 
         # Determine files to export
@@ -1302,44 +1314,33 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines.append("/* EMG Function declarations */\n")
                 for file in sorted(self.files.keys()):
                     if "functions" in self.files[file]:
-                        for function in [self.files[file]["declarations"][name] for name
-                                         in sorted(self.files[file]["declarations"].keys())]:
-                            if cc_extra_full_desc_file["in file"] == file and \
-                                    cc_extra_full_desc_file["in file"] == function.file:
-                                lines.extend(function.get_declaration(extern=False))
-                            elif cc_extra_full_desc_file["in file"] == file and \
-                                    cc_extra_full_desc_file["in file"] != function.file:
-                                lines.extend(function.get_declaration(extern=True))
+                        for function in sorted(self.files[file]["declarations"].keys()):
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.extend(self.files[file]["declarations"][function])
 
                 lines.append("\n")
                 lines.append("/* EMG variable declarations */\n")
                 for file in sorted(self.files):
                     if "variables" in self.files[file]:
-                        for variable in [self.files[file]["variables"][name] for name in
-                                         sorted(self.files[file]["variables"].keys())]:
+                        for variable in sorted(self.files[file]["variables"].keys()):
                             if cc_extra_full_desc_file["in file"] == file:
-                                lines.extend([variable.declare(extern=False) + ";\n"])
-                            elif cc_extra_full_desc_file["in file"] != file and \
-                                            cc_extra_full_desc_file["in file"] == self.entry_file:
-                                lines.extend([variable.declare(extern=True) + ";\n"])
+                                lines.append(self.files[file]["variables"][variable])
 
                 lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
                 for file in sorted(self.files):
                     if "variables" in self.files[file]:
-                        for variable in [self.files[file]["variables"][name] for name in
-                                         sorted(self.files[file]["variables"].keys())]:
-                            if cc_extra_full_desc_file["in file"] == file and variable.value:
-                                lines.extend([variable.declare_with_init() + ";\n"])
+                        for variable in sorted(self.files[file]["initializations"].keys()):
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.append(self.files[file]["initializations"][variable])
 
                 lines.append("\n")
                 lines.append("/* EMG function definitions */\n")
                 for file in sorted(self.files):
                     if "functions" in self.files[file]:
-                        for function in [self.files[file]["functions"][name] for name
-                                         in sorted(self.files[file]["functions"].keys())]:
+                        for function in sorted(self.files[file]["functions"].keys()):
                             if cc_extra_full_desc_file["in file"] == file:
-                                lines.extend(function.get_definition())
+                                lines.extend(self.files[file]["functions"][function])
                                 lines.append("\n")
 
                 lines.append("}\n")
