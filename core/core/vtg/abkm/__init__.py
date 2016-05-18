@@ -80,9 +80,7 @@ class ABKM(core.components.Component):
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
-                extra_c_file['C file'] = os.path.relpath(trimmed_c_file,
-                                                         os.path.join(self.conf['main working directory'],
-                                                                      self.conf['source tree root']))
+                extra_c_file['C file'] = trimmed_c_file
 
             # TODO: CIL can't proces files with spaces in their names. Try to screen spaces.
             with open('cil input files.txt', 'w', encoding='ascii') as fp:
@@ -92,11 +90,8 @@ class ABKM(core.components.Component):
             core.utils.execute(self.logger,
                                (
                                    'cilly.asm.exe',
-                                   '--extrafiles', os.path.relpath('cil input files.txt',
-                                                                   os.path.join(self.conf['main working directory'],
-                                                                                self.conf['source tree root'])),
-                                   '--out', os.path.relpath('cil.i', os.path.join(self.conf['main working directory'],
-                                                                                  self.conf['source tree root'])),
+                                   '--extrafiles', 'cil input files.txt',
+                                   '--out', 'cil.i',
                                    '--printCilAsIs',
                                    '--domakeCFG',
                                    '--decil',
@@ -111,9 +106,7 @@ class ABKM(core.components.Component):
                                    # Don't transform structure fields into variables or arrays.
                                    '--no-split-structs',
                                    '--rmUnusedInlines'
-                               ),
-                               cwd=os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                                self.conf['source tree root'])))
+                               ))
 
             self.task_desc['files'].append('cil.i')
 
@@ -240,8 +233,7 @@ class ABKM(core.components.Component):
                     notes = {}
                     warns = {}
                     for src_file in src_files:
-                        with open(os.path.join(self.conf['main working directory'], self.conf['source tree root'],
-                                               src_file), encoding='utf8') as fp:
+                        with open(src_file, encoding='utf8') as fp:
                             i = 0
                             for line in fp:
                                 i += 1
