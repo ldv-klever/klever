@@ -183,6 +183,21 @@ class State:
         self.predecessors.remove(old)
         self.predecessors.add(new)
 
+    def _relevant_checks(self):
+        checks = []
+
+        # Add state checks
+        if self.code and 'relevant automata' in self.code:
+            for name in sorted(self.code['relevant automata'].keys()):
+                for st in self.code['relevant automata'][name]['states']:
+                    for index in self.code['relevant automata'][name]["automaton"].state_blocks:
+                        if st in self.code['relevant automata'][name]["automaton"].state_blocks[index]:
+                            checks.append("{} == {}".
+                                          format(self.code['relevant automata'][name]["automaton"].state_variable.name,
+                                                 index))
+
+        return checks
+
 
 class Automaton:
 

@@ -1,8 +1,6 @@
 import os
 import copy
 import abc
-from pympler import asizeof
-
 
 from core.avtg.emg.translator.instances import split_into_instances
 from core.avtg.emg.translator.fsa import Automaton
@@ -276,7 +274,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._generate_control_functions(analysis, model)
 
         # Add structures to declare types
-        h = asizeof.asizeof(self.files)
         self.files[self.entry_file]['types'] = sorted(list(set(self._structures.values())), key=lambda v: v.identifier)
 
     def _instanciate_processes(self, analysis, instances, process):
@@ -367,7 +364,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 'functions': {}
             }
 
-        self.files[file]['variables'][variable.name] = variable
+        if variable.name not in self.files[file]['variables']:
+            self.files[file]['variables'][variable.name] = variable
 
     def _generate_control_functions(self, analysis, model):
         global_switch_automata = []
@@ -376,8 +374,21 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             raise NotImplementedError('EMG options are inconsistent: cannot create label-based automata without nested'
                                       'dispatches')
 
+        # Prepare action blocks
+        self.logger.info('Prepare code base block on each action of each instance')
+        for automaton in [self._entry_fsa] + self._callback_fsa + self._model_fsa:
+            for state in automaton.fsa.states:
+                state.code['final block'] = self._action_base_block(analysis, automaton, state)
+
+        # Generate model control function
+        self.logger.info('Generate control functions for kernel model functions')
+        for name in (pr.name for pr in model.model_processes):
+            for automaton in [a for a in sorted(list(self._model_fsa), key=lambda fsa: fsa.identifier)
+                              if a.process.name == name]:
+                self._label_cfunction(analysis, automaton, name)
+
         # Generate automata control function
-        self.logger.info("Generate control functions for the environment model")
+        self.logger.info("Generate control functions for the rest automata of an environment model")
         if self._omit_all_states:
             for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
                 func = self._label_cfunction(analysis, automaton)
@@ -390,6 +401,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
             for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
                 func = self._state_cfunction(analysis, automaton)
+
                 if func and not self._nested_automata:
                     global_switch_automata.append(func)
 
@@ -401,12 +413,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             global_switch_automata.append(func)
         else:
             raise ValueError('Entry point function must contain init/exit automaton control function')
-
-        # Generate model control function
-        for name in (pr.name for pr in model.model_processes):
-            for automaton in [a for a in sorted(list(self._model_fsa), key=lambda fsa: fsa.identifier)
-                              if a.process.name == name]:
-                self._label_cfunction(analysis, automaton, name)
 
         # Generate entry point function
         func = self._generate_entry_functions(global_switch_automata)
@@ -541,21 +547,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return inv
 
-    def _relevant_checks(self, state):
-        checks = []
-
-        # Add state checks
-        if state.code and 'relevant automata' in state.code:
-            for name in sorted(state.code['relevant automata'].keys()):
-                for st in state.code['relevant automata'][name]['states']:
-                    for index in state.code['relevant automata'][name]["automaton"].state_blocks:
-                        if st in state.code['relevant automata'][name]["automaton"].state_blocks[index]:
-                            checks.append("{} == {}".
-                                          format(state.code['relevant automata'][name]["automaton"].state_variable.name,
-                                                 index))
-
-        return checks
-
     def _call_cf(self, automaton, parameter='0'):
         sv = automaton.thread_variable
 
@@ -592,7 +583,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return decl
 
-    def _dispatch(self, analysis, automaton, state):
+    def _dispatch(self, automaton, state):
         body = []
         if not self._direct_cf_calls:
             body = ['int ret;']
@@ -732,8 +723,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         vf_param_var = Variable('ldv_dispatch_params_{}_{}'.format(automaton.identifier, state.identifier),
                                 None, decl.take_pointer, False)
 
-        if vf_param_var.name not in self.files[self.entry_file]['variables']:
-            self._add_global_variable(vf_param_var)
+        self._add_global_variable(vf_param_var)
         return vf_param_var
 
     def _action_base_block(self, analysis, automaton, state):
@@ -742,7 +732,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         if type(state.action) is Call:
             if not self._nested_automata:
-                checks = self._relevant_checks(state)
+                checks = state._relevant_checks()
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
@@ -755,11 +745,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 block.append(stm)
         elif type(state.action) is Dispatch:
             if not self._nested_automata:
-                checks = self._relevant_checks(state)
+                checks = state._relevant_checks()
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
-            call = self._dispatch(analysis, automaton, state)
+            call = self._dispatch(automaton, state)
 
             block.extend(call)
         elif type(state.action) is Receive:
@@ -864,6 +854,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             }
             new.code = cd
             state_stack.append(new)
+            new.code['final block'] = self._action_base_block(analysis, automaton, new)
         else:
             state_stack.append(list(automaton.fsa.initial_states)[0])
 
@@ -880,7 +871,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     'goto ldv_{}_{};'.format(state.action.name, automaton.identifier)
                 ]
             else:
-                new_v_code, code = self._action_base_block(analysis, automaton, state)
+                new_v_code, code = state.code['final block']
                 v_code.extend(new_v_code)
 
             if len(conditional_stack) > 0 and conditional_stack[-1]['condition'] == 'switch' and \
@@ -1134,7 +1125,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         v_code = []
 
         for state in block:
-            new_v_code, block = self._action_base_block(analysis, automaton, state)
+            new_v_code, block = state.code['final block']
             v_code.extend(new_v_code)
 
             if state.code and len(state.code['guard']) > 0 and first:
