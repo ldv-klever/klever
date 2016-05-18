@@ -81,9 +81,9 @@ class Command:
                             '/dev/null', '-', 'init/version.c') or not self.out_file):
             return True
 
-        # Filter out LD commands if output file is temporary. These commands likely correspond to CC commands filtered
-        # out above.
-        if self.type == 'LD' and self.out_file.endswith('.tmp'):
+        # Filter out LD commands if input file is absent or output file is temporary. The latter likely corresponds
+        # to CC commands filtered out above.
+        if self.type == 'LD' and (not self.out_file or self.out_file.endswith('.tmp')):
             return True
 
         return False
