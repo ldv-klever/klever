@@ -46,14 +46,16 @@ class ASE(core.components.Component):
             core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'), collect_all_stdout=True)[0])
 
         env = dict(os.environ)
-        env['LDV_ARG_SIGNS_FILE'] = os.path.relpath('arg signs', os.path.realpath(self.conf['source tree root']))
+        env['LDV_ARG_SIGNS_FILE'] = os.path.relpath('arg signs', os.path.join(self.conf['main working directory'],
+                                                                              self.conf['source tree root']))
 
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
 
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                with open(os.path.join(self.conf['source tree root'], cc_extra_full_desc_file['cc full desc file']),
-                          encoding='ascii') as fp:
+                with open(
+                        os.path.join(self.conf['main working directory'], cc_extra_full_desc_file['cc full desc file']),
+                        encoding='ascii') as fp:
                     cc_full_desc = json.load(fp)
 
                 self.logger.info('Request argument signatures for C file "{0}"'.format(cc_full_desc['in files'][0]))
@@ -62,16 +64,19 @@ class ASE(core.components.Component):
                                    tuple(['cif',
                                           '--in', cc_full_desc['in files'][0],
                                           '--aspect', os.path.relpath(request_aspect,
-                                                                      os.path.realpath(self.conf['source tree root'])),
+                                                                      os.path.join(self.conf['main working directory'],
+                                                                                   self.conf['source tree root'])),
                                           '--stage', 'instrumentation',
                                           '--out', os.path.relpath('arg signs.c',
-                                                                   os.path.realpath(self.conf['source tree root'])),
+                                                                   os.path.join(self.conf['main working directory'],
+                                                                                self.conf['source tree root'])),
                                           '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['keep intermediate files'] else []) +
                                          ['--'] +
                                          [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
                                          [gcc_search_dir]),
                                    env,
-                                   self.conf['source tree root'])
+                                   os.path.relpath(os.path.join(self.conf['main working directory'],
+                                                                self.conf['source tree root'])))
 
     main = extract_argument_signatures

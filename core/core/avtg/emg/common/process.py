@@ -1,68 +1,7 @@
 import re
 
 from core.avtg.emg.common.signature import Array, Function, Structure, Pointer
-
-
-__process_grammar = \
-'''
-(* Main expression *)
-FinalProcess = (Operators | Bracket)$;
-Operators = Switch | Sequence;
-
-(* Signle process *)
-Process = Null | ReceiveProcess | SendProcess | SubprocessProcess | ConditionProcess | Bracket;
-Null = null:'0';
-ReceiveProcess = receive:Receive;
-SendProcess = dispatch:Send;
-SubprocessProcess = subprocess:Subprocess;
-ConditionProcess = condition:Condition;
-Receive = '('[replicative:'!']name:identifier[number:Repetition]')';
-Send = '['[broadcast:'@']name:identifier[number:Repetition]']';
-Condition = '<'name:identifier[number:Repetition]'>';
-Subprocess = '{'name:identifier'}';
-
-(* Operators *)
-Sequence = sequence:SequenceExpr;
-Switch = options:SwitchExpr;
-SequenceExpr = @+:Process{'.'@+:Process}*;
-SwitchExpr = @+:Sequence{'|'@+:Sequence}+;
-
-(* Brackets *)
-Bracket = process:BracketExpr;
-BracketExpr = '('@:Operators')';
-
-(* Basic expressions and terminals *)
-Repetition = '['@:(number | label)']';
-identifier = /\w+/;
-number = /\d+/;
-label = /%\w+%/;
-'''
-__process_model = None
-
-
-def __undefaulted(x, tp):
-    if isinstance(x, list):
-        return [__undefaulted(element, tp) for element in x]
-    elif isinstance(x, tp):
-        return dict((k, __undefaulted(v, tp)) for (k, v) in x.iteritems())
-    else:
-        return x
-
-
-def process_parse(string):
-    __check_grammar()
-    ast = __process_model.parse(string, ignorecase=True)
-    ast = __undefaulted(ast, type(ast))
-
-    return ast
-
-
-def __check_grammar():
-    global __process_model
-
-    if not __process_model:
-        import grako
-        __process_model = grako.genmodel('process', __process_grammar)
+from core.avtg.emg.grammars.process import parse_process
 
 
 def generate_regex_set(subprocess_name):
@@ -161,35 +100,37 @@ class Access:
             target = self.list_interface[-1].declaration
 
         expression = variable.name
-        candidate = variable.declaration
         accesses = self.list_access[1:]
-        previous = None
-        while candidate:
-            tmp = candidate
 
-            if candidate.compare(target):
-                candidate = None
-                if type(previous) is Pointer:
-                    expression = "*({})".format(expression)
-            elif type(candidate) is Pointer:
-                candidate = candidate.points
-            elif type(candidate) is Array:
-                candidate = candidate.element
-                expression += '[{}]'.format(accesses.pop(0))
-            elif type(candidate) is Structure:
-                field = accesses.pop(0)
-                if field in candidate.fields:
-                    candidate = candidate.fields[field]
+        if len(accesses) > 0:
+            candidate = variable.declaration
+            previous = None
+            while candidate:
+                tmp = candidate
+
+                if candidate.compare(target):
+                    candidate = None
                     if type(previous) is Pointer:
-                        expression += '->{}'.format(field)
+                        expression = "*({})".format(expression)
+                elif type(candidate) is Pointer:
+                    candidate = candidate.points
+                elif type(candidate) is Array:
+                    candidate = candidate.element
+                    expression += '[{}]'.format(accesses.pop(0))
+                elif type(candidate) is Structure:
+                    field = accesses.pop(0)
+                    if field in candidate.fields:
+                        candidate = candidate.fields[field]
+                        if type(previous) is Pointer:
+                            expression += '->{}'.format(field)
+                        else:
+                            expression += '.{}'.format(field)
                     else:
-                        expression += '.{}'.format(field)
+                        raise ValueError('Cannot build access from given variable')
                 else:
-                    raise ValueError('Cannot build access from given variable')
-            else:
-                raise ValueError('CAnnot build access from given variable')
+                    raise ValueError('CAnnot build access from given variable')
 
-            previous = tmp
+                previous = tmp
 
         return expression
 
@@ -212,6 +153,13 @@ class Label:
     @property
     def interfaces(self):
         return sorted(self.__signature_map.keys())
+
+    @property
+    def declarations(self):
+        if self.prior_signature:
+            return [self.prior_signature]
+        else:
+            return sorted(self.__signature_map.values())
 
     def get_declaration(self, identifier):
         if identifier in self.__signature_map:
@@ -257,7 +205,7 @@ class Process:
         self.process = None
         self.__process_ast = None
         self.__accesses = None
-        self.__forbidded_implementations = set()
+        self.allowed_implementations = dict()
 
     @property
     def unmatched_receives(self):
@@ -292,13 +240,34 @@ class Process:
         return name
 
     @property
+    def process_ast(self):
+        if not self.__process_ast:
+            self.__process_ast = parse_process(self.process)
+        return self.__process_ast
+
+    @property
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
-    def process_ast(self, cache=True):
-        if not self.__process_ast or not cache:
-            self.__process_ast = process_parse(self.process)
-        return self.__process_ast
+    def add_label(self, name, declaration, value):
+        lb = Label(name)
+        lb.prior_signature = declaration
+        lb.value = value
+
+        self.labels[name] = lb
+        acc = Access('%{}%'.format(name))
+        acc.label = lb
+        acc.list_access = [lb.name]
+        self.__accesses[acc.expression] = [acc]
+        return lb
+
+    def add_condition(self, name, condition, statements):
+        new = Condition(name)
+        self.actions[name] = new
+
+        new.condition = condition
+        new.statements = statements
+        return new
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
@@ -434,29 +403,11 @@ class Process:
         else:
             return False
 
-    def forbide_except(self, analysis, implementation):
-        accesses = self.accesses()
-        for access_list in [accesses[name] for name in sorted(accesses.keys())]:
-            for access in access_list:
-                implementations = self.get_implementations(analysis, access)
-                base_values = set([i.base_value for i in implementations])
-                identifiers = set([i.identifier for i in implementations])
-
-                if implementation.value in base_values:
-                    for candidate in [i for i in implementations if i.base_value != implementation.value]:
-                        self.__forbidded_implementations.add(candidate.identifier)
-                elif implementation.identifier in identifiers:
-                    for candidate in [i for i in implementations if i.identifier != implementation.identifier]:
-                        self.__forbidded_implementations.add(candidate.identifier)
-
-    def get_implementations(self, analysis, access):
+    def get_implementation(self, access):
         if access.interface:
-            implementations = analysis.implementations(access.interface)
-            return [impl for impl in implementations if impl.identifier not in self.__forbidded_implementations]
-        elif access.label and len(access.list_access) == 1:
-            return []
+            return self.allowed_implementations[access.expression][access.interface.identifier]
         else:
-            raise ValueError("Cannot resolve access '{}'".format(access.expression))
+            return None
 
 
 class Subprocess:
@@ -467,9 +418,10 @@ class Subprocess:
         self.condition = None
         self.__process_ast = None
 
-    def process_ast(self, cache=True):
-        if not self.__process_ast or not cache:
-            self.__process_ast = process_parse(self.process)
+    @property
+    def process_ast(self):
+        if not self.__process_ast:
+            self.__process_ast = parse_process(self.process)
         return self.__process_ast
 
 
@@ -500,6 +452,9 @@ class Call:
         self.condition = None
         self.callback = None
         self.parameters = []
+        self.retlabel = None
+        self.pre_call = []
+        self.post_call = []
 
 
 class CallRetval:

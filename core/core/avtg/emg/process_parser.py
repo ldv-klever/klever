@@ -2,8 +2,20 @@ from core.avtg.emg.common.signature import import_signature
 from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval,\
     generate_regex_set
 
+####################################################################################################################
+# PUBLIC FUNCTIONS
+####################################################################################################################
+
 
 def parse_event_specification(logger, raw):
+    """
+    Parse event categories specification and create all existing Process objects.
+
+    :param logger: logging object.
+    :param raw: Dictionary with content of JSON file of a specification.
+    :return: [List of Process objects which correspond to kernel function models],
+             [List of Process objects which correspond to processes with callback calls]
+    """
     env_processes = {}
     models = {}
 
@@ -27,6 +39,10 @@ def parse_event_specification(logger, raw):
         raise KeyError("Model cannot be generated without environment processes")
 
     return models, env_processes
+
+####################################################################################################################
+# PRIVATE FUNCTIONS
+####################################################################################################################
 
 
 def __import_process(name, dic):
@@ -90,6 +106,14 @@ def __import_process(name, dic):
         # Add parameters
         if 'parameters' in dic['actions'][subprocess_name]:
             process.actions[subprocess_name].parameters = dic['actions'][subprocess_name]['parameters']
+
+        # Add pre-callback operations
+        if 'pre-call' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].pre_call = dic['actions'][subprocess_name]['pre-call']
+
+        # Add post-callback operations
+        if 'post-call' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].post_call = dic['actions'][subprocess_name]['post-call']
 
         # Add callback return value
         if 'callback return value' in dic['actions'][subprocess_name]:

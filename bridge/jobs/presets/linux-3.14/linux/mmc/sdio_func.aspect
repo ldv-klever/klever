@@ -1,8 +1,5 @@
 before: file ("$this")
 {
-#include <linux/module.h>
-#include <linux/kernel.h>	
-
 struct sdio_func;
 
 extern void ldv_sdio_claim_host(struct sdio_func *func);

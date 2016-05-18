@@ -1,4 +1,5 @@
-#include <verifier/rcv.h>
+#include <linux/ldv/common.h>
+#include <verifier/common.h>
 
 /* There are 2 possible states of USB device reference counters. */
 enum

@@ -1,6 +1,5 @@
 before: file ("$this")
 {
-#include <linux/kernel.h>
 #include <linux/mutex.h>
 
 extern void mutex_lock(struct mutex *);

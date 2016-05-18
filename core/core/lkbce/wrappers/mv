@@ -1,0 +1,7 @@
+#!/usr/bin/python3
+
+import sys
+
+from core.lkbce.wrappers.common import Command
+
+exit(Command(sys.argv).launch())

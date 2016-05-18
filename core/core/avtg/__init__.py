@@ -11,7 +11,7 @@ import core.components
 import core.utils
 
 
-def before_launch_all_components(context):
+def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj descs'] = multiprocessing.Queue()
     context.mqs['AVTG src tree root'] = multiprocessing.Queue()
@@ -257,12 +257,12 @@ class AVTG(core.components.Component):
     def get_hdr_arch(self):
         self.logger.info('Get architecture name to search for architecture specific header files')
 
-        self.conf['sys']['hdr arch'] = self.mqs['hdr arch'].get()
+        self.conf['header architecture'] = self.mqs['hdr arch'].get()
 
         self.mqs['hdr arch'].close()
 
         self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
-            self.conf['sys']['hdr arch']))
+            self.conf['header architecture']))
 
     def get_src_tree_root(self):
         self.logger.info('Get source tree root')
@@ -275,10 +275,6 @@ class AVTG(core.components.Component):
 
     def generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
-
-        # TODO: use different MQs for different workers when abstract verification task descriptions will be generated
-        # in parallel (see below).
-        self.mqs.update({'abstract task description': multiprocessing.Queue()})
 
         while True:
             verification_obj_desc = self.mqs['verification obj descs'].get()
@@ -309,10 +305,9 @@ class AVTG(core.components.Component):
             'Generate abstract verification task description for {0}'.format(
                 'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals)))
 
-        self.plugins_work_dir = os.path.relpath(
-            os.path.join(self.conf['source tree root'], '{0}.task'.format(verification_obj_desc['id']),
-                         rule_spec_desc['id']))
-        os.makedirs(self.plugins_work_dir)
+        self.plugins_work_dir = os.path.join(os.path.basename(self.conf['source tree root']),
+                                             verification_obj_desc['id'], rule_spec_desc['id'])
+        os.makedirs(self.plugins_work_dir, exist_ok=True)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
 
         # Initial abstract verification task looks like corresponding verification object.
@@ -322,7 +317,7 @@ class AVTG(core.components.Component):
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = []
             for cc_full_desc_file in grp['cc full desc files']:
-                with open(os.path.join(self.conf['source tree root'], cc_full_desc_file), encoding='ascii') as fh:
+                with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='ascii') as fh:
                     command = json.load(fh)
                 in_file = command['in files'][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})
@@ -339,36 +334,35 @@ class AVTG(core.components.Component):
 
         # Invoke all plugins one by one.
         cur_abstract_task_desc = initial_abstract_task_desc
-        is_plugin_failed = False
-        for plugin_desc in rule_spec_desc['plugins']:
-            self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+        plugin_mqs = self.mqs
+        plugin_mqs.update({'abstract task description': multiprocessing.Queue()})
+        try:
+            for plugin_desc in rule_spec_desc['plugins']:
+                self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
-            # Put either initial or current description of abstract verification task.
-            self.mqs['abstract task description'].put(cur_abstract_task_desc)
+                # Put either initial or current description of abstract verification task.
+                plugin_mqs['abstract task description'].put(cur_abstract_task_desc)
 
-            # Get plugin configuration on the basis of common configuration, plugin options specific for rule
-            # specification and information on rule specification itself.
-            plugin_conf = copy.deepcopy(self.conf)
-            if 'options' in plugin_desc:
-                plugin_conf.update(plugin_desc['options'])
-            plugin_conf.update({'rule spec id': rule_spec_desc['id']})
-            if 'bug kinds' in rule_spec_desc:
-                plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
+                # Get plugin configuration on the basis of common configuration, plugin options specific for rule
+                # specification and information on rule specification itself.
+                plugin_conf = copy.deepcopy(self.conf)
+                if 'options' in plugin_desc:
+                    plugin_conf.update(plugin_desc['options'])
+                plugin_conf.update({'rule spec id': rule_spec_desc['id']})
+                if 'bug kinds' in rule_spec_desc:
+                    plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
 
-            p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                      '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
-                                      os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
-                                      initial_attrs, True, True)
+                p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, plugin_mqs,
+                                          '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
+                                          os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
+                                          initial_attrs, True, True)
 
-            # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
-            # verification objects or/and rule specifications.
-            try:
                 p.start()
                 # See "Joining processes that use queues" in multiprocessing documentation.
                 while True:
                     p.join(0.5)
                     try:
-                        cur_abstract_task_desc = self.mqs['abstract task description'].get_nowait()
+                        cur_abstract_task_desc = plugin_mqs['abstract task description'].get_nowait()
                         break
                     except queue.Empty:
                         # Complain just if plugin returns well.
@@ -379,48 +373,35 @@ class AVTG(core.components.Component):
                 # Wait for plugin after it put abstract verification task description back to queue, in particular catch
                 # exceptions that may happen.
                 p.join()
-            except core.components.ComponentError:
-                # Clean up message queue to prevent intermixing of data for different abstract verification tasks.
-                self.mqs['abstract task description'].put(None)
-                while True:
-                    cur_abstract_task_desc = self.mqs['abstract task description'].get()
 
-                    if cur_abstract_task_desc is None:
-                        break
-                is_plugin_failed = True
-                break
+                # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
+                # anything before.
+                if self.conf['keep intermediate files']:
+                    plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
+                    if os.path.isfile(plugin_conf_file):
+                        raise FileExistsError('Plugins configuration file "{0}" already exists'.format(
+                            plugin_conf_file))
+                    self.logger.debug('Create plugins configuration file "{0}"'.format(plugin_conf_file))
+                    with open(plugin_conf_file, 'w', encoding='ascii') as fp:
+                        json.dump(plugin_conf, fp, sort_keys=True, indent=4)
 
-            # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
-            # anything before.
-            if self.conf['keep intermediate files']:
-                plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
-                if os.path.isfile(plugin_conf_file):
-                    raise FileExistsError('Plugins configuration file "{0}" already exists'.format(
-                        plugin_conf_file))
-                self.logger.debug('Create plugins configuration file "{0}"'.format(plugin_conf_file))
-                with open(plugin_conf_file, 'w', encoding='ascii') as fp:
-                    json.dump(plugin_conf, fp, sort_keys=True, indent=4)
+                    cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(),
+                                                               'abstract task.json')
+                    if os.path.isfile(cur_abstract_task_desc_file):
+                        raise FileExistsError(
+                            'Current abstract verification task description file "{0}" already exists'.format(
+                                cur_abstract_task_desc_file))
+                    self.logger.debug('Create current abstract verification task description file "{0}"'.format(
+                        cur_abstract_task_desc_file))
+                    with open(cur_abstract_task_desc_file, 'w', encoding='ascii') as fp:
+                        json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
 
-                cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(),
-                                                           'abstract task.json')
-                if os.path.isfile(cur_abstract_task_desc_file):
-                    raise FileExistsError(
-                        'Current abstract verification task description file "{0}" already exists'.format(
-                            cur_abstract_task_desc_file))
-                self.logger.debug('Create current abstract verification task description file "{0}"'.format(
-                    cur_abstract_task_desc_file))
-                with open(cur_abstract_task_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
-
-        # Finalize generation of abstract verification task description.
-        if is_plugin_failed:
-            self.abstract_task_desc = None
-        else:
             # Dump final abstract verification task description that equals to abstract verification task description
             # received from last plugin. But corresponding file will be put not to plugin working directory - it will
             # be put near initial abstract verification task description.
             if self.conf['keep intermediate files']:
-                final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
+                final_abstract_task_desc_file = os.path.join(self.plugins_work_dir,
+                                                             'final abstract task.json')
                 if os.path.isfile(final_abstract_task_desc_file):
                     raise FileExistsError(
                         'Final abstract verification task description file "{0}" already exists'.format(
@@ -435,3 +416,9 @@ class AVTG(core.components.Component):
 
             # Count the number of successfully generated abstract verification task descriptions.
             self.abstract_task_desc_num += 1
+        # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
+        # verification objects or/and rule specifications.
+        except core.components.ComponentError:
+            self.abstract_task_desc = None
+        finally:
+            plugin_mqs['abstract task description'].close()

@@ -1,4 +1,5 @@
 import json
+import re
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
@@ -7,9 +8,17 @@ from core.avtg.emg.common.signature import Function, Structure, Union, Array, Po
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
+    """Implements parser of source analysis and representation of module interface categories specification."""
 
-    def __init__(self, logger):
+    def __init__(self, logger, conf):
+        """
+        Setup initial attributes and get logger object.
+
+        :param logger: logging object.
+        :param conf: Configuration properties dictionary.
+        """
         self.logger = logger
+        self.conf = conf
         self.interfaces = {}
         self.kernel_functions = {}
         self.kernel_macro_functions = {}
@@ -23,10 +32,25 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self._implementations_cache = {}
         self._containers_cache = {}
         self._interface_cache = {}
+        self._function_calls_cache = {}
+        self._kernel_function_calls_cache = {}
 
         setup_collection(self.types, self.typedefs)
 
+    ####################################################################################################################
+    # PUBLIC METHODS
+    ####################################################################################################################
+
     def import_specification(self, specification=None, module_specification=None, analysis=None):
+        """
+        Perform main routin with import of interface categories specification and then results of source analysis.
+        After that object contains only relevant to environment generation interfaces and their implementations.
+
+        :param specification: Dictionary with content of a JSON specification prepared manually.
+        :param module_specification: Dictionary with content of manually prepared module categories specification.
+        :param analysis: Dictionary with content of source analysis.
+        :return: None
+        """
         # Import typedefs if there are provided
         if analysis and 'typedefs' in analysis:
             import_typedefs(analysis['typedefs'])
@@ -43,6 +67,59 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.logger.info("Import results of source code analysis")
         self.__import_source_analysis(analysis)
 
+    def collect_relevant_models(self, function):
+        """
+        Collects all kernel functions which can be called in a callstack of a provided module function.
+
+        :param function: Module function name string.
+        :return: List with kernel functions name strings.
+        """
+        self.logger.debug("Collect relevant kernel functions called in a call stack of callback '{}'".format(function))
+        if not function in self._kernel_function_calls_cache:
+            level_counter = 0
+            max_level = None
+
+            if 'callstack deep search' in self.conf:
+                max_level = int(self.conf['callstack deep search'])
+
+            # Simple BFS with deep counting from the given function
+            relevant = set()
+            level_functions = {function}
+            processed = set()
+            while len(level_functions) > 0 and (not max_level or level_counter < max_level):
+                next_level = set()
+
+                for fn in level_functions:
+                    # kernel functions + modules functions
+                    kfs, mfs = self.__functions_called_in(fn, processed)
+                    next_level.update(mfs)
+                    relevant.update(kfs)
+
+                level_functions = next_level
+                level_counter += 1
+
+            self._kernel_function_calls_cache[function] = relevant
+        else:
+            self.logger.debug('Cache hit')
+            relevant = self._kernel_function_calls_cache[function]
+
+        return sorted(relevant)
+
+    @staticmethod
+    def callback_name(call):
+        """
+        Resolve function name from simple expressions which contains explicit function name like '& myfunc', '(myfunc)',
+        '(& myfunc)' or 'myfunc'.
+
+        :param call: Expression string.
+        :return: Function name string.
+        """
+        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
+        if name_re.fullmatch(call):
+            return name_re.fullmatch(call).group(1)
+        else:
+            return None
+
     def save_to_file(self, file):
         raise NotImplementedError
         # todo: export specification (issue 6561)
@@ -52,25 +129,30 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #with open(file, "w", encoding="ascii") as fh:
         #    fh.write(content)
 
-    def collect_relevant_models(self, function):
-        self.logger.debug("Collect relevant kernel functions called in a call stack of function ''".format(function))
-        process_names = [function]
-        processed_names = []
-        relevant = []
-        while len(process_names) > 0:
-            name = process_names.pop()
+    ####################################################################################################################
+    # PRIVATE METHODS
+    ####################################################################################################################
 
-            if name in self.modules_functions:
-                for file in sorted(self.modules_functions[name].keys()):
-                    for called in self.modules_functions[name][file]['calls']:
-                        if called in self.modules_functions and called not in processed_names and \
-                                called not in process_names:
-                            process_names.append(called)
+    def __functions_called_in(self, function, processed):
+        kfs = set()
+        mfs = set()
+        processed.add(function)
+
+        if function in self.modules_functions:
+            self.logger.debug("Collect relevant functions called in a call stack of function '{}'".format(function))
+            if function in self._function_calls_cache:
+                self.logger.debug("Cache hit")
+                return self._function_calls_cache[function]
+            else:
+                for file in sorted(self.modules_functions[function].keys()):
+                    for called in self.modules_functions[function][file]['calls']:
+                        if called in self.modules_functions and called not in processed:
+                            mfs.add(called)
                         elif called in self.kernel_functions:
-                            relevant.append(called)
+                            kfs.add(called)
 
-            processed_names.append(name)
-        return relevant
+                self._function_calls_cache[function] = [kfs, mfs]
+        return kfs, mfs
 
     @staticmethod
     def __check_category_relevance(function):

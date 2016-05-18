@@ -54,11 +54,13 @@ class ProcessModel:
         init_label.prior_signature = import_signature("int (*f)(void)")
         self.logger.debug("Found init function {}".format(init_name))
 
+        # Add ret value
         ret_label = Label('ret')
         ret_label.prior_signature = import_signature("int label")
-        ret_init = CallRetval('ret_init')
-        ret_init.retlabel = "%ret%"
-        ret_init.callback = init_subprocess.callback
+        init_subprocess.retlabel = "%ret%"
+        init_subprocess.post_call = [
+            '%ret% = ldv_post_init(%ret%);'
+        ]
 
         # Generate exit subprocess
         exit_subprocess = Call('exit')
@@ -80,7 +82,6 @@ class ProcessModel:
         ep.labels['ret'] = ret_label
         ep.actions['init'] = init_subprocess
         ep.actions['exit'] = exit_subprocess
-        ep.actions['ret_init'] = ret_init
         self.logger.debug("Artificial process for invocation of Init and Exit module functions is generated")
 
     def __finish_entry(self):
@@ -88,7 +89,7 @@ class ProcessModel:
                          " kernel functions")
         # Retval check
         # todo: it can be done much, much better (relevant to issue #6566)
-        dispatches = ['[init_success]']
+        dispatches = []
         # All default registrations and then deregistrations
         names = [name for name in sorted(self.entry_process.actions.keys()) if name not in ["init", "exit"] and
                  type(self.entry_process.actions[name]) is Dispatch]
@@ -108,7 +109,8 @@ class ProcessModel:
         self.entry_process.actions['init_failed'] = failed
 
         stop = Condition('stop')
-        stop.statements = ["ldv_check_final_state();"]
+        stop.statements = ["ldv_check_final_state();",
+                           "ldv_stop();"]
         self.entry_process.actions['stop'] = stop
 
         none = Condition('none')
@@ -116,8 +118,12 @@ class ProcessModel:
         self.entry_process.actions['none'] = none
 
         # Add subprocesses finally
-        self.entry_process.process = "[init].(ret_init).(<init_failed>.<stop> | <init_success>.({} | <none>).[exit]." \
-                                      "<stop>)".format('.'.join(dispatches))
+        if len(dispatches):
+            default_dispatches = '({} | <none>)'.format('.'.join(dispatches))
+        else:
+            default_dispatches = '<none>'
+        self.entry_process.process = "[init].(<init_failed>.<stop> | <init_success>.{}.[exit]." \
+                                      "<stop>)".format(default_dispatches)
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models
@@ -156,7 +162,7 @@ class ProcessModel:
                                  format(category))
 
     def __import_kernel_models(self, analysis):
-        for function in self.__abstr_model_processes:
+        for function in sorted(list(self.__abstr_model_processes.keys())):
             if function in sorted(analysis.kernel_functions.keys()):
                 self.logger.debug("Add model of function '{}' to an environment model".format(function))
                 new_process = self.__add_process(analysis, self.__abstr_model_processes[function], model=True)

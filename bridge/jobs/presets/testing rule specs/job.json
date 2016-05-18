@@ -1,0 +1,70 @@
+{
+  "Common": {
+    "Linux kernel": {
+      "source": "linux-3.14",
+      "configuration": "allmodconfig",
+      "build kernel": false
+    },
+    "LKVOG strategy": {"name": "separate modules"},
+    "rule specifications DB": "rule specs.json",
+    "VTG strategy": {
+      "name": "all bug kinds merge",
+      "verifier": {
+        "name": "CPAchecker",
+        "version": "20376",
+        "options": [{"-ldv": ""}]
+      },
+      "resource limits": {
+        "wall time": 1000000,
+        "CPU time": 900000,
+        "memory size": 10000000000,
+        "CPU model": null,
+        "number of CPU cores": 1,
+        "result size": 1000000
+      },
+      "merge source files": true
+    }
+  },
+  "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mutex",
+        "modules": ["double-lock.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mutex",
+        "modules": ["double-unlock.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mutex",
+        "modules": ["double-unlock-2.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mutex",
+        "modules": ["locked-at-exit.ko"]
+      },
+      "rule specifications": ["linux:mutex:as"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["created-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    }
+  ]
+}
