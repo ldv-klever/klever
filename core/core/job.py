@@ -6,6 +6,7 @@ import os
 import re
 import tarfile
 import traceback
+import types
 
 import core.utils
 
@@ -36,6 +37,7 @@ class Job(core.utils.CallbacksCaller):
         self.name = None
         self.work_dir = None
         self.mqs = {}
+        self.locks = {}
         self.uploading_reports_process = None
         self.type = type
         self.components_common_conf = None
@@ -45,10 +47,11 @@ class Job(core.utils.CallbacksCaller):
         self.component_processes = []
         self.results = []
 
-    def decide(self, conf, mqs, uploading_reports_process):
+    def decide(self, conf, mqs, locks, uploading_reports_process):
         self.logger.info('Decide job')
 
         self.mqs = mqs
+        self.locks = locks
         self.uploading_reports_process = uploading_reports_process
         self.extract_archive()
         self.get_class()
@@ -56,13 +59,54 @@ class Job(core.utils.CallbacksCaller):
         self.get_sub_jobs()
 
         if self.sub_jobs:
-            for sub_job in self.sub_jobs:
-                sub_job.decide_sub_job()
+            self.logger.info('Decide sub-jobs')
+
+            sub_job_solvers_num = core.utils.get_parallel_threads_num(self.logger, self.components_common_conf,
+                                                                      'Sub-jobs processing')
+            self.logger.debug('Sub-jobs will be decided in parallel by "{0}" solvers'.format(sub_job_solvers_num))
+
+            self.mqs['sub-job indexes'] = multiprocessing.Queue()
+            for i in range(len(self.sub_jobs)):
+                self.mqs['sub-job indexes'].put(i)
+            for i in range(sub_job_solvers_num):
+                self.mqs['sub-job indexes'].put(None)
+
+            sub_job_solver_processes = []
+            try:
+                for i in range(sub_job_solvers_num):
+                    p = multiprocessing.Process(target=self.decide_sub_job, name='Worker ' + str(i))
+                    p.start()
+                    sub_job_solver_processes.append(p)
+
+                self.logger.info('Wait for subcomponents')
+                while True:
+                    operating_sub_job_solvers_num = 0
+
+                    for p in sub_job_solver_processes:
+                        p.join(1.0 / len(sub_job_solver_processes))
+                        operating_sub_job_solvers_num += p.is_alive()
+
+                    if not operating_sub_job_solvers_num:
+                        break
+            finally:
+                for p in sub_job_solver_processes:
+                    if p.is_alive():
+                        p.stop()
         else:
             # Klever Core working directory is used for the only sub-job that is job itself.
-            self.decide_sub_job()
+            self.__decide_sub_job()
 
     def decide_sub_job(self):
+        while True:
+            sub_job_index = self.mqs['sub-job indexes'].get()
+
+            if sub_job_index is None:
+                self.logger.debug('Sub-job indexes message queue was terminated')
+                break
+
+            self.sub_jobs[sub_job_index].__decide_sub_job()
+
+    def __decide_sub_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
 
         # Specify callbacks to collect verification statuses from VTG. They will be used to
@@ -167,6 +211,7 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.name = sub_job_name
                 sub_job.work_dir = sub_job_work_dir
                 sub_job.mqs = self.mqs
+                sub_job.locks = self.locks
                 sub_job.uploading_reports_process = self.uploading_reports_process
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job.components_common_conf = copy.deepcopy(self.components_common_conf)
@@ -213,7 +258,7 @@ class Job(core.utils.CallbacksCaller):
             try:
                 for component in self.components:
                     p = component(self.components_common_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                  separate_from_parent=True)
+                                  self.locks, separate_from_parent=True)
                     p.start()
                     self.component_processes.append(p)
 

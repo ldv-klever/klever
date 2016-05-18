@@ -45,10 +45,6 @@ class ASE(core.components.Component):
         gcc_search_dir = '-isystem{0}'.format(
             core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'), collect_all_stdout=True)[0])
 
-        env = dict(os.environ)
-        env['LDV_ARG_SIGNS_FILE'] = os.path.relpath('arg signs', os.path.join(self.conf['main working directory'],
-                                                                              self.conf['source tree root']))
-
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Request argument signatures for C files of group "{0}"'.format(grp['id']))
 
@@ -60,16 +56,20 @@ class ASE(core.components.Component):
 
                 self.logger.info('Request argument signatures for C file "{0}"'.format(cc_full_desc['in files'][0]))
 
+                env = dict(os.environ)
+                env['LDV_ARG_SIGNS_FILE'] = os.path.relpath('arg signs',
+                                                            os.path.join(self.conf['main working directory'],
+                                                                         cc_full_desc['cwd']))
                 core.utils.execute(self.logger,
                                    tuple(['cif',
                                           '--in', cc_full_desc['in files'][0],
                                           '--aspect', os.path.relpath(request_aspect,
                                                                       os.path.join(self.conf['main working directory'],
-                                                                                   self.conf['source tree root'])),
+                                                                                   cc_full_desc['cwd'])),
                                           '--stage', 'instrumentation',
                                           '--out', os.path.relpath('arg signs.c',
                                                                    os.path.join(self.conf['main working directory'],
-                                                                                self.conf['source tree root'])),
+                                                                                cc_full_desc['cwd'])),
                                           '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['keep intermediate files'] else []) +
                                          ['--'] +
@@ -77,6 +77,6 @@ class ASE(core.components.Component):
                                          [gcc_search_dir]),
                                    env,
                                    os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                                self.conf['source tree root'])))
+                                                                cc_full_desc['cwd'])))
 
     main = extract_argument_signatures

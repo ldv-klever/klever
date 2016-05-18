@@ -19,7 +19,7 @@ class ComponentStopped(ChildProcessError):
 
 
 class Component(multiprocessing.Process, core.utils.CallbacksCaller):
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, id=None, work_dir=None, attrs=None,
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
                  separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
@@ -31,6 +31,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         self.parent_id = parent_id
         self.callbacks = callbacks
         self.mqs = mqs
+        self.locks = locks
         self.attrs = attrs
         # Create special message queue where child resources of processes separated from parents will be printed.
         if separate_from_parent:
@@ -197,7 +198,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
             self.logger.warning('Component "{0}" exitted with "{1}"'.format(self.name, self.exitcode))
             raise ComponentError('Component "{0}" failed'.format(self.name))
 
-    # TODO: very close to code in core/__init__.py. Maybe join them.
+    # TODO: very close to code in job.py. Maybe join them.
     def launch_subcomponents(self, *subcomponents):
         subcomponent_processes = []
         try:
@@ -207,7 +208,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                 # Do not try to separate these subcomponents from their parents - it is a true headache.
                 # We always include child resources into resources of these components since otherwise they will
                 # disappear from resources statistics.
-                p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs,
+                p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                                        include_child_resources=True)
                 p.start()
                 subcomponent_processes.append(p)

@@ -80,9 +80,7 @@ class ABKM(core.components.Component):
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
-                extra_c_file['C file'] = os.path.relpath(trimmed_c_file,
-                                                         os.path.join(self.conf['main working directory'],
-                                                                      self.conf['source tree root']))
+                extra_c_file['C file'] = trimmed_c_file
 
             # TODO: CIL can't proces files with spaces in their names. Try to screen spaces.
             with open('cil input files.txt', 'w', encoding='ascii') as fp:
@@ -92,11 +90,8 @@ class ABKM(core.components.Component):
             core.utils.execute(self.logger,
                                (
                                    'cilly.asm.exe',
-                                   '--extrafiles', os.path.relpath('cil input files.txt',
-                                                                   os.path.join(self.conf['main working directory'],
-                                                                                self.conf['source tree root'])),
-                                   '--out', os.path.relpath('cil.i', os.path.join(self.conf['main working directory'],
-                                                                                  self.conf['source tree root'])),
+                                   '--extrafiles', 'cil input files.txt',
+                                   '--out', 'cil.i',
                                    '--printCilAsIs',
                                    '--domakeCFG',
                                    '--decil',
@@ -111,9 +106,7 @@ class ABKM(core.components.Component):
                                    # Don't transform structure fields into variables or arrays.
                                    '--no-split-structs',
                                    '--rmUnusedInlines'
-                               ),
-                               cwd=os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                                self.conf['source tree root'])))
+                               ))
 
             self.task_desc['files'].append('cil.i')
 
@@ -228,20 +221,23 @@ class ABKM(core.components.Component):
                     for key in graphml.getElementsByTagName('key'):
                         if key.getAttribute('id') == 'originfile':
                             default = key.getElementsByTagName('default')[0]
-                            default_src_file = self.__normalize_path(default.firstChild)
+                            default_src_file = default.firstChild.data
                             src_files.add(default_src_file)
                     graph = graphml.getElementsByTagName('graph')[0]
                     for edge in graph.getElementsByTagName('edge'):
                         for data in edge.getElementsByTagName('data'):
                             if data.getAttribute('key') == 'originfile':
-                                src_files.add(self.__normalize_path(data.firstChild))
+                                src_files.add(data.firstChild.data)
 
                     self.logger.info('Extract notes and warnings from source files referred by error trace')
                     notes = {}
                     warns = {}
                     for src_file in src_files:
-                        with open(os.path.join(self.conf['main working directory'], self.conf['source tree root'],
-                                               src_file), encoding='utf8') as fp:
+                        if not os.path.isfile(src_file):
+                            raise FileNotFoundError(
+                                'File "{0}" referred by error trace does not exist'.format(src_file))
+
+                        with open(src_file, encoding='utf8') as fp:
                             i = 0
                             for line in fp:
                                 i += 1
@@ -374,15 +370,6 @@ class ABKM(core.components.Component):
                     with open('witness.processed.graphml', 'w', encoding='utf8') as fp:
                         graphml.writexml(fp)
 
-                    # TODO: copy is done just to create unsafe report later, so get rid of it sometime.
-                    # Copy all source files referred by error trace to working directory.
-                    if src_files:
-                        self.logger.debug('Source files referred by error trace are: "{}"'.format(src_files))
-                        for src_file in src_files:
-                            os.makedirs(os.path.dirname(src_file), exist_ok=True)
-                            shutil.copy(os.path.join(self.conf['main working directory'], self.conf['source tree root'],
-                                                     src_file), src_file)
-
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
@@ -420,16 +407,3 @@ class ABKM(core.components.Component):
 
         self.logger.info('Remove verification task "{0}"'.format(task_id))
         session.remove_task(task_id)
-
-    def __normalize_path(self, path):
-        # Each file is specified either via absolute path or path relative to source tree root.
-        # Make all paths relative to source tree root.
-        if os.path.isabs(path.data):
-            path.data = os.path.relpath(path.data, os.path.join(self.conf['main working directory'],
-                                                                self.conf['source tree root']))
-
-        if not os.path.isfile(
-                os.path.join(self.conf['main working directory'], self.conf['source tree root'], path.data)):
-            raise FileNotFoundError('File "{0}" referred by error trace does not exist'.format(path.data))
-
-        return path.data

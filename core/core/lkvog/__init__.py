@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import copy
 import json
 import multiprocessing
 import os
@@ -27,50 +26,12 @@ def after_build_linux_kernel(context):
     context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
 
 
-def after_process_linux_kernel_raw_build_cmd(context):
-    linux_kernel_build_cmd_full_desc_file = None
-
-    if context.linux_kernel['build cmd']['type'] == 'CC':
-        # Filter out CC commands if input file is absent or '/dev/null' or STDIN ('-') or 'init/version.c' or output
-        # file is absent. They won't be used when building verification object descriptions.
-        if not context.linux_kernel['build cmd']['in files'] \
-           or context.linux_kernel['build cmd']['in files'][0] == '/dev/null' \
-           or context.linux_kernel['build cmd']['in files'][0] == '-' \
-           or context.linux_kernel['build cmd']['in files'][0] == 'init/version.c' \
-           or not context.linux_kernel['build cmd']['out file']:
-            return
-
-        linux_kernel_build_cmd_full_desc_file = os.path.join(os.path.basename(context.linux_kernel['work src tree']),
-                                                             '{0}.json'.format(
-                                                                 context.linux_kernel['build cmd']['out file']))
-
-        if os.path.isfile(linux_kernel_build_cmd_full_desc_file):
-            # Sometimes when building several individual modules the same modules are built several times including
-            # building of corresponding mod.o files. Do not fail in this case.
-            if not context.linux_kernel['build cmd']['out file'].endswith('mod.o'):
-                raise FileExistsError('Linux kernel CC full description file "{0}" already exists'.format(
-                    linux_kernel_build_cmd_full_desc_file))
-        else:
-            context.logger.debug('Dump Linux kernel CC full description to file "{0}"'.format(
-                linux_kernel_build_cmd_full_desc_file))
-            os.makedirs(os.path.dirname(linux_kernel_build_cmd_full_desc_file), exist_ok=True)
-            with open(linux_kernel_build_cmd_full_desc_file, 'w', encoding='ascii') as fp:
-                json.dump({attr: context.linux_kernel['build cmd'][attr] for attr in ('in files', 'out file', 'opts')}, fp,
-                          sort_keys=True, indent=4)
-
-    # We need to copy build command description since it may be accidently overwritten by LKBCE.
-    linux_kernel_build_cmd_desc = {
-        attr: copy.deepcopy(context.linux_kernel['build cmd'][attr]) for attr in
-        ('type', 'in files', 'out file') if attr in context.linux_kernel['build cmd']
-        }
-    if linux_kernel_build_cmd_full_desc_file:
-        linux_kernel_build_cmd_desc.update({'full desc file': os.path.relpath(linux_kernel_build_cmd_full_desc_file,
-                                                                              context.conf['main working directory'])})
-    linux_kernel_build_cmd_desc.update({'linux kernel work src tree': context.linux_kernel['work src tree']})
-    context.mqs['Linux kernel build cmd descs'].put(linux_kernel_build_cmd_desc)
+def after_get_linux_kernel_build_cmd_desc(context):
+    with open(context.linux_kernel['build cmd desc file'], encoding='ascii') as fp:
+        context.mqs['Linux kernel build cmd descs'].put(json.load(fp))
 
 
-def after_process_all_linux_kernel_raw_build_cmds(context):
+def after_get_all_linux_kernel_build_cmd_descs(context):
     context.logger.info('Terminate Linux kernel build command descriptions message queue')
     context.mqs['Linux kernel build cmd descs'].put(None)
 
@@ -193,10 +154,7 @@ class LKVOG(core.components.Component):
                 'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
             if self.conf['keep intermediate files']:
-                verification_obj_desc_file = os.path.join(
-                    os.path.basename(
-                        self.linux_kernel_build_cmd_out_file_desc[self.module['name']]['linux kernel work src tree']),
-                    '{0}.json'.format(self.verification_obj_desc['id']))
+                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
                 if os.path.isfile(verification_obj_desc_file):
                     raise FileExistsError(
                         'Linux kernel verification object description file "{0}" already exists'.format(
