@@ -399,6 +399,34 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             raise NotImplementedError('EMG options are inconsistent: cannot create label-based automata without nested'
                                       'dispatches')
 
+        # Initialize states in an entry point
+        body = []
+        if not self._omit_all_states:
+            for automaton in [self._entry_fsa] + self._callback_fsa:
+                body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
+                            format(automaton.identifier, automaton.process.name, automaton.process.category))
+                body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
+                initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
+                if len(initial_states) == 1:
+                    body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
+                elif len(initial_states) == 2:
+                    body.extend([
+                        '\tif (ldv_undef_int())',
+                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
+                        '\telse',
+                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
+                    ])
+                elif len(initial_states) > 2:
+                    body.append('switch (ldv_undef_int()) {')
+                    for index in range(len(initial_states)):
+                        body.append('\t\tcase {}: '.format(index) + '{')
+                        body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
+                        body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
+                        body.append('\t\t}')
+                        body.append('\t\tdefault: ldv_stop();')
+                        body.append('\t}')
+                body.append('}')
+
         # Prepare action blocks
         self.logger.info('Prepare code base block on each action of each instance')
         for automaton in [self._entry_fsa] + self._callback_fsa + self._model_fsa:
@@ -407,28 +435,23 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         # Generate model control function
         self.logger.info('Generate control functions for kernel model functions')
-        for name in (pr.name for pr in model.model_processes):
-            for automaton in [a for a in sorted(list(self._model_fsa), key=lambda fsa: fsa.identifier)
-                              if a.process.name == name]:
-                self._label_cfunction(analysis, automaton, name)
+        while len(self._model_fsa) > 0:
+            automaton = self._model_fsa.pop()
+            self._label_cfunction(analysis, automaton, automaton.process.name)
 
         # Generate automata control function
         self.logger.info("Generate control functions for the rest automata of an environment model")
-        if self._omit_all_states:
-            for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
-                func = self._label_cfunction(analysis, automaton)
-            if func and not self._nested_automata:
-                global_switch_automata.append(func)
-        else:
-            self.logger.info("Generate control functions for the environment model")
-            for automaton in sorted(list(self._callback_fsa) + [self._entry_fsa], key=lambda fsa: fsa.identifier):
-                automaton.state_blocks = self._state_sequences(automaton)
+        while len(self._callback_fsa) > 0:
+            automaton = self._callback_fsa.pop()
 
-            for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
+            if self._omit_all_states:
+                func = self._label_cfunction(analysis, automaton)
+            else:
+                automaton.state_blocks = self._state_sequences(automaton)
                 func = self._state_cfunction(analysis, automaton)
 
-                if func and not self._nested_automata:
-                    global_switch_automata.append(func)
+            if func and not self._nested_automata:
+                global_switch_automata.append(func)
 
         if self._omit_all_states:
             func = self._label_cfunction(analysis, self._entry_fsa)
@@ -440,10 +463,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             raise ValueError('Entry point function must contain init/exit automaton control function')
 
         # Generate entry point function
-        func = self._generate_entry_functions(global_switch_automata)
+        func = self._generate_entry_functions(body, global_switch_automata)
         self._add_function_definition(self.entry_file, func)
 
-    def _generate_entry_functions(self, global_switch_automata):
+    def _generate_entry_functions(self, body, global_switch_automata):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
         # FunctionDefinition prototype
         ep = FunctionDefinition(
@@ -457,32 +480,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             "ldv_initialize();",
             ""
             "/* Initialize initial states of automata */"
-        ]
-
-        for automaton in [self._entry_fsa] + self._callback_fsa:
-            body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
-                        format(automaton.identifier, automaton.process.name, automaton.process.category))
-            body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
-            initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
-            if len(initial_states) == 1:
-                body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
-            elif len(initial_states) == 2:
-                body.extend([
-                    '\tif (ldv_undef_int())',
-                    '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
-                    '\telse',
-                    '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
-                ])
-            elif len(initial_states) > 2:
-                body.append('switch (ldv_undef_int()) {')
-                for index in range(len(initial_states)):
-                    body.append('\t\tcase {}: '.format(index) + '{')
-                    body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
-                    body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
-                    body.append('\t\t}')
-                    body.append('\t\tdefault: ldv_stop();')
-                    body.append('\t}')
-            body.append('}')
+        ] + body
 
         body.extend([
             "while(1) {",
@@ -494,7 +492,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             body.extend(
                 [
                     "\t\tcase {}: ".format(index),
-                    "\t\t\t{}(0);".format(cfunction.name),
+                    "\t\t\t{}(0);".format(cfunction),
                     "\t\tbreak;"
                 ]
             )
@@ -1088,7 +1086,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
-        return cf
+        return cf.name
 
     def _new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
         # Function type
@@ -1276,7 +1274,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
-        return cf
+        return cf.name
 
     def __generate_aspects(self):
         aspect_dir = "aspects"
