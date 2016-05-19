@@ -242,6 +242,20 @@
         }
       }
     },
+    "linux:memory": {
+      "aliases": ["104"],
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": {
+          "linux/memory.c": {
+            "bug kinds": [
+              "linux:memory:more initial at exit"
+            ]
+          }
+        }
+      }
+    },
     "linux:usb2": {
       "aliases": ["134"],
       "description": "...",
