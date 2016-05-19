@@ -159,7 +159,7 @@ class Label:
         if self.prior_signature:
             return [self.prior_signature]
         else:
-            return sorted(self.__signature_map.values())
+            return sorted(self.__signature_map.values(), key=lambda d: d.identifier)
 
     def get_declaration(self, identifier):
         if identifier in self.__signature_map:
