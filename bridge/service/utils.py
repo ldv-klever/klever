@@ -575,7 +575,7 @@ class SaveSolution(object):
 
     def __create_solution(self, description, archive):
         try:
-            self.task.solution.description = '{}'
+            Solution.objects.get(task=self.task)
             self.error = 'The task already has solution'
             return
         except ObjectDoesNotExist:

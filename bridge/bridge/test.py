@@ -8,6 +8,7 @@ from bridge.vars import JOB_CLASSES, USER_ROLES
 from users.models import User, Extended
 from jobs.models import Job
 from marks.models import MarkUnknown
+from service.models import Scheduler, SCHEDULER_TYPE
 
 
 class TestPopulation(TestCase):
@@ -68,6 +69,8 @@ class TestPopulation(TestCase):
             if os.path.isdir(os.path.join(BASE_DIR, 'marks', 'presets', comp_dir)):
                 number_of_preset_marks += len(os.listdir(os.path.join(BASE_DIR, 'marks', 'presets', comp_dir)))
         self.assertEqual(len(MarkUnknown.objects.all()), number_of_preset_marks)
+        self.assertEqual(len(Scheduler.objects.filter(type=SCHEDULER_TYPE[0][0])), 1)
+        self.assertEqual(len(Scheduler.objects.filter(type=SCHEDULER_TYPE[1][0])), 1)
 
     def test_service_population(self):
         result = populate_users(
