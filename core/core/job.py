@@ -359,6 +359,11 @@ class Job(core.utils.CallbacksCaller):
             if not verification_statuses:
                 verification_statuses.append('unknown')
 
+            if len(verification_statuses) > 1:
+                raise ValueError(
+                    'Got too many verification statuses "{0}" (just one is expected) for sub-job "{1}"'.format(
+                        verification_statuses, self.name))
+
             with self.data_lock:
                 self.data[self.name] = {
                     'ideal verdict': self.components_common_conf['ideal verdict'],
@@ -384,9 +389,6 @@ class Job(core.utils.CallbacksCaller):
 
     def report_testing_results(self):
         self.logger.info('Check whether tests passed')
-        for testing_res in _data:
-            if len(testing_res) != 4:
-                raise ValueError('Got too many verification statuses')
             self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
                 testing_res[0], testing_res[1], testing_res[2],
                 ' ("{0}")'.format(testing_res[3]) if testing_res[3] else ''))
