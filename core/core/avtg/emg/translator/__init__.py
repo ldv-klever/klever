@@ -510,7 +510,20 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return ep
 
-    def _call(self, automaton, state):
+    def _propogate_aux_function(self, analysis, automaton, function):
+        # Determine files to export
+        files = set()
+        if automaton.process.category == "kernel models":
+            for caller in (c for c in analysis.kernel_functions[automaton.process.name].functions_called_at):
+                files.update(set(analysis.modules_functions[caller].keys()))
+                for file in [f for f in analysis.modules_functions[caller]
+                             if 'called at' in analysis.modules_functions[caller][f]]:
+                    files.update(analysis.modules_functions[caller][file]['called at'])
+        # Export
+        for file in files:
+            self._add_function_declaration(file, function)
+
+    def _call(self, analysis, automaton, state):
         # Generate function call and corresponding function
         fname = "ldv_{}_{}_{}_{}".format(automaton.process.name, state.action.name, automaton.identifier,
                                          state.identifier)
@@ -565,6 +578,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         function.body.append('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
+
+        # Add declarations
+        self._propogate_aux_function(analysis, automaton, function)
 
         if 'pre_call' in state.code and len(state.code['pre_call']) > 0:
             inv = state.code['pre_call'] + inv
@@ -738,17 +754,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         df.body.extend(body)
         self._add_function_definition(self.entry_file, df)
 
-        # Determine files to export
-        files = set()
-        if automaton.process.category == "kernel models":
-            for caller in (c for c in analysis.kernel_functions[automaton.process.name].functions_called_at):
-                files.update(set(analysis.modules_functions[caller].keys()))
-                for file in [f for f in analysis.modules_functions[caller]
-                             if 'called at' in analysis.modules_functions[caller][f]]:
-                    files.update(analysis.modules_functions[caller][file]['called at'])
-        # Export
-        for file in files:
-            self._add_function_declaration(file, df)
+        # Add declarations
+        self._propogate_aux_function(analysis, automaton, df)
 
         return [
             '/* Dispatch {} */'.format(state.action.name),
@@ -773,7 +780,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
-            call = self._call(automaton, state)
+            call = self._call(analysis, automaton, state)
             block.extend(call)
         elif type(state.action) is CallRetval:
             block.append('/* Skip {} */'.format(state.desc['label']))
