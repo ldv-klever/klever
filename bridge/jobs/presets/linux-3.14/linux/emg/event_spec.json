@@ -243,6 +243,54 @@
         }
       }
     },
+    "transport_subsystem_register": {
+      "labels": {
+        "se_subsystem_api": {
+          "container": true,
+          "parameter": true,
+          "interface": ["se_subsystem.se_subsystem_api"]
+        }
+      },
+      "process": "<assign>.[register] | <none>",
+      "actions": {
+        "register": {
+          "parameters": [
+            "%se_subsystem_api%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%se_subsystem_api% = $arg1;"
+          ]
+        }
+      }
+    },
+    "transport_subsystem_release": {
+      "labels": {
+        "se_subsystem_api": {
+          "container": true,
+          "parameter": true,
+          "interface": ["se_subsystem.se_subsystem_api"]
+        }
+      },
+      "process": "<assign>.[deregister]",
+      "actions": {
+        "deregister": {
+          "parameters": [
+            "%se_subsystem_api%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%se_subsystem_api% = $arg1;"
+          ]
+        }
+      }
+    },
     "mod_timer,mod_timer_pinned,mod_timer_pending": {
       "labels": {
         "timer_list": {
@@ -669,6 +717,107 @@
         },
         "not_suspended": {
           "condition": ["%suspended% != 0"]
+        }
+      }
+    },
+    "transport_instance": {
+      "labels": {
+        "se_subsystem_api": {
+          "container": true,
+          "interface": ["se_subsystem.se_subsystem_api"]
+        },
+        "se_hba": {
+          "interface": ["se_subsystem.se_hba"]
+        },
+        "se_device": {
+          "interface": ["se_subsystem.se_device"]
+        },
+        "attach_hba": {
+          "callback": true,
+          "interface": ["se_subsystem.attach_hba"]
+        },
+        "detach_hba": {
+          "callback": true,
+          "interface": ["se_subsystem.detach_hba"]
+        },
+        "callback": {
+          "callback": true
+        },
+        "probed": {
+          "signature": "int a",
+          "value": "1"
+        }
+      },
+      "process": "(!register).<init>.[probe].<post_probe>.{call}",
+      "actions": {
+        "call": {
+          "process": "<positive_probe>.[callback].{call} | [attach_hba].[detach_hba].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | [probe].<post_probe>.{call})"
+        },
+        "register": {
+          "parameters": [
+            "%se_subsystem_api%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%se_subsystem_api%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": ["%se_hba%", "%se_device%"]
+        },
+        "release": {
+          "callback": "%se_subsystem_api.release%",
+          "parameters": [
+            "%se_device%"
+          ]
+        },
+        "probe": {
+          "callback": "%se_subsystem_api.probe%",
+          "parameters": [
+            "%se_hba%"
+          ],
+          "callback return value": "%se_device%"
+        },
+        "attach_hba": {
+          "callback": "%attach_hba%",
+          "parameters": [
+            "%se_hba%"
+          ]
+        },
+        "detach_hba": {
+          "callback": "%detach_hba%",
+          "parameters": [
+            "%se_hba%"
+          ]
+        },
+        "init": {
+          "statements": [
+            "%se_hba% = $ALLOC(%se_hba%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%se_hba%);"
+          ]
+        },
+        "after_release": {
+          "statements": [
+            "%probed% = 1;"
+          ]
+        },
+        "post_probe": {
+          "statements": [
+            "if (%se_device%)",
+            " %probed% = 0;"
+          ]
+        },
+        "positive_probe": {
+          "condition": ["%probed% == 0"]
+        },
+        "negative_probe": {
+          "condition": ["%probed% != 0"]
         }
       }
     },
