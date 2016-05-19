@@ -345,6 +345,8 @@ class AVTG(core.components.Component):
                 # Get plugin configuration on the basis of common configuration, plugin options specific for rule
                 # specification and information on rule specification itself.
                 plugin_conf = copy.deepcopy(self.conf)
+                if plugin_desc['name'] != 'RSG':
+                    del plugin_conf['source tree root']
                 if 'options' in plugin_desc:
                     plugin_conf.update(plugin_desc['options'])
                 plugin_conf.update({'rule spec id': rule_spec_desc['id']})
