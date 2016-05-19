@@ -81,6 +81,7 @@ class Command:
         for dep in deps:
             if os.path.isabs(dep) and os.path.commonprefix((os.getcwd(), dep)) != os.getcwd():
                 continue
+
             dest_dep = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                     os.path.relpath(dep))
             os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
@@ -93,6 +94,13 @@ class Command:
                             'Dependency "{0}" has changed during build process'.format(os.path.relpath(dep)))
                 else:
                     shutil.copy2(dep, dest_dep)
+
+        # Fix up absolute paths including current working directory. We rely on exact matching that will not be the
+        # case if there will be ".." in file paths.
+        self.other_opts = [re.sub(re.escape(os.getcwd()),
+                                  os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                  opt)
+                           for opt in self.other_opts]
 
     def dump(self):
         full_desc_file = None
@@ -163,8 +171,8 @@ class Command:
 
         self.parse()
         if not self.filter() and 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ:
-            self.dump()
             self.copy_deps()
+            self.dump()
             self.enqueue()
 
         return 0
