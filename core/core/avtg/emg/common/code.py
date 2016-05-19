@@ -180,6 +180,9 @@ class FunctionModels:
         final = []
         matched = False
         for stm in stms:
+            # Collect dublicates
+            tmp = set()
+
             for expression in mm.access_re.findall(stm):
                 matched = True
 
@@ -190,7 +193,9 @@ class FunctionModels:
                     else:
                         var = automaton.determine_variable(access.label)
 
-                    final.append(access.replace_with_variable(stm, var))
+                    tmp.add(access.replace_with_variable(stm, var))
+
+            final.extend(list(sorted(tmp)))
 
         if not matched:
             final = stms
