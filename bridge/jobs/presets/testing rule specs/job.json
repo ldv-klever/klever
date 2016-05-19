@@ -149,7 +149,7 @@
     {
       "Linux kernel": {
         "external modules": "tests/linux/module",
-        "modules": ["double-get.ko"]
+        "modules": ["double-put.ko"]
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe"
