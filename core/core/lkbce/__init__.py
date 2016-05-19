@@ -33,7 +33,7 @@ class LKBCE(core.components.Component):
         with self.locks['build']:
             self.fetch_linux_kernel_work_src_tree()
             self.make_canonical_linux_kernel_work_src_tree()
-            self.set_src_tree_root()
+            self.set_shadow_src_tree()
             # Determine Linux kernel configuration just after Linux kernel working source tree is prepared since it
             # affect value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather
             # than configuration target.
@@ -250,11 +250,10 @@ class LKBCE(core.components.Component):
         self.logger.info('Set architecture name to search for architecture specific header files')
         self.hdr_arch = _arch_hdr_arch[self.linux_kernel['arch']]
 
-    def set_src_tree_root(self):
-        self.logger.info('Set source tree root')
-        # All other components should find Linux kernel working source tree relatively to main working directory.
-        self.src_tree_root = os.path.relpath(os.path.realpath(self.linux_kernel['work src tree']),
-                                             self.conf['main working directory'])
+    def set_shadow_src_tree(self):
+        self.logger.info('Set shadow source tree')
+        # All other components should find shadow source tree relatively to main working directory.
+        self.shadow_src_tree = os.path.relpath(os.curdir, self.conf['main working directory'])
 
     def fetch_linux_kernel_work_src_tree(self):
         self.linux_kernel['work src tree'] = 'linux'
