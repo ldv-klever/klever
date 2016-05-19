@@ -4,9 +4,9 @@ import json
 import multiprocessing
 import os
 import re
+import sys
 import tarfile
 import traceback
-import types
 
 import core.utils
 
@@ -78,12 +78,14 @@ class Job(core.utils.CallbacksCaller):
                     p.start()
                     sub_job_solver_processes.append(p)
 
-                self.logger.info('Wait for subcomponents')
+                self.logger.info('Wait for sub-jobs')
                 while True:
                     operating_sub_job_solvers_num = 0
 
                     for p in sub_job_solver_processes:
                         p.join(1.0 / len(sub_job_solver_processes))
+                        if p.exitcode:
+                            exit(1)
                         operating_sub_job_solvers_num += p.is_alive()
 
                     if not operating_sub_job_solvers_num:
@@ -91,7 +93,7 @@ class Job(core.utils.CallbacksCaller):
             finally:
                 for p in sub_job_solver_processes:
                     if p.is_alive():
-                        p.stop()
+                        p.terminate()
         else:
             # Klever Core working directory is used for the only sub-job that is job itself.
             self.__decide_sub_job()
@@ -278,7 +280,7 @@ class Job(core.utils.CallbacksCaller):
 
                     if self.uploading_reports_process.exitcode:
                         raise RuntimeError('Uploading reports failed')
-            except Exception as e:
+            except Exception:
                 for p in self.component_processes:
                     # Do not terminate components that already exitted.
                     if p.is_alive():
@@ -310,10 +312,12 @@ class Job(core.utils.CallbacksCaller):
                         self.logger.info('Forcibly terminate verification statuses message queue')
                         self.mqs['verification statuses'].put(None)
 
-                    raise RuntimeError(
-                        'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
-                else:
-                    raise e
+                self.logger.error(
+                    'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
+
+                # TODO: components.py makes this better. I hope that multiprocessing extensions implemented there will
+                # be used for sub-jobs as well one day.
+                sys.exit(1)
             finally:
                 self.report_results()
 

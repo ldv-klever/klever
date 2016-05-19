@@ -58,6 +58,8 @@ class Core(core.utils.CallbacksCaller):
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
             job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()}, self.uploading_reports_process)
+        except SystemExit:
+            self.exit_code = 1
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:
