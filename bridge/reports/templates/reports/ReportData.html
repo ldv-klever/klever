@@ -33,14 +33,14 @@
             </tr>
         </thead>
         <tbody>
-            {% for validation_res in data %}
+            {% for bug_id in data %}
                 <tr>
-                    <td>{{ validation_res.0 }}</td>
+                    <td>{{ bug_id }}</td>
                     <td>
-                        <span style="color: {% if validation_res.1 != 'unsafe' %}#ff3463{% else %}#20d467{% endif %};"{% if validation_res.2 %} class="report-data-popup hoverable" data-content="{{ validation_res.2 }}" data-variation="very wide"{% endif %}>{{ validation_res.1 }}</span>{% if validation_res.2 %}*{% endif %}
+                        <span style="color: {% if data|get_item:bug_id|get_item:"before fix"|get_item:"verification status" != 'unsafe' %}#ff3463{% else %}#20d467{% endif %};"{% if data|get_item:bug_id|get_item:"before fix"|get_item:"comment" %} class="report-data-popup hoverable" data-content="{{ data|get_item:bug_id|get_item:"before fix"|get_item:"comment" }}" data-variation="very wide"{% endif %}>{{ data|get_item:bug_id|get_item:"before fix"|get_item:"verification status" }}</span>{% if data|get_item:bug_id|get_item:"before fix"|get_item:"comment" %}*{% endif %}
                     </td>
                     <td>
-                        {% if validation_res.3 %}<span style="color: {% if validation_res.3 != 'safe' %}#ff3463{% else %}#20d467{% endif %};"{% if validation_res.4 %} class="report-data-popup hoverable" data-content="{{ validation_res.4 }}" data-variation="very wide"{% endif %}>{{ validation_res.3 }}</span>{% if validation_res.4 %}*{% endif %}{% else %}-{% endif %}
+                        {% if data|get_item:bug_id|get_item:"after fix" %}<span style="color: {% if data|get_item:bug_id|get_item:"after fix"|get_item:"verification status" != 'safe' %}#ff3463{% else %}#20d467{% endif %};"{% if data|get_item:bug_id|get_item:"after fix"|get_item:"comment" %} class="report-data-popup hoverable" data-content="{{ data|get_item:bug_id|get_item:"after fix"|get_item:"comment" }}" data-variation="very wide"{% endif %}>{{ data|get_item:bug_id|get_item:"after fix"|get_item:"verification status" }}</span>{% if data|get_item:bug_id|get_item:"after fix"|get_item:"comment" %}*{% endif %}{% else %}-{% endif %}
                     </td>
                 </tr>
             {% endfor %}
