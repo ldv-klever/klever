@@ -12,11 +12,11 @@
             </tr>
         </thead>
         <tbody>
-            {% for testing_res in data %}
+            {% for test in data %}
                 <tr>
-                    <td>{{ testing_res.0 }}</td>
+                    <td>{{ test }}</td>
                     <td>
-                        <span style="color: {% if testing_res.1 != testing_res.2 %}#ff3463{% else %}#20d467{% endif %};"{% if testing_res.3 %} class="report-data-popup hoverable" data-content="{{ testing_res.3 }}" data-variation="very wide"{% endif %}>{% if testing_res.1 != testing_res.2 %}{% trans 'Failed' %}{% else %}{% trans 'Passed' %}{% endif %}<br>{{ testing_res.1 }} &rarr; {{ testing_res.2 }}</span>{% if testing_res.3 %}*{% endif %}
+                        <span style="color: {% if testing_res.1 != testing_res.2 %}#ff3463{% else %}#20d467{% endif %};"{% if data|get_item:test|get_item:"comment" %} class="report-data-popup hoverable" data-content="{{ data|get_item:test|get_item:"comment" }}" data-variation="very wide"{% endif %}>{% if data|get_item:test|get_item:"verification status" != data|get_item:test|get_item:"ideal verdict" %}{% trans 'Failed' %}{% else %}{% trans 'Passed' %}{% endif %}<br>{{ data|get_item:test|get_item:"ideal verdict" }} &rarr; {{ data|get_item:test|get_item:"verification status" }}</span>{% if data|get_item:test|get_item:"comment" %}*{% endif %}
                     </td>
                 </tr>
             {% endfor %}
