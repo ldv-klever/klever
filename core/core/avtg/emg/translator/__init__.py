@@ -741,9 +741,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Determine files to export
         files = set()
         if automaton.process.category == "kernel models":
-            for caller in (c for c in analysis.kernel_functions[automaton.process.name].called_at):
-                for file in analysis.modules_functions[caller]:
-                    files.add(file)
+            for caller in (c for c in analysis.kernel_functions[automaton.process.name].functions_called_at):
+                files.update(set(analysis.modules_functions[caller].keys()))
+                for file in [f for f in analysis.modules_functions[caller]
+                             if 'called at' in analysis.modules_functions[caller][f]]:
+                    files.update(analysis.modules_functions[caller][file]['called at'])
         # Export
         for file in files:
             self._add_function_declaration(file, df)
