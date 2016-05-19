@@ -2,6 +2,7 @@ from core.avtg.emg.common.signature import import_signature, setup_collection
 
 
 __grammar_tests = [
+    "int ** a(int **(*(*arg))(void))",
     "struct {   struct file *file;   struct page *page;   struct dir_context *ctx;   long unsigned int page_index;   u64 *dir_cookie;   u64 last_cookie;   loff_t current_index;   decode_dirent_t decode;   long unsigned int timestamp;   long unsigned int gencount;   unsigned int cache_entry_index;   unsigned char plus : 1;   unsigned char eof : 1; } nfs_readdir_descriptor_t",
     'union {   void *arg;   struct kparam_string const *str;   struct kparam_array const *arr; }',
     'union {   s64 lock;    } arch_rwlock_t',
