@@ -454,9 +454,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             if func and not self._nested_automata:
                 global_switch_automata.append(func)
 
+        # Generate entry automaton
         if self._omit_all_states:
             func = self._label_cfunction(analysis, self._entry_fsa)
         else:
+            self._entry_fsa.state_blocks = self._state_sequences(self._entry_fsa)
             func = self._state_cfunction(analysis, self._entry_fsa)
         if func:
             global_switch_automata.append(func)
@@ -1192,14 +1194,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
             if state.code and len(state.code['guard']) > 0 and first:
                 code.append('ldv_assume({});'.format(
-                    ' && '.join(sorted(['{} == {}'.format(automaton.state_variable.name, state.identifier)] +
-                                       state.code['guard']))))
+                    ' && '.join(sorted(state.code['guard']))))
                 code.extend(block)
                 first = False
             elif state.code and len(state.code['guard']) > 0:
                 code.append('if({}) '.format(
-                    ' && '.join(sorted(['{} == {}'.format(automaton.state_variable.name, state.identifier)] +
-                                       state.code['guard']))) + '{')
+                    ' && '.join(sorted(state.code['guard']))) + '{')
                 for st in block:
                     code.append('\t' + st)
                 code.append('}')
