@@ -153,9 +153,9 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
             if sys.exc_info()[0]:
                 # Treat component stopping as normal termination.
                 if sys.exc_info()[0] == ComponentStopped:
-                    exit(0)
+                    sys.exit(0)
                 else:
-                    exit(1)
+                    sys.exit(1)
 
     def __get_subcomponent_name(self):
         return '' if self.separate_from_parent else '[{0}] '.format(self.name)
