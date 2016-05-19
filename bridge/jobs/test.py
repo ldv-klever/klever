@@ -47,12 +47,9 @@ class TestJobs(TestCase):
             'view': json.dumps(tree_view), 'view_type': '1', 'title': 'My view'
         })
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' in res:
-                self.fail('Error message was returned')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
         try:
             view_id = int(res['view_id'])
         except KeyError or ValueError:
@@ -74,12 +71,9 @@ class TestJobs(TestCase):
             'view': json.dumps(tree_view), 'view_type': '1', 'view_id': view_id
         })
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' in res:
-                self.fail('Error message was returned')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
         try:
             view_id = int(res['view_id'])
         except KeyError or ValueError:
@@ -97,14 +91,10 @@ class TestJobs(TestCase):
             'view_type': '1', 'view_id': view_id
         })
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' in res:
-                self.fail('Error message is not expected')
-            if 'message' not in res:
-                self.fail('Success message is expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual('message' in res, True)
         self.assertEqual(len(PreferableView.objects.filter(user__username='manager', view_id=view_id)), 1)
         response = self.client.get(reverse('jobs:tree'))
         self.assertEqual(response.status_code, 200)
@@ -112,51 +102,30 @@ class TestJobs(TestCase):
         # Testing view name check
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'Default'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' not in res:
-                self.fail('Error message is expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual('error' in json.loads(str(response.content, encoding='utf8')), True)
 
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': ''})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' not in res:
-                self.fail('Error message is expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual('error' in json.loads(str(response.content, encoding='utf8')), True)
 
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'My view'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' not in res:
-                self.fail('Error message is expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual('error' in json.loads(str(response.content, encoding='utf8')), True)
 
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'New view'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' in res:
-                self.fail('Error message is not expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
 
         # Check view deletion
         response = self.client.post('/jobs/ajax/remove_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' in res:
-                self.fail('Error message is not expected')
-            if 'message' not in res:
-                self.fail('Success message is expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertEqual('message' in json.loads(str(response.content, encoding='utf8')), True)
         self.assertEqual(len(PreferableView.objects.filter(user__username='manager')), 0)
         self.assertEqual(len(View.objects.filter(author__username='manager')), 0)
 
@@ -178,12 +147,8 @@ class TestJobs(TestCase):
         self.assertEqual(response.status_code, 200)
         response = self.client.post('/jobs/ajax/get_job_data/', {'job_id': job_template.pk})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'error' in res:
-            self.fail('Error message is not expected')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
 
         # Create job page
         response = self.client.post(reverse('jobs:create'), {'parent_id': job_template.pk})
@@ -209,17 +174,12 @@ class TestJobs(TestCase):
             'file_data': json.dumps(file_data)
         })
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'error' in res:
-            self.fail('Error message is not expected')
-        if 'job_id' not in res:
-            self.fail('Job id is expected')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
         try:
             newjob_pk = int(res['job_id'])
-        except ValueError:
+        except ValueError or KeyError:
             self.fail('Integer job id is expected')
 
         # Job page
@@ -229,12 +189,8 @@ class TestJobs(TestCase):
         # Job autoupdate data
         response = self.client.post('/jobs/ajax/get_job_data/', {'job_id': newjob_pk})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'error' in res:
-            self.fail('Error message is not expected')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
 
         # Check if job and its versions exist
         try:
@@ -256,12 +212,7 @@ class TestJobs(TestCase):
         # Job versions data
         response = self.client.post('/jobs/ajax/getversions/', {'job_id': newjob.pk})
         self.assertEqual(response.status_code, 200)
-        try:
-            json.loads(str(response.content, encoding='utf8'))
-            self.fail('Error message is not expected')
-        except ValueError:
-            # If response is HTML then OK
-            pass
+        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
 
         # Job data for viewing it
         response = self.client.post('/jobs/ajax/showjobdata/', {'job_id': newjob.pk})
@@ -281,14 +232,9 @@ class TestJobs(TestCase):
                 'last_version': Job.objects.get(pk=newjob.pk).version
             })
             self.assertEqual(response.status_code, 200)
-            try:
-                res = json.loads(str(response.content, encoding='utf8'))
-            except ValueError:
-                self.fail('Response must be in JSON format')
-            if 'error' in res:
-                self.fail('Error message is not expected')
-            if 'job_id' not in res:
-                self.fail('Job id is expected')
+            self.assertEqual(response['Content-Type'], 'application/json')
+            self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+            self.assertEqual('job_id' in json.loads(str(response.content, encoding='utf8')), True)
             self.assertEqual(len(JobHistory.objects.filter(job=newjob)), 1 + i)
 
         # Job versions data again (after there are versions user can delete)
@@ -298,34 +244,21 @@ class TestJobs(TestCase):
         # Removing versions
         response = self.client.post('/jobs/ajax/remove_versions/', {'job_id': newjob.pk, 'versions': '["2","3"]'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' in res:
-                self.fail('Error message is not expected')
-            elif 'message' not in res:
-                self.fail('Success message is expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertEqual('message' in json.loads(str(response.content, encoding='utf8')), True)
 
         # Try to remove first version
         response = self.client.post('/jobs/ajax/remove_versions/', {'job_id': newjob.pk, 'versions': '["1"]'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' not in res:
-                self.fail('Error message is expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual('error' in json.loads(str(response.content, encoding='utf8')), True)
 
         # Remove job
         response = self.client.post('/jobs/ajax/removejobs/', {'jobs': json.dumps([newjob.pk])})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' in res:
-                self.fail('Error message is not expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
 
     def test_files(self):
         self.client.post(reverse('population'))
@@ -350,14 +283,11 @@ class TestJobs(TestCase):
             response = self.client.post('/jobs/ajax/upload_file/', {'file': fp})
 
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' in res:
-                self.fail('Error message is not expected')
-            elif 'checksum' not in res:
-                self.fail('File check sum is expected')
-        except ValueError:
-            self.fail('Response must be in JSON format')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual('checksum' in res, True)
+
         try:
             newfile = File.objects.get(hash_sum=res['checksum'])
         except ObjectDoesNotExist:
@@ -378,14 +308,10 @@ class TestJobs(TestCase):
             'last_version': 1
         })
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'error' in res:
-            self.fail('Error message is not expected')
-        if 'job_id' not in res:
-            self.fail('Job id is expected')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual('job_id' in res, True)
         self.assertEqual(len(JobHistory.objects.filter(job_id=newjob_pk)), 2)
         try:
             job_file = FileSystem.objects.get(job__job_id=newjob_pk, job__version=2)
@@ -412,12 +338,8 @@ class TestJobs(TestCase):
             'jobs': json.dumps([newjob_pk, Job.objects.get(parent=None, type=JOB_CLASSES[0][0]).pk])
         })
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'error' in res:
-            self.fail('Error message is not expected')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
 
         # Try to download new job
         response = self.client.get('/jobs/ajax/downloadjob/%s/' % newjob_pk)
@@ -431,14 +353,8 @@ class TestJobs(TestCase):
             })
             fp.close()
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'status' not in res or not isinstance(res['status'], bool):
-            self.fail('Boolean upload status is required')
-        if not res['status']:
-            self.fail('Upload job failed')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('status', None), True)
         self.assertEqual(len(Job.objects.filter(parent__identifier=newjob.identifier)), 1)
         uploaded_job = Job.objects.get(parent__identifier=newjob.identifier)
         self.assertEqual(len(FileSystem.objects.filter(job__job=newjob, job__version=2)), 1)
@@ -451,20 +367,12 @@ class TestJobs(TestCase):
             'file_id': FileSystem.objects.get(job__job=uploaded_job, job__version=2).pk
         })
         self.assertEqual(response.status_code, 200)
-        try:
-            json.loads(str(response.content, encoding='utf8'))
-            self.fail('File content is expected')
-        except ValueError:
-            self.assertEqual(response.content, b'My test text')
+        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
+        self.assertEqual(response.content, b'My test text')
 
         # Check that user can't compare jobs that are not decided
         response = self.client.get(reverse('jobs:comparison', args=[newjob_pk, uploaded_job.pk]))
         self.assertRedirects(response, reverse('error', args=[507]))
-        # TODO: check this page after decision
-
-    def test_service(self):
-        # TODO: add parameters to session and check service decide_job
-        pass
 
     def test_run_decision(self):
         self.client.post(reverse('population'))
@@ -492,12 +400,8 @@ class TestJobs(TestCase):
         # Stop decision
         response = self.client.post('/jobs/ajax/stop_decision/', {'job_id': job_pk})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'error' in res:
-            self.fail('Error message is not expected')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
         self.assertEqual(Job.objects.get(pk=job_pk).status, JOB_STATUS[6][0])
         self.assertEqual(len(RunHistory.objects.filter(job_id=job_pk, operator__username='manager')), 1)
 
@@ -509,14 +413,10 @@ class TestJobs(TestCase):
         # Get KLEVER_CORE_LOG_FORMATTERS value
         response = self.client.post('/jobs/ajax/get_def_start_job_val/', {'name': 'formatter', 'value': 'brief'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'error' in res:
-            self.fail('Error message is not expected')
-        if 'value' not in res:
-            self.fail('Value is expected')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual('value' in res, True)
 
         # Start decision with settings
         run_conf = json.dumps([
@@ -530,12 +430,8 @@ class TestJobs(TestCase):
         ])
         response = self.client.post('/jobs/ajax/run_decision/', {'job_id': job_pk, 'data': run_conf})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-        except ValueError:
-            self.fail('Response must be in JSON format')
-        if 'error' in res:
-            self.fail('Error message is not expected')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
         self.assertEqual(Job.objects.get(pk=job_pk).status, JOB_STATUS[1][0])
         self.assertEqual(len(RunHistory.objects.filter(job_id=job_pk, operator__username='manager')), 2)
 

@@ -907,8 +907,7 @@ class TableTree(object):
                         ':z_total'
                     ] = (
                         cu.number,
-                        reverse('reports:unknowns',
-                                args=[cu.report_id, cu.component_id])
+                        reverse('reports:unknowns', args=[cu.report_id, cu.component_id])
                     )
 
         if 'author' in self.columns:

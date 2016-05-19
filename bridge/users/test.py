@@ -74,39 +74,24 @@ class TestLoginAndRegister(TestCase):
 
         response = self.client.post('/users/service_signin/', {'username': 'service', 'password': 'service'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' not in res:
-                self.fail('Json response must contain error message')
-            self.fail('Json response returns error message for good values')
-        except ValueError:
-            # This means HttpResponse() - it's OK
-            pass
+        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
         response = self.client.get('/users/service_signout/')
         self.assertEqual(response.status_code, 200)
 
         response = self.client.post('/users/service_signin/', {'username': 'service', 'password': 'incorrect'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' not in res:
-                self.fail('Json response must contain error message')
-            self.assertEqual(res['error'], 'Incorrect username or password')
-        except ValueError:
-            self.fail('Response is Http for bad password')
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual('error' in res, True)
+        self.assertEqual(res['error'], 'Incorrect username or password')
 
         User.objects.create_user(username='service2', password='service2')
         response = self.client.post('/users/service_signin/', {'username': 'service2', 'password': 'service2'})
         self.assertEqual(response.status_code, 200)
-        try:
-            res = json.loads(str(response.content, encoding='utf8'))
-            if 'error' not in res:
-                self.fail('Json response must contain error message')
-            self.assertEqual(res['error'], 'User does not have extended data')
-        except ValueError:
-            self.fail('Response is Http for service without extended')
-
-        # TODO: check cookies: job identifier and scheduler (population must be done first)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual('error' in res, True)
+        self.assertEqual(res['error'], 'User does not have extended data')
 
 
 class TestLoggedInUser(TestCase):
@@ -123,18 +108,11 @@ class TestLoggedInUser(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_save_notifications(self):
-
-        def get_json_val(param):
-            try:
-                res = json.loads(str(response.content, encoding='utf8'))
-                return res[param]
-            except Exception as e:
-                self.fail('Wrong json response: %s' % e)
-
         save_ntf_url = '/users/ajax/save_notifications/'
         response = self.client.post(save_ntf_url, {'self_ntf': 'true', 'notifications': '["0_0","0_4"]'})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(get_json_val('status'), 0)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('status', None), 0)
         ntf = Notifications.objects.get(user=self.user)
         self.assertEqual(ntf.self_ntf, True)
         self.assertEqual(ntf.settings, '["0_0","0_4"]')
