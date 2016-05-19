@@ -10,9 +10,6 @@ import traceback
 
 import core.utils
 
-# TODO: this variable should likely become shared between various sub-jobs when they will be decided in parallel.
-_data = []
-
 
 class Job(core.utils.CallbacksCaller):
     FORMAT = 1
@@ -39,6 +36,8 @@ class Job(core.utils.CallbacksCaller):
         self.mqs = {}
         self.locks = {}
         self.uploading_reports_process = None
+        self.data = None
+        self.data_lock = None
         self.type = type
         self.components_common_conf = None
         self.sub_jobs = []
@@ -53,6 +52,8 @@ class Job(core.utils.CallbacksCaller):
         self.mqs = mqs
         self.locks = locks
         self.uploading_reports_process = uploading_reports_process
+        self.data = multiprocessing.Manager().dict()
+        self.data_lock = multiprocessing.Lock()
         self.extract_archive()
         self.get_class()
         self.get_common_components_conf(conf)
@@ -215,6 +216,8 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.mqs = self.mqs
                 sub_job.locks = self.locks
                 sub_job.uploading_reports_process = self.uploading_reports_process
+                sub_job.data = self.data
+                sub_job.data_lock = self.data_lock
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job.components_common_conf = copy.deepcopy(self.components_common_conf)
                 core.utils.merge_confs(sub_job.components_common_conf, sub_job_concrete_conf)
@@ -356,24 +359,28 @@ class Job(core.utils.CallbacksCaller):
             if not verification_statuses:
                 verification_statuses.append('unknown')
 
-            _data.append([self.name, self.components_common_conf['ideal verdict']] + verification_statuses +
-                         [self.components_common_conf.get('comment')])
+            with self.data_lock:
+                self.data[self.name] = {
+                    'ideal verdict': self.components_common_conf['ideal verdict'],
+                    'comment': self.components_common_conf.get('comment'),
+                    'verification status': verification_statuses[0]
+                }
 
-            if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
-                self.report_validation_results()
-            elif self.parent['type'] == 'Verification of Linux kernel modules':
-                self.report_testing_results()
-            else:
-                raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
+                if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
+                    self.report_validation_results()
+                elif self.parent['type'] == 'Verification of Linux kernel modules':
+                    self.report_testing_results()
+                else:
+                    raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
 
-            core.utils.report(self.logger,
-                              'data',
-                              {
-                                  'id': self.parent['id'],
-                                  'data': json.dumps(self.results)
-                              },
-                              self.mqs['report files'],
-                              self.components_common_conf['main working directory'])
+                core.utils.report(self.logger,
+                                  'data',
+                                  {
+                                      'id': self.parent['id'],
+                                      'data': json.dumps(self.results)
+                                  },
+                                  self.mqs['report files'],
+                                  self.components_common_conf['main working directory'])
 
     def report_testing_results(self):
         self.logger.info('Check whether tests passed')
