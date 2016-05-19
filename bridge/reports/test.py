@@ -284,7 +284,7 @@ class TestReports(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
 
-        response = self.client.get(reverse('jobs:comparsion', args=[job1.pk, job2.pk]))
+        response = self.client.get(reverse('jobs:comparison', args=[job1.pk, job2.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
 
