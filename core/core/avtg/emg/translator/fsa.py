@@ -566,7 +566,8 @@ class Automaton:
                                  (access.interface and
                                   access.interface.declaration.compare(signature.points.return_value)) or
                                  (not access.interface and access.label and
-                                  signature.points.return_value in access.label.declarations)]
+                                  signature.points.return_value.identifier in (d.identifier for d
+                                                                               in access.label.declarations))]
                         if len(suits) > 0:
                             if suits[0].interface:
                                 label_var = self.determine_variable(suits[0].label, suits[0].interface.identifier)
