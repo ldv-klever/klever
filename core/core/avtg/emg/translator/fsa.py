@@ -560,10 +560,23 @@ class Automaton:
                         if ret_subprocess:
                             ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
 
+                    # Match label
                     if ret_access:
-                        retval = ret_access[0].access_with_variable(
-                            self.determine_variable(ret_access[0].label))
-                        case['retval'] = retval
+                        suits = [access for access in ret_access if
+                                 (access.interface and
+                                  access.interface.declaration.compare(signature.points.return_value)) or
+                                 (not access.interface and access.label and
+                                  signature.points.return_value in access.label.declarations)]
+                        if len(suits) > 0:
+                            if suits[0].interface:
+                                label_var = self.determine_variable(suits[0].label, suits[0].interface.identifier)
+                            else:
+                                label_var = self.determine_variable(suits[0].label)
+                            retval = suits[0].access_with_variable(label_var)
+                            case['retval'] = retval
+                        else:
+                            raise RuntimeError("Cannot fins a suitable label for return value of action '{}'".
+                                               format(state.action.name))
 
                     # Add additional condition
                     if state.action.condition and len(state.action.condition) > 0:
