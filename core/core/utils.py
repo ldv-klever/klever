@@ -297,6 +297,16 @@ def get_component_callbacks(logger, components, components_conf):
     return callbacks
 
 
+def remove_component_callbacks(logger, component):
+    logger.info('Remove callbacks for component "{0}"'.format(component.__name__))
+
+    module = sys.modules[component.__module__]
+
+    for attr in dir(module):
+        if any(attr.startswith(kind) for kind in CALLBACK_KINDS):
+            delattr(module, attr)
+
+
 def get_entity_val(logger, name, cmd):
     """
     Return a value of the specified entity name by executing the specified command and reading its first string
@@ -409,7 +419,7 @@ def get_parallel_threads_num(logger, conf, action):
         parallel_threads_num = raw_parallel_threads_num
     # In case of decimal number it is fraction of the number of CPUs.
     elif isinstance(raw_parallel_threads_num, float):
-        parallel_threads_num = conf['sys']['CPUs num'] * raw_parallel_threads_num
+        parallel_threads_num = conf['number of CPU cores'] * raw_parallel_threads_num
     else:
         raise ValueError(
             'The number of parallel threads ("{0}") for "{1}" is neither integer nor decimal number'.format(
@@ -420,7 +430,7 @@ def get_parallel_threads_num(logger, conf, action):
     if parallel_threads_num < 1:
         raise ValueError('The computed number of parallel threads ("{0}") for "{1}" is less than 1'.format(
             parallel_threads_num, action))
-    elif parallel_threads_num > 2 * conf['sys']['CPUs num']:
+    elif parallel_threads_num > 2 * conf['number of CPU cores']:
         raise ValueError(
             'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'.format(
                 parallel_threads_num, action))

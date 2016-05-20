@@ -1,11 +1,20 @@
 #!/usr/bin/python3
 
 import json
+import multiprocessing
 import os
 import string
 
 import core.components
 import core.utils
+
+
+def before_launch_sub_job_components(context):
+    context.mqs['src tree root'] = multiprocessing.Queue()
+
+
+def after_set_src_tree_root(context):
+    context.mqs['src tree root'].put(context.src_tree_root)
 
 
 class RSG(core.components.Component):
@@ -21,7 +30,7 @@ class RSG(core.components.Component):
             for file in self.abstract_task_desc['files']:
                 ext = os.path.splitext(file)[1]
                 if ext == '.c':
-                    models.append(file)
+                    models.append(os.path.relpath(os.path.join(self.conf['main working directory'], file)))
                     self.logger.debug('Get additional model "{0}'.format(file))
                 elif ext == '.aspect':
                     aspects.append(file)
@@ -46,7 +55,7 @@ class RSG(core.components.Component):
         for aspect in (self.conf.get('common aspects') or []) + (self.conf.get('aspects') or []):
             aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], aspect)
             self.logger.debug('Get aspect "{0}"'.format(aspect))
-            aspects.append(os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])))
+            aspects.append(os.path.relpath(aspect, self.conf['main working directory']))
 
         if not aspects:
             self.logger.warning('No aspects ase specified')
@@ -57,8 +66,7 @@ class RSG(core.components.Component):
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
                 if 'plugin aspects' not in cc_extra_full_desc_file:
                     cc_extra_full_desc_file['plugin aspects'] = []
-                cc_extra_full_desc_file['plugin aspects'].append({"plugin": self.name, "aspects": aspects}
-                                                                 )
+                cc_extra_full_desc_file['plugin aspects'].append({"plugin": self.name, "aspects": aspects})
 
     def add_models(self, models):
         self.logger.info('Add models to abstract task description')
@@ -67,7 +75,7 @@ class RSG(core.components.Component):
         for model in (self.conf.get('common models') or []) + (self.conf.get('models') or []):
             model = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], model)
             self.logger.debug('Get model "{0}"'.format(model))
-            models.append(os.path.relpath(model, os.path.realpath(self.conf['source tree root'])))
+            models.append(model)
 
         if not models:
             self.logger.warning('No models are specified')
@@ -77,6 +85,7 @@ class RSG(core.components.Component):
         os.makedirs('models')
 
         # Generate CC extra full description file per each model and add it to abstract task description.
+
         model_grp = {'id': 'models', 'cc extra full desc files': []}
         for model in models:
             suffix = ''
@@ -89,24 +98,27 @@ class RSG(core.components.Component):
                         suffix = str(int(suffix) + 1)
                     else:
                         break
+            # Otput file should be located somewhere inside RSG working directory to avoid races.
             out_file = os.path.join('models',
-                                    '{0}{1}.o'.format(os.path.splitext(os.path.basename(model))[0], suffix))
+                                    '{0}{1}.c'.format(os.path.splitext(os.path.basename(model))[0], suffix))
             self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
             with open(full_desc_file, 'w', encoding='ascii') as fp:
                 json.dump({
-                    # Input file path should be relative to source tree root since compilation options are relative
-                    # to this directory and we will change directory to that one before invoking preprocessor.
-                    "in files": [model],
-                    # Otput file should be located somewhere inside RSG working directory to avoid races.
-                    "out file": os.path.relpath(out_file, os.path.realpath(self.conf['source tree root'])),
-                    "opts":
-                        [string.Template(opt).substitute(hdr_arch=self.conf['sys']['hdr arch']) for opt in
+                    'cwd': self.conf['shadow source tree'],
+                    # Input and output file paths should be relative to source tree root since compilation options
+                    # are relative to this directory and we will change directory to that one before invoking
+                    # preprocessor.
+                    'in files': [os.path.relpath(model, os.path.join(self.conf['main working directory'],
+                                                                     self.conf['shadow source tree']))],
+                    'out file': os.path.relpath(out_file, os.path.join(self.conf['main working directory'],
+                                                                       self.conf['shadow source tree'])),
+                    'opts':
+                        [string.Template(opt).substitute(hdr_arch=self.conf['header architecture']) for opt in
                          self.conf['model CC options']]
                 }, fp, sort_keys=True, indent=4)
 
             model_grp['cc extra full desc files'].append({
-                'cc full desc file': os.path.relpath(full_desc_file,
-                                                     os.path.realpath(self.conf['source tree root'])),
+                'cc full desc file': os.path.relpath(full_desc_file, self.conf['main working directory']),
                 'rule spec id': self.conf['rule spec id'],
                 'bug kinds': self.conf['bug kinds']
             })

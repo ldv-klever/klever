@@ -3,6 +3,7 @@
 import fileinput
 import json
 import os
+import re
 
 import core.components
 import core.utils
@@ -18,18 +19,25 @@ class Weaver(core.components.Component):
             self.logger.info('Weave in C files of group "{0}"'.format(grp['id']))
 
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                with open(os.path.join(self.conf['source tree root'], cc_extra_full_desc_file['cc full desc file']),
-                          encoding='ascii') as fp:
+                with open(
+                        os.path.join(self.conf['main working directory'], cc_extra_full_desc_file['cc full desc file']),
+                        encoding='ascii') as fp:
                     cc_full_desc = json.load(fp)
 
                 self.logger.info('Weave in C file "{0}"'.format(cc_full_desc['in files'][0]))
 
+                # TODO: if several files in verification object will have the same name everything will break.
+                # Overwrite suffix because of we will obtain weaved C files.
+                cc_full_desc['out file'] = '{0}.c'.format(
+                    os.path.splitext(os.path.basename(cc_full_desc['out file']))[0])
+
                 # Produce aspect to be weaved in.
                 if 'plugin aspects' in cc_extra_full_desc_file:
                     self.logger.info('Concatenate all aspects of all plugins together')
+
                     # Resulting aspect.
-                    aspect = os.path.join(self.conf['source tree root']
-                                          , '{}.aspect'.format(os.path.splitext(cc_full_desc['out file'])[0]))
+                    aspect = 'aspect'
+
                     # Get all aspects. Place RSG aspects at beginning since they can instrument entities added by
                     # aspects of other plugins while corresponding function declarations still need be at beginning of
                     # file.
@@ -39,22 +47,13 @@ class Weaver(core.components.Component):
                             aspects[0:0] = plugin_aspects['aspects']
                         else:
                             aspects.extend(plugin_aspects['aspects'])
+
                     # Concatenate aspects.
                     with open(aspect, 'w', encoding='ascii') as fout, fileinput.input(
-                            [os.path.join(self.conf['source tree root'], aspect) for aspect in aspects],
+                            [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
                             openhook=fileinput.hook_encoded('ascii')) as fin:
                         for line in fin:
                             fout.write(line)
-
-                    # TODO: this likely should be placed outside this if block.
-                    # TODO: if several files in verification object will have the same name everything will break.
-                    # Here output file is corresponding, likely already generated and existing object file. But other
-                    # instances of AVTG plugins can refer to the same file. So the only safe place to put intermediate
-                    # and output file is working directory. Besides overwrite suffix because of we will obtain
-                    # weaved C files.
-                    cc_full_desc['out file'] = os.path.relpath(
-                            '{}.c'.format(os.path.splitext(os.path.basename(cc_full_desc['out file']))[0]),
-                            os.path.realpath(self.conf['source tree root']))
                 else:
                     # Simulate resulting aspect.
                     aspect = '/dev/null'
@@ -68,9 +67,12 @@ class Weaver(core.components.Component):
                 core.utils.execute(self.logger,
                                    tuple(['cif',
                                           '--in', cc_full_desc['in files'][0],
-                                          '--aspect',
-                                          os.path.relpath(aspect, os.path.realpath(self.conf['source tree root'])),
-                                          '--out', cc_full_desc['out file'],
+                                          '--aspect', os.path.relpath(aspect,
+                                                                      os.path.join(self.conf['main working directory'],
+                                                                                   cc_full_desc['cwd'])),
+                                          '--out', os.path.relpath(cc_full_desc['out file'],
+                                                                   os.path.join(self.conf['main working directory'],
+                                                                                cc_full_desc['cwd'])),
                                           '--back-end', 'src',
                                           '--debug', 'DEBUG'] +
                                          (['--keep'] if self.conf['keep intermediate files'] else []) +
@@ -84,21 +86,53 @@ class Weaver(core.components.Component):
                                                  core.utils.find_file_or_dir(self.logger,
                                                                              self.conf['main working directory'],
                                                                              self.conf['rule specifications DB'])),
-                                                                            os.path.realpath(
-                                                                                self.conf['source tree root'])))
+                                                                            os.path.join(
+                                                                                self.conf['main working directory'],
+                                                                                cc_full_desc['cwd'])))
                                          ]
                                          ),
-                                   cwd=self.conf['source tree root'])
+                                   cwd=os.path.relpath(os.path.join(self.conf['main working directory'],
+                                                                    cc_full_desc['cwd'])))
                 self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
 
                 # In addition preprocess output files since CIF outputs a bit unpreprocessed files.
                 preprocessed_c_file = '{}.i'.format(os.path.splitext(cc_full_desc['out file'])[0])
                 core.utils.execute(self.logger,
-                                   ('aspectator', '-E', '-x', 'c', cc_full_desc['out file'], '-o', preprocessed_c_file),
-                                   cwd=self.conf['source tree root'])
-                self.logger.debug('Preprocess weaved C file to "{0}"'.format(preprocessed_c_file))
+                                   (
+                                       'aspectator',
+                                       '-E',
+                                       '-x', 'c', cc_full_desc['out file'],
+                                       '-o', preprocessed_c_file
+                                   ))
+                self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
 
-                extra_c_file = {'C file': preprocessed_c_file}
+                abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc_full_desc['out file'])[0])
+                with open(preprocessed_c_file, encoding='ascii') as fp_in, open(abs_paths_c_file, 'w',
+                                                                                encoding='ascii') as fp_out:
+                    # Print preprocessor header as is.
+                    first_line = fp_in.readline()
+                    fp_out.write(first_line)
+                    for line in fp_in:
+                        fp_out.write(line)
+                        if line == first_line:
+                            break
+
+                    # Replace relative file paths with absolute ones for line directives in other lines.
+                    for line in fp_in:
+                        match = re.match(r'(# \d+ ")(.+)("\n)', line)
+                        if match:
+                            file = match.group(2)
+                            if not os.path.isabs(file):
+                                # All relative file paths are relative to CC working directory.
+                                file = os.path.abspath(
+                                    os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file))
+                            fp_out.write(match.group(1) + file + match.group(3))
+                        else:
+                            fp_out.write(line)
+                self.logger.debug(
+                    'Preprocessed weaved C file with absolute paths was put to "{0}"'.format(abs_paths_c_file))
+
+                extra_c_file = {'C file': os.path.relpath(abs_paths_c_file, self.conf['main working directory'])}
 
                 if 'rule spec id' in cc_extra_full_desc_file:
                     extra_c_file['rule spec id'] = cc_extra_full_desc_file['rule spec id']

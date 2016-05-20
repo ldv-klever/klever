@@ -2,7 +2,7 @@ import os
 from setuptools import setup, find_packages
 
 setup(name='KleverCore',
-      use_scm_version={'root': os.path.pardir, 'local_scheme': 'dirty-tag'},
+      use_scm_version={'root': os.path.pardir},
       description='TODO: a single line describing the package',
       author='Evgeny Novikov',
       author_email='novikov@ispras.ru',

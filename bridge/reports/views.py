@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
+from django.template.defaulttags import register
 from bridge.vars import JOB_STATUS
 from bridge.utils import unparallel_group, logger
 from jobs.ViewJobData import ViewJobData
@@ -16,6 +17,17 @@ from reports.models import *
 from reports.utils import *
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
+
+
+# These filters are used for visualization component specific data. They should not be used for any other purposes.
+@register.filter
+def get_dict_val(d, key):
+    return d.get(key)
+
+
+@register.filter
+def sort_list(l):
+    return sorted(l)
 
 
 @login_required

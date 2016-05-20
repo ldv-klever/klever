@@ -53,7 +53,7 @@ class TR(core.components.Component):
                     fp.write(env.get_template(tmpl).render(self.abstract_task_desc['template context']))
 
                 self.abstract_task_desc['files'].append(
-                    os.path.relpath(file, os.path.realpath(self.conf['source tree root'])))
+                    os.path.relpath(file, self.conf['main working directory']))
 
                 self.logger.debug('Rendered template was stored into file "{0}"'.format(file))
 

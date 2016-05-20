@@ -3,7 +3,37 @@
 {% block reports_head_block %}<link href="/static/reports/css/reports.css" rel="stylesheet">{% endblock %}
 
 {% if component == 'Core' and type == '0' %}
-    <p>{{ data }}</p>
+    <h5 class="ui brown header">{% trans 'Testing results' %}</h5>
+    <table class="ui compact brown table">
+        <thead>
+            <tr>
+                <th>{% trans 'Test' %}</th>
+                <th>{% trans 'Verdict' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for id in data.keys|sort_list %}
+                <tr>
+                    <td>{{ id }}</td>
+                    <td>
+                        {% with result=data|get_dict_val:id  %}
+                            {% with ideal_verdict=result|get_dict_val:"ideal verdict" comment=result|get_dict_val:"comment" verification_status=result|get_dict_val:"verification status" %}
+                                <span style="color: {% if verification_status != ideal_verdict %}#ff3463{% else %}#20d467{% endif %};"{% if comment %} class="report-data-popup hoverable" data-content="{{ comment }}" data-variation="very wide"{% endif %}>
+                                    {% if verification_status != ideal_verdict %}
+                                        {% trans 'Failed' %}
+                                    {% else %}
+                                        {% trans 'Passed' %}
+                                    {% endif %}
+                                    {% if comment %}*{% endif %}
+                                    ({{ ideal_verdict }} &rarr; {{ verification_status }})
+                                </span>
+                            {% endwith %}
+                        {% endwith %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% elif component == 'Core' and type == '3' %}
     <h5 class="ui brown header">{% trans 'Validation results' %}</h5>
     <table class="ui compact brown table">
@@ -15,14 +45,30 @@
             </tr>
         </thead>
         <tbody>
-            {% for validation_res in data %}
+            {% for id in data.keys|sort_list %}
                 <tr>
-                    <td>{{ validation_res.0 }}</td>
+                    <td>{{ id }}</td>
                     <td>
-                        <span style="color: {% if validation_res.1 != 'unsafe' %}#ff3463{% else %}#20d467{% endif %};"{% if validation_res.2 %} class="report-data-popup hoverable" data-content="{{ validation_res.2 }}" data-variation="very wide"{% endif %}>{{ validation_res.1 }}</span>{% if validation_res.2 %}*{% endif %}
+                        {% with result_before_fix=data|get_dict_val:id|get_dict_val:"before fix"  %}
+                            {% with comment=result_before_fix|get_dict_val:"comment" verification_status=result_before_fix|get_dict_val:"verification status" %}
+                                <span style="color: {% if verification_status != 'unsafe' %}#ff3463{% else %}#20d467{% endif %};"{% if comment %} class="report-data-popup hoverable" data-content="{{ comment }}" data-variation="very wide"{% endif %}>
+                                    {{ verification_status }}{% if comment %}*{% endif %}
+                                </span>
+                            {% endwith %}
+                        {% endwith %}
                     </td>
                     <td>
-                        {% if validation_res.3 %}<span style="color: {% if validation_res.3 != 'safe' %}#ff3463{% else %}#20d467{% endif %};"{% if validation_res.4 %} class="report-data-popup hoverable" data-content="{{ validation_res.4 }}" data-variation="very wide"{% endif %}>{{ validation_res.3 }}</span>{% if validation_res.4 %}*{% endif %}{% else %}-{% endif %}
+                        {% with result_after_fix=data|get_dict_val:id|get_dict_val:"after fix"  %}
+                            {% if result_after_fix %}
+                                {% with comment=result_after_fix|get_dict_val:"comment" verification_status=result_after_fix|get_dict_val:"verification status" %}
+                                    <span style="color: {% if verification_status != 'safe' %}#ff3463{% else %}#20d467{% endif %};"{% if comment %} class="report-data-popup hoverable" data-content="{{ comment }}" data-variation="very wide"{% endif %}>
+                                        {{ verification_status }}{% if comment %}*{% endif %}
+                                    </span>
+                                {% endwith %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        {% endwith %}
                     </td>
                 </tr>
             {% endfor %}

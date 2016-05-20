@@ -2,19 +2,38 @@ import os
 import copy
 import abc
 
+from core.avtg.emg.translator.instances import split_into_instances
+from core.avtg.emg.translator.fsa import Automaton
 from core.avtg.emg.common.signature import import_signature
 from core.avtg.emg.common.code import FunctionDefinition, Aspect, Variable
-from core.avtg.emg.common.interface import Container, Callback
-from core.avtg.emg.translator.fsa import Automaton
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
 
 
 class AbstractTranslator(metaclass=abc.ABCMeta):
+    """
+    This class implements translator from process format to C code. Its workflow in general looks as follows:
+    1) Assign single implementation to each access of the process copying it into instances with corresponding
+       different interface implementations.
+    2) Translate each instance into a finitie-state automaton (FSM) with states and transitions.
+    3) Generte a control function in C for each automaton.
+    4) Generate an entry point function with invocations of all control functions.
+    5) Generate aspect files with entry point, control functions and the other collateral functions and variables.
+    """
 
     CF_PREFIX = 'ldv_control_function_'
 
     def __init__(self, logger, conf, avt, aspect_lines=None):
+        """
+        Just read translation configuration options and save corresponding values to object attributes. Do not do any
+        translation actually.
+
+        :param logger: Logger object.
+        :param conf: Configuration dictionary for EMG plugin.
+        :param avt: Abstract verification task dictionary.
+        :param aspect_lines: List of lins with text of addiotional aspect files provided to EMG to add to the
+                             generated model.
+        """
         self.logger = logger
         self.conf = conf
         self.task = avt
@@ -40,6 +59,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__identifier_cnt = -1
         self.__instance_modifier = 1
         self.__max_instances = None
+        self.__resource_new_insts = 1
+        self.__switchers_cache = {}
 
         # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
@@ -50,6 +71,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.__max_instances = int(self.conf["translation options"]["max instances number"])
         if "instance modifier" in self.conf["translation options"]:
             self.__instance_modifier = self.conf["translation options"]["instance modifier"]
+        if "number of new instances per resource implementation" in self.conf["translation options"]:
+            self.__resource_new_insts = \
+                self.conf["translation options"]["number of new instances per resource implementation"]
         if "pointer initialization" not in self.conf["translation options"]:
             self.conf["translation options"]["pointer initialization"] = {}
         if "pointer free" not in self.conf["translation options"]:
@@ -93,10 +117,20 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             self.additional_aspects = aspect_lines
 
+    ####################################################################################################################
+    # PUBLIC METHODS
+    ####################################################################################################################
+
     def translate(self, analysis, model):
+        """
+        Main function for translation of processes to automata and then to C code.
+        :param analysis: ModuleCategoriesSpecification object.
+        :param model: ProcessModel object.
+        :return: None.
+        """
         # Determine entry point name and file
         self.logger.info("Determine entry point name and file")
-        self.__determine_entry(analysis)
+        self._determine_entry(analysis)
         self.logger.info("Going to generate entry point function {} in file {}".
                          format(self.entry_point_name, self.entry_file))
 
@@ -118,139 +152,20 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         self.logger.info("Model translation is finished")
 
-    def _prepare_code(self, analysis, model):
-        # Determine how many instances is required for a model
-        self.logger.info("Determine how many instances is required to add to an environment model for each process")
-        for process in model.event_processes:
-            base_list = self._initial_instances(analysis, process)
-            base_list = self._instanciate_processes(analysis, base_list, process)
-            self.logger.info("Generate {} FSA instances for process {} with category {}".
-                             format(len(base_list), process.name, process.category))
-
-            for instance in base_list:
-                fsa = Automaton(self.logger, analysis, instance, self.__yeild_identifier())
-                self._callback_fsa.append(fsa)
-
-        # Generate automata for models
-        for process in model.model_processes:
-            self.logger.info("Generate FSA for kernel model process {}".format(process.name))
-            processes = self._instanciate_processes(analysis, [process], process)
-            for instance in processes:
-                fsa = Automaton(self.logger, analysis, instance, self.__yeild_identifier())
-                self._model_fsa.append(fsa)
-
-        # Generate state machine for init an exit
-        # todo: multimodule automaton (issues #6563, #6571, #6558)
-        self.logger.info("Generate FSA for module initialization and exit functions")
-        self._entry_fsa = Automaton(self.logger, analysis, model.entry_process, self.__yeild_identifier())
-
-        # Generates base code blocks
-        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
-            for state in list(automaton.fsa.states):
-                automaton.generate_code(analysis, model, self, state)
-
-        # Save digraphs
-        if self.__dump_automata:
-            automaton_dir = "automaton"
-            self.logger.info("Save automata to directory {}".format(automaton_dir))
-            os.mkdir(automaton_dir)
-            for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
-                automaton.save_digraph(automaton_dir)
-
-        # Generate control functions
-        self.logger.info("Generate control functions for each automaton")
-        self._generate_control_functions(analysis, model)
-
-        # Add structures to declare types
-        self.files[self.entry_file]['types'] = sorted(list(set(self._structures.values())), key=lambda v: v.identifier)
-
-    def _instanciate_processes(self, analysis, instances, process):
-        base_list = instances
-
-        # Copy base instances for each known implementation
-        relevant_multi_containers = set()
-        accesses = process.accesses()
-        self.logger.debug("Calculate relevant containers with several implementations for process {} for category {}".
-                          format(process.name, process.category))
-        for access in [accesses[name] for name in sorted(accesses.keys())]:
-            for inst_access in [inst for inst in sorted(access, key=lambda i: i.expression) if inst.interface]:
-                if type(inst_access.interface) is Container and \
-                                len(analysis.implementations(inst_access.interface)) > 1 and \
-                                inst_access.interface not in relevant_multi_containers:
-                    relevant_multi_containers.add(inst_access.interface)
-                elif len(inst_access.complete_list_interface) > 1:
-                    impl_cnt = [intf for intf in inst_access.complete_list_interface if type(intf) is Container and
-                                len(analysis.implementations(intf)) > 1]
-                    if len(impl_cnt) > 0:
-                        relevant_multi_containers.add(impl_cnt[0])
-
-        # Copy instances for each implementation of a container
-        if len(relevant_multi_containers) > 0:
-            self.logger.debug(
-                "Found {} relevant containers with several implementations for process {} for category {}".
-                format(str(len(relevant_multi_containers)), process.name, process.category))
-            for interface in sorted(list(relevant_multi_containers), key=lambda intf: intf.identifier):
-                new_base_list = []
-                implementations = analysis.implementations(interface)
-
-                for implementation in implementations:
-                    for instance in base_list:
-                        newp = self._copy_process(instance)
-                        newp.forbide_except(analysis, implementation)
-                        new_base_list.append(newp)
-
-                base_list = list(new_base_list)
-
-        new_base_list = []
-        for instance in base_list:
-            # Copy callbacks or resources which are not tied to a container
-            accesses = instance.accesses()
-            relevant_multi_leafs = set()
-            for access in [accesses[name] for name in sorted(accesses.keys())]:
-                relevant_multi_leafs.update([inst for inst in access if inst.interface and
-                                             type(inst.interface) is Callback and
-                                             len(instance.get_implementations(analysis, inst)) > 1])
-
-            if len(relevant_multi_leafs) > 0:
-                self.logger.debug("Found {} accesses with several implementations for process {} for category {}".
-                                  format(len(relevant_multi_leafs), process.name, process.category))
-                for access in sorted(list(relevant_multi_leafs), key=lambda intf: intf.expression):
-                    for implementation in analysis.implementations(access.interface):
-                        newp = self._copy_process(instance)
-                        newp.forbide_except(analysis, implementation)
-                        new_base_list.append(newp)
-            else:
-                new_base_list.append(instance)
-
-        base_list = new_base_list
-        return base_list
-
-    def _initial_instances(self, analysis, process):
-        base_list = []
-        undefined_labels = []
-        # Determine nonimplemented containers
-        self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
-                          "category {}".format(process.name, process.category))
-        for label in [process.labels[name] for name in sorted(process.labels.keys())
-                      if len(process.labels[name].interfaces) > 0]:
-            nonimplemented_intrerfaces = [interface for interface in label.interfaces
-                                          if len(analysis.implementations(analysis.interfaces[interface])) == 0]
-            if len(nonimplemented_intrerfaces) > 0:
-                undefined_labels.append(label)
-
-        # Determine is it necessary to make several instances
-        if len(undefined_labels) > 0:
-            for i in range(self.__instance_modifier):
-                base_list.append(self._copy_process(process))
-        else:
-            base_list.append(self._copy_process(process))
-
-        self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
-                         format(len(base_list), len(undefined_labels), process.name, process.category))
-
-        return base_list
-
     def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
+        """
+        Determine which automata can receive signals from the given instance or send signals to it.
+
+        :param automata_peers: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
+                                                                            'automaton': 'Automaton object'}
+        :param peers: List of relevant Process objects: [{'process': 'Process obj',
+                                                         'subprocess': 'Receive or Dispatch obj'}]
+        :param sb_type: Receive or Dispatch class to choose only those automata that reseive or send signals to the
+                        given one
+        :return: None, since it modifies the first argument.
+        """
+        self.logger.debug("Searching for relevant automata")
+
         for peer in peers:
             relevant_automata = [automaton for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]
                                  if automaton.process.name == peer["process"].name]
@@ -266,6 +181,18 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         automata_peers[automaton.identifier]["states"].add(state)
 
     def registration_intf_check(self, analysis, model, function_call):
+        """
+        Tries to find relevant automata that can receive signals from model processes of those kernel functions which
+        can be called whithin the execution of a provided callback.
+
+        :param analysis: ModuleCategoriesSpecification object
+        :param model: ProcessModel object.
+        :param function_call: Function name string (Expect explicit function name like 'myfunc' or '(& myfunc)').
+        :return: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
+                                                                         'automaton': 'Automaton object'}
+        """
+        self.logger.debug("Searching for relevant automata to generate check before callback call '{}'".
+                          format(function_call))
         automata_peers = {}
 
         name = analysis.callback_name(function_call)
@@ -296,6 +223,103 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return automata_peers
 
+    ####################################################################################################################
+    # PRIVATE METHODS
+    ####################################################################################################################
+
+    def _prepare_code(self, analysis, model):
+        # Determine how many instances is required for a model
+        self.logger.info("Generate automata for processes with callback calls")
+        for process in model.event_processes:
+            base_list = self._initial_instances(analysis, process)
+            base_list = self._instanciate_processes(analysis, base_list, process)
+            self.logger.info("Generate {} FSA instances for environment model processes {} with category {}".
+                             format(len(base_list), process.name, process.category))
+
+            for instance in base_list:
+                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
+                self._callback_fsa.append(fsa)
+
+        # Generate automata for models
+        self.logger.info("Generate automata for kernel model processes")
+        for process in model.model_processes:
+            self.logger.info("Generate FSA for kernel model process {}".format(process.name))
+            processes = self._instanciate_processes(analysis, [process], process)
+            for instance in processes:
+                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
+                self._model_fsa.append(fsa)
+
+        # Generate state machine for init an exit
+        # todo: multimodule automaton (issues #6563, #6571, #6558)
+        self.logger.info("Generate FSA for module initialization and exit functions")
+        self._entry_fsa = Automaton(self.logger, model.entry_process, self.__yeild_identifier())
+
+        # Generates base code blocks
+        self.logger.info("Prepare code on each action of each automanon instance")
+        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+            self.logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
+                              format(automaton.identifier, automaton.process.name, automaton.process.category))
+            for state in list(automaton.fsa.states):
+                automaton.generate_code(analysis, model, self, state)
+
+        # Save digraphs
+        if self.__dump_automata:
+            automaton_dir = "automaton"
+            self.logger.info("Save automata to directory {}".format(automaton_dir))
+            os.mkdir(automaton_dir)
+            for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+                automaton.save_digraph(automaton_dir)
+
+        # Generate control functions
+        self.logger.info("Generate control functions for each automaton")
+        self._generate_control_functions(analysis, model)
+
+        # Add structures to declare types
+        self.files[self.entry_file]['types'] = sorted(list(set(self._structures.values())), key=lambda v: v.identifier)
+
+    def _instanciate_processes(self, analysis, instances, process):
+        base_list = instances
+
+        # Get map from accesses to implementations
+        self.logger.info("Determine number of instances for process '{}' with category '{}'".
+                         format(process.name, process.category))
+        maps = split_into_instances(analysis, process, self.__resource_new_insts)
+        self.logger.info("Going to generate {} instances for process '{}' with category '{}'".
+                         format(len(maps), process.name, process.category))
+        new_base_list = []
+        for access_map in maps:
+            for instance in base_list:
+                newp = self._copy_process(instance)
+                newp.allowed_implementations = access_map
+                new_base_list.append(newp)
+
+        return new_base_list
+
+    def _initial_instances(self, analysis, process):
+        base_list = []
+        undefined_labels = []
+        # Determine nonimplemented containers
+        self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
+                          "category {}".format(process.name, process.category))
+        for label in [process.labels[name] for name in sorted(process.labels.keys())
+                      if len(process.labels[name].interfaces) > 0]:
+            nonimplemented_intrerfaces = [interface for interface in label.interfaces
+                                          if len(analysis.implementations(analysis.interfaces[interface])) == 0]
+            if len(nonimplemented_intrerfaces) > 0:
+                undefined_labels.append(label)
+
+        # Determine is it necessary to make several instances
+        if len(undefined_labels) > 0:
+            for i in range(self.__instance_modifier):
+                base_list.append(self._copy_process(process))
+        else:
+            base_list.append(self._copy_process(process))
+
+        self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
+                         format(len(base_list), len(undefined_labels), process.name, process.category))
+
+        return base_list
+
     def _copy_process(self, process):
         inst = copy.copy(process)
         if self.__max_instances == 0:
@@ -303,15 +327,19 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                format(int(self.conf["translation options"]["max instances number"])))
         elif self.__max_instances:
             self.__max_instances -= 1
+
+        inst.allowed_implementations = dict(process.allowed_implementations)
         return inst
 
-    def __yeild_identifier(self):
-        self.__identifier_cnt += 1
-        return self.__identifier_cnt
-
+<<<<<<< HEAD
     def __determine_entry(self, analysis):
         if len(analysis.inits) >= 1:
             file = analysis.inits[0][0]
+=======
+    def _determine_entry(self, analysis):
+        if len(analysis.inits) == 1:
+            file = list(analysis.inits.keys())[0]
+>>>>>>> master
             self.logger.info("Choose file {} to add an entry point function".format(file))
             self.entry_file = file
         elif len(analysis.inits) < 1:
@@ -326,10 +354,27 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
-                'functions': {}
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
             }
 
-        self.files[file]['functions'][function.name] = function
+        self.files[file]['functions'][function.name] = function.get_definition()
+        if file == self.entry_file:
+            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=False)
+        else:
+            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=True)
+
+    def _add_function_declaration(self, file, function):
+        if file not in self.files:
+            self.files[file] = {
+                'variables': {},
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
+            }
+
+        self.files[file]['declarations'][function.name] = function.get_declaration(extern=True)
 
     def _add_global_variable(self, variable):
         if variable.file:
@@ -340,10 +385,19 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
-                'functions': {}
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
             }
 
-        self.files[file]['variables'][variable.name] = variable
+        if file == self.entry_file:
+            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
+        else:
+            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=True) + ";\n"
+            self.files[file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
+
+        if variable.value:
+            self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
 
     def _generate_control_functions(self, analysis, model):
         global_switch_automata = []
@@ -352,22 +406,59 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             raise NotImplementedError('EMG options are inconsistent: cannot create label-based automata without nested'
                                       'dispatches')
 
+        # Initialize states in an entry point
+        body = []
+        if not self._omit_all_states:
+            for automaton in [self._entry_fsa] + self._callback_fsa:
+                body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
+                            format(automaton.identifier, automaton.process.name, automaton.process.category))
+                body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
+                initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
+                if len(initial_states) == 1:
+                    body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
+                elif len(initial_states) == 2:
+                    body.extend([
+                        '\tif (ldv_undef_int())',
+                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
+                        '\telse',
+                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
+                    ])
+                elif len(initial_states) > 2:
+                    body.append('switch (ldv_undef_int()) {')
+                    for index in range(len(initial_states)):
+                        body.append('\t\tcase {}: '.format(index) + '{')
+                        body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
+                        body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
+                        body.append('\t\t}')
+                        body.append('\t\tdefault: ldv_stop();')
+                        body.append('\t}')
+                body.append('}')
+
+        # Prepare action blocks
+        self.logger.info('Prepare code base block on each action of each instance')
+        for automaton in [self._entry_fsa] + self._callback_fsa + self._model_fsa:
+            for state in automaton.fsa.states:
+                state.code['final block'] = self._action_base_block(analysis, automaton, state)
+
+        # Generate model control function
+        self.logger.info('Generate control functions for kernel model functions')
+        while len(self._model_fsa) > 0:
+            automaton = self._model_fsa.pop()
+            self._label_cfunction(analysis, automaton, automaton.process.name)
+
         # Generate automata control function
-        self.logger.info("Generate control functions for the environment model")
-        if self._omit_all_states:
-            for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
+        self.logger.info("Generate control functions for the rest automata of an environment model")
+        while len(self._callback_fsa) > 0:
+            automaton = self._callback_fsa.pop()
+
+            if self._omit_all_states:
                 func = self._label_cfunction(analysis, automaton)
+            else:
+                automaton.state_blocks = self._state_sequences(automaton)
+                func = self._state_cfunction(analysis, automaton)
+
             if func and not self._nested_automata:
                 global_switch_automata.append(func)
-        else:
-            self.logger.info("Generate control functions for the environment model")
-            for automaton in sorted(list(self._callback_fsa) + [self._entry_fsa], key=lambda fsa: fsa.identifier):
-                automaton.state_blocks = self._state_sequences(automaton)
-
-            for automaton in sorted(list(self._callback_fsa), key=lambda fsa: fsa.identifier):
-                func = self._state_cfunction(analysis, automaton)
-                if func and not self._nested_automata:
-                    global_switch_automata.append(func)
 
         if self._omit_all_states:
             func = self._label_cfunction(analysis, self._entry_fsa)
@@ -378,17 +469,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             raise ValueError('Entry point function must contain init/exit automaton control function')
 
-        # Generate model control function
-        for name in (pr.name for pr in model.model_processes):
-            for automaton in [a for a in sorted(list(self._model_fsa), key=lambda fsa: fsa.identifier)
-                              if a.process.name == name]:
-                self._label_cfunction(analysis, automaton, name)
-
         # Generate entry point function
-        func = self._generate_entry_functions(global_switch_automata)
+        func = self._generate_entry_functions(body, global_switch_automata)
         self._add_function_definition(self.entry_file, func)
 
-    def _generate_entry_functions(self, global_switch_automata):
+    def _generate_entry_functions(self, body, global_switch_automata):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
         # FunctionDefinition prototype
         ep = FunctionDefinition(
@@ -401,16 +486,20 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         body = [
             "ldv_initialize();",
             ""
+            "/* Initialize initial states of automata */"
+        ] + body
+
+        body.extend([
             "while(1) {",
             "\tswitch(ldv_undef_int()) {"
-        ]
+        ])
 
         for index in range(len(global_switch_automata)):
             cfunction = global_switch_automata[index]
             body.extend(
                 [
                     "\t\tcase {}: ".format(index),
-                    "\t\t\t{}(0);".format(cfunction.name),
+                    "\t\t\t{}(0);".format(cfunction),
                     "\t\tbreak;"
                 ]
             )
@@ -421,7 +510,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 "}"
             ]
         )
-        ep.body.concatenate(body)
+        ep.body.extend(body)
 
         return ep
 
@@ -445,14 +534,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         resources = [state.code['callback'].to_string('arg0')]
         params = []
         for index in range(len(state.code['callback'].points.parameters)):
-            if index in state.code["pointer parameters"]:
-                resources.append(state.code['callback'].points.parameters[index].take_pointer.
-                                 to_string('arg{}'.format(index + 1)))
-                params.append('*arg{}'.format(index + 1))
-            else:
-                resources.append(state.code['callback'].points.parameters[index].
-                                 to_string('arg{}'.format(index + 1)))
-                params.append('arg{}'.format(index + 1))
+            if type(state.code['callback'].points.parameters[index]) is not str:
+                if index in state.code["pointer parameters"]:
+                    resources.append(state.code['callback'].points.parameters[index].take_pointer.
+                                     to_string('arg{}'.format(index + 1)))
+                    params.append('*arg{}'.format(index + 1))
+                else:
+                    resources.append(state.code['callback'].points.parameters[index].
+                                     to_string('arg{}'.format(index + 1)))
+                    params.append('arg{}'.format(index + 1))
         params = ", ".join(params)
         resources = ", ".join(resources)
 
@@ -461,7 +551,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                       "{} {}({})".format(ret, fname, resources),
                                       True)
 
-        function.body.concatenate("/* Callback {} */".format(state.action.name))
+        function.body.append("/* Callback {} */".format(state.action.name))
         inv = [
             '/* Callback {} */'.format(state.action.name)
         ]
@@ -476,7 +566,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                        ', '.join([state.code['variable']] + state.code['parameters']) + ');'
             inv.append(f_invoke)
             call = ret_expr + '({})'.format(state.code['invoke']) + '(' + params + ')'
-        function.body.concatenate('{};'.format(call))
+        function.body.append('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
 
@@ -486,21 +576,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             inv.extend(state.code['post_call'])
 
         return inv
-
-    def _relevant_checks(self, state):
-        checks = []
-
-        # Add state checks
-        if state.code and 'relevant automata' in state.code:
-            for name in sorted(state.code['relevant automata'].keys()):
-                for st in state.code['relevant automata'][name]['states']:
-                    for index in state.code['relevant automata'][name]["automaton"].state_blocks:
-                        if st in state.code['relevant automata'][name]["automaton"].state_blocks[index]:
-                            checks.append("{} == {}".
-                                          format(state.code['relevant automata'][name]["automaton"].state_variable.name,
-                                                 index))
-
-        return checks
 
     def _call_cf(self, automaton, parameter='0'):
         sv = automaton.thread_variable
@@ -512,7 +587,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                                            self.CF_PREFIX + str(automaton.identifier),
                                                            parameter)
 
-    def join_cf(self, automaton):
+    def _join_cf(self, automaton):
         sv = automaton.thread_variable
 
         return 'ldv_thread_join({});'.format('& ' + sv.name)
@@ -566,7 +641,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             # Determine dispatcher parameter
             dispatcher_access = automaton.process.resolve_access(state.action.parameters[index],
                                                                  interface.identifier)
-            variable = automaton.determine_variable(analysis, dispatcher_access.label, interface.identifier)
+            variable = automaton.determine_variable(dispatcher_access.label, interface.identifier)
             dispatcher_expr = dispatcher_access.access_with_variable(variable)
 
             function_parameters.append(variable.declaration)
@@ -609,7 +684,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                             state.code['relevant automata'][name]['automaton'].process.category))
             else:
                 for name in state.code['relevant automata']:
-                    call = self.join_cf(state.code['relevant automata'][name]['automaton'])
+                    call = self._join_cf(state.code['relevant automata'][name]['automaton'])
                     if self._direct_cf_calls:
                         block = [call]
                     else:
@@ -664,9 +739,18 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 False
             )
 
-        df.body.concatenate(body)
-        automaton.functions.append(df)
+        df.body.extend(body)
         self._add_function_definition(self.entry_file, df)
+
+        # Determine files to export
+        files = set()
+        if automaton.process.category == "kernel models":
+            for caller in (c for c in analysis.kernel_functions[automaton.process.name].called_at):
+                for file in analysis.modules_functions[caller]:
+                    files.add(file)
+        # Export
+        for file in files:
+            self._add_function_declaration(file, df)
 
         return [
             '/* Dispatch {} */'.format(state.action.name),
@@ -678,8 +762,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         vf_param_var = Variable('ldv_dispatch_params_{}_{}'.format(automaton.identifier, state.identifier),
                                 None, decl.take_pointer, False)
 
-        if vf_param_var.name not in self.files[self.entry_file]['variables']:
-            self._add_global_variable(vf_param_var)
+        self._add_global_variable(vf_param_var)
         return vf_param_var
 
     def _action_base_block(self, analysis, automaton, state):
@@ -688,7 +771,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         if type(state.action) is Call:
             if not self._nested_automata:
-                checks = self._relevant_checks(state)
+                checks = state._relevant_checks()
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
@@ -701,7 +784,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 block.append(stm)
         elif type(state.action) is Dispatch:
             if not self._nested_automata:
-                checks = self._relevant_checks(state)
+                checks = state._relevant_checks()
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
@@ -720,7 +803,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     # Determine receiver parameter
                     receiver_access = automaton.process.resolve_access(state.action.parameters[index],
                                                                        interface.identifier)
-                    var = automaton.determine_variable(analysis, receiver_access.label, interface.identifier)
+                    var = automaton.determine_variable(receiver_access.label, interface.identifier)
                     receiver_expr = receiver_access.access_with_variable(var)
 
                     param_declarations.append(var.declaration)
@@ -810,6 +893,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             }
             new.code = cd
             state_stack.append(new)
+            new.code['final block'] = self._action_base_block(analysis, automaton, new)
         else:
             state_stack.append(list(automaton.fsa.initial_states)[0])
 
@@ -826,7 +910,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     'goto ldv_{}_{};'.format(state.action.name, automaton.identifier)
                 ]
             else:
-                new_v_code, code = self._action_base_block(analysis, automaton, state)
+                new_v_code, code = state.code['final block']
                 v_code.extend(new_v_code)
 
             if len(conditional_stack) > 0 and conditional_stack[-1]['condition'] == 'switch' and \
@@ -976,7 +1060,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             ret_expression = 'return;'
 
         # Generate function definition
-        cf = self.__new_control_function(analysis, automaton, v_code, f_code, aspect)
+        cf = self._new_control_function(analysis, automaton, v_code, f_code, aspect)
 
         main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
                                                         'initial_state')
@@ -1006,11 +1090,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         elif not aspect:
             self._add_global_variable(automaton.thread_variable)
 
-        cf.body.concatenate(v_code + f_code)
+        cf.body.extend(v_code + f_code)
         automaton.control_function = cf
-        return cf
 
-    def __new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
+        if not aspect:
+            self._add_function_definition(self.entry_file, cf)
+        return cf.name
+
+    def _new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
         # Function type
         if aspect:
             cf = Aspect(aspect, analysis.kernel_functions[aspect].declaration, 'around')
@@ -1018,8 +1105,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
             cf = FunctionDefinition(self.CF_PREFIX + str(automaton.identifier), self.entry_file, 'void f(void *cf_arg)',
                                     False)
-            self._add_function_definition(self.entry_file, cf)
-
             if self._nested_automata:
                 param_declarations = []
                 param_expressions = []
@@ -1032,22 +1117,50 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             # Determine receiver parameter
                             receiver_access = automaton.process.resolve_access(receive.parameters[index],
                                                                                interface.identifier)
-                            var = automaton.determine_variable(analysis, receiver_access.label, interface.identifier)
+                            var = automaton.determine_variable(receiver_access.label, interface.identifier)
                             receiver_expr = receiver_access.access_with_variable(var)
 
                             param_declarations.append(var.declaration)
                             param_expressions.append(receiver_expr)
                         break
 
-        if self._nested_automata:
-            for var in automaton.variables(analysis):
+        if self._nested_automata or aspect:
+            for var in automaton.variables():
                 definition = var.declare() + ";"
                 v_code.append(definition)
-        else:
-            for var in automaton.variables(analysis):
+        elif not aspect:
+            for var in automaton.variables():
                 self._add_global_variable(var)
 
         return cf
+
+    def _state_switch(self, states):
+        key = ''.join((str(i) for i in states))
+        if key in self.__switchers_cache:
+            return self.__switchers_cache[key]
+
+        # Generate switch function
+        name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
+        function = FunctionDefinition(name, self.entry_file, 'int f(void)', False)
+
+        # Generate switch body
+        code = list()
+        code.append('switch (ldv_undef_int()) {')
+        for index in range(len(states)):
+            code.append('\tcase {}: '.format(index) + '{')
+            code.append('\t\treturn {};'.format(states[index]))
+            code.append('\t\tbreak;')
+            code.append('\t}')
+        code.append('\tdefault: ldv_stop();')
+        code.append('}')
+        function.body.extend(code)
+
+        # Add function
+        self._add_function_definition(self.entry_file, function)
+
+        invoke = '{}()'.format(name)
+        self.__switchers_cache[key] = invoke
+        return invoke
 
     def _state_sequences(self, automaton):
         blocks_stack = sorted(list(automaton.fsa.initial_states), key=lambda f: f.identifier)
@@ -1063,7 +1176,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 block.append(state)
                 no_jump = (type(state.action) not in self.jump_types) and no_jump
 
-                if len(state.successors) == 1 and (no_jump or list(state.successors)[0] not in self.jump_types):
+                if len(state.successors) == 1 and (no_jump or type(list(state.successors)[0].action) not in self.jump_types):
                     state_stack.append(list(state.successors)[0])
 
             blocks[origin.identifier] = block
@@ -1080,7 +1193,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         v_code = []
 
         for state in block:
-            new_v_code, block = self._action_base_block(analysis, automaton, state)
+            new_v_code, block = state.code['final block']
             v_code.extend(new_v_code)
 
             if state.code and len(state.code['guard']) > 0 and first:
@@ -1111,14 +1224,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 '\t{} = {};'.format(automaton.state_variable.name, successors[1].identifier),
             ])
         elif len(state.successors) > 2:
-            code.append('switch (ldv_undef_int()) {')
-            for index in range(len(successors)):
-                code.append('\tcase {}: '.format(index) + '{')
-                code.append('\t\t{} = {};'.format(automaton.state_variable.name, successors[index].identifier))
-                code.append('\t\tbreak;'.format(automaton.state_variable.name, successors[index].identifier))
-                code.append('\t}')
-            code.append('\tdefault: ldv_stop();')
-            code.append('}')
+            switch_call = self._state_switch([st.identifier for st in successors])
+            code.append('{} = {};'.format(automaton.state_variable.name, switch_call))
         else:
             code.append('/* Reset automaton state */')
             code.append('{} = {};'.format(automaton.state_variable.name, '0'))
@@ -1135,30 +1242,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         tab = 0
 
         # Generate function definition
-        cf = self.__new_control_function(analysis, automaton, v_code, f_code, None)
-
-        f_code.append('/* Initialize state */')
-        f_code.append('if (!{}) '.format(automaton.state_variable.name) + '{')
-        initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
-        if len(initial_states) == 1:
-            f_code.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
-        elif len(initial_states) == 2:
-            f_code.extend([
-                '\tif (ldv_undef_int())',
-                '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
-                '\telse',
-                '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
-            ])
-        elif len(initial_states) > 2:
-            f_code.append('switch (ldv_undef_int()) {')
-            for index in range(len(initial_states)):
-                f_code.append('\t\tcase {}: '.format(index) + '{')
-                f_code.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
-                f_code.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
-                f_code.append('\t\t}')
-                f_code.append('\t\tdefault: ldv_stop();')
-                f_code.append('\t}')
-        f_code.append('}')
+        cf = self._new_control_function(analysis, automaton, v_code, f_code, None)
 
         # Add loop for nested case
         if self._nested_automata:
@@ -1216,10 +1300,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             v_code.append(automaton.state_variable.declare() + " = 0;")
         else:
             self._add_global_variable(automaton.state_variable)
-        cf.body.concatenate(v_code + f_code)
+        cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
-        return cf
+        self._add_function_definition(self.entry_file, cf)
+        return cf.name
 
     def __generate_aspects(self):
         aspect_dir = "aspects"
@@ -1257,41 +1342,33 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines.append("/* EMG Function declarations */\n")
                 for file in sorted(self.files.keys()):
                     if "functions" in self.files[file]:
-                        for function in [self.files[file]["functions"][name] for name
-                                         in sorted(self.files[file]["functions"].keys())]:
-                            if function.export and cc_extra_full_desc_file["in file"] != file:
-                                lines.extend(function.get_declaration(extern=True))
-                            else:
-                                lines.extend(function.get_declaration(extern=False))
+                        for function in sorted(self.files[file]["declarations"].keys()):
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.extend(self.files[file]["declarations"][function])
 
                 lines.append("\n")
                 lines.append("/* EMG variable declarations */\n")
                 for file in sorted(self.files):
                     if "variables" in self.files[file]:
-                        for variable in [self.files[file]["variables"][name] for name in
-                                         sorted(self.files[file]["variables"].keys())]:
-                            if variable.export and cc_extra_full_desc_file["in file"] != file:
-                                lines.extend([variable.declare(extern=True) + ";\n"])
-                            else:
-                                lines.extend([variable.declare(extern=False) + ";\n"])
+                        for variable in sorted(self.files[file]["variables"].keys()):
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.append(self.files[file]["variables"][variable])
 
                 lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
                 for file in sorted(self.files):
                     if "variables" in self.files[file]:
-                        for variable in [self.files[file]["variables"][name] for name in
-                                         sorted(self.files[file]["variables"].keys())]:
-                            if cc_extra_full_desc_file["in file"] == file and variable.value:
-                                lines.extend([variable.declare_with_init() + ";\n"])
+                        for variable in sorted(self.files[file]["initializations"].keys()):
+                            if cc_extra_full_desc_file["in file"] == file:
+                                lines.append(self.files[file]["initializations"][variable])
 
                 lines.append("\n")
                 lines.append("/* EMG function definitions */\n")
                 for file in sorted(self.files):
                     if "functions" in self.files[file]:
-                        for function in [self.files[file]["functions"][name] for name
-                                         in sorted(self.files[file]["functions"].keys())]:
+                        for function in sorted(self.files[file]["functions"].keys()):
                             if cc_extra_full_desc_file["in file"] == file:
-                                lines.extend(function.get_definition())
+                                lines.extend(self.files[file]["functions"][function])
                                 lines.append("\n")
 
                 lines.append("}\n")
@@ -1305,7 +1382,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 with open(name, "w", encoding="ascii") as fh:
                     fh.writelines(lines)
 
-                path = os.path.relpath(os.path.abspath(name), os.path.realpath(self.conf['source tree root']))
+                path = os.path.relpath(name, self.conf['main working directory'])
                 self.logger.info("Add aspect file {}".format(path))
                 self.aspects[cc_extra_full_desc_file["in file"]] = path
 
@@ -1326,6 +1403,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     def __add_entry_points(self):
         self.task["entry points"] = [self.entry_point_name]
+
+    def __yeild_identifier(self):
+        self.__identifier_cnt += 1
+        return self.__identifier_cnt
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 

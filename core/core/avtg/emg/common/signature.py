@@ -138,7 +138,7 @@ def new_identifier():
     return __noname_identifier
 
 
-class BaseType:
+class Declaration:
 
     @property
     def take_pointer(self):
@@ -197,7 +197,7 @@ class BaseType:
         return self._to_string(replacement)
 
 
-class Primitive(BaseType):
+class Primitive(Declaration):
 
     def __init__(self, ast, parent):
         self.common_initialization(ast, parent)
@@ -218,7 +218,7 @@ class Primitive(BaseType):
             return "{} {}".format(self._ast['specifiers']['type specifier']['name'], replacement)
 
 
-class Enum(BaseType):
+class Enum(Declaration):
 
     def __init__(self, ast, parent):
         self.common_initialization(ast, parent)
@@ -242,7 +242,7 @@ class Enum(BaseType):
             return "enum {} {}".format(self.name, replacement)
 
 
-class Function(BaseType):
+class Function(Declaration):
 
     def __init__(self, ast, parent):
         self.common_initialization(ast, parent)
@@ -302,7 +302,7 @@ class Function(BaseType):
         return replacement
 
 
-class Structure(BaseType):
+class Structure(Declaration):
 
     def __init__(self, ast, parent):
         self.common_initialization(ast, parent)
@@ -353,7 +353,7 @@ class Structure(BaseType):
             return "struct {} {}".format(name, replacement)
 
 
-class Union(BaseType):
+class Union(Declaration):
 
     def __init__(self, ast, parent):
         self.common_initialization(ast, parent)
@@ -407,7 +407,7 @@ class Union(BaseType):
             return "union {} {}".format(name, replacement)
 
 
-class Array(BaseType):
+class Array(Declaration):
 
     def __init__(self, ast, parent):
         self.common_initialization(ast, parent)
@@ -447,7 +447,7 @@ class Array(BaseType):
         return self.element.to_string(replacement)
 
 
-class Pointer(BaseType):
+class Pointer(Declaration):
 
     def __init__(self, ast, parent):
         self.common_initialization(ast, parent)
@@ -470,7 +470,7 @@ class Pointer(BaseType):
         return '{}_ptr'.format(self.points.pretty_name)
 
 
-class InterfaceReference(BaseType):
+class InterfaceReference(Declaration):
 
     def __init__(self, ast, parent):
         self._ast = ast
@@ -510,7 +510,7 @@ class InterfaceReference(BaseType):
             return '{}%{}% {}'.format(ptr, self.interface, replacement)
 
 
-class UndefinedReference(BaseType):
+class UndefinedReference(Declaration):
 
     def __init__(self, ast, parent):
         self._ast = ast

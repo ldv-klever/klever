@@ -9,19 +9,14 @@ import core.components
 import core.utils
 
 
-def before_launch_all_components(context):
+def before_launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['abstract task descs and nums'] = multiprocessing.Queue()
     context.mqs['abstract task descs num'] = multiprocessing.Queue()
-    context.mqs['VTG src tree root'] = multiprocessing.Queue()
 
 
 def after_set_common_prj_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
-
-
-def after_set_src_tree_root(context):
-    context.mqs['VTG src tree root'].put(context.src_tree_root)
 
 
 def after_generate_abstact_verification_task_desc(context):
@@ -60,7 +55,6 @@ class VTG(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
-        self.get_src_tree_root()
         self.generate_all_verification_tasks()
 
     main = generate_verification_tasks
@@ -83,15 +77,6 @@ class VTG(core.components.Component):
         self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
 
         self.mqs['VTG common prj attrs'].close()
-
-    def get_src_tree_root(self):
-        self.logger.info('Get source tree root')
-
-        self.conf['source tree root'] = self.mqs['VTG src tree root'].get()
-
-        self.mqs['VTG src tree root'].close()
-
-        self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
 
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')
@@ -132,19 +117,15 @@ class VTG(core.components.Component):
                     '/{0}'.format(self.abstract_task_descs_num.value) if self.abstract_task_descs_num.value else ''))
 
             attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
-
-            work_dir = os.path.join(
-                    os.path.relpath(
-                            os.path.join(self.conf['source tree root'],
-                                         '{0}.task'.format(abstract_task_desc['attrs'][0]['verification object']),
-                                         abstract_task_desc['attrs'][1]['rule specification'])),
-                    self.strategy_name)
+            work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
+                                    abstract_task_desc['attrs'][1]['rule specification'],
+                                    self.strategy_name)
             os.makedirs(work_dir)
             self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
             self.conf['abstract task desc'] = abstract_task_desc
 
-            p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs,
+            p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
                               work_dir, abstract_task_desc['attrs'], True, True)
             try:
