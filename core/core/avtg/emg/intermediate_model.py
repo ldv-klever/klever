@@ -190,6 +190,11 @@ class ProcessModel:
                         raise ValueError("Cannot find a suitable signature for a label '{}' at function model '{}'".
                                          format(label, function))
 
+                    if new_process.labels[label].interfaces and len(new_process.labels[label].interfaces) > 0:
+                        for interface in (i for i in new_process.labels[label].interfaces
+                                          if interface in analysis.interfaces):
+                            self.__assign_label_interface(new_process.labels[label], analysis.interfaces[interface])
+
     def __choose_processes(self, analysis, category):
         estimations = {}
         for process in [self.__abstr_event_processes[name] for name in sorted(self.__abstr_event_processes.keys())]:
@@ -246,6 +251,12 @@ class ProcessModel:
                               format(best_process.name, category))
             return new
 
+    def __assign_label_interface(self, label, interface):
+        if type(interface) is Container:
+            label.set_declaration(interface.identifier, interface.declaration.take_pointer)
+        else:
+            label.set_declaration(interface.identifier, interface.declaration)
+
     def __add_process(self, analysis, process, category=None, model=False, label_map=None, peer=None):
         self.logger.info("Add process {} to the model".format(process.name))
         self.logger.debug("Make copy of process {} before adding it to the model".format(process.name))
@@ -271,10 +282,7 @@ class ProcessModel:
                 for interface in [analysis.interfaces[name] for name
                                   in sorted(label_map["matched labels"][label])
                                   if name in analysis.interfaces]:
-                    if type(interface) is Container:
-                        new.labels[label].set_declaration(interface.identifier, interface.declaration.take_pointer)
-                    else:
-                        new.labels[label].set_declaration(interface.identifier, interface.declaration)
+                    self.__assign_label_interface(new.labels[label], interface)
 
         if peer:
             self.logger.debug("Match signals with signals of process {} with identifier {}".
