@@ -4,14 +4,14 @@
 
 static int __init init(void)
 {
-    rwlock_t *rwlock_1;
-    rwlock_t *rwlock_2;
-    rwlock_t *rwlock_3;
-    rwlock_t *rwlock_4;
+	rwlock_t *rwlock_1;
+	rwlock_t *rwlock_2;
+	rwlock_t *rwlock_3;
+	rwlock_t *rwlock_4;
 
-    unsigned long flags;
+	unsigned long flags;
 
-    write_lock(rwlock_1);
+	write_lock(rwlock_1);
 
 	return 0;
 }

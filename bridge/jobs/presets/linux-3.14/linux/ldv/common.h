@@ -15,8 +15,8 @@ extern void ldv_initialize(void);
 
 /**
  * ldv_post_init() - perform some actions and checks specific for rule
- *                   specifications after calling module initialization
- *                   functions.
+ *				   specifications after calling module initialization
+ *				   functions.
  * @init_ret_val:	Return value of module initialization function.
  *
  * ldv_post_init() can be defined by rule specification models.
@@ -25,13 +25,13 @@ extern void ldv_initialize(void);
  * after calling module initialization functions.
  *
  * Return: Filtered out return value of module initialization function. Callers
- *         should use this returned value rather than @init_ret_val.
+ *		 should use this returned value rather than @init_ret_val.
  */
 extern int ldv_post_init(int init_ret_val);
 
 /**
  * ldv_pre_probe() - perform some actions and checks specific for rule
- *                   specifications before calling module probe callbacks.
+ *				   specifications before calling module probe callbacks.
  *
  * ldv_pre_probe() can be defined by rule specification models.
  *
@@ -41,7 +41,7 @@ extern int ldv_post_init(int init_ret_val);
 extern void ldv_pre_probe(void);
 /**
  * ldv_post_probe() - perform some actions and checks specific for rule
- *                    specifications after calling module probe callbacks.
+ *					specifications after calling module probe callbacks.
  * @probe_ret_val:	Return value of module probe callback.
  *
  * ldv_post_probe() is very like ldv_post_init().
@@ -50,7 +50,7 @@ extern int ldv_post_probe(int probe_ret_val);
 
 /**
  * ldv_check_final_state() - perform some checks of final state specific for
- *                           rule specification models
+ *						   rule specification models
  *
  * ldv_check_final_state() can be defined by rule specification models if they
  * use model states and need to check it at the end.

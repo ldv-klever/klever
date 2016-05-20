@@ -5,7 +5,7 @@
 enum
 {
 	LDV_PROBE_ZERO_STATE = 0, /* No error occured. */
-	LDV_PROBE_ERROR = 1,      /* Error occured. probe() should return error code (or at least not zero). */
+	LDV_PROBE_ERROR = 1,	  /* Error occured. probe() should return error code (or at least not zero). */
 };
 
 /* CHANGE_STATE Model automaton state (one of two possible ones) */

@@ -11,14 +11,14 @@ static int usb_ldv_dummy_probe(struct usb_interface *interface,
 static void usb_ldv_dummy_disconnect(struct usb_interface *interface);
 
 static const struct usb_device_id id_table[] = {
-	{ }                     /* Terminating entry */
+	{ }					 /* Terminating entry */
 };
 
 static const struct usb_driver ldv_dummy_driver = {
-	.name =         "probe_retval_check",
-	.probe =        usb_ldv_dummy_probe,
+	.name =		 "probe_retval_check",
+	.probe =		usb_ldv_dummy_probe,
 	.disconnect =   usb_ldv_dummy_disconnect,
-	.id_table =     id_table,
+	.id_table =	 id_table,
 };
 
 static int __init init(void)
@@ -32,10 +32,10 @@ static int __init init(void)
 static int usb_ldv_dummy_probe(struct usb_interface *interface,
 				const struct usb_device_id *id)
 {
-    struct usb_driver *dummy_driver;
-    struct net_device *dummy_net_device;
+	struct usb_driver *dummy_driver;
+	struct net_device *dummy_net_device;
 
-    int ret = register_netdev(dummy_net_device);
+	int ret = register_netdev(dummy_net_device);
 	if (ret < 0) {
 		return ret;
 	}

@@ -39,16 +39,16 @@ info: declare_func($ $(..)) {
 }*/
 
 info: expand(module_init(arg)){
-    $fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
 }
 
 info: expand(module_exit(arg)){
-    $fprintf<"$env<CWD>/exit.txt","%s %s\n",$path,$arg_val1>
+	$fprintf<"$env<CWD>/exit.txt","%s %s\n",$path,$arg_val1>
 }
 
 // for i in range(max_args_num)
 info: expand($({{ arg_patterns[i] }})) {
-    $fprintf<"$env<CWD>/expand.txt","%s %s\n",$path,$macro_name>
+	$fprintf<"$env<CWD>/expand.txt","%s %s\n",$path,$macro_name>
 }
 // endfor
 
@@ -62,10 +62,10 @@ info: call($ $({{ arg_patterns[i] }})) {
 // endfor
 
 info: init_global($ $){
-    $fprintf<"$env<CWD>/global.txt","declaration: %s path: %s\n",$signature,$env<CC_IN_FILE>>
-    $fprintf_var_init_list<"$env<CWD>/global.txt">
+	$fprintf<"$env<CWD>/global.txt","declaration: %s path: %s\n",$signature,$env<CC_IN_FILE>>
+	$fprintf_var_init_list<"$env<CWD>/global.txt">
 }
 
 info: introduce($ $) {
-    $fprintf<"$env<CWD>/typedefs.txt","declaration: %s\n",$signature>
+	$fprintf<"$env<CWD>/typedefs.txt","declaration: %s\n",$signature>
 }

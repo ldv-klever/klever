@@ -11,17 +11,17 @@ struct usb_gadget_driver;
 
 static int __init init(void)
 {
-    struct module *cur_module;
-    struct class *cur_class;
-    dev_t *dev;
-    const struct file_operations *fops;
-    unsigned int baseminor, count;
-    struct usb_gadget_driver *cur_driver;
+	struct module *cur_module;
+	struct class *cur_class;
+	dev_t *dev;
+	const struct file_operations *fops;
+	unsigned int baseminor, count;
+	struct usb_gadget_driver *cur_driver;
 
-    if (usb_gadget_probe_driver(cur_driver))
-    {
-        usb_gadget_unregister_driver(cur_driver);
-    }
+	if (usb_gadget_probe_driver(cur_driver))
+	{
+		usb_gadget_unregister_driver(cur_driver);
+	}
 
 
 	return 0;

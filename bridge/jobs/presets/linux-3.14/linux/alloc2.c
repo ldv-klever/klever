@@ -7,7 +7,7 @@
 /* There are 2 possible states. */
 enum {
 	LDV_SPIN_UNLOCKED = LDV_ZERO_STATE, /* Spinlock is not acquired. */
-	LDV_SPIN_LOCKED                     /* Spinlock is acquired. */
+	LDV_SPIN_LOCKED					 /* Spinlock is acquired. */
 };
 
 /* CHANGE_STATE Spinlock is not acquired at the beginning */
