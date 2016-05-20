@@ -1024,7 +1024,7 @@
           "interface": ["interrupt.data"]
         },
         "ret_val": {
-          "signature": "int a"
+          "signature": "irqreturn_t a"
         }
       },
       "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",

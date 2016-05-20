@@ -576,7 +576,7 @@ class Automaton:
                             retval = suits[0].access_with_variable(label_var)
                             case['retval'] = retval
                         else:
-                            raise RuntimeError("Cannot fins a suitable label for return value of action '{}'".
+                            raise RuntimeError("Cannot find a suitable label for return value of action '{}'".
                                                format(state.action.name))
 
                     # Add additional condition
