@@ -171,6 +171,7 @@ class ProcessModel:
                 self.logger.debug("Assign label interfaces according to function parameters for added process {} "
                                   "with an identifier {}".format(new_process.name, new_process.identifier))
                 for label in sorted(new_process.labels.keys()):
+                    # Assign label-parameters
                     if new_process.labels[label].parameter and not new_process.labels[label].prior_signature:
                         for index in range(len(analysis.kernel_functions[function].param_interfaces)):
                             parameter = analysis.kernel_functions[function].param_interfaces[index]
@@ -190,9 +191,10 @@ class ProcessModel:
                         raise ValueError("Cannot find a suitable signature for a label '{}' at function model '{}'".
                                          format(label, function))
 
+                    # Asssign rest parameters
                     if new_process.labels[label].interfaces and len(new_process.labels[label].interfaces) > 0:
                         for interface in (i for i in new_process.labels[label].interfaces
-                                          if interface in analysis.interfaces):
+                                          if i in analysis.interfaces):
                             self.__assign_label_interface(new_process.labels[label], analysis.interfaces[interface])
 
     def __choose_processes(self, analysis, category):

@@ -154,7 +154,7 @@ class SA(core.components.Component):
         # Patterns to parse
         function_signature_re = re.compile('([^\s]+) (\w+) signature=\'(.+)\'\n$')
         all_args_re = "(?:\sarg\d+='[^']*')*"
-        call_re = re.compile("^([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
+        call_re = re.compile("^([^\s]*)\s([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
         arg_re = re.compile("\sarg(\d+)='([^']*)'")
         short_pair_re = re.compile("^([^\s]*)\s(\w*)\n")
         typedef_declaration = re.compile("^declaration: typedef ([^\n]+);")
@@ -195,7 +195,7 @@ class SA(core.components.Component):
         content = self._import_content(func_calls_file)
         for line in content:
             if call_re.fullmatch(line):
-                path, caller_name, name, args = call_re.fullmatch(line).groups()
+                path, cc_path, caller_name, name, args = call_re.fullmatch(line).groups()
                 if self.collection["functions"][caller_name]["files"][path]:
                     # Add information to caller
                     if not self.collection["functions"][caller_name]["files"][path]["calls"][name]:
@@ -206,8 +206,8 @@ class SA(core.components.Component):
                     # Add information to called
                     if "called at" not in self.collection["functions"][name]:
                         self.collection["functions"][name]["called at"] = list()
-                    if path not in self.collection["functions"][name]["called at"]:
-                        self.collection["functions"][name]["called at"].append(path)
+                    if cc_path not in self.collection["functions"][name]["called at"]:
+                        self.collection["functions"][name]["called at"].append(cc_path)
                 else:
                     raise ValueError("Expect function definition {} in file {} but it has not been extracted".
                                      format(caller_name, path))
