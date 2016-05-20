@@ -1,14 +1,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
-#include <linux/irq.h>
-#include <linux/slab.h>
-#include <linux/gfp.h>
-#include <linux/skbuff.h>
-#include <linux/slab.h>
-#include <linux/mempool.h>
-#include <linux/dmapool.h>
-#include <linux/dma-mapping.h>
 #include <linux/vmalloc.h>
 
 static struct my_struct

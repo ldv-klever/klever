@@ -4,11 +4,6 @@
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
 
-struct module;
-struct class;
-struct file_operations;
-struct usb_gadget_driver;
-
 static int __init init(void)
 {
 	struct module *cur_module;

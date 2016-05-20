@@ -4,19 +4,10 @@
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
 
-struct module;
-struct class;
-struct file_operations;
-struct usb_gadget_driver;
-
 static int __init init(void)
 {
-	struct module *cur_module;
-	struct class *cur_class;
 	dev_t *dev;
-	const struct file_operations *fops;
 	unsigned int baseminor, count;
-	struct usb_gadget_driver *cur_driver;
 
 	unregister_chrdev_region(dev, count);
 

@@ -1,7 +1,6 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/spinlock.h>
-#include <linux/atomic.h>
 
 static int __init my_init(void)
 {

@@ -6,7 +6,6 @@
 static int __init my_init(void)
 {
 	spinlock_t *lock_1;
-	spinlock_t *lock_2;
 
 	atomic_t *atomic;
 	atomic_dec_and_lock(atomic, lock_1);
