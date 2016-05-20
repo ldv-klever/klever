@@ -12,11 +12,23 @@
             </tr>
         </thead>
         <tbody>
-            {% for test_id in data %}
+            {% for id in data.keys|sort_list %}
                 <tr>
-                    <td>{{ test_id }}</td>
+                    <td>{{ id }}</td>
                     <td>
-                        <span style="color: {% if data|get_item:test_id|get_item:"verification status" != data|get_item:test_id|get_item:"ideal verdict" %}#ff3463{% else %}#20d467{% endif %};"{% if data|get_item:test_id|get_item:"comment" %} class="report-data-popup hoverable" data-content="{{ data|get_item:test_id|get_item:"comment" }}" data-variation="very wide"{% endif %}>{% if data|get_item:test_id|get_item:"verification status" != data|get_item:test_id|get_item:"ideal verdict" %}{% trans 'Failed' %}{% else %}{% trans 'Passed' %}{% endif %}<br>{{ data|get_item:test_id|get_item:"ideal verdict" }} &rarr; {{ data|get_item:test_id|get_item:"verification status" }}</span>{% if data|get_item:test_id|get_item:"comment" %}*{% endif %}
+                        {% with result=data|get_dict_val:id  %}
+                            {% with ideal_verdict=result|get_dict_val:"ideal verdict" comment=result|get_dict_val:"comment" verification_status=result|get_dict_val:"verification status" %}
+                                <span style="color: {% if verification_status != ideal_verdict %}#ff3463{% else %}#20d467{% endif %};"{% if comment %} class="report-data-popup hoverable" data-content="{{ comment }}" data-variation="very wide"{% endif %}>
+                                    {% if verification_status != ideal_verdict %}
+                                        {% trans 'Failed' %}
+                                    {% else %}
+                                        {% trans 'Passed' %}
+                                    {% endif %}
+                                    {% if comment %}*{% endif %}
+                                    ({{ ideal_verdict }} &rarr; {{ verification_status }})
+                                </span>
+                            {% endwith %}
+                        {% endwith %}
                     </td>
                 </tr>
             {% endfor %}
@@ -33,14 +45,30 @@
             </tr>
         </thead>
         <tbody>
-            {% for bug_id in data %}
+            {% for id in data.keys|sort_list %}
                 <tr>
-                    <td>{{ bug_id }}</td>
+                    <td>{{ id }}</td>
                     <td>
-                        <span style="color: {% if data|get_item:bug_id|get_item:"before fix"|get_item:"verification status" != 'unsafe' %}#ff3463{% else %}#20d467{% endif %};"{% if data|get_item:bug_id|get_item:"before fix"|get_item:"comment" %} class="report-data-popup hoverable" data-content="{{ data|get_item:bug_id|get_item:"before fix"|get_item:"comment" }}" data-variation="very wide"{% endif %}>{{ data|get_item:bug_id|get_item:"before fix"|get_item:"verification status" }}</span>{% if data|get_item:bug_id|get_item:"before fix"|get_item:"comment" %}*{% endif %}
+                        {% with result_before_fix=data|get_dict_val:id|get_dict_val:"before fix"  %}
+                            {% with comment=result_before_fix|get_dict_val:"comment" verification_status=result_before_fix|get_dict_val:"verification status" %}
+                                <span style="color: {% if verification_status != 'unsafe' %}#ff3463{% else %}#20d467{% endif %};"{% if comment %} class="report-data-popup hoverable" data-content="{{ comment }}" data-variation="very wide"{% endif %}>
+                                    {{ verification_status }}{% if comment %}*{% endif %}
+                                </span>
+                            {% endwith %}
+                        {% endwith %}
                     </td>
                     <td>
-                        {% if data|get_item:bug_id|get_item:"after fix" %}<span style="color: {% if data|get_item:bug_id|get_item:"after fix"|get_item:"verification status" != 'safe' %}#ff3463{% else %}#20d467{% endif %};"{% if data|get_item:bug_id|get_item:"after fix"|get_item:"comment" %} class="report-data-popup hoverable" data-content="{{ data|get_item:bug_id|get_item:"after fix"|get_item:"comment" }}" data-variation="very wide"{% endif %}>{{ data|get_item:bug_id|get_item:"after fix"|get_item:"verification status" }}</span>{% if data|get_item:bug_id|get_item:"after fix"|get_item:"comment" %}*{% endif %}{% else %}-{% endif %}
+                        {% with result_after_fix=data|get_dict_val:id|get_dict_val:"after fix"  %}
+                            {% if result_after_fix %}
+                                {% with comment=result_after_fix|get_dict_val:"comment" verification_status=result_after_fix|get_dict_val:"verification status" %}
+                                    <span style="color: {% if verification_status != 'safe' %}#ff3463{% else %}#20d467{% endif %};"{% if comment %} class="report-data-popup hoverable" data-content="{{ comment }}" data-variation="very wide"{% endif %}>
+                                        {{ verification_status }}{% if comment %}*{% endif %}
+                                    </span>
+                                {% endwith %}
+                            {% else %}
+                                -
+                            {% endif %}
+                        {% endwith %}
                     </td>
                 </tr>
             {% endfor %}

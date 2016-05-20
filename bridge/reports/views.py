@@ -19,9 +19,15 @@ from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
 
 
+# These filters are used for visualization component specific data. They should not be used for any other purposes.
 @register.filter
-def get_item(dictionary, key):
-    return dictionary.get(key)
+def get_dict_val(d, key):
+    return d.get(key)
+
+
+@register.filter
+def sort_list(l):
+    return sorted(l)
 
 
 @login_required
