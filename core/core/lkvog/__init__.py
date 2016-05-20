@@ -30,8 +30,8 @@ def after_set_linux_kernel_attrs(context):
 
 
 def after_build_linux_kernel(context):
-    if 'modules' in context.conf['Linux kernel'] and 'all' in context.conf['Linux kernel']['modules'] \
-            and context.conf['Linux kernel'].get('build kernel', False):
+    if 'modules' in context.conf['Linux kernel'] and ('all' in context.conf['Linux kernel']['modules'] \
+            or context.conf['Linux kernel'].get('build kernel', False)):
         if 'modules dep file' not in context.conf['Linux kernel']:
             context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
         if 'modules dep function file' not in context.conf['Linux kernel']:
@@ -150,7 +150,7 @@ class LKVOG(core.components.Component):
         module_deps_function = {}
         module_sizes = {}
 
-        if ('all' in self.conf['Linux kernel']['modules'] and
+        if ('all' in self.conf['Linux kernel']['modules'] or
                 self.conf['Linux kernel'].get('build kernel', False)):
 
                 module_deps = self.mqs['Linux kernel module deps'].get()
@@ -166,6 +166,7 @@ class LKVOG(core.components.Component):
                 module_deps_function = self.mqs['Linux kernel module deps function'].get()
             if 'modules size file' in self.conf['Linux kernel']:
                 module_sizes = self.mqs['Linux kernel module sizes'].get()
+        
         self.mqs['Linux kernel module deps'].close()
         self.mqs['Linux kernel module deps function'].close()
         self.mqs['Linux kernel module sizes'].close()
@@ -229,7 +230,7 @@ class LKVOG(core.components.Component):
             self.logger.debug('After dividing build modules: {}'.format(build_modules))
 
             if 'all' not in self.conf['Linux kernel']['modules'] \
-                    or not self.conf['Linux kernel'].get('build kernel', False):
+                    and not self.conf['Linux kernel'].get('build kernel', False):
                 self.mqs['Linux kernel modules'].put(build_modules)
                 self.mqs['Additional modules'].put(build_modules)
         else:
@@ -319,7 +320,7 @@ class LKVOG(core.components.Component):
         self.logger.info('Process all Linux kernel build command decriptions')
 
         if ('all' not in self.conf['Linux kernel']['modules']
-                or not self.conf['Linux kernel'].get('build kernel', False)) \
+                and not self.conf['Linux kernel'].get('build kernel', False)) \
                 and 'modules dep file' in self.conf['Linux kernel'] \
                 and self.conf['LKVOG strategy']['name'] != 'separate_modules':
             self.conf['Linux kernel']['modules'] = self.mqs['Additional modules'].get()

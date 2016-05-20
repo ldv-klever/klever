@@ -85,7 +85,7 @@ class LKBCE(core.components.Component):
         build_targets = []
 
         if 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
-            build_targets.append(('vmlinux',))
+            build_targets.append(('all',))
 
         if 'modules dep file' in self.conf['Linux kernel']:
             # Should parse user file of module dependencies.
@@ -123,7 +123,7 @@ class LKBCE(core.components.Component):
             # Linux kernel external modules always require this preparation.
             build_targets.append(('modules_prepare',))
 
-        if 'modules' in self.conf['Linux kernel']:
+        if not self.conf['Linux kernel'].get('build kernel', False) and 'modules' in self.conf['Linux kernel']:
             # Specially process building of all modules.
             if 'all' in self.conf['Linux kernel']['modules']:
                 if not len(self.conf['Linux kernel']['modules']) == 1:
@@ -134,7 +134,7 @@ class LKBCE(core.components.Component):
                                      else ('modules',))
             else:
                 if ('all' not in self.conf['Linux kernel']['modules']
-                        or not self.conf['Linux kernel'].get('build kernel', False)) \
+                        and not self.conf['Linux kernel'].get('build kernel', False)) \
                         and 'modules dep file' in self.conf['Linux kernel'] \
                         and self.conf['LKVOG strategy']['name'] != 'separate modules':
                     self.conf['Linux kernel']['modules'] = self.mqs['Linux kernel modules'].get()
@@ -169,7 +169,7 @@ class LKBCE(core.components.Component):
                                                                                    self.linux_kernel['work src tree']))
 
                         build_targets.append(('M=' + modules_dir, 'modules'))
-        else:
+        elif not self.conf['Linux kernel'].get('build kernel', False):
             self.logger.warning('Nothing will be verified since modules are not specified')
 
         if build_targets:
@@ -198,8 +198,8 @@ class LKBCE(core.components.Component):
     def extract_all_linux_kernel_mod_deps(self):
         self.linux_kernel['module deps'] = {}
 
-        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
-                and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
+        if 'all' in self.conf['Linux kernel'].get('modules', []) \
+                or self.conf['Linux kernel'].get('build kernel', False):
             self.logger.info('Extract all Linux kernel module dependencies')
 
             self.logger.info('Install Linux kernel modules')
@@ -216,8 +216,8 @@ class LKBCE(core.components.Component):
                                                           self.linux_kernel['version'], 'modules.dep'))
 
     def extract_all_linux_kernel_mod_deps_function(self):
-        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
-                and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
+        if 'all' in self.conf['Linux kernel'].get('modules', []) \
+                or self.conf['Linux kernel'].get('build kernel', False):
             self.logger.info('Extract all Linux kernel module dependencies function')
             p = subprocess.Popen(['/sbin/depmod', '-b', self.linux_kernel['installed modules dir'],
                               self.linux_kernel['version'], '-v'], stdout=subprocess.PIPE,
@@ -226,8 +226,8 @@ class LKBCE(core.components.Component):
                 self.parse_linux_kernel_mod_function_deps(fp)
 
     def extract_all_linux_kernel_mod_size(self):
-        if 'modules' in self.conf['Linux kernel'] and 'all' in self.conf['Linux kernel']['modules'] \
-                and 'build kernel' in self.conf['Linux kernel'] and self.conf['Linux kernel']['build kernel']:
+        if 'all' in self.conf['Linux kernel'].get('modules', []) \
+                or self.conf['Linux kernel'].get('build kernel', False):
             all_modules = set()
             for module, deps in self.conf['Linux kernel']['module deps'].items():
                 all_modules.add(module)
