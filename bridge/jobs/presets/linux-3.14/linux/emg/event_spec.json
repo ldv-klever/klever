@@ -641,10 +641,10 @@
           "signature": "int a"
         }
       },
-      "process": "(!register).<init>.{call}",
+      "process": "(!register).<init>.[probe].{call}",
       "actions": {
         "call": {
-          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} |  <positive_probe>.[suspend].(<suspended>.[resume] | <not_suspended>).{call} | <negative_probe>.(<free>.(deregister) | [probe].{call})"
+          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} |  <positive_probe>.[suspend].(<suspended>.[resume] | <not_suspended>).{call} | <negative_probe>.(<free>.(deregister) | <negative_probe>.[probe].{call})"
         },
         "register": {
           "parameters": [
@@ -837,10 +837,10 @@
           "value": "1"
         }
       },
-      "process": "(!register).<init>.{call}",
+      "process": "(!register).<init>.[probe].{call}",
       "actions": {
         "call": {
-          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | [probe].{call})"
+          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | <negative_probe>.[probe].{call})"
         },
         "register": {
           "parameters": [
