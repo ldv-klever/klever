@@ -10,9 +10,6 @@ import traceback
 
 import core.utils
 
-# TODO: this variable should likely become shared between various sub-jobs when they will be decided in parallel.
-_data = []
-
 
 class Job(core.utils.CallbacksCaller):
     FORMAT = 1
@@ -39,13 +36,15 @@ class Job(core.utils.CallbacksCaller):
         self.mqs = {}
         self.locks = {}
         self.uploading_reports_process = None
+        self.data = None
+        self.data_lock = None
         self.type = type
         self.components_common_conf = None
         self.sub_jobs = []
         self.components = []
         self.callbacks = {}
         self.component_processes = []
-        self.results = []
+        self.results = {}
 
     def decide(self, conf, mqs, locks, uploading_reports_process):
         self.logger.info('Decide job')
@@ -53,6 +52,8 @@ class Job(core.utils.CallbacksCaller):
         self.mqs = mqs
         self.locks = locks
         self.uploading_reports_process = uploading_reports_process
+        self.data = multiprocessing.Manager().dict()
+        self.data_lock = multiprocessing.Lock()
         self.extract_archive()
         self.get_class()
         self.get_common_components_conf(conf)
@@ -215,6 +216,8 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.mqs = self.mqs
                 sub_job.locks = self.locks
                 sub_job.uploading_reports_process = self.uploading_reports_process
+                sub_job.data = self.data
+                sub_job.data_lock = self.data_lock
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job.components_common_conf = copy.deepcopy(self.components_common_conf)
                 core.utils.merge_confs(sub_job.components_common_conf, sub_job_concrete_conf)
@@ -356,69 +359,86 @@ class Job(core.utils.CallbacksCaller):
             if not verification_statuses:
                 verification_statuses.append('unknown')
 
-            _data.append([self.name, self.components_common_conf['ideal verdict']] + verification_statuses +
-                         [self.components_common_conf.get('comment')])
+            if len(verification_statuses) > 1:
+                raise ValueError(
+                    'Got too many verification statuses "{0}" (just one is expected) for sub-job "{1}"'.format(
+                        verification_statuses, self.name))
 
-            if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
-                self.report_validation_results()
-            elif self.parent['type'] == 'Verification of Linux kernel modules':
-                self.report_testing_results()
-            else:
-                raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
+            with self.data_lock:
+                self.data[self.name] = {
+                    'ideal verdict': self.components_common_conf['ideal verdict'],
+                    'comment': self.components_common_conf.get('comment'),
+                    'verification status': verification_statuses[0]
+                }
 
-            core.utils.report(self.logger,
-                              'data',
-                              {
-                                  'id': self.parent['id'],
-                                  'data': json.dumps(self.results)
-                              },
-                              self.mqs['report files'],
-                              self.components_common_conf['main working directory'])
+                if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
+                    self.report_validation_results()
+                elif self.parent['type'] == 'Verification of Linux kernel modules':
+                    self.report_testing_results()
+                else:
+                    raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
+
+                core.utils.report(self.logger,
+                                  'data',
+                                  {
+                                      'id': self.parent['id'],
+                                      'data': json.dumps(self.results)
+                                  },
+                                  self.mqs['report files'],
+                                  self.components_common_conf['main working directory'])
 
     def report_testing_results(self):
         self.logger.info('Check whether tests passed')
-        for testing_res in _data:
-            if len(testing_res) != 4:
-                raise ValueError('Got too many verification statuses')
+        # Report obtained data as is.
+        self.results = self.data.copy()
+        for test in self.results:
             self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
-                testing_res[0], testing_res[1], testing_res[2],
-                ' ("{0}")'.format(testing_res[3]) if testing_res[3] else ''))
-        self.results = _data
+                test, self.data[test]['ideal verdict'], self.data[test]['verification status'],
+                ' ("{0}")'.format(self.data[test]['comment']) if self.data[test]['comment'] else ''))
 
     def report_validation_results(self):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
-        validation_results_before_bug_fixes = []
-        validation_results_after_bug_fixes = []
-        for validation_res in _data:
+
+        bug_results = {}
+        bug_fix_results = {}
+        for name, results in self.data.items():
             # Corresponds to validation result before bug fix.
-            if validation_res[1] == 'unsafe':
-                validation_results_before_bug_fixes.append(validation_res)
+            if results['ideal verdict'] == 'unsafe':
+                bug_results[name] = results
             # Corresponds to validation result after bug fix.
-            elif validation_res[1] == 'safe':
-                validation_results_after_bug_fixes.append(validation_res)
+            elif results['ideal verdict'] == 'safe':
+                bug_fix_results[name] = results
             else:
                 raise ValueError(
-                    'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(validation_res[1]))
-        for commit1, ideal_verdict1, verification_status1, comment1 in validation_results_before_bug_fixes:
-            found_validation_res_after_bug_fix = False
-            for commit2, ideal_verdict2, verification_status2, comment2 in validation_results_after_bug_fixes:
+                    'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(results['ideal verdict']))
+
+        for bug_id, bug_result in bug_results.items():
+            found_bug_fix = False
+            for bug_fix_id, bug_fix_result in bug_fix_results.items():
                 # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v. Also it is
-                # taken into account that all commit hashes have exactly 12 symbols and sub-jobs referred to the same
-                # commit are properly ordered (for instance, unsafe1 - safe1 - unsafe2 - safe2 or unsafe1 - unsafe2 -
-                # safe1 - safe2 and not unsafe1 - unsafe2 - safe2 - safe1).
-                if commit1[:12] == commit2[:12] and (commit1[13:] == commit2[12:]
-                                                     if len(commit1) > 12 and commit1[12] == '~'
-                                                     else commit1[12:] == commit2[13:]):
-                    found_validation_res_after_bug_fix = True
+                # taken into account that all commit hashes have exactly 12 symbols.
+                if bug_id[:12] == bug_fix_id[:12] and (bug_id[13:] == bug_fix_id[12:]
+                                                       if len(bug_id) > 12 and bug_id[12] == '~'
+                                                       else bug_id[12:] == bug_fix_id[13:]):
+                    found_bug_fix = True
                     break
+
             validation_res_msg = 'Verification status for bug "{0}" before fix is "{1}"{2}'.format(
-                commit1, verification_status1, ' ("{0}")'.format(comment1) if comment1 else '')
+                bug_id, bug_result['verification status'],
+                ' ("{0}")'.format(bug_result['comment'])
+                if bug_result['comment']
+                else '')
+
             # At least save validation result before bug fix.
-            if not found_validation_res_after_bug_fix:
-                self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(commit1))
-                self.results.append([commit1, verification_status1, comment1, None, None])
+            self.results[bug_id] = {'before fix': bug_result}
+
+            if not found_bug_fix:
+                self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(bug_id))
+                self.results[bug_id]['after fix'] = None
             else:
-                validation_res_msg += ', after fix is "{0}"{1}'.format(verification_status2,
-                                                                       ' ("{0}")'.format(comment2) if comment2 else '')
-                self.results.append([commit1, verification_status1, comment1, verification_status2, comment2])
+                validation_res_msg += ', after fix is "{0}"{1}'.format(bug_fix_result['verification status'],
+                                                                       ' ("{0}")'.format(bug_fix_result['comment'])
+                                                                       if bug_fix_result['comment'] else '')
+                self.results[bug_id]['after fix'] = bug_fix_result
+
             self.logger.info(validation_res_msg)

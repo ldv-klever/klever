@@ -14,7 +14,7 @@ import core.utils
 def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj descs'] = multiprocessing.Queue()
-    context.mqs['src tree root'] = multiprocessing.Queue()
+    context.mqs['shadow src tree'] = multiprocessing.Queue()
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
@@ -26,8 +26,8 @@ def after_set_hdr_arch(context):
     context.mqs['hdr arch'].put(context.hdr_arch)
 
 
-def after_set_src_tree_root(context):
-    context.mqs['src tree root'].put(context.src_tree_root)
+def after_set_shadow_src_tree(context):
+    context.mqs['shadow src tree'].put(context.shadow_src_tree)
 
 
 def after_generate_verification_obj_desc(context):
@@ -240,7 +240,7 @@ class AVTG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.get_src_tree_root()
+        self.get_shadow_src_tree()
         self.get_hdr_arch()
         self.rule_spec_descs = _rule_spec_descs
         self.generate_all_abstract_verification_task_descs()
@@ -264,14 +264,14 @@ class AVTG(core.components.Component):
         self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
             self.conf['header architecture']))
 
-    def get_src_tree_root(self):
-        self.logger.info('Get source tree root')
+    def get_shadow_src_tree(self):
+        self.logger.info('Get shadow source tree')
 
-        self.conf['source tree root'] = self.mqs['src tree root'].get()
+        self.conf['shadow source tree'] = self.mqs['shadow src tree'].get()
 
-        self.mqs['src tree root'].close()
+        self.mqs['shadow src tree'].close()
 
-        self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
+        self.logger.debug('Shadow source tree "{0}"'.format(self.conf['shadow source tree']))
 
     def generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
@@ -346,7 +346,7 @@ class AVTG(core.components.Component):
                 # specification and information on rule specification itself.
                 plugin_conf = copy.deepcopy(self.conf)
                 if plugin_desc['name'] != 'RSG':
-                    del plugin_conf['source tree root']
+                    del plugin_conf['shadow source tree']
                 if 'options' in plugin_desc:
                     plugin_conf.update(plugin_desc['options'])
                 plugin_conf.update({'rule spec id': rule_spec_desc['id']})
