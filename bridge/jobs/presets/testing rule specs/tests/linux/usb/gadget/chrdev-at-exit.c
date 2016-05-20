@@ -4,8 +4,6 @@
 #include <linux/fs.h>
 #include <linux/usb/gadget.h>
 
-struct class;
-
 static int __init init(void)
 {
 	struct module *cur_module;

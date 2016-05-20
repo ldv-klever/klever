@@ -8,7 +8,7 @@ static int __init init(void)
 {
 	dev_t *dev;
 	const struct file_operations *fops;
-	unsigned int baseminor, count;s
+	unsigned int baseminor, count;
 
 	if (!register_chrdev(count, "test", fops))
 	{
