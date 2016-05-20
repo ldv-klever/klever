@@ -427,8 +427,6 @@ class Job(core.utils.CallbacksCaller):
                 if bug_results['comment']
                 else '')
 
-            self.logger.info(validation_res_msg)
-
             # At least save validation result before bug fix.
             self.results[bug_id] = {'before fix': bug_results}
 
