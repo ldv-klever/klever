@@ -398,6 +398,7 @@ class Job(core.utils.CallbacksCaller):
 
     def report_validation_results(self):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
+
         bug_results = {}
         bug_fix_results = {}
         for name, results in self.data.items():
@@ -410,9 +411,10 @@ class Job(core.utils.CallbacksCaller):
             else:
                 raise ValueError(
                     'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(results['ideal verdict']))
-        for bug_id, bug_results in bug_results.items():
+
+        for bug_id, bug_result in bug_results.items():
             found_bug_fix = False
-            for bug_fix_id, bug_fix_results in bug_fix_results.items():
+            for bug_fix_id, bug_fix_result in bug_fix_results.items():
                 # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v. Also it is
                 # taken into account that all commit hashes have exactly 12 symbols.
                 if bug_id[:12] == bug_fix_id[:12] and (bug_id[13:] == bug_fix_id[12:]
@@ -422,19 +424,21 @@ class Job(core.utils.CallbacksCaller):
                     break
 
             validation_res_msg = 'Verification status for bug "{0}" before fix is "{1}"{2}'.format(
-                bug_id, bug_results['verification status'],
-                ' ("{0}")'.format(bug_results['comment'])
-                if bug_results['comment']
+                bug_id, bug_result['verification status'],
+                ' ("{0}")'.format(bug_result['comment'])
+                if bug_result['comment']
                 else '')
 
             # At least save validation result before bug fix.
-            self.results[bug_id] = {'before fix': bug_results}
+            self.results[bug_id] = {'before fix': bug_result}
 
             if not found_bug_fix:
                 self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(bug_id))
                 self.results[bug_id]['after fix'] = None
             else:
-                validation_res_msg += ', after fix is "{0}"{1}'.format(bug_fix_results['verification status'],
-                                                                       ' ("{0}")'.format(bug_fix_results['comment']) if bug_fix_results['comment'] else '')
-                self.results[bug_id]['after fix'] = bug_fix_results
+                validation_res_msg += ', after fix is "{0}"{1}'.format(bug_fix_result['verification status'],
+                                                                       ' ("{0}")'.format(bug_fix_result['comment'])
+                                                                       if bug_fix_result['comment'] else '')
+                self.results[bug_id]['after fix'] = bug_fix_result
+
             self.logger.info(validation_res_msg)
