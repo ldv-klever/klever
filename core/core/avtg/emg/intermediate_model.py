@@ -135,6 +135,7 @@ class ProcessModel:
             for j, pair2 in enumerate(analysis.exits[::-1]):
                 if pair2[0] == pair[0]:
                     break
+            j = 1
             for _, exit_name in analysis.exits[:j-1:-1]:
                 self.entry_process.process += "[exit_{}].".format(exit_name)
             self.entry_process.process += "<stop>|<init_success>."
