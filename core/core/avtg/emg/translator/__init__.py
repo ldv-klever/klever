@@ -460,9 +460,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             if func and not self._nested_automata:
                 global_switch_automata.append(func)
 
+        # Generate entry automaton
         if self._omit_all_states:
             func = self._label_cfunction(analysis, self._entry_fsa)
         else:
+            self._entry_fsa.state_blocks = self._state_sequences(self._entry_fsa)
             func = self._state_cfunction(analysis, self._entry_fsa)
         if func:
             global_switch_automata.append(func)
@@ -514,7 +516,21 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return ep
 
-    def _call(self, automaton, state):
+    def _propogate_aux_function(self, analysis, automaton, function):
+        # Determine files to export
+        files = set()
+        if automaton.process.category == "kernel models":
+            # Calls
+            files.update(set(analysis.kernel_functions[automaton.process.name].files_called_at))
+            for caller in (c for c in analysis.kernel_functions[automaton.process.name].functions_called_at):
+                # Caller definitions
+                files.update(set(analysis.modules_functions[caller].keys()))
+
+        # Export
+        for file in files:
+            self._add_function_declaration(file, function)
+
+    def _call(self, analysis, automaton, state):
         # Generate function call and corresponding function
         fname = "ldv_{}_{}_{}_{}".format(automaton.process.name, state.action.name, automaton.identifier,
                                          state.identifier)
@@ -569,6 +585,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         function.body.append('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
+
+        # Add declarations
+        self._propogate_aux_function(analysis, automaton, function)
 
         if 'pre_call' in state.code and len(state.code['pre_call']) > 0:
             inv = state.code['pre_call'] + inv
@@ -742,15 +761,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         df.body.extend(body)
         self._add_function_definition(self.entry_file, df)
 
-        # Determine files to export
-        files = set()
-        if automaton.process.category == "kernel models":
-            for caller in (c for c in analysis.kernel_functions[automaton.process.name].called_at):
-                for file in analysis.modules_functions[caller]:
-                    files.add(file)
-        # Export
-        for file in files:
-            self._add_function_declaration(file, df)
+        # Add declarations
+        self._propogate_aux_function(analysis, automaton, df)
 
         return [
             '/* Dispatch {} */'.format(state.action.name),
@@ -775,7 +787,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 if len(checks) > 0:
                     block.append('ldv_assume({});'.format(' || '.join(checks)))
 
-            call = self._call(automaton, state)
+            call = self._call(analysis, automaton, state)
             block.extend(call)
         elif type(state.action) is CallRetval:
             block.append('/* Skip {} */'.format(state.desc['label']))
@@ -1198,14 +1210,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
             if state.code and len(state.code['guard']) > 0 and first:
                 code.append('ldv_assume({});'.format(
-                    ' && '.join(sorted(['{} == {}'.format(automaton.state_variable.name, state.identifier)] +
-                                       state.code['guard']))))
+                    ' && '.join(sorted(state.code['guard']))))
                 code.extend(block)
                 first = False
             elif state.code and len(state.code['guard']) > 0:
                 code.append('if({}) '.format(
-                    ' && '.join(sorted(['{} == {}'.format(automaton.state_variable.name, state.identifier)] +
-                                       state.code['guard']))) + '{')
+                    ' && '.join(sorted(state.code['guard']))) + '{')
                 for st in block:
                     code.append('\t' + st)
                 code.append('}')

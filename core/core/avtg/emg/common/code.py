@@ -178,22 +178,27 @@ class FunctionModels:
 
         # Replace rest accesses
         final = []
-        matched = False
-        for stm in stms:
-            for expression in mm.access_re.findall(stm):
-                matched = True
+        for original_stm in stms:
+            # Collect dublicates
+            stm_set = {original_stm}
 
-                accesses = automaton.process.resolve_access(expression)
-                for access in accesses:
-                    if access.interface:
-                        var = automaton.determine_variable(access.label, access.list_interface[0].identifier)
-                    else:
-                        var = automaton.determine_variable(access.label)
+            while len(stm_set) > 0:
+                stm = stm_set.pop()
 
-                    final.append(access.replace_with_variable(stm, var))
+                if mm.access_re.search(stm):
+                    expression = mm.access_re.search(stm).group(1)
+                    accesses = automaton.process.resolve_access(expression)
+                    for access in accesses:
+                        if access.interface:
+                            var = automaton.determine_variable(access.label, access.list_interface[0].identifier)
+                        else:
+                            var = automaton.determine_variable(access.label)
 
-        if not matched:
-            final = stms
+                        stm = access.replace_with_variable(stm, var)
+                        stm_set.add(stm)
+                else:
+                    final.append(stm)
+
         return final
 
     def _replace_mem_call(self, match):

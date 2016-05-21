@@ -281,6 +281,10 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 else:
                     new_intf = KernelFunction(function, analysis['kernel functions'][function]['header'])
                     new_intf.declaration = declaration
+                    self.kernel_functions[function] = new_intf
+
+                self.kernel_functions[function].files_called_at.\
+                    update(set(analysis['kernel functions'][function]["called at"]))
 
         # Remove dirty declarations
         self._refine_interfaces()
@@ -298,6 +302,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     modules_functions[function][path] = \
                         {'declaration': import_signature(module_function["files"][path]["signature"])}
 
+                    if "called at" in module_function["files"][path]:
+                        modules_functions[function][path]["called at"] = \
+                            set(module_function["files"][path]["called at"])
                     if "calls" in module_function["files"][path]:
                         modules_functions[function][path]['calls'] = module_function["files"][path]['calls']
                         for kernel_function in [name for name in sorted(module_function["files"][path]["calls"].keys())
@@ -314,7 +321,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         self.logger.info("Remove kernel functions which are not called at driver functions")
         for function in sorted(self.kernel_functions.keys()):
-            if len(self.kernel_functions[function].called_at) == 0:
+            if len(self.kernel_functions[function].functions_called_at) == 0:
                 del self.kernel_functions[function]
 
         self.modules_functions = modules_functions

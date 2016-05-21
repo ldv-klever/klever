@@ -487,7 +487,7 @@ def declarator_processing(p):
         p[0] = p[1]
     else:
         p[0] = p[2]
-        if 'pointer' in p[0][0] and ('arrays' in p[0][0] or 'function arguments' in p[0][0]):
+        if 'arrays' in p[0][0] or 'function arguments' in p[0][0]:
             new = {'pointer': p[1]}
             p[0] = [new] + p[0]
         else:
