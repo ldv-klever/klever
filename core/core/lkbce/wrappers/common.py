@@ -55,7 +55,8 @@ class Command:
             #                      stderr=subprocess.DEVNULL)
             # if p.wait():
             #     raise RuntimeError('Getting dependencies failed')
-            raise AssertionError('Could not find dependencies file among options "{0}"'.format(self.other_opts))
+            raise AssertionError(
+                'Could not find dependencies file for CC command with input files: "{0}", output file: "{1}" and options "{2}"'.format(self.in_files, self.out_file, self.other_opts))
 
         deps = []
         with open(deps_file, encoding='ascii') as fp:
