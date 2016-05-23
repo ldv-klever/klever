@@ -144,12 +144,13 @@ class Command:
             fp.write(os.path.relpath(self.desc_file, os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'])) + '\n')
 
     def filter(self):
-        # Filter out CC commands if input file is absent or '/dev/null' or STDIN ('-') or 'init/version.c' or output
-        # file is absent. They won't be used when building verification object descriptions.
-        if self.type == 'CC' and (
-                        not self.in_files or self.in_files[0] in (
-                            '/dev/null', '-', 'init/version.c') or not self.out_file):
-            return True
+        # Filter out CC commands if input files or output file are absent or input files are '/dev/null' or STDIN ('-')
+        # or samples. They won't be used when building verification object descriptions.
+        if self.type == 'CC':
+            if not self.in_files or not self.out_file:
+                return True
+            if self.in_files[0] in ('/dev/null', '-') or self.in_files[0].startswith('samples'):
+                return True
 
         # Filter out LD commands if input file is absent or output file is temporary. The latter likely corresponds
         # to CC commands filtered out above.
