@@ -11,12 +11,6 @@ around: define(usb_register(driver))
 	ldv_usb_register()
 }
 
-/* Nondeterministically change state after call to register_netdev(). */
-after: call(int register_netdev(..))
-{
-	return ldv_register_netdev();
-}
-
 before: call(int ldv_post_probe(..))
 {
 	ldv_check_return_value_probe($arg1);

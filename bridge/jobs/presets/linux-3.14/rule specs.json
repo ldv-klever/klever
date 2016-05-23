@@ -254,14 +254,24 @@
         ]
       }
     },
-    "linux:usb2": {
+    "linux:usb:register": {
       "aliases": ["134"],
-      "description": "...",
-      "bug kinds": [],
+      "description": "Error handling for usb register in probe()",
+      "bug kinds": [""],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/usb2.c"],
-        "aspects": ["linux/usb2.aspect"]
+        "models": ["linux/usb/register.c"],
+        "aspects": ["linux/usb/register.aspect"]
+      }
+    },
+    "linux:netdev": {
+      "aliases": ["135"],
+      "description": "Error handling for netdev in probe()",
+      "bug kinds": [""],
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": ["linux/netdev.c"],
+        "aspects": ["linux/netdev.aspect"]
       }
     },
     "linux:usb:gadget": {

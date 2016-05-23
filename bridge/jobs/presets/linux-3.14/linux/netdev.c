@@ -11,28 +11,6 @@ enum
 /* CHANGE_STATE Model automaton state (one of two possible ones) */
 int ldv_probe_state = LDV_PROBE_ZERO_STATE;
 
-// TODO: differentiate 2 functions by bug kinds
-
-/* MODEL_FUNC_DEF Nondeterministically change state after call to usb_register() */
-int ldv_usb_register(void)
-{
-	int nondet;
-
-	/* OTHER Nondeterministically report error */
-	if (nondet < 0)
-	{
-		/* CHANGE_STATE Error occured */
-		ldv_probe_state = LDV_PROBE_ERROR;
-		/* RETURN Return error code */
-		return nondet;
-	}
-	else
-	{
-		/* RETURN Assume no error occured */
-		return 0;
-	}
-}
-
 /* MODEL_FUNC_DEF Nondeterministically change state after call to register_netdev() */
 int ldv_register_netdev(void)
 {
@@ -58,7 +36,7 @@ void ldv_check_return_value_probe(int retval)
 {
 	if (ldv_probe_state == LDV_PROBE_ERROR)
 	{
-		/* ASSERT Errors of usb_register() and register_netdev() should be properly propagated */
+		/* ASSERT Errors of register_netdev() should be properly propagated */
 		ldv_assert(retval != 0);
 	}
 }
