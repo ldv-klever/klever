@@ -283,6 +283,26 @@
         "models": ["linux/usb/gadget.c"],
         "aspects": ["linux/usb/gadget.aspect"]
       }
+    },
+    "linux:class": {
+      "aliases": ["107"],
+      "description": "...",
+      "bug kinds": [],
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": ["linux/class.c"],
+        "aspects": ["linux/class.aspect"]
+      }
+    },
+    "linux:chrdev": {
+      "aliases": ["108"],
+      "description": "...",
+      "bug kinds": [],
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": ["linux/chrdev.c"],
+        "aspects": ["linux/chrdev.aspect"]
+      }
     }
   }
 }

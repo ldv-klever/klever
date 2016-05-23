@@ -63,7 +63,7 @@
         "external modules": "tests/linux/usb/gadget",
         "modules": ["created-at-exit.ko"]
       },
-      "rule specifications": ["linux:usb:gadget"],
+      "rule specifications": ["linux:class"],
       "ideal verdict": "unsafe"
     },
     {
@@ -71,7 +71,7 @@
         "external modules": "tests/linux/usb/gadget",
         "modules": ["chrdev-at-exit.ko"]
       },
-      "rule specifications": ["linux:usb:gadget"],
+      "rule specifications": ["linux:chrdev"],
       "ideal verdict": "unsafe"
     },
     {
@@ -79,7 +79,7 @@
         "external modules": "tests/linux/usb/gadget",
         "modules": ["chrdev-at-exit-2.ko"]
       },
-      "rule specifications": ["linux:usb:gadget"],
+      "rule specifications": ["linux:chrdev"],
       "ideal verdict": "unsafe"
     },
     {
@@ -103,7 +103,7 @@
         "external modules": "tests/linux/usb/gadget",
         "modules": ["class-registered-at-exit.ko"]
       },
-      "rule specifications": ["linux:usb:gadget"],
+      "rule specifications": ["linux:class"],
       "ideal verdict": "unsafe"
     },
     {
@@ -127,7 +127,7 @@
         "external modules": "tests/linux/usb/gadget",
         "modules": ["unregister-class.ko"]
       },
-      "rule specifications": ["linux:usb:gadget"],
+      "rule specifications": ["linux:class"],
       "ideal verdict": "unsafe"
     },
     {
@@ -135,7 +135,7 @@
         "external modules": "tests/linux/usb/gadget",
         "modules": ["unregister-chrdev.ko"]
       },
-      "rule specifications": ["linux:usb:gadget"],
+      "rule specifications": ["linux:chrdev"],
       "ideal verdict": "unsafe"
     },
     {
@@ -144,6 +144,22 @@
         "modules": ["safe.ko"]
       },
       "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:class"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:chrdev"],
       "ideal verdict": "safe"
     },
     {

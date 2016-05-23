@@ -1,32 +1,12 @@
 #include <verifier/common.h>
 #include <linux/ldv/common.h>
 
-/* There are 2 possible states of class structure registration. */
-enum
-{
-	LDV_CLASS_ZERO_STATE, /* Class structure is not registered. */
-	LDV_CLASS_REGISTERED  /* Class structure is registered. */
-};
-
-/* There are 2 possible states of char device region registration. */
-enum
-{
-	LDV_CHRDEV_ZERO_STATE, /* Char device region is not registered for usb gadget. */
-	LDV_CHRDEV_REGISTERED  /* Char device region is registered for usb gadget. */
-};
-
 /* There are 2 possible states of usb gadget registration. */
 enum
 {
 	LDV_USB_GADGET_ZERO_STATE, /* Usb gadget is not registered. */
 	LDV_USB_GADGET_REGISTERED  /* Usb gadget is registered. */
 };
-
-/* CHANGE_STATE Usb gadget class is not registered at the beginning */
-int ldv_usb_gadget_class = LDV_CLASS_ZERO_STATE;
-
-/* CHANGE_STATE Char device region is not registered at the beginning */
-int ldv_usb_gadget_chrdev = LDV_CHRDEV_ZERO_STATE;
 
 /* CHANGE_STATE Usb gadget is not registered at the beginning */
 int ldv_usb_gadget = LDV_USB_GADGET_ZERO_STATE;
@@ -45,10 +25,6 @@ void *ldv_create_class(void)
 	{
 		/* ASSERT Registring usb gadget class is only allowed if usb gadget is not registered */
 		ldv_assert(ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
-		/* ASSERT Check that usb gadget class is unregistered */
-		ldv_assert(ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
-		/* CHANGE_STATE Register class for usb gadget */
-		ldv_usb_gadget_class = LDV_CLASS_REGISTERED;
 	}
 
 	/* RETURN Return obtained blk request */
@@ -68,10 +44,6 @@ int ldv_register_class(void)
 	{
 		/* ASSERT Registering usb gadget class is only allowed if usb gadget is not registered */
 		ldv_assert(ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
-		/* ASSERT Check that usb gadget class is unregistered */
-		ldv_assert(ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
-		/* CHANGE_STATE Register class for usb gadget */
-		ldv_usb_gadget_class = LDV_CLASS_REGISTERED;
 	}
 
 	/* RETURN Return registration status (0 is success) */
@@ -83,10 +55,6 @@ void ldv_unregister_class(void)
 {
 	/* ASSERT Unregistering usb gadget class is only allowed if usb gadget is not registered */
 	ldv_assert(ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
-	/* ASSERT Check that usb gadget class is registered */
-	ldv_assert(ldv_usb_gadget_class == LDV_CLASS_REGISTERED);
-	/* CHANGE_STATE Unregister class for usb gadget */
-	ldv_usb_gadget_class = LDV_CLASS_ZERO_STATE;
 }
 
 /* MODEL_FUNC_DEF Check that chrdev region was not registered and register it */
@@ -102,10 +70,6 @@ int ldv_register_chrdev(int major)
 	{
 		/* ASSERT Usb gadget should be unregistered at this point */
 		ldv_assert(ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
-		/* ASSERT Check that chrdev region is unregistered */
-		ldv_assert(ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
-		/* CHANGE_STATE Register chrdev region for usb gadget */
-		ldv_usb_gadget_chrdev = LDV_CHRDEV_REGISTERED;
 		if (major == 0)
 		{
 			/* OTHER Function returns allocated major number */
@@ -131,10 +95,6 @@ int ldv_register_chrdev_region(void)
 	{
 		/* ASSERT Usb gadget should be unregistered at this point */
 		ldv_assert(ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
-		/* ASSERT Check that chrdev region is unregistered */
-		ldv_assert(ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
-		/* CHANGE_STATE Register chrdev region for usb gadget */
-		ldv_usb_gadget_chrdev = LDV_CHRDEV_REGISTERED;
 	}
 
 	/* RETURN Return registration status (0 is success) */
@@ -146,10 +106,6 @@ void ldv_unregister_chrdev_region(void)
 {
 	/* ASSERT Usb gadget should not be registered at this point */
 	ldv_assert(ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
-	/* ASSERT Check that chrdev region is registered */
-	ldv_assert(ldv_usb_gadget_chrdev == LDV_CHRDEV_REGISTERED);
-	/* CHANGE_STATE Unregister chrdev */
-	ldv_usb_gadget_chrdev = LDV_CHRDEV_ZERO_STATE;
 }
 
 /* MODEL_FUNC_DEF Check that usb gadget was not registered and register it */
@@ -185,10 +141,6 @@ void ldv_unregister_usb_gadget(void)
 /* MODEL_FUNC_DEF Check that usb gadget is fully unregistered at the end */
 void ldv_check_final_state(void)
 {
-	/* ASSERT Usb gadget class should be unregistered at the end */
-	ldv_assert(ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
-	/* ASSERT Chrdev region should be unregistered at the end */
-	ldv_assert(ldv_usb_gadget_chrdev == LDV_CHRDEV_ZERO_STATE);
 	/* ASSERT Usb gadget should be unregistered at the end */
 	ldv_assert(ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 }
