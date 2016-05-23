@@ -90,9 +90,9 @@ class Command:
                 if os.path.getsize(dest_dep):
                     if filecmp.cmp(dep, dest_dep):
                         continue
-                    else:
-                        raise AssertionError(
-                            'Dependency "{0}" has changed during build process'.format(os.path.relpath(dep)))
+                    # Just version in "include/generated/compile.h" changes, all other content remain the same.
+                    elif not dep == 'include/generated/compile.h':
+                        raise AssertionError('Dependency "{0}" changed to "{1}"'.format(dest_dep, dep))
                 else:
                     shutil.copy2(dep, dest_dep)
 
