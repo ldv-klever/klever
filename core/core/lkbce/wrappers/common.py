@@ -55,7 +55,8 @@ class Command:
             #                      stderr=subprocess.DEVNULL)
             # if p.wait():
             #     raise RuntimeError('Getting dependencies failed')
-            raise AssertionError('Could not find dependencies file among options "{0}"'.format(self.other_opts))
+            raise AssertionError(
+                'Could not find dependencies file for CC command with input files: "{0}", output file: "{1}" and options "{2}"'.format(self.in_files, self.out_file, self.other_opts))
 
         deps = []
         with open(deps_file, encoding='ascii') as fp:
@@ -89,9 +90,9 @@ class Command:
                 if os.path.getsize(dest_dep):
                     if filecmp.cmp(dep, dest_dep):
                         continue
-                    else:
-                        raise AssertionError(
-                            'Dependency "{0}" has changed during build process'.format(os.path.relpath(dep)))
+                    # Just version in "include/generated/compile.h" changes, all other content remain the same.
+                    elif not dep == 'include/generated/compile.h':
+                        raise AssertionError('Dependency "{0}" changed to "{1}"'.format(dest_dep, dep))
                 else:
                     shutil.copy2(dep, dest_dep)
 
@@ -106,24 +107,23 @@ class Command:
         full_desc_file = None
 
         if self.type == 'CC':
+            full_desc = {
+                'cwd': os.path.relpath(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                       os.environ['KLEVER_MAIN_WORK_DIR']),
+                'in files': self.in_files,
+                'out file': self.out_file,
+                'opts': self.other_opts
+            }
+
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                           '{0}.full.json'.format(self.out_file))
             os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
-            with core.utils.LockedOpen(full_desc_file, 'a', encoding='ascii') as fp:
-                if os.path.getsize(full_desc_file):
-                    # Sometimes when building several individual modules the same modules are built several times
-                    # including building of corresponding mod.o files. Do not fail in this case.
-                    if not self.out_file.endswith('mod.o'):
-                        raise FileExistsError(
-                            'Linux kernel CC full description file "{0}" already exists'.format(full_desc_file))
+            with core.utils.LockedOpen(full_desc_file, 'w+', encoding='ascii') as fp:
+                if os.path.getsize(full_desc_file) and sorted(full_desc) != sorted(json.load(fp)):
+                    raise FileExistsError(
+                        'Linux kernel CC full description stored in file "{0}" changed to "{1}"'.format(full_desc_file, full_desc))
                 else:
-                    json.dump({
-                        'cwd': os.path.relpath(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
-                                               os.environ['KLEVER_MAIN_WORK_DIR']),
-                        'in files': self.in_files,
-                        'out file': self.out_file,
-                        'opts': self.other_opts
-                    }, fp, sort_keys=True, indent=4)
+                    json.dump(full_desc, fp, sort_keys=True, indent=4)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
         if full_desc_file:
@@ -132,10 +132,10 @@ class Command:
         self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                       '{0}.json'.format(self.out_file))
         os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
-        with core.utils.LockedOpen(self.desc_file, 'a', encoding='ascii') as fp:
-            if os.path.getsize(self.desc_file):
+        with core.utils.LockedOpen(self.desc_file, 'w+', encoding='ascii') as fp:
+            if os.path.getsize(self.desc_file) and sorted(desc) != sorted(json.load(fp)):
                 raise FileExistsError(
-                    'Linux kernel build command description file "{0}" already exists'.format(self.desc_file))
+                    'Linux kernel build command description stored to file "{0}" changed to "{1}"'.format(self.desc_file, desc))
             else:
                 json.dump(desc, fp, sort_keys=True, indent=4)
 
@@ -144,12 +144,13 @@ class Command:
             fp.write(os.path.relpath(self.desc_file, os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'])) + '\n')
 
     def filter(self):
-        # Filter out CC commands if input file is absent or '/dev/null' or STDIN ('-') or 'init/version.c' or output
-        # file is absent. They won't be used when building verification object descriptions.
-        if self.type == 'CC' and (
-                        not self.in_files or self.in_files[0] in (
-                            '/dev/null', '-', 'init/version.c') or not self.out_file):
-            return True
+        # Filter out CC commands if input files or output file are absent or input files are '/dev/null' or STDIN ('-')
+        # or samples. They won't be used when building verification object descriptions.
+        if self.type == 'CC':
+            if not self.in_files or not self.out_file:
+                return True
+            if self.in_files[0] in ('/dev/null', '-') or self.in_files[0].startswith('samples'):
+                return True
 
         # Filter out LD commands if input file is absent or output file is temporary. The latter likely corresponds
         # to CC commands filtered out above.
