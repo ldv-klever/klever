@@ -513,6 +513,30 @@
       },
       "rule specifications": ["linux:spinlock:as"],
       "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/dev",
+        "modules": ["less-decrement.ko"]
+      },
+      "rule specifications": ["linux:usb:dev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/dev",
+        "modules": ["more-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:dev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/dev",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:dev"],
+      "ideal verdict": "safe"
     }
   ]
 }

@@ -235,19 +235,22 @@
         ]
       }
     },
-    "linux:usb1": {
+    "linux:usb:dev": {
       "aliases": ["132"],
-      "description": "...",
-      "bug kinds": [],
+      "description": "Usb device reference counting with usb_get_dev/usb_put_dev",
+      "bug kinds": [
+        "less initial decrement",
+        "more initial at exit"
+      ],
       "template": "Linux kernel modules",
       "RSG": {
         "models": [
           "linux/asm/atomic.c",
-          "linux/usb1.c"
+          "linux/usb/dev.c"
         ],
         "aspects": [
           "linux/asm/atomic.aspect",
-          "linux/usb1.aspect"
+          "linux/usb/dev.aspect"
         ]
       }
     },
