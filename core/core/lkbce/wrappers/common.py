@@ -107,24 +107,23 @@ class Command:
         full_desc_file = None
 
         if self.type == 'CC':
+            full_desc = {
+                'cwd': os.path.relpath(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                       os.environ['KLEVER_MAIN_WORK_DIR']),
+                'in files': self.in_files,
+                'out file': self.out_file,
+                'opts': self.other_opts
+            }
+
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                           '{0}.full.json'.format(self.out_file))
             os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
-            with core.utils.LockedOpen(full_desc_file, 'a', encoding='ascii') as fp:
-                if os.path.getsize(full_desc_file):
-                    # Sometimes when building several individual modules the same modules are built several times
-                    # including building of corresponding mod.o files. Do not fail in this case.
-                    if not self.out_file.endswith('mod.o'):
-                        raise FileExistsError(
-                            'Linux kernel CC full description file "{0}" already exists'.format(full_desc_file))
+            with core.utils.LockedOpen(full_desc_file, 'w+', encoding='ascii') as fp:
+                if os.path.getsize(full_desc_file) and sorted(full_desc) != sorted(json.load(fp)):
+                    raise FileExistsError(
+                        'Linux kernel CC full description stored in file "{0}" changed to "{1}"'.format(full_desc_file, full_desc))
                 else:
-                    json.dump({
-                        'cwd': os.path.relpath(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
-                                               os.environ['KLEVER_MAIN_WORK_DIR']),
-                        'in files': self.in_files,
-                        'out file': self.out_file,
-                        'opts': self.other_opts
-                    }, fp, sort_keys=True, indent=4)
+                    json.dump(full_desc, fp, sort_keys=True, indent=4)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
         if full_desc_file:
@@ -133,10 +132,10 @@ class Command:
         self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                       '{0}.json'.format(self.out_file))
         os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
-        with core.utils.LockedOpen(self.desc_file, 'a', encoding='ascii') as fp:
-            if os.path.getsize(self.desc_file):
+        with core.utils.LockedOpen(self.desc_file, 'w+', encoding='ascii') as fp:
+            if os.path.getsize(self.desc_file) and sorted(desc) != sorted(json.load(fp)):
                 raise FileExistsError(
-                    'Linux kernel build command description file "{0}" already exists'.format(self.desc_file))
+                    'Linux kernel build command description stored to file "{0}" changed to "{1}"'.format(self.desc_file, desc))
             else:
                 json.dump(desc, fp, sort_keys=True, indent=4)
 
