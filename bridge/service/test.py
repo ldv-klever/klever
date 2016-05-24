@@ -1,5 +1,6 @@
 import os
 import json
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.test import Client, TestCase
@@ -133,7 +134,7 @@ class TestService(TestCase):
             'username': 'service', 'password': 'service', 'job identifier': self.job.identifier
         })
 
-    def test_normal(self):
+    def test1_success(self):
         # Set schedulers status
         self.assertEqual(len(SolvingProgress.objects.filter(job_id=self.job.id)), 1)
         self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[0][0]).status, SCHEDULER_STATUS[1][0])
@@ -153,12 +154,9 @@ class TestService(TestCase):
         # Get jobs and tasks
         sch_data = {
             'tasks': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
-            'task errors': {},
-            'task descriptions': {},
-            'task solutions': {},
+            'task errors': {}, 'task descriptions': {}, 'task solutions': {},
             'jobs': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
-            'job errors': {},
-            'job configurations': {}
+            'job errors': {}, 'job configurations': {}
         }
         response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
         self.assertEqual(response.status_code, 200)
@@ -180,6 +178,8 @@ class TestService(TestCase):
             })
         except Exception as e:
             self.fail("Wrong json: %s" % e)
+
+        # Decide the job
         response = self.core.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': 1})
@@ -187,13 +187,14 @@ class TestService(TestCase):
         self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
-        # Schedule 10 tasks
+        # Schedule 5 tasks
         task_ids = []
-        for i in range(0, 10):
+        for i in range(0, 5):
             with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
                 response = self.core.post('/service/schedule_task/', {
                     'description': json.dumps({'priority': PRIORITY[3][0]}), 'file': fp
                 })
+                fp.close()
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
             progress = SolvingProgress.objects.get(job_id=self.job.pk)
@@ -244,75 +245,361 @@ class TestService(TestCase):
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertEqual(res.get('error', None), "The task is not finished")
 
-        # Process first 5 tasks
-        sch_data2['tasks']['processing'] = list(x for x in task_ids[:5])
-        sch_data2['tasks']['pending'] = list(x for x in task_ids[5:])
+        # Process all tasks
+        sch_data2['tasks']['processing'] = task_ids
+        sch_data2['tasks']['pending'] = []
         response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data2)})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertEqual(res.get('error', None), None)
-        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['processing']), set(task_ids[:5]))
-        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), set(task_ids[5:]))
+        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['processing']), set(task_ids))
+        self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['pending'], [])
 
-        # Cancel 1st and 6th tasks
+        # Cancel 1st and 2nd tasks
         response = self.core.post('/service/cancel_task/', {'task id': task_ids[0]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
-        response = self.core.post('/service/cancel_task/', {'task id': task_ids[5]})
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        response = self.core.post('/service/cancel_task/', {'task id': task_ids[1]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
-        self.assertEqual(len(Task.objects.filter(id__in=[task_ids[0], task_ids[5]])), 0)
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertEqual(len(Task.objects.filter(id__in=[task_ids[0], task_ids[1]])), 0)
         progress = SolvingProgress.objects.get(job_id=self.job.pk)
-        self.assertEqual(progress.tasks_total, 10)
-        self.assertEqual(progress.tasks_pending, 4)
-        self.assertEqual(progress.tasks_processing, 4)
+        self.assertEqual(progress.tasks_total, 5)
+        self.assertEqual(progress.tasks_pending, 0)
+        self.assertEqual(progress.tasks_processing, 3)
         self.assertEqual(progress.tasks_cancelled, 2)
 
-        # Download 2nd task
-        response = self.scheduler.post('/service/download_task/', {'task id': task_ids[1]})
+        # Download 3d task
+        response = self.scheduler.post('/service/download_task/', {'task id': task_ids[2]})
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')
 
-        # Upload solutions for 2nd and 7th tasks
+        # Upload solutions for 3d and 4th tasks
         with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
-                'task id': task_ids[1], 'file': fp, 'description': json.dumps({'solution_data': None})
+                'task id': task_ids[2], 'file': fp, 'description': json.dumps({'solution_data': None})
             })
+            fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertEqual(res.get('error', None), None)
         with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
-                'task id': task_ids[6], 'file': fp, 'description': json.dumps({'solution_data': None})
+                'task id': task_ids[3], 'file': fp, 'description': json.dumps({'solution_data': None})
             })
+            fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertEqual(res.get('error', None), None)
-        self.assertEqual(len(Solution.objects.filter(task_id__in=[task_ids[1], task_ids[6]])), 2)
+        self.assertEqual(len(Solution.objects.filter(task_id__in=[task_ids[2], task_ids[3]])), 2)
         progress = SolvingProgress.objects.get(job_id=self.job.pk)
         self.assertEqual(progress.solutions, 2)
 
-        # Try to download solution for 2nd task
-        response = self.core.post('/service/download_solution/', {'task id': task_ids[1]})
+        # Try to download solution for 3d task
+        response = self.core.post('/service/download_solution/', {'task id': task_ids[2]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertEqual(res.get('error', None), 'The task is not finished')
 
-        # Finish decision of 2nd and 7th tasks and finish with error for 3d and 8th tasks
-        sch_data2['tasks']['processing'] = [task_ids[3], task_ids[4]]
-        sch_data2['tasks']['pending'] = [task_ids[8], task_ids[9]]
-        sch_data2['tasks']['finished'] = [task_ids[1], task_ids[6]]
-        sch_data2['tasks']['error'] = [task_ids[2], task_ids[7]]
-        sch_data2['task errors'] = {task_ids[2]: 'Task error 1', task_ids[7]: 'Task error 2'}
+        # Finish decision of 3d and 4th tasks and finish with error for 5th task
+        sch_data2['tasks']['processing'] = []
+        sch_data2['tasks']['pending'] = []
+        sch_data2['tasks']['finished'] = [task_ids[2], task_ids[3]]
+        sch_data2['tasks']['error'] = [task_ids[4]]
+        sch_data2['task errors'] = {task_ids[4]: 'Task error'}
         response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data2)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['processing'], [])
+        self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['pending'], [])
+        self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
+        self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['finished'], [])
+
+        # Donwload solutions for finished tasks
+        response = self.core.post('/service/download_solution/', {'task id': task_ids[2]})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response['Content-Type'], 'application/json')
+        response = self.core.post('/service/download_solution/', {'task id': task_ids[4]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('task error', None), 'Task error')
+
+        # Delete finished tasks (FAIL FOR WINDOWS)
+        response = self.core.post('/service/remove_task/', {'task id': task_ids[2]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        response = self.core.post('/service/remove_task/', {'task id': task_ids[3]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        response = self.core.post('/service/remove_task/', {'task id': task_ids[4]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertEqual(len(Task.objects.filter(id__in=task_ids)), 0)
+
+        # Upload finish report
+        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.tar.gz'), mode='rb') as fp:
+            response = self.core.post('/reports/upload/', {
+                'report': json.dumps({
+                    'id': '/', 'type': 'finish', 'resources': {
+                        'CPU time': 1000, 'memory size': 5 * 10 ** 8, 'wall time': 2000
+                    },
+                    'log': 'log.txt', 'desc': 'It does not matter'
+                }), 'file': fp
+            })
+            fp.close()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+
+        # Check that scheduler does not get any tasks or jobs
+        sch_data3 = sch_data.copy()
+        sch_data3['jobs']['finished'].append(self.job.identifier)
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {
+            'jobs and tasks status': json.dumps(sch_data3)
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        new_sch_data = json.loads(res['jobs and tasks status'])
+        self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
+        self.assertEqual(new_sch_data['jobs'], {
+            'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []
+        })
+
+        # Status is corrupted beacause there are unfinisheed tasks
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
+
+        # Check tasks quantities after finishing job decision
+        progress = SolvingProgress.objects.get(job_id=self.job.pk)
+        self.assertEqual(progress.tasks_total, 5)
+        self.assertEqual(progress.solutions, 2)
+        self.assertEqual(progress.tasks_error, 1)
+        self.assertEqual(progress.tasks_processing, 0)
+        self.assertEqual(progress.tasks_pending, 0)
+        self.assertEqual(progress.tasks_finished, 2)
+        self.assertEqual(progress.tasks_cancelled, 2)
+
+    def test2_unfinished_tasks(self):
+        sch_data = {
+            'tasks': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
+            'task errors': {}, 'task descriptions': {}, 'task solutions': {},
+            'jobs': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
+            'job errors': {}, 'job configurations': {}
+        }
+        # Decide the job
+        self.core.post('/jobs/decide_job/', {'report': json.dumps({
+            'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
+        }), 'job format': 1})
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
+
+        # Schedule 5 tasks
+        task_ids = []
+        for i in range(0, 5):
+            with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+                response = self.core.post('/service/schedule_task/', {
+                    'description': json.dumps({'priority': PRIORITY[3][0]}), 'file': fp
+                })
+                fp.close()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response['Content-Type'], 'application/json')
+            self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+            self.assertEqual(len(Task.objects.filter(progress__job_id=self.job.pk)), 1 + i)
+            task_id = json.loads(str(response.content, encoding='utf8')).get('task id', 0)
+            self.assertEqual(len(Task.objects.filter(pk=task_id)), 1)
+            task_ids.append(str(task_id))
+        progress = SolvingProgress.objects.get(job_id=self.job.pk)
+        self.assertEqual(progress.tasks_pending, 5)
+        self.assertEqual(progress.tasks_total, 5)
+
+        # Get tasks
+        sch_data2 = sch_data.copy()
+        sch_data2['jobs']['processing'].append(self.job.identifier)
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data2)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), set(task_ids))
+
+        # Process first 3 tasks
+        sch_data2['tasks']['processing'] = list(x for x in task_ids[:3])
+        sch_data2['tasks']['pending'] = list(x for x in task_ids[3:])
+        self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data2)})
+
+        # Cancel the 4th task
+        self.core.post('/service/cancel_task/', {'task id': task_ids[3]})
+        self.assertEqual(len(Task.objects.filter(pk=task_ids[3])), 0)
+        progress = SolvingProgress.objects.get(job_id=self.job.pk)
+        self.assertEqual(progress.tasks_total, 5)
+        self.assertEqual(progress.tasks_pending, 1)
+        self.assertEqual(progress.tasks_processing, 3)
+        self.assertEqual(progress.tasks_cancelled, 1)
+
+        # Upload solution for the 1st task
+        with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+            response = self.core.post('/service/upload_solution/', {
+                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'solution_data': None})
+            })
+            fp.close()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertEqual(len(Solution.objects.filter(task_id=task_ids[0])), 1)
+        self.assertEqual(SolvingProgress.objects.get(job_id=self.job.pk).solutions, 1)
+
+        # Finish decision of the 1st task and finish with error the 2nd task
+        sch_data2['tasks']['processing'] = [task_ids[2]]
+        sch_data2['tasks']['pending'] = [task_ids[4]]
+        sch_data2['tasks']['finished'] = [task_ids[0]]
+        sch_data2['tasks']['error'] = [task_ids[1]]
+        sch_data2['task errors'] = {task_ids[1]: 'Task error'}
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data2)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['processing']), {task_ids[2]})
+        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), {task_ids[4]})
+        self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
+        self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['finished'], [])
+
+        # Delete finished tasks (FAIL FOR WINDOWS)
+        response = self.core.post('/service/remove_task/', {'task id': task_ids[0]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        response = self.core.post('/service/remove_task/', {'task id': task_ids[1]})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertEqual(len(Task.objects.filter(id__in=[task_ids[0], task_ids[1], task_ids[3]])), 0)
+
+        # Upload finish report
+        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.tar.gz'), mode='rb') as fp:
+            response = self.core.post('/reports/upload/', {
+                'report': json.dumps({
+                    'id': '/', 'type': 'finish', 'resources': {
+                        'CPU time': 1000, 'memory size': 5 * 10**8, 'wall time': 2000
+                    },
+                    'log': 'log.txt', 'desc': 'It does not matter'
+                }), 'file': fp
+            })
+            fp.close()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+
+        # Check that scheduler does not get any tasks or jobs
+        sch_data3 = sch_data.copy()
+        sch_data3['jobs']['finished'].append(self.job.identifier)
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data3)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        new_sch_data = json.loads(res['jobs and tasks status'])
+        self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
+        self.assertEqual(new_sch_data['jobs'], {
+            'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []
+        })
+
+        # Status is corrupted beacause there are unfinisheed tasks
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[5][0])
+
+        # Check tasks quantities after finishing job decision
+        progress = SolvingProgress.objects.get(job_id=self.job.pk)
+        self.assertEqual(progress.tasks_total, 5)
+        self.assertEqual(progress.solutions, 1)
+        self.assertEqual(progress.tasks_error, 1)
+        self.assertEqual(progress.tasks_processing, 1)
+        self.assertEqual(progress.tasks_pending, 1)
+        self.assertEqual(progress.tasks_finished, 1)
+        self.assertEqual(progress.tasks_cancelled, 1)
+
+    def test3_disconnect(self):
+        # Decide job
+        response = self.core.post('/jobs/decide_job/', {'report': json.dumps({
+            'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
+        }), 'job format': 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
+
+        # Schedule 5 tasks
+        task_ids = []
+        for i in range(0, 5):
+            with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+                response = self.core.post('/service/schedule_task/', {
+                    'description': json.dumps({'priority': PRIORITY[3][0]}), 'file': fp
+                })
+                fp.close()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response['Content-Type'], 'application/json')
+            self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+            self.assertEqual(len(Task.objects.filter(progress__job_id=self.job.pk)), 1 + i)
+            task_id = json.loads(str(response.content, encoding='utf8')).get('task id', 0)
+            self.assertEqual(len(Task.objects.filter(pk=task_id)), 1)
+            task_ids.append(str(task_id))
+
+        progress = SolvingProgress.objects.get(job_id=self.job.pk)
+        self.assertEqual(progress.tasks_pending, 5)
+        self.assertEqual(progress.tasks_total, 5)
+
+        # Get tasks
+        sch_data = {
+            'tasks': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
+            'task errors': {}, 'task descriptions': {}, 'task solutions': {},
+            'jobs': {'pending': [], 'processing': [self.job.identifier], 'error': [], 'finished': [], 'cancelled': []},
+            'job errors': {}, 'job configurations': {}
+        }
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), set(task_ids))
+
+        # Process first 4 tasks
+        sch_data['tasks']['processing'] = list(x for x in task_ids[:4])
+        sch_data['tasks']['pending'] = [task_ids[4]]
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['processing']), set(task_ids[:4]))
+        self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), {task_ids[4]})
+
+        # Upload solution for 1st task
+        with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+            response = self.core.post('/service/upload_solution/', {
+                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'solution_data': None})
+            })
+            fp.close()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertEqual(len(Solution.objects.filter(task_id=task_ids[0])), 1)
+
+        # Finish decision of 1st task and finish with error for 2nd task
+        sch_data['tasks'] = {
+            'processing': [task_ids[2], task_ids[3]], 'pending': [task_ids[4]], 'finished': [task_ids[0]],
+            'error': [task_ids[1]], 'cancel': []
+        }
+        sch_data['task errors'] = {task_ids[1]: 'Task error'}
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
@@ -327,89 +614,253 @@ class TestService(TestCase):
         )
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['finished'], [])
-        sch_data2['task errors'] = {}
 
         # Donwload solutions for finished tasks
+        response = self.core.post('/service/download_solution/', {'task id': task_ids[0]})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response['Content-Type'], 'application/json')
         response = self.core.post('/service/download_solution/', {'task id': task_ids[1]})
         self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response['Content-Type'], 'application/json')
-        response = self.core.post('/service/download_solution/', {'task id': task_ids[6]})
-        self.assertEqual(response.status_code, 200)
-        self.assertNotEqual(response['Content-Type'], 'application/json')
-        response = self.core.post('/service/download_solution/', {'task id': task_ids[2]})
-        self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('task error', None), 'Task error 1')
-        response = self.core.post('/service/download_solution/', {'task id': task_ids[7]})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('task error', None), 'Task error 2')
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('task error', None), 'Task error')
 
-        # Delete finished tasks
-        response = self.core.post('/service/remove_task/', {'task id': task_ids[1]})
+        # Disconnect Klever scheduler
+        response = self.controller.post('/service/set_schedulers_status/', {
+            'statuses': json.dumps({
+                SCHEDULER_TYPE[0][1]: SCHEDULER_STATUS[2][0],
+                SCHEDULER_TYPE[1][1]: SCHEDULER_STATUS[0][0]
+            })
+        })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
-        response = self.core.post('/service/remove_task/', {'task id': task_ids[2]})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
-        response = self.core.post('/service/remove_task/', {'task id': task_ids[6]})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
-        response = self.core.post('/service/remove_task/', {'task id': task_ids[7]})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
-        self.assertEqual(len(Task.objects.filter(id__in=[task_ids[1], task_ids[2], task_ids[6], task_ids[7]])), 0)
+        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[0][0]).status, SCHEDULER_STATUS[2][0])
+        self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[1][0]).status, SCHEDULER_STATUS[0][0])
 
-        # Upload finish report
+        # Status is corrupted because scheduler is disconnected
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[5][0])
+
+        # Check that scheduler does not get any tasks or jobs
+        sch_data = {
+            'tasks': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
+            'task errors': {}, 'task descriptions': {}, 'task solutions': {},
+            'jobs': {'pending': [], 'processing': [self.job.identifier], 'error': [], 'finished': [], 'cancelled': []},
+            'job errors': {}, 'job configurations': {}
+        }
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {
+            'jobs and tasks status': json.dumps(sch_data)
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('error', None), None)
+        new_sch_data = json.loads(res['jobs and tasks status'])
+        self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
+        self.assertEqual(new_sch_data['jobs'], {
+            'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []
+        })
+
+        # Check that after job is corrupted you can't upload report
         with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.tar.gz'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
-                        'CPU time': 1000, 'memory size': 5 * 10**8, 'wall time': 2000
+                        'CPU time': 1000, 'memory size': 5 * 10 ** 8, 'wall time': 2000
                     },
                     'log': 'log.txt', 'desc': 'It does not matter'
                 }), 'file': fp
             })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
-
-        sch_data3 = sch_data.copy()
-        sch_data3['jobs']['finished'].append(self.job.identifier)
-        response = self.scheduler.post('/service/get_jobs_and_tasks/', {
-            'jobs and tasks status': json.dumps(sch_data3)
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        # Status is corrupted beacause there are unfinisheed tasks
-        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[5][0])
+        self.assertEqual(
+            json.loads(str(response.content, encoding='utf8')).get('error', None),
+            'Reports can be uploaded only for processing jobs'
+        )
 
         # Check tasks quantities after finishing job decision
         progress = SolvingProgress.objects.get(job_id=self.job.pk)
-        self.assertEqual(progress.tasks_total, 10)
-        self.assertEqual(progress.solutions, 2)
-        self.assertEqual(progress.tasks_error, 2)
-        self.assertEqual(progress.tasks_processing, 2)
-        self.assertEqual(progress.tasks_pending, 2)
-        self.assertEqual(progress.tasks_finished, 2)
-        self.assertEqual(progress.tasks_cancelled, 2)
+        self.assertEqual(progress.error, 'Klever scheduler was disconnected')
+        self.assertEqual(progress.tasks_total, 5)
+        self.assertEqual(progress.solutions, 1)
+        self.assertEqual(progress.tasks_error, 4)
+        self.assertEqual(progress.tasks_processing, 0)
+        self.assertEqual(progress.tasks_pending, 0)
+        self.assertEqual(progress.tasks_finished, 1)
+        self.assertEqual(progress.tasks_cancelled, 0)
 
-    def __test_disconnect(self):
-        # TODO
-        pass
+    def test4_cancel_job(self):
+        # Decide job
+        self.core.post('/jobs/decide_job/', {'report': json.dumps({
+            'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
+        }), 'job format': 1})
 
-    def __test_cancel_job(self):
-        # TODO
-        pass
+        # Schedule 5 tasks
+        task_ids = []
+        for i in range(0, 5):
+            with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+                response = self.core.post('/service/schedule_task/', {
+                    'description': json.dumps({'priority': PRIORITY[3][0]}), 'file': fp
+                })
+                fp.close()
+            task_ids.append(str(json.loads(str(response.content, encoding='utf8')).get('task id', 0)))
 
-    def __test_nodes(self):
-        # TODO
-        pass
+        # Get tasks
+        sch_data = {
+            'tasks': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
+            'task errors': {}, 'task descriptions': {}, 'task solutions': {},
+            'jobs': {'pending': [], 'processing': [self.job.identifier], 'error': [], 'finished': [], 'cancelled': []},
+            'job errors': {}, 'job configurations': {}
+        }
+        self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
 
-    def __test_success(self):
-        # TODO: finish all tasks before finishing job
-        pass
+        # Process first 4 tasks
+        sch_data['tasks']['processing'] = list(x for x in task_ids[:4])
+        sch_data['tasks']['pending'] = [task_ids[4]]
+        self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
+
+        # Upload solution for the 1st task
+        with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+            self.core.post('/service/upload_solution/', {
+                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'solution_data': None})
+            })
+            fp.close()
+
+        # Finish decision of the 1st task and finish with error for the 2nd task
+        sch_data['tasks'] = {
+            'processing': [task_ids[2], task_ids[3]], 'pending': [task_ids[4]], 'finished': [task_ids[0]],
+            'error': [task_ids[1]], 'cancel': []
+        }
+        sch_data['task errors'] = {task_ids[1]: 'Task error'}
+        self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
+
+        # Stop job decision
+        response = self.client.post('/jobs/ajax/stop_decision/', {'job_id': self.job.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+
+        # Check that scheduler does not get any tasks or jobs
+        sch_data = {
+            'tasks': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
+            'task errors': {}, 'task descriptions': {}, 'task solutions': {},
+            'jobs': {'pending': [], 'processing': [self.job.identifier], 'error': [], 'finished': [], 'cancelled': []},
+            'job errors': {}, 'job configurations': {}
+        }
+        response = self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertIsNone(res.get('error', None))
+        new_sch_data = json.loads(res['jobs and tasks status'])
+        self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
+        self.assertEqual(new_sch_data['jobs'], {
+            'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': [self.job.identifier]
+        })
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[6][0])
+
+        # Check tasks quantities after finishing job decision
+        progress = SolvingProgress.objects.get(job_id=self.job.pk)
+        self.assertEqual(progress.error, 'The job was cancelled')
+        self.assertEqual(progress.tasks_total, 5)
+        self.assertEqual(progress.solutions, 1)
+        self.assertEqual(progress.tasks_error, 1)
+        self.assertEqual(progress.tasks_processing, 0)
+        self.assertEqual(progress.tasks_pending, 0)
+        self.assertEqual(progress.tasks_finished, 1)
+        self.assertEqual(progress.tasks_cancelled, 3)
+
+    def test_nodes(self):
+        nodes_data = [
+            {
+                'CPU model': 'CPU_model_1',
+                'CPU number': 8,
+                'RAM memory': 16 * 10**9,
+                'disk memory': 10**12,
+                'nodes': {
+                    'node1': {
+                        'status': NODE_STATUS[1][0],
+                        'workload': {
+                            'reserved CPU number': 3,
+                            'reserved RAM memory': 2 * 10**9,
+                            'reserved disk memory': 10**11,
+                            'running verification jobs': 2,
+                            'running verification tasks': 9,
+                            'available for jobs': True,
+                            'available for tasks': True
+                        }
+                    },
+                    'node2': {
+                        'status': NODE_STATUS[2][0],
+                        'workload': {
+                            'reserved CPU number': 1,
+                            'reserved RAM memory': 10 ** 9,
+                            'reserved disk memory': 10 ** 9,
+                            'running verification jobs': 0,
+                            'running verification tasks': 15,
+                            'available for jobs': False,
+                            'available for tasks': True
+                        }
+                    },
+                    'node3': {
+                        'status': NODE_STATUS[3][0]
+                    }
+                }
+            },
+            {
+                'CPU model': 'CPU_model_2',
+                'CPU number': 8,
+                'RAM memory': 12 * 10 ** 9,
+                'disk memory': 5 * 10 ** 11,
+                'nodes': {
+                    'node4': {
+                        'status': NODE_STATUS[1][0],
+                        'workload': {
+                            'reserved CPU number': 3,
+                            'reserved RAM memory': 10 ** 9,
+                            'reserved disk memory': 2 * 10 ** 11,
+                            'running verification jobs': 0,
+                            'running verification tasks': 0,
+                            'available for jobs': False,
+                            'available for tasks': False
+                        }
+                    },
+                    'node5': {
+                        'status': NODE_STATUS[0][0]
+                    }
+                }
+            }
+        ]
+        response = self.controller.post('/service/update_nodes/', {
+            'nodes data': json.dumps(nodes_data)
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        for n_conf in nodes_data:
+            try:
+                configuration = NodesConfiguration.objects.get(
+                    cpu=n_conf['CPU model'], cores=n_conf['CPU number'],
+                    ram=n_conf['RAM memory'], memory=n_conf['disk memory']
+                )
+            except ObjectDoesNotExist:
+                self.fail('Nodes configuration was not created')
+            for n in n_conf['nodes']:
+                try:
+                    node = Node.objects.get(config=configuration, hostname=n, status=n_conf['nodes'][n]['status'])
+                except ObjectDoesNotExist:
+                    self.fail("Node was not created")
+                if 'workload' in n_conf['nodes'][n]:
+                    self.assertEqual(len(Workload.objects.filter(
+                        node=node,
+                        jobs=n_conf['nodes'][n]['workload']['running verification jobs'],
+                        tasks=n_conf['nodes'][n]['workload']['running verification tasks'],
+                        cores=n_conf['nodes'][n]['workload']['reserved CPU number'],
+                        ram=n_conf['nodes'][n]['workload']['reserved RAM memory'],
+                        memory=n_conf['nodes'][n]['workload']['reserved disk memory'],
+                        for_jobs=n_conf['nodes'][n]['workload']['available for jobs'],
+                        for_tasks=n_conf['nodes'][n]['workload']['available for tasks']
+                    )), 1)
+                else:
+                    self.assertIsNone(node.workload)
+        response = self.client.get(reverse('service:schedulers', args=[]))
+        self.assertEqual(response.status_code, 200)

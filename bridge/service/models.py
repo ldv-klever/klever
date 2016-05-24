@@ -3,6 +3,7 @@ from django.db.models.signals import pre_delete, post_init
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
+from bridge.utils import logger
 from jobs.models import Job
 
 FILE_DIR = 'Service'
@@ -148,4 +149,7 @@ def get_solution_description(**kwargs):
 def solution_delete(**kwargs):
     file = kwargs['instance']
     storage, path = file.archive.storage, file.archive.path
-    storage.delete(path)
+    try:
+        storage.delete(path)
+    except Exception as e:
+        logger.exception("Can't delete task archive: %s" % e, stack_info=True)
